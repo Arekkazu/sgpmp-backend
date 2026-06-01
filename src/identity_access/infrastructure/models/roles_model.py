@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import datetime
-from typing import Optional
-from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+from typing import TYPE_CHECKING, Optional
+from sqlalchemy import Boolean, Integer, PrimaryKeyConstraint, String, Time, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from base_model import Base
-from permisos_model import Permisos
+from .base_model import Base
+
+if TYPE_CHECKING:
+    from .permisos_model import Permisos
+    from .usuarios_model import Usuarios
 
 
 class Roles(Base):

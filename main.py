@@ -1,6 +1,7 @@
-# Auditoría
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
+
+from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 
 app = FastAPI(
     root_path="/api",
@@ -8,6 +9,8 @@ app = FastAPI(
     description="Microservicio de gestión de usuarios, roles y permisos dentro del sistema de gestión de maquinaria y nómina.",
     version="1.0.0",
 )
+
+app.include_router(usuarios_router)
 
 @app.get("/", tags=["Health"])
 async def index():

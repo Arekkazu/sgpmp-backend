@@ -1,12 +1,13 @@
-from typing import Optional
+from __future__ import annotations
+
 import datetime
-import enum
-
-from sqlalchemy import Integer, PrimaryKeyConstraint, Sequence, String,  UniqueConstraint
-
+from typing import TYPE_CHECKING, Optional
+from sqlalchemy import Integer, PrimaryKeyConstraint, Sequence, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from base_model import Base
-from cuenta_usuarios_model import CuentasUsuarios
+from .base_model import Base
+
+if TYPE_CHECKING:
+    from .cuenta_usuarios_model import CuentasUsuarios
 
 
 class EstadosCuentas(Base):

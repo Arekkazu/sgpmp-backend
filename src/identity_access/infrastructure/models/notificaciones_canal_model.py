@@ -1,13 +1,14 @@
-from typing import Optional
-import datetime
-import enum
+from __future__ import annotations
 
-from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import JSONB
+import datetime
+from typing import TYPE_CHECKING, Optional
+from sqlalchemy import Date, Enum, Integer, PrimaryKeyConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from base_model import Base
-from enums_models import EnumEstadoEnvio
-from notificaciones_model import Notificaciones
+from .base_model import Base
+from .enums_models import EnumEstadoEnvio
+
+if TYPE_CHECKING:
+    from .notificaciones_model import Notificaciones
 
 
 class NotificacionesCanal(Base):

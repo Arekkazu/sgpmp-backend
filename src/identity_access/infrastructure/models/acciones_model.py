@@ -1,11 +1,15 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Optional
 import datetime
 import enum
 
 from sqlalchemy import CHAR, CheckConstraint, Enum, Integer, PrimaryKeyConstraint, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from base_model import Base
-from permisos_model import Permisos
+from .base_model import Base
+
+if TYPE_CHECKING:
+    from .permisos_model import Permisos
 
 class Acciones(Base):
     __tablename__ = 'acciones'

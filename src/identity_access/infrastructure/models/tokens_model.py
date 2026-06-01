@@ -5,8 +5,8 @@ import enum
 from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from base_model import Base
-from enums_models import EnumTokenTipo
+from .base_model import Base
+from .enums_models import EnumTokenTipo
 
 class Tokens(Base):
     __tablename__ = 'tokens'
