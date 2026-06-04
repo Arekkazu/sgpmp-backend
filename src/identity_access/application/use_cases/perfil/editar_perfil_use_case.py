@@ -11,11 +11,20 @@ from src.identity_access.infrastructure.email_templates import activation_email
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.email import send_email
-from src.shared.errors import AuthorizationError, NotFoundError, ValidationError
+from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
 
 ROL_ADMINISTRADOR = 1
+ESTADO_ACTIVO = 2
 ESTADOS_QUE_INVALIDAN_SESION = {3, 4, 5}  # Inactivo, Bloqueado, Eliminado
 TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
+
+TRANSICIONES_VALIDAS = {
+    1: {2, 5},          # Pendiente → Activo, Eliminado
+    2: {1, 3, 4, 5},    # Activo → Pendiente, Inactivo, Bloqueado, Eliminado
+    3: {2, 5},          # Inactivo → Activo, Eliminado
+    4: {2, 3, 5},       # Bloqueado → Activo, Inactivo, Eliminado
+    # Eliminado (5) no tiene transiciones salientes
+}
 
 
 class EditarPerfilUseCase:
@@ -105,13 +114,29 @@ class EditarPerfilUseCase:
             if sesion_activa is not None:
                 self.sesiones_port.invalidar_sesion(sesion_activa)
 
+        if correo_modificado and cuenta_objetivo is not None and cuenta_objetivo.id_estado_cuenta != ESTADO_ACTIVO:
+            raise BusinessRuleError(
+                code="CUENTA_NO_ACTIVA",
+                message="No se puede cambiar el correo electrónico porque la cuenta no está activa.",
+                field="correo_electronico",
+            )
+
         token_verificacion = None
         try:
             # 5. Actualizar datos en tabla usuarios (con control de concurrencia)
             usuario = self.usuarios_port.actualizar_usuario(usuario, cambios, dto.version)
 
+            if cuenta_objetivo is not None:
+                self.db.refresh(cuenta_objetivo)
+
             # 6. Actualizar estado en cuentas_usuarios si admin lo modificó
-            if nuevo_estado is not None and cuenta_objetivo is not None:
+            if nuevo_estado is not None and cuenta_objetivo is not None and nuevo_estado != cuenta_objetivo.id_estado_cuenta:
+                estado_actual = cuenta_objetivo.id_estado_cuenta
+                if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, set()):
+                    raise BusinessRuleError(
+                        code="TRANSICION_INVALIDA",
+                        message=f"No se puede cambiar el estado de la cuenta de {estado_actual} a {nuevo_estado} porque la transición no está permitida.",
+                    )
                 cuenta_objetivo.id_estado_cuenta = nuevo_estado
                 self.db.flush()
 

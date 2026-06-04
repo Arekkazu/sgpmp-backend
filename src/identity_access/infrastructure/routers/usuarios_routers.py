@@ -86,6 +86,7 @@ def activar_cuenta(token: str, db: Session = Depends(get_db)):
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
 )
