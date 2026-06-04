@@ -104,6 +104,12 @@ class LockedError(AppError):
     status_code = 423
 
 
+class PreconditionFailedError(AppError):
+    """Conflicto de concurrencia optimista: el recurso fue modificado por otro actor."""
+
+    status_code = 412
+
+
 class ServiceUnavailableError(AppError):
     """Servicio externo no disponible temporalmente (SMTP, terceros).
 

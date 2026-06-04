@@ -16,3 +16,15 @@ class UsuariosPort(ABC):
     @abstractmethod
     def buscar_por_correo(self, correo_electronico: str) -> Optional[Usuarios]:
         pass
+
+    @abstractmethod
+    def buscar_por_id(self, id_usuario: int) -> Optional[Usuarios]:
+        pass
+
+    @abstractmethod
+    def actualizar_usuario(self, usuario: Usuarios, cambios: dict, version_cliente: int) -> Usuarios:
+        pass
+
+    @abstractmethod
+    def verificar_rol_existe(self, id_rol: int) -> bool:
+        pass

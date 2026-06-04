@@ -222,5 +222,8 @@ Los templates de correo generan links hacia el frontend (`FRONTEND_URL`), no hac
 **`audit_sdk`**
 Disponible como `.whl` local en `vendor/`. Se inicializa en `main.py` mediante `AuditContextMiddleware`. Los eventos de auditoría se registran desde los use cases correspondientes.
 
+**Campo `direccion` en edición de perfil (RF-05)**
+El RF-05 no lista `direccion` como campo editable, pero el diagrama del paso 03 sí lo incluye. El campo está implementado como editable en el use case. Pendiente confirmación del grupo de análisis para definir si debe excluirse o mantenerse.
+
 **Esquemas de DB**
 Los modelos ORM pueden declarar `schema="nombre_schema"` en el `__table_args__`. Verificar en `base_model.py` o en el modelo específico del módulo.

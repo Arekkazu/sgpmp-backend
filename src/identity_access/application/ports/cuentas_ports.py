@@ -39,3 +39,7 @@ class CuentasPort(ABC):
     @abstractmethod
     def actualizar_ultimo_acceso(self, cuenta: CuentasUsuarios) -> None:
         pass
+
+    @abstractmethod
+    def poner_cuenta_pendiente(self, cuenta: CuentasUsuarios, nuevo_token: str) -> None:
+        pass
