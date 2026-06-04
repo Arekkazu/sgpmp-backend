@@ -146,3 +146,9 @@ class CuentasSQLRepository(CuentasPort):
     def actualizar_ultimo_acceso(self, cuenta: CuentasUsuarios) -> None:
         cuenta.ultimo_acceso = datetime.now(timezone.utc)
         self.db.flush()
+
+    def poner_cuenta_pendiente(self, cuenta: CuentasUsuarios, nuevo_token: str) -> None:
+        cuenta.id_estado_cuenta = ESTADO_PENDIENTE_ACTIVACION
+        cuenta.token_activacion_actual = nuevo_token
+        cuenta.fecha_cambio_estado = datetime.now(timezone.utc)
+        self.db.flush()

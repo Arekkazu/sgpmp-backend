@@ -16,6 +16,7 @@ class UsuarioResponse(BaseModel):
     fecha_registro: datetime.datetime
     telefono: str | None
     direccion: str | None
+    version: int
 
 
 
