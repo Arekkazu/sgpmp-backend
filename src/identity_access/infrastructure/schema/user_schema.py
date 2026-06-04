@@ -1,6 +1,7 @@
 import datetime
 from pydantic import BaseModel, EmailStr
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
+from src.shared.base_dto import BaseDTO
 
 
 class UsuarioResponse(BaseModel):
@@ -19,6 +20,13 @@ class UsuarioResponse(BaseModel):
 
 
     model_config = {"from_attributes": True}
+
+
+class LoginResponse(BaseDTO):
+    token: str
+    tipo: str = "Bearer"
+    expira_en: int
+    message: str
 
 
 class UsuarioCreate(BaseModel):

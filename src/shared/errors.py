@@ -98,6 +98,12 @@ class InfrastructureError(AppError):
         self.original_error = original_error
 
 
+class LockedError(AppError):
+    """Recurso bloqueado temporalmente (ej: cuenta por exceso de intentos fallidos)."""
+
+    status_code = 423
+
+
 class ServiceUnavailableError(AppError):
     """Servicio externo no disponible temporalmente (SMTP, terceros).
 

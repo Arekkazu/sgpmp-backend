@@ -26,6 +26,10 @@ def create_token(jti: int, id_usuario: int, id_rol: int) -> tuple[str, datetime]
     return token, expire
 
 
+def token_expiration() -> datetime:
+    return datetime.now(timezone.utc) + timedelta(hours=_EXPIRE_HOURS)
+
+
 def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])

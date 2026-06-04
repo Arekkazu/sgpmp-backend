@@ -213,6 +213,9 @@ FRONTEND_URL=http://localhost:3000
 **`root_path="/api"` en `main.py`**
 El prefijo `/api` lo agrega el proxy inverso en producción. Localmente los endpoints se acceden sin ese prefijo: `http://localhost:8000/usuarios/`.
 
+**Autenticación frontend → backend**
+El backend expone JWT vía `Authorization: Bearer <token>` en el header HTTP. Dónde y cómo el frontend almacena el token (localStorage, IndexedDB, memoria) y cómo lo inyecta en cada request (manualmente o vía Service Worker) es **decisión exclusiva del equipo de frontend** y no afecta el contrato del backend.
+
 **Links en emails**
 Los templates de correo generan links hacia el frontend (`FRONTEND_URL`), no hacia el backend. El frontend extrae el token del query param y llama el endpoint de activación en el backend. Para pruebas sin frontend, usar Swagger o curl directamente.
 

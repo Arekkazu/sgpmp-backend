@@ -1,6 +1,7 @@
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
 
+from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.shared.error_handlers import register_error_handlers
 
@@ -14,6 +15,7 @@ app = FastAPI(
 register_error_handlers(app)
 
 app.include_router(usuarios_router)
+app.include_router(sesiones_router)
 
 @app.get("/", tags=["Health"])
 async def index():

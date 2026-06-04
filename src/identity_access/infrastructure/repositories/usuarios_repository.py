@@ -1,3 +1,5 @@
+from typing import Optional
+
 import bcrypt
 from sqlalchemy.orm import Session
 
@@ -13,6 +15,13 @@ class UsuariosSQLRepository(UsuariosPort):
 
     def __init__(self, db: Session):
         self.db = db
+
+    def buscar_por_correo(self, correo_electronico: str) -> Optional[Usuarios]:
+        return (
+            self.db.query(Usuarios)
+            .filter(Usuarios.correo_electronico == correo_electronico)
+            .first()
+        )
 
     def create_usuario(self, dto: UsuarioCreateDTO) -> Usuarios:
         usuario = Usuarios(

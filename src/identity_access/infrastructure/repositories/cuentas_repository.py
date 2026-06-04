@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -10,7 +11,10 @@ from src.shared.errors import FlowError, GoneError, ValidationError
 
 ESTADO_PENDIENTE_ACTIVACION = 1
 ESTADO_ACTIVO = 2
+ESTADO_BLOQUEADO = 4
 TOKEN_EXPIRACION_HORAS = 24
+MAX_INTENTOS_FALLIDOS = 5
+MINUTOS_BLOQUEO = 15
 
 
 class CuentasSQLRepository(CuentasPort):
@@ -116,3 +120,29 @@ class CuentasSQLRepository(CuentasPort):
             raise_from_db_error(e, conflict_messages={})
 
         return usuario.nombre
+
+    def buscar_cuenta_por_usuario(self, id_usuario: int) -> Optional[CuentasUsuarios]:
+        return (
+            self.db.query(CuentasUsuarios)
+            .filter(CuentasUsuarios.id_usuario == id_usuario)
+            .first()
+        )
+
+    def incrementar_intentos_fallidos(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.intentos_fallidos += 1
+        cuenta.ultimo_intento_fallido = datetime.now(timezone.utc)
+        self.db.flush()
+
+    def bloquear_cuenta(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.id_estado_cuenta = ESTADO_BLOQUEADO
+        cuenta.bloqueado_hasta = datetime.now(timezone.utc) + timedelta(minutes=MINUTOS_BLOQUEO)
+        self.db.flush()
+
+    def resetear_intentos(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.intentos_fallidos = 0
+        cuenta.ultimo_intento_fallido = None
+        self.db.flush()
+
+    def actualizar_ultimo_acceso(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.ultimo_acceso = datetime.now(timezone.utc)
+        self.db.flush()

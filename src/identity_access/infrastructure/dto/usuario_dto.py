@@ -9,6 +9,11 @@ class ReenviarTokenDTO(BaseDTO):
     correo_electronico: EmailStr
 
 
+class LoginDTO(BaseDTO):
+    correo_electronico: EmailStr
+    contrasena: str
+
+
 class UsuarioCreateDTO(BaseDTO):
     correo_electronico: EmailStr
     telefono: str
