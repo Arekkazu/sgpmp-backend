@@ -1,12 +1,20 @@
-from typing import Optional
+from __future__ import annotations
+
 import datetime
-import enum
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import Base
 from .enums_models import EnumUsuarioGenero
+
+if TYPE_CHECKING:
+    from .roles_model import Roles
+    from .cuenta_usuarios_model import CuentasUsuarios
+    from .eventos_model import Eventos
+    from .gestiones_cuenta_model import GestionesCuenta
+    from .notificaciones_model import Notificaciones
 
 class Usuarios(Base):
     __tablename__ = 'usuarios'
@@ -50,3 +58,4 @@ class Usuarios(Base):
     eventos: Mapped[list['Eventos']] = relationship('Eventos', back_populates='usuarios')
     gestiones_cuenta: Mapped[list['GestionesCuenta']] = relationship('GestionesCuenta', back_populates='usuarios')
     notificaciones: Mapped[list['Notificaciones']] = relationship('Notificaciones', back_populates='usuarios')
+

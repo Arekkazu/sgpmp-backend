@@ -17,18 +17,18 @@ class UsuarioResponse(BaseModel):
     direccion: str | None
 
 
+
     model_config = {"from_attributes": True}
 
 
 class UsuarioCreate(BaseModel):
+    correo_electronico: EmailStr
+    telefono: str
     tipo_identificacion: str
     numero_identificacion: str
     nombre: str
     apellidos: str
     fecha_nacimiento: datetime.date
     genero: EnumUsuarioGenero
-    correo_electronico: EmailStr
     contrasena: str
-    id_rol: int
-    telefono: str | None = None
-    direccion: str | None = None
+    direccion: str

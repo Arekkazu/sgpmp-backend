@@ -1,12 +1,17 @@
-from typing import Optional
+from __future__ import annotations
+
 import datetime
-import enum
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import Base
 from .enums_models import EnumAccionCuenta
+
+if TYPE_CHECKING:
+    from .cuenta_usuarios_model import CuentasUsuarios
+    from .usuarios_model import Usuarios
 
 class GestionesCuenta(Base):
     __tablename__ = 'gestiones_cuenta'

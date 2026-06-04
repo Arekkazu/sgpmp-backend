@@ -1,12 +1,18 @@
-from typing import Optional
+from __future__ import annotations
+
 import datetime
-import enum
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import Base
 from .enums_models import EnumEventoResultado
+
+if TYPE_CHECKING:
+    from .usuarios_model import Usuarios
+    from .tipo_eventos_model import TiposEventos
+    from .notificaciones_model import Notificaciones
 
 class Eventos(Base):
     __tablename__ = 'eventos'

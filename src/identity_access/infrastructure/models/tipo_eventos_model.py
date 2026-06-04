@@ -1,11 +1,15 @@
-from typing import Optional
+from __future__ import annotations
+
 import datetime
-import enum
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, Table, Text, Time, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import Base
+
+if TYPE_CHECKING:
+    from .eventos_model import Eventos
 
 
 class TiposEventos(Base):
