@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
+
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
@@ -102,3 +104,32 @@ class SesionesSQLRepository(SesionesPort):
         )
         self.db.add(evento)
         self.db.flush()
+
+    def invalidar_todas_sesiones(self, id_cuenta_usuario: int) -> None:
+        ahora = datetime.now(timezone.utc)
+        sesiones = (
+            self.db.query(Sesiones)
+            .filter(
+                Sesiones.id_cuenta_usuario == id_cuenta_usuario,
+                Sesiones.es_activa.is_(True),
+            )
+            .all()
+        )
+        for sesion in sesiones:
+            sesion.es_activa = False
+            sesion.fecha_finalizacion = ahora
+            token = self.db.query(Tokens).filter(Tokens.id_token == sesion.id_token).first()
+            if token is not None and token.fecha_uso is None:
+                token.fecha_uso = ahora
+        self.db.flush()
+
+    def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        return (
+            self.db.query(func.count(Eventos.id_evento))
+            .filter(
+                Eventos.tipo_evento == 7,
+                Eventos.fecha_evento >= desde,
+                Eventos.detalle["ip"].astext == ip,
+            )
+            .scalar()
+        )

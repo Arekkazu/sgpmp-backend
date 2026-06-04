@@ -152,3 +152,30 @@ class CuentasSQLRepository(CuentasPort):
         cuenta.token_activacion_actual = nuevo_token
         cuenta.fecha_cambio_estado = datetime.now(timezone.utc)
         self.db.flush()
+
+    def guardar_token_recuperacion(self, cuenta: CuentasUsuarios, token: str) -> None:
+        cuenta.token_activacion_actual = token
+        cuenta.fecha_cambio_estado = datetime.now(timezone.utc)
+        self.db.flush()
+
+    def buscar_cuenta_por_token_recuperacion(self, token: str) -> Optional[CuentasUsuarios]:
+        return (
+            self.db.query(CuentasUsuarios)
+            .filter(CuentasUsuarios.token_activacion_actual == token)
+            .first()
+        )
+
+    def incrementar_intentos_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.intentos_fallidos += 1
+        cuenta.ultimo_intento_fallido = datetime.now(timezone.utc)
+        self.db.flush()
+
+    def bloquear_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.bloqueado_hasta = datetime.now(timezone.utc) + timedelta(minutes=30)
+        self.db.flush()
+
+    def resetear_intentos_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        cuenta.intentos_fallidos = 0
+        cuenta.ultimo_intento_fallido = None
+        cuenta.bloqueado_hasta = None
+        self.db.flush()

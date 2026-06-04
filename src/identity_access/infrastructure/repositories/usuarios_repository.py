@@ -7,8 +7,10 @@ from src.identity_access.application.ports.usuarios_ports import UsuariosPort
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.infrastructure.models.roles_model import Roles
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from sqlalchemy.exc import InternalError
+
 from src.shared.db_error_translator import raise_from_db_error
-from src.shared.errors import PreconditionFailedError
+from src.shared.errors import ConflictError, PreconditionFailedError
 
 ROL_PRODUCTOR = 2
 
@@ -83,3 +85,21 @@ class UsuariosSQLRepository(UsuariosPort):
 
     def verificar_rol_existe(self, id_rol: int) -> bool:
         return self.db.query(Roles).filter(Roles.id_rol == id_rol).first() is not None
+
+    def cambiar_contrasena(self, usuario: Usuarios, nuevo_hash: str) -> None:
+        usuario.contrasena_cifrada = nuevo_hash
+        try:
+            self.db.flush()
+        except InternalError as e:
+            self.db.rollback()
+            if "CONSTRAINT_VIOLATION" in str(e.orig):
+                raise ConflictError(
+                    code="CONTRASENA_REUTILIZADA",
+                    message=(
+                        "Seguridad de credenciales: No se permite reutilizar la contraseña actual. "
+                        "Por favor, defina una clave completamente nueva."
+                    ),
+                )
+            raise
+        except Exception as e:
+            raise_from_db_error(e, conflict_messages={})

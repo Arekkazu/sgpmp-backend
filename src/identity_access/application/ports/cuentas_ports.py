@@ -43,3 +43,23 @@ class CuentasPort(ABC):
     @abstractmethod
     def poner_cuenta_pendiente(self, cuenta: CuentasUsuarios, nuevo_token: str) -> None:
         pass
+
+    @abstractmethod
+    def guardar_token_recuperacion(self, cuenta: CuentasUsuarios, token: str) -> None:
+        pass
+
+    @abstractmethod
+    def buscar_cuenta_por_token_recuperacion(self, token: str) -> Optional[CuentasUsuarios]:
+        pass
+
+    @abstractmethod
+    def incrementar_intentos_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        pass
+
+    @abstractmethod
+    def bloquear_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        pass
+
+    @abstractmethod
+    def resetear_intentos_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
+        pass

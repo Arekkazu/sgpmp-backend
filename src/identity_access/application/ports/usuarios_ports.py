@@ -28,3 +28,7 @@ class UsuariosPort(ABC):
     @abstractmethod
     def verificar_rol_existe(self, id_rol: int) -> bool:
         pass
+
+    @abstractmethod
+    def cambiar_contrasena(self, usuario: Usuarios, nuevo_hash: str) -> None:
+        pass

@@ -48,3 +48,11 @@ class SesionesPort(ABC):
         id_sesion: Optional[int] = None,
     ) -> None:
         pass
+
+    @abstractmethod
+    def invalidar_todas_sesiones(self, id_cuenta_usuario: int) -> None:
+        pass
+
+    @abstractmethod
+    def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        pass
