@@ -1,3 +1,5 @@
+import hashlib
+import json
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -91,9 +93,20 @@ class SesionesSQLRepository(SesionesPort):
         detalle: dict,
         id_sesion: Optional[int] = None,
     ) -> None:
+        fecha = datetime.now(timezone.utc)
+        contenido_hash = json.dumps({
+            "tipo_evento": tipo_evento,
+            "fecha_evento": fecha.isoformat(),
+            "id_usuario": id_usuario,
+            "resultado": resultado.value,
+            "modulo": "MODULO1",
+            "detalle": detalle,
+        }, sort_keys=True, default=str)
+        hash_integridad = hashlib.sha256(contenido_hash.encode("utf-8")).hexdigest()
+
         evento = Eventos(
             tipo_evento=tipo_evento,
-            fecha_evento=datetime.now(timezone.utc),
+            fecha_evento=fecha,
             modulo="MODULO1",
             resultado=resultado,
             detalle=detalle,
@@ -101,6 +114,7 @@ class SesionesSQLRepository(SesionesPort):
             categoria="AUTENTICACION",
             estado="PROCESADO",
             id_sesion=id_sesion,
+            hash_integridad=hash_integridad,
         )
         self.db.add(evento)
         self.db.flush()

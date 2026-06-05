@@ -63,3 +63,17 @@ class CuentasPort(ABC):
     @abstractmethod
     def resetear_intentos_cambio_contrasena(self, cuenta: CuentasUsuarios) -> None:
         pass
+
+    @abstractmethod
+    def registrar_gestion(
+        self,
+        id_cuenta_usuario: int,
+        accion: str,
+        motivo: str,
+        id_responsable: int,
+    ) -> None:
+        pass
+
+    @abstractmethod
+    def contar_admins_activos(self) -> int:
+        pass

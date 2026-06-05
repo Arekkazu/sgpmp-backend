@@ -1,13 +1,15 @@
 from typing import Optional
 
 import bcrypt
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.exc import InternalError
+from sqlalchemy.orm import Session, joinedload
 
 from src.identity_access.application.ports.usuarios_ports import UsuariosPort
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
+from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.roles_model import Roles
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
-from sqlalchemy.exc import InternalError
 
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import ConflictError, PreconditionFailedError
@@ -85,6 +87,48 @@ class UsuariosSQLRepository(UsuariosPort):
 
     def verificar_rol_existe(self, id_rol: int) -> bool:
         return self.db.query(Roles).filter(Roles.id_rol == id_rol).first() is not None
+
+    def listar_paginado(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+        offset: int,
+        limit: int,
+    ) -> list[Usuarios]:
+        query = self._query_con_filtros(nombre, correo, id_estado, id_rol)
+        return query.offset(offset).limit(limit).all()
+
+    def contar(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+    ) -> int:
+        return self._query_con_filtros(nombre, correo, id_estado, id_rol).count()
+
+    def _query_con_filtros(self, nombre, correo, id_estado, id_rol):
+        query = (
+            self.db.query(Usuarios)
+            .join(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
+            .options(joinedload(Usuarios.cuentas_usuarios))
+        )
+        if nombre:
+            query = query.filter(
+                or_(
+                    Usuarios.nombre.ilike(f"%{nombre}%"),
+                    Usuarios.apellidos.ilike(f"%{nombre}%"),
+                )
+            )
+        if correo:
+            query = query.filter(Usuarios.correo_electronico.ilike(f"%{correo}%"))
+        if id_estado is not None:
+            query = query.filter(CuentasUsuarios.id_estado_cuenta == id_estado)
+        if id_rol is not None:
+            query = query.filter(Usuarios.id_rol == id_rol)
+        return query
 
     def cambiar_contrasena(self, usuario: Usuarios, nuevo_hash: str) -> None:
         usuario.contrasena_cifrada = nuevo_hash

@@ -5,9 +5,14 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.cuentas_ports import CuentasPort
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
+from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
+from src.identity_access.infrastructure.models.gestiones_cuenta_model import GestionesCuenta
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import FlowError, GoneError, ValidationError
+
+ROL_ADMINISTRADOR = 1
+ESTADO_ACTIVO = 2
 
 ESTADO_PENDIENTE_ACTIVACION = 1
 ESTADO_ACTIVO = 2
@@ -179,3 +184,31 @@ class CuentasSQLRepository(CuentasPort):
         cuenta.ultimo_intento_fallido = None
         cuenta.bloqueado_hasta = None
         self.db.flush()
+
+    def registrar_gestion(
+        self,
+        id_cuenta_usuario: int,
+        accion: str,
+        motivo: str,
+        id_responsable: int,
+    ) -> None:
+        gestion = GestionesCuenta(
+            id_cuenta_usuario=id_cuenta_usuario,
+            accion_cuenta=EnumAccionCuenta(accion),
+            motivo_accion=motivo,
+            fecha_accion=datetime.now(timezone.utc),
+            id_usuario_responsable=id_responsable,
+        )
+        self.db.add(gestion)
+        self.db.flush()
+
+    def contar_admins_activos(self) -> int:
+        return (
+            self.db.query(CuentasUsuarios)
+            .join(Usuarios, Usuarios.id_usuario == CuentasUsuarios.id_usuario)
+            .filter(
+                Usuarios.id_rol == ROL_ADMINISTRADOR,
+                CuentasUsuarios.id_estado_cuenta == ESTADO_ACTIVO,
+            )
+            .count()
+        )

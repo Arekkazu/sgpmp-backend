@@ -32,3 +32,25 @@ class UsuariosPort(ABC):
     @abstractmethod
     def cambiar_contrasena(self, usuario: Usuarios, nuevo_hash: str) -> None:
         pass
+
+    @abstractmethod
+    def listar_paginado(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+        offset: int,
+        limit: int,
+    ) -> list[Usuarios]:
+        pass
+
+    @abstractmethod
+    def contar(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+    ) -> int:
+        pass
