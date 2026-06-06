@@ -7,6 +7,7 @@ from sqlalchemy import Boolean, CHAR, CheckConstraint, Column, Date, DateTime, E
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base_model import Base
+from .enums_models import EnumEstadoEnvio
 
 if TYPE_CHECKING:
     from .eventos_model import Eventos
@@ -36,6 +37,7 @@ class Notificaciones(Base):
     es_leido: Mapped[bool] = mapped_column(Boolean, nullable=False, comment='Indica si el usuario ya leyó o visualizó la notificación en la interfaz.')
     id_notificacion_canal: Mapped[int] = mapped_column(Integer, nullable=False, comment='FK hacia modulo1.notificaciones_canal. Canal por el que se envió la notificación\n(ej: EMAIL, SMS, PUSH).')
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False, comment='FK hacia modulo1.usuarios. Usuario destinatario de la notificación.')
+    estado_envio: Mapped[EnumEstadoEnvio] = mapped_column(Enum(EnumEstadoEnvio, values_callable=lambda cls: [member.value for member in cls], name='enum_estado_envio', schema='modulo1'), nullable=False, server_default='en_cola', comment='Estado del envío de la notificación (en_cola, enviado, fallido).')
 
     eventos: Mapped['Eventos'] = relationship('Eventos', back_populates='notificaciones')
     notificaciones_canal: Mapped['NotificacionesCanal'] = relationship('NotificacionesCanal', back_populates='notificaciones')

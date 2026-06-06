@@ -12,6 +12,7 @@ from .enums_models import EnumUsuarioGenero
 if TYPE_CHECKING:
     from .roles_model import Roles
     from .cuenta_usuarios_model import CuentasUsuarios
+    from .dispositivos_fcm_model import DispositivosFcm
     from .eventos_model import Eventos
     from .gestiones_cuenta_model import GestionesCuenta
     from .notificaciones_model import Notificaciones
@@ -55,6 +56,7 @@ class Usuarios(Base):
 
     roles: Mapped['Roles'] = relationship('Roles', back_populates='usuarios')
     cuentas_usuarios: Mapped['CuentasUsuarios'] = relationship('CuentasUsuarios', uselist=False, back_populates='usuarios')
+    dispositivos_fcm: Mapped[list['DispositivosFcm']] = relationship('DispositivosFcm', back_populates='usuarios')
     eventos: Mapped[list['Eventos']] = relationship('Eventos', back_populates='usuarios')
     gestiones_cuenta: Mapped[list['GestionesCuenta']] = relationship('GestionesCuenta', back_populates='usuarios')
     notificaciones: Mapped[list['Notificaciones']] = relationship('Notificaciones', back_populates='usuarios')

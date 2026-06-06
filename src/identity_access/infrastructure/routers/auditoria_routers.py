@@ -10,6 +10,7 @@ from src.identity_access.infrastructure.repositories.auditoria_repository import
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.schema.gestion_schema import AuditoriaItemResponse, AuditoriaPaginadaResponse
 from src.shared.database import get_db
+from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
 @router.get(
     "/",
     response_model=AuditoriaPaginadaResponse,
+    dependencies=[Depends(require_permission(6, 2))],
     responses={
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},

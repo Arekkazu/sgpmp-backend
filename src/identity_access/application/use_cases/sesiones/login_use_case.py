@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 import bcrypt
 from sqlalchemy.orm import Session
@@ -30,13 +31,15 @@ class LoginUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
-    def execute(self, dto: LoginDTO, ip: str, user_agent: str) -> tuple[str, datetime, bool]:
+    def execute(self, dto: LoginDTO, ip: str, user_agent: str) -> tuple[str, datetime, bool, int]:
         # 1. Buscar usuario por correo
         usuario = self.usuarios_port.buscar_por_correo(dto.correo_electronico)
         if usuario is None:
@@ -119,6 +122,12 @@ class LoginUseCase:
                 bloqueado_hasta = cuenta.bloqueado_hasta
                 if bloqueado_hasta is not None and bloqueado_hasta.tzinfo is None:
                     bloqueado_hasta = bloqueado_hasta.replace(tzinfo=timezone.utc)
+                if self.notificacion_service:
+                    self.notificacion_service.notificar(
+                        tipo_evento=TIPO_LOGIN_FALLIDO,
+                        id_usuario=usuario.id_usuario,
+                        correo_destino=usuario.correo_electronico,
+                    )
                 raise LockedError(
                     code="CUENTA_BLOQUEADA",
                     message=(
@@ -177,4 +186,11 @@ class LoginUseCase:
             self.db.rollback()
             raise
 
-        return jwt_str, fecha_expiracion, sesion_previa_cerrada
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_LOGIN_EXITOSO,
+                id_usuario=usuario.id_usuario,
+                correo_destino=usuario.correo_electronico,
+            )
+
+        return jwt_str, fecha_expiracion, sesion_previa_cerrada, usuario.id_usuario

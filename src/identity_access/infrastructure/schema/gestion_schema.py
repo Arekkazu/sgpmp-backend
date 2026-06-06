@@ -39,6 +39,32 @@ class UsuariosPaginadosResponse(BaseModel):
     items: list[UsuarioEnmascaradoResponse]
 
 
+class UsuarioListadoResponse(BaseModel):
+    nombre_usuario: str
+    correo_electronico: str
+    nombre_rol: str
+    estado_cuenta: str
+
+
+class UsuarioListadoPaginadoResponse(BaseModel):
+    total: int
+    pagina: int
+    tamano: int
+    items: list[UsuarioListadoResponse]
+
+
+class UsuarioDetalleResponse(BaseModel):
+    nombre: str
+    apellidos: str
+    correo_electronico: str
+    tipo_identificacion: str
+    numero_identificacion: str
+    fecha_nacimiento: datetime.date
+    fecha_registro: datetime.datetime
+    nombre_rol: str
+    estado_cuenta: str
+
+
 class AuditoriaItemResponse(BaseModel):
     id_evento: int
     tipo_evento: int

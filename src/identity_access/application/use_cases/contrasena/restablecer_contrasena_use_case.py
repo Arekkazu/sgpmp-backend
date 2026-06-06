@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 import bcrypt
 from sqlalchemy.orm import Session
@@ -24,11 +25,13 @@ class RestablecerContrasenaUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(self, dto: RestablecerContrasenaDTO, ip: str) -> None:
         # 1. Buscar cuenta por token
@@ -99,3 +102,10 @@ class RestablecerContrasenaUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_RESTABLECIMIENTO,
+                id_usuario=cuenta.id_usuario,
+                correo_destino=usuario.correo_electronico,
+            )

@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.cuentas_ports import CuentasPort
@@ -40,11 +42,13 @@ class GestionarCuentaUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: GestionarCuentaDTO, usuario_actual: UsuarioActual) -> None:
         # 1. Solo administradores
@@ -168,3 +172,10 @@ class GestionarCuentaUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_CAMBIO_ESTADO,
+                id_usuario=id_usuario,
+                correo_destino=usuario.correo_electronico,
+            )

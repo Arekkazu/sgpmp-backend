@@ -1,4 +1,5 @@
 import secrets
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -35,11 +36,13 @@ class EditarPerfilUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: EditarPerfilAdminDTO, usuario_actual: UsuarioActual) -> Usuarios:
         es_admin = usuario_actual.id_rol == ROL_ADMINISTRADOR
@@ -171,6 +174,13 @@ class EditarPerfilUseCase:
                 to=nuevo_correo,
                 subject="Verifica tu nuevo correo en SGPMP",
                 html_body=activation_email(usuario.nombre, token_verificacion),
+            )
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
+                id_usuario=id_usuario,
+                correo_destino=usuario.correo_electronico,
             )
 
         return usuario

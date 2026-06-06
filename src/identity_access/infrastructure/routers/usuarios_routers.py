@@ -1,25 +1,34 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
 from src.identity_access.application.use_cases.cuentas.gestionar_cuenta_use_case import GestionarCuentaUseCase
+from src.identity_access.application.use_cases.perfil.consultar_perfil_use_case import ConsultarPerfilUseCase
 from src.identity_access.application.use_cases.perfil.editar_perfil_use_case import EditarPerfilUseCase
 from src.identity_access.application.use_cases.registro.activar_cuenta_use_case import ActivarCuentaUseCase
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
+from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
+from src.shared.rbac import require_permission
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.notificaciones_repository import NotificacionesSQLRepository
+from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
+from src.shared.notificacion_service import NotificacionService
 from src.identity_access.infrastructure.schema.gestion_schema import (
-    UsuarioEnmascaradoResponse,
-    UsuariosPaginadosResponse,
+    UsuarioDetalleResponse,
+    UsuarioListadoPaginadoResponse,
+    UsuarioListadoResponse,
 )
 from src.identity_access.infrastructure.schema.user_schema import UsuarioResponse
 from src.shared.database import get_db
@@ -35,7 +44,8 @@ def listar_usuarios(db: Session = Depends(get_db)):
 
 @router.get(
     "/admin",
-    response_model=UsuariosPaginadosResponse,
+    response_model=UsuarioListadoPaginadoResponse,
+    dependencies=[Depends(require_permission(1, 2))],
     responses={
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -51,28 +61,35 @@ def listar_usuarios_admin(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    from src.shared.errors import AuthorizationError
-    if usuario_actual.id_rol != 1:
-        raise AuthorizationError(
-            code="ACCESO_DENEGADO",
-            message="Acceso denegado. Se requieren privilegios administrativos.",
-        )
-    repo = UsuariosSQLRepository(db)
-    offset = (pagina - 1) * tamano
-    total = repo.contar(nombre, correo, id_estado, id_rol)
-    usuarios = repo.listar_paginado(nombre, correo, id_estado, id_rol, offset, tamano)
+    use_case = ListarUsuariosUseCase(
+        usuarios_port=UsuariosSQLRepository(db),
+        sesiones_port=SesionesSQLRepository(db),
+        db=db,
+    )
+    resultado = use_case.execute(
+        usuario_actual=usuario_actual,
+        nombre=nombre,
+        correo=correo,
+        id_estado=id_estado,
+        id_rol=id_rol,
+        pagina=pagina,
+        tamano=tamano,
+    )
     items = [
-        UsuarioEnmascaradoResponse(
-            **{f: getattr(u, f) for f in [
-                "id_usuario", "nombre", "apellidos", "correo_electronico",
-                "tipo_identificacion", "numero_identificacion", "genero",
-                "id_rol", "fecha_registro", "telefono", "direccion", "version",
-            ]},
-            id_estado_cuenta=u.cuentas_usuarios.id_estado_cuenta if u.cuentas_usuarios else None,
+        UsuarioListadoResponse(
+            nombre_usuario=f"{u.nombre} {u.apellidos}",
+            correo_electronico=u.correo_electronico,
+            nombre_rol=u.roles.nombre_rol,
+            estado_cuenta=u.cuentas_usuarios.estados_cuentas.nombre if u.cuentas_usuarios else "",
         )
-        for u in usuarios
+        for u in resultado["items"]
     ]
-    return UsuariosPaginadosResponse(total=total, pagina=pagina, tamano=tamano, items=items)
+    return UsuarioListadoPaginadoResponse(
+        total=resultado["total"],
+        pagina=resultado["pagina"],
+        tamano=resultado["tamano"],
+        items=items,
+    )
 
 
 @router.post(
@@ -127,6 +144,46 @@ def activar_cuenta(token: str, db: Session = Depends(get_db)):
     return {"message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."}
 
 
+@router.post(
+    "/me/fcm-token",
+    response_model=MessageResponse,
+    status_code=200,
+    responses={401: {"model": ErrorResponse}},
+)
+def registrar_fcm_token(
+    dto: FcmTokenDTO,
+    request: Request,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    user_agent = request.headers.get("user-agent")
+    repo = NotificacionesSQLRepository(db)
+    repo.guardar_fcm_token(usuario_actual.id_usuario, dto.token, user_agent)
+    db.commit()
+    return {"message": "Token FCM registrado exitosamente."}
+
+
+@router.get(
+    "/me",
+    response_model=UsuarioDetalleResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+)
+def consultar_perfil(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    use_case = ConsultarPerfilUseCase(
+        usuarios_port=UsuariosSQLRepository(db),
+        sesiones_port=SesionesSQLRepository(db),
+        db=db,
+    )
+    resultado = use_case.execute(usuario_actual)
+    return UsuarioDetalleResponse(**resultado)
+
+
 @router.patch(
     "/{id_usuario}",
     response_model=UsuarioResponse,
@@ -151,6 +208,7 @@ def editar_perfil(
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
+        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
     )
     usuario = use_case.execute(id_usuario, dto, usuario_actual)
     return usuario
@@ -158,7 +216,8 @@ def editar_perfil(
 
 @router.get(
     "/{id_usuario}/detalle",
-    response_model=UsuarioEnmascaradoResponse,
+    response_model=UsuarioDetalleResponse,
+    dependencies=[Depends(require_permission(1, 2))],
     responses={
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -169,32 +228,20 @@ def detalle_usuario(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    from src.shared.errors import AuthorizationError, NotFoundError
-    if usuario_actual.id_rol != 1:
-        raise AuthorizationError(
-            code="ACCESO_DENEGADO",
-            message="Acceso denegado. Se requieren privilegios administrativos.",
-        )
-    repo = UsuariosSQLRepository(db)
-    usuario = repo.buscar_por_id(id_usuario)
-    if usuario is None:
-        raise NotFoundError(
-            code="USUARIO_NO_ENCONTRADO",
-            message=f"El usuario con ID {id_usuario} no existe en los registros actuales del sistema.",
-        )
-    return UsuarioEnmascaradoResponse(
-        **{f: getattr(usuario, f) for f in [
-            "id_usuario", "nombre", "apellidos", "correo_electronico",
-            "tipo_identificacion", "numero_identificacion", "genero",
-            "id_rol", "fecha_registro", "telefono", "direccion", "version",
-        ]},
-        id_estado_cuenta=usuario.cuentas_usuarios.id_estado_cuenta if usuario.cuentas_usuarios else None,
+    use_case = ConsultarDetalleUsuarioUseCase(
+        usuarios_port=UsuariosSQLRepository(db),
+        permisos_port=PermisosSQLRepository(db),
+        sesiones_port=SesionesSQLRepository(db),
+        db=db,
     )
+    resultado = use_case.execute(id_usuario, usuario_actual)
+    return UsuarioDetalleResponse(**resultado)
 
 
 @router.post(
     "/{id_usuario}/gestionar",
     response_model=MessageResponse,
+    dependencies=[Depends(require_permission(4, 3))],
     responses={
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -213,6 +260,7 @@ def gestionar_cuenta(
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
+        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
     )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}

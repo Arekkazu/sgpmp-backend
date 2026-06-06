@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Optional
 
 import bcrypt
 from sqlalchemy.orm import Session
@@ -25,11 +26,13 @@ class CambiarContrasenaUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: CambiarContrasenaDTO, usuario_actual: UsuarioActual) -> None:
         # 1. Solo el propio usuario puede cambiar su contraseña
@@ -132,3 +135,10 @@ class CambiarContrasenaUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_CAMBIO_CONTRASENA,
+                id_usuario=id_usuario,
+                correo_destino=usuario.correo_electronico,
+            )

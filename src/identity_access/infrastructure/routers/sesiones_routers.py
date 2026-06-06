@@ -8,10 +8,12 @@ from src.identity_access.application.use_cases.sesiones.logout_use_case import L
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.notificaciones_repository import NotificacionesSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
+from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
@@ -37,8 +39,9 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
+        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
     )
-    jwt_str, fecha_expiracion, sesion_previa_cerrada = use_case.execute(dto, ip, user_agent)
+    jwt_str, fecha_expiracion, sesion_previa_cerrada, _ = use_case.execute(dto, ip, user_agent)
 
     ahora = datetime.now(timezone.utc)
     expira_en = int((fecha_expiracion - ahora).total_seconds())

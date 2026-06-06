@@ -1,5 +1,6 @@
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -28,11 +29,13 @@ class SolicitarRecuperacionUseCase:
         cuentas_port: CuentasPort,
         sesiones_port: SesionesPort,
         db: Session,
+        notificacion_service=None,
     ):
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(self, dto: SolicitarRecuperacionDTO, ip: str) -> str:
         # 1. Rate limit por IP: máx 3 solicitudes por hora
@@ -106,5 +109,12 @@ class SolicitarRecuperacionUseCase:
             subject="Restablece tu contraseña en SGPMP",
             html_body=recovery_email(usuario.nombre, token),
         )
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_SOLICITUD_RECUPERACION,
+                id_usuario=usuario.id_usuario,
+                correo_destino=correo,
+            )
 
         return _MENSAJE_GENERICO
