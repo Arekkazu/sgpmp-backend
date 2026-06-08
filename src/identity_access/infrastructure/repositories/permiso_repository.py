@@ -4,9 +4,6 @@ Mapea entre la tabla ``permisos`` y la entidad :class:`Permiso`. Conserva la
 traducción de los pgcodes de triggers: P0006 (permiso mínimo), P0204 (permiso
 admin inmutable) y P0202 (asignación admin a otro rol), además del conflicto de
 unicidad ``uq_permiso_unico``.
-
-El repositorio heredado ``permisos_repository.py`` (``PermisosSQLRepository``)
-sigue vivo porque el detalle de usuario aún lo usa; este es el patrón objetivo.
 """
 from __future__ import annotations
 

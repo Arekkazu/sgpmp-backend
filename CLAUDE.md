@@ -52,16 +52,17 @@ src/
 │   └── schemas.py               # MessageResponse, ErrorResponse (Swagger)
 └── {modulo}/                    # Un directorio por módulo de negocio
     ├── application/
-    │   ├── ports/               # Interfaces (ABC) de repositorios
     │   └── use_cases/           # Casos de uso agrupados por dominio
     │       └── {dominio}/       # ej: registro/, sesiones/
     ├── domain/
-    │   └── entities/            # Entidades de dominio puras (sin ORM)
+    │   ├── entities/            # Entidades de dominio puras y read-models (sin ORM)
+    │   ├── repositories/        # Puertos (ABC) de repositorios, en términos de dominio
+    │   └── value_objects/       # Value objects (Email, Contrasena, Token...)
     └── infrastructure/
         ├── dto/                 # Input DTOs (entrada del endpoint)
         ├── email_templates.py   # Templates HTML de correos del módulo
         ├── models/              # Modelos ORM (mapean tablas de DB)
-        ├── repositories/        # Implementaciones concretas de los ports
+        ├── repositories/        # Implementaciones SQLAlchemy de los puertos
         ├── routers/             # Endpoints FastAPI
         └── schema/              # Response schemas (salida del endpoint)
 ```
@@ -70,11 +71,16 @@ src/
 
 ## Arquitectura por capas
 
-El proyecto sigue **arquitectura hexagonal**. El flujo es siempre:
+El proyecto sigue **arquitectura hexagonal / DDD**. El flujo es siempre:
 
 ```
-Router → UseCase → Port (ABC) ← Repository (SQLAlchemy)
+Router → UseCase → Port (ABC, domain/repositories) ← Repository (SQLAlchemy)
 ```
+
+El puerto vive en `domain/`, no en `application/`: el dominio declara lo que
+necesita y la infraestructura lo implementa, de modo que las flechas siempre
+apuntan hacia adentro (infraestructura → aplicación → dominio). Los repositorios
+reciben y devuelven **entidades de dominio** (o read-models), nunca modelos ORM.
 
 ### Router (`infrastructure/routers/`)
 Recibe la petición HTTP, instancia dependencias, ejecuta el use case, retorna el schema de respuesta.
@@ -90,13 +96,16 @@ Orquesta el flujo completo de una acción de negocio. Es la única capa que:
 
 Un archivo por acción: `crear_usuario_use_case.py`, `activar_cuenta_use_case.py`, etc.
 
-### Port (`application/ports/`)
-Interfaz ABC que define qué operaciones de persistencia necesita el use case.
-Un port por agregado (`UsuariosPort`, `CuentasPort`, `SesionesPort`...).
-La capa de aplicación solo conoce el port, nunca el repository concreto.
+### Port (`domain/repositories/`)
+Interfaz ABC que define qué operaciones de persistencia necesita el use case,
+expresada **en términos del dominio**: recibe y devuelve entidades o value
+objects, nunca modelos ORM ni `infrastructure`. Un puerto por agregado
+(`UsuarioRepository`, `CuentaRepository`, `SesionRepository`...).
+La aplicación solo conoce el puerto, nunca el repository concreto.
 
 ### Repository (`infrastructure/repositories/`)
-Implementación concreta del port con SQLAlchemy. Solo hace operaciones de DB.
+Implementación SQLAlchemy del puerto. Es el único punto que cruza la frontera
+ORM ↔ dominio: mapea fila ORM → entidad al leer y entidad → fila ORM al escribir.
 Usa `flush()`, nunca `commit()`. Captura errores de DB y los traduce con `raise_from_db_error()`.
 
 ### DTO (`infrastructure/dto/`)
@@ -111,6 +120,21 @@ Distinto del DTO (entrada) y del modelo ORM.
 Mapea la tabla de base de datos. Hereda de `Base` en `base_model.py`.
 Solo define columnas y relaciones. Sin lógica.
 
+### Convención de nombres (DDD)
+
+Nombres en **singular** por agregado (`usuario`, `cuenta`, `sesion`, `rol`...):
+
+| Capa | Archivo | Clase |
+|------|---------|-------|
+| Puerto (dominio) | `domain/repositories/<agregado>_repository.py` | `<Agregado>Repository` |
+| Implementación | `infrastructure/repositories/<agregado>_repository.py` | `SqlAlchemy<Agregado>Repository` |
+| Entidad | `domain/entities/<agregado>.py` | `<Agregado>` |
+
+El puerto y su implementación comparten nombre de archivo; la carpeta los
+desambigua. Las operaciones de escritura siguen el patrón
+`entidad = repo.obtener_*(...)` → método de conducta en la entidad →
+`repo.guardar(entidad)`; el `commit()` queda en el use case.
+
 ---
 
 ## Flujo para implementar un caso de uso
@@ -118,12 +142,13 @@ Solo define columnas y relaciones. Sin lógica.
 Seguir este orden sin saltarse capas:
 
 1. **Modelo ORM** — mapea la tabla si no existe
-2. **DTO** — define el input del endpoint
-3. **Port** — declara las operaciones de DB necesarias (ABC)
-4. **Repository** — implementa el port con SQLAlchemy (`flush()`, sin `commit()`)
-5. **Use Case** — orquesta: valida, llama ports, `commit()`, notificaciones
-6. **Schema** — define el response del endpoint
-7. **Router** — conecta todo, sin lógica
+2. **Entidad / value objects** — modela el agregado y su conducta en `domain/`
+3. **DTO** — define el input del endpoint
+4. **Port** — declara las operaciones necesarias (ABC) en `domain/repositories/`, en términos de dominio
+5. **Repository** — implementa el puerto con SQLAlchemy (`flush()`, sin `commit()`), mapeando ORM ↔ entidad
+6. **Use Case** — orquesta: valida, llama puertos, `commit()`, notificaciones
+7. **Schema** — define el response del endpoint
+8. **Router** — conecta todo, sin lógica
 
 ---
 
