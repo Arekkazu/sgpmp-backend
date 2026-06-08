@@ -5,10 +5,9 @@ que tenga usuarios asignados, para mantener la integridad referencial.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import BusinessRuleError, NotFoundError
 
 TIPO_ELIMINACION_ROL = 13
@@ -17,16 +16,16 @@ TIPO_ELIMINACION_ROL = 13
 class EliminarRolUseCase:
     """Orquesta la eliminación de un rol con las guardas de integridad correspondientes."""
 
-    def __init__(self, roles_repo: RolRepository, sesiones_port: SesionesPort, db: Session):
+    def __init__(self, roles_repo: RolRepository, eventos_repo: EventoRepository, db: Session):
         """Inicializa el use case.
 
         Args:
             roles_repo: Repositorio de dominio del agregado Rol.
-            sesiones_port: Registro del evento de auditoría.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
         self.roles_repo = roles_repo
-        self.sesiones_port = sesiones_port
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(self, id_rol: int, usuario_actual: UsuarioActual) -> None:
@@ -70,9 +69,9 @@ class EliminarRolUseCase:
         try:
             self.roles_repo.eliminar(rol)
 
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_ELIMINACION_ROL,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={"id_rol": id_rol, "nombre_rol": nombre_rol},
             )

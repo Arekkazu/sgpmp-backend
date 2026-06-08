@@ -5,13 +5,12 @@ del sistema, y que el permiso no esté duplicado antes de persistirlo.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
 from src.identity_access.domain.entities.permiso import Permiso
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.permiso_repository import PermisoRepository
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.roles_dto import AsignarPermisoDTO
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import ConflictError, NotFoundError, ValidationError
 
 TIPO_ASIGNACION_PERMISO = 14
@@ -24,7 +23,7 @@ class AsignarPermisoUseCase:
         self,
         roles_repo: RolRepository,
         permisos_repo: PermisoRepository,
-        sesiones_port: SesionesPort,
+        eventos_repo: EventoRepository,
         db: Session,
     ):
         """Inicializa el use case.
@@ -32,12 +31,12 @@ class AsignarPermisoUseCase:
         Args:
             roles_repo: Repositorio de dominio del agregado Rol (busca el rol destino).
             permisos_repo: Repositorio de dominio del agregado Permiso.
-            sesiones_port: Registro del evento de auditoría.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
         self.roles_repo = roles_repo
         self.permisos_repo = permisos_repo
-        self.sesiones_port = sesiones_port
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(self, id_rol: int, dto: AsignarPermisoDTO, usuario_actual: UsuarioActual) -> Permiso:
@@ -96,9 +95,9 @@ class AsignarPermisoUseCase:
         try:
             permiso = self.permisos_repo.asignar(id_rol, dto.id_recurso, dto.id_accion, rol.nombre_rol)
 
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_ASIGNACION_PERMISO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "id_rol": id_rol,

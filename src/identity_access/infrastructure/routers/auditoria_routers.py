@@ -12,7 +12,6 @@ from sqlalchemy.orm import Session
 from src.identity_access.application.use_cases.auditoria.consultar_auditoria_use_case import ConsultarAuditoriaUseCase
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
-from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.schema.gestion_schema import AuditoriaItemResponse, AuditoriaPaginadaResponse
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
@@ -42,7 +41,6 @@ def consultar_auditoria(
 ):
     use_case = ConsultarAuditoriaUseCase(
         eventos_repo=SqlAlchemyEventoRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
         db=db,
     )
     resultado = use_case.execute(

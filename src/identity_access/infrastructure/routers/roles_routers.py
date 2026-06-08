@@ -19,7 +19,7 @@ from src.identity_access.infrastructure.models.acciones_model import Acciones
 from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
-from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.schema.roles_schema import (
     AccionResponse,
     PermisoResponse,
@@ -98,7 +98,7 @@ def crear_rol(
 ):
     use_case = CrearRolUseCase(
         roles_repo=SqlAlchemyRolRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     id_rol = use_case.execute(dto, usuario_actual)
@@ -150,7 +150,7 @@ def editar_rol(
 ):
     use_case = EditarRolUseCase(
         roles_repo=SqlAlchemyRolRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     use_case.execute(id_rol, dto, usuario_actual)
@@ -174,7 +174,7 @@ def eliminar_rol(
 ):
     use_case = EliminarRolUseCase(
         roles_repo=SqlAlchemyRolRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     use_case.execute(id_rol, usuario_actual)
@@ -222,7 +222,7 @@ def asignar_permiso(
     use_case = AsignarPermisoUseCase(
         roles_repo=SqlAlchemyRolRepository(db),
         permisos_repo=SqlAlchemyPermisoRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     permiso = use_case.execute(id_rol, dto, usuario_actual)
@@ -247,7 +247,7 @@ def retirar_permiso(
 ):
     use_case = RetirarPermisoUseCase(
         permisos_repo=SqlAlchemyPermisoRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     use_case.execute(id_rol, id_permiso, usuario_actual)

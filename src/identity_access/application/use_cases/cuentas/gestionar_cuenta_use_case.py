@@ -6,12 +6,13 @@ transiciones de estado permitidas.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
 from src.identity_access.application.ports.usuarios_ports import UsuariosPort
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
-from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta, EnumEventoResultado
+from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
 
 ROL_ADMINISTRADOR = 1
@@ -45,7 +46,8 @@ class GestionarCuentaUseCase:
         self,
         usuarios_port: UsuariosPort,
         cuentas_repo: CuentaRepository,
-        sesiones_port: SesionesPort,
+        eventos_repo: EventoRepository,
+        sesiones_repo: SesionRepository,
         db: Session,
         notificacion_service=None,
     ):
@@ -54,13 +56,15 @@ class GestionarCuentaUseCase:
         Args:
             usuarios_port: Acceso a datos de usuarios.
             cuentas_repo: Repositorio de dominio del agregado Cuenta.
-            sesiones_port: Invalidación de sesiones y auditoría.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
+            sesiones_repo: Repositorio de dominio de sesiones (invalidación).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
         self.usuarios_port = usuarios_port
         self.cuentas_repo = cuentas_repo
-        self.sesiones_port = sesiones_port
+        self.eventos_repo = eventos_repo
+        self.sesiones_repo = sesiones_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -168,7 +172,7 @@ class GestionarCuentaUseCase:
 
         # 7. Revocar sesiones ANTES del flush del estado (trigger las desactiva después)
         if nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION:
-            self.sesiones_port.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
+            self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
 
         try:
             # 8. Actualizar estado vía la entidad
@@ -184,9 +188,9 @@ class GestionarCuentaUseCase:
             )
 
             # 10. Registrar evento de auditoría
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_CAMBIO_ESTADO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "id_usuario_afectado": id_usuario,

@@ -5,10 +5,9 @@ para evitar retiros cruzados entre roles.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.permiso_repository import PermisoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthorizationError, NotFoundError
 
 TIPO_REVOCACION_PERMISO = 15
@@ -20,18 +19,18 @@ class RetirarPermisoUseCase:
     def __init__(
         self,
         permisos_repo: PermisoRepository,
-        sesiones_port: SesionesPort,
+        eventos_repo: EventoRepository,
         db: Session,
     ):
         """Inicializa el use case.
 
         Args:
             permisos_repo: Repositorio de dominio del agregado Permiso.
-            sesiones_port: Registro del evento de auditoría.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
         self.permisos_repo = permisos_repo
-        self.sesiones_port = sesiones_port
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(self, id_rol: int, id_permiso: int, usuario_actual: UsuarioActual) -> None:
@@ -69,9 +68,9 @@ class RetirarPermisoUseCase:
         try:
             self.permisos_repo.retirar(permiso)
 
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_REVOCACION_PERMISO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle=detalle,
             )

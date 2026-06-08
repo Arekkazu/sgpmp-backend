@@ -26,8 +26,10 @@ from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO,
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
+from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
@@ -269,7 +271,8 @@ def gestionar_cuenta(
     use_case = GestionarCuentaUseCase(
         usuarios_port=UsuariosSQLRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )

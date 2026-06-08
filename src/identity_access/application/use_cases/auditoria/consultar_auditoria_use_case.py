@@ -9,10 +9,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthorizationError, ValidationError
 
 ROL_ADMINISTRADOR = 1
@@ -22,21 +20,14 @@ TIPO_CONSULTA_AUDITORIA = 16
 class ConsultarAuditoriaUseCase:
     """Orquesta la consulta del log de auditoría con validación de acceso y filtros."""
 
-    def __init__(
-        self,
-        eventos_repo: EventoRepository,
-        sesiones_port: SesionesPort,
-        db: Session,
-    ):
+    def __init__(self, eventos_repo: EventoRepository, db: Session):
         """Inicializa el use case.
 
         Args:
-            eventos_repo: Repositorio de dominio de consulta de eventos.
-            sesiones_port: Registro del evento de acceso al log.
+            eventos_repo: Repositorio de dominio de eventos (consulta y registro).
             db: Sesión SQLAlchemy activa del request.
         """
         self.eventos_repo = eventos_repo
-        self.sesiones_port = sesiones_port
         self.db = db
 
     def execute(
@@ -71,9 +62,9 @@ class ConsultarAuditoriaUseCase:
         # 1. Solo administradores
         if usuario_actual.id_rol != ROL_ADMINISTRADOR:
             try:
-                self.sesiones_port.registrar_evento(
+                self.eventos_repo.registrar(
                     tipo_evento=TIPO_CONSULTA_AUDITORIA,
-                    resultado=EnumEventoResultado.FALLIDO,
+                    exitoso=False,
                     id_usuario=usuario_actual.id_usuario,
                     detalle={"razon": "ACCESO_DENEGADO"},
                 )
@@ -108,9 +99,9 @@ class ConsultarAuditoriaUseCase:
 
         # 5. Registrar evento de consulta
         try:
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_CONSULTA_AUDITORIA,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "filtros": {

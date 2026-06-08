@@ -6,11 +6,10 @@ no eliminarse (eso lo controla el caso de uso de eliminación).
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.roles_dto import EditarRolDTO
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import NotFoundError, ValidationError
 
 TIPO_MODIFICACION_ROL = 12
@@ -19,16 +18,16 @@ TIPO_MODIFICACION_ROL = 12
 class EditarRolUseCase:
     """Orquesta la edición del nombre y/o descripción de un rol."""
 
-    def __init__(self, roles_repo: RolRepository, sesiones_port: SesionesPort, db: Session):
+    def __init__(self, roles_repo: RolRepository, eventos_repo: EventoRepository, db: Session):
         """Inicializa el use case.
 
         Args:
             roles_repo: Repositorio de dominio del agregado Rol.
-            sesiones_port: Registro del evento de auditoría.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
         self.roles_repo = roles_repo
-        self.sesiones_port = sesiones_port
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(self, id_rol: int, dto: EditarRolDTO, usuario_actual: UsuarioActual) -> None:
@@ -61,9 +60,9 @@ class EditarRolUseCase:
             rol.editar(dto.nombre_rol, dto.descripcion)
             self.roles_repo.guardar(rol)
 
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_MODIFICACION_ROL,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "id_rol": id_rol,
