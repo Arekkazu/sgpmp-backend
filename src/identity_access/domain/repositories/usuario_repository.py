@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.entities.usuario_detalle import UsuarioDetalle
 from src.identity_access.domain.value_objects.email import Email
 
 
@@ -82,4 +83,74 @@ class UsuarioRepository(ABC):
             ConflictError: Si la nueva contraseña fue usada recientemente (un
                 trigger de base de datos rechaza la reutilización). HTTP 409.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def actualizar(self, usuario: Usuario, version_cliente: int) -> Usuario:
+        """Actualiza los datos del usuario con control de concurrencia optimista.
+
+        Verifica que ``version_cliente`` coincida con la versión actual del
+        registro antes de escribir. Hace ``flush``, sin ``commit``.
+
+        Args:
+            usuario: Entidad con los campos ya modificados (nombre, apellidos,
+                correo, teléfono, dirección, rol).
+            version_cliente: Versión del registro que el cliente leyó previamente.
+
+        Returns:
+            La entidad re-hidratada desde la base de datos (versión incrementada).
+
+        Raises:
+            PreconditionFailedError: Si ``version_cliente`` no coincide con la
+                versión actual en DB. HTTP 412.
+            ConflictError: Si el nuevo correo ya pertenece a otra cuenta. HTTP 409.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def obtener_detalle(self, id_usuario: int) -> Optional[UsuarioDetalle]:
+        """Obtiene la proyección de lectura de un usuario (con rol y estado resueltos).
+
+        Args:
+            id_usuario: Identidad del usuario a consultar.
+
+        Returns:
+            El :class:`UsuarioDetalle` o ``None`` si no existe.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_detalle(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+        offset: int,
+        limit: int,
+    ) -> list[UsuarioDetalle]:
+        """Retorna una página de proyecciones de lectura aplicando filtros opcionales.
+
+        Args:
+            nombre: Filtro parcial por nombre o apellidos (ILIKE).
+            correo: Filtro parcial por correo electrónico (ILIKE).
+            id_estado: Filtro exacto por estado de cuenta.
+            id_rol: Filtro exacto por rol.
+            offset: Registros a saltar.
+            limit: Máximo de registros a retornar.
+
+        Returns:
+            Lista de :class:`UsuarioDetalle` que cumplen los filtros.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar(
+        self,
+        nombre: Optional[str],
+        correo: Optional[str],
+        id_estado: Optional[int],
+        id_rol: Optional[int],
+    ) -> int:
+        """Cuenta el total de usuarios que cumplen los filtros (para paginar)."""
         raise NotImplementedError

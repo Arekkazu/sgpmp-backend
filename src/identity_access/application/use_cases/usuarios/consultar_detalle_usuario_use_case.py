@@ -5,11 +5,10 @@ E (Ejecutar) sobre el recurso Usuarios; en caso contrario se enmascara.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.permisos_ports import PermisosPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.permiso_repository import PermisoRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import NotFoundError
 
 TIPO_CONSULTA_DETALLE_USUARIO = 18
@@ -22,22 +21,22 @@ class ConsultarDetalleUsuarioUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        permisos_port: PermisosPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        permisos_repo: PermisoRepository,
+        eventos_repo: EventoRepository,
         db: Session,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Búsqueda del usuario por ID.
-            permisos_port: Verificación del permiso E sobre Usuarios.
-            sesiones_port: Registro del evento de auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario (proyección de lectura).
+            permisos_repo: Repositorio de dominio de permisos (verificación del permiso E).
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
-        self.usuarios_port = usuarios_port
-        self.permisos_port = permisos_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.permisos_repo = permisos_repo
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(self, id_usuario: int, usuario_actual: UsuarioActual) -> dict:
@@ -55,36 +54,29 @@ class ConsultarDetalleUsuarioUseCase:
         Raises:
             NotFoundError: Si el usuario no existe. HTTP 404.
         """
-        usuario = self.usuarios_port.buscar_por_id(id_usuario)
-        if usuario is None:
+        detalle = self.usuarios_repo.obtener_detalle(id_usuario)
+        if detalle is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
                 message="Consulta fallida: El usuario solicitado no existe o ha sido retirado del sistema.",
             )
 
-        tiene_id_completo = self.permisos_port.buscar(
+        tiene_id_completo = self.permisos_repo.buscar(
             id_rol=usuario_actual.id_rol,
             id_recurso=ID_RECURSO_USUARIOS,
             id_accion=ID_ACCION_EJECUTAR,
         ) is not None
 
         numero_identificacion = (
-            usuario.numero_identificacion
+            detalle.numero_identificacion
             if tiene_id_completo
-            else self._enmascarar(usuario.numero_identificacion)
-        )
-
-        nombre_rol = usuario.roles.nombre_rol
-        estado_cuenta = (
-            usuario.cuentas_usuarios.estados_cuentas.nombre
-            if usuario.cuentas_usuarios
-            else None
+            else self._enmascarar(detalle.numero_identificacion)
         )
 
         try:
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_CONSULTA_DETALLE_USUARIO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "id_usuario_consultado": id_usuario,
@@ -97,15 +89,15 @@ class ConsultarDetalleUsuarioUseCase:
             raise
 
         return {
-            "nombre": usuario.nombre,
-            "apellidos": usuario.apellidos,
-            "correo_electronico": usuario.correo_electronico,
-            "tipo_identificacion": usuario.tipo_identificacion,
+            "nombre": detalle.nombre,
+            "apellidos": detalle.apellidos,
+            "correo_electronico": detalle.correo_electronico,
+            "tipo_identificacion": detalle.tipo_identificacion,
             "numero_identificacion": numero_identificacion,
-            "fecha_nacimiento": usuario.fecha_nacimiento,
-            "fecha_registro": usuario.fecha_registro,
-            "nombre_rol": nombre_rol,
-            "estado_cuenta": estado_cuenta,
+            "fecha_nacimiento": detalle.fecha_nacimiento,
+            "fecha_registro": detalle.fecha_registro,
+            "nombre_rol": detalle.nombre_rol,
+            "estado_cuenta": detalle.estado_cuenta,
         }
 
     def _enmascarar(self, numero: str) -> str:

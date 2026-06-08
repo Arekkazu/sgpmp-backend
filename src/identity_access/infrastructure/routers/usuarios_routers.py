@@ -28,7 +28,7 @@ from src.identity_access.infrastructure.repositories.cuenta_repository import Sq
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
-from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
+from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
@@ -71,8 +71,8 @@ def listar_usuarios_admin(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = ListarUsuariosUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     resultado = use_case.execute(
@@ -88,8 +88,8 @@ def listar_usuarios_admin(
         UsuarioListadoResponse(
             nombre_usuario=f"{u.nombre} {u.apellidos}",
             correo_electronico=u.correo_electronico,
-            nombre_rol=u.roles.nombre_rol,
-            estado_cuenta=u.cuentas_usuarios.estados_cuentas.nombre if u.cuentas_usuarios else "",
+            nombre_rol=u.nombre_rol,
+            estado_cuenta=u.estado_cuenta or "",
         )
         for u in resultado["items"]
     ]
@@ -189,8 +189,8 @@ def consultar_perfil(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = ConsultarPerfilUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     resultado = use_case.execute(usuario_actual)
@@ -242,9 +242,9 @@ def detalle_usuario(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = ConsultarDetalleUsuarioUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        permisos_port=PermisosSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        permisos_repo=SqlAlchemyPermisoRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
     resultado = use_case.execute(id_usuario, usuario_actual)
@@ -269,7 +269,7 @@ def gestionar_cuenta(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = GestionarCuentaUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         sesiones_repo=SqlAlchemySesionRepository(db),

@@ -6,10 +6,10 @@ transiciones de estado permitidas.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
@@ -44,7 +44,7 @@ class GestionarCuentaUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
+        usuarios_repo: UsuarioRepository,
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         sesiones_repo: SesionRepository,
@@ -54,14 +54,14 @@ class GestionarCuentaUseCase:
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Acceso a datos de usuarios.
+            usuarios_repo: Repositorio de dominio del agregado Usuario.
             cuentas_repo: Repositorio de dominio del agregado Cuenta.
             eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             sesiones_repo: Repositorio de dominio de sesiones (invalidación).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
-        self.usuarios_port = usuarios_port
+        self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.sesiones_repo = sesiones_repo
@@ -106,7 +106,7 @@ class GestionarCuentaUseCase:
             )
 
         # 3. Buscar usuario y cuenta
-        usuario = self.usuarios_port.buscar_por_id(id_usuario)
+        usuario = self.usuarios_repo.obtener_por_id(id_usuario)
         if usuario is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
@@ -210,5 +210,5 @@ class GestionarCuentaUseCase:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_CAMBIO_ESTADO,
                 id_usuario=id_usuario,
-                correo_destino=usuario.correo_electronico,
+                correo_destino=str(usuario.correo),
             )

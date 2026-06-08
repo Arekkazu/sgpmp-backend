@@ -7,10 +7,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 
 TIPO_CONSULTA_LISTA_USUARIOS = 17
 
@@ -20,19 +19,19 @@ class ListarUsuariosUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        eventos_repo: EventoRepository,
         db: Session,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Conteo y listado paginado de usuarios.
-            sesiones_port: Registro del evento de auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario (conteo y proyección de lectura).
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
         """
-        self.usuarios_port = usuarios_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.eventos_repo = eventos_repo
         self.db = db
 
     def execute(
@@ -57,18 +56,19 @@ class ListarUsuariosUseCase:
             tamano: Cantidad de ítems por página (máximo efectivo: 50).
 
         Returns:
-            Diccionario con `total`, `pagina`, `tamano` e `items`.
+            Diccionario con `total`, `pagina`, `tamano` e `items` (lista de
+            :class:`~src.identity_access.domain.entities.usuario_detalle.UsuarioDetalle`).
         """
         tamano = min(tamano, 50)
         offset = (pagina - 1) * tamano
 
-        total = self.usuarios_port.contar(nombre, correo, id_estado, id_rol)
-        items = self.usuarios_port.listar_paginado(nombre, correo, id_estado, id_rol, offset, tamano)
+        total = self.usuarios_repo.contar(nombre, correo, id_estado, id_rol)
+        items = self.usuarios_repo.listar_detalle(nombre, correo, id_estado, id_rol, offset, tamano)
 
         try:
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_CONSULTA_LISTA_USUARIOS,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "filtros": {
