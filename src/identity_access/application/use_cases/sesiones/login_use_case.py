@@ -5,24 +5,18 @@ crea sesión y emite JWT. Implementa la política de sesión única:
 invalida la sesión activa anterior si existe.
 """
 from datetime import datetime, timezone
-from typing import Optional
 
-import bcrypt
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.entities.cuenta import Cuenta
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.sesion_repository import SesionRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthenticationError, AuthorizationError, LockedError
 from src.shared.jwt import create_token, token_expiration
-
-ESTADO_PENDIENTE = 1
-ESTADO_ACTIVO = 2
-ESTADO_INACTIVO = 3
-ESTADO_BLOQUEADO = 4
-ESTADO_ELIMINADO = 5
 
 MAX_INTENTOS = 5
 TIPO_LOGIN_EXITOSO = 3
@@ -39,25 +33,28 @@ class LoginUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        sesiones_repo: SesionRepository,
+        eventos_repo: EventoRepository,
         db: Session,
         notificacion_service=None,
     ):
         """Inicializa el use case con sus dependencias.
 
         Args:
-            usuarios_port: Acceso a datos de usuarios.
-            cuentas_port: Acceso a datos de cuentas y control de intentos.
-            sesiones_port: Creación de sesiones y registro de eventos.
+            usuarios_repo: Repositorio de dominio del agregado Usuario.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta.
+            sesiones_repo: Repositorio de dominio de sesiones y tokens.
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones. ``None`` deshabilita
                 las notificaciones sin afectar el flujo principal.
         """
-        self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.cuentas_repo = cuentas_repo
+        self.sesiones_repo = sesiones_repo
+        self.eventos_repo = eventos_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -80,7 +77,7 @@ class LoginUseCase:
             LockedError: Cuenta bloqueada temporalmente por intentos fallidos. HTTP 423.
         """
         # 1. Buscar usuario por correo
-        usuario = self.usuarios_port.buscar_por_correo(dto.correo_electronico)
+        usuario = self.usuarios_repo.obtener_por_correo(Email(dto.correo_electronico))
         if usuario is None:
             raise AuthenticationError(
                 code="CREDENCIALES_INVALIDAS",
@@ -88,12 +85,12 @@ class LoginUseCase:
             )
 
         # 2. Buscar cuenta asociada
-        cuenta = self.cuentas_port.buscar_cuenta_por_usuario(usuario.id_usuario)
+        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
 
         # 3. Verificar estado de la cuenta
         ahora = datetime.now(timezone.utc)
 
-        if cuenta.id_estado_cuenta == ESTADO_BLOQUEADO:
+        if cuenta.esta_bloqueada():
             bloqueado_hasta = cuenta.bloqueado_hasta
             if bloqueado_hasta is not None:
                 if bloqueado_hasta.tzinfo is None:
@@ -109,24 +106,24 @@ class LoginUseCase:
                     )
             # Tiempo de bloqueo expiró → desbloquear automáticamente
             try:
-                cuenta.id_estado_cuenta = ESTADO_ACTIVO
-                self.db.flush()
+                cuenta.desbloquear()
+                self.cuentas_repo.guardar(cuenta)
                 self.db.commit()
             except Exception:
                 self.db.rollback()
                 raise
 
-        if cuenta.id_estado_cuenta == ESTADO_PENDIENTE:
+        if cuenta.esta_pendiente():
             raise AuthorizationError(
                 code="CUENTA_PENDIENTE",
                 message=(
                     f"Acceso denegado. Su cuenta no ha sido activada. Por favor, haga clic en el enlace "
-                    f"enviado a su correo {usuario.correo_electronico} o utilice la opción "
+                    f"enviado a su correo {usuario.correo} o utilice la opción "
                     f"'Re-enviar token de activación'."
                 ),
             )
 
-        if cuenta.id_estado_cuenta in (ESTADO_INACTIVO, ESTADO_ELIMINADO):
+        if cuenta.id_estado_cuenta in (Cuenta.ESTADO_INACTIVO, Cuenta.ESTADO_ELIMINADO):
             raise AuthorizationError(
                 code="CUENTA_DESHABILITADA",
                 message=(
@@ -136,15 +133,16 @@ class LoginUseCase:
             )
 
         # 4. Verificar contraseña
-        if not bcrypt.checkpw(dto.contrasena.encode("utf-8"), usuario.contrasena_cifrada.encode("utf-8")):
+        if not usuario.contrasena.verificar(dto.contrasena):
             try:
-                self.cuentas_port.incrementar_intentos_fallidos(cuenta)
+                cuenta.incrementar_intentos(ahora)
                 alcanzado_limite = cuenta.intentos_fallidos >= MAX_INTENTOS
                 if alcanzado_limite:
-                    self.cuentas_port.bloquear_cuenta(cuenta)
-                self.sesiones_port.registrar_evento(
+                    cuenta.bloquear(ahora)
+                self.cuentas_repo.guardar(cuenta)
+                self.eventos_repo.registrar(
                     tipo_evento=TIPO_LOGIN_FALLIDO,
-                    resultado=EnumEventoResultado.FALLIDO,
+                    exitoso=False,
                     id_usuario=usuario.id_usuario,
                     detalle={
                         "ip": ip,
@@ -165,7 +163,7 @@ class LoginUseCase:
                     self.notificacion_service.notificar(
                         tipo_evento=TIPO_LOGIN_FALLIDO,
                         id_usuario=usuario.id_usuario,
-                        correo_destino=usuario.correo_electronico,
+                        correo_destino=str(usuario.correo),
                     )
                 raise LockedError(
                     code="CUENTA_BLOQUEADA",
@@ -187,30 +185,31 @@ class LoginUseCase:
         # 5. Login exitoso
         sesion_previa_cerrada = False
         try:
-            self.cuentas_port.resetear_intentos(cuenta)
+            cuenta.resetear_intentos()
 
-            sesion_previa = self.sesiones_port.buscar_sesion_activa(cuenta.id_cuenta_usuario)
+            sesion_previa = self.sesiones_repo.buscar_sesion_activa(cuenta.id_cuenta_usuario)
             if sesion_previa is not None:
-                self.sesiones_port.invalidar_sesion(sesion_previa)
+                self.sesiones_repo.invalidar_sesion(sesion_previa)
                 sesion_previa_cerrada = True
 
             fecha_expiracion = token_expiration()
-            token_db = self.sesiones_port.crear_token_acceso(fecha_expiracion)
-            jwt_str, _ = create_token(token_db.id_token, usuario.id_usuario, usuario.id_rol)
+            token = self.sesiones_repo.crear_token_acceso(fecha_expiracion)
+            jwt_str, _ = create_token(token.id_token, usuario.id_usuario, usuario.id_rol)
 
-            sesion = self.sesiones_port.crear_sesion(
+            sesion = self.sesiones_repo.crear_sesion(
                 id_cuenta_usuario=cuenta.id_cuenta_usuario,
-                id_token=token_db.id_token,
+                id_token=token.id_token,
                 direccion_ip=ip,
                 agente_usuario=user_agent[:255],
                 fecha_expiracion=fecha_expiracion,
             )
 
-            self.cuentas_port.actualizar_ultimo_acceso(cuenta)
+            cuenta.registrar_acceso(ahora)
+            self.cuentas_repo.guardar(cuenta)
 
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_LOGIN_EXITOSO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario.id_usuario,
                 detalle={
                     "ip": ip,
@@ -229,7 +228,7 @@ class LoginUseCase:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_LOGIN_EXITOSO,
                 id_usuario=usuario.id_usuario,
-                correo_destino=usuario.correo_electronico,
+                correo_destino=str(usuario.correo),
             )
 
         return jwt_str, fecha_expiracion, sesion_previa_cerrada, usuario.id_usuario

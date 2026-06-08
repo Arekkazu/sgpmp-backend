@@ -11,12 +11,11 @@ from src.identity_access.application.use_cases.sesiones.login_use_case import Lo
 from src.identity_access.application.use_cases.sesiones.logout_use_case import LogoutUseCase
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
-from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
-from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
-from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
+from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
 from src.shared.notificacion_service import NotificacionService
@@ -41,9 +40,10 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
     user_agent = request.headers.get("user-agent", "unknown")
 
     use_case = LoginUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
