@@ -9,8 +9,8 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.auditoria_ports import AuditoriaPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthorizationError, ValidationError
@@ -24,18 +24,18 @@ class ConsultarAuditoriaUseCase:
 
     def __init__(
         self,
-        auditoria_port: AuditoriaPort,
+        eventos_repo: EventoRepository,
         sesiones_port: SesionesPort,
         db: Session,
     ):
         """Inicializa el use case.
 
         Args:
-            auditoria_port: Conteo y listado de eventos de auditoría.
+            eventos_repo: Repositorio de dominio de consulta de eventos.
             sesiones_port: Registro del evento de acceso al log.
             db: Sesión SQLAlchemy activa del request.
         """
-        self.auditoria_port = auditoria_port
+        self.eventos_repo = eventos_repo
         self.sesiones_port = sesiones_port
         self.db = db
 
@@ -61,11 +61,12 @@ class ConsultarAuditoriaUseCase:
             tamano: Cantidad de ítems por página (máximo efectivo: 50).
 
         Returns:
-            Diccionario con `total`, `pagina`, `tamano` e `items`.
+            Diccionario con ``total``, ``pagina``, ``tamano`` e ``items``, donde
+            cada ítem es una tupla ``(Evento, integridad_ok)``.
 
         Raises:
             AuthorizationError: Si el actor no tiene rol de administrador. HTTP 403.
-            ValidationError: Si `fecha_desde` es posterior a `fecha_hasta`. HTTP 400.
+            ValidationError: Si ``fecha_desde`` es posterior a ``fecha_hasta``. HTTP 400.
         """
         # 1. Solo administradores
         if usuario_actual.id_rol != ROL_ADMINISTRADOR:
@@ -102,8 +103,8 @@ class ConsultarAuditoriaUseCase:
         offset = (pagina - 1) * tamano
 
         # 4. Consultar eventos con verificación de integridad
-        total = self.auditoria_port.contar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta)
-        items = self.auditoria_port.listar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta, offset, tamano)
+        total = self.eventos_repo.contar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta)
+        items = self.eventos_repo.listar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta, offset, tamano)
 
         # 5. Registrar evento de consulta
         try:
