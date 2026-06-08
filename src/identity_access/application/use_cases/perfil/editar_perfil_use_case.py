@@ -5,23 +5,25 @@ editar cualquier perfil, incluyendo rol y estado de cuenta. Si el correo cambia,
 la cuenta pasa a PENDIENTE y se envía un correo de verificación al nuevo correo.
 """
 import secrets
-from typing import Optional
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.entities.cuenta import Cuenta
+from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.rol_repository import RolRepository
+from src.identity_access.domain.repositories.sesion_repository import SesionRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
 from src.identity_access.infrastructure.email_templates import activation_email
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
-from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.email import send_email
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
 
 ROL_ADMINISTRADOR = 1
-ESTADO_ACTIVO = 2
 ESTADOS_QUE_INVALIDAN_SESION = {3, 4, 5}  # Inactivo, Bloqueado, Eliminado
 TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
 
@@ -34,33 +36,50 @@ TRANSICIONES_VALIDAS = {
 }
 
 
+def _valor_columna(usuario: Usuario, campo: str):
+    """Lee el valor de un campo de la entidad por su nombre de columna ORM.
+
+    El audit detail conserva las claves de columna (``correo_electronico``);
+    la entidad expone el correo como value object ``correo``.
+    """
+    if campo == "correo_electronico":
+        return str(usuario.correo)
+    return getattr(usuario, campo, None)
+
+
 class EditarPerfilUseCase:
     """Orquesta la edición de perfil con soporte de control de concurrencia y cambio de correo."""
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        sesiones_repo: SesionRepository,
+        eventos_repo: EventoRepository,
+        roles_repo: RolRepository,
         db: Session,
         notificacion_service=None,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Lectura y actualización de datos de usuario.
-            cuentas_port: Gestión del estado de la cuenta.
-            sesiones_port: Invalidación de sesiones y auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario (lectura y actualización).
+            cuentas_repo: Repositorio de dominio del agregado Cuenta (estado y token).
+            sesiones_repo: Repositorio de dominio de sesiones (invalidación).
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
+            roles_repo: Repositorio de dominio de roles (verificación de existencia).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
-        self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.cuentas_repo = cuentas_repo
+        self.sesiones_repo = sesiones_repo
+        self.eventos_repo = eventos_repo
+        self.roles_repo = roles_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
-    def execute(self, id_usuario: int, dto: EditarPerfilAdminDTO, usuario_actual: UsuarioActual) -> Usuarios:
+    def execute(self, id_usuario: int, dto: EditarPerfilAdminDTO, usuario_actual: UsuarioActual) -> Usuario:
         """Aplica los cambios de perfil respetando los permisos del actor.
 
         Args:
@@ -70,7 +89,7 @@ class EditarPerfilUseCase:
             usuario_actual: Usuario autenticado que realiza la operación.
 
         Returns:
-            Entidad `Usuarios` actualizada.
+            Entidad :class:`Usuario` actualizada.
 
         Raises:
             NotFoundError: Si el usuario objetivo no existe. HTTP 404.
@@ -80,12 +99,12 @@ class EditarPerfilUseCase:
                 o el rol indicado no existe. HTTP 400.
             BusinessRuleError: Si la transición de estado no es válida o se intenta
                 cambiar el correo de una cuenta no activa. HTTP 422.
-            ConflictError: Si la versión del registro no coincide (edición concurrente). HTTP 409.
+            PreconditionFailedError: Si la versión del registro no coincide (edición concurrente). HTTP 412.
         """
         es_admin = usuario_actual.id_rol == ROL_ADMINISTRADOR
 
         # 1. Buscar usuario objetivo
-        usuario = self.usuarios_port.buscar_por_id(id_usuario)
+        usuario = self.usuarios_repo.obtener_por_id(id_usuario)
         if usuario is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
@@ -117,7 +136,7 @@ class EditarPerfilUseCase:
                             "desactivar su propia cuenta ni remover sus privilegios administrativos."
                         ),
                     )
-            if dto.id_rol is not None and not self.usuarios_port.verificar_rol_existe(dto.id_rol):
+            if dto.id_rol is not None and self.roles_repo.obtener_por_id(dto.id_rol) is None:
                 raise ValidationError(
                     code="ROL_NO_EXISTE",
                     message="El rol asignado no existe en el sistema.",
@@ -127,7 +146,7 @@ class EditarPerfilUseCase:
         # 3. Construir dict de cambios y capturar valores anteriores
         correo_modificado = (
             dto.correo_electronico is not None
-            and str(dto.correo_electronico) != usuario.correo_electronico
+            and str(dto.correo_electronico) != str(usuario.correo)
         )
         nuevo_correo = str(dto.correo_electronico) if correo_modificado else None
 
@@ -141,20 +160,20 @@ class EditarPerfilUseCase:
         if es_admin and dto.id_rol is not None:
             cambios["id_rol"] = dto.id_rol
 
-        valores_anteriores = {campo: getattr(usuario, campo, None) for campo in cambios}
+        valores_anteriores = {campo: _valor_columna(usuario, campo) for campo in cambios}
 
         nuevo_estado = dto.id_estado_cuenta if (es_admin and dto.id_estado_cuenta is not None) else None
         estado_invalida_sesion = nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION if nuevo_estado else False
 
         # 4. Revocar sesión activa ANTES del flush de estado (el trigger la desactiva después)
-        cuenta_objetivo = self.cuentas_port.buscar_cuenta_por_usuario(usuario.id_usuario)
+        cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
 
         if (estado_invalida_sesion or correo_modificado) and cuenta_objetivo is not None:
-            sesion_activa = self.sesiones_port.buscar_sesion_activa(cuenta_objetivo.id_cuenta_usuario)
+            sesion_activa = self.sesiones_repo.buscar_sesion_activa(cuenta_objetivo.id_cuenta_usuario)
             if sesion_activa is not None:
-                self.sesiones_port.invalidar_sesion(sesion_activa)
+                self.sesiones_repo.invalidar_sesion(sesion_activa)
 
-        if correo_modificado and cuenta_objetivo is not None and cuenta_objetivo.id_estado_cuenta != ESTADO_ACTIVO:
+        if correo_modificado and cuenta_objetivo is not None and cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:
             raise BusinessRuleError(
                 code="CUENTA_NO_ACTIVA",
                 message="No se puede cambiar el correo electrónico porque la cuenta no está activa.",
@@ -163,11 +182,19 @@ class EditarPerfilUseCase:
 
         token_verificacion = None
         try:
-            # 5. Actualizar datos en tabla usuarios (con control de concurrencia)
-            usuario = self.usuarios_port.actualizar_usuario(usuario, cambios, dto.version)
+            # 5. Aplicar los cambios a la entidad y persistir (con control de concurrencia)
+            usuario.nombre = cambios["nombre"]
+            usuario.apellidos = cambios["apellidos"]
+            if "correo_electronico" in cambios:
+                usuario.correo = Email(cambios["correo_electronico"])
+            if "telefono" in cambios:
+                usuario.telefono = cambios["telefono"]
+            if "direccion" in cambios:
+                usuario.direccion = cambios["direccion"]
+            if "id_rol" in cambios:
+                usuario.id_rol = cambios["id_rol"]
 
-            if cuenta_objetivo is not None:
-                self.db.refresh(cuenta_objetivo)
+            usuario = self.usuarios_repo.actualizar(usuario, dto.version)
 
             # 6. Actualizar estado en cuentas_usuarios si admin lo modificó
             if nuevo_estado is not None and cuenta_objetivo is not None and nuevo_estado != cuenta_objetivo.id_estado_cuenta:
@@ -177,26 +204,27 @@ class EditarPerfilUseCase:
                         code="TRANSICION_INVALIDA",
                         message=f"No se puede cambiar el estado de la cuenta de {estado_actual} a {nuevo_estado} porque la transición no está permitida.",
                     )
-                cuenta_objetivo.id_estado_cuenta = nuevo_estado
-                self.db.flush()
+                cuenta_objetivo.cambiar_estado(nuevo_estado)
+                self.cuentas_repo.guardar(cuenta_objetivo)
 
             # 7. Poner cuenta en PENDIENTE si correo fue modificado
             if correo_modificado and cuenta_objetivo is not None:
                 token_verificacion = secrets.token_urlsafe(32)
-                self.cuentas_port.poner_cuenta_pendiente(cuenta_objetivo, token_verificacion)
+                cuenta_objetivo.poner_pendiente(token_verificacion, datetime.now(timezone.utc))
+                self.cuentas_repo.guardar(cuenta_objetivo)
 
             # 8. Registrar evento de auditoría
             tipo_actor = "Administrador" if es_admin else "Usuario"
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario_actual.id_usuario,
                 detalle={
                     "id_usuario_modificado": id_usuario,
                     "tipo_actor": tipo_actor,
                     "campos_modificados": list(cambios.keys()),
                     "valores_anteriores": valores_anteriores,
-                    "valores_nuevos": {campo: getattr(usuario, campo, None) for campo in cambios},
+                    "valores_nuevos": {campo: _valor_columna(usuario, campo) for campo in cambios},
                 },
             )
 
@@ -217,7 +245,7 @@ class EditarPerfilUseCase:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
                 id_usuario=id_usuario,
-                correo_destino=usuario.correo_electronico,
+                correo_destino=str(usuario.correo),
             )
 
         return usuario

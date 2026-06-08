@@ -29,6 +29,7 @@ from src.identity_access.infrastructure.repositories.cuentas_repository import C
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
+from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
@@ -217,14 +218,29 @@ def editar_perfil(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = EditarPerfilUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     usuario = use_case.execute(id_usuario, dto, usuario_actual)
-    return usuario
+    return UsuarioResponse(
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellidos=usuario.apellidos,
+        correo_electronico=str(usuario.correo),
+        tipo_identificacion=usuario.tipo_identificacion,
+        numero_identificacion=usuario.numero_identificacion,
+        genero=usuario.genero,
+        id_rol=usuario.id_rol,
+        fecha_registro=usuario.fecha_registro,
+        telefono=usuario.telefono,
+        direccion=usuario.direccion,
+        version=usuario.version,
+    )
 
 
 @router.get(

@@ -146,10 +146,18 @@ class Cuenta:
         self.bloqueado_hasta = None
 
     # ── Gestión administrativa ──────────────────────────────────────────────
-    def cambiar_estado(self, nuevo_estado: int, motivo: str) -> None:
-        """Aplica un cambio de estado administrativo con su motivo."""
+    def cambiar_estado(self, nuevo_estado: int, motivo: Optional[str] = None) -> None:
+        """Aplica un cambio de estado.
+
+        Args:
+            nuevo_estado: Estado destino (ver constantes ``ESTADO_*``).
+            motivo: Justificación administrativa. Si es ``None`` no se altera
+                ``motivo_ultimo_cambio`` (caso de la edición de perfil, que cambia
+                el estado sin registrar un motivo).
+        """
         self.id_estado_cuenta = nuevo_estado
-        self.motivo_ultimo_cambio = motivo
+        if motivo is not None:
+            self.motivo_ultimo_cambio = motivo
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Cuenta):
