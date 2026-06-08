@@ -4,10 +4,6 @@ Mapea entre la tabla ``roles`` y la entidad :class:`Rol`. Conserva el stored
 procedure ``sp_crear_rol`` para el alta atómica de rol + permisos y la
 traducción de los pgcodes P0004 (rol protegido) y P0005 (rol en uso) a errores
 de dominio.
-
-Convive con el repositorio heredado ``roles_repository.py``
-(``RolesSQLRepository``), que devuelve modelos ORM y aún usa el use case de
-asignación de permisos. Este es el patrón objetivo.
 """
 from __future__ import annotations
 

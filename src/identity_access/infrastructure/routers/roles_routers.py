@@ -17,9 +17,8 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.identity_access.infrastructure.dto.roles_dto import AsignarPermisoDTO, CrearRolDTO, EditarRolDTO
 from src.identity_access.infrastructure.models.acciones_model import Acciones
 from src.identity_access.infrastructure.models.recursos_model import Recursos
-from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
+from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
-from src.identity_access.infrastructure.repositories.roles_repository import RolesSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.schema.roles_schema import (
     AccionResponse,
@@ -66,7 +65,7 @@ def listar_acciones(db: Session = Depends(get_db)):
 def listar_roles(db: Session = Depends(get_db)):
     use_case = ListarRolesUseCase(
         roles_repo=SqlAlchemyRolRepository(db),
-        permisos_port=PermisosSQLRepository(db),
+        permisos_repo=SqlAlchemyPermisoRepository(db),
     )
     resultado = use_case.execute()
     return [
@@ -121,7 +120,7 @@ def detalle_rol(id_rol: int, db: Session = Depends(get_db)):
             code="ROL_NO_ENCONTRADO",
             message=f"Error: El rol solicitado con ID {id_rol} no existe.",
         )
-    permisos = PermisosSQLRepository(db).listar_por_rol(id_rol)
+    permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(id_rol)
     return RolConPermisosResponse(
         id_rol=rol.id_rol,
         nombre_rol=rol.nombre_rol,
@@ -197,7 +196,7 @@ def listar_permisos_rol(id_rol: int, db: Session = Depends(get_db)):
             code="ROL_NO_ENCONTRADO",
             message=f"Error: El rol solicitado con ID {id_rol} no existe.",
         )
-    permisos = PermisosSQLRepository(db).listar_por_rol(id_rol)
+    permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(id_rol)
     return [PermisoResponse.model_validate(p) for p in permisos]
 
 
@@ -221,8 +220,8 @@ def asignar_permiso(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = AsignarPermisoUseCase(
-        roles_port=RolesSQLRepository(db),
-        permisos_port=PermisosSQLRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
+        permisos_repo=SqlAlchemyPermisoRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
     )
@@ -247,7 +246,7 @@ def retirar_permiso(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = RetirarPermisoUseCase(
-        permisos_port=PermisosSQLRepository(db),
+        permisos_repo=SqlAlchemyPermisoRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
     )

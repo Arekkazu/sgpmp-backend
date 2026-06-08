@@ -5,8 +5,8 @@ para evitar retiros cruzados entre roles.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.permisos_ports import PermisosPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.permiso_repository import PermisoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthorizationError, NotFoundError
@@ -19,18 +19,18 @@ class RetirarPermisoUseCase:
 
     def __init__(
         self,
-        permisos_port: PermisosPort,
+        permisos_repo: PermisoRepository,
         sesiones_port: SesionesPort,
         db: Session,
     ):
         """Inicializa el use case.
 
         Args:
-            permisos_port: Búsqueda y eliminación del permiso.
+            permisos_repo: Repositorio de dominio del agregado Permiso.
             sesiones_port: Registro del evento de auditoría.
             db: Sesión SQLAlchemy activa del request.
         """
-        self.permisos_port = permisos_port
+        self.permisos_repo = permisos_repo
         self.sesiones_port = sesiones_port
         self.db = db
 
@@ -46,14 +46,14 @@ class RetirarPermisoUseCase:
             NotFoundError: Si el permiso no existe. HTTP 404.
             AuthorizationError: Si el permiso no pertenece al rol indicado. HTTP 403.
         """
-        permiso = self.permisos_port.buscar_por_id(id_permiso)
+        permiso = self.permisos_repo.buscar_por_id(id_permiso)
         if permiso is None:
             raise NotFoundError(
                 code="PERMISO_NO_ENCONTRADO",
                 message=f"El permiso con ID {id_permiso} no existe.",
             )
 
-        if permiso.id_rol != id_rol:
+        if not permiso.pertenece_a_rol(id_rol):
             raise AuthorizationError(
                 code="PERMISO_ROL_MISMATCH",
                 message=f"El permiso {id_permiso} no pertenece al rol {id_rol}.",
@@ -67,7 +67,7 @@ class RetirarPermisoUseCase:
         }
 
         try:
-            self.permisos_port.retirar(permiso)
+            self.permisos_repo.retirar(permiso)
 
             self.sesiones_port.registrar_evento(
                 tipo_evento=TIPO_REVOCACION_PERMISO,
