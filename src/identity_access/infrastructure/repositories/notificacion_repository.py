@@ -1,14 +1,17 @@
-"""Implementación SQLAlchemy del port de notificaciones.
+"""Implementación SQLAlchemy del puerto de dominio :class:`NotificacionRepository`.
 
-Gestiona el registro de notificaciones enviadas, la verificación de anti-spam
-por ventana temporal y la consulta de tokens FCM de los dispositivos registrados.
+Traduce el estado de envío de texto al enum ``EnumEstadoEnvio`` de la columna y
+gestiona el registro de notificaciones, el control anti-spam por ventana
+temporal y la consulta/registro de dispositivos FCM.
 """
+from __future__ import annotations
+
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.notificaciones_ports import NotificacionesPort
+from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.dispositivos_fcm_model import DispositivosFcm
 from src.identity_access.infrastructure.models.enums_models import EnumEstadoEnvio
@@ -16,8 +19,8 @@ from src.identity_access.infrastructure.models.eventos_model import Eventos
 from src.identity_access.infrastructure.models.notificaciones_model import Notificaciones
 
 
-class NotificacionesSQLRepository(NotificacionesPort):
-    """Repositorio SQLAlchemy para `Notificaciones` y `DispositivosFcm`."""
+class SqlAlchemyNotificacionRepository(NotificacionRepository):
+    """Adaptador SQLAlchemy para ``Notificaciones`` y ``DispositivosFcm``."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -28,8 +31,8 @@ class NotificacionesSQLRepository(NotificacionesPort):
         id_usuario: int,
         id_canal: int,
         mensaje: str,
-        estado_envio: EnumEstadoEnvio,
-    ) -> Notificaciones:
+        estado: str,
+    ) -> int:
         notificacion = Notificaciones(
             id_evento=id_evento,
             id_usuario=id_usuario,
@@ -37,15 +40,16 @@ class NotificacionesSQLRepository(NotificacionesPort):
             mensaje=mensaje,
             fecha_envio=datetime.now(timezone.utc),
             es_leido=False,
-            estado_envio=estado_envio,
+            estado_envio=EnumEstadoEnvio(estado),
         )
         self.db.add(notificacion)
         self.db.flush()
         self.db.refresh(notificacion)
-        return notificacion
+        return notificacion.id_notificacion
 
-    def actualizar_estado(self, notificacion: Notificaciones, estado: EnumEstadoEnvio) -> None:
-        notificacion.estado_envio = estado
+    def actualizar_estado(self, id_notificacion: int, estado: str) -> None:
+        notificacion = self.db.get(Notificaciones, id_notificacion)
+        notificacion.estado_envio = EnumEstadoEnvio(estado)
         self.db.flush()
 
     def verificar_anti_spam(

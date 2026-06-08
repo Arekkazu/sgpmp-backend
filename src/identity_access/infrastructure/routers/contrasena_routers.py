@@ -16,7 +16,7 @@ from src.identity_access.infrastructure.dto.contrasena_dto import (
     SolicitarRecuperacionDTO,
 )
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
-from src.identity_access.infrastructure.repositories.notificaciones_repository import NotificacionesSQLRepository
+from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
 from src.shared.database import get_db
@@ -48,7 +48,7 @@ def cambiar_contrasena(
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": "Contraseña actualizada exitosamente. Por seguridad, se han cerrado todas las sesiones activas."}
@@ -70,7 +70,7 @@ def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: 
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     message = use_case.execute(dto, ip)
     return {"message": message}
@@ -95,7 +95,7 @@ def restablecer_contrasena(dto: RestablecerContrasenaDTO, request: Request, db: 
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     use_case.execute(dto, ip)
     return {"message": "Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña."}

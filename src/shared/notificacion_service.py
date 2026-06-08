@@ -9,8 +9,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.notificaciones_ports import NotificacionesPort
-from src.identity_access.infrastructure.models.enums_models import EnumEstadoEnvio
+from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.shared.email import send_email
 from src.shared.firebase import send_push
 
@@ -23,6 +22,11 @@ ESTADO_INACTIVO = 3
 ESTADO_BLOQUEADO = 4
 
 VENTANA_ANTI_SPAM_MINUTOS = 5
+
+# Estados de envío como texto (coinciden con los valores de enum_estado_envio en DB)
+ESTADO_ENVIO_EN_COLA = "en_cola"
+ESTADO_ENVIO_ENVIADO = "enviado"
+ESTADO_ENVIO_FALLIDO = "fallido"
 
 # Tipos de evento considerados de seguridad — se envían incluso si la cuenta está bloqueada
 TIPOS_EVENTO_SEGURIDAD = {4, 10}
@@ -49,11 +53,11 @@ class NotificacionService:
     sesión de base de datos activa.
     """
 
-    def __init__(self, port: NotificacionesPort, db: Session):
+    def __init__(self, port: NotificacionRepository, db: Session):
         """Inicializa el servicio con sus dependencias.
 
         Args:
-            port: Implementación del port de notificaciones para acceso a DB.
+            port: Repositorio de notificaciones (puerto de dominio) para acceso a DB.
             db: Sesión SQLAlchemy activa del request actual.
         """
         self.port = port
@@ -160,12 +164,12 @@ class NotificacionService:
         Flujo interno:
         1. Verifica anti-spam; si hay una notificación reciente del mismo tipo
            y canal, retorna sin hacer nada.
-        2. Registra la notificación en DB con estado ``EN_COLA`` y hace commit.
+        2. Registra la notificación en DB con estado ``en_cola`` y hace commit.
         3. Despacha por el canal correspondiente (EMAIL o INTERNO).
-        4. Actualiza el estado a ``ENVIADO`` o ``FALLIDO`` según el resultado.
+        4. Actualiza el estado a ``enviado`` o ``fallido`` según el resultado.
 
         Para el canal INTERNO, itera sobre todos los FCM tokens del usuario.
-        El estado final es ``ENVIADO`` si al menos un token recibe el push.
+        El estado final es ``enviado`` si al menos un token recibe el push.
 
         Args:
             canal: ID del canal (1=EMAIL, 2=INTERNO).
@@ -181,12 +185,12 @@ class NotificacionService:
             return
 
         try:
-            notificacion = self.port.registrar(
+            id_notificacion = self.port.registrar(
                 id_evento=id_evento,
                 id_usuario=id_usuario,
                 id_canal=canal,
                 mensaje=cuerpo,
-                estado_envio=EnumEstadoEnvio.EN_COLA,
+                estado=ESTADO_ENVIO_EN_COLA,
             )
             self.db.commit()
         except Exception as exc:
@@ -206,8 +210,8 @@ class NotificacionService:
             logger.error("Error enviando por canal=%s: %s", canal, exc)
 
         try:
-            estado_final = EnumEstadoEnvio.ENVIADO if enviado else EnumEstadoEnvio.FALLIDO
-            self.port.actualizar_estado(notificacion, estado_final)
+            estado_final = ESTADO_ENVIO_ENVIADO if enviado else ESTADO_ENVIO_FALLIDO
+            self.port.actualizar_estado(id_notificacion, estado_final)
             self.db.commit()
         except Exception as exc:
             self.db.rollback()

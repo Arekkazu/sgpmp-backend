@@ -25,7 +25,7 @@ from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminD
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
-from src.identity_access.infrastructure.repositories.notificaciones_repository import NotificacionesSQLRepository
+from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
@@ -163,7 +163,7 @@ def registrar_fcm_token(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     user_agent = request.headers.get("user-agent")
-    repo = NotificacionesSQLRepository(db)
+    repo = SqlAlchemyNotificacionRepository(db)
     repo.guardar_fcm_token(usuario_actual.id_usuario, dto.token, user_agent)
     db.commit()
     return {"message": "Token FCM registrado exitosamente."}
@@ -214,7 +214,7 @@ def editar_perfil(
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     usuario = use_case.execute(id_usuario, dto, usuario_actual)
     return usuario
@@ -266,7 +266,7 @@ def gestionar_cuenta(
         cuentas_port=CuentasSQLRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=NotificacionesSQLRepository(db), db=db),
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}
