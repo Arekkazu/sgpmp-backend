@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.notificaciones`.
+
+Registro de notificaciones enviadas o en cola por canal. Incluye el estado
+de envío y si el usuario la ha leído (para notificaciones internas).
+"""
 from __future__ import annotations
 
 import datetime

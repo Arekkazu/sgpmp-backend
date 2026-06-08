@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.cuentas_usuarios`.
+
+Gestiona el estado operativo y de seguridad de la cuenta (intentos fallidos,
+bloqueos, tokens, verificaciones). Relación 1:1 con `Usuarios`.
+"""
 from __future__ import annotations
 
 import datetime

@@ -1,3 +1,10 @@
+"""Middlewares globales de la aplicación FastAPI.
+
+- `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`
+  y expone el correlativo como cabecera `X-Request-ID` en la respuesta.
+- `AccessLogMiddleware`: registra método, ruta, código de respuesta y latencia.
+- `setup_middlewares`: función de configuración que registra ambos middlewares y CORS.
+"""
 import uuid
 import time
 import logging
@@ -9,6 +16,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 log = logging.getLogger(__name__)
 
 def _get_client_ip(request: Request) -> Optional[str]:
+    """Extrae la IP real del cliente respetando la cabecera X-Forwarded-For.
+
+    Args:
+        request: Request FastAPI entrante.
+
+    Returns:
+        IP del cliente como string, o `None` si no está disponible.
+    """
     # Respeta X-Forwarded-For si estás detrás de un proxy / LB
     xff = request.headers.get("x-forwarded-for")
     if xff:

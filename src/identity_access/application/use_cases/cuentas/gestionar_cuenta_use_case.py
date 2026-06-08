@@ -1,3 +1,9 @@
+"""Caso de uso: gestión administrativa del estado de una cuenta de usuario.
+
+Permite a un administrador activar, inactivar, bloquear o eliminar la cuenta
+de otro usuario. Protege al último administrador activo y valida las
+transiciones de estado permitidas.
+"""
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -35,6 +41,7 @@ _MOTIVO_DEFAULT = "Acción administrativa"
 
 
 class GestionarCuentaUseCase:
+    """Orquesta el cambio de estado de la cuenta de un usuario por un administrador."""
 
     def __init__(
         self,
@@ -44,6 +51,15 @@ class GestionarCuentaUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Acceso a datos de usuarios.
+            cuentas_port: Acceso a datos de cuentas y gestiones.
+            sesiones_port: Invalidación de sesiones y auditoría.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones opcional.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -51,6 +67,22 @@ class GestionarCuentaUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: GestionarCuentaDTO, usuario_actual: UsuarioActual) -> None:
+        """Aplica la acción de gestión sobre la cuenta del usuario indicado.
+
+        Args:
+            id_usuario: ID del usuario cuya cuenta se va a gestionar.
+            dto: Datos de la acción (acción a ejecutar y motivo opcional).
+            usuario_actual: Usuario administrador que ejecuta la acción.
+
+        Raises:
+            AuthorizationError: Si el actor no es administrador o intenta
+                gestionar su propia cuenta. HTTP 403.
+            NotFoundError: Si el usuario o su cuenta no existen. HTTP 404.
+            ValidationError: Si la acción crítica no tiene motivo, o la cuenta
+                ya está en el estado solicitado. HTTP 400.
+            BusinessRuleError: Si la transición de estado no es válida o se
+                intenta desactivar al único administrador activo. HTTP 422.
+        """
         # 1. Solo administradores
         if usuario_actual.id_rol != ROL_ADMINISTRADOR:
             raise AuthorizationError(

@@ -1,3 +1,7 @@
+"""Modelo ORM para la tabla `modulo1.notificaciones_canal`.
+
+Catálogo de canales de notificación disponibles (ej: EMAIL=1, INTERNO=2, PUSH=3).
+"""
 from __future__ import annotations
 
 import datetime

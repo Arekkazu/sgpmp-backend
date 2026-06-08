@@ -1,3 +1,9 @@
+"""Implementación SQLAlchemy del port de auditoría.
+
+Cada evento retornado incluye un flag de integridad (`bool`) que indica si el
+hash SHA-256 almacenado coincide con el hash recalculado del registro, lo que
+permite detectar modificaciones directas en la tabla de eventos.
+"""
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -10,6 +16,7 @@ from src.identity_access.infrastructure.models.eventos_model import Eventos
 
 
 class AuditoriaSQLRepository(AuditoriaPort):
+    """Repositorio SQLAlchemy para consulta del log de eventos de auditoría."""
 
     def __init__(self, db: Session):
         self.db = db

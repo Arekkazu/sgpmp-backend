@@ -1,3 +1,8 @@
+"""Router FastAPI para el módulo de auditoría (`/auditoria`).
+
+Expone la consulta paginada del log de eventos con filtros por usuario,
+tipo de evento y rango de fechas. Solo accesible por administradores.
+"""
 from datetime import datetime
 from typing import Optional
 

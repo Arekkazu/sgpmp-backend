@@ -1,3 +1,8 @@
+"""Router FastAPI para el módulo de usuarios (`/usuarios`).
+
+Expone endpoints de registro, activación, perfil, edición, listado administrativo,
+gestión de estado de cuenta y registro de tokens FCM.
+"""
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -23,6 +28,7 @@ from src.identity_access.infrastructure.repositories.cuentas_repository import C
 from src.identity_access.infrastructure.repositories.notificaciones_repository import NotificacionesSQLRepository
 from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
+from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
 from src.shared.notificacion_service import NotificacionService
 from src.identity_access.infrastructure.schema.gestion_schema import (
@@ -106,7 +112,7 @@ def listar_usuarios_admin(
 )
 def crear_usuario(dto: UsuarioCreateDTO, db: Session = Depends(get_db)):
     use_case = CrearUsuarioUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_port=CuentasSQLRepository(db),
         db=db,
     )

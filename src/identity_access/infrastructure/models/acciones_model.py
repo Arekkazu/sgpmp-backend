@@ -1,3 +1,7 @@
+"""Modelo ORM para la tabla `modulo1.acciones`.
+
+Catálogo de operaciones CRUD+E: C(1), R(2), U(3), D(4), E(5=Ejecutar).
+"""
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional

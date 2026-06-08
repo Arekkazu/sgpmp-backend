@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy del port de usuarios.
+
+Incluye búsquedas, creación con hash de contraseña, actualización con control
+de concurrencia optimista por versión y listado paginado con filtros.
+"""
 from typing import Optional
 
 import bcrypt
@@ -18,6 +23,7 @@ ROL_PRODUCTOR = 2
 
 
 class UsuariosSQLRepository(UsuariosPort):
+    """Repositorio SQLAlchemy para la tabla `usuarios`."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -131,6 +137,8 @@ class UsuariosSQLRepository(UsuariosPort):
         return query
 
     def cambiar_contrasena(self, usuario: Usuarios, nuevo_hash: str) -> None:
+        # Un trigger de DB eleva InternalError con "CONSTRAINT_VIOLATION" si la
+        # contraseña ya fue usada recientemente; se traduce a ConflictError 409.
         usuario.contrasena_cifrada = nuevo_hash
         try:
             self.db.flush()

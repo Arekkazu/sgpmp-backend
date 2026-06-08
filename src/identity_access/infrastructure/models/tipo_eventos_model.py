@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.tipos_eventos`.
+
+Catálogo descriptivo de los tipos de evento de auditoría (login, logout,
+cambio de contraseña, etc.) referenciados por la tabla `eventos`.
+"""
 from __future__ import annotations
 
 import datetime

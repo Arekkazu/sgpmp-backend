@@ -1,3 +1,9 @@
+"""Modelo ORM para la tabla `modulo1.dispositivos_fcm`.
+
+Registra los tokens FCM de los dispositivos suscritos a notificaciones push
+de un usuario (relación 1:N con `Usuarios`). Un trigger BEFORE INSERT garantiza
+la unicidad global del token y limpia registros con más de 30 días de inactividad.
+"""
 from __future__ import annotations
 
 import datetime

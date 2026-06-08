@@ -1,3 +1,8 @@
+"""DTOs de entrada para las operaciones de gestión de contraseña.
+
+Incluye validación de política (mínimo 8 chars, mayúscula, número y especial)
+y confirmación de coincidencia entre `nueva_contrasena` y su campo de confirmación.
+"""
 import re
 
 from pydantic import EmailStr, field_validator, model_validator
@@ -13,6 +18,8 @@ _MENSAJE_POLITICA = (
 
 
 class CambiarContrasenaDTO(BaseDTO):
+    """Datos para cambiar la contraseña de un usuario autenticado."""
+
     contrasena_actual: str
     nueva_contrasena: str
     confirmar_nueva_contrasena: str
@@ -35,10 +42,14 @@ class CambiarContrasenaDTO(BaseDTO):
 
 
 class SolicitarRecuperacionDTO(BaseDTO):
+    """Correo electrónico para iniciar el flujo de recuperación de contraseña."""
+
     correo_electronico: EmailStr
 
 
 class RestablecerContrasenaDTO(BaseDTO):
+    """Token de recuperación y nueva contraseña para el restablecimiento."""
+
     token: str
     nueva_contrasena: str
     confirmar_contrasena: str

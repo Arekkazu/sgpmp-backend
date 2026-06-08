@@ -1,3 +1,10 @@
+"""Adaptador para Firebase Cloud Messaging (FCM).
+
+Inicializa el SDK de Firebase de forma lazy usando la variable de entorno
+``FIREBASE_CREDENTIALS_PATH``. Si la variable no está configurada o las
+credenciales son inválidas, las funciones degradan silenciosamente sin
+lanzar excepciones, permitiendo que el sistema opere sin notificaciones push.
+"""
 import logging
 import os
 
@@ -7,6 +14,16 @@ _app = None
 
 
 def _get_app():
+    """Retorna la instancia de Firebase Admin, inicializándola si es necesario.
+
+    Implementa el patrón singleton lazy: inicializa el SDK solo en el primer
+    llamado. Si ``FIREBASE_CREDENTIALS_PATH`` no está definida o las
+    credenciales fallan, retorna ``None`` y registra una advertencia.
+
+    Returns:
+        La instancia de ``firebase_admin.App`` o ``None`` si Firebase no
+        está configurado o no pudo inicializarse.
+    """
     global _app
     if _app is not None:
         return _app
@@ -28,7 +45,20 @@ def _get_app():
 
 
 def send_push(token: str, titulo: str, cuerpo: str) -> bool:
-    """Envía una notificación push via Firebase. Retorna True si tuvo éxito."""
+    """Envía una notificación push a un dispositivo vía Firebase Cloud Messaging.
+
+    Nunca lanza excepciones. Si Firebase no está configurado o el envío
+    falla por cualquier razón, registra el error en el log y retorna ``False``.
+
+    Args:
+        token: FCM token del dispositivo destino. Debe ser no vacío.
+        titulo: Título visible de la notificación push.
+        cuerpo: Texto del cuerpo de la notificación push.
+
+    Returns:
+        ``True`` si el mensaje fue aceptado por FCM, ``False`` en cualquier
+        otro caso (Firebase no configurado, token inválido, error de red, etc.).
+    """
     if not token:
         return False
 

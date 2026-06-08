@@ -1,3 +1,8 @@
+"""Router FastAPI para el módulo de roles y permisos (`/roles`).
+
+Expone CRUD de roles, catálogos de recursos y acciones, y endpoints de
+asignación/retiro de permisos sobre un rol específico.
+"""
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, status

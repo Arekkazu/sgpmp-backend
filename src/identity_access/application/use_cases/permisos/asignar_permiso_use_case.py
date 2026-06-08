@@ -1,3 +1,8 @@
+"""Caso de uso: asignación de un permiso (recurso + acción) a un rol.
+
+Valida que el rol exista, que el recurso y la acción pertenezcan a los catálogos
+del sistema, y que el permiso no esté duplicado antes de persistirlo.
+"""
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.permisos_ports import PermisosPort
@@ -13,6 +18,7 @@ TIPO_ASIGNACION_PERMISO = 14
 
 
 class AsignarPermisoUseCase:
+    """Orquesta la asignación de un permiso a un rol con validación de catálogos."""
 
     def __init__(
         self,
@@ -21,12 +27,35 @@ class AsignarPermisoUseCase:
         sesiones_port: SesionesPort,
         db: Session,
     ):
+        """Inicializa el use case.
+
+        Args:
+            roles_port: Búsqueda del rol destino.
+            permisos_port: Validación de catálogos y persistencia del permiso.
+            sesiones_port: Registro del evento de auditoría.
+            db: Sesión SQLAlchemy activa del request.
+        """
         self.roles_port = roles_port
         self.permisos_port = permisos_port
         self.sesiones_port = sesiones_port
         self.db = db
 
     def execute(self, id_rol: int, dto: AsignarPermisoDTO, usuario_actual: UsuarioActual) -> Permisos:
+        """Asigna el permiso indicado al rol y registra el evento de auditoría.
+
+        Args:
+            id_rol: ID del rol al que se asignará el permiso.
+            dto: Recurso y acción que componen el permiso.
+            usuario_actual: Administrador que realiza la asignación.
+
+        Returns:
+            Entidad `Permisos` recién creada.
+
+        Raises:
+            NotFoundError: Si el rol no existe. HTTP 404.
+            ValidationError: Si el recurso o la acción no existen en catálogo. HTTP 400.
+            ConflictError: Si el rol ya tiene ese permiso asignado. HTTP 409.
+        """
         rol = self.roles_port.buscar_por_id(id_rol)
         if rol is None:
             raise NotFoundError(

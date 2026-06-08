@@ -1,3 +1,8 @@
+"""DTOs de entrada para la gestión de roles y permisos.
+
+`CrearRolDTO` exige al menos un permiso; `EditarRolDTO` acepta modificación
+parcial; `AsignarPermisoDTO` y `PermisoItemDTO` representan un par recurso-acción.
+"""
 from typing import Optional
 
 from pydantic import field_validator
@@ -6,11 +11,15 @@ from src.shared.base_dto import BaseDTO
 
 
 class PermisoItemDTO(BaseDTO):
+    """Par recurso-acción que define un permiso individual."""
+
     id_recurso: int
     id_accion: int
 
 
 class CrearRolDTO(BaseDTO):
+    """Datos para crear un nuevo rol con sus permisos iniciales."""
+
     nombre_rol: str
     descripcion: Optional[str] = None
     permisos: list[PermisoItemDTO]
@@ -34,6 +43,8 @@ class CrearRolDTO(BaseDTO):
 
 
 class EditarRolDTO(BaseDTO):
+    """Campos editables de un rol existente (ambos opcionales, al menos uno requerido)."""
+
     nombre_rol: Optional[str] = None
     descripcion: Optional[str] = None
 
@@ -48,5 +59,7 @@ class EditarRolDTO(BaseDTO):
 
 
 class AsignarPermisoDTO(BaseDTO):
+    """Par recurso-acción para asignar un permiso a un rol existente."""
+
     id_recurso: int
     id_accion: int

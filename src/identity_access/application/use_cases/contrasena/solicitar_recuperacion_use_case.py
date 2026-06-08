@@ -1,3 +1,9 @@
+"""Caso de uso: solicitud de recuperación de contraseña.
+
+Aplica rate limiting por IP (máx 3 por hora), genera un token de recuperación
+y envía el correo correspondiente. Retorna siempre un mensaje genérico para
+evitar enumeración de usuarios registrados.
+"""
 import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -22,6 +28,7 @@ _MENSAJE_GENERICO = "Si el correo está registrado, recibirás instrucciones par
 
 
 class SolicitarRecuperacionUseCase:
+    """Orquesta el inicio del flujo de recuperación de contraseña."""
 
     def __init__(
         self,
@@ -31,6 +38,15 @@ class SolicitarRecuperacionUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Búsqueda de usuarios por correo.
+            cuentas_port: Gestión del token de recuperación.
+            sesiones_port: Rate limiting y auditoría.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones opcional.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -38,6 +54,23 @@ class SolicitarRecuperacionUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, dto: SolicitarRecuperacionDTO, ip: str) -> str:
+        """Inicia el proceso de recuperación de contraseña para el correo indicado.
+
+        Si la cuenta está en estado PENDIENTE, redirige al flujo de activación
+        en lugar del de recuperación. Si el correo no existe o la cuenta está
+        eliminada, retorna el mensaje genérico sin revelar información.
+
+        Args:
+            dto: Correo electrónico del usuario que solicita la recuperación.
+            ip: IP del cliente, usada para el rate limiting por hora.
+
+        Returns:
+            Mensaje genérico que no revela si el correo está registrado.
+
+        Raises:
+            BusinessRuleError: Si se supera el límite de 3 solicitudes por hora
+                desde la misma IP. HTTP 422.
+        """
         # 1. Rate limit por IP: máx 3 solicitudes por hora
         hace_una_hora = datetime.now(timezone.utc) - timedelta(hours=1)
         solicitudes = self.sesiones_port.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)

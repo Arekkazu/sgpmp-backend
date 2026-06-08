@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.eventos`.
+
+Log de auditoría inmutable. Cada evento almacena un hash SHA-256 de sus campos
+clave para detectar modificaciones directas en la tabla.
+"""
 from __future__ import annotations
 
 import datetime

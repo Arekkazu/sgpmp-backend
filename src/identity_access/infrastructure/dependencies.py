@@ -1,3 +1,9 @@
+"""Dependencias de autenticación para los endpoints de FastAPI.
+
+`get_current_user` valida el token Bearer, verifica la blacklist de tokens y
+aplica el timeout de inactividad de 30 minutos. Se usa como `Depends` en los
+endpoints que requieren autenticación.
+"""
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -17,6 +23,8 @@ INACTIVIDAD_MINUTOS = 30
 
 @dataclass
 class UsuarioActual:
+    """Datos del usuario autenticado extraídos del JWT y verificados contra la DB."""
+
     id_usuario: int
     id_token: int
     id_rol: int
@@ -26,6 +34,19 @@ def get_current_user(
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db),
 ) -> UsuarioActual:
+    """Valida el token Bearer y retorna el usuario autenticado.
+
+    Args:
+        authorization: Cabecera `Authorization: Bearer <token>`.
+        db: Sesión de base de datos inyectada por FastAPI.
+
+    Returns:
+        `UsuarioActual` con `id_usuario`, `id_token` e `id_rol`.
+
+    Raises:
+        AuthenticationError: Si falta el token, está revocado o la sesión
+            expiró por inactividad (30 min sin actividad). HTTP 401.
+    """
     if not authorization or not authorization.startswith("Bearer "):
         raise AuthenticationError(
             code="TOKEN_REQUERIDO",

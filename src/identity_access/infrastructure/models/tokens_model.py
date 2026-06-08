@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.tokens`.
+
+Registro de tokens de acceso JWT. `fecha_uso` no-nula indica que el token
+fue consumido (revocado o expirado), formando la blacklist de tokens.
+"""
 from __future__ import annotations
 
 import datetime

@@ -1,3 +1,9 @@
+"""Caso de uso: edición de perfil de usuario (propio o por administrador).
+
+Un usuario solo puede modificar su propia información; un administrador puede
+editar cualquier perfil, incluyendo rol y estado de cuenta. Si el correo cambia,
+la cuenta pasa a PENDIENTE y se envía un correo de verificación al nuevo correo.
+"""
 import secrets
 from typing import Optional
 
@@ -29,6 +35,7 @@ TRANSICIONES_VALIDAS = {
 
 
 class EditarPerfilUseCase:
+    """Orquesta la edición de perfil con soporte de control de concurrencia y cambio de correo."""
 
     def __init__(
         self,
@@ -38,6 +45,15 @@ class EditarPerfilUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Lectura y actualización de datos de usuario.
+            cuentas_port: Gestión del estado de la cuenta.
+            sesiones_port: Invalidación de sesiones y auditoría.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones opcional.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -45,6 +61,27 @@ class EditarPerfilUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: EditarPerfilAdminDTO, usuario_actual: UsuarioActual) -> Usuarios:
+        """Aplica los cambios de perfil respetando los permisos del actor.
+
+        Args:
+            id_usuario: ID del usuario cuyo perfil se va a editar.
+            dto: Campos a actualizar (campos `None` se ignoran) y versión para control
+                 de concurrencia optimista.
+            usuario_actual: Usuario autenticado que realiza la operación.
+
+        Returns:
+            Entidad `Usuarios` actualizada.
+
+        Raises:
+            NotFoundError: Si el usuario objetivo no existe. HTTP 404.
+            AuthorizationError: Si un no-administrador intenta editar otro perfil
+                o modificar campos de rol/estado. HTTP 403.
+            ValidationError: Si un administrador intenta cambiar su propio rol/estado,
+                o el rol indicado no existe. HTTP 400.
+            BusinessRuleError: Si la transición de estado no es válida o se intenta
+                cambiar el correo de una cuenta no activa. HTTP 422.
+            ConflictError: Si la versión del registro no coincide (edición concurrente). HTTP 409.
+        """
         es_admin = usuario_actual.id_rol == ROL_ADMINISTRADOR
 
         # 1. Buscar usuario objetivo

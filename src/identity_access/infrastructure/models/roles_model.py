@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.roles`.
+
+Catálogo de roles del sistema para el control de acceso basado en roles (RBAC).
+Los roles marcados con `es_protegido=True` no pueden ser eliminados ni modificados.
+"""
 from __future__ import annotations
 
 import datetime

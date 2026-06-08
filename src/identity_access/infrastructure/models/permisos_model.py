@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.permisos`.
+
+Cada fila representa la capacidad de un rol para realizar una acción (CRUD+E)
+sobre un recurso específico del sistema.
+"""
 from __future__ import annotations
 
 import datetime

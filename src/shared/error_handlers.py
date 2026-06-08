@@ -20,6 +20,18 @@ logger = logging.getLogger(__name__)
 
 
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
+    """Handler para toda la jerarquía `AppError`.
+
+    Registra en log los errores de infraestructura e incluye `error_code`,
+    `message`, `fields` y `timestamp` en el cuerpo JSON de la respuesta.
+
+    Args:
+        request: Request FastAPI que originó el error.
+        exc: Instancia de `AppError` o cualquier subclase.
+
+    Returns:
+        JSONResponse con el código HTTP y cuerpo estándar de error.
+    """
     if isinstance(exc, (InfrastructureError, ServiceUnavailableError)) and exc.original_error is not None:
         logger.error(
             "%s [%s] en %s: %r",
@@ -43,6 +55,17 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
 
 async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """Handler para errores de validación de Pydantic en el request body o parámetros.
+
+    Convierte la lista de errores de Pydantic al formato estándar `fields`.
+
+    Args:
+        request: Request FastAPI que originó el error.
+        exc: Excepción `RequestValidationError` de FastAPI.
+
+    Returns:
+        JSONResponse 400 con los campos que fallaron la validación.
+    """
     fields = []
     for error in exc.errors():
         loc = error.get("loc", ())

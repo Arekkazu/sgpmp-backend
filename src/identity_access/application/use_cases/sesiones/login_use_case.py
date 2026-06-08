@@ -1,3 +1,9 @@
+"""Caso de uso: inicio de sesión de usuario.
+
+Valida credenciales, aplica política de bloqueo por intentos fallidos,
+crea sesión y emite JWT. Implementa la política de sesión única:
+invalida la sesión activa anterior si existe.
+"""
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -24,6 +30,12 @@ TIPO_LOGIN_FALLIDO = 4
 
 
 class LoginUseCase:
+    """Orquesta el flujo completo de autenticación de un usuario.
+
+    Aplica las reglas de negocio de bloqueo temporal (15 min tras 5 intentos
+    fallidos), valida el estado de la cuenta y emite un JWT vinculado a una
+    sesión persistida en DB.
+    """
 
     def __init__(
         self,
@@ -33,6 +45,16 @@ class LoginUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case con sus dependencias.
+
+        Args:
+            usuarios_port: Acceso a datos de usuarios.
+            cuentas_port: Acceso a datos de cuentas y control de intentos.
+            sesiones_port: Creación de sesiones y registro de eventos.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones. ``None`` deshabilita
+                las notificaciones sin afectar el flujo principal.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -40,6 +62,23 @@ class LoginUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, dto: LoginDTO, ip: str, user_agent: str) -> tuple[str, datetime, bool, int]:
+        """Autentica al usuario y crea una nueva sesión activa.
+
+        Args:
+            dto: Credenciales del usuario (correo y contraseña).
+            ip: Dirección IP del cliente, registrada en la sesión y auditoría.
+            user_agent: Cadena User-Agent del cliente, truncada a 255 caracteres.
+
+        Returns:
+            Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada, id_usuario)``
+            donde ``sesion_previa_cerrada`` indica si se invalidó una sesión activa
+            anterior (política de sesión única).
+
+        Raises:
+            AuthenticationError: Credenciales incorrectas. HTTP 401.
+            AuthorizationError: Cuenta pendiente de activación o deshabilitada. HTTP 403.
+            LockedError: Cuenta bloqueada temporalmente por intentos fallidos. HTTP 423.
+        """
         # 1. Buscar usuario por correo
         usuario = self.usuarios_port.buscar_por_correo(dto.correo_electronico)
         if usuario is None:

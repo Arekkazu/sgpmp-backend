@@ -1,3 +1,9 @@
+"""Implementación SQLAlchemy del port de roles.
+
+La creación de roles usa un stored procedure (`sp_crear_rol`) para garantizar
+atomicidad entre la inserción del rol y sus permisos iniciales. Los errores
+del SP se identifican por pgcode o por mensaje para traducirlos a errores de dominio.
+"""
 import json
 from typing import Optional
 
@@ -15,6 +21,7 @@ _ERRCODE_EN_USO = "P0005"
 
 
 class RolesSQLRepository(RolesPort):
+    """Repositorio SQLAlchemy para la tabla `roles` y sus permisos asociados."""
 
     def __init__(self, db: Session):
         self.db = db

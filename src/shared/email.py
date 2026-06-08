@@ -1,3 +1,10 @@
+"""Utilidad de envío de correos electrónicos vía SMTP.
+
+Configura la conexión SMTP con las variables de entorno ``SMTP_HOST``,
+``SMTP_PORT``, ``SMTP_USER`` y ``SMTP_PASSWORD``. Implementa reintentos
+automáticos con pausa entre intentos para absorber fallos transitorios
+del servidor de correo.
+"""
 import logging
 import os
 import smtplib
@@ -23,6 +30,21 @@ _RETRY_DELAY = 5
 
 
 def send_email(to: str, subject: str, html_body: str) -> None:
+    """Envía un correo HTML al destinatario indicado.
+
+    Intenta el envío hasta ``_MAX_RETRIES`` veces con una pausa de
+    ``_RETRY_DELAY`` segundos entre intentos. Si todos los intentos fallan,
+    lanza ``ServiceUnavailableError``.
+
+    Args:
+        to: Dirección de correo del destinatario.
+        subject: Asunto del mensaje.
+        html_body: Cuerpo del mensaje en formato HTML.
+
+    Raises:
+        ServiceUnavailableError: Si el servidor SMTP no responde después de
+            agotar todos los reintentos. Código ``EMAIL_NO_DISPONIBLE``, HTTP 503.
+    """
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = _SMTP_USER

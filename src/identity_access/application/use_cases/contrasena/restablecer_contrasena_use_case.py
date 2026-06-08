@@ -1,3 +1,9 @@
+"""Caso de uso: restablecimiento de contraseña mediante token de recuperación.
+
+Verifica el token, su expiración (15 min), aplica la nueva contraseña e
+invalida todas las sesiones activas. El token de recuperación se destruye
+tras el uso exitoso.
+"""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -18,6 +24,7 @@ TIPO_RESTABLECIMIENTO = 8
 
 
 class RestablecerContrasenaUseCase:
+    """Orquesta el restablecimiento de contraseña vía token de recuperación."""
 
     def __init__(
         self,
@@ -27,6 +34,15 @@ class RestablecerContrasenaUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Actualización del hash de contraseña.
+            cuentas_port: Validación y limpieza del token de recuperación.
+            sesiones_port: Invalidación de sesiones y auditoría.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones opcional.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -34,6 +50,18 @@ class RestablecerContrasenaUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, dto: RestablecerContrasenaDTO, ip: str) -> None:
+        """Restablece la contraseña usando el token de recuperación.
+
+        Args:
+            dto: Token de recuperación y nueva contraseña deseada.
+            ip: IP del cliente, registrada en el evento de auditoría.
+
+        Raises:
+            AuthenticationError: Si el token no existe o es inválido. HTTP 401.
+            LockedError: Si hay bloqueo por intentos fallidos. HTTP 423.
+            GoneError: Si el token expiró (más de 15 min desde su generación). HTTP 410.
+            ConflictError: Si la nueva contraseña fue usada recientemente. HTTP 409.
+        """
         # 1. Buscar cuenta por token
         cuenta = self.cuentas_port.buscar_cuenta_por_token_recuperacion(dto.token)
         if cuenta is None:

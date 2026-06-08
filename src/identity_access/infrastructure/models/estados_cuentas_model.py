@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.estados_cuentas`.
+
+Catálogo de estados de cuenta: PENDIENTE(1), ACTIVO(2), INACTIVO(3),
+BLOQUEADO(4), ELIMINADO(5).
+"""
 from __future__ import annotations
 
 import datetime

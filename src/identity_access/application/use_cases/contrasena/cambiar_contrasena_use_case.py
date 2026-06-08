@@ -1,3 +1,8 @@
+"""Caso de uso: cambio de contraseña por el propio usuario.
+
+Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
+tras 5 fallos), genera el nuevo hash e invalida todas las sesiones activas.
+"""
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -19,6 +24,7 @@ TIPO_CAMBIO_CONTRASENA = 6
 
 
 class CambiarContrasenaUseCase:
+    """Orquesta el cambio voluntario de contraseña de un usuario autenticado."""
 
     def __init__(
         self,
@@ -28,6 +34,15 @@ class CambiarContrasenaUseCase:
         db: Session,
         notificacion_service=None,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Acceso a datos de usuarios y contraseñas.
+            cuentas_port: Control de intentos fallidos y bloqueos.
+            sesiones_port: Invalidación de sesiones y auditoría.
+            db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio de notificaciones opcional.
+        """
         self.usuarios_port = usuarios_port
         self.cuentas_port = cuentas_port
         self.sesiones_port = sesiones_port
@@ -35,6 +50,25 @@ class CambiarContrasenaUseCase:
         self.notificacion_service = notificacion_service
 
     def execute(self, id_usuario: int, dto: CambiarContrasenaDTO, usuario_actual: UsuarioActual) -> None:
+        """Cambia la contraseña del usuario verificando la contraseña actual.
+
+        Tras un cambio exitoso invalida todas las sesiones activas del usuario,
+        forzando un nuevo login en todos los dispositivos.
+
+        Args:
+            id_usuario: ID del usuario que cambia su contraseña.
+            dto: Contraseña actual y nueva contraseña deseada.
+            usuario_actual: Usuario autenticado que realiza la operación.
+
+        Raises:
+            AuthorizationError: Si el usuario intenta cambiar la contraseña
+                de otra cuenta. HTTP 403.
+            BusinessRuleError: Si la cuenta no está activa. HTTP 422.
+            LockedError: Si la funcionalidad está bloqueada por intentos fallidos. HTTP 423.
+            AuthenticationError: Si la contraseña actual es incorrecta. HTTP 401.
+            ConflictError: Si la nueva contraseña fue usada recientemente
+                (validado por trigger de DB). HTTP 409.
+        """
         # 1. Solo el propio usuario puede cambiar su contraseña
         if id_usuario != usuario_actual.id_usuario:
             raise AuthorizationError(

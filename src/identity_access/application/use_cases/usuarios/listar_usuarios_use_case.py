@@ -1,3 +1,8 @@
+"""Caso de uso: listado paginado de usuarios con filtros opcionales.
+
+Soporta filtro por nombre, correo, estado de cuenta y rol. La página máxima
+es de 50 ítems para proteger el rendimiento de la consulta.
+"""
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -11,6 +16,7 @@ TIPO_CONSULTA_LISTA_USUARIOS = 17
 
 
 class ListarUsuariosUseCase:
+    """Orquesta la consulta paginada de usuarios con filtros y auditoría."""
 
     def __init__(
         self,
@@ -18,6 +24,13 @@ class ListarUsuariosUseCase:
         sesiones_port: SesionesPort,
         db: Session,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Conteo y listado paginado de usuarios.
+            sesiones_port: Registro del evento de auditoría.
+            db: Sesión SQLAlchemy activa del request.
+        """
         self.usuarios_port = usuarios_port
         self.sesiones_port = sesiones_port
         self.db = db
@@ -32,6 +45,20 @@ class ListarUsuariosUseCase:
         pagina: int,
         tamano: int,
     ) -> dict:
+        """Retorna la página de usuarios que coinciden con los filtros.
+
+        Args:
+            usuario_actual: Administrador que realiza la consulta.
+            nombre: Filtro parcial por nombre de usuario.
+            correo: Filtro parcial por correo electrónico.
+            id_estado: Filtro exacto por estado de cuenta.
+            id_rol: Filtro exacto por rol.
+            pagina: Número de página (base 1).
+            tamano: Cantidad de ítems por página (máximo efectivo: 50).
+
+        Returns:
+            Diccionario con `total`, `pagina`, `tamano` e `items`.
+        """
         tamano = min(tamano, 50)
         offset = (pagina - 1) * tamano
 

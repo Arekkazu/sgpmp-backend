@@ -1,3 +1,8 @@
+"""Caso de uso: consulta del detalle completo de un usuario por un administrador.
+
+El número de identificación se muestra completo solo si el actor tiene el permiso
+E (Ejecutar) sobre el recurso Usuarios; en caso contrario se enmascara.
+"""
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.permisos_ports import PermisosPort
@@ -13,6 +18,7 @@ ID_ACCION_EJECUTAR = 5
 
 
 class ConsultarDetalleUsuarioUseCase:
+    """Orquesta la consulta del detalle de un usuario con enmascarado condicional de ID."""
 
     def __init__(
         self,
@@ -21,12 +27,34 @@ class ConsultarDetalleUsuarioUseCase:
         sesiones_port: SesionesPort,
         db: Session,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Búsqueda del usuario por ID.
+            permisos_port: Verificación del permiso E sobre Usuarios.
+            sesiones_port: Registro del evento de auditoría.
+            db: Sesión SQLAlchemy activa del request.
+        """
         self.usuarios_port = usuarios_port
         self.permisos_port = permisos_port
         self.sesiones_port = sesiones_port
         self.db = db
 
     def execute(self, id_usuario: int, usuario_actual: UsuarioActual) -> dict:
+        """Retorna el detalle del usuario con enmascarado según permisos del actor.
+
+        Args:
+            id_usuario: ID del usuario a consultar.
+            usuario_actual: Administrador que realiza la consulta.
+
+        Returns:
+            Diccionario con los datos del usuario. El `numero_identificacion`
+            aparece completo si el actor tiene el permiso Ejecutar sobre
+            el recurso Usuarios; de lo contrario se enmascara.
+
+        Raises:
+            NotFoundError: Si el usuario no existe. HTTP 404.
+        """
         usuario = self.usuarios_port.buscar_por_id(id_usuario)
         if usuario is None:
             raise NotFoundError(
@@ -81,6 +109,14 @@ class ConsultarDetalleUsuarioUseCase:
         }
 
     def _enmascarar(self, numero: str) -> str:
+        """Enmascara el número de identificación dejando visibles los 4 primeros dígitos.
+
+        Args:
+            numero: Número de identificación completo.
+
+        Returns:
+            Número con los últimos caracteres reemplazados por asteriscos.
+        """
         if len(numero) <= 4:
             return "*" * len(numero)
         return numero[:4] + "*" * (len(numero) - 4)

@@ -1,3 +1,8 @@
+"""Router FastAPI para el módulo de contraseña (`/contrasena`).
+
+Expone los endpoints de cambio de contraseña (usuario autenticado),
+solicitud de recuperación por correo y restablecimiento por token.
+"""
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 

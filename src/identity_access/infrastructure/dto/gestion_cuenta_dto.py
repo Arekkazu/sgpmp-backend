@@ -1,3 +1,8 @@
+"""DTO de entrada para las acciones de gestión administrativa de cuentas.
+
+Las acciones críticas (INACTIVAR, ELIMINAR) requieren un `motivo_accion`
+no vacío; el use case lo valida explícitamente.
+"""
 from typing import Optional
 
 from pydantic import field_validator
@@ -9,6 +14,8 @@ _ACCIONES_CRITICAS = {EnumAccionCuenta.INACTIVAR, EnumAccionCuenta.ELIMINAR}
 
 
 class GestionarCuentaDTO(BaseDTO):
+    """Datos para aplicar una acción administrativa sobre una cuenta de usuario."""
+
     accion_cuenta: EnumAccionCuenta
     motivo_accion: Optional[str] = None
 

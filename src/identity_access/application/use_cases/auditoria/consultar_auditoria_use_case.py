@@ -1,3 +1,9 @@
+"""Caso de uso: consulta paginada del historial de auditoría (solo administradores).
+
+Aplica filtros opcionales por usuario, tipo de evento y rango de fechas.
+Registra el propio acceso como un evento de auditoría, incluso si el acceso
+fue denegado, para mantener trazabilidad completa.
+"""
 from datetime import datetime
 from typing import Optional
 
@@ -14,6 +20,7 @@ TIPO_CONSULTA_AUDITORIA = 16
 
 
 class ConsultarAuditoriaUseCase:
+    """Orquesta la consulta del log de auditoría con validación de acceso y filtros."""
 
     def __init__(
         self,
@@ -21,6 +28,13 @@ class ConsultarAuditoriaUseCase:
         sesiones_port: SesionesPort,
         db: Session,
     ):
+        """Inicializa el use case.
+
+        Args:
+            auditoria_port: Conteo y listado de eventos de auditoría.
+            sesiones_port: Registro del evento de acceso al log.
+            db: Sesión SQLAlchemy activa del request.
+        """
         self.auditoria_port = auditoria_port
         self.sesiones_port = sesiones_port
         self.db = db
@@ -35,6 +49,24 @@ class ConsultarAuditoriaUseCase:
         pagina: int,
         tamano: int,
     ) -> dict:
+        """Consulta el historial de auditoría con los filtros indicados.
+
+        Args:
+            usuario_actual: Usuario autenticado que realiza la consulta.
+            id_usuario: Filtrar eventos del usuario con este ID.
+            tipo_evento: Filtrar por tipo de evento específico.
+            fecha_desde: Inicio del rango temporal (inclusive).
+            fecha_hasta: Fin del rango temporal (inclusive).
+            pagina: Número de página (base 1).
+            tamano: Cantidad de ítems por página (máximo efectivo: 50).
+
+        Returns:
+            Diccionario con `total`, `pagina`, `tamano` e `items`.
+
+        Raises:
+            AuthorizationError: Si el actor no tiene rol de administrador. HTTP 403.
+            ValidationError: Si `fecha_desde` es posterior a `fecha_hasta`. HTTP 400.
+        """
         # 1. Solo administradores
         if usuario_actual.id_rol != ROL_ADMINISTRADOR:
             try:

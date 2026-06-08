@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy del port de notificaciones.
+
+Gestiona el registro de notificaciones enviadas, la verificación de anti-spam
+por ventana temporal y la consulta de tokens FCM de los dispositivos registrados.
+"""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -12,6 +17,7 @@ from src.identity_access.infrastructure.models.notificaciones_model import Notif
 
 
 class NotificacionesSQLRepository(NotificacionesPort):
+    """Repositorio SQLAlchemy para `Notificaciones` y `DispositivosFcm`."""
 
     def __init__(self, db: Session):
         self.db = db

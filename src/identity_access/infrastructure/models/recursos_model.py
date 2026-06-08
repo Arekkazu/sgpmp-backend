@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.recursos`.
+
+Catálogo de módulos o funcionalidades del sistema a los que se pueden
+asignar permisos (ej: Usuarios, Roles, Auditoría, Notificaciones).
+"""
 from __future__ import annotations
 
 import datetime

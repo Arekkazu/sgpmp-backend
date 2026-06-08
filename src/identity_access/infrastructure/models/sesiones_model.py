@@ -1,3 +1,9 @@
+"""Modelo ORM para la tabla `modulo1.sesiones`.
+
+Registra cada sesión de acceso: dispositivo, IP, duración y estado activo.
+El índice único parcial `uix_sesiones_activa_por_cuenta` garantiza una sola
+sesión activa por cuenta (política de sesión única).
+"""
 from __future__ import annotations
 
 import datetime

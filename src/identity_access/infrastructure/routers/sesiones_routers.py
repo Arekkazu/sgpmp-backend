@@ -1,3 +1,7 @@
+"""Router FastAPI para el módulo de sesiones (`/sesiones`).
+
+Expone los endpoints de inicio y cierre de sesión con JWT.
+"""
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request

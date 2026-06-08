@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy del port de sesiones y auditoría.
+
+Gestiona tokens de acceso, sesiones activas y el registro de eventos con
+hash de integridad SHA-256 para detectar manipulación del log.
+"""
 import hashlib
 import json
 from datetime import datetime, timezone
@@ -16,6 +21,7 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SesionesSQLRepository(SesionesPort):
+    """Repositorio SQLAlchemy para `Sesiones`, `Tokens` y `Eventos`."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -93,6 +99,8 @@ class SesionesSQLRepository(SesionesPort):
         detalle: dict,
         id_sesion: Optional[int] = None,
     ) -> None:
+        # El hash SHA-256 cubre los campos clave del evento para detectar
+        # modificaciones posteriores en la tabla de auditoría.
         fecha = datetime.now(timezone.utc)
         contenido_hash = json.dumps({
             "tipo_evento": tipo_evento,
@@ -138,6 +146,7 @@ class SesionesSQLRepository(SesionesPort):
         self.db.flush()
 
     def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        # .astext extrae el valor de texto de la columna JSONB sin comillas adicionales.
         return (
             self.db.query(func.count(Eventos.id_evento))
             .filter(

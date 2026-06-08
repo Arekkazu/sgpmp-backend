@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.gestiones_cuenta`.
+
+Historial de cambios de estado de cuentas aplicados por administradores.
+Cada fila registra la acción, el motivo y quién la realizó.
+"""
 from __future__ import annotations
 
 import datetime

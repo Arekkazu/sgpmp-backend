@@ -1,3 +1,8 @@
+"""DTOs de entrada para registro de usuarios, login y reenvío de token.
+
+Todos heredan de `BaseDTO` (Pydantic) y aplican validaciones de formato
+antes de llegar al use case.
+"""
 import datetime
 from pydantic import EmailStr, field_validator
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
@@ -6,15 +11,21 @@ from src.shared.regex import PASSWORD
 
 
 class ReenviarTokenDTO(BaseDTO):
+    """Datos para solicitar el reenvío del correo de activación."""
+
     correo_electronico: EmailStr
 
 
 class LoginDTO(BaseDTO):
+    """Credenciales de inicio de sesión."""
+
     correo_electronico: EmailStr
     contrasena: str
 
 
 class UsuarioCreateDTO(BaseDTO):
+    """Datos completos para registrar un nuevo usuario en el sistema."""
+
     correo_electronico: EmailStr
     telefono: str
     tipo_identificacion: str

@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy del port de cuentas de usuario.
+
+Gestiona el ciclo de vida del estado de cuenta, tokens de activación/recuperación
+y el control de intentos fallidos con bloqueo temporal.
+"""
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -23,6 +28,7 @@ MINUTOS_BLOQUEO = 15
 
 
 class CuentasSQLRepository(CuentasPort):
+    """Repositorio SQLAlchemy para `CuentasUsuarios` y `GestionesCuenta`."""
 
     def __init__(self, db: Session):
         self.db = db
@@ -159,6 +165,7 @@ class CuentasSQLRepository(CuentasPort):
         self.db.flush()
 
     def guardar_token_recuperacion(self, cuenta: CuentasUsuarios, token: str) -> None:
+        # Reutiliza token_activacion_actual — la misma columna sirve para activación y recuperación.
         cuenta.token_activacion_actual = token
         cuenta.fecha_cambio_estado = datetime.now(timezone.utc)
         self.db.flush()

@@ -1,3 +1,10 @@
+"""Schemas de respuesta para gestión de usuarios, auditoría y listados paginados.
+
+`UsuarioEnmascaradoResponse` incluye el número de identificación parcialmente
+enmascarado por defecto, con un `computed_field` que expone la versión enmascarada.
+`AuditoriaItemResponse` incluye `integridad_ok` para indicar si el hash SHA-256
+del evento coincide con el recalculado.
+"""
 import datetime
 from typing import Any, Optional
 
@@ -7,6 +14,8 @@ from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGe
 
 
 class UsuarioEnmascaradoResponse(BaseModel):
+    """Datos de un usuario con número de identificación parcialmente enmascarado."""
+
     id_usuario: int
     nombre: str
     apellidos: str
@@ -26,6 +35,7 @@ class UsuarioEnmascaradoResponse(BaseModel):
     @computed_field
     @property
     def numero_identificacion_enmascarado(self) -> str:
+        """Número de identificación con los últimos dígitos reemplazados por asteriscos."""
         num = self.numero_identificacion
         if len(num) <= 4:
             return "*" * len(num)
@@ -33,6 +43,8 @@ class UsuarioEnmascaradoResponse(BaseModel):
 
 
 class UsuariosPaginadosResponse(BaseModel):
+    """Resultado paginado de la consulta de usuarios con enmascarado de identificación."""
+
     total: int
     pagina: int
     tamano: int
@@ -40,6 +52,8 @@ class UsuariosPaginadosResponse(BaseModel):
 
 
 class UsuarioListadoResponse(BaseModel):
+    """Fila simplificada del listado administrativo de usuarios."""
+
     nombre_usuario: str
     correo_electronico: str
     nombre_rol: str
@@ -47,6 +61,8 @@ class UsuarioListadoResponse(BaseModel):
 
 
 class UsuarioListadoPaginadoResponse(BaseModel):
+    """Resultado paginado del listado administrativo de usuarios."""
+
     total: int
     pagina: int
     tamano: int
@@ -54,6 +70,8 @@ class UsuarioListadoPaginadoResponse(BaseModel):
 
 
 class UsuarioDetalleResponse(BaseModel):
+    """Detalle completo de un usuario retornado en consulta de perfil o detalle admin."""
+
     nombre: str
     apellidos: str
     correo_electronico: str
@@ -66,6 +84,8 @@ class UsuarioDetalleResponse(BaseModel):
 
 
 class AuditoriaItemResponse(BaseModel):
+    """Evento de auditoría con indicador de integridad del hash SHA-256."""
+
     id_evento: int
     tipo_evento: int
     fecha_evento: datetime.datetime
@@ -82,6 +102,8 @@ class AuditoriaItemResponse(BaseModel):
 
 
 class AuditoriaPaginadaResponse(BaseModel):
+    """Resultado paginado de la consulta del log de auditoría."""
+
     total: int
     pagina: int
     tamano: int

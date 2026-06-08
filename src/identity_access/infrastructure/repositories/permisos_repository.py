@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy del port de permisos.
+
+Los errores de triggers de DB se identifican por pgcode personalizado
+(P0004, P0006, P0202, P0204) y se traducen a errores de dominio.
+"""
 from typing import Optional
 
 from sqlalchemy.exc import IntegrityError, ProgrammingError
@@ -15,6 +20,7 @@ _ERRCODE_ADMIN_MISMATCH = "P0202"
 
 
 class PermisosSQLRepository(PermisosPort):
+    """Repositorio SQLAlchemy para `Permisos`, `Recursos` y `Acciones`."""
 
     def __init__(self, db: Session):
         self.db = db

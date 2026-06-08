@@ -1,3 +1,8 @@
+"""Modelo ORM para la tabla `modulo1.usuarios`.
+
+Entidad central del sistema: almacena la información personal, de autenticación
+y de rol de cada usuario registrado.
+"""
 from __future__ import annotations
 
 import datetime

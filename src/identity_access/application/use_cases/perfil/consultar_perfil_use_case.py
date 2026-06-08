@@ -1,3 +1,8 @@
+"""Caso de uso: consulta del perfil propio del usuario autenticado.
+
+Retorna los datos del usuario con el número de identificación parcialmente
+enmascarado (primeros 4 dígitos visibles) y registra el acceso en auditoría.
+"""
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
@@ -10,6 +15,7 @@ TIPO_CONSULTA_PERFIL_PROPIO = 19
 
 
 class ConsultarPerfilUseCase:
+    """Orquesta la consulta del perfil del usuario actualmente autenticado."""
 
     def __init__(
         self,
@@ -17,11 +23,30 @@ class ConsultarPerfilUseCase:
         sesiones_port: SesionesPort,
         db: Session,
     ):
+        """Inicializa el use case.
+
+        Args:
+            usuarios_port: Recuperación de los datos del usuario.
+            sesiones_port: Registro del evento de auditoría.
+            db: Sesión SQLAlchemy activa del request.
+        """
         self.usuarios_port = usuarios_port
         self.sesiones_port = sesiones_port
         self.db = db
 
     def execute(self, usuario_actual: UsuarioActual) -> dict:
+        """Recupera los datos del perfil del usuario autenticado.
+
+        Args:
+            usuario_actual: Usuario autenticado extraído del JWT.
+
+        Returns:
+            Diccionario con los campos del perfil. El número de identificación
+            aparece parcialmente enmascarado.
+
+        Raises:
+            NotFoundError: Si el registro del usuario no existe en la DB. HTTP 404.
+        """
         usuario = self.usuarios_port.buscar_por_id(usuario_actual.id_usuario)
         if usuario is None:
             raise NotFoundError(
@@ -62,6 +87,14 @@ class ConsultarPerfilUseCase:
         }
 
     def _enmascarar(self, numero: str) -> str:
+        """Enmascara el número de identificación dejando visibles los 4 primeros dígitos.
+
+        Args:
+            numero: Número de identificación completo.
+
+        Returns:
+            Número con los últimos caracteres reemplazados por asteriscos.
+        """
         if len(numero) <= 4:
             return "*" * len(numero)
         return numero[:4] + "*" * (len(numero) - 4)
