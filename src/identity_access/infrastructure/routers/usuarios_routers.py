@@ -25,15 +25,12 @@ from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminD
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
-from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
-from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
-from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
-from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
+from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.shared.notificacion_service import NotificacionService
 from src.identity_access.infrastructure.schema.gestion_schema import (
     UsuarioDetalleResponse,

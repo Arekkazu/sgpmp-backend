@@ -2,10 +2,7 @@
 
 Mapea entre las tablas ``sesiones`` / ``tokens`` y las entidades :class:`Sesion`
 y :class:`Token`. Las operaciones de invalidación cierran la sesión y marcan el
-token asociado como usado (blacklist), igual que el repositorio heredado.
-
-Convive con ``sesiones_repository.py`` (``SesionesSQLRepository``), que aún usan
-login, contraseñas y los registros de auditoría (se retiran al cerrar la fase).
+token asociado como usado (blacklist).
 """
 from __future__ import annotations
 

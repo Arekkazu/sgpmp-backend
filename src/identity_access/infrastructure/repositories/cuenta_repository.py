@@ -4,10 +4,6 @@ Mapea entre la tabla ``cuentas_usuarios`` y la entidad :class:`Cuenta`, y
 registra gestiones administrativas en ``gestiones_cuenta``. Las transiciones de
 estado y los contadores de seguridad los decide la entidad; aquí solo se
 persisten.
-
-Convive con el repositorio heredado ``cuentas_repository.py``
-(``CuentasSQLRepository``), que aún usan login, contraseñas y edición de perfil
-(se retiran en la Fase de sesiones).
 """
 from __future__ import annotations
 

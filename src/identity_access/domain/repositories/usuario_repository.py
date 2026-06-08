@@ -4,7 +4,7 @@ Define el contrato que la capa de aplicación usa para leer y guardar usuarios,
 expresado **en términos del dominio**: recibe y devuelve la entidad
 :class:`Usuario` y el value object :class:`Email`, nunca modelos ORM ni filas.
 La implementación concreta vive en infraestructura
-(``infrastructure/repositories/sqlalchemy_usuario_repository.py``) y es la única
+(``infrastructure/repositories/usuario_repository.py``) y es la única
 que conoce SQLAlchemy.
 
 Este puerto vive en ``domain/`` —y no en ``application/ports/``— para respetar

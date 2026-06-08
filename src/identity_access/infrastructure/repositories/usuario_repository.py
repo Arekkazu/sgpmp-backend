@@ -4,10 +4,6 @@ Es el **único punto** donde se cruza la frontera entre el modelo ORM
 (``Usuarios``) y la entidad de dominio (:class:`Usuario`). Traduce en ambos
 sentidos: ORM → entidad al leer y entidad → ORM al escribir. El resto de la
 aplicación trabaja siempre con la entidad pura.
-
-Convive con el repositorio heredado ``usuarios_repository.py``
-(``UsuariosSQLRepository``), que devuelve modelos ORM y todavía usan los demás
-casos de uso. Este archivo es el patrón objetivo; aquel es el patrón a migrar.
 """
 from __future__ import annotations
 

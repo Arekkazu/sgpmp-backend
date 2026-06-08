@@ -19,7 +19,7 @@ from src.identity_access.infrastructure.repositories.cuenta_repository import Sq
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
-from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
+from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.shared.database import get_db
 from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
