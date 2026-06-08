@@ -4,13 +4,11 @@ Permite a un administrador activar, inactivar, bloquear o eliminar la cuenta
 de otro usuario. Protege al último administrador activo y valida las
 transiciones de estado permitidas.
 """
-from typing import Optional
-
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
 from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta, EnumEventoResultado
@@ -46,7 +44,7 @@ class GestionarCuentaUseCase:
     def __init__(
         self,
         usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
+        cuentas_repo: CuentaRepository,
         sesiones_port: SesionesPort,
         db: Session,
         notificacion_service=None,
@@ -55,13 +53,13 @@ class GestionarCuentaUseCase:
 
         Args:
             usuarios_port: Acceso a datos de usuarios.
-            cuentas_port: Acceso a datos de cuentas y gestiones.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta.
             sesiones_port: Invalidación de sesiones y auditoría.
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
         self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
+        self.cuentas_repo = cuentas_repo
         self.sesiones_port = sesiones_port
         self.db = db
         self.notificacion_service = notificacion_service
@@ -111,7 +109,7 @@ class GestionarCuentaUseCase:
                 message=f"Error de referencia. El usuario con ID {id_usuario} no existe en los registros actuales del sistema.",
             )
 
-        cuenta = self.cuentas_port.buscar_cuenta_por_usuario(id_usuario)
+        cuenta = self.cuentas_repo.obtener_por_usuario(id_usuario)
         if cuenta is None:
             raise NotFoundError(
                 code="CUENTA_NO_ENCONTRADA",
@@ -158,7 +156,7 @@ class GestionarCuentaUseCase:
 
         # 6. Protección del último administrador activo
         if usuario.id_rol == ROL_ADMINISTRADOR and dto.accion_cuenta in ACCIONES_QUE_REDUCEN_ADMINS:
-            if self.cuentas_port.contar_admins_activos() <= 1:
+            if self.cuentas_repo.contar_admins_activos() <= 1:
                 raise BusinessRuleError(
                     code="ULTIMO_ADMIN_PROTEGIDO",
                     message=(
@@ -173,13 +171,12 @@ class GestionarCuentaUseCase:
             self.sesiones_port.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
 
         try:
-            # 8. Actualizar estado
-            cuenta.id_estado_cuenta = nuevo_estado
-            cuenta.motivo_ultimo_cambio = motivo
-            self.db.flush()
+            # 8. Actualizar estado vía la entidad
+            cuenta.cambiar_estado(nuevo_estado, motivo)
+            self.cuentas_repo.guardar(cuenta)
 
             # 9. Registrar en gestiones_cuenta
-            self.cuentas_port.registrar_gestion(
+            self.cuentas_repo.registrar_gestion(
                 id_cuenta_usuario=cuenta.id_cuenta_usuario,
                 accion=dto.accion_cuenta.value,
                 motivo=motivo,

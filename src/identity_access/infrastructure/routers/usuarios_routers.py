@@ -24,6 +24,7 @@ from src.shared.rbac import require_permission
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
@@ -113,7 +114,7 @@ def listar_usuarios_admin(
 def crear_usuario(dto: UsuarioCreateDTO, db: Session = Depends(get_db)):
     use_case = CrearUsuarioUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
         db=db,
     )
     use_case.execute(dto)
@@ -130,7 +131,11 @@ def crear_usuario(dto: UsuarioCreateDTO, db: Session = Depends(get_db)):
     },
 )
 def reenviar_token(dto: ReenviarTokenDTO, db: Session = Depends(get_db)):
-    use_case = ReenviarTokenUseCase(cuentas_port=CuentasSQLRepository(db))
+    use_case = ReenviarTokenUseCase(
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        db=db,
+    )
     use_case.execute(dto)
     return {"message": "Token reenviado. Revisa tu correo para activar tu cuenta."}
 
@@ -145,7 +150,7 @@ def reenviar_token(dto: ReenviarTokenDTO, db: Session = Depends(get_db)):
     },
 )
 def activar_cuenta(token: str, db: Session = Depends(get_db)):
-    use_case = ActivarCuentaUseCase(cuentas_port=CuentasSQLRepository(db))
+    use_case = ActivarCuentaUseCase(cuentas_repo=SqlAlchemyCuentaRepository(db), db=db)
     use_case.execute(token)
     return {"message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."}
 
@@ -263,7 +268,7 @@ def gestionar_cuenta(
 ):
     use_case = GestionarCuentaUseCase(
         usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),

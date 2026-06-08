@@ -14,8 +14,8 @@ import secrets
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
 from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
@@ -28,17 +28,17 @@ from src.shared.errors import AuthorizationError
 class CrearUsuarioUseCase:
     """Orquesta el registro de un nuevo usuario con envío de correo de activación."""
 
-    def __init__(self, usuarios_repo: UsuarioRepository, cuentas_port: CuentasPort, db: Session):
+    def __init__(self, usuarios_repo: UsuarioRepository, cuentas_repo: CuentaRepository, db: Session):
         """Inicializa el use case.
 
         Args:
             usuarios_repo: Repositorio de dominio del agregado Usuario.
-            cuentas_port: Creación de la cuenta asociada en estado PENDIENTE.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
         """
         self.usuarios_repo = usuarios_repo
-        self.cuentas_port = cuentas_port
+        self.cuentas_repo = cuentas_repo
         self.db = db
 
     def execute(self, dto: UsuarioCreateDTO) -> Usuario:
@@ -86,7 +86,7 @@ class CrearUsuarioUseCase:
         try:
             usuario = self.usuarios_repo.guardar(usuario)
             token = secrets.token_urlsafe(32)
-            self.cuentas_port.create_cuenta(usuario.id_usuario, token)
+            self.cuentas_repo.crear(usuario.id_usuario, token)
             self.db.commit()
         except Exception:
             self.db.rollback()
