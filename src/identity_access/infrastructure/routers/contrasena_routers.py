@@ -15,10 +15,11 @@ from src.identity_access.infrastructure.dto.contrasena_dto import (
     RestablecerContrasenaDTO,
     SolicitarRecuperacionDTO,
 )
-from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
-from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
-from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
+from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
+from src.identity_access.infrastructure.repositories.sqlalchemy_usuario_repository import SqlAlchemyUsuarioRepository
 from src.shared.database import get_db
 from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
@@ -44,9 +45,10 @@ def cambiar_contrasena(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = CambiarContrasenaUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
@@ -66,9 +68,9 @@ def cambiar_contrasena(
 def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
     use_case = SolicitarRecuperacionUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
@@ -91,9 +93,10 @@ def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: 
 def restablecer_contrasena(dto: RestablecerContrasenaDTO, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
     use_case = RestablecerContrasenaUseCase(
-        usuarios_port=UsuariosSQLRepository(db),
-        cuentas_port=CuentasSQLRepository(db),
-        sesiones_port=SesionesSQLRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )

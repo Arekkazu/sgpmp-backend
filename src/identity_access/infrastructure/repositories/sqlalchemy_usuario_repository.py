@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy.exc import InternalError
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.usuario import Usuario
@@ -22,6 +23,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import ConflictError
 
 
 class SqlAlchemyUsuarioRepository(UsuarioRepository):
@@ -96,3 +98,24 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
                 "uq_usuario_numero_identificacion": "El número de identificación ya está registrado",
             })
         return self._a_entidad(orm)
+
+    def cambiar_contrasena(self, usuario: Usuario) -> None:
+        # Un trigger de DB eleva InternalError con "CONSTRAINT_VIOLATION" si la
+        # contraseña ya fue usada recientemente; se traduce a ConflictError 409.
+        orm = self.db.get(Usuarios, usuario.id_usuario)
+        orm.contrasena_cifrada = usuario.contrasena.hash
+        try:
+            self.db.flush()
+        except InternalError as e:
+            self.db.rollback()
+            if "CONSTRAINT_VIOLATION" in str(e.orig):
+                raise ConflictError(
+                    code="CONTRASENA_REUTILIZADA",
+                    message=(
+                        "Seguridad de credenciales: No se permite reutilizar la contraseña actual. "
+                        "Por favor, defina una clave completamente nueva."
+                    ),
+                )
+            raise
+        except Exception as e:
+            raise_from_db_error(e, conflict_messages={})

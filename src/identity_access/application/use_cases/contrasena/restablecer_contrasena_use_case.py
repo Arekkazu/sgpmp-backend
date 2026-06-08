@@ -5,21 +5,18 @@ invalida todas las sesiones activas. El token de recuperación se destruye
 tras el uso exitoso.
 """
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
-import bcrypt
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.sesion_repository import SesionRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dto.contrasena_dto import RestablecerContrasenaDTO
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthenticationError, GoneError, LockedError
 
-MAX_INTENTOS = 5
 MINUTOS_EXPIRACION_TOKEN = 15
-MINUTOS_BLOQUEO = 30
 TIPO_RESTABLECIMIENTO = 8
 
 
@@ -28,24 +25,27 @@ class RestablecerContrasenaUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        sesiones_repo: SesionRepository,
+        eventos_repo: EventoRepository,
         db: Session,
         notificacion_service=None,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Actualización del hash de contraseña.
-            cuentas_port: Validación y limpieza del token de recuperación.
-            sesiones_port: Invalidación de sesiones y auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta (token y bloqueo).
+            sesiones_repo: Repositorio de dominio de sesiones (invalidación).
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
-        self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.cuentas_repo = cuentas_repo
+        self.sesiones_repo = sesiones_repo
+        self.eventos_repo = eventos_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -63,7 +63,7 @@ class RestablecerContrasenaUseCase:
             ConflictError: Si la nueva contraseña fue usada recientemente. HTTP 409.
         """
         # 1. Buscar cuenta por token
-        cuenta = self.cuentas_port.buscar_cuenta_por_token_recuperacion(dto.token)
+        cuenta = self.cuentas_repo.obtener_por_token(dto.token)
         if cuenta is None:
             raise AuthenticationError(
                 code="TOKEN_INVALIDO",
@@ -105,24 +105,23 @@ class RestablecerContrasenaUseCase:
                 )
 
         # 4. Obtener usuario asociado
-        usuario = self.usuarios_port.buscar_por_id(cuenta.id_usuario)
+        usuario = self.usuarios_repo.obtener_por_id(cuenta.id_usuario)
 
         # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
-        nuevo_hash = bcrypt.hashpw(dto.nueva_contrasena.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
 
         try:
-            self.usuarios_port.cambiar_contrasena(usuario, nuevo_hash)
+            self.usuarios_repo.cambiar_contrasena(usuario)
 
-            # 6. Invalidar token de recuperación
-            cuenta.token_activacion_actual = None
+            # 6. Consumir token de recuperación, resetear intentos e invalidar sesiones
+            cuenta.limpiar_token()
+            cuenta.resetear_cambio_contrasena()
+            self.cuentas_repo.guardar(cuenta)
+            self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
 
-            # 7. Resetear intentos e invalidar todas las sesiones
-            self.cuentas_port.resetear_intentos_cambio_contrasena(cuenta)
-            self.sesiones_port.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
-
-            self.sesiones_port.registrar_evento(
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_RESTABLECIMIENTO,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=cuenta.id_usuario,
                 detalle={"ip": ip},
             )
@@ -135,5 +134,5 @@ class RestablecerContrasenaUseCase:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_RESTABLECIMIENTO,
                 id_usuario=cuenta.id_usuario,
-                correo_destino=usuario.correo_electronico,
+                correo_destino=str(usuario.correo),
             )

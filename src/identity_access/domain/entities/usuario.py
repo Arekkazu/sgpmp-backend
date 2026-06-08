@@ -96,6 +96,16 @@ class Usuario:
             direccion=direccion,
         )
 
+    def cambiar_contrasena(self, nueva: Contrasena) -> None:
+        """Reemplaza la contraseña del usuario por una nueva ya cifrada.
+
+        Args:
+            nueva: Value object :class:`Contrasena` con el nuevo hash. La
+                validación de política y el cifrado son responsabilidad de quien
+                construye la contraseña (DTO + :meth:`Contrasena.cifrar`).
+        """
+        self.contrasena = nueva
+
     def nombre_completo(self) -> str:
         """Devuelve el nombre y los apellidos concatenados."""
         return f"{self.nombre} {self.apellidos}"

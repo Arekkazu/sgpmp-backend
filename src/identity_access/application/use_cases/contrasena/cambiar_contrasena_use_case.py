@@ -1,23 +1,21 @@
 """Caso de uso: cambio de contraseña por el propio usuario.
 
 Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
-tras 5 fallos), genera el nuevo hash e invalida todas las sesiones activas.
+tras 5 fallos), aplica el nuevo hash e invalida todas las sesiones activas.
 """
 from datetime import datetime, timezone
-from typing import Optional
 
-import bcrypt
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.sesion_repository import SesionRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.contrasena_dto import CambiarContrasenaDTO
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, LockedError
 
-ESTADO_ACTIVO = 2
 MAX_INTENTOS = 5
 MINUTOS_BLOQUEO = 30
 TIPO_CAMBIO_CONTRASENA = 6
@@ -28,24 +26,27 @@ class CambiarContrasenaUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        sesiones_repo: SesionRepository,
+        eventos_repo: EventoRepository,
         db: Session,
         notificacion_service=None,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Acceso a datos de usuarios y contraseñas.
-            cuentas_port: Control de intentos fallidos y bloqueos.
-            sesiones_port: Invalidación de sesiones y auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta (intentos y bloqueos).
+            sesiones_repo: Repositorio de dominio de sesiones (invalidación).
+            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
-        self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.cuentas_repo = cuentas_repo
+        self.sesiones_repo = sesiones_repo
+        self.eventos_repo = eventos_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -79,11 +80,11 @@ class CambiarContrasenaUseCase:
                 ),
             )
 
-        usuario = self.usuarios_port.buscar_por_id(id_usuario)
-        cuenta = self.cuentas_port.buscar_cuenta_por_usuario(id_usuario)
+        usuario = self.usuarios_repo.obtener_por_id(id_usuario)
+        cuenta = self.cuentas_repo.obtener_por_usuario(id_usuario)
 
         # 2. Cuenta debe estar activa
-        if cuenta is None or cuenta.id_estado_cuenta != ESTADO_ACTIVO:
+        if cuenta is None or not cuenta.esta_activa():
             raise BusinessRuleError(
                 code="CUENTA_NO_ACTIVA",
                 message="El cambio de contraseña solo está disponible para cuentas activas.",
@@ -106,19 +107,17 @@ class CambiarContrasenaUseCase:
                 )
 
         # 4. Verificar contraseña actual
-        if not bcrypt.checkpw(
-            dto.contrasena_actual.encode("utf-8"),
-            usuario.contrasena_cifrada.encode("utf-8"),
-        ):
+        if not usuario.contrasena.verificar(dto.contrasena_actual):
             alcanzado_limite = False
             try:
-                self.cuentas_port.incrementar_intentos_cambio_contrasena(cuenta)
+                cuenta.incrementar_intentos(ahora)
                 alcanzado_limite = cuenta.intentos_fallidos >= MAX_INTENTOS
                 if alcanzado_limite:
-                    self.cuentas_port.bloquear_cambio_contrasena(cuenta)
-                self.sesiones_port.registrar_evento(
+                    cuenta.bloquear_cambio_contrasena(ahora)
+                self.cuentas_repo.guardar(cuenta)
+                self.eventos_repo.registrar(
                     tipo_evento=TIPO_CAMBIO_CONTRASENA,
-                    resultado=EnumEventoResultado.FALLIDO,
+                    exitoso=False,
                     id_usuario=id_usuario,
                     detalle={
                         "motivo": "contrasena_actual_incorrecta",
@@ -153,15 +152,16 @@ class CambiarContrasenaUseCase:
             )
 
         # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
-        nuevo_hash = bcrypt.hashpw(dto.nueva_contrasena.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
 
         try:
-            self.usuarios_port.cambiar_contrasena(usuario, nuevo_hash)
-            self.cuentas_port.resetear_intentos_cambio_contrasena(cuenta)
-            self.sesiones_port.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
-            self.sesiones_port.registrar_evento(
+            self.usuarios_repo.cambiar_contrasena(usuario)
+            cuenta.resetear_cambio_contrasena()
+            self.cuentas_repo.guardar(cuenta)
+            self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_CAMBIO_CONTRASENA,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=id_usuario,
                 detalle={"motivo": "cambio_voluntario"},
             )
@@ -174,5 +174,5 @@ class CambiarContrasenaUseCase:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_CAMBIO_CONTRASENA,
                 id_usuario=id_usuario,
-                correo_destino=usuario.correo_electronico,
+                correo_destino=str(usuario.correo),
             )

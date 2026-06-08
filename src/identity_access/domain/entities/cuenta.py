@@ -103,6 +103,10 @@ class Cuenta:
         self.token_activacion_actual = token
         self.fecha_cambio_estado = ahora
 
+    def limpiar_token(self) -> None:
+        """Consume el token de activación/recuperación vigente sin alterar el estado."""
+        self.token_activacion_actual = None
+
     def poner_pendiente(self, token: str, ahora: datetime) -> None:
         """Pasa la cuenta a PENDIENTE con un nuevo token (reverificación de correo)."""
         self.id_estado_cuenta = self.ESTADO_PENDIENTE

@@ -63,6 +63,25 @@ class Contrasena:
         return cls(hash_calculado)
 
     @classmethod
+    def cifrar(cls, texto: str) -> "Contrasena":
+        """Cifra una contraseña ya validada, sin volver a aplicar la política.
+
+        A diferencia de :meth:`desde_texto_plano`, no valida la política: se usa
+        en los flujos de cambio y restablecimiento, donde el DTO de entrada
+        (``CambiarContrasenaDTO`` / ``RestablecerContrasenaDTO``) ya verificó los
+        requisitos antes de llegar al dominio. Evita rechazar contraseñas válidas
+        por la divergencia entre la política del DTO y la de :data:`PASSWORD`.
+
+        Args:
+            texto: Contraseña en texto plano ya validada por la capa de entrada.
+
+        Returns:
+            Instancia con el hash bcrypt ya calculado.
+        """
+        hash_calculado = bcrypt.hashpw(texto.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+        return cls(hash_calculado)
+
+    @classmethod
     def desde_hash(cls, hash_almacenado: str) -> "Contrasena":
         """Reconstruye la contraseña desde un hash ya persistido.
 

@@ -6,21 +6,19 @@ evitar enumeración de usuarios registrados.
 """
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.cuentas_ports import CuentasPort
-from src.identity_access.application.ports.sesiones_ports import SesionesPort
-from src.identity_access.application.ports.usuarios_ports import UsuariosPort
+from src.identity_access.domain.entities.cuenta import Cuenta
+from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
+from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
 from src.identity_access.infrastructure.email_templates import activation_email, recovery_email
-from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.email import send_email
 from src.shared.errors import BusinessRuleError
 
-ESTADO_ELIMINADO = 5
-ESTADO_PENDIENTE = 1
 MAX_SOLICITUDES_POR_HORA = 3
 TIPO_SOLICITUD_RECUPERACION = 7
 
@@ -32,24 +30,24 @@ class SolicitarRecuperacionUseCase:
 
     def __init__(
         self,
-        usuarios_port: UsuariosPort,
-        cuentas_port: CuentasPort,
-        sesiones_port: SesionesPort,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        eventos_repo: EventoRepository,
         db: Session,
         notificacion_service=None,
     ):
         """Inicializa el use case.
 
         Args:
-            usuarios_port: Búsqueda de usuarios por correo.
-            cuentas_port: Gestión del token de recuperación.
-            sesiones_port: Rate limiting y auditoría.
+            usuarios_repo: Repositorio de dominio del agregado Usuario.
+            cuentas_repo: Repositorio de dominio del agregado Cuenta (token de recuperación).
+            eventos_repo: Repositorio de dominio de eventos (rate limiting y auditoría).
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
-        self.usuarios_port = usuarios_port
-        self.cuentas_port = cuentas_port
-        self.sesiones_port = sesiones_port
+        self.usuarios_repo = usuarios_repo
+        self.cuentas_repo = cuentas_repo
+        self.eventos_repo = eventos_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -72,8 +70,9 @@ class SolicitarRecuperacionUseCase:
                 desde la misma IP. HTTP 422.
         """
         # 1. Rate limit por IP: máx 3 solicitudes por hora
-        hace_una_hora = datetime.now(timezone.utc) - timedelta(hours=1)
-        solicitudes = self.sesiones_port.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
+        ahora = datetime.now(timezone.utc)
+        hace_una_hora = ahora - timedelta(hours=1)
+        solicitudes = self.eventos_repo.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
         if solicitudes >= MAX_SOLICITUDES_POR_HORA:
             proxima_vez = hace_una_hora + timedelta(hours=1)
             raise BusinessRuleError(
@@ -87,26 +86,22 @@ class SolicitarRecuperacionUseCase:
 
         # 2. Buscar usuario — flujo interno solo si existe y no está eliminado
         correo = str(dto.correo_electronico)
-        usuario = self.usuarios_port.buscar_por_correo(correo)
-
-        if usuario is None or (
-            self.cuentas_port.buscar_cuenta_por_usuario(usuario.id_usuario) is not None
-            and self.cuentas_port.buscar_cuenta_por_usuario(usuario.id_usuario).id_estado_cuenta == ESTADO_ELIMINADO
-        ):
+        usuario = self.usuarios_repo.obtener_por_correo(Email(correo))
+        if usuario is None:
             return _MENSAJE_GENERICO
 
-        cuenta = self.cuentas_port.buscar_cuenta_por_usuario(usuario.id_usuario)
-        if cuenta is None:
+        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
+        if cuenta is None or cuenta.id_estado_cuenta == Cuenta.ESTADO_ELIMINADO:
             return _MENSAJE_GENERICO
 
         # 3. Cuenta en PENDIENTE: enviar email de activación en su lugar
-        if cuenta.id_estado_cuenta == ESTADO_PENDIENTE:
+        if cuenta.esta_pendiente():
             token_activacion = cuenta.token_activacion_actual
             if token_activacion:
                 try:
-                    self.sesiones_port.registrar_evento(
+                    self.eventos_repo.registrar(
                         tipo_evento=TIPO_SOLICITUD_RECUPERACION,
-                        resultado=EnumEventoResultado.EXITOSO,
+                        exitoso=True,
                         id_usuario=usuario.id_usuario,
                         detalle={"ip": ip, "motivo": "cuenta_pendiente_redirigido_a_activacion"},
                     )
@@ -124,10 +119,11 @@ class SolicitarRecuperacionUseCase:
         # 4. Generar token de recuperación y guardarlo
         token = secrets.token_urlsafe(32)
         try:
-            self.cuentas_port.guardar_token_recuperacion(cuenta, token)
-            self.sesiones_port.registrar_evento(
+            cuenta.asignar_token_recuperacion(token, ahora)
+            self.cuentas_repo.guardar(cuenta)
+            self.eventos_repo.registrar(
                 tipo_evento=TIPO_SOLICITUD_RECUPERACION,
-                resultado=EnumEventoResultado.EXITOSO,
+                exitoso=True,
                 id_usuario=usuario.id_usuario,
                 detalle={"ip": ip, "motivo": "token_generado"},
             )

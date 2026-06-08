@@ -67,3 +67,19 @@ class UsuarioRepository(ABC):
                 HTTP 409.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def cambiar_contrasena(self, usuario: Usuario) -> None:
+        """Persiste la nueva contraseña del usuario (hace ``flush``, sin ``commit``).
+
+        Espera la entidad con la contraseña ya reemplazada por la nueva. No emite
+        ``commit``: la transacción la controla el caso de uso.
+
+        Args:
+            usuario: Entidad cuya contraseña ya fue reemplazada por la nueva.
+
+        Raises:
+            ConflictError: Si la nueva contraseña fue usada recientemente (un
+                trigger de base de datos rechaza la reutilización). HTTP 409.
+        """
+        raise NotImplementedError
