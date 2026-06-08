@@ -12,7 +12,9 @@ from src.identity_access.application.use_cases.sesiones.logout_use_case import L
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
 from src.identity_access.infrastructure.repositories.cuentas_repository import CuentasSQLRepository
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
+from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.repositories.usuarios_repository import UsuariosSQLRepository
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
@@ -69,6 +71,10 @@ def cerrar_sesion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    use_case = LogoutUseCase(sesiones_port=SesionesSQLRepository(db), db=db)
+    use_case = LogoutUseCase(
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+    )
     use_case.execute(id_token=usuario_actual.id_token, id_usuario=usuario_actual.id_usuario)
     return {"message": "Sesión cerrada exitosamente."}

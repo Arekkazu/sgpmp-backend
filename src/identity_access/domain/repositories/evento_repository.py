@@ -53,3 +53,31 @@ class EventoRepository(ABC):
     ) -> int:
         """Cuenta el total de eventos que cumplen los filtros (para paginar)."""
         raise NotImplementedError
+
+    @abstractmethod
+    def registrar(
+        self,
+        tipo_evento: int,
+        exitoso: bool,
+        id_usuario: int,
+        detalle: dict,
+        id_sesion: Optional[int] = None,
+    ) -> None:
+        """Registra un evento de auditoría con su hash de integridad SHA-256.
+
+        Args:
+            tipo_evento: ID del tipo de evento.
+            exitoso: Resultado (``True`` = EXITOSO, ``False`` = FALLIDO).
+            id_usuario: Usuario relacionado con el evento.
+            detalle: Contexto del evento (se serializa como JSONB).
+            id_sesion: Sesión asociada, si aplica.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        """Cuenta las solicitudes de recuperación (tipo 7) desde una IP a partir de ``desde``.
+
+        Se usa para aplicar rate limiting al endpoint de recuperación de contraseña.
+        """
+        raise NotImplementedError

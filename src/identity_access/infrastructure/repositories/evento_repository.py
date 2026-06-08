@@ -9,13 +9,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.evento import Evento
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.identity_access.infrastructure.models.eventos_model import Eventos
 
 
@@ -93,3 +95,53 @@ class SqlAlchemyEventoRepository(EventoRepository):
         }, sort_keys=True, default=str)
         hash_calculado = hashlib.sha256(contenido.encode("utf-8")).hexdigest()
         return hash_calculado == evento.hash_integridad
+
+    # ── Escritura de eventos (comando) ──────────────────────────────────────
+    def registrar(
+        self,
+        tipo_evento: int,
+        exitoso: bool,
+        id_usuario: int,
+        detalle: dict,
+        id_sesion: Optional[int] = None,
+    ) -> None:
+        # El hash SHA-256 cubre los campos clave del evento para detectar
+        # modificaciones posteriores en la tabla de auditoría.
+        resultado = EnumEventoResultado.EXITOSO if exitoso else EnumEventoResultado.FALLIDO
+        fecha = datetime.now(timezone.utc)
+        contenido_hash = json.dumps({
+            "tipo_evento": tipo_evento,
+            "fecha_evento": fecha.isoformat(),
+            "id_usuario": id_usuario,
+            "resultado": resultado.value,
+            "modulo": "MODULO1",
+            "detalle": detalle,
+        }, sort_keys=True, default=str)
+        hash_integridad = hashlib.sha256(contenido_hash.encode("utf-8")).hexdigest()
+
+        evento = Eventos(
+            tipo_evento=tipo_evento,
+            fecha_evento=fecha,
+            modulo="MODULO1",
+            resultado=resultado,
+            detalle=detalle,
+            id_usuario=id_usuario,
+            categoria="AUTENTICACION",
+            estado="PROCESADO",
+            id_sesion=id_sesion,
+            hash_integridad=hash_integridad,
+        )
+        self.db.add(evento)
+        self.db.flush()
+
+    def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
+        # .astext extrae el valor de texto de la columna JSONB sin comillas adicionales.
+        return (
+            self.db.query(func.count(Eventos.id_evento))
+            .filter(
+                Eventos.tipo_evento == 7,
+                Eventos.fecha_evento >= desde,
+                Eventos.detalle["ip"].astext == ip,
+            )
+            .scalar()
+        )
