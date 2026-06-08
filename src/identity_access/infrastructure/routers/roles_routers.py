@@ -18,6 +18,7 @@ from src.identity_access.infrastructure.dto.roles_dto import AsignarPermisoDTO, 
 from src.identity_access.infrastructure.models.acciones_model import Acciones
 from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.identity_access.infrastructure.repositories.permisos_repository import PermisosSQLRepository
+from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.identity_access.infrastructure.repositories.roles_repository import RolesSQLRepository
 from src.identity_access.infrastructure.repositories.sesiones_repository import SesionesSQLRepository
 from src.identity_access.infrastructure.schema.roles_schema import (
@@ -64,7 +65,7 @@ def listar_acciones(db: Session = Depends(get_db)):
 )
 def listar_roles(db: Session = Depends(get_db)):
     use_case = ListarRolesUseCase(
-        roles_port=RolesSQLRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         permisos_port=PermisosSQLRepository(db),
     )
     resultado = use_case.execute()
@@ -97,12 +98,12 @@ def crear_rol(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = CrearRolUseCase(
-        roles_port=RolesSQLRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
     )
     id_rol = use_case.execute(dto, usuario_actual)
-    rol = RolesSQLRepository(db).buscar_por_id(id_rol)
+    rol = SqlAlchemyRolRepository(db).obtener_por_id(id_rol)
     return RolResponse.model_validate(rol)
 
 
@@ -113,8 +114,8 @@ def crear_rol(
     responses={404: {"model": ErrorResponse}},
 )
 def detalle_rol(id_rol: int, db: Session = Depends(get_db)):
-    roles_repo = RolesSQLRepository(db)
-    rol = roles_repo.buscar_por_id(id_rol)
+    roles_repo = SqlAlchemyRolRepository(db)
+    rol = roles_repo.obtener_por_id(id_rol)
     if rol is None:
         raise NotFoundError(
             code="ROL_NO_ENCONTRADO",
@@ -149,7 +150,7 @@ def editar_rol(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = EditarRolUseCase(
-        roles_port=RolesSQLRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
     )
@@ -173,7 +174,7 @@ def eliminar_rol(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = EliminarRolUseCase(
-        roles_port=RolesSQLRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
         sesiones_port=SesionesSQLRepository(db),
         db=db,
     )
@@ -190,8 +191,8 @@ def eliminar_rol(
     responses={404: {"model": ErrorResponse}},
 )
 def listar_permisos_rol(id_rol: int, db: Session = Depends(get_db)):
-    roles_repo = RolesSQLRepository(db)
-    if roles_repo.buscar_por_id(id_rol) is None:
+    roles_repo = SqlAlchemyRolRepository(db)
+    if roles_repo.obtener_por_id(id_rol) is None:
         raise NotFoundError(
             code="ROL_NO_ENCONTRADO",
             message=f"Error: El rol solicitado con ID {id_rol} no existe.",

@@ -6,8 +6,8 @@ no eliminarse (eso lo controla el caso de uso de eliminación).
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.roles_ports import RolesPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.roles_dto import EditarRolDTO
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
@@ -19,15 +19,15 @@ TIPO_MODIFICACION_ROL = 12
 class EditarRolUseCase:
     """Orquesta la edición del nombre y/o descripción de un rol."""
 
-    def __init__(self, roles_port: RolesPort, sesiones_port: SesionesPort, db: Session):
+    def __init__(self, roles_repo: RolRepository, sesiones_port: SesionesPort, db: Session):
         """Inicializa el use case.
 
         Args:
-            roles_port: Búsqueda y actualización del rol.
+            roles_repo: Repositorio de dominio del agregado Rol.
             sesiones_port: Registro del evento de auditoría.
             db: Sesión SQLAlchemy activa del request.
         """
-        self.roles_port = roles_port
+        self.roles_repo = roles_repo
         self.sesiones_port = sesiones_port
         self.db = db
 
@@ -44,7 +44,7 @@ class EditarRolUseCase:
             ValidationError: Si ningún campo editable fue proporcionado. HTTP 400.
             ConflictError: Si el nuevo nombre ya está en uso por otro rol. HTTP 409.
         """
-        rol = self.roles_port.buscar_por_id(id_rol)
+        rol = self.roles_repo.obtener_por_id(id_rol)
         if rol is None:
             raise NotFoundError(
                 code="ROL_NO_ENCONTRADO",
@@ -58,7 +58,8 @@ class EditarRolUseCase:
             )
 
         try:
-            self.roles_port.editar(rol, dto.nombre_rol, dto.descripcion)
+            rol.editar(dto.nombre_rol, dto.descripcion)
+            self.roles_repo.guardar(rol)
 
             self.sesiones_port.registrar_evento(
                 tipo_evento=TIPO_MODIFICACION_ROL,

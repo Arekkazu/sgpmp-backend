@@ -5,8 +5,8 @@ garantizando que ambas operaciones ocurran en una sola transacción de DB.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.roles_ports import RolesPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.roles_dto import CrearRolDTO
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
@@ -17,15 +17,15 @@ TIPO_CREACION_ROL = 11
 class CrearRolUseCase:
     """Orquesta la creación de un rol mediante stored procedure con permisos iniciales."""
 
-    def __init__(self, roles_port: RolesPort, sesiones_port: SesionesPort, db: Session):
+    def __init__(self, roles_repo: RolRepository, sesiones_port: SesionesPort, db: Session):
         """Inicializa el use case.
 
         Args:
-            roles_port: Ejecución del SP de creación de rol.
+            roles_repo: Repositorio de dominio del agregado Rol (ejecuta el SP de creación).
             sesiones_port: Registro del evento de auditoría.
             db: Sesión SQLAlchemy activa del request.
         """
-        self.roles_port = roles_port
+        self.roles_repo = roles_repo
         self.sesiones_port = sesiones_port
         self.db = db
 
@@ -43,10 +43,10 @@ class CrearRolUseCase:
             ConflictError: Si ya existe un rol con el mismo nombre. HTTP 409.
         """
         try:
-            id_rol = self.roles_port.crear_con_sp(
+            id_rol = self.roles_repo.crear_con_sp(
                 nombre_rol=dto.nombre_rol,
                 descripcion=dto.descripcion,
-                permisos_json=[p.model_dump() for p in dto.permisos],
+                permisos=[p.model_dump() for p in dto.permisos],
             )
 
             self.sesiones_port.registrar_evento(

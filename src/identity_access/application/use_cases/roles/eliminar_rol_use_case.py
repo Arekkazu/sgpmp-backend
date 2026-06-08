@@ -5,8 +5,8 @@ que tenga usuarios asignados, para mantener la integridad referencial.
 """
 from sqlalchemy.orm import Session
 
-from src.identity_access.application.ports.roles_ports import RolesPort
 from src.identity_access.application.ports.sesiones_ports import SesionesPort
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.shared.errors import BusinessRuleError, NotFoundError
@@ -17,15 +17,15 @@ TIPO_ELIMINACION_ROL = 13
 class EliminarRolUseCase:
     """Orquesta la eliminación de un rol con las guardas de integridad correspondientes."""
 
-    def __init__(self, roles_port: RolesPort, sesiones_port: SesionesPort, db: Session):
+    def __init__(self, roles_repo: RolRepository, sesiones_port: SesionesPort, db: Session):
         """Inicializa el use case.
 
         Args:
-            roles_port: Búsqueda, conteo de usuarios y eliminación del rol.
+            roles_repo: Repositorio de dominio del agregado Rol.
             sesiones_port: Registro del evento de auditoría.
             db: Sesión SQLAlchemy activa del request.
         """
-        self.roles_port = roles_port
+        self.roles_repo = roles_repo
         self.sesiones_port = sesiones_port
         self.db = db
 
@@ -40,7 +40,7 @@ class EliminarRolUseCase:
             NotFoundError: Si el rol no existe. HTTP 404.
             BusinessRuleError: Si el rol es protegido o tiene usuarios asignados. HTTP 422.
         """
-        rol = self.roles_port.buscar_por_id(id_rol)
+        rol = self.roles_repo.obtener_por_id(id_rol)
         if rol is None:
             raise NotFoundError(
                 code="ROL_NO_ENCONTRADO",
@@ -56,7 +56,7 @@ class EliminarRolUseCase:
                 ),
             )
 
-        n_usuarios = self.roles_port.contar_usuarios_por_rol(id_rol)
+        n_usuarios = self.roles_repo.contar_usuarios(id_rol)
         if n_usuarios > 0:
             raise BusinessRuleError(
                 code="ROL_EN_USO",
@@ -68,7 +68,7 @@ class EliminarRolUseCase:
 
         nombre_rol = rol.nombre_rol
         try:
-            self.roles_port.eliminar(rol)
+            self.roles_repo.eliminar(rol)
 
             self.sesiones_port.registrar_evento(
                 tipo_evento=TIPO_ELIMINACION_ROL,
