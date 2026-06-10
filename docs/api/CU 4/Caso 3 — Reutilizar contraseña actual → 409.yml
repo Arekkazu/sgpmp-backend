@@ -1,0 +1,28 @@
+info:
+  name: " Caso 3 — Reutilizar contraseña actual → 409"
+  type: http
+  seq: 4
+
+http:
+  method: put
+  url: http://localhost:8000/contrasena/usuarios/1
+  headers:
+    - name: Authorization
+      value: Bearer {TOKEN}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "contrasena_actual": "tu_password_actual",
+        "nueva_contrasena": "tu_password_actual",
+        "confirmar_nueva_contrasena": "tu_password_actual"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,18 @@
+info:
+  name: LOGOUT
+  type: http
+  seq: 4
+
+http:
+  method: DELETE
+  url: http://localhost:8000/sesiones
+  headers:
+    - name: Authorization
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTYiLCJyb2wiOjEsImV4cCI6MTc4MDYxNDUyNiwiaWF0IjoxNzgwNTg1NzI2fQ.o5nPEby2sd-5vwDFnRpwewhWYoyWY7Iae3E56tN6MQE
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

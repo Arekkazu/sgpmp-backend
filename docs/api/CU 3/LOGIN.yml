@@ -1,0 +1,25 @@
+info:
+  name: LOGIN
+  type: http
+  seq: 1
+
+http:
+  method: post
+  url: http://localhost:8000/sesiones/
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "correo_electronico": "admin@pecuaria.co",
+        "contrasena": "MiPasswoddrd123#"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

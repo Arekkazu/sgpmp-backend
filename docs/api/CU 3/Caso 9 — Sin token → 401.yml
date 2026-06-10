@@ -1,0 +1,26 @@
+info:
+  name: Caso 9 — Sin token → 401
+  type: http
+  seq: 10
+
+http:
+  method: patch
+  url: http://localhost:8000/usuarios/%7BID_PRODUCTOR%7D
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Test",
+        "apellidos": "Test",
+        "version": 1
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

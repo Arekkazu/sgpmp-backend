@@ -1,0 +1,24 @@
+info:
+  name: "  Caso 8 — Correo no existe → 202 mismo mensaje (anti-enumeración)"
+  type: http
+  seq: 9
+
+http:
+  method: post
+  url: http://localhost:8000/contrasena/recuperar
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "correo_electronico": "noexiste@correo.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

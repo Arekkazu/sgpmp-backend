@@ -1,0 +1,28 @@
+info:
+  name: " Caso 6 — Cambiar contraseña de otro usuario → 403"
+  type: http
+  seq: 7
+
+http:
+  method: put
+  url: http://localhost:8000/contrasena/usuarios/2
+  headers:
+    - name: Authorization
+      value: Bearer {TOKEN_USUARIO_1}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "contrasena_actual": "cualquiera",
+        "nueva_contrasena": "NuevaClave1@",
+        "confirmar_nueva_contrasena": "NuevaClave1@"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

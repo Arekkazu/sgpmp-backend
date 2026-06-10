@@ -1,0 +1,28 @@
+info:
+  name: Caso 1 — Edición básica (usuario edita su propio perfil)
+  type: http
+  seq: 2
+
+http:
+  method: patch
+  url: http://localhost:8000/usuarios/2
+  headers:
+    - name: Authorization
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTYiLCJyb2wiOjEsImV4cCI6MTc4MDYxNDUyNiwiaWF0IjoxNzgwNTg1NzI2fQ.o5nPEby2sd-5vwDFnRpwewhWYoyWY7Iae3E56tN6MQE
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Carlos",
+        "apellidos": "Ramírez López PRUEBA",
+        "version": 2
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

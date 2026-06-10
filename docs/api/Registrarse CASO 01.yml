@@ -1,0 +1,42 @@
+info:
+  name: Registrarse CASO 01
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:8000/usuarios/
+  body:
+    type: json
+    data: "{
+
+      \      \"correo_electronico\": \"arek3071@gmail.com\",
+
+      \      \"telefono\": \"3001278345767\",
+
+      \      \"tipo_identificacion\": \"CC\",
+
+      \      \"numero_identificacion\": \"\",
+
+      \      \"nombre\": \"Alexander\",
+
+      \      \"apellidos\": \"Lozada Caviedes\",
+
+      \      \"fecha_nacimiento\": \"2005-04-12\",
+
+      \      \"genero\": \"M\",
+
+      \      \"contrasena\": \"MiPasswoddrd123#\",
+
+      \      \"direccion\": \"Calle 123 # 45-67\"
+
+      \  }
+
+      \  "
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

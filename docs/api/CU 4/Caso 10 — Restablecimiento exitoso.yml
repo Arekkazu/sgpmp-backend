@@ -1,0 +1,26 @@
+info:
+  name: "  Caso 10 — Restablecimiento exitoso"
+  type: http
+  seq: 11
+
+http:
+  method: post
+  url: http://localhost:8000/contrasena/restablecer
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "token": "{TOKEN_DEL_EMAIL}",
+        "nueva_contrasena": "NuevaClave1@",
+        "confirmar_contrasena": "NuevaClave1@"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,28 @@
+info:
+  name: Caso 4 — Confirmación no coincide → 422
+  type: http
+  seq: 5
+
+http:
+  method: put
+  url: http://localhost:8000/contrasena/usuarios/1
+  headers:
+    - name: Authorization
+      value: Bearer {TOKEN}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "contrasena_actual": "tu_password_actual",
+        "nueva_contrasena": "NuevaClave1@",
+        "confirmar_nueva_contrasena": "OtraClave2@"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -1,0 +1,29 @@
+info:
+  name: " Caso 8 — Cambio de correo válido → cuenta PENDIENTE + email"
+  type: http
+  seq: 9
+
+http:
+  method: patch
+  url: http://localhost:8000/usuarios/3
+  headers:
+    - name: Authorization
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTgiLCJyb2wiOjEsImV4cCI6MTc4MDYxNTQ3MSwiaWF0IjoxNzgwNTg2NjcxfQ.7kupT_bZdASwi1lCMBMcXRF-gkpysoUPMrXH1y91i18
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Carlos",
+        "apellidos": "Ramírez",
+        "correo_electronico": "nuevo_coreredasdasdo@gmail.com",
+        "version": 3
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

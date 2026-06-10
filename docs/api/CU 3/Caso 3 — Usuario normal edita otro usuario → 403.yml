@@ -1,0 +1,28 @@
+info:
+  name: Caso 3 — Usuario normal edita otro usuario → 403
+  type: http
+  seq: 4
+
+http:
+  method: patch
+  url: http://localhost:8000/usuarios/%7BID_ADMIN%7D
+  headers:
+    - name: Authorization
+      value: Bearer {TOKEN_PROD}
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Hack",
+        "apellidos": "Attempt",
+        "version": 1
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
