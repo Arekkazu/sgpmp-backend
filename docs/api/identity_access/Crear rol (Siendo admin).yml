@@ -1,0 +1,33 @@
+info:
+  name: " Crear rol (Siendo admin)"
+  type: http
+  seq: 2
+
+http:
+  method: post
+  url: http://localhost:8000/roles/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre_rol": "Supervisor",
+        "descripcion": "Rol con acceso de supervisión",
+        "permisos": [
+          {
+            "id_recurso": 1,
+            "id_accion": 2
+          }
+        ]
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

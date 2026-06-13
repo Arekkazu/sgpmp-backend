@@ -1,0 +1,18 @@
+info:
+  name: Catálogo de recursos
+  type: http
+  seq: 21
+
+http:
+  method: get
+  url: http://localhost:8000/roles/catalogo/recursos
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
