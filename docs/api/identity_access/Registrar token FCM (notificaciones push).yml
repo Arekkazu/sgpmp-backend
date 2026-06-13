@@ -1,23 +1,21 @@
 info:
-  name: Caso 3 — Usuario normal edita otro usuario → 403
+  name: Registrar token FCM (notificaciones push)
   type: http
-  seq: 4
+  seq: 8
 
 http:
-  method: patch
-  url: http://localhost:8000/usuarios/%7BID_ADMIN%7D
+  method: post
+  url: http://localhost:8000/usuarios/me/fcm-token
   headers:
     - name: Authorization
-      value: Bearer {TOKEN_PROD}
+      value: Bearer <TOKEN>
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "nombre": "Hack",
-        "apellidos": "Attempt",
-        "version": 1
+        "token": "fcm_token_del_dispositivo_aqui"
       }
   auth: inherit
 

@@ -1,11 +1,11 @@
 info:
-  name: CU 4
+  name: Restablecer contraseña con token
   type: http
-  seq: 1
+  seq: 15
 
 http:
   method: post
-  url: http://localhost:8000/sesiones/
+  url: http://localhost:8000/contrasena/restablecer
   headers:
     - name: Content-Type
       value: application/json
@@ -13,8 +13,9 @@ http:
     type: json
     data: |-
       {
-        "correo_electronico": "admin@pecuaria.co",
-        "contrasena": "tu_password"
+        "token": "<TOKEN_RECUPERACION>",
+        "nueva_contrasena": "ContrasenaNueva1!",
+        "confirmar_contrasena": "ContrasenaNueva1!"
       }
   auth: inherit
 

@@ -1,11 +1,11 @@
 info:
-  name: "  Caso 9 — Formato inválido → 422"
+  name: " Iniciar sesión"
   type: http
-  seq: 10
+  seq: 2
 
 http:
   method: post
-  url: http://localhost:8000/contrasena/recuperar
+  url: http://localhost:8000/sesiones/
   headers:
     - name: Content-Type
       value: application/json
@@ -13,7 +13,8 @@ http:
     type: json
     data: |-
       {
-        "correo_electronico": "no-es-un-correo"
+        "correo_electronico": "usuario@ejemplo.com",
+        "contrasena": "Contrasena1!"
       }
   auth: inherit
 

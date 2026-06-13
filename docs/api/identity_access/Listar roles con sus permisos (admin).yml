@@ -1,7 +1,7 @@
 info:
-  name: " Caso 11 — Token inválido → 401"
+  name: Listar roles con sus permisos (admin)
   type: http
-  seq: 12
+  seq: 16
 
 http:
   method: post
@@ -13,9 +13,9 @@ http:
     type: json
     data: |-
       {
-        "token": "token_inventado_invalido",
-        "nueva_contrasena": "NuevaClave1@",
-        "confirmar_contrasena": "NuevaClave1@"
+        "token": "<TOKEN_RECUPERACION>",
+        "nueva_contrasena": "ContrasenaNueva1!",
+        "confirmar_contrasena": "ContrasenaNueva1!"
       }
   auth: inherit
 

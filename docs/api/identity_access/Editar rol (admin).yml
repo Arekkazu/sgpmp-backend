@@ -1,23 +1,22 @@
 info:
-  name: Caso 1 — Cambio exitoso
+  name: Editar rol (admin)
   type: http
-  seq: 2
+  seq: 19
 
 http:
   method: put
-  url: http://localhost:8000/contrasena/usuarios/1
+  url: http://localhost:8000/roles/
   headers:
     - name: Authorization
-      value: Bearer {TOKEN}
+      value: Bearer <TOKEN>
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "contrasena_actual": "tu_password_actual",
-        "nueva_contrasena": "NuevaClave1@",
-        "confirmar_nueva_contrasena": "NuevaClave1@"
+        "nombre_rol": "Supervisor Senior",
+        "descripcion": "Descripción actualizada"
       }
   auth: inherit
 

@@ -1,21 +1,22 @@
 info:
-  name: Caso 9 — Sin token → 401
+  name: " Asignar permiso a un rol (admin)"
   type: http
-  seq: 10
+  seq: 24
 
 http:
-  method: patch
-  url: http://localhost:8000/usuarios/%7BID_PRODUCTOR%7D
+  method: post
+  url: http://localhost:8000/roles/
   headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "nombre": "Test",
-        "apellidos": "Test",
-        "version": 1
+        "id_recurso": 2,
+        "id_accion": 1
       }
   auth: inherit
 

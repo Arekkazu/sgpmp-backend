@@ -1,0 +1,28 @@
+info:
+  name: " Cambiar contraseña (usuario autenticado)"
+  type: http
+  seq: 13
+
+http:
+  method: put
+  url: http://localhost:8000/contrasena/usuarios/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "contrasena_actual": "ContrasenaVieja1!",
+        "nueva_contrasena": "ContrasenaNueva1!",
+        "confirmar_nueva_contrasena": "ContrasenaNueva1!"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

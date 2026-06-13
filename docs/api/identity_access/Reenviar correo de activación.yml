@@ -1,11 +1,11 @@
 info:
-  name: "  Caso 10 — Restablecimiento exitoso"
+  name: Reenviar correo de activación
   type: http
-  seq: 11
+  seq: 5
 
 http:
   method: post
-  url: http://localhost:8000/contrasena/restablecer
+  url: http://localhost:8000/usuarios/activar/reenviar
   headers:
     - name: Content-Type
       value: application/json
@@ -13,9 +13,7 @@ http:
     type: json
     data: |-
       {
-        "token": "{TOKEN_DEL_EMAIL}",
-        "nueva_contrasena": "NuevaClave1@",
-        "confirmar_contrasena": "NuevaClave1@"
+        "correo_electronico": "usuario@ejemplo.com"
       }
   auth: inherit
 

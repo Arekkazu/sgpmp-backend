@@ -1,20 +1,21 @@
 info:
-  name: LOGIN
+  name: Gestionar cuenta de usuario (admin) - activar sin motivo
   type: http
-  seq: 1
+  seq: 12
 
 http:
   method: post
-  url: http://localhost:8000/sesiones/
+  url: http://localhost:8000/usuarios/
   headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
     - name: Content-Type
       value: application/json
   body:
     type: json
     data: |-
       {
-        "correo_electronico": "admin@pecuaria.co",
-        "contrasena": "MiPasswoddrd123#"
+        "accion_cuenta": "activar"
       }
   auth: inherit
 
