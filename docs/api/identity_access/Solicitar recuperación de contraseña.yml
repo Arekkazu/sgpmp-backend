@@ -1,0 +1,24 @@
+info:
+  name: Solicitar recuperación de contraseña
+  type: http
+  seq: 14
+
+http:
+  method: post
+  url: http://localhost:8000/contrasena/recuperar
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "correo_electronico": "usuario@ejemplo.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

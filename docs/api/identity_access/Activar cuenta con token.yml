@@ -1,0 +1,15 @@
+info:
+  name: Activar cuenta con token
+  type: http
+  seq: 2
+
+http:
+  method: get
+  url: http://localhost:8000/usuarios/activar/%3CTOKEN_ACTIVACION%3E
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

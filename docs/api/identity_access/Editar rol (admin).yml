@@ -1,0 +1,27 @@
+info:
+  name: Editar rol (admin)
+  type: http
+  seq: 19
+
+http:
+  method: put
+  url: http://localhost:8000/roles/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre_rol": "Supervisor Senior",
+        "descripcion": "Descripción actualizada"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
