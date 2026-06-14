@@ -162,6 +162,68 @@ Seguir este orden sin saltarse capas:
 | Emails y notificaciones enviados **después del** `commit()` | Si la notificación falla, los datos deben quedar guardados |
 | Errores de DB traducidos antes de salir del repository | La capa de aplicación no conoce `IntegrityError` de SQLAlchemy |
 | El dominio y la aplicación no importan nada de `infrastructure` | Inversión de dependencias — facilita pruebas y cambios de adaptador |
+| **Autorización por RBAC en el router, nunca con `id_rol` quemado en el use case** | Ver sección RBAC más abajo |
+
+---
+
+## Control de acceso (RBAC)
+
+La autorización se gestiona a través de `src/shared/rbac.py` mediante la dependencia
+`require_permission(id_recurso, id_accion)`, que consulta la tabla `modulo1.permisos`
+en cada request. Los permisos son dinámicos: cambiar una fila en DB cambia el
+comportamiento sin tocar código.
+
+### Cómo aplicarlo en un router
+
+```python
+from src.shared.rbac import require_permission
+
+@router.post("", dependencies=[Depends(require_permission(id_recurso, id_accion))])
+def mi_endpoint(db, usuario_actual): ...
+```
+
+Si el rol del usuario no tiene el permiso activo, `require_permission` lanza
+`AuthorizationError 403` antes de que el endpoint se ejecute.
+
+### Tabla de acciones estándar (`modulo1.acciones`)
+
+| id_accion | codigo | descripcion |
+|-----------|--------|-------------|
+| 1 | C | Crear |
+| 2 | R | Leer |
+| 3 | U | Actualizar |
+| 4 | D | Eliminar / Desactivar |
+| 5 | E | Ejecutar |
+
+### Reglas de uso
+
+- **El use case NO verifica roles.** Solo usa `usuario_actual.id_usuario` para auditoría.
+- **No hardcodear** `ROL_ADMINISTRADOR = 1` ni similares en use cases para decidir acceso.
+- Si el documento RF dice que una operación es exclusiva de un rol, ese rol debe tener
+  el permiso correspondiente en `modulo1.permisos` — no expresarlo en código.
+- Antes de implementar un router, verificar que `modulo1.permisos` tenga los registros
+  necesarios para el recurso. Si faltan, insertarlos y documentarlos en `anotaciones/`.
+- Los recursos están en `modulo1.recursos`. Cada módulo de negocio registra ahí sus
+  recursos con un `id_recurso` propio.
+
+### Patrón completo de un endpoint con RBAC
+
+```python
+# 1. require_permission verifica el permiso y lanza 403 si no lo tiene
+# 2. get_current_user provee usuario_actual (FastAPI lo cachea; no se llama dos veces)
+@router.post(
+    "",
+    dependencies=[Depends(require_permission(8, 1))],  # C sobre recurso 8
+)
+def registrar(
+    dto: MiDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),  # solo para auditoría
+) -> MiResponse:
+    use_case = MiUseCase(db=db, repo=SqlAlchemyMiRepo(db), ...)
+    resultado = use_case.execute(dto, usuario_actual)
+    return MiResponse.model_validate(resultado)
+```
 
 Patrón de transacción estándar en un use case:
 

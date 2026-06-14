@@ -47,7 +47,7 @@ Cada módulo es un Bounded Context independiente. Las carpetas están en inglés
 | NIC 41 Valuation | `nic41_valuation` | Valor razonable NIC 41, cierre contable 9 pasos, trazabilidad 4 niveles | `identity_access`, `biological_assets`, `prediction`, `supplies` | Alta |
 | External Integration | `integration` | Gateway REST, orquestador AAEF, 6 mappers, hash SHA-256, webhook | `identity_access`, `nic41_valuation` | Alta |
 | Business Intelligence | `business_intelligence` | Dashboards con semáforo, reportes NIIF, historial clínico predictivo | `identity_access`, `biological_assets`, `telemetry`, `prediction`, `nic41_valuation`, `configuration` | Media |
-| Configuration | `configuration` | Catálogo de especies, fincas, dispositivos IoT, umbrales, catálogos AAEF | `identity_access` | Alta |
+| Configuration (M09) | `configuration` | Catálogo de especies, fincas, dispositivos IoT, umbrales, catálogos AAEF. **Módulo de negocio** — no es configuración técnica de la app | `identity_access` | Alta |
 
 ### Estructura del proyecto
 
@@ -99,7 +99,9 @@ sgpmp-backend/
     │   ├── application/
     │   └── infrastructure/
     │
-    ├── configuration/                   ← Módulo: Configuration
+    ├── configuration/                   ← Módulo de negocio M09: Configuración y Personalización
+    │   │                                  (catálogo de especies, fincas, IoT, personalización visual)
+    │   │                                  ⚠ No confundir con configuración técnica de la app (ver settings.py)
     │   ├── domain/
     │   ├── application/
     │   └── infrastructure/
