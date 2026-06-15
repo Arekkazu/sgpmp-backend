@@ -3,6 +3,7 @@ from fastapi import FastAPI
 
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
+from src.configuration.infrastructure.routers.metrica_router import router as metrica_router
 from src.configuration.infrastructure.routers.patologia_router import router as patologia_router
 from src.identity_access.infrastructure.routers.auditoria_routers import router as auditoria_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
@@ -28,6 +29,7 @@ app.include_router(roles_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)
 app.include_router(patologia_router)
+app.include_router(metrica_router)
 
 @app.get("/", tags=["Health"])
 async def index():
