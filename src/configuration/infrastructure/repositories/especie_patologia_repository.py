@@ -66,6 +66,23 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
             for pivot, pat in query.order_by(PatologiaModel.nombre).all()
         ]
 
+    def eliminar_todas_de_especie(self, id_especie: int) -> None:
+        try:
+            self.db.query(EspeciePatologiaModel).filter(
+                EspeciePatologiaModel.id_especie == id_especie,
+            ).delete(synchronize_session='fetch')
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
+
+    def vincular_desde_snapshot(self, id_especie: int, id_patologia: int) -> None:
+        pivot = EspeciePatologiaModel(id_especie=id_especie, id_patologia=id_patologia)
+        try:
+            self.db.add(pivot)
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
+
     def asociar(self, id_especie: int, id_patologia: int) -> EspeciePatologia:
         pivot = EspeciePatologiaModel(id_especie=id_especie, id_patologia=id_patologia)
         try:

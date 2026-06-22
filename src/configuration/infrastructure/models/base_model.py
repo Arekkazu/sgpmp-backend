@@ -1,6 +1,6 @@
-"""Base declarativa de SQLAlchemy para todos los modelos ORM del módulo configuration."""
-from sqlalchemy.orm import DeclarativeBase
+"""Base declarativa de SQLAlchemy para los modelos de configuration.
 
-
-class Base(DeclarativeBase):
-    pass
+Re-exporta desde src.shared.base_model para mantener una única instancia
+de Base en todo el sistema.
+"""
+from src.shared.base_model import Base  # noqa: F401

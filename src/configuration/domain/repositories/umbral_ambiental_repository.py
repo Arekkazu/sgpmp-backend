@@ -26,3 +26,13 @@ class UmbralAmbientalRepository(ABC):
 
     @abstractmethod
     def actualizar(self, umbral: UmbralAmbiental) -> UmbralAmbiental: ...
+
+    @abstractmethod
+    def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivos todos los umbrales activos de una especie. Hace ``flush``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        """Inserta un umbral + niveles a partir de un dict del params_snapshot. Hace ``flush``."""
+        raise NotImplementedError

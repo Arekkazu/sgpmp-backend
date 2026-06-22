@@ -1,7 +1,6 @@
-"""Base declarativa de SQLAlchemy compartida por todos los modelos ORM del proyecto."""
-from sqlalchemy.orm import DeclarativeBase
+"""Base declarativa de SQLAlchemy para los modelos de identity_access.
 
-
-class Base(DeclarativeBase):
-    """Clase base de la que heredan todos los modelos ORM del sistema."""
-    pass
+Re-exporta desde src.shared.base_model para mantener una única instancia
+de Base en todo el sistema.
+"""
+from src.shared.base_model import Base  # noqa: F401

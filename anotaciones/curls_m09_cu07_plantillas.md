@@ -1,0 +1,233 @@
+# CURLs — M09 CU07: Gestionar Plantillas de Configuración
+
+Base URL local: `http://localhost:8000`
+Reemplazar `<TOKEN>` por el JWT obtenido en `/sesiones/login`.
+Roles con acceso: **Administrador** (id_rol=1) e **Ingeniero de Campo** (id_rol=4).
+Recurso RBAC: `id_recurso=28` (plantillas).
+
+---
+
+## RF-30 — Listar plantillas disponibles (Flujo A)
+
+### GET /configuracion/plantillas
+
+```bash
+curl -X GET http://localhost:8000/configuracion/plantillas \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 2,
+  "items": [
+    {
+      "id_plantilla": 1,
+      "id_especie": 3,
+      "id_usuario": 1,
+      "template_name": "Tilapia Estándar",
+      "version": 2,
+      "fecha_creacion": "2026-06-21T10:00:00Z",
+      "params_snapshot": {
+        "schema_version": 1,
+        "ciclos_biologicos": [...],
+        "metricas_produccion": [...],
+        "umbrales_ambientales": [...],
+        "patologias": [5, 12]
+      }
+    }
+  ]
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre recurso 28 (FA-05)
+
+---
+
+## RF-30 — Detalle de plantilla (Flujo C)
+
+### GET /configuracion/plantillas/{id_plantilla}
+
+```bash
+curl -X GET http://localhost:8000/configuracion/plantillas/1 \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`: misma estructura que un item de la lista.
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre recurso 28 (FA-05)
+- `404` — plantilla no existe
+
+---
+
+## RF-30 — Historial de aplicaciones (Flujo E)
+
+### GET /configuracion/plantillas/historial
+
+```bash
+curl -X GET http://localhost:8000/configuracion/plantillas/historial \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 1,
+  "items": [
+    {
+      "id_aplicacion_plantilla": 1,
+      "id_plantilla": 1,
+      "id_usuario": 1,
+      "target_config": {"id_especie": 5},
+      "before_snapshot": {...},
+      "after_snapshot": {...},
+      "fecha_aplicacion": "2026-06-21T11:30:00Z"
+    }
+  ]
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre recurso 28 (FA-05)
+
+---
+
+## RF-31 — Crear plantilla de configuración (Flujo B)
+
+### POST /configuracion/plantillas
+
+El `params_snapshot` debe tener al menos una categoría con elementos.
+La versión se incrementa automáticamente si ya existe un `template_name` igual.
+
+```bash
+curl -X POST http://localhost:8000/configuracion/plantillas \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "template_name": "Tilapia Estándar",
+    "id_especie": 3,
+    "params_snapshot": {
+      "ciclos_biologicos": [
+        {"nombre": "Alevín", "duracion_dias": 30, "descripcion": "Fase inicial"},
+        {"nombre": "Juvenil", "duracion_dias": 60}
+      ],
+      "metricas_produccion": [
+        {
+          "nombre": "Peso promedio",
+          "unidad_medida": "kg",
+          "tipo_medicion": "continua",
+          "aplica_a_tipo_activo": "pez"
+        }
+      ],
+      "umbrales_ambientales": [
+        {
+          "id_variable_ambiental": 1,
+          "unidad_medida": "°C",
+          "valor_min": "22.0",
+          "valor_max": "30.0",
+          "niveles": [
+            {"nivel": "normal", "limite_inferior": "22.0", "limite_superior": "30.0"},
+            {"nivel": "precaucion", "limite_inferior": "20.0", "limite_superior": "32.0"},
+            {"nivel": "critico", "limite_inferior": "15.0", "limite_superior": "38.0"}
+          ]
+        }
+      ],
+      "patologias": [5, 12]
+    }
+  }'
+```
+
+Respuesta esperada `201`:
+```json
+{
+  "id_plantilla": 1,
+  "id_especie": 3,
+  "id_usuario": 1,
+  "template_name": "Tilapia Estándar",
+  "version": 1,
+  "fecha_creacion": "2026-06-21T10:00:00Z",
+  "params_snapshot": {
+    "schema_version": 1,
+    "ciclos_biologicos": [...],
+    "metricas_produccion": [...],
+    "umbrales_ambientales": [...],
+    "patologias": [5, 12]
+  }
+}
+```
+
+Errores posibles:
+- `400` — template_name fuera del rango 3-50 chars (FA-07)
+- `400` — params_snapshot con claves fuera de alcance (FA-09)
+- `400` — params_snapshot sin ningún elemento en ninguna categoría (FA-10)
+- `401` — token ausente o inválido
+- `403` — rol sin permiso C sobre recurso 28 (FA-05)
+- `404` — especie origen no existe
+- `422` — especie origen inactiva (FA-08)
+
+Segunda llamada con el mismo `template_name` → `201` con `version=2` (no hay error de duplicado en el nombre solo).
+
+---
+
+## RF-32 — Aplicar plantilla a especie destino (Flujo D)
+
+### POST /configuracion/plantillas/{id_plantilla}/aplicar
+
+```bash
+curl -X POST http://localhost:8000/configuracion/plantillas/1/aplicar \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_especie_destino": 5,
+    "fecha_creacion_especie_destino": "2026-05-10T08:00:00Z"
+  }'
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "id_aplicacion_plantilla": 1,
+  "id_plantilla": 1,
+  "id_usuario": 1,
+  "target_config": {"id_especie": 5},
+  "before_snapshot": {
+    "ciclos_biologicos": [...],
+    "metricas_produccion": [...],
+    "umbrales_ambientales": [...],
+    "patologias": [7]
+  },
+  "after_snapshot": {
+    "ciclos_biologicos": [...],
+    "metricas_produccion": [...],
+    "umbrales_ambientales": [...],
+    "patologias": [5, 12]
+  },
+  "fecha_aplicacion": "2026-06-21T11:30:00Z"
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso E sobre recurso 28 (FA-05)
+- `404` — plantilla no existe
+- `404` — especie destino no existe (FA-03)
+- `412` — schema_version del snapshot incompatible con la versión actual (FA-02)
+- `412` — `fecha_creacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11)
+- `422` — especie destino inactiva
+
+### Verificación en DB tras aplicar
+
+```sql
+-- Confirmar que las metricas del destino cambiaron
+SELECT nombre, es_activo FROM modulo9.metricas_produccion WHERE id_especie = 5 ORDER BY es_activo DESC;
+
+-- Ver el registro de aplicacion con before/after
+SELECT id_aplicacion_plantilla, before_snapshot, after_snapshot, fecha_aplicacion
+FROM modulo9.aplicaciones_plantillas
+ORDER BY fecha_aplicacion DESC LIMIT 5;
+```

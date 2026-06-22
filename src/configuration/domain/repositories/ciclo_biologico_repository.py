@@ -42,3 +42,13 @@ class CicloBiologicoRepository(ABC):
     def actualizar(self, ciclo: CicloBiologico) -> CicloBiologico:
         """Persiste cambios de una etapa existente. Hace ``flush``."""
         raise NotImplementedError
+
+    @abstractmethod
+    def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivos todos los ciclos activos de una especie. Hace ``flush``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int) -> None:
+        """Inserta un ciclo a partir de un dict del params_snapshot. Hace ``flush``."""
+        raise NotImplementedError

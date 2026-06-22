@@ -97,3 +97,29 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         except Exception as exc:
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
+
+    def desactivar_todas_por_especie(self, id_especie: int) -> None:
+        try:
+            self.db.query(MetricaProduccionModel).filter(
+                MetricaProduccionModel.id_especie == id_especie,
+                MetricaProduccionModel.es_activo.is_(True),
+            ).update({'es_activo': False}, synchronize_session='fetch')
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
+
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        orm = MetricaProduccionModel(
+            nombre=datos['nombre'],
+            unidad_medida=datos['unidad_medida'],
+            tipo_medicion=datos['tipo_medicion'],
+            aplica_a_tipo_activo=datos['aplica_a_tipo_activo'],
+            id_especie=id_especie,
+            es_activo=True,
+            tiene_estado=False,
+        )
+        try:
+            self.db.add(orm)
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
