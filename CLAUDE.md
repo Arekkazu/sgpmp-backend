@@ -5,8 +5,9 @@
 ## Qué cubre este documento
 
 - Arquitectura y responsabilidad de cada capa
-- Flujo de trabajo para implementar un caso de uso
+- Flujo de trabajo para implementar un caso de uso (incluyendo Paso 0 de gaps de BD y RBAC)
 - Reglas de construcción y sus razones
+- Patrones adicionales: agregados con hijos, concurrencia optimista, auditoría (`_snapshot`), stubs, enums PG
 - Jerarquía de errores y cuándo usar cada uno
 - Variables de entorno requeridas
 - Notas de infraestructura relevantes
@@ -139,6 +140,29 @@ desambigua. Las operaciones de escritura siguen el patrón
 
 ## Flujo para implementar un caso de uso
 
+### Paso 0 — Análisis de gaps de BD y RBAC (antes de escribir código)
+
+Antes de tocar código, comparar el RF contra el esquema real de la tabla vía MCP postgres:
+
+```sql
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'modulo9' AND table_name = 'mi_tabla';
+```
+
+Documentar cada gap encontrado en `anotaciones/cu{nn}_gaps_bd_rf{nn}.md` con la decisión tomada y el SQL aplicado. Categorías habituales de gaps:
+
+- Columnas faltantes (ej. `fecha_actualizacion TIMESTAMPTZ`)
+- Restricciones incorrectas (nullable / NOT NULL, constraints de unicidad)
+- Tablas de auditoría no creadas
+- Recurso y permisos RBAC no insertados
+
+También verificar en DB que `modulo1.recursos` tiene el `id_recurso` para este módulo y que `modulo1.permisos` tiene filas para cada combinación (rol, recurso, acción) que el RF especifica. Sin esto, todos los endpoints devuelven `403` de forma silenciosa.
+
+Aplicar todos los DDL y DML antes de escribir código. Luego continuar con los pasos de abajo.
+
+---
+
 Seguir este orden sin saltarse capas:
 
 1. **Modelo ORM** — mapea la tabla si no existe
@@ -149,6 +173,7 @@ Seguir este orden sin saltarse capas:
 6. **Use Case** — orquesta: valida, llama puertos, `commit()`, notificaciones
 7. **Schema** — define el response del endpoint
 8. **Router** — conecta todo, sin lógica
+9. **CURLs** — documentar todos los endpoints en `anotaciones/curls_m09_cu{nn}_{nombre}.md`, siguiendo el formato de los archivos existentes: un bloque por flujo/endpoint, respuesta esperada, errores posibles con su código HTTP y referencia al FA correspondiente
 
 ---
 
@@ -206,6 +231,28 @@ Si el rol del usuario no tiene el permiso activo, `require_permission` lanza
 - Los recursos están en `modulo1.recursos`. Cada módulo de negocio registra ahí sus
   recursos con un `id_recurso` propio.
 
+### Convención de nombres para permisos
+
+El campo `nombre` en `modulo1.permisos` sigue el patrón `{rol}_{accion}_{recurso_singular}`:
+
+```
+admin_crear_especie
+vet_leer_umbral_ambiental
+prod_actualizar_ciclo_biologico
+```
+
+Roles estándar en `modulo1.roles`:
+
+| id_rol | prefijo | nombre |
+|--------|---------|--------|
+| 1 | admin | Administrador |
+| 2 | prod | Productor |
+| 3 | vet | Veterinario |
+| 4 | ing | Ingeniero |
+| 5 | cont | Contador |
+
+Acciones para el nombre: `crear` (C=1), `leer` (R=2), `actualizar` (U=3), `desactivar` (D=4), `ejecutar` (E=5).
+
 ### Patrón completo de un endpoint con RBAC
 
 ```python
@@ -242,6 +289,167 @@ send_email(...)
 
 ---
 
+## Patrones adicionales
+
+### Agregado con colección de hijos
+
+Cuando un agregado posee una lista de entidades hijas (ej. `UmbralAmbiental` → `niveles`):
+
+**ORM** — declarar la relación con cascade y carga eager:
+
+```python
+niveles = relationship(
+    "NivelAlertaAmbientalModel",
+    back_populates="umbral",
+    cascade="all, delete-orphan",
+    lazy="selectin",
+)
+```
+
+**Repository `guardar`** — insertar padre primero, luego hijos:
+
+```python
+orm = UmbralAmbientalModel(...)
+self.db.add(orm)
+self.db.flush()  # genera el PK del padre
+for nivel in entidad.niveles:
+    self.db.add(NivelAlertaAmbientalModel(id_umbral_ambiental=orm.id, ...))
+self.db.flush()
+self.db.refresh(orm)
+return self._a_entidad(orm)
+```
+
+**Repository `actualizar`** — delete-then-insert; nunca actualizar hijos en el lugar:
+
+```python
+orm.campo = entidad.campo  # actualizar campos del padre
+for hijo in list(orm.niveles):
+    self.db.delete(hijo)
+self.db.flush()
+for nivel in entidad.niveles:
+    self.db.add(NivelAlertaAmbientalModel(id_umbral_ambiental=orm.id, ...))
+self.db.flush()
+self.db.refresh(orm)
+return self._a_entidad(orm)
+```
+
+La razón para delete-then-insert: el nivel (`normal`/`precaucion`/`critico`) es parte de la identidad de cada hijo; no hay forma segura de hacer update in-place cuando el conjunto puede cambiar completamente.
+
+---
+
+### Concurrencia optimista (412)
+
+Para entidades editables con campo `fecha_actualizacion TIMESTAMPTZ`, el use case de edición verifica que el cliente envíe el timestamp exacto que tiene la DB:
+
+```python
+from datetime import timezone
+from src.shared.errors import PreconditionFailedError
+
+ts_actual = entidad.fecha_actualizacion   # viene de la DB
+ts_dto    = dto.fecha_actualizacion       # viene del cliente
+
+if ts_actual is not None and ts_dto is not None:
+    if ts_actual.astimezone(timezone.utc) != ts_dto.astimezone(timezone.utc):
+        raise PreconditionFailedError(
+            code="CONFLICTO_CONCURRENCIA",
+            message="El registro fue modificado por otro usuario. Recarga y reintenta.",
+        )
+elif ts_actual != ts_dto:
+    raise PreconditionFailedError(
+        code="CONFLICTO_CONCURRENCIA",
+        message="El registro fue modificado por otro usuario. Recarga y reintenta.",
+    )
+```
+
+La doble rama existe porque `None != None` es `False` en Python pero `datetime(tz) != None` es `True`, así que la comparación directa daría falso positivo cuando ambos son `None` (entidad nunca editada).
+
+---
+
+### `_snapshot()` en entidades con auditoría
+
+Toda entidad que registra auditoría implementa `_snapshot() → dict` con el estado actual en formato JSON-serializable. Se llama **antes** de la mutación para capturar `valores_anteriores`:
+
+```python
+def _snapshot(self) -> dict:
+    return {
+        "valor_min": str(self.valor_min),
+        "valor_max": str(self.valor_max),
+        "niveles": [
+            {"nivel": n.nivel.value, "limite_inferior": str(n.limite_inferior)}
+            for n in self.niveles
+        ],
+    }
+```
+
+Flujo en el use case de edición:
+
+```python
+snapshot_anterior = entidad._snapshot()
+entidad.actualizar(...)           # muta la entidad
+repo.actualizar(entidad)
+auditoria_repo.registrar(
+    tipo_op="UPDATE",
+    valores_nuevos=entidad._snapshot(),
+    valores_anteriores=snapshot_anterior,
+)
+self.db.commit()
+```
+
+---
+
+### Adaptador stub para dependencias cruzadas
+
+Cuando un use case necesita consultar un módulo aún no implementado (ej. verificar si una especie tiene ciclos activos), crear un stub en `infrastructure/adapters/`:
+
+```python
+# infrastructure/adapters/ciclo_stub_adapter.py
+from src.configuration.domain.repositories.ciclo_dependency_port import CicloDependencyPort
+
+class CicloStubAdapter(CicloDependencyPort):
+    def tiene_ciclos_activos(self, id_especie: int) -> bool:
+        return False  # valor seguro por defecto hasta implementar el módulo real
+```
+
+El router inyecta el stub igual que cualquier repositorio. Cuando el módulo real se implemente, se reemplaza el stub por la implementación concreta sin tocar el use case.
+
+---
+
+### Columnas enum de PostgreSQL en modelos ORM
+
+Usar `String` en lugar de `Enum` de SQLAlchemy cuando la columna mapea a un tipo enum que ya existe en PostgreSQL:
+
+```python
+# Correcto — evita conflicto con el tipo enum existente en la DB
+nivel = Column(String(20), nullable=False)
+
+# Incorrecto — SQLAlchemy intenta crear el tipo en el ALTER TABLE y falla
+nivel = Column(Enum("normal", "precaucion", "critico", name="enum_nivel_alerta"), ...)
+```
+
+---
+
+### `raise_from_db_error` en repositories
+
+Todo método de escritura en un repository debe capturar errores de DB y traducirlos antes de que salgan de la capa de infraestructura:
+
+```python
+from src.shared.db_error_translator import raise_from_db_error
+
+def guardar(self, entidad: MiEntidad) -> MiEntidad:
+    try:
+        orm = MiModel(...)
+        self.db.add(orm)
+        self.db.flush()
+        self.db.refresh(orm)
+        return self._a_entidad(orm)
+    except Exception as exc:
+        raise_from_db_error(exc)
+```
+
+Esto convierte `IntegrityError` de SQLAlchemy en `ConflictError` (409) con el campo correspondiente. La capa de aplicación no debe conocer `IntegrityError`.
+
+---
+
 ## Jerarquía de errores (`src/shared/errors.py`)
 
 Todos heredan de `AppError`. El handler global los convierte a la respuesta HTTP correspondiente.
@@ -253,6 +461,7 @@ Todos heredan de `AppError`. El handler global los convierte a la respuesta HTTP
 | `AuthorizationError` | 403 | Autenticado pero sin permiso para la operación |
 | `NotFoundError` | 404 | Recurso no existe |
 | `ConflictError` | 409 | Recurso duplicado (correo, identificación) |
+| `PreconditionFailedError` | 412 | Edición rechazada por conflicto de concurrencia optimista |
 | `BusinessRuleError` | 422 | Violación de regla de negocio |
 | `FlowError` | 422 | Fallo a mitad de flujo (token ya usado, transición inválida) |
 | `GoneError` | 410 | Recurso que existió pero ya no aplica (token expirado) |
