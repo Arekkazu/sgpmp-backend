@@ -113,9 +113,41 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
-    # ------------------------------------------------------------------
-    # Mapeo ORM → entidad
-    # ------------------------------------------------------------------
+    def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        try:
+            self._db.query(UmbralAmbientalModel).filter(
+                UmbralAmbientalModel.id_especie == id_especie,
+                UmbralAmbientalModel.es_activo.is_(True),
+            ).update({'es_activo': False}, synchronize_session='fetch')
+            self._db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        from decimal import Decimal
+        try:
+            orm = UmbralAmbientalModel(
+                id_especie=id_especie,
+                id_variable_ambiental=int(datos['id_variable_ambiental']),
+                id_usuario=id_usuario,
+                unidad_medida=datos['unidad_medida'],
+                valor_min=Decimal(datos['valor_min']),
+                valor_max=Decimal(datos['valor_max']),
+                es_activo=True,
+            )
+            self._db.add(orm)
+            self._db.flush()
+            for n in datos.get('niveles', []):
+                nivel_orm = NivelAlertaAmbientalModel(
+                    id_umbral_ambiental=orm.id_umbral_ambiental,
+                    nivel=n['nivel'],
+                    limite_inferior=Decimal(n['limite_inferior']),
+                    limite_superior=Decimal(n['limite_superior']),
+                )
+                self._db.add(nivel_orm)
+            self._db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     @staticmethod
     def _a_entidad(orm: UmbralAmbientalModel) -> UmbralAmbiental:

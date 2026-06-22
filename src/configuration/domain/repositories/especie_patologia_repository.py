@@ -31,3 +31,13 @@ class EspeciePatologiaRepository(ABC):
     def asociar(self, id_especie: int, id_patologia: int) -> EspeciePatologia:
         """Crea la asociación especie ↔ patología. Hace ``flush``."""
         raise NotImplementedError
+
+    @abstractmethod
+    def eliminar_todas_de_especie(self, id_especie: int) -> None:
+        """Elimina (físicamente) todas las asociaciones de una especie. Hace ``flush``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def vincular_desde_snapshot(self, id_especie: int, id_patologia: int) -> None:
+        """Inserta la asociación especie ↔ patología sin devolver entidad completa. Hace ``flush``."""
+        raise NotImplementedError

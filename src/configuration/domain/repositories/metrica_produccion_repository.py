@@ -42,3 +42,13 @@ class MetricaProduccionRepository(ABC):
     def actualizar(self, metrica: MetricaProduccion) -> MetricaProduccion:
         """Persiste cambios de una métrica existente. Hace ``flush``."""
         raise NotImplementedError
+
+    @abstractmethod
+    def desactivar_todas_por_especie(self, id_especie: int) -> None:
+        """Marca como inactivas todas las métricas activas de una especie. Hace ``flush``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int, id_usuario: int) -> None:
+        """Inserta una métrica a partir de un dict del params_snapshot. Hace ``flush``."""
+        raise NotImplementedError

@@ -90,3 +90,27 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
         except Exception as exc:
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
+
+    def desactivar_todos_por_especie(self, id_especie: int) -> None:
+        try:
+            self.db.query(CicloBiologicoModel).filter(
+                CicloBiologicoModel.id_especie == id_especie,
+                CicloBiologicoModel.es_activo.is_(True),
+            ).update({'es_activo': False}, synchronize_session='fetch')
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
+
+    def guardar_desde_snapshot(self, datos: dict, id_especie: int) -> None:
+        orm = CicloBiologicoModel(
+            nombre=datos['nombre'],
+            descripcion=datos.get('descripcion'),
+            duracion_dias=int(datos['duracion_dias']),
+            id_especie=id_especie,
+            es_activo=True,
+        )
+        try:
+            self.db.add(orm)
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc, {})
