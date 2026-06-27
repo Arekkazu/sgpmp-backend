@@ -1,4 +1,5 @@
 from .acciones_model import Acciones
+from .dispositivos_fcm_model import DispositivosFcm
 from .cuenta_usuarios_model import CuentasUsuarios
 from .enums_models import (
     EnumAccionCuenta,
