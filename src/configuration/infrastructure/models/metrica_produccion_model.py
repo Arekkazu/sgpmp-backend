@@ -7,9 +7,10 @@ unidad_medida, tipo_medicion, tiene_estado) existían antes para M04.
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, Sequence, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -73,3 +74,5 @@ class MetricaProduccionModel(Base):
         DateTime(timezone=True),
         comment='Timestamp de última modificación. Usado para concurrencia optimista.',
     )
+    valor_min: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4))
+    valor_max: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4))
