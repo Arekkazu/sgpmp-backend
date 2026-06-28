@@ -5,13 +5,17 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._event_validations import (
+    validar_estado_permite_eventos,
+    validar_fecha_evento,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoBaja
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
-from src.shared.errors import NotFoundError
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import NotFoundError
 
 
 class RegistrarEventoBajaUseCase:
@@ -31,18 +35,22 @@ class RegistrarEventoBajaUseCase:
     def execute(self, id_activo: int, dto: RegistrarEventoBajaDTO, usuario: UsuarioActual) -> EventoActivo:
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
-            raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El lote con id {id_activo} no existe.')
+            raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El activo biológico con id {id_activo} no existe.')
 
-        # Aplica la baja en la entidad: reduce cantidad_actual, recalcula biomasa
+        # RF-39: ACTIVO, EN_TRATAMIENTO y AISLADO permiten eventos de baja
+        validar_estado_permite_eventos(activo)
+
+        fecha = dto.fecha or datetime.now(timezone.utc)
+        validar_fecha_evento(fecha, activo, self.evento_repo)
+
+        # La baja de cantidad solo aplica a activos POBLACIONAL
         activo.aplicar_evento_baja(dto.cantidad_afectada)
 
-        # Recalcula densidad con la nueva cantidad
         infra = self.infra_port.obtener_activa(activo.id_infraestructura)
         if infra and infra.superficie and infra.superficie > 0 and activo.detalle_poblacional:
             dp = activo.detalle_poblacional
             dp.densidad = Decimal(str(dp.cantidad_actual or 0)) / infra.superficie
 
-        fecha = dto.fecha or datetime.now(timezone.utc)
         evento = EventoActivo(
             id_activo_biologico=id_activo,
             fecha=fecha,

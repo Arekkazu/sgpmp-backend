@@ -125,14 +125,16 @@ class HistorialFasesResponse(BaseModel):
     fases: list[GestionFaseResponse]
 
 
-# ── Schemas de eventos de lote (CU03 - RF-36) ───────────────────────────────
+# ── Schemas de eventos biológicos (CU05 - RF-39/RF-40) ──────────────────────
 
 class EventoCrecimientoResponse(BaseModel):
     tipo_medicion: str
     valor_medicion: Decimal
     unidad_medida: str
-    tipo_agregacion: str
-    frecuencia: str
+    tipo_agregacion: Optional[str] = None
+    frecuencia: Optional[str] = None
+    nuevo_peso_promedio: Optional[Decimal] = None
+    cantidad_medida: Optional[int] = None
 
     model_config = {'from_attributes': True}
 

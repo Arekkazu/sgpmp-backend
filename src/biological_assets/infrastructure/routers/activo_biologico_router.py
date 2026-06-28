@@ -335,6 +335,8 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             unidad_medida=c.unidad_medida,
             tipo_agregacion=c.tipo_agregacion,
             frecuencia=c.frecuencia,
+            nuevo_peso_promedio=c.nuevo_peso_promedio,
+            cantidad_medida=c.cantidad_medida,
         )
 
     baja = None
@@ -393,7 +395,7 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Consultar historial de eventos del lote (RF-36)',
+    summary='Consultar historial de eventos del activo (RF-39)',
 )
 def consultar_eventos(
     id_activo: int,
@@ -425,7 +427,7 @@ def consultar_eventos(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento de crecimiento del lote (RF-36)',
+    summary='Registrar evento de crecimiento del activo (RF-40)',
 )
 def registrar_evento_crecimiento(
     id_activo: int,
@@ -455,7 +457,7 @@ def registrar_evento_crecimiento(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento de baja del lote (RF-36)',
+    summary='Registrar evento de baja del lote (RF-39)',
 )
 def registrar_evento_baja(
     id_activo: int,
@@ -485,7 +487,7 @@ def registrar_evento_baja(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento sanitario del lote (RF-36)',
+    summary='Registrar evento sanitario del activo (RF-39)',
 )
 def registrar_evento_sanitario(
     id_activo: int,
@@ -595,7 +597,7 @@ def cerrar_ciclo(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento productivo del lote (RF-36)',
+    summary='Registrar evento productivo del activo (RF-39)',
 )
 def registrar_evento_productivo(
     id_activo: int,

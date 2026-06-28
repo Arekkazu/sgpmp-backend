@@ -34,8 +34,10 @@ class EventoCrecimiento:
     tipo_medicion: str
     valor_medicion: Decimal
     unidad_medida: str
-    tipo_agregacion: str
-    frecuencia: str
+    tipo_agregacion: Optional[str] = None
+    frecuencia: Optional[str] = None
+    nuevo_peso_promedio: Optional[Decimal] = None
+    cantidad_medida: Optional[int] = None
 
 
 @dataclass
