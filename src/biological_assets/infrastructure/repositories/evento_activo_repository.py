@@ -48,6 +48,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 unidad_medida=c.unidad_medida,
                 tipo_agregacion=c.tipo_agregacion,
                 frecuencia=c.frecuencia,
+                nuevo_peso_promedio=c.nuevo_peso_promedio,
+                cantidad_medida=c.cantidad_medida,
             )
 
         if orm.evento_baja:
@@ -116,6 +118,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                     unidad_medida=c.unidad_medida,
                     tipo_agregacion=c.tipo_agregacion,
                     frecuencia=c.frecuencia,
+                    nuevo_peso_promedio=c.nuevo_peso_promedio,
+                    cantidad_medida=c.cantidad_medida,
                 ))
             elif evento.baja:
                 b = evento.baja

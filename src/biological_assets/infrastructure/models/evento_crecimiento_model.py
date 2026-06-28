@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -24,11 +24,13 @@ class EventoCrecimientoModel(Base):
     )
 
     id_evento: Mapped[int] = mapped_column(Integer, primary_key=True, comment='Identificador del evento de crecimiento')
-    tipo_medicion: Mapped[str] = mapped_column(String(55), nullable=False, comment='Tipo de medición realizada (peso, talla, etc.)')
+    tipo_medicion: Mapped[str] = mapped_column(String(55), nullable=False, comment='Tipo de medición realizada (PESO, TALLA, BIOMASA)')
     valor_medicion: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False, comment='Valor registrado de la medición')
     unidad_medida: Mapped[str] = mapped_column(String(5), nullable=False, comment='Unidad de medida utilizada')
-    tipo_agregacion: Mapped[str] = mapped_column(String(55), nullable=False, comment='Tipo de agregación de la medición')
-    frecuencia: Mapped[str] = mapped_column(String(55), nullable=False, comment='Frecuencia de medición')
+    tipo_agregacion: Mapped[Optional[str]] = mapped_column(String(55), nullable=True, comment='Tipo de agregación (PROMEDIO, TOTAL, DENSIDAD) — solo para POBLACIONAL')
+    frecuencia: Mapped[Optional[str]] = mapped_column(String(55), nullable=True, comment='Frecuencia de medición — solo para POBLACIONAL')
+    nuevo_peso_promedio: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 4), nullable=True, comment='Peso promedio resultante para el lote tras la medición')
+    cantidad_medida: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment='Número de individuos incluidos en la medición (solo POBLACIONAL)')
 
     evento: Mapped[EventoActivoModel] = relationship(
         'EventoActivoModel',

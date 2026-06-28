@@ -4,12 +4,16 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._event_validations import (
+    validar_estado_permite_eventos,
+    validar_fecha_evento,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoSanitario
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.infrastructure.dto.registrar_evento_sanitario_dto import RegistrarEventoSanitarioDTO
-from src.shared.errors import NotFoundError
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import NotFoundError
 
 
 class RegistrarEventoSanitarioUseCase:
@@ -27,10 +31,14 @@ class RegistrarEventoSanitarioUseCase:
     def execute(self, id_activo: int, dto: RegistrarEventoSanitarioDTO, usuario: UsuarioActual) -> EventoActivo:
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
-            raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El lote con id {id_activo} no existe.')
-        activo._validar_tipo_poblacional()
+            raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El activo biológico con id {id_activo} no existe.')
+
+        # RF-39: ACTIVO, EN_TRATAMIENTO y AISLADO permiten eventos sanitarios
+        validar_estado_permite_eventos(activo)
 
         fecha = dto.fecha or datetime.now(timezone.utc)
+        validar_fecha_evento(fecha, activo, self.evento_repo)
+
         evento = EventoActivo(
             id_activo_biologico=id_activo,
             fecha=fecha,
