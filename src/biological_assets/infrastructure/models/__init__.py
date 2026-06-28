@@ -3,3 +3,4 @@ from .activo_biologico_model import ActivoBiologicoModel
 from .detalle_individual_model import DetalleActivoIndividualModel
 from .detalle_poblacional_model import DetalleActivoPoblacionalModel
 from .historial_infraestructura_activo_model import HistorialInfraestructuraActivoModel
+from .gestion_fase_model import GestionFaseModel

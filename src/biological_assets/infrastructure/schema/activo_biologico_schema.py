@@ -70,3 +70,24 @@ class ConsultaAsociacionResponse(BaseModel):
     id_activo_biologico: int
     asociacion_activa: Optional[AsociacionInfraestructuraResponse] = None
     historial: Optional[list[AsociacionInfraestructuraResponse]] = None
+
+
+class GestionFaseResponse(BaseModel):
+    id_gestion_fases: Optional[int]
+    id_activo_biologico: int
+    id_ciclo_productiva: int
+    nombre_ciclo: str
+    nombre_fase_actual: Optional[str]
+    paso_actual: Optional[int]
+    total_pasos: Optional[int]
+    fecha_inicio: datetime
+    fecha_finalizacion: Optional[datetime]
+    es_activa: bool
+    motivo_cambio: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
+class HistorialFasesResponse(BaseModel):
+    id_activo_biologico: int
+    fases: list[GestionFaseResponse]
