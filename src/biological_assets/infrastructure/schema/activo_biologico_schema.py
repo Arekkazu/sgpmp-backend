@@ -187,3 +187,10 @@ class HistorialEventosResponse(BaseModel):
     id_activo_biologico: int
     total: int
     eventos: list[EventoActivoResponse]
+
+
+# ── Schema de respuesta para CU06 (RF-40) ────────────────────────────────────
+
+class RegistrarEventoCrecimientoResponse(BaseModel):
+    evento: EventoActivoResponse
+    fase_avanzada: bool = False

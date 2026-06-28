@@ -67,6 +67,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialEventosResponse,
     HistorialFasesResponse,
     HistoricoEstadoResponse,
+    RegistrarEventoCrecimientoResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -417,7 +418,7 @@ def consultar_eventos(
 
 @router.post(
     '/{id_activo}/eventos/crecimiento',
-    response_model=EventoActivoResponse,
+    response_model=RegistrarEventoCrecimientoResponse,
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
@@ -427,22 +428,27 @@ def consultar_eventos(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento de crecimiento del activo (RF-40)',
+    summary='Registrar evento de crecimiento del activo (CU06 - RF-40)',
 )
 def registrar_evento_crecimiento(
     id_activo: int,
     dto: RegistrarEventoCrecimientoDTO,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> EventoActivoResponse:
+) -> RegistrarEventoCrecimientoResponse:
     use_case = RegistrarEventoCrecimientoUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
     )
-    evento = use_case.execute(id_activo, dto, usuario_actual)
-    return _evento_to_response(evento)
+    evento, fase_avanzada = use_case.execute(id_activo, dto, usuario_actual)
+    return RegistrarEventoCrecimientoResponse(
+        evento=_evento_to_response(evento),
+        fase_avanzada=fase_avanzada,
+    )
 
 
 @router.post(

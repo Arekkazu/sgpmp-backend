@@ -350,32 +350,38 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         )
 
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
-        orm = GestionFaseModel(
-            id_activo_biologico=gestion.id_activo_biologico,
-            id_ciclo_productiva=gestion.id_ciclo_productiva,
-            fecha_inicio=gestion.fecha_inicio,
-            es_activa=True,
-            id_usuario=gestion.id_usuario,
-            motivo_cambio=gestion.motivo_cambio,
-        )
         try:
-            self.db.add(orm)
-            self.db.flush()
+            result = self.db.execute(
+                text(
+                    'INSERT INTO modulo2.gestiones_fases '
+                    '(id_activo_biologico, id_ciclo_productiva, fecha_inicio, es_activa, id_usuario, motivo_cambio) '
+                    'VALUES (:id_activo, :id_ciclo, :fecha_inicio, true, :id_usuario, :motivo) '
+                    'RETURNING id_gestion_fases, fecha_inicio, fecha_finalizacion, es_activa, id_usuario, motivo_cambio'
+                ),
+                {
+                    'id_activo': gestion.id_activo_biologico,
+                    'id_ciclo': gestion.id_ciclo_productiva,
+                    'fecha_inicio': gestion.fecha_inicio,
+                    'id_usuario': gestion.id_usuario,
+                    'motivo': gestion.motivo_cambio,
+                },
+            )
+            row = result.fetchone()
         except Exception as exc:
             raise_from_db_error(exc, {
                 'uix_gestion_fase_activa_por_activo': 'El activo ya tiene una fase productiva activa.',
             })
         return GestionFase(
-            id_gestion_fases=orm.id_gestion_fases,
-            id_activo_biologico=orm.id_activo_biologico,
-            id_ciclo_productiva=orm.id_ciclo_productiva,
+            id_gestion_fases=row.id_gestion_fases,
+            id_activo_biologico=gestion.id_activo_biologico,
+            id_ciclo_productiva=gestion.id_ciclo_productiva,
             nombre_ciclo=gestion.nombre_ciclo,
             nombre_fase_actual=gestion.nombre_fase_actual,
             paso_actual=gestion.paso_actual,
             total_pasos=gestion.total_pasos,
-            fecha_inicio=orm.fecha_inicio,
-            fecha_finalizacion=orm.fecha_finalizacion,
-            es_activa=orm.es_activa,
-            id_usuario=orm.id_usuario,
-            motivo_cambio=orm.motivo_cambio,
+            fecha_inicio=row.fecha_inicio,
+            fecha_finalizacion=row.fecha_finalizacion,
+            es_activa=row.es_activa,
+            id_usuario=row.id_usuario,
+            motivo_cambio=row.motivo_cambio,
         )
