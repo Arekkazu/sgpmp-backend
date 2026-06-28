@@ -5,6 +5,8 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
+from src.shared.errors import ValidationError
+
 
 @dataclass
 class DetalleIndividual:
@@ -25,6 +27,22 @@ class DetallePoblacional:
     biomasa_total: Optional[Decimal] = None
     densidad: Optional[Decimal] = None
     id_detalle: Optional[int] = None
+
+
+@dataclass
+class GestionFase:
+    id_activo_biologico: int
+    id_ciclo_productiva: int
+    nombre_ciclo: str
+    fecha_inicio: datetime
+    es_activa: bool
+    id_usuario: int
+    id_gestion_fases: Optional[int] = None
+    nombre_fase_actual: Optional[str] = None
+    paso_actual: Optional[int] = None
+    total_pasos: Optional[int] = None
+    fecha_finalizacion: Optional[datetime] = None
+    motivo_cambio: Optional[str] = None
 
 
 @dataclass
@@ -96,6 +114,32 @@ class ActivoBiologico:
             detalle_individual=detalle_individual,
             detalle_poblacional=detalle_poblacional,
         )
+
+    def actualizar_detalle_individual(
+        self,
+        raza: Optional[str],
+        sexo: Optional[str],
+        fecha_nacimiento: Optional[datetime],
+        peso_inicial: Optional[Decimal],
+    ) -> None:
+        if self.tipo != 'INDIVIDUAL':
+            raise ValidationError(
+                code='TIPO_INVALIDO',
+                message='Solo los activos de tipo INDIVIDUAL tienen detalle individual editable.',
+            )
+        if self.detalle_individual is None:
+            raise ValidationError(
+                code='DETALLE_INDIVIDUAL_AUSENTE',
+                message='El activo no tiene detalle individual registrado.',
+            )
+        if raza is not None:
+            self.detalle_individual.raza = raza
+        if sexo is not None:
+            self.detalle_individual.sexo = sexo
+        if fecha_nacimiento is not None:
+            self.detalle_individual.fecha_nacimiento = fecha_nacimiento
+        if peso_inicial is not None:
+            self.detalle_individual.peso_inicial = peso_inicial
 
     def _snapshot(self) -> dict:
         return {

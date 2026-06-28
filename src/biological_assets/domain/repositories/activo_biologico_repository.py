@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
-from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistorialInfraestructura
+from src.biological_assets.domain.entities.activo_biologico import (
+    ActivoBiologico,
+    GestionFase,
+    HistorialInfraestructura,
+)
 
 
 class ActivoBiologicoRepository(ABC):
@@ -26,3 +31,19 @@ class ActivoBiologicoRepository(ABC):
     @abstractmethod
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
         """Retorna el historial completo de asociaciones de infraestructura."""
+
+    @abstractmethod
+    def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
+        """Persiste los cambios en detalle_individual del activo."""
+
+    @abstractmethod
+    def obtener_gestiones_fases(self, id_activo: int) -> list[GestionFase]:
+        """Retorna todas las gestiones de fase del activo, con nombre_ciclo y fase_actual calculados."""
+
+    @abstractmethod
+    def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str) -> None:
+        """Cierra la gestión de fase activa (es_activa=False, fecha_finalizacion=fecha_fin)."""
+
+    @abstractmethod
+    def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
+        """Inserta un nuevo registro en gestiones_fases."""
