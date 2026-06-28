@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import func
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -160,3 +162,10 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             .all()
         )
         return [self._a_entidad(orm) for orm in rows]
+
+    def obtener_ultima_fecha(self, id_activo: int) -> Optional[datetime]:
+        return (
+            self.db.query(func.max(EventoActivoModel.fecha))
+            .filter(EventoActivoModel.id_activo_biologico == id_activo)
+            .scalar()
+        )

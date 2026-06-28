@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
     ActualizarActivoIndividualUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.cambiar_estado_use_case import CambiarEstadoUseCase
 from src.biological_assets.application.use_cases.gestion.cambiar_fase_use_case import CambiarFaseUseCase
+from src.biological_assets.application.use_cases.gestion.cerrar_ciclo_use_case import CerrarCicloUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_activo_use_case import ConsultarActivoUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_historial_fases_use_case import (
     ConsultarHistorialFasesUseCase,
@@ -21,10 +23,15 @@ from src.biological_assets.infrastructure.adapters.especie_m09_adapter import Es
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
+from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
+from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.biological_assets.infrastructure.repositories.activo_biologico_repository import (
     SqlAlchemyActivoBiologicoRepository,
+)
+from src.biological_assets.infrastructure.repositories.historico_estado_repository import (
+    SqlAlchemyHistoricoEstadoRepository,
 )
 from src.biological_assets.application.use_cases.gestion.consultar_eventos_use_case import ConsultarEventosUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import RegistrarEventoBajaUseCase
@@ -46,6 +53,8 @@ from src.biological_assets.infrastructure.repositories.evento_activo_repository 
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     AsociacionInfraestructuraResponse,
+    CambioEstadoResponse,
+    CierreActivoResponse,
     ConsultaAsociacionResponse,
     DetalleIndividualResponse,
     DetallePoblacionalResponse,
@@ -57,6 +66,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     GestionFaseResponse,
     HistorialEventosResponse,
     HistorialFasesResponse,
+    HistoricoEstadoResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -490,6 +500,87 @@ def registrar_evento_sanitario(
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
+
+
+@router.patch(
+    '/{id_activo}/estado',
+    response_model=CambioEstadoResponse,
+    status_code=200,
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Cambiar estado del activo biológico (RF-44)',
+)
+def cambiar_estado(
+    id_activo: int,
+    dto: CambiarEstadoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CambioEstadoResponse:
+    use_case = CambiarEstadoUseCase(
+        db=db,
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+    )
+    historico = use_case.execute(id_activo, dto, usuario_actual)
+    return CambioEstadoResponse(
+        id_activo_biologico=id_activo,
+        estado_anterior=historico.id_estado_anterior,
+        estado_nuevo=historico.id_estado_nuevo,
+        historial=HistoricoEstadoResponse(
+            id_historico=historico.id_historico,
+            id_activo_biologico=historico.id_activo_biologico,
+            id_estado_anterior=historico.id_estado_anterior,
+            id_estado_nuevo=historico.id_estado_nuevo,
+            fecha_cambio=historico.fecha_cambio,
+            motivo_cambio=historico.motivo_cambio,
+            modulo_origen=historico.modulo_origen,
+            id_usuario=historico.id_usuario,
+        ),
+    )
+
+
+@router.post(
+    '/{id_activo}/cierre',
+    response_model=CierreActivoResponse,
+    status_code=200,
+    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Cerrar ciclo productivo del activo biológico (RF-38)',
+)
+def cerrar_ciclo(
+    id_activo: int,
+    dto: CerrarCicloDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CierreActivoResponse:
+    use_case = CerrarCicloUseCase(
+        db=db,
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        evento_repo=SqlAlchemyEventoActivoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+    )
+    historico = use_case.execute(id_activo, dto, usuario_actual)
+    return CierreActivoResponse(
+        id_activo_biologico=id_activo,
+        estado='CERRADO',
+        fecha_cierre=dto.fecha_cierre,
+        motivo_cierre=dto.motivo_cierre,
+        fase_finalizada=True,
+    )
 
 
 @router.post(

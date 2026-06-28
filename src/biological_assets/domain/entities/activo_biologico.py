@@ -5,7 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from src.shared.errors import BusinessRuleError, ValidationError
+from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 
 @dataclass
@@ -91,6 +91,20 @@ class GestionFase:
     paso_actual: Optional[int] = None
     total_pasos: Optional[int] = None
     fecha_finalizacion: Optional[datetime] = None
+    motivo_cambio: Optional[str] = None
+
+
+@dataclass
+class HistoricoEstado:
+    id_activo_biologico: int
+    id_estado_anterior: int
+    id_estado_nuevo: int
+    fecha_cambio: datetime
+    modulo_origen: str
+    id_usuario: int
+    id_historico: Optional[int] = None
+    nombre_estado_anterior: Optional[str] = None
+    nombre_estado_nuevo: Optional[str] = None
     motivo_cambio: Optional[str] = None
 
 
@@ -216,6 +230,34 @@ class ActivoBiologico:
                 code='DETALLE_POBLACIONAL_AUSENTE',
                 message='El activo no tiene detalle poblacional registrado.',
             )
+
+    def cambiar_estado(self, nuevo_id_estado: int) -> None:
+        from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo, TRANSICIONES_VALIDAS
+
+        if self.id_estado == EstadoActivo.BAJA:
+            raise ConflictError(
+                code='ESTADO_BAJA_IRREVERSIBLE',
+                message='El activo se encuentra en estado BAJA. No se permite modificar el estado de activos dados de baja definitivamente.',
+            )
+        if self.id_estado == nuevo_id_estado:
+            raise ConflictError(
+                code='ESTADO_REDUNDANTE',
+                message=f'El activo ya se encuentra en el estado solicitado. No se realizó ningún cambio.',
+            )
+        transiciones_permitidas = TRANSICIONES_VALIDAS.get(self.id_estado, set())
+        if nuevo_id_estado not in transiciones_permitidas:
+            nombres = {e.value: e.name for e in EstadoActivo}
+            actual = nombres.get(self.id_estado, str(self.id_estado))
+            nuevo = nombres.get(nuevo_id_estado, str(nuevo_id_estado))
+            validos = ', '.join(nombres.get(v, str(v)) for v in sorted(transiciones_permitidas))
+            raise BusinessRuleError(
+                code='TRANSICION_INVALIDA',
+                message=(
+                    f'La transición {actual} → {nuevo} no está permitida. '
+                    f'Transiciones válidas desde {actual}: {validos or "ninguna"}.'
+                ),
+            )
+        self.id_estado = nuevo_id_estado
 
     def aplicar_evento_baja(self, cantidad_afectada: int) -> None:
         self._validar_tipo_poblacional()
