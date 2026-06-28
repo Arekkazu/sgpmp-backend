@@ -91,3 +91,65 @@ class GestionFaseResponse(BaseModel):
 class HistorialFasesResponse(BaseModel):
     id_activo_biologico: int
     fases: list[GestionFaseResponse]
+
+
+# ── Schemas de eventos de lote (CU03 - RF-36) ───────────────────────────────
+
+class EventoCrecimientoResponse(BaseModel):
+    tipo_medicion: str
+    valor_medicion: Decimal
+    unidad_medida: str
+    tipo_agregacion: str
+    frecuencia: str
+
+    model_config = {'from_attributes': True}
+
+
+class EventoBajaResponse(BaseModel):
+    cantidad_afectada: int
+    tipo: str
+    detalles: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
+class EventoSanitarioResponse(BaseModel):
+    tipo: str
+    diagnostico: Optional[str]
+    medicamento: Optional[str]
+    dosis: Optional[Decimal]
+    unidad_dosis: Optional[str]
+    frecuencia: Optional[int]
+    duracion: Optional[int]
+    observaciones: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
+class EventoProductivoResponse(BaseModel):
+    cantidad: Decimal
+    id_metrica_produccion: int
+    id_ciclo_productivo: int
+    condiciones: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
+class EventoActivoResponse(BaseModel):
+    id_eventos: int
+    id_activo_biologico: int
+    fecha: datetime
+    descripcion: Optional[str]
+    id_usuario: Optional[int]
+    crecimiento: Optional[EventoCrecimientoResponse] = None
+    baja: Optional[EventoBajaResponse] = None
+    sanitario: Optional[EventoSanitarioResponse] = None
+    productivo: Optional[EventoProductivoResponse] = None
+
+    model_config = {'from_attributes': True}
+
+
+class HistorialEventosResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    eventos: list[EventoActivoResponse]

@@ -21,9 +21,12 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
         orm = self.db.get(InfraestructuraModel, id_infraestructura)
         if orm is None or not orm.es_activo:
             return None
+        from decimal import Decimal
         return InfraestructuraConsulta(
             id_infraestructura=orm.id_infraestructura,
             nombre=orm.nombre,
             tipo=orm.tipo,
             es_activo=orm.es_activo,
+            superficie=Decimal(str(orm.superficie)) if orm.superficie is not None else None,
+            id_finca=orm.id_finca,
         )

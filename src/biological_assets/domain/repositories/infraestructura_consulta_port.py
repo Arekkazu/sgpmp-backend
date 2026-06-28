@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Optional
 
 
@@ -11,6 +12,8 @@ class InfraestructuraConsulta:
     nombre: str
     tipo: str
     es_activo: bool
+    superficie: Optional[Decimal] = None
+    id_finca: Optional[int] = None
 
 
 class InfraestructuraConsultaPort(ABC):
