@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func, text
+from sqlalchemy import exists
 from sqlalchemy.orm import Session
 
 import src.biological_assets.infrastructure.models  # noqa: F401 — ensures all ORM models register before mapper resolution
@@ -283,21 +284,16 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
 
         return result
 
-    def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str) -> None:
-        orm = (
-            self.db.query(GestionFaseModel)
-            .filter(
-                GestionFaseModel.id_activo_biologico == id_activo,
-                GestionFaseModel.es_activa.is_(True),
-            )
-            .first()
+    def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str, usuario_id: int) -> None:
+        self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario_id})
+        self.db.execute(
+            text(
+                'UPDATE modulo2.gestiones_fases '
+                'SET es_activa = false, fecha_finalizacion = :fecha, motivo_cambio = :motivo '
+                'WHERE id_activo_biologico = :id AND es_activa = true'
+            ),
+            {'id': id_activo, 'fecha': fecha_fin, 'motivo': motivo},
         )
-        if orm:
-            orm.es_activa = False
-            orm.fecha_finalizacion = fecha_fin
-            if motivo:
-                orm.motivo_cambio = motivo
-            self.db.flush()
 
     def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
         orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
@@ -310,6 +306,48 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         self.db.flush()
         self.db.refresh(orm)
         return self._a_entidad(orm)
+
+    def actualizar_estado(self, id_activo: int, nuevo_id_estado: int) -> None:
+        orm = self.db.get(ActivoBiologicoModel, id_activo)
+        if orm:
+            orm.id_estado = nuevo_id_estado
+            self.db.flush()
+
+    def tiene_sensores_activos(self, id_activo: int) -> bool:
+        ahora = datetime.now(timezone.utc)
+        row = self.db.execute(
+            text(
+                'SELECT EXISTS ('
+                '  SELECT 1 FROM modulo2.asociaciones_activos_sensores '
+                '  WHERE id_activo_biologico = :id AND fecha_fin > :ahora'
+                ')'
+            ),
+            {'id': id_activo, 'ahora': ahora},
+        ).scalar()
+        return bool(row)
+
+    def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
+        orm = (
+            self.db.query(GestionFaseModel)
+            .filter(
+                GestionFaseModel.id_activo_biologico == id_activo,
+                GestionFaseModel.es_activa.is_(True),
+            )
+            .first()
+        )
+        if orm is None:
+            return None
+        return GestionFase(
+            id_gestion_fases=orm.id_gestion_fases,
+            id_activo_biologico=orm.id_activo_biologico,
+            id_ciclo_productiva=orm.id_ciclo_productiva,
+            nombre_ciclo='',
+            fecha_inicio=orm.fecha_inicio,
+            es_activa=orm.es_activa,
+            id_usuario=orm.id_usuario,
+            fecha_finalizacion=orm.fecha_finalizacion,
+            motivo_cambio=orm.motivo_cambio,
+        )
 
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
         orm = GestionFaseModel(

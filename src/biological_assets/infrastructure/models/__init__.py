@@ -9,3 +9,4 @@ from .evento_crecimiento_model import EventoCrecimientoModel
 from .evento_baja_model import EventoBajaModel
 from .evento_sanitario_model import EventoSanitarioModel
 from .evento_productivo_model import EventoProductivoModel
+from .historico_estado_activo_model import HistoricoEstadoActivoModel

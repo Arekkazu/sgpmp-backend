@@ -7,6 +7,38 @@ from typing import Optional
 from pydantic import BaseModel
 
 
+# ── Schemas de CU04 (RF-44, RF-38) ──────────────────────────────────────────
+
+class HistoricoEstadoResponse(BaseModel):
+    id_historico: Optional[int]
+    id_activo_biologico: int
+    id_estado_anterior: int
+    nombre_estado_anterior: Optional[str] = None
+    id_estado_nuevo: int
+    nombre_estado_nuevo: Optional[str] = None
+    fecha_cambio: datetime
+    motivo_cambio: Optional[str]
+    modulo_origen: str
+    id_usuario: int
+
+    model_config = {'from_attributes': True}
+
+
+class CambioEstadoResponse(BaseModel):
+    id_activo_biologico: int
+    estado_anterior: int
+    estado_nuevo: int
+    historial: HistoricoEstadoResponse
+
+
+class CierreActivoResponse(BaseModel):
+    id_activo_biologico: int
+    estado: str
+    fecha_cierre: date
+    motivo_cierre: str
+    fase_finalizada: bool
+
+
 class DetalleIndividualResponse(BaseModel):
     id_detalle: Optional[int]
     raza: str
