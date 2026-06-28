@@ -299,6 +299,18 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 orm.motivo_cambio = motivo
             self.db.flush()
 
+    def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
+        orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
+        if orm and orm.detalle_poblacional and activo.detalle_poblacional:
+            dp = activo.detalle_poblacional
+            orm.detalle_poblacional.cantidad_actual = dp.cantidad_actual
+            orm.detalle_poblacional.peso_promedio = dp.peso_promedio
+            orm.detalle_poblacional.biomasa_total = dp.biomasa_total
+            orm.detalle_poblacional.densidad = dp.densidad
+        self.db.flush()
+        self.db.refresh(orm)
+        return self._a_entidad(orm)
+
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
         orm = GestionFaseModel(
             id_activo_biologico=gestion.id_activo_biologico,

@@ -5,7 +5,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
 
-from src.shared.errors import ValidationError
+from src.shared.errors import BusinessRuleError, ValidationError
 
 
 @dataclass
@@ -27,6 +27,55 @@ class DetallePoblacional:
     biomasa_total: Optional[Decimal] = None
     densidad: Optional[Decimal] = None
     id_detalle: Optional[int] = None
+
+
+@dataclass
+class EventoCrecimiento:
+    tipo_medicion: str
+    valor_medicion: Decimal
+    unidad_medida: str
+    tipo_agregacion: str
+    frecuencia: str
+
+
+@dataclass
+class EventoBaja:
+    cantidad_afectada: int
+    tipo: str
+    detalles: Optional[str] = None
+
+
+@dataclass
+class EventoSanitario:
+    tipo: str
+    diagnostico: Optional[str] = None
+    medicamento: Optional[str] = None
+    dosis: Optional[Decimal] = None
+    unidad_dosis: Optional[str] = None
+    frecuencia: Optional[int] = None
+    duracion: Optional[int] = None
+    observaciones: Optional[str] = None
+
+
+@dataclass
+class EventoProductivo:
+    cantidad: Decimal
+    id_metrica_produccion: int
+    id_ciclo_productivo: int
+    condiciones: Optional[str] = None
+
+
+@dataclass
+class EventoActivo:
+    id_activo_biologico: int
+    fecha: datetime
+    id_usuario: int
+    descripcion: Optional[str] = None
+    id_eventos: Optional[int] = None
+    crecimiento: Optional[EventoCrecimiento] = None
+    baja: Optional[EventoBaja] = None
+    sanitario: Optional[EventoSanitario] = None
+    productivo: Optional[EventoProductivo] = None
 
 
 @dataclass
@@ -155,6 +204,43 @@ class ActivoBiologico:
             'soporte_documental': self.soporte_documental,
             'detalles_procedencia': self.detalles_procedencia,
         }
+
+    def _validar_tipo_poblacional(self) -> None:
+        if self.tipo != 'POBLACIONAL':
+            raise BusinessRuleError(
+                code='TIPO_INVALIDO',
+                message='Esta operación solo aplica a activos de tipo POBLACIONAL.',
+            )
+        if self.detalle_poblacional is None:
+            raise BusinessRuleError(
+                code='DETALLE_POBLACIONAL_AUSENTE',
+                message='El activo no tiene detalle poblacional registrado.',
+            )
+
+    def aplicar_evento_baja(self, cantidad_afectada: int) -> None:
+        self._validar_tipo_poblacional()
+        dp = self.detalle_poblacional
+        cantidad_actual = dp.cantidad_actual or 0
+        if cantidad_actual - cantidad_afectada < 0:
+            raise BusinessRuleError(
+                code='CANTIDAD_NEGATIVA',
+                message=(
+                    f'La baja de {cantidad_afectada} individuos dejaría la cantidad actual '
+                    f'en negativo (actual: {cantidad_actual}).'
+                ),
+            )
+        dp.cantidad_actual = cantidad_actual - cantidad_afectada
+        if dp.peso_promedio is not None:
+            dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
+
+    def aplicar_evento_crecimiento(self, nuevo_peso_promedio: Decimal, superficie: Decimal) -> None:
+        self._validar_tipo_poblacional()
+        dp = self.detalle_poblacional
+        dp.peso_promedio = nuevo_peso_promedio
+        cantidad_actual = Decimal(str(dp.cantidad_actual or 0))
+        dp.biomasa_total = cantidad_actual * nuevo_peso_promedio
+        if superficie and superficie > 0:
+            dp.densidad = cantidad_actual / superficie
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ActivoBiologico):

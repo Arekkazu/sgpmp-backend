@@ -47,3 +47,7 @@ class ActivoBiologicoRepository(ABC):
     @abstractmethod
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
         """Inserta un nuevo registro en gestiones_fases."""
+
+    @abstractmethod
+    def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
+        """Persiste los cambios en detalle_poblacional (cantidad_actual, peso_promedio, biomasa_total, densidad)."""
