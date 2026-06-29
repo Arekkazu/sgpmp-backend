@@ -194,3 +194,8 @@ class HistorialEventosResponse(BaseModel):
 class RegistrarEventoCrecimientoResponse(BaseModel):
     evento: EventoActivoResponse
     fase_avanzada: bool = False
+
+
+class RegistrarEventoSanitarioResponse(BaseModel):
+    evento: EventoActivoResponse
+    cambio_estado: Optional[HistoricoEstadoResponse] = None
