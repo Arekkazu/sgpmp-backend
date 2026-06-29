@@ -283,3 +283,22 @@ class InfraestructuraDisponibleResponse(BaseModel):
     tipo: str
     capacidad_maxima: Optional[int] = None
     id_especie: Optional[int] = None
+
+
+# ── Schemas de CU11 (RF-49) ──────────────────────────────────────────────────
+
+class AsociacionSensorActivoResponse(BaseModel):
+    id_asociacion_activo_sensor: int
+    id_activo_biologico: int
+    tipo_activo: str
+    tipo_asociacion: str
+    dispositivo_iot_id: int
+    sensor_id: int
+    id_infraestructura: int
+    fecha_inicio: datetime
+    fecha_fin: Optional[datetime]
+    estado_asociacion: str
+    motivo: Optional[str]
+    advertencia: Optional[str] = None
+
+    model_config = {'from_attributes': True}

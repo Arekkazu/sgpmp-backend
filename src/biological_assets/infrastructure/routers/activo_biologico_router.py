@@ -60,9 +60,16 @@ from src.biological_assets.application.use_cases.gestion.registrar_transferencia
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
+from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
+from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_repository import (
+    SqlAlchemyAsociacionSensorActivoRepository,
+)
+from src.biological_assets.infrastructure.adapters.sensor_m09_adapter import SensorM09Adapter
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     AsociacionInfraestructuraResponse,
+    AsociacionSensorActivoResponse,
     CambioEstadoResponse,
     CierreActivoResponse,
     ConsultaAsociacionResponse,
@@ -95,7 +102,8 @@ from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
-_RECURSO = 29  # modulo1.recursos: 'activos_biologicos'
+_RECURSO = 29       # modulo1.recursos: 'activos_biologicos'
+_RECURSO_SENSOR = 30  # modulo1.recursos: 'asociacion_sensor_activo'
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -876,4 +884,48 @@ def registrar_transferencia(
             f'El activo fue transferido a {resultado.nombre_infra_destino} '
             f'en fecha {resultado.fecha_transferencia.date().isoformat()}.'
         ),
+    )
+
+
+# ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
+
+@router.post(
+    '/{id_activo}/sensores',
+    status_code=201,
+    response_model=AsociacionSensorActivoResponse,
+    responses={
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Asociar sensor IoT a un activo biológico (RF-49)',
+    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 1))],
+)
+def asociar_sensor_iot(
+    id_activo: int,
+    dto: AsociarSensorActivoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> AsociacionSensorActivoResponse:
+    use_case = AsociarSensorActivoUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        sensor_port=SensorM09Adapter(db),
+        infra_port=InfraestructuraM09Adapter(db),
+    )
+    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    return AsociacionSensorActivoResponse(
+        id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
+        id_activo_biologico=resultado.id_activo_biologico,
+        tipo_activo=resultado.tipo_activo,
+        tipo_asociacion=resultado.tipo_asociacion,
+        dispositivo_iot_id=resultado.dispositivo_iot_id,
+        sensor_id=resultado.sensor_id,
+        id_infraestructura=resultado.id_infraestructura,
+        fecha_inicio=resultado.fecha_inicio,
+        fecha_fin=resultado.fecha_fin,
+        estado_asociacion=resultado.estado_asociacion,
+        motivo=resultado.motivo,
+        advertencia=None,
     )

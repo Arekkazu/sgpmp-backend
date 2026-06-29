@@ -194,6 +194,23 @@ class HistorialInfraestructura:
     fecha_fin: Optional[datetime]
 
 
+@dataclass
+class AsociacionSensorActivo:
+    id_activo_biologico: int
+    tipo_activo: str           # INDIVIDUAL | LOTE
+    tipo_asociacion: str       # directa | ambiental | poblacional
+    dispositivo_iot_id: int
+    sensor_id: int
+    id_infraestructura: int
+    id_usuario: int
+    fecha_inicio: datetime
+    estado_asociacion: str = 'ACTIVA'
+    fecha_fin: Optional[datetime] = None
+    motivo: Optional[str] = None
+    id_asociacion_activo_sensor: Optional[int] = None
+    fecha_creacion: Optional[datetime] = None
+
+
 @dataclass(eq=False)
 class ActivoBiologico:
     id_especie: int
