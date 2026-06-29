@@ -24,3 +24,7 @@ class CicloConsultaPort(ABC):
     @abstractmethod
     def obtener_ciclo_con_fases(self, id_ciclo_productivo: int) -> Optional[CicloProductivoConsulta]:
         """Retorna el ciclo productivo con su secuencia de fases biológicas ordenadas, o None si no existe."""
+
+    @abstractmethod
+    def metrica_habilitada_en_ciclo(self, id_ciclo_productivo: int, id_metrica_produccion: int) -> bool:
+        """Retorna True si la métrica está registrada en metricas_ciclo_productivo para ese ciclo."""

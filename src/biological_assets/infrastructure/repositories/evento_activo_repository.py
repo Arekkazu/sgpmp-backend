@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func
@@ -228,6 +228,18 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 EventoActivoModel.id_activo_biologico == id_activo,
                 EventoReproductivoModel.categoria == 'diagnostico',
                 EventoReproductivoModel.resultado == 'exitoso',
+            )
+            .first()
+        ) is not None
+
+    def existe_productivo_duplicado(self, id_activo: int, id_metrica_produccion: int, fecha: date) -> bool:
+        return (
+            self.db.query(EventoActivoModel)
+            .join(EventoProductivoModel, EventoProductivoModel.id_evento == EventoActivoModel.id_eventos)
+            .filter(
+                EventoActivoModel.id_activo_biologico == id_activo,
+                EventoProductivoModel.id_metrica_produccion == id_metrica_produccion,
+                func.date(EventoActivoModel.fecha) == fecha,
             )
             .first()
         ) is not None

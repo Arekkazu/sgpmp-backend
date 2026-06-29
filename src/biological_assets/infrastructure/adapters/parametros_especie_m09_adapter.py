@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie, ParametrosEspeciePort
+from src.biological_assets.domain.repositories.parametros_especie_port import MetricaProductiva, ParametroEspecie, ParametrosEspeciePort
 from src.configuration.infrastructure.models.metrica_produccion_model import MetricaProduccionModel
 
 # El campo aplica_a_tipo_activo usa 'LOTE' para activos poblacionales
@@ -58,3 +58,26 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
             .first()
         )
         return _a_parametro(row) if row is not None else None
+
+    def obtener_metrica_productiva(
+        self, id_especie: int, tipo_producto: str, tipo_activo: str
+    ) -> Optional[MetricaProductiva]:
+        tipo_db = _TIPO_ACTIVO_A_LOTE.get(tipo_activo, tipo_activo)
+        row = (
+            self.db.query(MetricaProduccionModel)
+            .filter(
+                MetricaProduccionModel.id_especie == id_especie,
+                MetricaProduccionModel.es_activo.is_(True),
+                MetricaProduccionModel.tipo_medicion == tipo_producto,
+                MetricaProduccionModel.aplica_a_tipo_activo.in_([tipo_db, 'AMBOS']),
+            )
+            .first()
+        )
+        if row is None:
+            return None
+        return MetricaProductiva(
+            id_metrica_produccion=row.id_metrica_produccion,
+            tipo_producto=row.tipo_medicion,
+            unidad_medida=row.unidad_medida,
+            aplica_a_tipo_activo=row.aplica_a_tipo_activo,
+        )

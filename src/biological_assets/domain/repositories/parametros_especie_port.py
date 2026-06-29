@@ -15,6 +15,14 @@ class ParametroEspecie:
     valor_max: Optional[Decimal] = field(default=None)
 
 
+@dataclass
+class MetricaProductiva:
+    id_metrica_produccion: int
+    tipo_producto: str
+    unidad_medida: str
+    aplica_a_tipo_activo: str
+
+
 class ParametrosEspeciePort(ABC):
     @abstractmethod
     def listar_por_especie(self, id_especie: int, tipo_activo: str) -> list[ParametroEspecie]:
@@ -25,3 +33,9 @@ class ParametrosEspeciePort(ABC):
         self, id_especie: int, tipo_medicion: str, tipo_activo: str
     ) -> Optional[ParametroEspecie]:
         """Retorna el parámetro de producción para la especie y tipo de medición dados, o None si no existe."""
+
+    @abstractmethod
+    def obtener_metrica_productiva(
+        self, id_especie: int, tipo_producto: str, tipo_activo: str
+    ) -> Optional[MetricaProductiva]:
+        """Retorna la métrica productiva (id, tipo, unidad) para la especie y tipo de producto dados, o None si no existe en catálogo."""

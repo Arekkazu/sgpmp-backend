@@ -142,7 +142,7 @@ class EventoCrecimientoResponse(BaseModel):
 class EventoBajaResponse(BaseModel):
     cantidad_afectada: int
     tipo: str
-    detalles: Optional[str]
+    motivo_baja: Optional[str]
 
     model_config = {'from_attributes': True}
 
@@ -165,6 +165,8 @@ class EventoProductivoResponse(BaseModel):
     id_metrica_produccion: int
     id_ciclo_productivo: int
     condiciones: Optional[str]
+    tipo_producto: Optional[str] = None
+    unidad_medida: Optional[str] = None
 
     model_config = {'from_attributes': True}
 

@@ -65,6 +65,8 @@ class EventoProductivo:
     id_metrica_produccion: int
     id_ciclo_productivo: int
     condiciones: Optional[str] = None
+    tipo_producto: Optional[str] = None
+    unidad_medida: Optional[str] = None
 
 
 @dataclass
