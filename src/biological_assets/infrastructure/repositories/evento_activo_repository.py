@@ -15,6 +15,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     EventoBaja,
     EventoCrecimiento,
     EventoProductivo,
+    EventoReproductivo,
     EventoSanitario,
 )
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -22,6 +23,7 @@ from src.biological_assets.infrastructure.models.evento_activo_model import Even
 from src.biological_assets.infrastructure.models.evento_baja_model import EventoBajaModel
 from src.biological_assets.infrastructure.models.evento_crecimiento_model import EventoCrecimientoModel
 from src.biological_assets.infrastructure.models.evento_productivo_model import EventoProductivoModel
+from src.biological_assets.infrastructure.models.evento_reproductivo_model import EventoReproductivoModel
 from src.biological_assets.infrastructure.models.evento_sanitario_model import EventoSanitarioModel
 from src.shared.db_error_translator import raise_from_db_error
 
@@ -82,6 +84,17 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 condiciones=p.condiciones,
             )
 
+        reproductivo: Optional[EventoReproductivo] = None
+        if orm.evento_reproductivo:
+            r = orm.evento_reproductivo
+            reproductivo = EventoReproductivo(
+                categoria=r.categoria,
+                resultado=r.resultado,
+                numero_cria=r.numero_cria,
+                id_padre=r.id_padre,
+                id_madre=r.id_madre,
+            )
+
         return EventoActivo(
             id_eventos=orm.id_eventos,
             id_activo_biologico=orm.id_activo_biologico,
@@ -92,6 +105,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             baja=baja,
             sanitario=sanitario,
             productivo=productivo,
+            reproductivo=reproductivo,
         )
 
     # ── Operaciones del puerto ───────────────────────────────────────────────
@@ -151,6 +165,16 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                     id_ciclo_productivo=p.id_ciclo_productivo,
                     condiciones=p.condiciones,
                 ))
+            elif evento.reproductivo:
+                r = evento.reproductivo
+                self.db.add(EventoReproductivoModel(
+                    id_evento_reproductivo=orm.id_eventos,
+                    categoria=r.categoria,
+                    resultado=r.resultado,
+                    numero_cria=r.numero_cria,
+                    id_padre=r.id_padre,
+                    id_madre=r.id_madre,
+                ))
 
             self.db.flush()
             self.db.refresh(orm)
@@ -181,6 +205,29 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             .filter(
                 EventoActivoModel.id_activo_biologico == id_activo,
                 EventoSanitarioModel.tipo == 'DIAGNOSTICO',
+            )
+            .first()
+        ) is not None
+
+    def tiene_servicio_o_inseminacion_previa(self, id_activo: int) -> bool:
+        return (
+            self.db.query(EventoActivoModel)
+            .join(EventoReproductivoModel, EventoReproductivoModel.id_evento_reproductivo == EventoActivoModel.id_eventos)
+            .filter(
+                EventoActivoModel.id_activo_biologico == id_activo,
+                EventoReproductivoModel.categoria.in_(['servicio', 'inseminacion']),
+            )
+            .first()
+        ) is not None
+
+    def tiene_diagnostico_positivo_previo(self, id_activo: int) -> bool:
+        return (
+            self.db.query(EventoActivoModel)
+            .join(EventoReproductivoModel, EventoReproductivoModel.id_evento_reproductivo == EventoActivoModel.id_eventos)
+            .filter(
+                EventoActivoModel.id_activo_biologico == id_activo,
+                EventoReproductivoModel.categoria == 'diagnostico',
+                EventoReproductivoModel.resultado == 'exitoso',
             )
             .first()
         ) is not None

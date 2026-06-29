@@ -23,3 +23,11 @@ class EventoActivoRepository(ABC):
     @abstractmethod
     def tiene_diagnostico_previo(self, id_activo: int) -> bool:
         """Retorna True si el activo tiene al menos un evento DIAGNOSTICO registrado."""
+
+    @abstractmethod
+    def tiene_servicio_o_inseminacion_previa(self, id_activo: int) -> bool:
+        """Retorna True si el activo tiene al menos un evento reproductivo de tipo servicio o inseminacion."""
+
+    @abstractmethod
+    def tiene_diagnostico_positivo_previo(self, id_activo: int) -> bool:
+        """Retorna True si el activo tiene al menos un evento reproductivo de diagnostico con resultado exitoso."""

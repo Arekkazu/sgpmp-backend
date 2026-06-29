@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from .evento_baja_model import EventoBajaModel
     from .evento_crecimiento_model import EventoCrecimientoModel
     from .evento_productivo_model import EventoProductivoModel
+    from .evento_reproductivo_model import EventoReproductivoModel
     from .evento_sanitario_model import EventoSanitarioModel
 
 
@@ -72,6 +73,13 @@ class EventoActivoModel(Base):
     )
     evento_productivo: Mapped[Optional[EventoProductivoModel]] = relationship(
         'EventoProductivoModel',
+        back_populates='evento',
+        cascade='all, delete-orphan',
+        lazy='selectin',
+        uselist=False,
+    )
+    evento_reproductivo: Mapped[Optional[EventoReproductivoModel]] = relationship(
+        'EventoReproductivoModel',
         back_populates='evento',
         cascade='all, delete-orphan',
         lazy='selectin',

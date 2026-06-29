@@ -41,6 +41,9 @@ from src.biological_assets.application.use_cases.gestion.registrar_evento_crecim
 from src.biological_assets.application.use_cases.gestion.registrar_evento_productivo_use_case import (
     RegistrarEventoProductivoUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.registrar_evento_reproductivo_use_case import (
+    RegistrarEventoReproductivoUseCase,
+)
 from src.biological_assets.application.use_cases.gestion.registrar_evento_sanitario_use_case import (
     RegistrarEventoSanitarioUseCase,
 )
@@ -48,6 +51,7 @@ from src.biological_assets.domain.entities.activo_biologico import EventoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
+from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_sanitario_dto import RegistrarEventoSanitarioDTO
 from src.biological_assets.infrastructure.repositories.evento_activo_repository import SqlAlchemyEventoActivoRepository
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
@@ -62,12 +66,14 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoBajaResponse,
     EventoCrecimientoResponse,
     EventoProductivoResponse,
+    EventoReproductivoResponse,
     EventoSanitarioResponse,
     GestionFaseResponse,
     HistorialEventosResponse,
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     RegistrarEventoCrecimientoResponse,
+    RegistrarEventoReproductivoResponse,
     RegistrarEventoSanitarioResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -374,6 +380,17 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             condiciones=p.condiciones,
         )
 
+    reproductivo = None
+    if evento.reproductivo:
+        r = evento.reproductivo
+        reproductivo = EventoReproductivoResponse(
+            categoria=r.categoria,
+            resultado=r.resultado,
+            numero_cria=r.numero_cria,
+            id_padre=r.id_padre,
+            id_madre=r.id_madre,
+        )
+
     return EventoActivoResponse(
         id_eventos=evento.id_eventos,
         id_activo_biologico=evento.id_activo_biologico,
@@ -384,6 +401,7 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
         baja=baja,
         sanitario=sanitario,
         productivo=productivo,
+        reproductivo=reproductivo,
     )
 
 
@@ -595,6 +613,35 @@ def cerrar_ciclo(
         motivo_cierre=dto.motivo_cierre,
         fase_finalizada=True,
     )
+
+
+@router.post(
+    '/{id_activo}/eventos/reproductivo',
+    response_model=RegistrarEventoReproductivoResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Registrar evento reproductivo del activo (CU08 - RF-42)',
+)
+def registrar_evento_reproductivo(
+    id_activo: int,
+    dto: RegistrarEventoReproductivoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> RegistrarEventoReproductivoResponse:
+    use_case = RegistrarEventoReproductivoUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        evento_repo=SqlAlchemyEventoActivoRepository(db),
+    )
+    evento = use_case.execute(id_activo, dto, usuario_actual)
+    return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
 @router.post(

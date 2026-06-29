@@ -169,6 +169,16 @@ class EventoProductivoResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class EventoReproductivoResponse(BaseModel):
+    categoria: str
+    resultado: str
+    numero_cria: int
+    id_padre: Optional[int]
+    id_madre: Optional[int]
+
+    model_config = {'from_attributes': True}
+
+
 class EventoActivoResponse(BaseModel):
     id_eventos: int
     id_activo_biologico: int
@@ -179,6 +189,7 @@ class EventoActivoResponse(BaseModel):
     baja: Optional[EventoBajaResponse] = None
     sanitario: Optional[EventoSanitarioResponse] = None
     productivo: Optional[EventoProductivoResponse] = None
+    reproductivo: Optional[EventoReproductivoResponse] = None
 
     model_config = {'from_attributes': True}
 
@@ -199,3 +210,9 @@ class RegistrarEventoCrecimientoResponse(BaseModel):
 class RegistrarEventoSanitarioResponse(BaseModel):
     evento: EventoActivoResponse
     cambio_estado: Optional[HistoricoEstadoResponse] = None
+
+
+# ── Schema de respuesta para CU08 (RF-42) ────────────────────────────────────
+
+class RegistrarEventoReproductivoResponse(BaseModel):
+    evento: EventoActivoResponse
