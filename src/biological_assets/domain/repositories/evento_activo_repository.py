@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo
@@ -31,3 +31,7 @@ class EventoActivoRepository(ABC):
     @abstractmethod
     def tiene_diagnostico_positivo_previo(self, id_activo: int) -> bool:
         """Retorna True si el activo tiene al menos un evento reproductivo de diagnostico con resultado exitoso."""
+
+    @abstractmethod
+    def existe_productivo_duplicado(self, id_activo: int, id_metrica_produccion: int, fecha: date) -> bool:
+        """Retorna True si ya existe un evento productivo del mismo tipo para el mismo activo en la misma fecha."""

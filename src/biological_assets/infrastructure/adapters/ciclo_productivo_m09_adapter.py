@@ -61,3 +61,15 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
             nombre=ciclo_row.nombre,
             fases=fases,
         )
+
+    def metrica_habilitada_en_ciclo(self, id_ciclo_productivo: int, id_metrica_produccion: int) -> bool:
+        row = self.db.execute(
+            text(
+                'SELECT 1 FROM modulo9.metricas_ciclo_productivo '
+                'WHERE id_ciclo_productivo = :id_ciclo '
+                'AND id_metrica_produccion = :id_metrica '
+                'LIMIT 1'
+            ),
+            {'id_ciclo': id_ciclo_productivo, 'id_metrica': id_metrica_produccion},
+        ).fetchone()
+        return row is not None

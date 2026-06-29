@@ -353,7 +353,7 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
         baja = EventoBajaResponse(
             cantidad_afectada=b.cantidad_afectada,
             tipo=b.tipo,
-            detalles=b.detalles,
+            motivo_baja=b.detalles,
         )
 
     sanitario = None
@@ -378,6 +378,8 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             id_metrica_produccion=p.id_metrica_produccion,
             id_ciclo_productivo=p.id_ciclo_productivo,
             condiciones=p.condiciones,
+            tipo_producto=p.tipo_producto,
+            unidad_medida=p.unidad_medida,
         )
 
     reproductivo = None
@@ -480,9 +482,10 @@ def registrar_evento_crecimiento(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento de baja del lote (RF-39)',
+    summary='Registrar baja de activo biológico (CU09 - RF-45)',
 )
 def registrar_evento_baja(
     id_activo: int,
@@ -495,6 +498,7 @@ def registrar_evento_baja(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
@@ -654,9 +658,10 @@ def registrar_evento_reproductivo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento productivo del activo (RF-39)',
+    summary='Registrar evento productivo del activo (CU09 - RF-43)',
 )
 def registrar_evento_productivo(
     id_activo: int,
@@ -668,6 +673,8 @@ def registrar_evento_productivo(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
