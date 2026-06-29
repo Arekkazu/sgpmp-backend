@@ -173,3 +173,14 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             .filter(EventoActivoModel.id_activo_biologico == id_activo)
             .scalar()
         )
+
+    def tiene_diagnostico_previo(self, id_activo: int) -> bool:
+        return (
+            self.db.query(EventoActivoModel)
+            .join(EventoSanitarioModel, EventoSanitarioModel.id_evento == EventoActivoModel.id_eventos)
+            .filter(
+                EventoActivoModel.id_activo_biologico == id_activo,
+                EventoSanitarioModel.tipo == 'DIAGNOSTICO',
+            )
+            .first()
+        ) is not None

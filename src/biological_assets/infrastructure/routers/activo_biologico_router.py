@@ -68,6 +68,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     RegistrarEventoCrecimientoResponse,
+    RegistrarEventoSanitarioResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -483,7 +484,7 @@ def registrar_evento_baja(
 
 @router.post(
     '/{id_activo}/eventos/sanitario',
-    response_model=EventoActivoResponse,
+    response_model=RegistrarEventoSanitarioResponse,
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
@@ -491,23 +492,28 @@ def registrar_evento_baja(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
-    summary='Registrar evento sanitario del activo (RF-39)',
+    summary='Registrar evento sanitario del activo (CU07 - RF-41)',
 )
 def registrar_evento_sanitario(
     id_activo: int,
     dto: RegistrarEventoSanitarioDTO,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> EventoActivoResponse:
+) -> RegistrarEventoSanitarioResponse:
     use_case = RegistrarEventoSanitarioUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
     )
-    evento = use_case.execute(id_activo, dto, usuario_actual)
-    return _evento_to_response(evento)
+    evento, historico = use_case.execute(id_activo, dto, usuario_actual)
+    return RegistrarEventoSanitarioResponse(
+        evento=_evento_to_response(evento),
+        cambio_estado=HistoricoEstadoResponse.model_validate(historico) if historico else None,
+    )
 
 
 @router.patch(

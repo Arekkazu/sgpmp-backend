@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
 _TIPOS_SANITARIO = {'VACUNACION', 'TRATAMIENTO', 'DIAGNOSTICO', 'CONTROL_PREVENTIVO'}
+_TIPOS_PERMITEN_CAMBIO_ESTADO = {'TRATAMIENTO', 'CONTROL_PREVENTIVO'}
 
 
 class RegistrarEventoSanitarioDTO(BaseDTO):
@@ -22,6 +23,7 @@ class RegistrarEventoSanitarioDTO(BaseDTO):
     observaciones: Optional[str] = None
     fecha: Optional[datetime] = None
     descripcion: Optional[str] = None
+    solicitar_estado: Optional[Literal['EN_TRATAMIENTO', 'AISLADO']] = None
 
     @field_validator('tipo')
     @classmethod
@@ -45,4 +47,6 @@ class RegistrarEventoSanitarioDTO(BaseDTO):
         elif tipo == 'CONTROL_PREVENTIVO':
             if self.observaciones is None:
                 raise ValueError('CONTROL_PREVENTIVO requiere el campo observaciones.')
+        if self.solicitar_estado is not None and tipo not in _TIPOS_PERMITEN_CAMBIO_ESTADO:
+            raise ValueError('solicitar_estado solo aplica a eventos de tipo TRATAMIENTO o CONTROL_PREVENTIVO.')
         return self
