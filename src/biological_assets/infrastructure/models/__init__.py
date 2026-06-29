@@ -11,3 +11,4 @@ from .evento_sanitario_model import EventoSanitarioModel
 from .evento_productivo_model import EventoProductivoModel
 from .evento_reproductivo_model import EventoReproductivoModel
 from .historico_estado_activo_model import HistoricoEstadoActivoModel
+from .movimiento_model import MovimientoModel

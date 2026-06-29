@@ -54,6 +54,12 @@ from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto im
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_sanitario_dto import RegistrarEventoSanitarioDTO
 from src.biological_assets.infrastructure.repositories.evento_activo_repository import SqlAlchemyEventoActivoRepository
+from src.biological_assets.application.use_cases.gestion.consultar_historial_use_case import ConsultarHistorialUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_ficha_integral_use_case import ConsultarFichaIntegralUseCase
+from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import RegistrarTransferenciaUseCase
+from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
+from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
+from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     AsociacionInfraestructuraResponse,
@@ -68,16 +74,22 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoProductivoResponse,
     EventoReproductivoResponse,
     EventoSanitarioResponse,
+    FichaIntegralResponse,
     GestionFaseResponse,
+    HistorialActivoResponse,
     HistorialEventosResponse,
     HistorialFasesResponse,
     HistoricoEstadoResponse,
+    InfraestructuraDisponibleResponse,
     RegistrarEventoCrecimientoResponse,
     RegistrarEventoReproductivoResponse,
     RegistrarEventoSanitarioResponse,
+    RegistroHistorialResponse,
+    TransferenciaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -678,3 +690,190 @@ def registrar_evento_productivo(
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
+
+
+# ── CU10A — RF-46: Consultar historial ──────────────────────────────────────
+
+@router.get(
+    '/{id_activo}/historial',
+    response_model=HistorialActivoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Consultar historial completo del activo biológico (CU10A - RF-46)',
+)
+def consultar_historial(
+    id_activo: int,
+    fecha_inicio: str | None = Query(default=None, description='Filtro fecha inicio (YYYY-MM-DD)'),
+    fecha_fin: str | None = Query(default=None, description='Filtro fecha fin (YYYY-MM-DD)'),
+    categoria_evento: str | None = Query(default=None, description='Categoría de evento'),
+    pagina: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> HistorialActivoResponse:
+    from datetime import date as date_cls
+    from pydantic import ValidationError as _PydanticValidationError
+    try:
+        dto = ConsultarHistorialDTO(
+            fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
+            fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
+            categoria_evento=categoria_evento,
+            pagina=pagina,
+            page_size=page_size,
+        )
+    except ValueError as exc:
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Formato de fecha inválido: {exc}')
+    except _PydanticValidationError as exc:
+        first = exc.errors()[0]
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    use_case = ConsultarHistorialUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+    )
+    pagina_historial = use_case.execute(id_activo, dto, usuario_actual)
+    return HistorialActivoResponse(
+        id_activo_biologico=id_activo,
+        total_registros=pagina_historial.total_registros,
+        pagina_actual=pagina_historial.pagina_actual,
+        total_paginas=pagina_historial.total_paginas,
+        registros_por_pagina=pagina_historial.registros_por_pagina,
+        registros=[
+            RegistroHistorialResponse(
+                categoria=r.categoria,
+                fecha_evento=r.fecha_evento,
+                descripcion=r.descripcion,
+                detalle_especifico=r.detalle_especifico,
+                usuario_responsable=r.usuario_responsable,
+                modulo_origen=r.modulo_origen,
+            )
+            for r in pagina_historial.registros
+        ],
+    )
+
+
+# ── CU10B — RF-47: Ficha integral ───────────────────────────────────────────
+
+@router.get(
+    '/{id_activo}/ficha-integral',
+    response_model=FichaIntegralResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar ficha integral del activo biológico (CU10B - RF-47)',
+)
+def consultar_ficha_integral(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FichaIntegralResponse:
+    use_case = ConsultarFichaIntegralUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+    )
+    ficha = use_case.execute(id_activo, usuario_actual)
+    return FichaIntegralResponse(
+        id_activo_biologico=ficha.id_activo_biologico,
+        identificador=ficha.identificador,
+        tipo=ficha.tipo,
+        especie=ficha.especie,
+        fecha_registro=ficha.fecha_registro,
+        dias_en_sistema=ficha.dias_en_sistema,
+        estado_actual=ficha.estado_actual,
+        infraestructura_asociada=ficha.infraestructura_asociada,
+        fase_productiva_activa=ficha.fase_productiva_activa,
+        raza=ficha.raza,
+        sexo=ficha.sexo,
+        fecha_nacimiento=ficha.fecha_nacimiento,
+        peso_actual=ficha.peso_actual,
+        unidad_peso=ficha.unidad_peso,
+        fecha_ultimo_peso=ficha.fecha_ultimo_peso,
+        cantidad_actual=ficha.cantidad_actual,
+        biomasa_total=ficha.biomasa_total,
+        densidad=ficha.densidad,
+        eventos_sanitarios=ficha.eventos_sanitarios,
+        eventos_productivos=ficha.eventos_productivos,
+        eventos_crecimiento=ficha.eventos_crecimiento,
+        eventos_reproductivos=ficha.eventos_reproductivos,
+        indicadores=ficha.indicadores,
+        advertencias=ficha.advertencias,
+    )
+
+
+# ── CU10C — RF-48: Infraestructuras disponibles y transferencia ─────────────
+
+@router.get(
+    '/{id_activo}/transferencias/disponibles',
+    response_model=list[InfraestructuraDisponibleResponse],
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Listar infraestructuras disponibles para transferencia (CU10C - RF-48)',
+)
+def listar_infraestructuras_disponibles(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> list[InfraestructuraDisponibleResponse]:
+    use_case = RegistrarTransferenciaUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
+    )
+    infras = use_case.listar_infraestructuras_disponibles(id_activo, usuario_actual)
+    return [InfraestructuraDisponibleResponse(**i) for i in infras]
+
+
+@router.post(
+    '/{id_activo}/transferencias',
+    response_model=TransferenciaResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse},
+    },
+    summary='Registrar transferencia interna del activo biológico (CU10C - RF-48)',
+)
+def registrar_transferencia(
+    id_activo: int,
+    dto: RegistrarTransferenciaDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> TransferenciaResponse:
+    use_case = RegistrarTransferenciaUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
+    )
+    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    return TransferenciaResponse(
+        id_movimiento=resultado.id_movimiento,
+        id_activo_biologico=resultado.id_activo_biologico,
+        infraestructura_origen=resultado.nombre_infra_origen,
+        infraestructura_destino=resultado.nombre_infra_destino,
+        fecha_transferencia=resultado.fecha_transferencia,
+        motivo_transferencia=resultado.motivo_transferencia,
+        mensaje=(
+            f'Transferencia registrada exitosamente. '
+            f'El activo fue transferido a {resultado.nombre_infra_destino} '
+            f'en fecha {resultado.fecha_transferencia.date().isoformat()}.'
+        ),
+    )

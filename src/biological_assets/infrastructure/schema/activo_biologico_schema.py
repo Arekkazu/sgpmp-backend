@@ -218,3 +218,68 @@ class RegistrarEventoSanitarioResponse(BaseModel):
 
 class RegistrarEventoReproductivoResponse(BaseModel):
     evento: EventoActivoResponse
+
+
+# ── Schemas CU10 (RF-46, RF-47, RF-48) ───────────────────────────────────────
+
+class RegistroHistorialResponse(BaseModel):
+    categoria: str
+    fecha_evento: datetime
+    descripcion: str
+    detalle_especifico: dict
+    usuario_responsable: str
+    modulo_origen: str
+
+
+class HistorialActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total_registros: int
+    pagina_actual: int
+    total_paginas: int
+    registros_por_pagina: int
+    registros: list[RegistroHistorialResponse]
+
+
+class FichaIntegralResponse(BaseModel):
+    id_activo_biologico: int
+    identificador: Optional[str]
+    tipo: str
+    especie: str
+    fecha_registro: Optional[date]
+    dias_en_sistema: Optional[int]
+    estado_actual: str
+    infraestructura_asociada: Optional[str]
+    fase_productiva_activa: Optional[str]
+    raza: Optional[str] = None
+    sexo: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    peso_actual: Optional[Decimal] = None
+    unidad_peso: Optional[str] = None
+    fecha_ultimo_peso: Optional[date] = None
+    cantidad_actual: Optional[int] = None
+    biomasa_total: Optional[Decimal] = None
+    densidad: Optional[Decimal] = None
+    eventos_sanitarios: list[dict] = []
+    eventos_productivos: list[dict] = []
+    eventos_crecimiento: list[dict] = []
+    eventos_reproductivos: list[dict] = []
+    indicadores: list[dict] = []
+    advertencias: list[str] = []
+
+
+class TransferenciaResponse(BaseModel):
+    id_movimiento: Optional[int]
+    id_activo_biologico: int
+    infraestructura_origen: str
+    infraestructura_destino: str
+    fecha_transferencia: datetime
+    motivo_transferencia: str
+    mensaje: str
+
+
+class InfraestructuraDisponibleResponse(BaseModel):
+    id_infraestructura: int
+    nombre: str
+    tipo: str
+    capacidad_maxima: Optional[int] = None
+    id_especie: Optional[int] = None
