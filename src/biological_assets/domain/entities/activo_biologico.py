@@ -93,6 +93,67 @@ class EventoActivo:
 
 
 @dataclass
+class RegistroHistorial:
+    categoria: str
+    fecha_evento: datetime
+    descripcion: str
+    detalle_especifico: dict
+    usuario_responsable: str
+    modulo_origen: str
+
+
+@dataclass
+class PaginaHistorial:
+    registros: list[RegistroHistorial]
+    total_registros: int
+    pagina_actual: int
+    total_paginas: int
+    registros_por_pagina: int
+
+
+@dataclass
+class Transferencia:
+    id_activo_biologico: int
+    id_infraestructura_origen: int
+    id_infraestructura_destino: int
+    nombre_infra_origen: str
+    nombre_infra_destino: str
+    fecha_transferencia: datetime
+    motivo_transferencia: str
+    id_usuario: int
+    id_movimiento: Optional[int] = None
+    fecha_registro: Optional[datetime] = None
+
+
+@dataclass
+class FichaIntegral:
+    id_activo_biologico: int
+    identificador: Optional[str]
+    tipo: str
+    especie: str
+    fecha_registro: Optional[date]
+    dias_en_sistema: Optional[int]
+    estado_actual: str
+    infraestructura_asociada: Optional[str]
+    fase_productiva_activa: Optional[str]
+    raza: Optional[str]
+    sexo: Optional[str]
+    fecha_nacimiento: Optional[date]
+    peso_actual: Optional[Decimal]
+    unidad_peso: Optional[str]
+    fecha_ultimo_peso: Optional[date]
+    cantidad_actual: Optional[int]
+    biomasa_total: Optional[Decimal]
+    densidad: Optional[Decimal]
+    eventos_sanitarios: list[dict]
+    eventos_productivos: list[dict]
+    eventos_crecimiento: list[dict]
+    eventos_reproductivos: list[dict]
+    indicadores: list[dict]
+    advertencias: list[str]
+
+
+@dataclass
 class GestionFase:
     id_activo_biologico: int
     id_ciclo_productiva: int
