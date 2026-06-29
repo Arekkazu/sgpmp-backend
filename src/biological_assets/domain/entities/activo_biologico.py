@@ -68,6 +68,15 @@ class EventoProductivo:
 
 
 @dataclass
+class EventoReproductivo:
+    categoria: str
+    resultado: str
+    numero_cria: int = 0
+    id_padre: Optional[int] = None
+    id_madre: Optional[int] = None
+
+
+@dataclass
 class EventoActivo:
     id_activo_biologico: int
     fecha: datetime
@@ -78,6 +87,7 @@ class EventoActivo:
     baja: Optional[EventoBaja] = None
     sanitario: Optional[EventoSanitario] = None
     productivo: Optional[EventoProductivo] = None
+    reproductivo: Optional[EventoReproductivo] = None
 
 
 @dataclass
