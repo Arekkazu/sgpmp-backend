@@ -66,6 +66,11 @@ from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_
     SqlAlchemyAsociacionSensorActivoRepository,
 )
 from src.biological_assets.infrastructure.adapters.sensor_m09_adapter import SensorM09Adapter
+from src.biological_assets.application.use_cases.gestion.consultar_indicadores_use_case import ConsultarIndicadoresUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import ConsultarDatosConsolidadosUseCase
+from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
+from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
+from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     AsociacionInfraestructuraResponse,
@@ -93,6 +98,9 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     RegistrarEventoSanitarioResponse,
     RegistroHistorialResponse,
     TransferenciaResponse,
+    IndicadoresActivoResponse,
+    IndicadorZootecnicoResponse,
+    DatosConsolidadosResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -928,4 +936,138 @@ def asociar_sensor_iot(
         estado_asociacion=resultado.estado_asociacion,
         motivo=resultado.motivo,
         advertencia=None,
+    )
+
+
+# ── CU12 RF-51 — Consultar indicadores zootécnicos ───────────────────────────
+
+@router.get(
+    '/{id_activo}/indicadores',
+    response_model=IndicadoresActivoResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar indicadores zootécnicos del activo biológico (CU12 - RF-51)',
+)
+def consultar_indicadores(
+    id_activo: int,
+    fecha_inicio: str | None = Query(default=None, description='Filtro fecha inicio (YYYY-MM-DD)'),
+    fecha_fin: str | None = Query(default=None, description='Filtro fecha fin (YYYY-MM-DD)'),
+    tipo_indicador: str = Query(
+        default='TODOS',
+        description='Tipo de indicador: CRECIMIENTO | PRODUCCION | SANITARIO | EFICIENCIA | TODOS',
+    ),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> IndicadoresActivoResponse:
+    from datetime import date as date_cls
+    from pydantic import ValidationError as _PydanticValidationError
+    try:
+        dto = ConsultarIndicadoresDTO(
+            fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
+            fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
+            tipo_indicador=tipo_indicador,
+        )
+    except ValueError as exc:
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
+    except _PydanticValidationError as exc:
+        first = exc.errors()[0]
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+
+    use_case = ConsultarIndicadoresUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+    )
+    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    return IndicadoresActivoResponse(
+        id_activo_biologico=resultado.id_activo_biologico,
+        tipo_activo=resultado.tipo_activo,
+        indicadores=[
+            IndicadorZootecnicoResponse(
+                tipo=ind.tipo,
+                valor=ind.valor,
+                unidad=ind.unidad,
+                periodo_inicio=ind.periodo_inicio,
+                periodo_fin=ind.periodo_fin,
+                variables_usadas=ind.variables_usadas,
+                fecha_calculo=ind.fecha_calculo,
+                disponible=ind.disponible,
+            )
+            for ind in resultado.indicadores
+        ],
+        advertencias=resultado.advertencias,
+    )
+
+
+# ── CU12 RF-50 — Exponer datos consolidados para módulos externos ─────────────
+
+@router.get(
+    '/{id_activo}/datos-consolidados',
+    response_model=DatosConsolidadosResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Exponer datos consolidados del activo biológico para módulos analíticos (CU12 - RF-50)',
+)
+def consultar_datos_consolidados(
+    id_activo: int,
+    tipo_dato: str = Query(
+        default='todos',
+        description='Sección de datos: eventos | fases | estado | metricas | todos',
+    ),
+    fecha_inicio: str | None = Query(default=None, description='Filtro fecha inicio (YYYY-MM-DD)'),
+    fecha_fin: str | None = Query(default=None, description='Filtro fecha fin (YYYY-MM-DD)'),
+    pagina: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> DatosConsolidadosResponse:
+    from datetime import date as date_cls
+    from pydantic import ValidationError as _PydanticValidationError
+    try:
+        dto = DatosConsolidadosDTO(
+            tipo_dato=tipo_dato,
+            fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
+            fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
+            pagina=pagina,
+            page_size=page_size,
+        )
+    except ValueError as exc:
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
+    except _PydanticValidationError as exc:
+        first = exc.errors()[0]
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+
+    use_case = ConsultarDatosConsolidadosUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+    )
+    datos = use_case.execute(id_activo, dto, usuario_actual)
+    return DatosConsolidadosResponse(
+        id_activo_biologico=datos.id_activo_biologico,
+        identificador=datos.identificador,
+        tipo_activo=datos.tipo_activo,
+        especie=datos.especie,
+        estado_actual=datos.estado_actual,
+        infraestructura_asociada=datos.infraestructura_asociada,
+        fase_productiva_activa=datos.fase_productiva_activa,
+        historial_eventos=datos.secciones.historial_eventos,
+        historial_fases=datos.secciones.historial_fases,
+        historico_estados=datos.secciones.historico_estados,
+        metricas_actuales=datos.secciones.metricas_actuales,
+        total_registros=datos.secciones.total_registros,
+        pagina_actual=datos.secciones.pagina_actual,
+        total_paginas=datos.secciones.total_paginas,
+        registros_por_pagina=datos.secciones.registros_por_pagina,
+        fecha_generacion=datos.fecha_generacion,
     )

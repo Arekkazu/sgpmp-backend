@@ -302,3 +302,42 @@ class AsociacionSensorActivoResponse(BaseModel):
     advertencia: Optional[str] = None
 
     model_config = {'from_attributes': True}
+
+
+# ── Schemas CU12 (RF-50, RF-51) ──────────────────────────────────────────────
+
+class IndicadorZootecnicoResponse(BaseModel):
+    tipo: str
+    valor: Optional[Decimal] = None
+    unidad: str
+    periodo_inicio: Optional[date] = None
+    periodo_fin: Optional[date] = None
+    variables_usadas: dict = {}
+    fecha_calculo: datetime
+    disponible: bool
+
+
+class IndicadoresActivoResponse(BaseModel):
+    id_activo_biologico: int
+    tipo_activo: str
+    indicadores: list[IndicadorZootecnicoResponse]
+    advertencias: list[str] = []
+
+
+class DatosConsolidadosResponse(BaseModel):
+    id_activo_biologico: int
+    identificador: Optional[str]
+    tipo_activo: str
+    especie: str
+    estado_actual: str
+    infraestructura_asociada: Optional[str]
+    fase_productiva_activa: Optional[str]
+    historial_eventos: list[dict] = []
+    historial_fases: list[dict] = []
+    historico_estados: list[dict] = []
+    metricas_actuales: dict = {}
+    total_registros: int
+    pagina_actual: int
+    total_paginas: int
+    registros_por_pagina: int
+    fecha_generacion: datetime

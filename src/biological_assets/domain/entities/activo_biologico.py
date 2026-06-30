@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Optional
@@ -192,6 +192,51 @@ class HistorialInfraestructura:
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+
+
+@dataclass
+class IndicadorZootecnico:
+    tipo: str
+    unidad: str
+    fecha_calculo: datetime
+    disponible: bool
+    valor: Optional[Decimal] = None
+    periodo_inicio: Optional[date] = None
+    periodo_fin: Optional[date] = None
+    variables_usadas: dict = field(default_factory=dict)
+
+
+@dataclass
+class ResultadoIndicadores:
+    id_activo_biologico: int
+    tipo_activo: str
+    indicadores: list[IndicadorZootecnico] = field(default_factory=list)
+    advertencias: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SeccionDatosConsolidados:
+    historial_eventos: list[dict] = field(default_factory=list)
+    historial_fases: list[dict] = field(default_factory=list)
+    historico_estados: list[dict] = field(default_factory=list)
+    metricas_actuales: dict = field(default_factory=dict)
+    total_registros: int = 0
+    pagina_actual: int = 1
+    total_paginas: int = 1
+    registros_por_pagina: int = 20
+
+
+@dataclass
+class DatosConsolidados:
+    id_activo_biologico: int
+    identificador: Optional[str]
+    tipo_activo: str
+    especie: str
+    estado_actual: str
+    infraestructura_asociada: Optional[str]
+    fase_productiva_activa: Optional[str]
+    fecha_generacion: datetime
+    secciones: SeccionDatosConsolidados = field(default_factory=SeccionDatosConsolidados)
 
 
 @dataclass
