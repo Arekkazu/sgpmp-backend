@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
@@ -430,3 +430,25 @@ class ActivoBiologico:
 
     def __hash__(self) -> int:
         return hash(self.id_activo_biologico)
+
+
+@dataclass
+class EventoAuditoria:
+    rf_origen: str
+    tipo_evento: str
+    clasificacion_biologica: str
+    timestamp_evento: datetime
+    resultado: str = 'EXITOSO'
+    severidad_log: str = 'INFO'
+    id_activo_biologico: Optional[int] = None
+    tipo_activo: Optional[str] = None
+    descripcion: Optional[str] = None
+    detalle_tecnico: Optional[dict] = None
+    id_usuario_responsable: Optional[int] = None
+    modulo_consumidor: Optional[str] = 'modulo2'
+    id_evento_correlacionado: Optional[Any] = None
+    id_bitacora: Optional[int] = None
+    id_evento: Optional[Any] = None
+    timestamp_registro: Optional[datetime] = None
+    hash_integridad: Optional[str] = None
+    registro_incompleto: bool = False

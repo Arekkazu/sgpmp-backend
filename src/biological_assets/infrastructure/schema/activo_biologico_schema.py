@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -341,3 +341,34 @@ class DatosConsolidadosResponse(BaseModel):
     total_paginas: int
     registros_por_pagina: int
     fecha_generacion: datetime
+
+
+# ── CU13 RF-52 — Auditoría y Trazabilidad ────────────────────────────────────
+
+class EventoAuditoriaResponse(BaseModel):
+    id_bitacora: int
+    id_evento: str
+    rf_origen: str
+    tipo_evento: str
+    clasificacion_biologica: str
+    id_activo_biologico: Optional[int]
+    tipo_activo: Optional[str]
+    timestamp_evento: datetime
+    timestamp_registro: datetime
+    resultado: str
+    descripcion: Optional[str]
+    detalle_tecnico: Optional[dict]
+    id_usuario_responsable: Optional[int]
+    modulo_consumidor: Optional[str]
+    severidad_log: str
+    id_evento_correlacionado: Optional[str]
+    hash_integridad: str
+    registro_incompleto: bool
+
+
+class BitacoraAuditoriaResponse(BaseModel):
+    total_registros: int
+    pagina_actual: int
+    total_paginas: int
+    registros_por_pagina: int
+    registros: list[EventoAuditoriaResponse]

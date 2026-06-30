@@ -9,8 +9,9 @@ from src.biological_assets.application.use_cases.gestion._event_validations impo
     validar_estado_permite_eventos,
     validar_fecha_evento,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoSanitario, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoSanitario, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
+from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.infrastructure.dto.registrar_evento_sanitario_dto import RegistrarEventoSanitarioDTO
@@ -29,11 +30,13 @@ class RegistrarEventoSanitarioUseCase:
         activo_repo: ActivoBiologicoRepository,
         evento_repo: EventoActivoRepository,
         historico_repo: HistoricoEstadoRepository,
+        bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
         self.evento_repo = evento_repo
         self.historico_repo = historico_repo
+        self.bitacora_repo = bitacora_repo
 
     def execute(
         self,
@@ -94,8 +97,36 @@ class RegistrarEventoSanitarioUseCase:
                     modulo_origen='modulo2',
                 )
             self.db.commit()
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if self.bitacora_repo:
+                try:
+                    self.bitacora_repo.registrar(EventoAuditoria(
+                        rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_FALLIDO',
+                        clasificacion_biologica='SANITARIO', resultado='FALLIDO',
+                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                        detalle_tecnico={'error': str(exc), 'tipo_sanitario': dto.tipo},
+                        id_usuario_responsable=usuario.id_usuario,
+                    ))
+                    self.db.commit()
+                except Exception:
+                    pass
             raise
+
+        if self.bitacora_repo:
+            try:
+                self.bitacora_repo.registrar(EventoAuditoria(
+                    rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_REGISTRADO',
+                    clasificacion_biologica='SANITARIO', resultado='EXITOSO',
+                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                    descripcion=f'Evento sanitario registrado: {dto.tipo}',
+                    detalle_tecnico={'tipo_sanitario': dto.tipo},
+                    id_usuario_responsable=usuario.id_usuario,
+                ))
+                self.db.commit()
+            except Exception:
+                pass
 
         return resultado, historico

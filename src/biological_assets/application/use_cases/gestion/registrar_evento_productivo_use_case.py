@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoProductivo
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
+from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
@@ -26,12 +27,14 @@ class RegistrarEventoProductivoUseCase:
         evento_repo: EventoActivoRepository,
         parametros_port: ParametrosEspeciePort,
         ciclo_port: CicloConsultaPort,
+        bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
         self.evento_repo = evento_repo
         self.parametros_port = parametros_port
         self.ciclo_port = ciclo_port
+        self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarEventoProductivoDTO, usuario: UsuarioActual) -> EventoActivo:
         # FA-01: activo debe existir
@@ -195,8 +198,36 @@ class RegistrarEventoProductivoUseCase:
         try:
             resultado = self.evento_repo.guardar(evento)
             self.db.commit()
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if self.bitacora_repo:
+                try:
+                    self.bitacora_repo.registrar(EventoAuditoria(
+                        rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_FALLIDO',
+                        clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
+                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                        detalle_tecnico={'error': str(exc), 'tipo_producto': dto.tipo_producto},
+                        id_usuario_responsable=usuario.id_usuario,
+                    ))
+                    self.db.commit()
+                except Exception:
+                    pass
             raise
+
+        if self.bitacora_repo:
+            try:
+                self.bitacora_repo.registrar(EventoAuditoria(
+                    rf_origen='RF43', tipo_evento='EVENTO_PRODUCTIVO_REGISTRADO',
+                    clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
+                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                    descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
+                    detalle_tecnico={'tipo_producto': dto.tipo_producto, 'cantidad': str(dto.cantidad_producida)},
+                    id_usuario_responsable=usuario.id_usuario,
+                ))
+                self.db.commit()
+            except Exception:
+                pass
 
         return resultado

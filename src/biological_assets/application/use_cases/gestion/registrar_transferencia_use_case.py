@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import Transferencia
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, Transferencia
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
+from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
@@ -23,11 +24,13 @@ class RegistrarTransferenciaUseCase:
         activo_repo: ActivoBiologicoRepository,
         transferencia_repo: TransferenciaRepository,
         infra_port: InfraestructuraConsultaPort,
+        bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
         self.transferencia_repo = transferencia_repo
         self.infra_port = infra_port
+        self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
         # E-01: control de concurrencia — bloquea el registro para evitar transferencias simultáneas
@@ -188,9 +191,41 @@ class RegistrarTransferenciaUseCase:
             resultado = self.transferencia_repo.guardar(transferencia)
 
             self.db.commit()
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if self.bitacora_repo:
+                try:
+                    self.bitacora_repo.registrar(EventoAuditoria(
+                        rf_origen='RF48', tipo_evento='TRANSFERENCIA_FALLIDA',
+                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                        detalle_tecnico={'error': str(exc), 'destino': dto.infraestructura_destino_id},
+                        id_usuario_responsable=usuario.id_usuario,
+                    ))
+                    self.db.commit()
+                except Exception:
+                    pass
             raise
+
+        if self.bitacora_repo:
+            try:
+                self.bitacora_repo.registrar(EventoAuditoria(
+                    rf_origen='RF48', tipo_evento='TRANSFERENCIA_REGISTRADA',
+                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                    descripcion=f'Transferencia: {transferencia.nombre_infra_origen} → {transferencia.nombre_infra_destino}',
+                    detalle_tecnico={
+                        'origen': dto.infraestructura_origen_id,
+                        'destino': dto.infraestructura_destino_id,
+                        'motivo': dto.motivo_transferencia,
+                    },
+                    id_usuario_responsable=usuario.id_usuario,
+                ))
+                self.db.commit()
+            except Exception:
+                pass
 
         return resultado
 

@@ -71,6 +71,10 @@ from src.biological_assets.application.use_cases.gestion.consultar_datos_consoli
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
+from src.biological_assets.application.use_cases.gestion.consultar_bitacora_use_case import ConsultarBitacoraUseCase
+from src.biological_assets.infrastructure.dto.consultar_bitacora_dto import ConsultarBitacoraDTO
+from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import SqlAlchemyBitacoraAuditoriaRepository
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     AsociacionInfraestructuraResponse,
@@ -101,6 +105,8 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     IndicadoresActivoResponse,
     IndicadorZootecnicoResponse,
     DatosConsolidadosResponse,
+    BitacoraAuditoriaResponse,
+    EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -110,8 +116,9 @@ from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
-_RECURSO = 29       # modulo1.recursos: 'activos_biologicos'
-_RECURSO_SENSOR = 30  # modulo1.recursos: 'asociacion_sensor_activo'
+_RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
+_RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
+_RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -199,9 +206,96 @@ def registrar_activo(
         especie_port=EspecieM09Adapter(db),
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(dto, usuario_actual)
     return _activo_to_response(activo)
+
+
+def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:
+    return EventoAuditoriaResponse(
+        id_bitacora=e.id_bitacora,
+        id_evento=str(e.id_evento),
+        rf_origen=e.rf_origen,
+        tipo_evento=e.tipo_evento,
+        clasificacion_biologica=e.clasificacion_biologica,
+        id_activo_biologico=e.id_activo_biologico,
+        tipo_activo=e.tipo_activo,
+        timestamp_evento=e.timestamp_evento,
+        timestamp_registro=e.timestamp_registro,
+        resultado=e.resultado,
+        descripcion=e.descripcion,
+        detalle_tecnico=e.detalle_tecnico,
+        id_usuario_responsable=e.id_usuario_responsable,
+        modulo_consumidor=e.modulo_consumidor,
+        severidad_log=e.severidad_log,
+        id_evento_correlacionado=str(e.id_evento_correlacionado) if e.id_evento_correlacionado else None,
+        hash_integridad=e.hash_integridad,
+        registro_incompleto=e.registro_incompleto,
+    )
+
+
+# ── CU13 RF-52 — Consultar bitácora de auditoría ─────────────────────────────
+
+@router.get(
+    '/auditoria',
+    response_model=BitacoraAuditoriaResponse,
+    dependencies=[Depends(require_permission(_RECURSO_BITACORA, 2))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Consultar bitácora de auditoría y trazabilidad (CU13 - RF-52)',
+)
+def consultar_bitacora(
+    rf_origen: str | None = Query(default=None, description='Origen RF (ej. RF33, RF40)'),
+    tipo_evento: str | None = Query(default=None, description='Tipo de evento (ej. ACTIVO_REGISTRADO)'),
+    id_activo_biologico: int | None = Query(default=None),
+    clasificacion_biologica: str | None = Query(
+        default=None,
+        description='TRANSFORMACION_BIOLOGICA | GESTION_OPERATIVA | SANITARIO | CONTROL_ESTADO | ACCESO_DATOS',
+    ),
+    resultado: str | None = Query(default=None, description='EXITOSO | FALLIDO | RECHAZADO | ADVERTENCIA'),
+    severidad_log: str | None = Query(default=None, description='INFO | WARNING | ERROR | CRITICAL'),
+    fecha_inicio: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-01-01T00:00:00Z)'),
+    fecha_fin: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-12-31T23:59:59Z)'),
+    pagina: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> BitacoraAuditoriaResponse:
+    from datetime import datetime as _dt
+    from pydantic import ValidationError as _PydanticValidationError
+    try:
+        dto = ConsultarBitacoraDTO(
+            rf_origen=rf_origen,
+            tipo_evento=tipo_evento,
+            id_activo_biologico=id_activo_biologico,
+            clasificacion_biologica=clasificacion_biologica,
+            resultado=resultado,
+            severidad_log=severidad_log,
+            fecha_inicio=_dt.fromisoformat(fecha_inicio.replace('Z', '+00:00')) if fecha_inicio else None,
+            fecha_fin=_dt.fromisoformat(fecha_fin.replace('Z', '+00:00')) if fecha_fin else None,
+            pagina=pagina,
+            page_size=page_size,
+        )
+    except (ValueError, _PydanticValidationError) as exc:
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+
+    use_case = ConsultarBitacoraUseCase(
+        db=db,
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    registros, total = use_case.execute(dto)
+    total_paginas = max(1, (total + page_size - 1) // page_size)
+    return BitacoraAuditoriaResponse(
+        total_registros=total,
+        pagina_actual=pagina,
+        total_paginas=total_paginas,
+        registros_por_pagina=page_size,
+        registros=[_auditoria_to_response(r) for r in registros],
+    )
 
 
 def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
@@ -236,8 +330,12 @@ def consultar_activo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivoBiologicoResponse:
-    use_case = ConsultarActivoUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
-    activo = use_case.execute(id_activo)
+    use_case = ConsultarActivoUseCase(
+        db=db,
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    activo = use_case.execute(id_activo, usuario_actual)
     return _activo_to_response(activo)
 
 
@@ -260,7 +358,11 @@ def actualizar_activo_individual(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivoBiologicoResponse:
-    use_case = ActualizarActivoIndividualUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
+    use_case = ActualizarActivoIndividualUseCase(
+        db=db,
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
     activo = use_case.execute(id_activo, dto, usuario_actual)
     return _activo_to_response(activo)
 
@@ -289,6 +391,7 @@ def cambiar_fase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
         ciclo_port=CicloProductivoM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     gestion = use_case.execute(id_activo, dto, usuario_actual)
     return _gestion_to_response(gestion)
@@ -342,8 +445,9 @@ def consultar_asociacion(
     use_case = ConsultarAsociacionUseCase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_activo, tipo_consulta)
+    resultado = use_case.execute(id_activo, tipo_consulta, usuario_actual)
 
     if tipo_consulta == 'ACTIVA':
         return ConsultaAsociacionResponse(
@@ -492,6 +596,7 @@ def registrar_evento_crecimiento(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         ciclo_port=CicloProductivoM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento, fase_avanzada = use_case.execute(id_activo, dto, usuario_actual)
     return RegistrarEventoCrecimientoResponse(
@@ -527,6 +632,7 @@ def registrar_evento_baja(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
@@ -558,6 +664,7 @@ def registrar_evento_sanitario(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento, historico = use_case.execute(id_activo, dto, usuario_actual)
     return RegistrarEventoSanitarioResponse(
@@ -591,6 +698,7 @@ def cambiar_estado(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CambioEstadoResponse(
@@ -636,6 +744,7 @@ def cerrar_ciclo(
         repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CierreActivoResponse(
@@ -671,6 +780,7 @@ def registrar_evento_reproductivo(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
@@ -703,6 +813,7 @@ def registrar_evento_productivo(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         ciclo_port=CicloProductivoM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
     return _evento_to_response(evento)
@@ -751,6 +862,7 @@ def consultar_historial(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     pagina_historial = use_case.execute(id_activo, dto, usuario_actual)
     return HistorialActivoResponse(
@@ -794,6 +906,7 @@ def consultar_ficha_integral(
     use_case = ConsultarFichaIntegralUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     ficha = use_case.execute(id_activo, usuario_actual)
     return FichaIntegralResponse(
@@ -847,6 +960,7 @@ def listar_infraestructuras_disponibles(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     infras = use_case.listar_infraestructuras_disponibles(id_activo, usuario_actual)
     return [InfraestructuraDisponibleResponse(**i) for i in infras]
@@ -878,6 +992,7 @@ def registrar_transferencia(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return TransferenciaResponse(
@@ -921,6 +1036,7 @@ def asociar_sensor_iot(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         sensor_port=SensorM09Adapter(db),
         infra_port=InfraestructuraM09Adapter(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return AsociacionSensorActivoResponse(
@@ -982,6 +1098,7 @@ def consultar_indicadores(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
     return IndicadoresActivoResponse(
@@ -1051,6 +1168,7 @@ def consultar_datos_consolidados(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     datos = use_case.execute(id_activo, dto, usuario_actual)
     return DatosConsolidadosResponse(
