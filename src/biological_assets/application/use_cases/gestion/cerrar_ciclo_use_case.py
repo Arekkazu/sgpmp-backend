@@ -4,8 +4,9 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
+from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
@@ -21,11 +22,13 @@ class CerrarCicloUseCase:
         repo: ActivoBiologicoRepository,
         evento_repo: EventoActivoRepository,
         historico_repo: HistoricoEstadoRepository,
+        bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
         self.evento_repo = evento_repo
         self.historico_repo = historico_repo
+        self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
         # FA-01: activo debe existir
@@ -106,8 +109,36 @@ class CerrarCicloUseCase:
                 modulo_origen='modulo2',
             )
             self.db.commit()
-        except Exception:
+        except Exception as exc:
             self.db.rollback()
+            if self.bitacora_repo:
+                try:
+                    self.bitacora_repo.registrar(EventoAuditoria(
+                        rf_origen='RF38', tipo_evento='CICLO_CIERRE_FALLIDO',
+                        clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
+                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                        detalle_tecnico={'error': str(exc)},
+                        id_usuario_responsable=usuario.id_usuario,
+                    ))
+                    self.db.commit()
+                except Exception:
+                    pass
             raise
+
+        if self.bitacora_repo:
+            try:
+                self.bitacora_repo.registrar(EventoAuditoria(
+                    rf_origen='RF38', tipo_evento='CICLO_CERRADO',
+                    clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
+                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                    descripcion=f'Ciclo productivo cerrado: {dto.motivo_cierre}',
+                    detalle_tecnico={'motivo': motivo_completo, 'fecha_cierre': dto.fecha_cierre.isoformat()},
+                    id_usuario_responsable=usuario.id_usuario,
+                ))
+                self.db.commit()
+            except Exception:
+                pass
 
         return historico

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import FichaIntegral
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, FichaIntegral
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
+from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError
 
@@ -18,9 +20,11 @@ class ConsultarFichaIntegralUseCase:
         self,
         db: Session,
         activo_repo: ActivoBiologicoRepository,
+        bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
+        self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, usuario: UsuarioActual) -> FichaIntegral:
         # E-01: el activo debe existir
@@ -59,8 +63,22 @@ class ConsultarFichaIntegralUseCase:
                     'Verifique el estado o la fase del activo.'
                 )
 
+        def _emit_audit() -> None:
+            if self.bitacora_repo:
+                try:
+                    self.bitacora_repo.registrar(EventoAuditoria(
+                        rf_origen='RF47', tipo_evento='FICHA_CONSULTADA',
+                        clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+                        severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                        id_activo_biologico=id_activo,
+                        id_usuario_responsable=usuario.id_usuario,
+                    ))
+                    self.db.commit()
+                except Exception:
+                    pass
+
         if ficha_row:
-            return FichaIntegral(
+            ficha = FichaIntegral(
                 id_activo_biologico=id_activo,
                 identificador=ficha_row.codigo,
                 tipo=str(ficha_row.tipo),
@@ -86,9 +104,11 @@ class ConsultarFichaIntegralUseCase:
                 indicadores=indicadores,
                 advertencias=advertencias,
             )
+            _emit_audit()
+            return ficha
 
         # Fallback si la vista no devuelve fila pero el activo existe
-        return FichaIntegral(
+        ficha = FichaIntegral(
             id_activo_biologico=id_activo,
             identificador=activo.identificador,
             tipo=activo.tipo,
@@ -114,6 +134,8 @@ class ConsultarFichaIntegralUseCase:
             indicadores=[],
             advertencias=['No se pudo cargar la información completa del activo.'],
         )
+        _emit_audit()
+        return ficha
 
     def _ultimos_sanitarios(self, id_activo: int) -> list[dict]:
         rows = self.db.execute(
