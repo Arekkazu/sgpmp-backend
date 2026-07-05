@@ -1,6 +1,7 @@
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
 
+from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
@@ -38,6 +39,7 @@ app.include_router(sesiones_router)
 app.include_router(contrasena_router)
 app.include_router(auditoria_router)
 app.include_router(roles_router)
+app.include_router(activo_biologico_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)
 app.include_router(patologia_router)
