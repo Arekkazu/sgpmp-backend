@@ -22,6 +22,11 @@ class InfraestructuraModel(Base):
             ['modulo9.fincas.id_finca'],
             name='infraestructuras_id_finca_fkey',
         ),
+        ForeignKeyConstraint(
+            ['id_especie'],
+            ['modulo9.especies.id_especie'],
+            name='infraestructuras_id_especie_fkey',
+        ),
         PrimaryKeyConstraint('id_infraestructura', name='infraestructuras_pkey'),
         UniqueConstraint('id_finca', 'nombre', name='uq_infraestructura_nombre'),
         {'schema': 'modulo9'},
@@ -39,3 +44,5 @@ class InfraestructuraModel(Base):
     es_activo: Mapped[bool] = mapped_column(Boolean, nullable=False)
     tipo: Mapped[str] = mapped_column(String(20), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
+    capacidad_maxima: Mapped[Optional[int]] = mapped_column(Integer)
+    id_especie: Mapped[Optional[int]] = mapped_column(Integer)
