@@ -6,6 +6,10 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.shared.errors import AuthenticationError, ValidationError
+from src.telemetry.application.use_cases.alertas.generar_alerta_use_case import GenararAlertaUseCase
+from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
+    ConsolidarEnviarPaqueteUseCase,
+)
 from src.telemetry.domain.entities.telemetria import (
     EventoEdgeComputing,
     ResultadoEventoEdge,
@@ -16,10 +20,11 @@ from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
 from src.telemetry.domain.repositories.evento_edge_repository import EventoEdgeRepository
 from src.telemetry.domain.repositories.motor_inferencia_port import MotorInferenciaPort
 from src.telemetry.domain.repositories.paquete_inferencia_repository import PaqueteInferenciaRepository
+from src.telemetry.infrastructure.dto.procesar_evento_alerta_dto import ProcesarEventoAlertaDTO
 from src.telemetry.infrastructure.dto.recibir_evento_edge_dto import RecibirEventoEdgeDTO
-from src.telemetry.application.use_cases.inferencia.consolidar_paquete_inferencia_use_case import (
-    ConsolidarEnviarPaqueteUseCase,
-)
+from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
+from src.telemetry.infrastructure.repositories.regla_alerta_repository import SqlAlchemyReglaAlertaRepository
 
 _MAX_DRIFT_FUTURO_SEG = 30
 _MAX_VENTANA_BUFFER_HORAS = 72
@@ -95,6 +100,7 @@ class RecibirEventoEdgeUseCase:
 
         # Paso 5: Consolidar y enviar a M04 si hay desviación (fuera del bloque DB anterior)
         # ERROR_CONFIGURACION: evento guardado pero no se envía a M04 (FA-07)
+        paquete = None
         paquete_estado: Optional[str] = None
         _enviar_a_m04 = dto.clasificacion_rf55 not in (TipoEventoEdge.NORMAL, TipoEventoEdge.ERROR_CONFIGURACION)
         if _enviar_a_m04:
@@ -107,6 +113,20 @@ class RecibirEventoEdgeUseCase:
             if paquete:
                 paquete_estado = paquete.estado_paquete
 
+        # Paso 6: Generar alerta si hay desviación (best-effort — no propaga error)
+        _es_desviacion = dto.clasificacion_rf55 in (
+            TipoEventoEdge.DESVIACION_SIMPLE,
+            TipoEventoEdge.DESVIACION_COMPUESTA,
+        )
+        if _es_desviacion and dto.variables_involucradas and dto.severidad:
+            self._generar_alerta_best_effort(
+                dto=dto,
+                dispositivo_id_iot=dispositivo.id_dispositivo_iot,
+                id_infraestructura=dispositivo.id_infraestructura,
+                id_evento_edge=evento_guardado.id_evento_edge_computing,
+                id_paquete=paquete.id_paquetes_inferencia if paquete else None,
+            )
+
         return ResultadoEventoEdge(
             id_evento_edge_computing=evento_guardado.id_evento_edge_computing,
             clasificacion_rf55=evento_guardado.clasificacion_rf55,
@@ -115,6 +135,45 @@ class RecibirEventoEdgeUseCase:
             fecha_procesamiento=evento_guardado.fecha_procesamiento,
             paquete_inferencia_estado=paquete_estado,
         )
+
+    def _generar_alerta_best_effort(
+        self,
+        dto: RecibirEventoEdgeDTO,
+        dispositivo_id_iot: int,
+        id_infraestructura: Optional[int],
+        id_evento_edge: int,
+        id_paquete: Optional[int],
+    ) -> None:
+        try:
+            var_primaria = dto.variables_involucradas[0]
+            alerta_dto = ProcesarEventoAlertaDTO(
+                device_id=dto.device_id,
+                sensor_id=dto.sensor_id,
+                access_key=dto.access_key,
+                tipo_variable=var_primaria.tipo_variable,
+                valor=var_primaria.valor,
+                unidad=var_primaria.unidad,
+                timestamp_evento=dto.timestamp_captura,
+                estado_dato="LECTURA_VALIDA",
+                severidad_edge=dto.severidad,
+                origen_evento="EDGE",
+                id_evento_edge_computing=id_evento_edge,
+                id_paquete_inferencia=id_paquete,
+                reglas_activadas=[dto.clasificacion_rf55],
+                metadata_evento=dto.metadata_edge,
+            )
+            GenararAlertaUseCase(
+                db=self.db,
+                alerta_repo=SqlAlchemyAlertaRepository(self.db),
+                historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(self.db),
+                regla_repo=SqlAlchemyReglaAlertaRepository(self.db),
+            ).execute(
+                dto=alerta_dto,
+                id_dispositivo_ioit=dispositivo_id_iot,
+                id_infraestructura=id_infraestructura,
+            )
+        except Exception:
+            pass
 
     @staticmethod
     def _validar_temporal(ts_captura: datetime, ahora: datetime, origen: str) -> None:
