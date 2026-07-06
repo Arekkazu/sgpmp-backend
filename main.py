@@ -19,6 +19,7 @@ from src.configuration.infrastructure.routers.patologia_router import router as 
 from src.configuration.infrastructure.routers.plantilla_router import router as plantilla_router
 from src.configuration.infrastructure.routers.umbral_router import router as umbral_router
 from src.identity_access.infrastructure.routers.auditoria_routers import router as auditoria_router
+from src.telemetry.infrastructure.routers.telemetria_router import router as telemetria_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -56,6 +57,7 @@ app.include_router(identidad_visual_router)
 app.include_router(tema_visual_router)
 app.include_router(dashboard_layout_router)
 app.include_router(preferencia_idioma_router)
+app.include_router(telemetria_router)
 
 @app.get("/", tags=["Health"])
 async def index():
