@@ -231,3 +231,87 @@ class ResultadoItemBatch:
     estado: str
     id_telemetria: Optional[int] = None
     error: Optional[str] = None
+
+
+# ─── CU02 / RF-56 ────────────────────────────────────────────────────────────
+
+class TipoEventoEdge(str, Enum):
+    NORMAL = "NORMAL"
+    DESVIACION_SIMPLE = "DESVIACION_SIMPLE"
+    DESVIACION_COMPUESTA = "DESVIACION_COMPUESTA"
+    ERROR_CONFIGURACION = "ERROR_CONFIGURACION"
+
+
+class SeveridadEdge(str, Enum):
+    LEVE = "LEVE"
+    MODERADO = "MODERADO"
+    CRITICO = "CRITICO"
+
+
+class EstadoPaqueteInferencia(str, Enum):
+    ENVIADO = "ENVIADO"
+    PENDIENTE = "PENDIENTE"
+    FALLIDO = "FALLIDO"
+
+
+# Mapeo de clasificación RF-55 al enum tipo_evento de eventos_edge_computing en BD
+_MAPA_TIPO_EVENTO_BD: dict[str, str] = {
+    TipoEventoEdge.NORMAL: "DATOS_PROCESADOS",
+    TipoEventoEdge.DESVIACION_SIMPLE: "ALERTA_GENERADA",
+    TipoEventoEdge.DESVIACION_COMPUESTA: "ALERTA_GENERADA",
+    TipoEventoEdge.ERROR_CONFIGURACION: "ERROR_PROCESAMIENTO",
+}
+
+
+def clasificacion_a_tipo_evento_bd(clasificacion_rf55: str) -> str:
+    return _MAPA_TIPO_EVENTO_BD.get(clasificacion_rf55, "DATOS_PROCESADOS")
+
+
+@dataclass
+class EventoEdgeComputing:
+    id_dispositivo_iot: int
+    id_sensor: int
+    clasificacion_rf55: str          # TipoEventoEdge — clasificación real de RF-55
+    tipo_evento: str                 # valor del enum en BD (DATOS_PROCESADOS / ALERTA_GENERADA / etc.)
+    fecha_captura: datetime
+    fecha_procesamiento: datetime
+    origen_dato: str                 # OrigenTelemetria
+    estado_conectividad: bool
+    variables_involucradas: list[dict[str, Any]]
+
+    id_evento_edge_computing: Optional[int] = None
+    severidad: Optional[str] = None  # SeveridadEdge
+    metadatos: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class PaqueteInferencia:
+    id_sensor: int
+    id_dispositivo_iot: int
+    id_evento_edge_computing: int
+    tipo_variable: str
+    valor_numerico: Decimal
+    estado_calidad: str
+    fecha_envio: datetime
+    estado_paquete: str              # EstadoPaqueteInferencia
+    intento_envios: int
+    contexto_incompleto: bool
+
+    id_paquetes_inferencia: Optional[int] = None
+    unidad: Optional[str] = None
+    estado_desviacion: Optional[str] = None   # TipoEventoEdge
+    severidad: Optional[str] = None           # SeveridadEdge
+    origen: Optional[str] = None              # OrigenTelemetria
+    contexto_ambiental: Optional[dict] = None
+    metadatos: Optional[dict] = None
+    id_version_modelo: Optional[int] = None
+
+
+@dataclass
+class ResultadoEventoEdge:
+    id_evento_edge_computing: int
+    clasificacion_rf55: str
+    severidad: Optional[str]
+    estado_conectividad: bool
+    fecha_procesamiento: datetime
+    paquete_inferencia_estado: Optional[str] = None
