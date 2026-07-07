@@ -22,6 +22,7 @@ from src.identity_access.infrastructure.routers.auditoria_routers import router 
 from src.telemetry.infrastructure.routers.telemetria_router import router as telemetria_router
 from src.telemetry.infrastructure.routers.evento_edge_router import router as evento_edge_router
 from src.telemetry.infrastructure.routers.alerta_router import router as alerta_router
+from src.telemetry.infrastructure.routers.monitoreo_router import router as monitoreo_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -62,6 +63,7 @@ app.include_router(preferencia_idioma_router)
 app.include_router(telemetria_router)
 app.include_router(evento_edge_router)
 app.include_router(alerta_router)
+app.include_router(monitoreo_router)
 
 @app.get("/", tags=["Health"])
 async def index():
