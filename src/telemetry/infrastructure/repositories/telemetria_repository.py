@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import text
@@ -105,6 +106,39 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
             ).fetchone()
         return result is not None
 
+    def obtener_serie_temporal(
+        self,
+        id_sensor: int,
+        n: int,
+        hasta_timestamp: datetime,
+    ) -> list[Decimal]:
+        rows = self.db.execute(
+            text(
+                'SELECT valor_crudo FROM modulo3.telemetrias '
+                'WHERE id_sensor = :sensor '
+                '  AND estado_calidad = :estado '
+                '  AND timestamp_captura < :ts '
+                'ORDER BY timestamp_captura DESC LIMIT :n'
+            ),
+            {'sensor': id_sensor, 'estado': 'LECTURA_VALIDA', 'ts': hasta_timestamp, 'n': n},
+        ).fetchall()
+        return [Decimal(str(r[0])) for r in rows]
+
+    def actualizar_flags_aptitud(
+        self,
+        id_telemetria: int,
+        apto_para_ia: bool,
+        apto_para_nic41: bool,
+    ) -> None:
+        self.db.execute(
+            text(
+                'UPDATE modulo3.telemetrias '
+                'SET apto_para_ia = :ia, apto_para_nic41 = :nic41 '
+                'WHERE id_telemetria = :id'
+            ),
+            {'ia': apto_para_ia, 'nic41': apto_para_nic41, 'id': id_telemetria},
+        )
+
     @staticmethod
     def _a_entidad(orm: TelemetriaModel) -> Telemetria:
         return Telemetria(
@@ -142,4 +176,6 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
             calidad_senal_snr=orm.calidad_senal_snr,
             frecuencia_muestreo_min=orm.frecuencia_muestreo_min,
             estado_conectividad=orm.estado_conectividad,
+            apto_para_ia=orm.apto_para_ia,
+            apto_para_nic41=orm.apto_para_nic41,
         )

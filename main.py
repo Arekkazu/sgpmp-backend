@@ -31,6 +31,8 @@ from src.telemetry.infrastructure.routers.alerta_router import router as alerta_
 from src.telemetry.infrastructure.routers.monitoreo_router import router as monitoreo_router
 from src.telemetry.infrastructure.routers.infraestructura_iot_router import router as infraestructura_iot_router
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
+from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
+from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -118,6 +120,8 @@ app.include_router(alerta_router)
 app.include_router(monitoreo_router)
 app.include_router(infraestructura_iot_router)
 app.include_router(vinculacion_router)
+app.include_router(calidad_router)
+app.include_router(auditoria_iot_router)
 
 @app.get("/", tags=["Health"])
 async def index():

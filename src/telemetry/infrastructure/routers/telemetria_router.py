@@ -25,9 +25,13 @@ from src.telemetry.infrastructure.adapters.calibracion_m09_adapter import Calibr
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
+from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
 from src.telemetry.infrastructure.adapters.activo_biologico_stub_adapter import ActivoBiologicoStubAdapter
+from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
+from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
 from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
 from src.telemetry.infrastructure.schema.telemetria_schema import IngestaBatchResponse, ItemBatchResponse, TelemetriaResponse
@@ -36,9 +40,10 @@ router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
 
 
 def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
+    telemetria_repo = SqlAlchemyTelemetriaRepository(db)
     return IngerirTelemetriaUseCase(
         db=db,
-        repo=SqlAlchemyTelemetriaRepository(db),
+        repo=telemetria_repo,
         bitacora_repo=SqlAlchemyBitacoraIngestRepository(db),
         dispositivo_port=DispositivoM09Adapter(db),
         variable_port=VariableCatalogoM09Adapter(db),
@@ -47,6 +52,13 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
             db=db,
             vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
             activo_port=ActivoBiologicoStubAdapter(),
+        ),
+        evaluar_calidad_use_case=EvaluarCalidadTelemetriaUseCase(
+            db=db,
+            telemetria_repo=telemetria_repo,
+            calidad_repo=SqlAlchemyTelemetriaCalidadRepository(db),
+            parametros_port=ParametrosCalidadStubAdapter(),
+            auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
         ),
     )
 
