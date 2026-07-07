@@ -1,7 +1,15 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Optional
 
 from src.telemetry.domain.entities.telemetria import DispositivoInfo
+
+
+@dataclass
+class DispositivoHeartbeatInfo:
+    id_dispositivo_iot: int
+    id_infraestructura: int
+    es_activo: bool
 
 
 class DispositivoPort(ABC):
@@ -21,4 +29,16 @@ class DispositivoPort(ABC):
         - access_key coincide con el serial del dispositivo
 
         Retorna None si cualquier condición no se cumple.
+        """
+
+    @abstractmethod
+    def validar_dispositivo_heartbeat(
+        self,
+        device_id: int,
+        access_key: str,
+    ) -> Optional[DispositivoHeartbeatInfo]:
+        """Valida identidad del dispositivo para heartbeat (sin sensor específico).
+
+        Retorna DispositivoHeartbeatInfo si device_id existe y access_key coincide con serial.
+        Retorna None si no se encuentra o credenciales inválidas.
         """

@@ -6,7 +6,11 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+import logging
+
 from src.shared.errors import AuthenticationError, BusinessRuleError, ConflictError, ValidationError
+
+logger = logging.getLogger(__name__)
 from src.telemetry.domain.entities.telemetria import (
     CATALOGO_I3P1,
     EstadoCalidadBitacora,
@@ -42,6 +46,7 @@ class IngerirTelemetriaUseCase:
         dispositivo_port: DispositivoPort,
         variable_port: VariableCatalogoPort,
         calibracion_port: CalibracionPort,
+        vincular_use_case: Optional[Any] = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -49,6 +54,7 @@ class IngerirTelemetriaUseCase:
         self.dispositivo_port = dispositivo_port
         self.variable_port = variable_port
         self.calibracion_port = calibracion_port
+        self.vincular_use_case = vincular_use_case
 
     def execute(
         self,
@@ -222,6 +228,21 @@ class IngerirTelemetriaUseCase:
             )
 
             self.db.commit()
+
+            # --- RF-61-A: Vinculación automática (transacción independiente) ---
+            if self.vincular_use_case is not None:
+                try:
+                    self.vincular_use_case.execute(
+                        id_telemetria=entidad.id_telemetria,
+                        id_infraestructura=dispositivo.id_infraestructura,
+                        timestamp_captura=dto.timestamp_captura,
+                    )
+                except Exception:
+                    logger.warning(
+                        'RF-61: fallo en vinculación automática para telemetría %s.',
+                        entidad.id_telemetria,
+                        exc_info=True,
+                    )
 
             return ResultadoIngesta(
                 id_telemetria=entidad.id_telemetria,

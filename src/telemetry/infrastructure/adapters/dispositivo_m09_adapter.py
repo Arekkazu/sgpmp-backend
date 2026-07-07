@@ -4,7 +4,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.telemetria import DispositivoInfo
-from src.telemetry.domain.repositories.dispositivo_port import DispositivoPort
+from src.telemetry.domain.repositories.dispositivo_port import DispositivoHeartbeatInfo, DispositivoPort
 
 
 class DispositivoM09Adapter(DispositivoPort):
@@ -42,4 +42,27 @@ class DispositivoM09Adapter(DispositivoPort):
             es_activo_dispositivo=row.activo_disp,
             es_activo_sensor=row.activo_sensor,
             id_infraestructura=row.id_infraestructura,
+        )
+
+    def validar_dispositivo_heartbeat(
+        self,
+        device_id: int,
+        access_key: str,
+    ) -> Optional[DispositivoHeartbeatInfo]:
+        row = self.db.execute(
+            text(
+                'SELECT id_dispositivo_iot, es_activo, id_infraestructura '
+                'FROM modulo9.dispositivos_iot '
+                'WHERE id_dispositivo_iot = :device_id AND serial = :access_key'
+            ),
+            {'device_id': device_id, 'access_key': access_key},
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return DispositivoHeartbeatInfo(
+            id_dispositivo_iot=row.id_dispositivo_iot,
+            id_infraestructura=row.id_infraestructura,
+            es_activo=row.es_activo,
         )
