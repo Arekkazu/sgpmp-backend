@@ -84,7 +84,9 @@ Respuesta esperada `200`:
 
 ---
 
-## FA-02 — Filtro por nivel de riesgo
+## Filtros opcionales
+
+### Filtrar por nivel de riesgo (0=sin riesgo, 1=bajo, 2=medio, 3=alto)
 
 ```bash
 curl -X GET "http://localhost:8000/prediccion/historial/1?fecha_inicio=2025-01-01&fecha_fin=2026-07-11&nivel_riesgo=3" \
@@ -92,6 +94,31 @@ curl -X GET "http://localhost:8000/prediccion/historial/1?fecha_inicio=2025-01-0
 ```
 
 Respuesta esperada `200` con solo inferencias de nivel 3 (crítico).
+
+### Filtrar por patología
+
+```bash
+curl -X GET "http://localhost:8000/prediccion/historial/1?fecha_inicio=2025-01-01&fecha_fin=2026-07-11&id_patologia=3" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+---
+
+## FA-02 — Activo no encontrado o inaccesible (cuando stub M02 se reemplace)
+
+```bash
+curl -X GET "http://localhost:8000/prediccion/historial/9999?fecha_inicio=2025-01-01&fecha_fin=2026-07-11" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `404`:
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "El activo biológico no existe o no está disponible.",
+  "field": null
+}
+```
 
 ---
 

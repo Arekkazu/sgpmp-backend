@@ -36,30 +36,23 @@ class SqlAlchemyHistorialDiagnosticoRepository(HistorialDiagnosticoRepository):
         rc = RetroalimentacionClinicaModel
         ap = AlertaPatologicaModel
 
-        stmt = select(ri)
-
-        conditions = [
-            ri.id_activo_biologico == id_activo_biologico,
-            ri.fecha_inferencia >= fecha_inicio,
-            ri.fecha_inferencia <= fecha_fin,
-        ]
-
-        if nivel_riesgo is not None:
-            conditions.append(ri.nivel_riesgo == nivel_riesgo)
-
-        if id_patologia is not None:
-            conditions.append(ri.id_patologia == id_patologia)
+        stmt = select(ri).filter(
+            and_(
+                ri.id_activo_biologico == id_activo_biologico,
+                ri.fecha_inferencia >= fecha_inicio,
+                ri.fecha_inferencia <= fecha_fin,
+                *([] if nivel_riesgo is None else [ri.nivel_riesgo == nivel_riesgo]),
+                *([] if id_patologia is None else [ri.id_patologia == id_patologia]),
+            )
+        )
 
         if cursor is not None:
             cursor_fecha, cursor_id = cursor
-            conditions.append(
+            stmt = stmt.filter(
                 text(
-                    "(ri.fecha_inferencia, ri.id_resultado_inferencia::text) < (:cf, :ci)"
+                    "(resultados_inferencia.fecha_inferencia, resultados_inferencia.id_resultado_inferencia) < (:cf, :ci::uuid)"
                 ).bindparams(cf=cursor_fecha, ci=cursor_id)
             )
-            stmt = stmt.filter(*conditions)
-        else:
-            stmt = stmt.filter(and_(*conditions))
 
         stmt = stmt.order_by(ri.fecha_inferencia.desc(), ri.id_resultado_inferencia.desc())
         stmt = stmt.limit(limite)
