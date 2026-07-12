@@ -37,6 +37,7 @@ from src.prediction.infrastructure.routers.patologia_m04_router import router as
 from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
 from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
 from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
+from src.prediction.infrastructure.routers.ota_router import router as ota_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -130,6 +131,7 @@ app.include_router(patologia_m04_router)
 app.include_router(motor_ia_router)
 app.include_router(historial_diagnostico_router)
 app.include_router(version_modelo_router)
+app.include_router(ota_router)
 
 @app.get("/", tags=["Health"])
 async def index():
