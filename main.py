@@ -1,9 +1,14 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +38,13 @@ from src.telemetry.infrastructure.routers.infraestructura_iot_router import rout
 from src.telemetry.infrastructure.routers.vinculacion_router import router as vinculacion_router
 from src.telemetry.infrastructure.routers.calidad_router import router as calidad_router
 from src.telemetry.infrastructure.routers.auditoria_iot_router import router as auditoria_iot_router
+from src.prediction.infrastructure.routers.patologia_m04_router import router as patologia_m04_router
+from src.prediction.infrastructure.routers.motor_ia_router import router as motor_ia_router
+from src.prediction.infrastructure.routers.historial_diagnostico_router import router as historial_diagnostico_router
+from src.prediction.infrastructure.routers.version_modelo_router import router as version_modelo_router
+from src.prediction.infrastructure.routers.ota_router import router as ota_router
+from src.prediction.infrastructure.routers.retroalimentacion_clinica_router import router as retroalimentacion_clinica_router
+from src.prediction.infrastructure.routers.auditoria_m04_router import router as auditoria_m04_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -90,6 +102,22 @@ app = FastAPI(
     version="1.0.0",
 )
 
+if os.getenv("ENV") == "production":
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    allow_origins = [frontend_url]
+    allow_origin_regex = None
+else:
+    allow_origins = []
+    allow_origin_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_origin_regex=allow_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 register_error_handlers(app)
 
 app.include_router(usuarios_router)
@@ -122,6 +150,13 @@ app.include_router(infraestructura_iot_router)
 app.include_router(vinculacion_router)
 app.include_router(calidad_router)
 app.include_router(auditoria_iot_router)
+app.include_router(patologia_m04_router)
+app.include_router(motor_ia_router)
+app.include_router(historial_diagnostico_router)
+app.include_router(version_modelo_router)
+app.include_router(ota_router)
+app.include_router(retroalimentacion_clinica_router)
+app.include_router(auditoria_m04_router)
 
 @app.get("/", tags=["Health"])
 async def index():
