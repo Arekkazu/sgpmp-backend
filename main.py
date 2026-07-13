@@ -1,9 +1,14 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +100,22 @@ app = FastAPI(
     title="sistema gestion  - Gestión de Usuarios, Roles y Permisos",
     description="Microservicio de gestión de usuarios, roles y permisos dentro del sistema de gestión de maquinaria y nómina.",
     version="1.0.0",
+)
+
+if os.getenv("ENV") == "production":
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    allow_origins = [frontend_url]
+    allow_origin_regex = None
+else:
+    allow_origins = []
+    allow_origin_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allow_origins,
+    allow_origin_regex=allow_origin_regex,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 register_error_handlers(app)
