@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
 from src.shared.db_error_translator import raise_from_db_error
@@ -42,8 +42,8 @@ class SqlAlchemyPeriodoInactividadRepository(PeriodoInactividadRepository):
             select(PeriodoInactividadModel).where(
                 PeriodoInactividadModel.id_dispositivo_iot == id_dispositivo_iot,
                 PeriodoInactividadModel.fecha_fin.is_(None),
-            )
-        ).scalar_one_or_none()
+            ).order_by(desc(PeriodoInactividadModel.fecha_inicio))
+        ).scalars().first()
         return self._a_entidad(orm) if orm else None
 
     def cerrar(self, periodo: PeriodoInactividad) -> PeriodoInactividad:
