@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sgpmp-backend-api
+    restart: always
+    ports:
+      - "8002:8000" # Mapea el puerto 8000 del contenedor al puerto 8002 del host (evitando conflictos)
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - ENV=production
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    container_name: sgpmp-backend-db
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-usuario}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=${POSTGRES_DB:-sgpmp_db}
+    ports:
+      - "5434:5432" # Mapea la DB al puerto 5434 del host (evitando conflictos con 5432 y 5433)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
