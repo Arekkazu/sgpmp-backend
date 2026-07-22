@@ -160,7 +160,7 @@ app.include_router(auditoria_m04_router)
 
 @app.get("/", tags=["Health"])
 async def index():
-    return "hello world! sgpmp-backend active on deploy branch"
+    return "hello world! sgpmp-backend CI/CD active on deploy branch"
 
 @app.get("/health", tags=["Health"])
 async def health_check():
