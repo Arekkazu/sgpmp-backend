@@ -66,3 +66,21 @@ Para optimizar el flujo de trabajo de los más de 20 estudiantes del proyecto, s
 *   **Implementación:**
     *   Crear usuarios de lectura para los líderes de desarrollo/pruebas dentro del panel de Dokploy para que puedan auditar la pestaña **Logs** directamente.
     *   (Opcional) Configurar notificaciones vía Discord/Slack cuando ocurra un fallo crítico de servidor o despliegue.
+
+---
+
+## 🛡️ DevSecOps y Seguridad Automatizada
+
+Con más de 20 estudiantes interactuando en el repositorio, es prioritario establecer controles de seguridad automáticos para evitar fugas de información y código vulnerable.
+
+### 1. Detección de Secretos y Credenciales (Gitleaks / TruffleHog)
+*   **Objetivo:** Evitar que llaves de Firebase, contraseñas de base de datos o tokens de acceso de GitHub se suban accidentalmente al historial público/privado de Git.
+*   **Implementación:** Añadir una acción en la pipeline de CI de GitHub para escanear los commits entrantes. Si detecta cadenas parecidas a llaves privadas o credenciales expuestas, bloqueará el merge y forzará la rotación de la credencial.
+
+### 2. Análisis Estático de Seguridad (SAST con Bandit)
+*   **Objetivo:** Identificar fallos de seguridad comunes a nivel de código Python (inyecciones SQL, uso inseguro de cifrado, variables hardcodeadas) en el código desarrollado por los estudiantes.
+*   **Implementación:** Ejecutar `bandit -r src/` de forma automatizada en cada Pull Request. Los desarrolladores recibirán retroalimentación inmediata sobre vulnerabilidades en su código antes del despliegue.
+
+### 3. Auditoría de Vulnerabilidades en Dependencias (pip-audit / Safety)
+*   **Objetivo:** Asegurar que ninguna librería de terceros listada en `requirements.txt` tenga fallas de seguridad conocidas.
+*   **Implementación:** Integrar `pip-audit` en el flujo de CI para analizar las dependencias y alertar al equipo de desarrollo si es necesario actualizar alguna librería a una versión segura.
