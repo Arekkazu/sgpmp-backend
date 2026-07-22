@@ -14,8 +14,10 @@ from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
+from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
+from src.identity_access.infrastructure.schema.permisos_schema import PermisoResumen, PermisosUsuarioResponse
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
 from src.shared.notificacion_service import NotificacionService
@@ -58,6 +60,27 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
         message = "Sesión iniciada exitosamente."
 
     return LoginResponse(token=jwt_str, expira_en=expira_en, message=message)
+
+
+@router.get(
+    "/me/permisos",
+    response_model=PermisosUsuarioResponse,
+    responses={
+        401: {"model": ErrorResponse},
+    },
+)
+def obtener_mis_permisos(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> PermisosUsuarioResponse:
+    permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(usuario_actual.id_rol)
+    return PermisosUsuarioResponse(
+        permisos=[
+            PermisoResumen(id_recurso=p.id_recurso, id_accion=p.id_accion)
+            for p in permisos
+            if p.es_activo
+        ]
+    )
 
 
 @router.delete(
