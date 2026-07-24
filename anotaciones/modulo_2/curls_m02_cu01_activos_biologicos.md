@@ -187,6 +187,71 @@ Errores posibles:
 
 ---
 
+## Listado — GET /activos-biologicos (colección, filtros + paginación)
+
+Endpoint para la lista del frontend. Requiere permiso `R` sobre `activos_biologicos`
+(recurso 29): Admin, Productor, Veterinario, Ingeniero. Ruta canónica **sin barra
+final** (`/activos-biologicos/` redirige 307 → `/activos-biologicos`).
+
+### GET /activos-biologicos — sin filtros (primera página)
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos?pagina=1&page_size=20" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total_registros": 19,
+  "pagina_actual": 1,
+  "total_paginas": 1,
+  "registros_por_pagina": 20,
+  "registros": [
+    {
+      "id_activo_biologico": 53,
+      "id_especie": 2,
+      "tipo": "POBLACIONAL",
+      "identificador": null,
+      "fecha_inicio_ciclo": "2026-03-01",
+      "origen_financiero": "nacimiento",
+      "id_infraestructura": 1,
+      "id_estado": 1,
+      "nombre_estado": "ACTIVO",
+      "id_usuario": 1,
+      "fecha_creacion": "2026-06-27T...",
+      "detalle_individual": null,
+      "detalle_poblacional": { "cantidad_inicial": 500, "cantidad_actual": 500, "...": "..." }
+    }
+    // ...
+  ]
+}
+```
+
+Cada item es un `ActivoBiologicoResponse` completo (mismo schema de `GET /{id}`).
+Columnas de la tabla del front: `identificador`, `tipo`, `id_especie`,
+`id_infraestructura`, `fecha_inicio_ciclo`, `nombre_estado`; `id_activo_biologico`
+para la columna Acciones.
+
+### GET /activos-biologicos — con filtros
+
+```bash
+# Solo individuales de la especie 2 en la infraestructura 1, estado ACTIVO (id 1)
+curl -X GET "http://localhost:8000/activos-biologicos?tipo=INDIVIDUAL&id_especie=2&id_infraestructura=1&id_estado=1&pagina=1&page_size=10" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+`tipo` es case-insensitive (`individual` == `INDIVIDUAL`). Todos los filtros son
+opcionales y de igualdad exacta; se combinan con AND.
+
+Errores posibles:
+- `401 TOKEN_REQUERIDO` — sin header `Authorization` o token inválido/revocado
+- `403 ACCESO_DENEGADO` — rol sin permiso R sobre `activos_biologicos` (Contador)
+- `400 PARAMETROS_INVALIDOS` — `tipo` distinto de `INDIVIDUAL`/`POBLACIONAL`
+- `400 VAL_ENTRADA` — `pagina < 1`, `page_size` fuera de `1..100`, o `id_*` no numérico / `< 1`
+
+---
+
 ## Casos de validación (FA)
 
 ### FA-02: INDIVIDUAL con cantidad_inicial → 400
