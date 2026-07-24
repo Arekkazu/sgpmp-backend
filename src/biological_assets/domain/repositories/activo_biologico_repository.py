@@ -21,6 +21,18 @@ class ActivoBiologicoRepository(ABC):
         """Retorna el activo biológico con sus detalles, o None si no existe."""
 
     @abstractmethod
+    def listar(
+        self,
+        id_especie: Optional[int],
+        tipo: Optional[str],
+        id_estado: Optional[int],
+        id_infraestructura: Optional[int],
+        pagina: int,
+        page_size: int,
+    ) -> tuple[list[ActivoBiologico], int]:
+        """Lista activos con filtros opcionales y paginación. Devuelve (registros, total)."""
+
+    @abstractmethod
     def existe_identificador(self, identificador: str) -> bool:
         """Verifica si el identificador ya está registrado (case-insensitive)."""
 

@@ -12,6 +12,7 @@ from src.biological_assets.application.use_cases.gestion.cambiar_estado_use_case
 from src.biological_assets.application.use_cases.gestion.cambiar_fase_use_case import CambiarFaseUseCase
 from src.biological_assets.application.use_cases.gestion.cerrar_ciclo_use_case import CerrarCicloUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_activo_use_case import ConsultarActivoUseCase
+from src.biological_assets.application.use_cases.gestion.listar_activos_use_case import ListarActivosUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_historial_fases_use_case import (
     ConsultarHistorialFasesUseCase,
 )
@@ -26,6 +27,7 @@ from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto i
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
+from src.biological_assets.infrastructure.dto.listar_activos_dto import ListarActivosDTO
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.biological_assets.infrastructure.repositories.activo_biologico_repository import (
     SqlAlchemyActivoBiologicoRepository,
@@ -77,6 +79,7 @@ from src.biological_assets.infrastructure.repositories.bitacora_auditoria_reposi
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
+    ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
     AsociacionSensorActivoResponse,
     CambioEstadoResponse,
@@ -210,6 +213,52 @@ def registrar_activo(
     )
     activo = use_case.execute(dto, usuario_actual)
     return _activo_to_response(activo)
+
+
+@router.get(
+    '',
+    response_model=ActivosPaginadosResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+    },
+    summary='Listar activos biológicos con filtros y paginación',
+)
+def listar_activos(
+    tipo: str | None = Query(default=None, description='INDIVIDUAL | POBLACIONAL'),
+    id_especie: int | None = Query(default=None, ge=1),
+    id_estado: int | None = Query(default=None, ge=1),
+    id_infraestructura: int | None = Query(default=None, ge=1),
+    pagina: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ActivosPaginadosResponse:
+    from pydantic import ValidationError as _PydanticValidationError
+    try:
+        dto = ListarActivosDTO(
+            tipo=tipo,
+            id_especie=id_especie,
+            id_estado=id_estado,
+            id_infraestructura=id_infraestructura,
+            pagina=pagina,
+            page_size=page_size,
+        )
+    except (ValueError, _PydanticValidationError) as exc:
+        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+
+    use_case = ListarActivosUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
+    registros, total = use_case.execute(dto)
+    total_paginas = max(1, (total + page_size - 1) // page_size)
+    return ActivosPaginadosResponse(
+        total_registros=total,
+        pagina_actual=pagina,
+        total_paginas=total_paginas,
+        registros_por_pagina=page_size,
+        registros=[_activo_to_response(a) for a in registros],
+    )
 
 
 def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:

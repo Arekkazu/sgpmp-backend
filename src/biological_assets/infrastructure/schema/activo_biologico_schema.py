@@ -85,6 +85,14 @@ class ActivoBiologicoResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class ActivosPaginadosResponse(BaseModel):
+    total_registros: int
+    pagina_actual: int
+    total_paginas: int
+    registros_por_pagina: int
+    registros: list[ActivoBiologicoResponse]
+
+
 class AsociacionInfraestructuraResponse(BaseModel):
     id_historial: int
     id_activo_biologico: int

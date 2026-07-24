@@ -155,6 +155,40 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         orm = self.db.get(ActivoBiologicoModel, id_activo)
         return self._a_entidad(orm) if orm else None
 
+    def listar(
+        self,
+        id_especie: Optional[int],
+        tipo: Optional[str],
+        id_estado: Optional[int],
+        id_infraestructura: Optional[int],
+        pagina: int,
+        page_size: int,
+    ) -> tuple[list[ActivoBiologico], int]:
+        try:
+            q = self.db.query(ActivoBiologicoModel)
+            if id_especie is not None:
+                q = q.filter(ActivoBiologicoModel.id_especie == id_especie)
+            if tipo is not None:
+                q = q.filter(ActivoBiologicoModel.tipo == tipo)
+            if id_estado is not None:
+                q = q.filter(ActivoBiologicoModel.id_estado == id_estado)
+            if id_infraestructura is not None:
+                q = q.filter(ActivoBiologicoModel.id_infraestructura == id_infraestructura)
+
+            total = q.count()
+            registros = (
+                q.order_by(
+                    ActivoBiologicoModel.fecha_creacion.desc(),
+                    ActivoBiologicoModel.id_activo_biologico.desc(),
+                )
+                .offset((pagina - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
+            return [self._a_entidad(o) for o in registros], total
+        except Exception as exc:
+            raise_from_db_error(exc)
+
     def existe_identificador(self, identificador: str) -> bool:
         return (
             self.db.query(ActivoBiologicoModel)
