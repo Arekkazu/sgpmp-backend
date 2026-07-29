@@ -165,15 +165,17 @@ class RecibirHeartbeatUseCase:
     ) -> None:
         causas = []
 
+        # Severidad mapeada a la escala real del enum modulo3.enum_buffer_nivel_severidad
+        # (LEVE / MODERADO / CRITICO): CRITICA→CRITICO, ALTA→MODERADO, MEDIA→LEVE.
         if heartbeat.nivel_bateria_pct is not None:
             if heartbeat.nivel_bateria_pct <= _UMBRAL_BATERIA_CRITICA:
-                causas.append(('BATERIA_CRITICA', 'CRITICA'))
+                causas.append(('BATERIA_CRITICA', 'CRITICO'))
             elif heartbeat.nivel_bateria_pct <= _UMBRAL_BATERIA_BAJA:
-                causas.append(('BATERIA_BAJA', 'ALTA'))
+                causas.append(('BATERIA_BAJA', 'MODERADO'))
 
         if heartbeat.calidad_senal_rssi is not None:
             if heartbeat.calidad_senal_rssi < _UMBRAL_RSSI_DEGRADADO:
-                causas.append(('SEÑAL_DEGRADADA', 'MEDIA'))
+                causas.append(('SEÑAL_DEGRADADA', 'LEVE'))
 
         for causa, severidad in causas:
             alerta = Alerta(

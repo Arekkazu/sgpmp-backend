@@ -18,11 +18,18 @@ class SqlAlchemyEstadoDispositivoIoTRepository(EstadoDispositivoIoTRepository):
         self.db = db
 
     def obtener_por_dispositivo(self, id_dispositivo_iot: int) -> Optional[EstadoDispositivoIoT]:
+        # Un estado actual por dispositivo (garantizado por UNIQUE en DB). Se ordena y
+        # limita a 1 para no romper con 500 si algún entorno todavía tuviera duplicados.
         orm = self.db.execute(
-            select(EstadoDispositivoIoTModel).where(
-                EstadoDispositivoIoTModel.id_dispositivo_iot == id_dispositivo_iot
+            select(EstadoDispositivoIoTModel)
+            .where(EstadoDispositivoIoTModel.id_dispositivo_iot == id_dispositivo_iot)
+            .order_by(
+                EstadoDispositivoIoTModel.fecha_ultima_actualizacion.desc(),
+                EstadoDispositivoIoTModel.fecha_ultimo_contacto.desc().nullslast(),
+                EstadoDispositivoIoTModel.id_estado_dispositivo_iot.desc(),
             )
-        ).scalar_one_or_none()
+            .limit(1)
+        ).scalars().first()
         return self._a_entidad(orm) if orm else None
 
     def listar_activos(self) -> List[EstadoDispositivoIoT]:

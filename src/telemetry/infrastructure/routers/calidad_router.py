@@ -21,6 +21,7 @@ from src.shared.errors import NotFoundError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.telemetry.application.use_cases.calidad.consultar_calidad_use_case import ConsultarCalidadUseCase
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.calidad.solicitar_reevaluacion_use_case import SolicitarReevaluacionUseCase
@@ -174,7 +175,9 @@ def solicitar_reevaluacion(
         parametros_port=ParametrosCalidadStubAdapter(),
         auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
     )
-    resultado = use_case.execute(dto=dto, id_usuario=usuario_actual.id_usuario, nombre_usuario=usuario_actual.email)
+    detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)
+    nombre_usuario = f"{detalle.nombre} {detalle.apellidos}" if detalle else str(usuario_actual.id_usuario)
+    resultado = use_case.execute(dto=dto, id_usuario=usuario_actual.id_usuario, nombre_usuario=nombre_usuario)
     return ReevaluacionResponseSchema(
         evaluaciones_superadas=resultado.evaluaciones_superadas,
         evaluaciones_creadas=resultado.evaluaciones_creadas,

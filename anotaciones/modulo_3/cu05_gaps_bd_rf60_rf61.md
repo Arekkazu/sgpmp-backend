@@ -67,3 +67,60 @@ INSERT INTO modulo1.permisos (nombre, id_rol, id_recurso, id_accion) VALUES
   ('ing_leer_vinculacion_lectura', 4, 37, 2),
   ('ing_actualizar_vinculacion_lectura', 4, 37, 3);
 ```
+
+## Gap: constraint de unicidad faltante en `estados_dispositivos_iot` (RF-60)
+
+Fecha: 2026-07-28 · Rama: `tweak/iot` · **No gestionado por migraciones**
+
+### Síntoma
+
+`GET /api/iot/dispositivos/2/estado` → **500** con
+`sqlalchemy.exc.MultipleResultsFound`.
+
+### Causa
+
+El modelo RF-60 asume **un estado actual por dispositivo** (el heartbeat hace
+get-or-insert-or-update por dispositivo; Fase 2 actualiza el registro in-place). La DB **no lo
+obligaba**: `modulo3.estados_dispositivos_iot` solo tenía PK sobre `id_estado_dispositivo_iot`, sin
+`UNIQUE` sobre `id_dispositivo_iot`. El dispositivo 2 quedó con 2 filas (ids 1 y 3, ambas
+`INACTIVO/FALLO_CONECTIVIDAD`) y `obtener_por_dispositivo` (que usaba `scalar_one_or_none()`) reventaba.
+
+La inmutabilidad de RF-60 (Restricción 6 / RNF-06) aplica al **historial de transiciones** y a los
+**periodos de inactividad**, NO al registro de estado actual → deduplicar el estado actual es correcto.
+Por Restricción 11 (`timestamp_ultimo_contacto` = contacto más reciente) se conserva la fila con el
+`fecha_ultimo_contacto` más nuevo (id=1); nada referencia por FK a `id_estado_dispositivo_iot`
+(borrado seguro).
+
+### Decisión y SQL aplicado (DB dev, vía MCP)
+
+```sql
+-- 1. Limpieza: eliminar la fila duplicada más antigua del dispositivo 2 (conserva id=1)
+DELETE FROM modulo3.estados_dispositivos_iot WHERE id_estado_dispositivo_iot = 3;
+
+-- 2. Invariante uno-a-uno estado↔dispositivo, para que no reaparezca
+ALTER TABLE modulo3.estados_dispositivos_iot
+  ADD CONSTRAINT uq_estados_dispositivos_iot_dispositivo UNIQUE (id_dispositivo_iot);
+```
+
+Además se blindó el repo `SqlAlchemyEstadoDispositivoIoTRepository.obtener_por_dispositivo`:
+`scalar_one_or_none()` → `select(...).order_by(fecha_ultima_actualizacion desc,
+fecha_ultimo_contacto desc nullslast, id desc).limit(1).scalars().first()`, para que la lectura no
+dé 500 aunque otro entorno todavía tuviera duplicados.
+
+> **Replicar a staging/prod**: la limpieza (borrar duplicados por `id_dispositivo_iot` conservando el
+> de contacto más reciente) **debe** ejecutarse antes del `ALTER`, o el constraint falla.
+
+## Gap: enums de alertas técnicas IoT (RF-60)
+
+`modulo3.alertas` (compartida con alertas biológicas) no soportaba los valores que escribe/filtra la
+feature de alertas técnicas. Extensión aplicada en DB dev (**no gestionado por migraciones**):
+
+```sql
+ALTER TYPE modulo3.enum_tipo_alerta          ADD VALUE IF NOT EXISTS 'TECNICA';
+ALTER TYPE modulo3.enum_origen_evento_alerta ADD VALUE IF NOT EXISTS 'HEARTBEAT';
+ALTER TYPE modulo3.enum_origen_evento_alerta ADD VALUE IF NOT EXISTS 'EVALUACION_PERIODICA';
+```
+
+La severidad técnica se **mapea en código** a la escala existente `LEVE / MODERADO / CRITICO` (no se
+tocó `enum_buffer_nivel_severidad`). `ALTER TYPE … ADD VALUE` es prácticamente irreversible en
+Postgres. Detalle completo en `fix_alertas_tecnicas_enum_rf60.md`.

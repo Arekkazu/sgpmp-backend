@@ -96,7 +96,8 @@ class EvaluarEstadoDispositivosUseCase:
                         # Generar alerta técnica de conectividad
                         alerta = self.alerta_repo.guardar(Alerta(
                             tipo_alerta='TECNICA',
-                            severidad='ALTA' if nuevo_estado == 'INACTIVO' else 'MEDIA',
+                            # Escala real del enum: MODERADO (INACTIVO) / LEVE (resto).
+                            severidad='MODERADO' if nuevo_estado == 'INACTIVO' else 'LEVE',
                             estado_alerta='ACTIVA',
                             origen_evento='EVALUACION_PERIODICA',
                             tipo_variable='FALLO_CONECTIVIDAD',
