@@ -23,14 +23,18 @@ from src.shared.errors import AuthenticationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
 from src.telemetry.application.use_cases.alertas.actualizar_estado_alerta_use_case import ActualizarEstadoAlertaUseCase
 from src.telemetry.application.use_cases.alertas.consultar_alertas_use_case import ConsultarAlertasUseCase
+from src.telemetry.application.use_cases.infraestructura.aplicar_mantenimiento_dispositivo_use_case import AplicarMantenimientoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.obtener_estado_dispositivo_use_case import ObtenerEstadoDispositivoUseCase
 from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
+from src.telemetry.infrastructure.dto.aplicar_mantenimiento_dto import AplicarMantenimientoDTO
 from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
 from src.telemetry.infrastructure.dto.actualizar_estado_alerta_dto import ActualizarEstadoAlertaDTO
 from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
+from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.estado_dispositivo_iot_repository import SqlAlchemyEstadoDispositivoIoTRepository
 from src.telemetry.infrastructure.repositories.heartbeat_repository import SqlAlchemyHeartbeatRepository
 from src.telemetry.infrastructure.repositories.historico_estado_alerta_repository import SqlAlchemyHistoricoEstadoAlertaRepository
@@ -125,6 +129,41 @@ def listar_historial_dispositivo(
     return [HistoricoTransicionSchema.model_validate(t) for t in transiciones]
 
 
+@router.patch(
+    "/dispositivos/{id_dispositivo_iot}/mantenimiento",
+    response_model=EstadoDispositivoIoTSchema,
+    status_code=200,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    dependencies=[Depends(require_permission(35, 3))],
+    summary="Transición manual de mantenimiento del dispositivo (RF-60 CA-7/CA-8) — solo Admin, Ing",
+)
+def aplicar_mantenimiento_dispositivo(
+    id_dispositivo_iot: int,
+    dto: AplicarMantenimientoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EstadoDispositivoIoTSchema:
+    detalle = SqlAlchemyUsuarioRepository(db).obtener_detalle(usuario_actual.id_usuario)
+    nombre_usuario = f"{detalle.nombre} {detalle.apellidos}" if detalle else str(usuario_actual.id_usuario)
+    use_case = AplicarMantenimientoDispositivoUseCase(
+        db=db,
+        estado_repo=SqlAlchemyEstadoDispositivoIoTRepository(db),
+        auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(db),
+    )
+    estado = use_case.execute(
+        id_dispositivo_iot=id_dispositivo_iot,
+        dto=dto,
+        id_usuario=usuario_actual.id_usuario,
+        nombre_usuario=nombre_usuario,
+    )
+    return EstadoDispositivoIoTSchema.model_validate(estado)
+
+
 @router.get(
     "/alertas-tecnicas",
     response_model=ListaAlertasSchema,
@@ -147,7 +186,6 @@ def listar_alertas_tecnicas(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaAlertasSchema:
     use_case = ConsultarAlertasUseCase(
-        db=db,
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
     )
