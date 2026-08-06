@@ -45,6 +45,19 @@ from src.prediction.infrastructure.routers.version_modelo_router import router a
 from src.prediction.infrastructure.routers.ota_router import router as ota_router
 from src.prediction.infrastructure.routers.retroalimentacion_clinica_router import router as retroalimentacion_clinica_router
 from src.prediction.infrastructure.routers.auditoria_m04_router import router as auditoria_m04_router
+from src.supplies.infrastructure.routers.consumo_alimento_router import router as consumo_alimento_router
+from src.supplies.infrastructure.routers.medicamento_router import router as medicamento_router
+from src.supplies.infrastructure.routers.eficiencia_alimenticia_router import router as eficiencia_alimenticia_router
+from src.supplies.infrastructure.routers.batch_ica_router import router as batch_ica_router
+from src.supplies.infrastructure.routers.reporte_gastos_router import router as reporte_gastos_router
+from src.supplies.infrastructure.routers.batch_reportes_gastos_router import router as batch_reportes_gastos_router
+from src.supplies.infrastructure.routers.historial_suministros_router import router as historial_suministros_router
+from src.supplies.infrastructure.routers.batch_historial_suministros_router import (
+    router as batch_historial_suministros_router,
+)
+from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
+from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
+from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -83,15 +96,178 @@ async def _evaluar_dispositivos_periodicamente() -> None:
             db.close()
 
 
+async def _ejecutar_batch_ica_diario() -> None:
+    """Tarea diaria RF-74: ejecuta el motor batch de cálculo ICA a la hora configurada.
+
+    Calcula la espera hasta la próxima ``hora_ejecucion`` (``configuracion_batch_ica``,
+    hora local del servidor; 02:00 por defecto), corre el batch y repite cada día.
+    """
+    from datetime import datetime, time as dtime, timedelta
+
+    from src.shared.database import SessionLocal
+    from src.supplies.infrastructure.factories.eficiencia_factory import build_ejecutar_batch_use_case
+    from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
+        SqlAlchemyConfiguracionBatchICARepository,
+    )
+
+    while True:
+        hora = dtime(2, 0)
+        db = SessionLocal()
+        try:
+            hora = SqlAlchemyConfiguracionBatchICARepository(db).obtener().hora_ejecucion
+        except Exception:
+            logger.exception("Batch ICA nocturno: no se pudo leer la configuración; se usa 02:00.")
+        finally:
+            db.close()
+
+        ahora = datetime.now()
+        proximo = ahora.replace(hour=hora.hour, minute=hora.minute, second=0, microsecond=0)
+        if proximo <= ahora:
+            proximo += timedelta(days=1)
+        await asyncio.sleep((proximo - ahora).total_seconds())
+
+        db = SessionLocal()
+        try:
+            use_case = build_ejecutar_batch_use_case(db)
+            ejecucion = await use_case.ejecutar(tipo_disparo="AUTOMATICO")
+            logger.info(
+                "Batch ICA nocturno: ejecución %s estado %s (procesados %s, fallidos %s).",
+                ejecucion.id_ejecucion,
+                ejecucion.estado.value,
+                ejecucion.cantidad_activos_procesados,
+                ejecucion.cantidad_fallidos,
+            )
+        except Exception:
+            logger.exception("Error en el batch ICA nocturno.")
+        finally:
+            db.close()
+
+
+async def _revertir_retiros_vencidos_diariamente() -> None:
+    """Tarea diaria RF-76 (pasos 11-13): revierte a ACTIVO los activos cuyo retiro venció.
+
+    Corre todos los días a una hora fija del servidor (03:00). A diferencia del
+    batch ICA, RF-76 no define un panel de configuración/disparo manual, así
+    que la hora queda fija en código.
+    """
+    from datetime import datetime, time as dtime, timedelta
+
+    from src.shared.database import SessionLocal
+    from src.supplies.application.use_cases.suministros.revertir_retiros_vencidos_use_case import (
+        RevertirRetirosVencidosUseCase,
+    )
+
+    hora = dtime(3, 0)
+
+    while True:
+        ahora = datetime.now()
+        proximo = ahora.replace(hour=hora.hour, minute=hora.minute, second=0, microsecond=0)
+        if proximo <= ahora:
+            proximo += timedelta(days=1)
+        await asyncio.sleep((proximo - ahora).total_seconds())
+
+        try:
+            use_case = RevertirRetirosVencidosUseCase(session_factory=SessionLocal)
+            n = await asyncio.to_thread(use_case.ejecutar)
+            logger.info("Reversión de retiros vencidos: %d activo(s) revertido(s) a ACTIVO.", n)
+        except Exception:
+            logger.exception("Error en la tarea diaria de reversión de retiros vencidos.")
+
+
+async def _procesar_cola_reportes_gastos_periodicamente() -> None:
+    """Poller RF-77: procesa la cola de generación async de reportes de gastos.
+
+    A diferencia del batch ICA (cron-like, una vez al día), los reportes se
+    encolan en momentos arbitrarios (decisión del usuario en cada request),
+    así que este poller corre en un bucle continuo cada
+    ``intervalo_poll_segundos`` (configurable en
+    ``modulo5.configuracion_batch_reportes_gastos``).
+    """
+    from src.shared.database import SessionLocal
+    from src.supplies.infrastructure.factories.reporte_gastos_factory import (
+        build_procesar_cola_reportes_gastos_use_case,
+    )
+    from src.supplies.infrastructure.repositories.configuracion_batch_reporte_gasto_repository import (
+        SqlAlchemyConfiguracionBatchReporteGastoRepository,
+    )
+
+    while True:
+        db = SessionLocal()
+        try:
+            intervalo = SqlAlchemyConfiguracionBatchReporteGastoRepository(db).obtener().intervalo_poll_segundos
+        except Exception:
+            logger.exception("Poller de reportes de gastos: no se pudo leer la configuración; se usan 15s.")
+            intervalo = 15
+        finally:
+            db.close()
+
+        await asyncio.sleep(intervalo)
+
+        db = SessionLocal()
+        try:
+            use_case = build_procesar_cola_reportes_gastos_use_case(db)
+            n = await use_case.ejecutar()
+            if n > 0:
+                logger.info("Poller de reportes de gastos: %d trabajo(s) procesado(s).", n)
+        except Exception:
+            logger.exception("Error en el poller de generación de reportes de gastos.")
+        finally:
+            db.close()
+
+
+async def _procesar_cola_historial_suministros_periodicamente() -> None:
+    """Poller RF-81: procesa la cola de trabajos pesados de historial de suministros
+    (``CONSULTA_PESADA`` nivel 3/4 y ``EXPORTACION`` > 10.000 registros). Mismo
+    patrón de poller continuo que RF-77."""
+    from src.shared.database import SessionLocal
+    from src.supplies.infrastructure.factories.historial_suministros_factory import (
+        build_procesar_cola_historial_suministros_use_case,
+    )
+    from src.supplies.infrastructure.repositories.configuracion_batch_historial_repository import (
+        SqlAlchemyConfiguracionBatchHistorialRepository,
+    )
+
+    while True:
+        db = SessionLocal()
+        try:
+            intervalo = SqlAlchemyConfiguracionBatchHistorialRepository(db).obtener().intervalo_poll_segundos
+        except Exception:
+            logger.exception("Poller de historial de suministros: no se pudo leer la configuración; se usan 15s.")
+            intervalo = 15
+        finally:
+            db.close()
+
+        await asyncio.sleep(intervalo)
+
+        db = SessionLocal()
+        try:
+            use_case = build_procesar_cola_historial_suministros_use_case(db)
+            n = await use_case.ejecutar()
+            if n > 0:
+                logger.info("Poller de historial de suministros: %d trabajo(s) procesado(s).", n)
+        except Exception:
+            logger.exception("Error en el poller de trabajos de historial de suministros.")
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(_evaluar_dispositivos_periodicamente())
+    tasks = [
+        asyncio.create_task(_evaluar_dispositivos_periodicamente()),
+        asyncio.create_task(_ejecutar_batch_ica_diario()),
+        asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
+        asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
+        asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+    ]
     yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    for task in tasks:
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -157,6 +333,17 @@ app.include_router(version_modelo_router)
 app.include_router(ota_router)
 app.include_router(retroalimentacion_clinica_router)
 app.include_router(auditoria_m04_router)
+app.include_router(consumo_alimento_router)
+app.include_router(medicamento_router)
+app.include_router(eficiencia_alimenticia_router)
+app.include_router(batch_ica_router)
+app.include_router(reporte_gastos_router)
+app.include_router(batch_reportes_gastos_router)
+app.include_router(historial_suministros_router)
+app.include_router(batch_historial_suministros_router)
+app.include_router(costeo_suministros_router)
+app.include_router(provision_nic41_router)
+app.include_router(auditoria_suministros_router)
 
 @app.get("/", tags=["Health"])
 async def index():
