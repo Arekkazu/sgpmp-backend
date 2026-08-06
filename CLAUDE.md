@@ -465,6 +465,7 @@ Todos heredan de `AppError`. El handler global los convierte a la respuesta HTTP
 | `BusinessRuleError` | 422 | Violación de regla de negocio |
 | `FlowError` | 422 | Fallo a mitad de flujo (token ya usado, transición inválida) |
 | `GoneError` | 410 | Recurso que existió pero ya no aplica (token expirado) |
+| `TooManyRequestsError` | 429 | Límite de concurrencia u operaciones simultáneas excedido |
 | `InfrastructureError` | 500 | Fallo interno de adaptador externo |
 | `ServiceUnavailableError` | 503 | Servicio externo no disponible temporalmente (SMTP, terceros) |
 

@@ -20,6 +20,7 @@ Jerarquía de uso::
     ├── BusinessRuleError      422  Violación de regla de negocio
     ├── FlowError              422  Fallo a mitad de un proceso de varias etapas
     ├── LockedError            423  Recurso bloqueado temporalmente
+    ├── TooManyRequestsError   429  Límite de concurrencia u operaciones simultáneas excedido
     ├── InfrastructureError    500  Fallo de adaptador externo
     └── ServiceUnavailableError 503 Servicio externo no disponible temporalmente
 """
@@ -193,6 +194,17 @@ class PreconditionFailedError(AppError):
     """
 
     status_code = 412
+
+
+class TooManyRequestsError(AppError):
+    """Límite de concurrencia u operaciones simultáneas excedido (HTTP 429).
+
+    Usar cuando el sistema rechaza una operación porque ya hay demasiados
+    trabajos en curso del mismo tipo (ej: generación de reportes,
+    exportaciones). El cliente debe reintentar más tarde.
+    """
+
+    status_code = 429
 
 
 class ServiceUnavailableError(AppError):
