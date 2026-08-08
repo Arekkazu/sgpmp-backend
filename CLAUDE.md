@@ -227,7 +227,9 @@ Si el rol del usuario no tiene el permiso activo, `require_permission` lanza
 - Si el documento RF dice que una operación es exclusiva de un rol, ese rol debe tener
   el permiso correspondiente en `modulo1.permisos` — no expresarlo en código.
 - Antes de implementar un router, verificar que `modulo1.permisos` tenga los registros
-  necesarios para el recurso. Si faltan, insertarlos y documentarlos en `anotaciones/`.
+  necesarios para el recurso. Si faltan, insertarlos y documentarlos en `anotaciones/`
+  (para asignar/retirar permisos de un rol ya existente también se puede usar la API
+  de `identity_access` — `POST/DELETE /roles/{id_rol}/permisos` — en vez de SQL manual).
 - Los recursos están en `modulo1.recursos`. Cada módulo de negocio registra ahí sus
   recursos con un `id_recurso` propio.
 
@@ -241,7 +243,7 @@ vet_leer_umbral_ambiental
 prod_actualizar_ciclo_biologico
 ```
 
-Roles estándar en `modulo1.roles`:
+Roles estándar (seed inicial) en `modulo1.roles`:
 
 | id_rol | prefijo | nombre |
 |--------|---------|--------|
@@ -250,6 +252,12 @@ Roles estándar en `modulo1.roles`:
 | 3 | vet | Veterinario |
 | 4 | ing | Ingeniero |
 | 5 | cont | Contador |
+
+**Los roles no son un catálogo fijo.** `src/identity_access` expone un CRUD completo de roles y permisos
+(`infrastructure/routers/roles_routers.py`: crear/editar/eliminar/listar rol, asignar/retirar permiso),
+con triggers de BD que protegen el rol Administrador y bloquean dejar un rol sin permisos. La tabla de
+arriba es solo el seed inicial — en dev ya existen roles creados después de ese seed (`id_rol` > 5). No
+asumas que `id_rol` está limitado a 1-5 en ningún módulo nuevo; consulta `modulo1.roles` en vivo.
 
 Acciones para el nombre: `crear` (C=1), `leer` (R=2), `actualizar` (U=3), `desactivar` (D=4), `ejecutar` (E=5).
 
@@ -488,16 +496,15 @@ Ver `.env.example`. Las obligatorias para levantar el sistema:
 ```env
 DATABASE_URL=postgresql://usuario:clave@host:5432/dbname
 
+# JWT — el código lee SECRET_KEY (no JWT_SECRET). Algoritmo fijo HS256, no configurable.
+SECRET_KEY=clave_secreta_larga
+JWT_EXPIRE_HOURS=24
+
 # SMTP
 SMTP_HOST=smtp.ejemplo.com
 SMTP_PORT=587
 SMTP_USER=correo@ejemplo.com
 SMTP_PASSWORD=clave
-
-# JWT
-JWT_SECRET=clave_secreta_larga
-JWT_ALGORITHM=HS256
-JWT_EXPIRE_HOURS=24
 
 # Frontend (usado en links dentro de emails)
 FRONTEND_URL=http://localhost:3000
@@ -517,7 +524,12 @@ El backend expone JWT vía `Authorization: Bearer <token>` en el header HTTP. D�
 Los templates de correo generan links hacia el frontend (`FRONTEND_URL`), no hacia el backend. El frontend extrae el token del query param y llama el endpoint de activación en el backend. Para pruebas sin frontend, usar Swagger o curl directamente.
 
 **`audit_sdk`**
-Disponible como `.whl` local en `vendor/`. Se inicializa en `main.py` mediante `AuditContextMiddleware`. Los eventos de auditoría se registran desde los use cases correspondientes.
+Disponible como `.whl` local en `vendor/` (`AuditClient`, `AuditContextMiddleware`). **El middleware se
+importa en `main.py` pero nunca se registra con `app.add_middleware(...)` — es código muerto, no está
+activo.** Los eventos de auditoría reales de módulo 1 usan un mecanismo propio: tabla `modulo1.eventos`
+con hash SHA-256 de integridad calculado en el repository (`src/identity_access/infrastructure/repositories/evento_repository.py`),
+e inmutabilidad forzada por triggers de BD (bloquean `UPDATE`/`DELETE` incluso para el rol `postgres`).
+Si un módulo nuevo necesita auditoría, sigue este patrón — no asumas que `audit_sdk` está inicializado.
 
 **Campo `direccion` en edición de perfil (RF-05)**
 El RF-05 no lista `direccion` como campo editable, pero el diagrama del paso 03 sí lo incluye. El campo está implementado como editable en el use case. Pendiente confirmación del grupo de análisis para definir si debe excluirse o mantenerse.
