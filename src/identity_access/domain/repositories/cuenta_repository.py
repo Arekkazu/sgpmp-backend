@@ -17,12 +17,18 @@ class CuentaRepository(ABC):
     """Contrato de acceso a datos para el agregado :class:`Cuenta`."""
 
     @abstractmethod
-    def crear(self, id_usuario: int, token: str) -> Cuenta:
-        """Crea una cuenta nueva en estado PENDIENTE con token de activación.
+    def crear(self, id_usuario: int, token: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
+        """Crea una cuenta nueva, por defecto en estado PENDIENTE con token de activación.
 
         Args:
             id_usuario: Usuario propietario de la nueva cuenta.
             token: Token de activación inicial.
+            id_estado_cuenta: Estado inicial. Si es ``None`` usa
+                :data:`Cuenta.ESTADO_PENDIENTE` (caso normal de autorregistro).
+                La provisión mínima SSO lo fija en
+                :data:`Cuenta.ESTADO_PENDIENTE_DATOS` directamente por INSERT,
+                sin pasar por una transición de estado (evita el trigger de
+                validación de transiciones, que no contempla ese origen).
 
         Returns:
             La entidad :class:`Cuenta` creada, con su identidad asignada.

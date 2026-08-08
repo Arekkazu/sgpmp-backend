@@ -8,15 +8,17 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from src.identity_access.domain.entities.cuenta import Cuenta
+from src.identity_access.application.use_cases.sesiones.sesion_comun import (
+    emitir_sesion,
+    verificar_estado_cuenta,
+)
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
-from src.shared.errors import AuthenticationError, AuthorizationError, LockedError
-from src.shared.jwt import create_token, token_expiration
+from src.shared.errors import AuthenticationError, LockedError
 
 MAX_INTENTOS = 5
 TIPO_LOGIN_EXITOSO = 3
@@ -89,48 +91,7 @@ class LoginUseCase:
 
         # 3. Verificar estado de la cuenta
         ahora = datetime.now(timezone.utc)
-
-        if cuenta.esta_bloqueada():
-            bloqueado_hasta = cuenta.bloqueado_hasta
-            if bloqueado_hasta is not None:
-                if bloqueado_hasta.tzinfo is None:
-                    bloqueado_hasta = bloqueado_hasta.replace(tzinfo=timezone.utc)
-                if bloqueado_hasta > ahora:
-                    raise LockedError(
-                        code="CUENTA_BLOQUEADA",
-                        message=(
-                            f"Cuenta bloqueada por seguridad debido a múltiples intentos fallidos. "
-                            f"Podrá intentar acceder nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')} "
-                            f"(dentro de 15 minutos exactos)."
-                        ),
-                    )
-            # Tiempo de bloqueo expiró → desbloquear automáticamente
-            try:
-                cuenta.desbloquear()
-                self.cuentas_repo.guardar(cuenta)
-                self.db.commit()
-            except Exception:
-                self.db.rollback()
-                raise
-
-        if cuenta.esta_pendiente():
-            raise AuthorizationError(
-                code="CUENTA_PENDIENTE",
-                message=(
-                    f"Acceso denegado. Su cuenta no ha sido activada. Por favor, haga clic en el enlace "
-                    f"enviado a su correo {usuario.correo} o utilice la opción "
-                    f"'Re-enviar token de activación'."
-                ),
-            )
-
-        if cuenta.id_estado_cuenta in (Cuenta.ESTADO_INACTIVO, Cuenta.ESTADO_ELIMINADO):
-            raise AuthorizationError(
-                code="CUENTA_DESHABILITADA",
-                message=(
-                    "Acceso restringido. Su cuenta ha sido desactivada por políticas de seguridad "
-                    "o administración. Por favor, contacte al soporte técnico para más información."
-                ),
-            )
+        verificar_estado_cuenta(cuenta, usuario, self.cuentas_repo, self.db, ahora)
 
         # 4. Verificar contraseña
         if not usuario.contrasena.verificar(dto.contrasena):
@@ -183,46 +144,18 @@ class LoginUseCase:
             )
 
         # 5. Login exitoso
-        sesion_previa_cerrada = False
-        try:
-            cuenta.resetear_intentos()
-
-            sesion_previa = self.sesiones_repo.buscar_sesion_activa(cuenta.id_cuenta_usuario)
-            if sesion_previa is not None:
-                self.sesiones_repo.invalidar_sesion(sesion_previa)
-                sesion_previa_cerrada = True
-
-            fecha_expiracion = token_expiration()
-            token = self.sesiones_repo.crear_token_acceso(fecha_expiracion)
-            jwt_str, _ = create_token(token.id_token, usuario.id_usuario, usuario.id_rol)
-
-            sesion = self.sesiones_repo.crear_sesion(
-                id_cuenta_usuario=cuenta.id_cuenta_usuario,
-                id_token=token.id_token,
-                direccion_ip=ip,
-                agente_usuario=user_agent[:255],
-                fecha_expiracion=fecha_expiracion,
-            )
-
-            cuenta.registrar_acceso(ahora)
-            self.cuentas_repo.guardar(cuenta)
-
-            self.eventos_repo.registrar(
-                tipo_evento=TIPO_LOGIN_EXITOSO,
-                exitoso=True,
-                id_usuario=usuario.id_usuario,
-                detalle={
-                    "ip": ip,
-                    "user_agent": user_agent[:255],
-                    "sesion_previa_cerrada": sesion_previa_cerrada,
-                },
-                id_sesion=sesion.id_sesion,
-            )
-
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        jwt_str, fecha_expiracion, sesion_previa_cerrada = emitir_sesion(
+            usuario=usuario,
+            cuenta=cuenta,
+            ip=ip,
+            user_agent=user_agent,
+            tipo_evento_exitoso=TIPO_LOGIN_EXITOSO,
+            sesiones_repo=self.sesiones_repo,
+            cuentas_repo=self.cuentas_repo,
+            eventos_repo=self.eventos_repo,
+            db=self.db,
+            ahora=ahora,
+        )
 
         if self.notificacion_service:
             self.notificacion_service.notificar(

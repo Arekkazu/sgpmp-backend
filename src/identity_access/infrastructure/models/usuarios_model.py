@@ -44,17 +44,21 @@ class Usuarios(Base):
     )
 
     id_usuario: Mapped[int] = mapped_column(Integer, Sequence('usuarios_id_usuarios_seq', schema='modulo1'), primary_key=True, comment='Identificador único del usuario. Clave primaria generada automáticamente (serial).\nEs la FK más referenciada en todo el sistema.')
-    tipo_identificacion: Mapped[str] = mapped_column(String(10), nullable=False, comment='Tipo de documento de identidad del usuario (ej: CC, CE, NIT, PA).\nMáximo 10 caracteres. Usado junto con numero_identificacion para identificación civil.')
-    numero_identificacion: Mapped[str] = mapped_column(String(20), nullable=False, comment='Número del documento de identidad del usuario. Único en el sistema.\nMáximo 20 caracteres. No puede repetirse sin importar el tipo de identificación.')
-    nombre: Mapped[str] = mapped_column(String(80), nullable=False, comment='Nombre(s) del usuario. Máximo 80 caracteres.')
-    apellidos: Mapped[str] = mapped_column(String(80), nullable=False, comment='Apellido(s) del usuario. Máximo 80 caracteres.')
-    fecha_nacimiento: Mapped[datetime.date] = mapped_column(Date, nullable=False, comment='Fecha de nacimiento del usuario. Usada para validaciones de edad mínima\ny para perfiles demográficos.')
-    genero: Mapped[EnumUsuarioGenero] = mapped_column(Enum(EnumUsuarioGenero, values_callable=lambda cls: [member.value for member in cls], name='enum_usuario_genero', schema='modulo1'), nullable=False, comment='Género del usuario. ENUM global del sistema (enum_usuario_genero).')
     correo_electronico: Mapped[str] = mapped_column(String(100), nullable=False, comment='Dirección de correo electrónico del usuario. Única en el sistema.\nEs el canal principal de comunicación y recuperación de cuenta. Máximo 100 caracteres.')
     contrasena_cifrada: Mapped[str] = mapped_column(String(255), nullable=False, comment='Hash de la contraseña del usuario. Nunca se almacena la contraseña en texto plano.\nSe recomienda bcrypt o argon2. Máximo 255 caracteres.')
     id_rol: Mapped[int] = mapped_column(Integer, nullable=False, comment='FK hacia modulo1.roles. Define el rol asignado al usuario, que determina\nsus permisos y accesos dentro del sistema.')
     fecha_registro: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False, server_default=text('now()'), comment='Marca temporal (con zona horaria) del momento en que el usuario fue creado en el sistema.\nSe asigna automáticamente con now().')
     version: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('1'), comment='Contador de versión del registro. Se incrementa con cada actualización.\nPermite control de concurrencia optimista (optimistic locking).')
+    # Nullable desde el gap de SSO AgroFusion (2026-08-08): el payload RS256 del
+    # handoff SSO solo trae sub+email; una cuenta PENDIENTE_DATOS queda con estos
+    # 6 campos en NULL hasta que el usuario complete su perfil. Ver
+    # anotaciones/modulo_1/gaps_bd_sso_agrofusion.md.
+    tipo_identificacion: Mapped[Optional[str]] = mapped_column(String(10), comment='Tipo de documento de identidad del usuario (ej: CC, CE, NIT, PA).\nMáximo 10 caracteres. Usado junto con numero_identificacion para identificación civil.')
+    numero_identificacion: Mapped[Optional[str]] = mapped_column(String(20), comment='Número del documento de identidad del usuario. Único en el sistema.\nMáximo 20 caracteres. No puede repetirse sin importar el tipo de identificación.')
+    nombre: Mapped[Optional[str]] = mapped_column(String(80), comment='Nombre(s) del usuario. Máximo 80 caracteres.')
+    apellidos: Mapped[Optional[str]] = mapped_column(String(80), comment='Apellido(s) del usuario. Máximo 80 caracteres.')
+    fecha_nacimiento: Mapped[Optional[datetime.date]] = mapped_column(Date, comment='Fecha de nacimiento del usuario. Usada para validaciones de edad mínima\ny para perfiles demográficos.')
+    genero: Mapped[Optional[EnumUsuarioGenero]] = mapped_column(Enum(EnumUsuarioGenero, values_callable=lambda cls: [member.value for member in cls], name='enum_usuario_genero', schema='modulo1'), comment='Género del usuario. ENUM global del sistema (enum_usuario_genero).')
     telefono: Mapped[Optional[str]] = mapped_column(String(20), comment='Número de teléfono de contacto del usuario. Opcional. Máximo 20 caracteres.')
     direccion: Mapped[Optional[str]] = mapped_column(String(150), comment='Dirección física de residencia o contacto del usuario. Opcional. Máximo 150 caracteres.')
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'), comment='Marca temporal (con zona horaria) de la última modificación del registro del usuario.\nDebe actualizarse mediante trigger cada vez que el registro cambie.')

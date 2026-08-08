@@ -53,6 +53,14 @@ class SqlAlchemyRolRepository(RolRepository):
         orm = self.db.query(Roles).filter(Roles.id_rol == id_rol).first()
         return self._a_entidad(orm) if orm else None
 
+    def obtener_por_nombre(self, nombre_rol: str) -> Optional[Rol]:
+        orm = (
+            self.db.query(Roles)
+            .filter(Roles.nombre_rol.ilike(nombre_rol))
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
     def contar_usuarios(self, id_rol: int) -> int:
         return self.db.query(Usuarios).filter(Usuarios.id_rol == id_rol).count()
 

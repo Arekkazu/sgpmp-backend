@@ -27,12 +27,17 @@ class Usuario:
     Attributes:
         correo: Correo electrónico validado (value object).
         contrasena: Contraseña representada por su hash (value object).
-        nombre: Nombre(s) del usuario.
-        apellidos: Apellido(s) del usuario.
-        fecha_nacimiento: Fecha de nacimiento, base del cálculo de edad.
-        genero: Género como texto (``.value`` del enum de género).
+        nombre: Nombre(s) del usuario. ``None`` solo en una cuenta provista vía
+            SSO de AgroFusion sin datos completos (ver :meth:`crear_minimo_sso`).
+        apellidos: Apellido(s) del usuario. Mismo caso ``None`` que ``nombre``.
+        fecha_nacimiento: Fecha de nacimiento, base del cálculo de edad. Mismo
+            caso ``None`` que ``nombre``.
+        genero: Género como texto (``.value`` del enum de género). Mismo caso
+            ``None`` que ``nombre``.
         tipo_identificacion: Tipo de documento (``CC``, ``CE``, ``Pasaporte``).
+            Mismo caso ``None`` que ``nombre``.
         numero_identificacion: Número de documento, único en el sistema.
+            Mismo caso ``None`` que ``nombre``.
         id_rol: Rol asignado. Por defecto productor al registrarse.
         id_usuario: Identidad del usuario. ``None`` hasta que se persiste.
         telefono: Teléfono de contacto opcional.
@@ -46,12 +51,12 @@ class Usuario:
 
     correo: Email
     contrasena: Contrasena
-    nombre: str
-    apellidos: str
-    fecha_nacimiento: date
-    genero: str
-    tipo_identificacion: str
-    numero_identificacion: str
+    nombre: Optional[str]
+    apellidos: Optional[str]
+    fecha_nacimiento: Optional[date]
+    genero: Optional[str]
+    tipo_identificacion: Optional[str]
+    numero_identificacion: Optional[str]
     id_rol: int
     id_usuario: Optional[int] = None
     telefono: Optional[str] = None
@@ -73,11 +78,17 @@ class Usuario:
         numero_identificacion: str,
         telefono: Optional[str] = None,
         direccion: Optional[str] = None,
+        id_rol: Optional[int] = None,
     ) -> "Usuario":
         """Crea un usuario nuevo, aún sin persistir.
 
         Encapsula las invariantes del alta: sin identidad asignada
         (``id_usuario=None``), versión inicial 1 y rol productor por defecto.
+
+        Args:
+            id_rol: Rol a asignar. Si es ``None`` (caso normal de autorregistro)
+                usa :data:`ROL_PRODUCTOR`. Lo pasa explícito la sincronización
+                server-to-server de AgroFusion, que ya resuelve el rol destino.
 
         Returns:
             Una nueva instancia de :class:`Usuario` lista para validar y guardar.
@@ -91,9 +102,47 @@ class Usuario:
             genero=genero,
             tipo_identificacion=tipo_identificacion,
             numero_identificacion=numero_identificacion,
-            id_rol=cls.ROL_PRODUCTOR,
+            id_rol=id_rol if id_rol is not None else cls.ROL_PRODUCTOR,
             telefono=telefono,
             direccion=direccion,
+        )
+
+    @classmethod
+    def crear_minimo_sso(
+        cls,
+        *,
+        correo: Email,
+        contrasena: Contrasena,
+        id_rol: int,
+    ) -> "Usuario":
+        """Crea un usuario mínimo a partir de un handoff SSO de AgroFusion.
+
+        El payload RS256 del Mecanismo A solo trae ``sub``+``email`` — no hay
+        nombre, apellidos ni documento de identidad para poblar. En vez de
+        inventar esos datos, la entidad queda deliberadamente incompleta
+        (``None`` en los 6 campos personales) hasta que el propio usuario los
+        complete vía :class:`EditarPerfilUseCase` (que transiciona la cuenta
+        de ``PENDIENTE_DATOS`` a ``ACTIVO`` cuando ya están todos presentes).
+
+        Args:
+            correo: Correo verificado por AgroFusion.
+            contrasena: Hash de un secreto aleatorio inutilizable (la cuenta no
+                tiene contraseña propia hasta que el usuario la fije).
+            id_rol: Rol de mínimo privilegio para cuentas SSO sin sincronizar.
+
+        Returns:
+            Una nueva instancia de :class:`Usuario` lista para guardar.
+        """
+        return cls(
+            correo=correo,
+            contrasena=contrasena,
+            nombre=None,
+            apellidos=None,
+            fecha_nacimiento=None,
+            genero=None,
+            tipo_identificacion=None,
+            numero_identificacion=None,
+            id_rol=id_rol,
         )
 
     def cambiar_contrasena(self, nueva: Contrasena) -> None:

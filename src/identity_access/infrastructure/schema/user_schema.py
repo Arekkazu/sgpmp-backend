@@ -36,6 +36,7 @@ class LoginResponse(BaseDTO):
     tipo: str = "Bearer"
     expira_en: int
     message: str
+    perfil_incompleto: bool = False
 
 
 class UsuarioCreate(BaseModel):

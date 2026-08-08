@@ -61,10 +61,10 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         orm.fecha_cambio_estado = cuenta.fecha_cambio_estado
         orm.motivo_ultimo_cambio = cuenta.motivo_ultimo_cambio
 
-    def crear(self, id_usuario: int, token: str) -> Cuenta:
+    def crear(self, id_usuario: int, token: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
         orm = CuentasUsuarios(
             id_usuario=id_usuario,
-            id_estado_cuenta=Cuenta.ESTADO_PENDIENTE,
+            id_estado_cuenta=id_estado_cuenta if id_estado_cuenta is not None else Cuenta.ESTADO_PENDIENTE,
             token_activacion_actual=token,
         )
         try:
