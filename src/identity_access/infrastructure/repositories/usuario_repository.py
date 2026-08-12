@@ -82,6 +82,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             fecha_nacimiento=orm.fecha_nacimiento,
             fecha_registro=orm.fecha_registro,
             nombre_rol=orm.roles.nombre_rol,
+            version=orm.version,
             estado_cuenta=(
                 orm.cuentas_usuarios.estados_cuentas.nombre if orm.cuentas_usuarios else None
             ),
