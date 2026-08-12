@@ -37,6 +37,7 @@ class Cuenta:
     ESTADO_INACTIVO: ClassVar[int] = 3
     ESTADO_BLOQUEADO: ClassVar[int] = 4
     ESTADO_ELIMINADO: ClassVar[int] = 5
+    ESTADO_PENDIENTE_DATOS: ClassVar[int] = 6
 
     TOKEN_EXPIRACION_HORAS: ClassVar[int] = 24
     MINUTOS_BLOQUEO_LOGIN: ClassVar[int] = 15
@@ -64,6 +65,9 @@ class Cuenta:
 
     def esta_bloqueada(self) -> bool:
         return self.id_estado_cuenta == self.ESTADO_BLOQUEADO
+
+    def esta_pendiente_datos(self) -> bool:
+        return self.id_estado_cuenta == self.ESTADO_PENDIENTE_DATOS
 
     # ── Activación / tokens ─────────────────────────────────────────────────
     def expiracion_token(self, horas: Optional[int] = None) -> datetime:

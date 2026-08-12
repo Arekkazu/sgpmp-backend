@@ -70,17 +70,26 @@ class UsuarioListadoPaginadoResponse(BaseModel):
 
 
 class UsuarioDetalleResponse(BaseModel):
-    """Detalle completo de un usuario retornado en consulta de perfil o detalle admin."""
+    """Detalle completo de un usuario retornado en consulta de perfil o detalle admin.
 
-    nombre: str
-    apellidos: str
+    Los 5 campos personales son opcionales porque una cuenta SSO recién
+    aprovisionada (``Pendiente Datos``) todavía no los tiene — ver
+    ``Usuario.crear_minimo_sso``. ``id_usuario``/``version`` se exponen porque
+    el flujo de completar perfil tras SSO necesita ambos para el siguiente
+    ``PATCH /usuarios/{id_usuario}``.
+    """
+
+    id_usuario: int
+    nombre: Optional[str] = None
+    apellidos: Optional[str] = None
     correo_electronico: str
-    tipo_identificacion: str
-    numero_identificacion: str
-    fecha_nacimiento: datetime.date
+    tipo_identificacion: Optional[str] = None
+    numero_identificacion: Optional[str] = None
+    fecha_nacimiento: Optional[datetime.date] = None
     fecha_registro: datetime.datetime
     nombre_rol: str
     estado_cuenta: str
+    version: int
 
 
 class AuditoriaItemResponse(BaseModel):

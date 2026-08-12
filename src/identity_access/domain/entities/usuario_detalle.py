@@ -23,25 +23,29 @@ class UsuarioDetalle:
 
     Attributes:
         id_usuario: Identidad del usuario.
-        nombre: Nombre(s) del usuario.
-        apellidos: Apellido(s) del usuario.
         correo_electronico: Correo electrónico.
-        tipo_identificacion: Tipo de documento.
-        numero_identificacion: Número de documento, sin enmascarar (el use case
-            decide si lo enmascara según los permisos del actor).
-        fecha_nacimiento: Fecha de nacimiento.
         fecha_registro: Marca temporal de creación.
         nombre_rol: Nombre del rol asignado (resuelto desde ``roles``).
+        version: Contador de concurrencia optimista del registro.
+        nombre: Nombre(s) del usuario. ``None`` en cuentas SSO mínimas
+            (``Pendiente Datos``) que aún no completaron su perfil.
+        apellidos: Apellido(s) del usuario. Mismo caso ``None`` que ``nombre``.
+        tipo_identificacion: Tipo de documento. Mismo caso ``None`` que ``nombre``.
+        numero_identificacion: Número de documento, sin enmascarar (el use case
+            decide si lo enmascara según los permisos del actor). Mismo caso
+            ``None`` que ``nombre``.
+        fecha_nacimiento: Fecha de nacimiento. Mismo caso ``None`` que ``nombre``.
         estado_cuenta: Nombre del estado de la cuenta, o ``None`` si no tiene cuenta.
     """
 
     id_usuario: int
-    nombre: str
-    apellidos: str
     correo_electronico: str
-    tipo_identificacion: str
-    numero_identificacion: str
-    fecha_nacimiento: date
     fecha_registro: datetime
     nombre_rol: str
+    version: int
+    nombre: Optional[str] = None
+    apellidos: Optional[str] = None
+    tipo_identificacion: Optional[str] = None
+    numero_identificacion: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
     estado_cuenta: Optional[str] = None

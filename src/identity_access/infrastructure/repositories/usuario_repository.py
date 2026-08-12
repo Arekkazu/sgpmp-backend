@@ -63,7 +63,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             nombre=usuario.nombre,
             apellidos=usuario.apellidos,
             fecha_nacimiento=usuario.fecha_nacimiento,
-            genero=EnumUsuarioGenero(usuario.genero),
+            genero=EnumUsuarioGenero(usuario.genero) if usuario.genero is not None else None,
             contrasena_cifrada=usuario.contrasena.hash,
             direccion=usuario.direccion,
             id_rol=usuario.id_rol,
@@ -82,6 +82,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             fecha_nacimiento=orm.fecha_nacimiento,
             fecha_registro=orm.fecha_registro,
             nombre_rol=orm.roles.nombre_rol,
+            version=orm.version,
             estado_cuenta=(
                 orm.cuentas_usuarios.estados_cuentas.nombre if orm.cuentas_usuarios else None
             ),
@@ -153,6 +154,10 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         orm.telefono = usuario.telefono
         orm.direccion = usuario.direccion
         orm.id_rol = usuario.id_rol
+        orm.tipo_identificacion = usuario.tipo_identificacion
+        orm.numero_identificacion = usuario.numero_identificacion
+        orm.fecha_nacimiento = usuario.fecha_nacimiento
+        orm.genero = EnumUsuarioGenero(usuario.genero) if usuario.genero is not None else None
         try:
             self.db.flush()
             self.db.refresh(orm)
@@ -162,6 +167,10 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
                 "uq_usuario_correo_electronico": (
                     "Actualización denegada. La dirección ingresada ya se encuentra vinculada "
                     "a otra cuenta. El correo debe ser único."
+                ),
+                "uq_usuario_numero_identificacion": (
+                    "Actualización denegada. El número de identificación ya se encuentra "
+                    "vinculado a otra cuenta."
                 ),
             })
 

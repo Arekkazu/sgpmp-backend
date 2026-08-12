@@ -2,6 +2,7 @@
 
 Expone los endpoints de inicio y cierre de sesión con JWT.
 """
+import os
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
@@ -9,8 +10,10 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
 from src.identity_access.application.use_cases.sesiones.logout_use_case import LogoutUseCase
+from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
+from src.identity_access.infrastructure.adapters.agrofusion_sso_adapter import AgroFusionSsoAdapter
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
-from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
+from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
@@ -20,6 +23,7 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.identity_access.infrastructure.schema.permisos_schema import PermisoResumen, PermisosUsuarioResponse
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
+from src.shared.errors import ServiceUnavailableError
 from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
 
@@ -60,6 +64,59 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
         message = "Sesión iniciada exitosamente."
 
     return LoginResponse(token=jwt_str, expira_en=expira_en, message=message)
+
+
+@router.post(
+    "/sso",
+    response_model=LoginResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        423: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+)
+def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, db: Session = Depends(get_db)):
+    """Login SSO vía handoff RS256 de AgroFusion (Mecanismo A).
+
+    Sin `require_permission`: la confianza la da la firma RS256 verificada
+    dentro del use case, no un rol de sgpmp (el usuario todavía no tiene
+    sesión propia en este punto).
+    """
+    if not (os.getenv("AGROFUSION_SSO_PUBLIC_KEY_PATH") and os.getenv("AGROFUSION_PROJECT_CODE")):
+        raise ServiceUnavailableError(
+            code="SSO_NO_CONFIGURADO",
+            message="La integración SSO con AgroFusion no está disponible en este despliegue.",
+        )
+
+    ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    use_case = SsoLoginUseCase(
+        sso_provider=AgroFusionSsoAdapter(),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+    )
+    jwt_str, fecha_expiracion, sesion_previa_cerrada, _, perfil_incompleto = use_case.execute(dto, ip, user_agent)
+
+    ahora = datetime.now(timezone.utc)
+    expira_en = int((fecha_expiracion - ahora).total_seconds())
+
+    if sesion_previa_cerrada:
+        message = "Sesión SSO iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    else:
+        message = "Sesión SSO iniciada exitosamente."
+
+    return LoginResponse(
+        token=jwt_str,
+        expira_en=expira_en,
+        message=message,
+        perfil_incompleto=perfil_incompleto,
+    )
 
 
 @router.get(

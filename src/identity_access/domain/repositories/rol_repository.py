@@ -27,6 +27,15 @@ class RolRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_por_nombre(self, nombre_rol: str) -> Optional[Rol]:
+        """Obtiene un rol por su nombre (match exacto case-insensitive), o ``None``.
+
+        Usado por la sincronización server-to-server de AgroFusion para
+        resolver el ``rol_codigo`` que envía el Hub contra ``modulo1.roles``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def contar_usuarios(self, id_rol: int) -> int:
         """Cuenta cuántos usuarios tienen asignado el rol indicado."""
         raise NotImplementedError

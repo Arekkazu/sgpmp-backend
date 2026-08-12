@@ -32,18 +32,24 @@ TRANSICIONES_VALIDAS = {
     2: {1, 3, 4, 5},    # Activo → Pendiente, Inactivo, Bloqueado, Eliminado
     3: {2, 5},          # Inactivo → Activo, Eliminado
     4: {2, 3, 5},       # Bloqueado → Activo, Inactivo, Eliminado
+    6: {2, 5},          # Pendiente Datos → Activo, Eliminado
     # Eliminado (5) no tiene transiciones salientes
 }
 
 
 def _valor_columna(usuario: Usuario, campo: str):
-    """Lee el valor de un campo de la entidad por su nombre de columna ORM.
+    """Lee el valor de un campo de la entidad por su nombre de columna ORM,
+    en una forma serializable a JSON para el detalle de auditoría.
 
     El audit detail conserva las claves de columna (``correo_electronico``);
-    la entidad expone el correo como value object ``correo``.
+    la entidad expone el correo como value object ``correo``. ``fecha_nacimiento``
+    es un ``date`` de Python, no serializable directo por el driver JSONB.
     """
     if campo == "correo_electronico":
         return str(usuario.correo)
+    if campo == "fecha_nacimiento":
+        valor = usuario.fecha_nacimiento
+        return valor.isoformat() if valor is not None else None
     return getattr(usuario, campo, None)
 
 
@@ -111,6 +117,8 @@ class EditarPerfilUseCase:
                 message="Usuario no encontrado. El registro que intenta modificar no existe en el sistema.",
             )
 
+        cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
+
         # 2. Verificar permisos del actor
         if not es_admin:
             if id_usuario != usuario_actual.id_usuario:
@@ -124,6 +132,24 @@ class EditarPerfilUseCase:
                     message=(
                         "Acceso restringido. No tiene permisos para modificar campos críticos "
                         "(Rol/Estado). Esta acción ha sido reportada al sistema de auditoría."
+                    ),
+                )
+            campos_identificacion_provistos = any([
+                dto.tipo_identificacion is not None,
+                dto.numero_identificacion is not None,
+                dto.fecha_nacimiento is not None,
+                dto.genero is not None,
+            ])
+            if campos_identificacion_provistos and (
+                cuenta_objetivo is None
+                or cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_PENDIENTE_DATOS
+            ):
+                raise AuthorizationError(
+                    code="SIN_PERMISO_CAMPOS_IDENTIFICACION",
+                    message=(
+                        "Solo se puede completar el documento de identidad, la fecha de "
+                        "nacimiento y el género mientras el perfil está pendiente de datos "
+                        "(cuenta provista vía SSO sin sincronización previa)."
                     ),
                 )
         else:
@@ -159,6 +185,14 @@ class EditarPerfilUseCase:
             cambios["direccion"] = dto.direccion
         if es_admin and dto.id_rol is not None:
             cambios["id_rol"] = dto.id_rol
+        if dto.tipo_identificacion is not None:
+            cambios["tipo_identificacion"] = dto.tipo_identificacion
+        if dto.numero_identificacion is not None:
+            cambios["numero_identificacion"] = dto.numero_identificacion
+        if dto.fecha_nacimiento is not None:
+            cambios["fecha_nacimiento"] = dto.fecha_nacimiento
+        if dto.genero is not None:
+            cambios["genero"] = dto.genero.value
 
         valores_anteriores = {campo: _valor_columna(usuario, campo) for campo in cambios}
 
@@ -166,8 +200,6 @@ class EditarPerfilUseCase:
         estado_invalida_sesion = nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION if nuevo_estado else False
 
         # 4. Revocar sesión activa ANTES del flush de estado (el trigger la desactiva después)
-        cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
-
         if (estado_invalida_sesion or correo_modificado) and cuenta_objetivo is not None:
             sesion_activa = self.sesiones_repo.buscar_sesion_activa(cuenta_objetivo.id_cuenta_usuario)
             if sesion_activa is not None:
@@ -193,8 +225,35 @@ class EditarPerfilUseCase:
                 usuario.direccion = cambios["direccion"]
             if "id_rol" in cambios:
                 usuario.id_rol = cambios["id_rol"]
+            if "tipo_identificacion" in cambios:
+                usuario.tipo_identificacion = cambios["tipo_identificacion"]
+            if "numero_identificacion" in cambios:
+                usuario.numero_identificacion = cambios["numero_identificacion"]
+            if "fecha_nacimiento" in cambios:
+                usuario.fecha_nacimiento = cambios["fecha_nacimiento"]
+            if "genero" in cambios:
+                usuario.genero = cambios["genero"]
 
             usuario = self.usuarios_repo.actualizar(usuario, dto.version)
+
+            # 5b. Si la cuenta estaba PENDIENTE_DATOS y ya se completaron los 6
+            # campos personales, transicionar automáticamente a ACTIVO — cierra
+            # el loop de la provisión mínima SSO sin exigir intervención de un
+            # administrador.
+            if (
+                cuenta_objetivo is not None
+                and cuenta_objetivo.id_estado_cuenta == Cuenta.ESTADO_PENDIENTE_DATOS
+                and all([
+                    usuario.nombre,
+                    usuario.apellidos,
+                    usuario.tipo_identificacion,
+                    usuario.numero_identificacion,
+                    usuario.fecha_nacimiento,
+                    usuario.genero,
+                ])
+            ):
+                cuenta_objetivo.activar(datetime.now(timezone.utc))
+                cuenta_objetivo = self.cuentas_repo.guardar(cuenta_objetivo)
 
             # 6. Actualizar estado en cuentas_usuarios si admin lo modificó
             if nuevo_estado is not None and cuenta_objetivo is not None and nuevo_estado != cuenta_objetivo.id_estado_cuenta:
