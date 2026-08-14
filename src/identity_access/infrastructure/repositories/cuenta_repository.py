@@ -61,11 +61,11 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         orm.fecha_cambio_estado = cuenta.fecha_cambio_estado
         orm.motivo_ultimo_cambio = cuenta.motivo_ultimo_cambio
 
-    def crear(self, id_usuario: int, token: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
+    def crear(self, id_usuario: int, token_hash: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
         orm = CuentasUsuarios(
             id_usuario=id_usuario,
             id_estado_cuenta=id_estado_cuenta if id_estado_cuenta is not None else Cuenta.ESTADO_PENDIENTE,
-            token_activacion_actual=token,
+            token_activacion_actual=token_hash,
         )
         try:
             self.db.add(orm)
@@ -85,10 +85,10 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         )
         return self._a_entidad(orm) if orm else None
 
-    def obtener_por_token(self, token: str) -> Optional[Cuenta]:
+    def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
         orm = (
             self.db.query(CuentasUsuarios)
-            .filter(CuentasUsuarios.token_activacion_actual == token)
+            .filter(CuentasUsuarios.token_activacion_actual == token_hash)
             .first()
         )
         return self._a_entidad(orm) if orm else None
