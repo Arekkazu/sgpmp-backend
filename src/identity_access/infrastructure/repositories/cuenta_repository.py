@@ -20,7 +20,6 @@ from src.identity_access.infrastructure.models.gestiones_cuenta_model import Ges
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
 
-ROL_ADMINISTRADOR = 1
 
 
 class SqlAlchemyCuentaRepository(CuentaRepository):
@@ -117,12 +116,12 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         self.db.add(gestion)
         self.db.flush()
 
-    def contar_admins_activos(self) -> int:
+    def contar_usuarios_activos_por_rol(self, id_rol: int) -> int:
         return (
             self.db.query(CuentasUsuarios)
             .join(Usuarios, Usuarios.id_usuario == CuentasUsuarios.id_usuario)
             .filter(
-                Usuarios.id_rol == ROL_ADMINISTRADOR,
+                Usuarios.id_rol == id_rol,
                 CuentasUsuarios.id_estado_cuenta == Cuenta.ESTADO_ACTIVO,
             )
             .count()

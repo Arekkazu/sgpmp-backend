@@ -79,6 +79,6 @@ class CuentaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def contar_admins_activos(self) -> int:
-        """Cuenta los administradores con cuenta en estado ACTIVO."""
+    def contar_usuarios_activos_por_rol(self, id_rol: int) -> int:
+        """Cuenta los usuarios con el rol indicado y cuenta en estado ACTIVO."""
         raise NotImplementedError

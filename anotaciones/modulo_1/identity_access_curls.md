@@ -66,10 +66,9 @@ curl -s -X GET http://localhost:8000/usuarios/me \
   -H "Authorization: Bearer <TOKEN>" | jq
 ```
 
-### Editar perfil de usuario
+### Editar perfil propio
 ```bash
-# id_estado_cuenta e id_rol son opcionales y solo aplican si el usuario actual tiene permiso de admin
-curl -s -X PATCH http://localhost:8000/usuarios/<ID_USUARIO> \
+curl -s -X PATCH http://localhost:8000/usuarios/me \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -79,6 +78,24 @@ curl -s -X PATCH http://localhost:8000/usuarios/<ID_USUARIO> \
     "telefono": "3009876543",
     "direccion": "Carrera 10 # 20-30",
     "version": 1
+  }' | jq
+```
+
+### Editar perfil o rol de otro usuario (administrativo)
+```bash
+# Requiere el permiso Actualizar sobre el recurso Usuarios (1, 3).
+# El estado no se acepta aquí: se cambia exclusivamente mediante /gestionar.
+curl -s -X PATCH http://localhost:8000/usuarios/<ID_USUARIO> \
+  -H "Authorization: Bearer <TOKEN_ADMIN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Juan",
+    "apellidos": "Pérez García",
+    "correo_electronico": "nuevo_correo@ejemplo.com",
+    "telefono": "3009876543",
+    "direccion": "Carrera 10 # 20-30",
+    "version": 1,
+    "id_rol": 3
   }' | jq
 ```
 
