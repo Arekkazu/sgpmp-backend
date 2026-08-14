@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.usuario import Usuario
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
@@ -24,29 +25,44 @@ from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
 from src.shared.errors import AuthorizationError
 
+TIPO_REGISTRO_USUARIO = 1
 
 class CrearUsuarioUseCase:
     """Orquesta el registro de un nuevo usuario con envío de correo de activación."""
 
-    def __init__(self, usuarios_repo: UsuarioRepository, cuentas_repo: CuentaRepository, db: Session):
+    def __init__(
+        self,
+        usuarios_repo: UsuarioRepository,
+        cuentas_repo: CuentaRepository,
+        eventos_repo: EventoRepository,
+        db: Session,
+    ):
         """Inicializa el use case.
 
         Args:
             usuarios_repo: Repositorio de dominio del agregado Usuario.
+            eventos_repo: Repositorio utilizado para registrar eventos de auditoría.
             cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
+        self.eventos_repo = eventos_repo
         self.db = db
 
-    def execute(self, dto: UsuarioCreateDTO) -> Usuario:
+    def execute(
+        self,
+        dto: UsuarioCreateDTO,
+        ip: str,
+        user_agent: str,
+    ) -> Usuario:
         """Registra el usuario, crea su cuenta y envía el correo de activación.
 
         Args:
             dto: Datos del nuevo usuario (nombre, correo, contraseña, etc.).
-
+            ip: Dirección IP asociada a la solicitud.
+            user_agent: Cliente o navegador desde el cual se realiza la solicitud.
         Returns:
             La entidad :class:`Usuario` creada, con su identidad asignada.
 
@@ -87,6 +103,19 @@ class CrearUsuarioUseCase:
             usuario = self.usuarios_repo.guardar(usuario)
             token = secrets.token_urlsafe(32)
             self.cuentas_repo.crear(usuario.id_usuario, token)
+            self.eventos_repo.registrar(
+                tipo_evento=TIPO_REGISTRO_USUARIO,
+                exitoso=True,
+                id_usuario=usuario.id_usuario,
+                detalle={
+                    "accion": "registro_usuario",
+                    "id_usuario_creado": usuario.id_usuario,
+                    "id_rol_asignado": usuario.id_rol,
+                    "estado_cuenta": "PENDIENTE",
+                    "ip": ip,
+                    "user_agent": user_agent[:255],
+                },
+            )
             self.db.commit()
         except Exception:
             self.db.rollback()

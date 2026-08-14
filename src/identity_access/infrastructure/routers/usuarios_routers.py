@@ -43,6 +43,17 @@ from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
+def _contexto_auditoria(request: Request) -> tuple[str, str]:
+    """Obtiene IP y user-agent normalizados por el middleware del request."""
+    ip = getattr(request.state, "ip", None)
+    if not ip:
+        ip = request.client.host if request.client else "unknown"
+
+    user_agent = getattr(request.state, "user_agent", None)
+    if not user_agent:
+        user_agent = request.headers.get("user-agent", "unknown")
+
+    return ip, user_agent
 
 @router.get("/", response_model=list[UsuarioResponse])
 def listar_usuarios(db: Session = Depends(get_db)):
@@ -111,14 +122,25 @@ def listar_usuarios_admin(
         503: {"model": ErrorResponse},
     },
 )
-def crear_usuario(dto: UsuarioCreateDTO, db: Session = Depends(get_db)):
+def crear_usuario(
+    dto: UsuarioCreateDTO,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ip, user_agent = _contexto_auditoria(request)
+
     use_case = CrearUsuarioUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
-    use_case.execute(dto)
-    return {"message": "Registro exitoso. Revisa tu correo para activar tu cuenta."}
+
+    use_case.execute(dto, ip, user_agent)
+
+    return {
+        "message": "Registro exitoso. Revisa tu correo para activar tu cuenta."
+    }
 
 
 @router.post(
@@ -149,10 +171,25 @@ def reenviar_token(dto: ReenviarTokenDTO, db: Session = Depends(get_db)):
         422: {"model": ErrorResponse},
     },
 )
-def activar_cuenta(token: str, db: Session = Depends(get_db)):
-    use_case = ActivarCuentaUseCase(cuentas_repo=SqlAlchemyCuentaRepository(db), db=db)
-    use_case.execute(token)
-    return {"message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."}
+
+def activar_cuenta(
+    token: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    ip, user_agent = _contexto_auditoria(request)
+
+    use_case = ActivarCuentaUseCase(
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+    )
+
+    use_case.execute(token, ip, user_agent)
+
+    return {
+        "message": "Cuenta activada exitosamente. Ya puedes iniciar sesión."
+    }
 
 
 @router.post(
