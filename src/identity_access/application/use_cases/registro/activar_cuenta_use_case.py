@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.shared.errors import FlowError, GoneError, ValidationError
 
 
@@ -36,7 +37,9 @@ class ActivarCuentaUseCase:
             GoneError: Si el token expiró. HTTP 410.
             FlowError: Si la cuenta ya estaba activa. HTTP 422.
         """
-        cuenta = self.cuentas_repo.obtener_por_token(token)
+        cuenta = self.cuentas_repo.obtener_por_hash_token(
+            calcular_hash_token(token)
+        )
         if cuenta is None:
             raise ValidationError(
                 code="TOKEN_INVALIDO",

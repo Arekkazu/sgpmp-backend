@@ -48,7 +48,7 @@ class CuentasUsuarios(Base):
     ultimo_acceso: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), comment='Marca temporal (con zona horaria) del último inicio de sesión exitoso del usuario.\nÚtil para detectar cuentas inactivas.')
     bloqueado_hasta: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), comment='Marca temporal (con zona horaria) hasta la que la cuenta permanece bloqueada\npor exceso de intentos fallidos. NULL si la cuenta no está bloqueada.')
     ultimo_intento_fallido: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), comment='Marca temporal (con zona horaria) del último intento de login fallido registrado.\nUsado para calcular ventanas de tiempo en políticas de bloqueo.')
-    token_activacion_actual: Mapped[Optional[str]] = mapped_column(String(255), comment='Token temporal usado para la activación inicial de la cuenta o reactivación.\nSe invalida una vez usado. Máximo 255 caracteres.')
+    token_activacion_actual: Mapped[Optional[str]] = mapped_column(String(255), comment='Hash SHA-256 hexadecimal del token temporal de activación, reverificación o recuperación. El token en texto plano nunca se almacena y el hash se invalida una vez usado.')
     fecha_cambio_estado: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), server_default=text('now()'), comment='Marca temporal (con zona horaria) del último cambio de estado de la cuenta.')
     motivo_ultimo_cambio: Mapped[Optional[str]] = mapped_column(String(255), comment='Descripción del motivo del último cambio de estado de la cuenta.\nPermite trazabilidad sin consultar gestiones_cuenta. Máximo 255 caracteres.')
 

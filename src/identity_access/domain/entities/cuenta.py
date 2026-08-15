@@ -26,7 +26,9 @@ class Cuenta:
         ultimo_acceso: Último login exitoso, o ``None``.
         bloqueado_hasta: Hasta cuándo está bloqueada por seguridad, o ``None``.
         ultimo_intento_fallido: Marca del último intento fallido, o ``None``.
-        token_activacion_actual: Token vigente de activación o recuperación, o ``None``.
+        token_activacion_actual: Hash SHA-256 del token vigente de activación o
+            recuperación, o ``None``. El token en texto plano nunca forma parte
+            del estado persistible de la entidad.
         fecha_cambio_estado: Marca del último cambio de estado/token.
         motivo_ultimo_cambio: Justificación del último cambio de estado, o ``None``.
         id_cuenta_usuario: Identidad de la cuenta. ``None`` hasta que se persiste.
@@ -97,24 +99,24 @@ class Cuenta:
         self.token_activacion_actual = None
         self.fecha_cambio_estado = ahora
 
-    def asignar_token_activacion(self, token: str, ahora: datetime) -> None:
-        """Asigna un nuevo token de activación (reenvío)."""
-        self.token_activacion_actual = token
+    def asignar_token_activacion(self, token_hash: str, ahora: datetime) -> None:
+        """Asigna el hash de un nuevo token de activación (reenvío)."""
+        self.token_activacion_actual = token_hash
         self.fecha_cambio_estado = ahora
 
-    def asignar_token_recuperacion(self, token: str, ahora: datetime) -> None:
-        """Asigna un token de recuperación de contraseña (misma columna que activación)."""
-        self.token_activacion_actual = token
+    def asignar_token_recuperacion(self, token_hash: str, ahora: datetime) -> None:
+        """Asigna el hash de un token de recuperación (misma columna que activación)."""
+        self.token_activacion_actual = token_hash
         self.fecha_cambio_estado = ahora
 
     def limpiar_token(self) -> None:
         """Consume el token de activación/recuperación vigente sin alterar el estado."""
         self.token_activacion_actual = None
 
-    def poner_pendiente(self, token: str, ahora: datetime) -> None:
-        """Pasa la cuenta a PENDIENTE con un nuevo token (reverificación de correo)."""
+    def poner_pendiente(self, token_hash: str, ahora: datetime) -> None:
+        """Pasa la cuenta a PENDIENTE con el hash de un token de reverificación."""
         self.id_estado_cuenta = self.ESTADO_PENDIENTE
-        self.token_activacion_actual = token
+        self.token_activacion_actual = token_hash
         self.fecha_cambio_estado = ahora
 
     # ── Contadores de seguridad (login) ─────────────────────────────────────
