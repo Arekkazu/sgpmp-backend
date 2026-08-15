@@ -42,4 +42,4 @@ pytest tests/shared/test_jwt_config.py
 - Reiniciar la aplicación después de modificar la variable, porque la
   configuración se carga al importar el módulo JWT.
 - Los JWT emitidos antes del cambio conservan la expiración incluida en ellos;
-  la vigencia de 8 horas aplica a los tokens emitidos posteriormente.git add anotaciones/modulo_1/rf02_jwt_vigencia_8_horas.md
+  la vigencia de 8 horas aplica a los tokens emitidos posteriormente.
