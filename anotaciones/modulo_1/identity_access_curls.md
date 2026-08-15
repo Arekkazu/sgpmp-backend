@@ -81,6 +81,27 @@ curl -s -X PATCH http://localhost:8000/usuarios/me \
   }' | jq
 ```
 
+### Completar perfil tras provisión SSO (cuenta PENDIENTE_DATOS)
+```bash
+# tipo_identificacion/numero_identificacion/fecha_nacimiento/genero solo se
+# aceptan mientras la cuenta está en estado PENDIENTE_DATOS (provista vía SSO
+# de AgroFusion sin sincronización previa). Al completar los 6 campos
+# requeridos (nombre, apellidos, tipo y número de identificación, fecha de
+# nacimiento, género) la cuenta pasa a ACTIVO automáticamente.
+curl -s -X PATCH http://localhost:8000/usuarios/me \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "nombre": "Juan",
+    "apellidos": "Pérez García",
+    "tipo_identificacion": "CC",
+    "numero_identificacion": "1234567890",
+    "fecha_nacimiento": "1995-05-05",
+    "genero": "M",
+    "version": 1
+  }' | jq
+```
+
 ### Editar perfil o rol de otro usuario (administrativo)
 ```bash
 # Requiere el permiso Actualizar sobre el recurso Usuarios (1, 3).
