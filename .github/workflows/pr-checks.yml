@@ -62,4 +62,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Ejecutar pruebas (excluye integración, requiere Postgres dedicado)
-        run: pytest -m "not integration" --maxfail=1
+        run: python -m pytest -m "not integration" --maxfail=1
