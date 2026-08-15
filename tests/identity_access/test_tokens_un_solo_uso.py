@@ -180,6 +180,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     crear_module.CrearUsuarioUseCase(
         usuarios_repo=UsuarioCrearRepoFake(usuario),
         cuentas_repo=cuentas_repo,
+        eventos_repo=EventoRepoFake(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -195,7 +196,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
             direccion=None,
             confirmar_contrasena="Clave1!x",
             captcha_token="captcha-valido",
-        )
+        ),
+        "127.0.0.1",
+        "pytest",
     )
 
     assert cuentas_repo.token_hash == TOKEN_HASH
@@ -212,8 +215,9 @@ def test_activar_cuenta_consulta_por_hash_y_consume_el_token() -> None:
 
     ActivarCuentaUseCase(
         cuentas_repo=repo,
+        eventos_repo=EventoRepoFake(),
         db=db,
-    ).execute(TOKEN_CRUDO)
+    ).execute(TOKEN_CRUDO, "127.0.0.1", "pytest")
 
     assert repo.hash_consultado == TOKEN_HASH
     assert repo.guardada is not None
