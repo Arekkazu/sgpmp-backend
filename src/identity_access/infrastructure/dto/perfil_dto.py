@@ -1,13 +1,16 @@
 """DTOs de entrada para la edición de perfil de usuario.
 
-`EditarPerfilDTO` contiene los campos editables por cualquier usuario.
-`EditarPerfilAdminDTO` extiende el anterior con campos de rol y estado de cuenta,
-editables únicamente por administradores.
+`EditarPerfilDTO` contiene los campos editables por el propio usuario.
+`EditarPerfilAdminDTO` extiende el anterior con la asignación de rol,
+editable únicamente mediante el endpoint administrativo.
+
+El estado de cuenta se gestiona exclusivamente mediante RF-06.
 """
+
 import datetime
 from typing import Optional
 
-from pydantic import EmailStr, field_validator
+from pydantic import ConfigDict, EmailStr, field_validator
 
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
@@ -23,6 +26,8 @@ class EditarPerfilDTO(BaseDTO):
     :class:`EditarPerfilUseCase`. Una cuenta ya completa no puede reescribirlos
     por esta vía.
     """
+
+    model_config = ConfigDict(extra="forbid")
 
     nombre: str
     apellidos: str
@@ -40,7 +45,8 @@ class EditarPerfilDTO(BaseDTO):
     def validar_nombre(cls, v: str) -> str:
         if not NOMBRE.match(v):
             raise ValueError(
-                "Solo se permiten letras, espacios y caracteres del idioma español (á, ñ, etc.)"
+                "Solo se permiten letras, espacios y caracteres del idioma español "
+                "(á, ñ, etc.)"
             )
         return v
 
@@ -49,13 +55,13 @@ class EditarPerfilDTO(BaseDTO):
     def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and not TELEFONO.match(v):
             raise ValueError(
-                "Número telefónico inválido. Asegúrese de ingresar solo dígitos numéricos (mínimo 7, máximo 15)"
+                "Número telefónico inválido. Asegúrese de ingresar solo dígitos "
+                "numéricos (mínimo 7, máximo 15)"
             )
         return v
 
 
 class EditarPerfilAdminDTO(EditarPerfilDTO):
-    """Extiende `EditarPerfilDTO` con campos de rol y estado solo para administradores."""
+    """Extiende `EditarPerfilDTO` con la asignación administrativa de rol."""
 
-    id_estado_cuenta: Optional[int] = None
     id_rol: Optional[int] = None

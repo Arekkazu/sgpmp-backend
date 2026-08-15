@@ -23,6 +23,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.shared.errors import AuthorizationError
 
 TIPO_REGISTRO_USUARIO = 1
@@ -102,7 +103,7 @@ class CrearUsuarioUseCase:
         try:
             usuario = self.usuarios_repo.guardar(usuario)
             token = secrets.token_urlsafe(32)
-            self.cuentas_repo.crear(usuario.id_usuario, token)
+            self.cuentas_repo.crear(usuario.id_usuario, calcular_hash_token(token))
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_REGISTRO_USUARIO,
                 exitoso=True,

@@ -22,7 +22,7 @@ from src.configuration.application.use_cases.fincas.consultar_fincas_use_case im
 from src.configuration.application.use_cases.fincas.desactivar_finca_use_case import DesactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.editar_finca_use_case import EditarFincaUseCase
 from src.configuration.application.use_cases.fincas.registrar_finca_use_case import RegistrarFincaUseCase
-from src.configuration.infrastructure.adapters.finca_stub_adapter import FincaStubAdapter
+from src.configuration.infrastructure.adapters.finca_dependency_adapter import FincaDependencyAdapter
 from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
 from src.configuration.infrastructure.dto.registrar_finca_dto import RegistrarFincaDTO
 from src.configuration.infrastructure.repositories.auditoria_finca_repository import SqlAlchemyAuditoriaFincaRepository
@@ -163,7 +163,7 @@ def desactivar_finca(
         db=db,
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
-        dependency_port=FincaStubAdapter(),
+        dependency_port=FincaDependencyAdapter(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
     return FincaResponse.from_entity(finca)

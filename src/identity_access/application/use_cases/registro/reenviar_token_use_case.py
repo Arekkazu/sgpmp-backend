@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
@@ -70,7 +71,7 @@ class ReenviarTokenUseCase:
         token = secrets.token_urlsafe(32)
         ahora = datetime.now(timezone.utc)
         try:
-            cuenta.asignar_token_activacion(token, ahora)
+            cuenta.asignar_token_activacion(calcular_hash_token(token), ahora)
             self.cuentas_repo.guardar(cuenta)
             self.db.commit()
         except Exception:

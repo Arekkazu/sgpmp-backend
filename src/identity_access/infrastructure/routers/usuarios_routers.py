@@ -6,7 +6,6 @@ gestión de estado de cuenta y registro de tokens FCM.
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -21,9 +20,8 @@ from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.shared.rbac import require_permission
-from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
+from src.identity_access.infrastructure.dto.perfil_dto import (EditarPerfilAdminDTO, EditarPerfilDTO)
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
-from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
@@ -43,6 +41,21 @@ from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
+def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
+    return EditarPerfilUseCase(
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        roles_repo=SqlAlchemyRolRepository(db),
+        db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
+    )
+
+
 def _contexto_auditoria(request: Request) -> tuple[str, str]:
     """Obtiene IP y user-agent normalizados por el middleware del request."""
     ip = getattr(request.state, "ip", None)
@@ -55,9 +68,22 @@ def _contexto_auditoria(request: Request) -> tuple[str, str]:
 
     return ip, user_agent
 
-@router.get("/", response_model=list[UsuarioResponse])
-def listar_usuarios(db: Session = Depends(get_db)):
-    return db.scalars(select(Usuarios)).all()
+
+def _a_usuario_response(usuario) -> UsuarioResponse:
+    return UsuarioResponse(
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellidos=usuario.apellidos,
+        correo_electronico=str(usuario.correo),
+        tipo_identificacion=usuario.tipo_identificacion,
+        numero_identificacion=usuario.numero_identificacion,
+        genero=usuario.genero,
+        id_rol=usuario.id_rol,
+        fecha_registro=usuario.fecha_registro,
+        telefono=usuario.telefono,
+        direccion=usuario.direccion,
+        version=usuario.version,
+    )
 
 
 @router.get(
@@ -66,6 +92,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
     dependencies=[Depends(require_permission(1, 2))],
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )
@@ -231,10 +258,36 @@ def consultar_perfil(
     resultado = use_case.execute(usuario_actual)
     return UsuarioDetalleResponse(**resultado)
 
+@router.patch(
+    "/me",
+    response_model=UsuarioResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        412: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+)
+def editar_perfil_propio(
+    dto: EditarPerfilDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    usuario = _crear_editar_perfil_use_case(db).execute(
+        usuario_actual.id_usuario,
+        dto,
+        usuario_actual,
+    )
+
+    return _a_usuario_response(usuario)
 
 @router.patch(
     "/{id_usuario}",
     response_model=UsuarioResponse,
+    dependencies=[Depends(require_permission(1, 3))],
     responses={
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -245,37 +298,19 @@ def consultar_perfil(
         503: {"model": ErrorResponse},
     },
 )
-def editar_perfil(
+def editar_perfil_admin(
     id_usuario: int,
     dto: EditarPerfilAdminDTO,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    use_case = EditarPerfilUseCase(
-        usuarios_repo=SqlAlchemyUsuarioRepository(db),
-        cuentas_repo=SqlAlchemyCuentaRepository(db),
-        sesiones_repo=SqlAlchemySesionRepository(db),
-        eventos_repo=SqlAlchemyEventoRepository(db),
-        roles_repo=SqlAlchemyRolRepository(db),
-        db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
-    )
-    usuario = use_case.execute(id_usuario, dto, usuario_actual)
-    return UsuarioResponse(
-        id_usuario=usuario.id_usuario,
-        nombre=usuario.nombre,
-        apellidos=usuario.apellidos,
-        correo_electronico=str(usuario.correo),
-        tipo_identificacion=usuario.tipo_identificacion,
-        numero_identificacion=usuario.numero_identificacion,
-        genero=usuario.genero,
-        id_rol=usuario.id_rol,
-        fecha_registro=usuario.fecha_registro,
-        telefono=usuario.telefono,
-        direccion=usuario.direccion,
-        version=usuario.version,
+    usuario = _crear_editar_perfil_use_case(db).execute(
+        id_usuario,
+        dto,
+        usuario_actual,
     )
 
+    return _a_usuario_response(usuario)
 
 @router.get(
     "/{id_usuario}/detalle",
@@ -319,12 +354,16 @@ def gestionar_cuenta(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
     use_case = GestionarCuentaUseCase(
-        usuarios_repo=SqlAlchemyUsuarioRepository(db),
-        cuentas_repo=SqlAlchemyCuentaRepository(db),
-        eventos_repo=SqlAlchemyEventoRepository(db),
-        sesiones_repo=SqlAlchemySesionRepository(db),
+    usuarios_repo=SqlAlchemyUsuarioRepository(db),
+    cuentas_repo=SqlAlchemyCuentaRepository(db),
+    eventos_repo=SqlAlchemyEventoRepository(db),
+    sesiones_repo=SqlAlchemySesionRepository(db),
+    roles_repo=SqlAlchemyRolRepository(db),
+    db=db,
+    notificacion_service=NotificacionService(
+        port=SqlAlchemyNotificacionRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
-    )
+    ),
+)
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}
