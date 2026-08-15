@@ -7,16 +7,25 @@ editable únicamente mediante el endpoint administrativo.
 El estado de cuenta se gestiona exclusivamente mediante RF-06.
 """
 
+import datetime
 from typing import Optional
 
 from pydantic import ConfigDict, EmailStr, field_validator
 
+from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
 from src.shared.regex import NOMBRE, TELEFONO
 
 
 class EditarPerfilDTO(BaseDTO):
-    """Campos de perfil editables por el propio usuario."""
+    """Campos de perfil editables por el propio usuario.
+
+    ``tipo_identificacion``/``numero_identificacion``/``fecha_nacimiento``/
+    ``genero`` solo aplican para completar una cuenta ``PENDIENTE_DATOS``
+    (provista vía SSO de AgroFusion sin sincronización previa) — ver
+    :class:`EditarPerfilUseCase`. Una cuenta ya completa no puede reescribirlos
+    por esta vía.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -25,6 +34,10 @@ class EditarPerfilDTO(BaseDTO):
     correo_electronico: Optional[EmailStr] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+    tipo_identificacion: Optional[str] = None
+    numero_identificacion: Optional[str] = None
+    fecha_nacimiento: Optional[datetime.date] = None
+    genero: Optional[EnumUsuarioGenero] = None
     version: int
 
     @field_validator("nombre", "apellidos")

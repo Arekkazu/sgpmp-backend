@@ -24,7 +24,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
-from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
 
 
 TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
@@ -35,10 +35,15 @@ def _valor_columna(usuario: Usuario, campo: str):
 
     El detalle de auditoría conserva las claves de columna
     (``correo_electronico``), mientras que la entidad expone el correo
-    mediante el value object ``correo``.
+    mediante el value object ``correo``. ``fecha_nacimiento`` es un ``date``
+    de Python, no serializable directo por el driver JSONB.
     """
     if campo == "correo_electronico":
         return str(usuario.correo)
+
+    if campo == "fecha_nacimiento":
+        valor = usuario.fecha_nacimiento
+        return valor.isoformat() if valor is not None else None
 
     return getattr(usuario, campo, None)
 
@@ -95,6 +100,8 @@ class EditarPerfilUseCase:
             NotFoundError: Si el usuario objetivo no existe.
             ValidationError: Si se intenta cambiar el propio rol o el nuevo
                 rol no existe.
+            AuthorizationError: Si un usuario (no administrador) envía campos
+                de identificación fuera de una cuenta PENDIENTE_DATOS.
             BusinessRuleError: Si el cambio de correo no es permitido o se
                 intenta reasignar al último usuario activo de un rol protegido.
         """
@@ -168,6 +175,18 @@ class EditarPerfilUseCase:
         if dto.direccion is not None:
             cambios["direccion"] = dto.direccion
 
+        if dto.tipo_identificacion is not None:
+            cambios["tipo_identificacion"] = dto.tipo_identificacion
+
+        if dto.numero_identificacion is not None:
+            cambios["numero_identificacion"] = dto.numero_identificacion
+
+        if dto.fecha_nacimiento is not None:
+            cambios["fecha_nacimiento"] = dto.fecha_nacimiento
+
+        if dto.genero is not None:
+            cambios["genero"] = dto.genero.value
+
         if rol_modificado:
             cambios["id_rol"] = id_rol_nuevo
 
@@ -180,6 +199,34 @@ class EditarPerfilUseCase:
         cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(
             usuario.id_usuario
         )
+
+        # Los campos de identificación solo aplican para completar una cuenta
+        # PENDIENTE_DATOS (provista vía SSO sin sincronización previa) por el
+        # propio usuario. Un administrador puede corregirlos en cualquier
+        # momento a través del endpoint administrativo.
+        campos_identificacion_provistos = any([
+            dto.tipo_identificacion is not None,
+            dto.numero_identificacion is not None,
+            dto.fecha_nacimiento is not None,
+            dto.genero is not None,
+        ])
+
+        if (
+            campos_identificacion_provistos
+            and not es_edicion_administrativa
+            and (
+                cuenta_objetivo is None
+                or cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_PENDIENTE_DATOS
+            )
+        ):
+            raise AuthorizationError(
+                code="SIN_PERMISO_CAMPOS_IDENTIFICACION",
+                message=(
+                    "Solo se puede completar el documento de identidad, la fecha de "
+                    "nacimiento y el género mientras el perfil está pendiente de datos "
+                    "(cuenta provista vía SSO sin sincronización previa)."
+                ),
+            )
 
         # El correo únicamente puede cambiarse si la cuenta está activa.
         if (
@@ -250,10 +297,41 @@ class EditarPerfilUseCase:
             if "id_rol" in cambios:
                 usuario.id_rol = cambios["id_rol"]
 
+            if "tipo_identificacion" in cambios:
+                usuario.tipo_identificacion = cambios["tipo_identificacion"]
+
+            if "numero_identificacion" in cambios:
+                usuario.numero_identificacion = cambios["numero_identificacion"]
+
+            if "fecha_nacimiento" in cambios:
+                usuario.fecha_nacimiento = cambios["fecha_nacimiento"]
+
+            if "genero" in cambios:
+                usuario.genero = cambios["genero"]
+
             usuario = self.usuarios_repo.actualizar(
                 usuario,
                 dto.version,
             )
+
+            # 6b. Si la cuenta estaba PENDIENTE_DATOS y ya se completaron los 6
+            # campos personales, transicionar automáticamente a ACTIVO — cierra
+            # el loop de la provisión mínima SSO sin exigir intervención de un
+            # administrador.
+            if (
+                cuenta_objetivo is not None
+                and cuenta_objetivo.id_estado_cuenta == Cuenta.ESTADO_PENDIENTE_DATOS
+                and all([
+                    usuario.nombre,
+                    usuario.apellidos,
+                    usuario.tipo_identificacion,
+                    usuario.numero_identificacion,
+                    usuario.fecha_nacimiento,
+                    usuario.genero,
+                ])
+            ):
+                cuenta_objetivo.activar(datetime.now(timezone.utc))
+                cuenta_objetivo = self.cuentas_repo.guardar(cuenta_objetivo)
 
             # 7. Si cambia el correo, la cuenta vuelve a estado pendiente.
             if correo_modificado and cuenta_objetivo is not None:
