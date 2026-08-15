@@ -2,7 +2,7 @@
 
 Usa ``python-jose`` con algoritmo HS256. La clave secreta y el tiempo de
 expiración se leen de las variables de entorno ``SECRET_KEY`` y
-``JWT_EXPIRE_HOURS`` (por defecto 24 horas).
+``JWT_EXPIRE_HOURS`` (por defecto 8 horas, según RF-02).
 
 El payload del token contiene:
     - ``sub``: ID del usuario (string).
@@ -21,9 +21,17 @@ from src.shared.errors import AuthenticationError
 
 load_dotenv()
 
+JWT_EXPIRE_HOURS_DEFAULT = 8
+
+
+def _leer_horas_expiracion() -> int:
+    """Lee la vigencia configurable del JWT usando el valor RF-02 por defecto."""
+    return int(os.getenv("JWT_EXPIRE_HOURS", str(JWT_EXPIRE_HOURS_DEFAULT)))
+
+
 _SECRET_KEY = os.getenv("SECRET_KEY")
 _ALGORITHM = "HS256"
-_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "24"))
+_EXPIRE_HOURS = _leer_horas_expiracion()
 
 
 def create_token(jti: int, id_usuario: int, id_rol: int) -> tuple[str, datetime]:
