@@ -1,9 +1,11 @@
 """Caso de uso: edición de perfil de usuario (propio o por administrador).
 
-Un usuario solo puede modificar su propia información; un administrador puede
-editar cualquier perfil, incluyendo rol y estado de cuenta. Si el correo cambia,
-la cuenta pasa a PENDIENTE y se envía un correo de verificación al nuevo correo.
+La autorización se resuelve en dos endpoints del router: edición propia y
+edición administrativa con RBAC. Este caso de uso modifica datos de perfil y,
+cuando corresponde, el rol; los estados de cuenta se gestionan solo por RF-06.
+Si el correo cambia, la cuenta pasa a PENDIENTE y se envía verificación.
 """
+
 import secrets
 from datetime import datetime, timezone
 
@@ -19,43 +21,35 @@ from src.identity_access.domain.repositories.usuario_repository import UsuarioRe
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
+from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
 
-ROL_ADMINISTRADOR = 1
-ESTADOS_QUE_INVALIDAN_SESION = {3, 4, 5}  # Inactivo, Bloqueado, Eliminado
-TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
 
-TRANSICIONES_VALIDAS = {
-    1: {2, 5},          # Pendiente → Activo, Eliminado
-    2: {1, 3, 4, 5},    # Activo → Pendiente, Inactivo, Bloqueado, Eliminado
-    3: {2, 5},          # Inactivo → Activo, Eliminado
-    4: {2, 3, 5},       # Bloqueado → Activo, Inactivo, Eliminado
-    6: {2, 5},          # Pendiente Datos → Activo, Eliminado
-    # Eliminado (5) no tiene transiciones salientes
-}
+TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
 
 
 def _valor_columna(usuario: Usuario, campo: str):
-    """Lee el valor de un campo de la entidad por su nombre de columna ORM,
-    en una forma serializable a JSON para el detalle de auditoría.
+    """Lee el valor de un campo de la entidad por su nombre de columna ORM.
 
-    El audit detail conserva las claves de columna (``correo_electronico``);
-    la entidad expone el correo como value object ``correo``. ``fecha_nacimiento``
-    es un ``date`` de Python, no serializable directo por el driver JSONB.
+    El detalle de auditoría conserva las claves de columna
+    (``correo_electronico``), mientras que la entidad expone el correo
+    mediante el value object ``correo``. ``fecha_nacimiento`` es un ``date``
+    de Python, no serializable directo por el driver JSONB.
     """
     if campo == "correo_electronico":
         return str(usuario.correo)
+
     if campo == "fecha_nacimiento":
         valor = usuario.fecha_nacimiento
         return valor.isoformat() if valor is not None else None
+
     return getattr(usuario, campo, None)
 
 
 class EditarPerfilUseCase:
-    """Orquesta la edición de perfil con soporte de control de concurrencia y cambio de correo."""
+    """Orquesta la edición de perfil y las reglas de negocio asociadas."""
 
     def __init__(
         self,
@@ -67,15 +61,15 @@ class EditarPerfilUseCase:
         db: Session,
         notificacion_service=None,
     ):
-        """Inicializa el use case.
+        """Inicializa el caso de uso.
 
         Args:
-            usuarios_repo: Repositorio de dominio del agregado Usuario (lectura y actualización).
-            cuentas_repo: Repositorio de dominio del agregado Cuenta (estado y token).
-            sesiones_repo: Repositorio de dominio de sesiones (invalidación).
-            eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
-            roles_repo: Repositorio de dominio de roles (verificación de existencia).
-            db: Sesión SQLAlchemy activa del request.
+            usuarios_repo: Repositorio de usuarios.
+            cuentas_repo: Repositorio de cuentas.
+            sesiones_repo: Repositorio utilizado para invalidar sesiones.
+            eventos_repo: Repositorio de eventos de auditoría.
+            roles_repo: Repositorio de roles.
+            db: Sesión SQLAlchemy activa.
             notificacion_service: Servicio de notificaciones opcional.
         """
         self.usuarios_repo = usuarios_repo
@@ -86,158 +80,241 @@ class EditarPerfilUseCase:
         self.db = db
         self.notificacion_service = notificacion_service
 
-    def execute(self, id_usuario: int, dto: EditarPerfilAdminDTO, usuario_actual: UsuarioActual) -> Usuario:
-        """Aplica los cambios de perfil respetando los permisos del actor.
+    def execute(
+        self,
+        id_usuario: int,
+        dto: EditarPerfilDTO,
+        usuario_actual: UsuarioActual,
+    ) -> Usuario:
+        """Aplica cambios de perfil previamente autorizados por el router.
 
         Args:
             id_usuario: ID del usuario cuyo perfil se va a editar.
-            dto: Campos a actualizar (campos `None` se ignoran) y versión para control
-                 de concurrencia optimista.
+            dto: Campos permitidos para actualizar.
             usuario_actual: Usuario autenticado que realiza la operación.
 
         Returns:
-            Entidad :class:`Usuario` actualizada.
+            Entidad Usuario actualizada.
 
         Raises:
-            NotFoundError: Si el usuario objetivo no existe. HTTP 404.
-            AuthorizationError: Si un no-administrador intenta editar otro perfil
-                o modificar campos de rol/estado. HTTP 403.
-            ValidationError: Si un administrador intenta cambiar su propio rol/estado,
-                o el rol indicado no existe. HTTP 400.
-            BusinessRuleError: Si la transición de estado no es válida o se intenta
-                cambiar el correo de una cuenta no activa. HTTP 422.
-            PreconditionFailedError: Si la versión del registro no coincide (edición concurrente). HTTP 412.
+            NotFoundError: Si el usuario objetivo no existe.
+            ValidationError: Si se intenta cambiar el propio rol o el nuevo
+                rol no existe.
+            AuthorizationError: Si un usuario (no administrador) envía campos
+                de identificación fuera de una cuenta PENDIENTE_DATOS.
+            BusinessRuleError: Si el cambio de correo no es permitido o se
+                intenta reasignar al último usuario activo de un rol protegido.
         """
-        es_admin = usuario_actual.id_rol == ROL_ADMINISTRADOR
 
-        # 1. Buscar usuario objetivo
+        # 1. Buscar usuario objetivo.
         usuario = self.usuarios_repo.obtener_por_id(id_usuario)
+
         if usuario is None:
             raise NotFoundError(
                 code="USUARIO_NO_ENCONTRADO",
-                message="Usuario no encontrado. El registro que intenta modificar no existe en el sistema.",
+                message=(
+                    "Usuario no encontrado. El registro que intenta modificar "
+                    "no existe en el sistema."
+                ),
             )
 
-        cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
+        # 2. La autorización propio/administrativo se realiza en el router.
+        # EditarPerfilAdminDTO incorpora id_rol, mientras que EditarPerfilDTO
+        # utilizado para /usuarios/me no lo expone.
+        es_edicion_administrativa = hasattr(dto, "id_rol")
+        id_rol_nuevo = getattr(dto, "id_rol", None)
 
-        # 2. Verificar permisos del actor
-        if not es_admin:
-            if id_usuario != usuario_actual.id_usuario:
-                raise AuthorizationError(
-                    code="EDICION_NO_AUTORIZADA",
-                    message="Acceso restringido. Solo puede modificar su propia información.",
-                )
-            if dto.id_estado_cuenta is not None or dto.id_rol is not None:
-                raise AuthorizationError(
-                    code="SIN_PERMISO_CAMPOS_CRITICOS",
-                    message=(
-                        "Acceso restringido. No tiene permisos para modificar campos críticos "
-                        "(Rol/Estado). Esta acción ha sido reportada al sistema de auditoría."
-                    ),
-                )
-            campos_identificacion_provistos = any([
-                dto.tipo_identificacion is not None,
-                dto.numero_identificacion is not None,
-                dto.fecha_nacimiento is not None,
-                dto.genero is not None,
-            ])
-            if campos_identificacion_provistos and (
-                cuenta_objetivo is None
-                or cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_PENDIENTE_DATOS
-            ):
-                raise AuthorizationError(
-                    code="SIN_PERMISO_CAMPOS_IDENTIFICACION",
-                    message=(
-                        "Solo se puede completar el documento de identidad, la fecha de "
-                        "nacimiento y el género mientras el perfil está pendiente de datos "
-                        "(cuenta provista vía SSO sin sincronización previa)."
-                    ),
-                )
-        else:
+        rol_modificado = (
+            id_rol_nuevo is not None
+            and id_rol_nuevo != usuario.id_rol
+        )
+
+        if rol_modificado:
+            # Un usuario administrativo no puede cambiar su propio rol.
             if id_usuario == usuario_actual.id_usuario:
-                if dto.id_estado_cuenta is not None or dto.id_rol is not None:
-                    raise ValidationError(
-                        code="RESTRICCION_AUTOEDICION_ADMIN",
-                        message=(
-                            "Operación no permitida. Por seguridad, un administrador no puede "
-                            "desactivar su propia cuenta ni remover sus privilegios administrativos."
-                        ),
-                    )
-            if dto.id_rol is not None and self.roles_repo.obtener_por_id(dto.id_rol) is None:
+                raise ValidationError(
+                    code="RESTRICCION_AUTOEDICION_ADMIN",
+                    message=(
+                        "Operación no permitida. Por seguridad, no puede "
+                        "cambiar el rol de su propia cuenta."
+                    ),
+                    field="id_rol",
+                )
+
+            # El nuevo rol debe existir.
+            if self.roles_repo.obtener_por_id(id_rol_nuevo) is None:
                 raise ValidationError(
                     code="ROL_NO_EXISTE",
                     message="El rol asignado no existe en el sistema.",
                     field="id_rol",
                 )
 
-        # 3. Construir dict de cambios y capturar valores anteriores
+        # 3. Construir los cambios.
         correo_modificado = (
             dto.correo_electronico is not None
             and str(dto.correo_electronico) != str(usuario.correo)
         )
-        nuevo_correo = str(dto.correo_electronico) if correo_modificado else None
 
-        cambios = {"nombre": dto.nombre, "apellidos": dto.apellidos}
+        nuevo_correo = (
+            str(dto.correo_electronico)
+            if correo_modificado
+            else None
+        )
+
+        cambios = {
+            "nombre": dto.nombre,
+            "apellidos": dto.apellidos,
+        }
+
         if dto.correo_electronico is not None:
             cambios["correo_electronico"] = str(dto.correo_electronico)
+
         if dto.telefono is not None:
             cambios["telefono"] = dto.telefono
+
         if dto.direccion is not None:
             cambios["direccion"] = dto.direccion
-        if es_admin and dto.id_rol is not None:
-            cambios["id_rol"] = dto.id_rol
+
         if dto.tipo_identificacion is not None:
             cambios["tipo_identificacion"] = dto.tipo_identificacion
+
         if dto.numero_identificacion is not None:
             cambios["numero_identificacion"] = dto.numero_identificacion
+
         if dto.fecha_nacimiento is not None:
             cambios["fecha_nacimiento"] = dto.fecha_nacimiento
+
         if dto.genero is not None:
             cambios["genero"] = dto.genero.value
 
-        valores_anteriores = {campo: _valor_columna(usuario, campo) for campo in cambios}
+        if rol_modificado:
+            cambios["id_rol"] = id_rol_nuevo
 
-        nuevo_estado = dto.id_estado_cuenta if (es_admin and dto.id_estado_cuenta is not None) else None
-        estado_invalida_sesion = nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION if nuevo_estado else False
+        valores_anteriores = {
+            campo: _valor_columna(usuario, campo)
+            for campo in cambios
+        }
 
-        # 4. Revocar sesión activa ANTES del flush de estado (el trigger la desactiva después)
-        if (estado_invalida_sesion or correo_modificado) and cuenta_objetivo is not None:
-            sesion_activa = self.sesiones_repo.buscar_sesion_activa(cuenta_objetivo.id_cuenta_usuario)
-            if sesion_activa is not None:
-                self.sesiones_repo.invalidar_sesion(sesion_activa)
+        # 4. Obtener la cuenta asociada.
+        cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(
+            usuario.id_usuario
+        )
 
-        if correo_modificado and cuenta_objetivo is not None and cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:
+        # Los campos de identificación solo aplican para completar una cuenta
+        # PENDIENTE_DATOS (provista vía SSO sin sincronización previa) por el
+        # propio usuario. Un administrador puede corregirlos en cualquier
+        # momento a través del endpoint administrativo.
+        campos_identificacion_provistos = any([
+            dto.tipo_identificacion is not None,
+            dto.numero_identificacion is not None,
+            dto.fecha_nacimiento is not None,
+            dto.genero is not None,
+        ])
+
+        if (
+            campos_identificacion_provistos
+            and not es_edicion_administrativa
+            and (
+                cuenta_objetivo is None
+                or cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_PENDIENTE_DATOS
+            )
+        ):
+            raise AuthorizationError(
+                code="SIN_PERMISO_CAMPOS_IDENTIFICACION",
+                message=(
+                    "Solo se puede completar el documento de identidad, la fecha de "
+                    "nacimiento y el género mientras el perfil está pendiente de datos "
+                    "(cuenta provista vía SSO sin sincronización previa)."
+                ),
+            )
+
+        # El correo únicamente puede cambiarse si la cuenta está activa.
+        if (
+            correo_modificado
+            and cuenta_objetivo is not None
+            and cuenta_objetivo.id_estado_cuenta != Cuenta.ESTADO_ACTIVO
+        ):
             raise BusinessRuleError(
                 code="CUENTA_NO_ACTIVA",
-                message="No se puede cambiar el correo electrónico porque la cuenta no está activa.",
+                message=(
+                    "No se puede cambiar el correo electrónico porque "
+                    "la cuenta no está activa."
+                ),
                 field="correo_electronico",
             )
 
+        # 5. Proteger el último usuario activo de cualquier rol protegido.
+        if (
+            rol_modificado
+            and cuenta_objetivo is not None
+            and cuenta_objetivo.esta_activa()
+        ):
+            rol_actual = self.roles_repo.obtener_por_id(usuario.id_rol)
+
+            if (
+                rol_actual is not None
+                and rol_actual.es_protegido
+                and self.cuentas_repo.contar_usuarios_activos_por_rol(
+                    usuario.id_rol
+                ) <= 1
+            ):
+                raise BusinessRuleError(
+                    code="ULTIMO_ADMIN_PROTEGIDO",
+                    message=(
+                        "Operación denegada por seguridad. No se puede "
+                        "reasignar al último usuario activo de un rol protegido."
+                    ),
+                    field="id_rol",
+                )
+
+        # El rol forma parte del JWT. Cuando cambia el rol se invalidan las
+        # sesiones para que los nuevos permisos se apliquen en el siguiente login.
+        if (
+            correo_modificado or rol_modificado
+        ) and cuenta_objetivo is not None:
+            self.sesiones_repo.invalidar_todas_sesiones(
+                cuenta_objetivo.id_cuenta_usuario
+            )
+
         token_verificacion = None
+
         try:
-            # 5. Aplicar los cambios a la entidad y persistir (con control de concurrencia)
+            # 6. Aplicar cambios al usuario.
             usuario.nombre = cambios["nombre"]
             usuario.apellidos = cambios["apellidos"]
+
             if "correo_electronico" in cambios:
-                usuario.correo = Email(cambios["correo_electronico"])
+                usuario.correo = Email(
+                    cambios["correo_electronico"]
+                )
+
             if "telefono" in cambios:
                 usuario.telefono = cambios["telefono"]
+
             if "direccion" in cambios:
                 usuario.direccion = cambios["direccion"]
+
             if "id_rol" in cambios:
                 usuario.id_rol = cambios["id_rol"]
+
             if "tipo_identificacion" in cambios:
                 usuario.tipo_identificacion = cambios["tipo_identificacion"]
+
             if "numero_identificacion" in cambios:
                 usuario.numero_identificacion = cambios["numero_identificacion"]
+
             if "fecha_nacimiento" in cambios:
                 usuario.fecha_nacimiento = cambios["fecha_nacimiento"]
+
             if "genero" in cambios:
                 usuario.genero = cambios["genero"]
 
-            usuario = self.usuarios_repo.actualizar(usuario, dto.version)
+            usuario = self.usuarios_repo.actualizar(
+                usuario,
+                dto.version,
+            )
 
-            # 5b. Si la cuenta estaba PENDIENTE_DATOS y ya se completaron los 6
+            # 6b. Si la cuenta estaba PENDIENTE_DATOS y ya se completaron los 6
             # campos personales, transicionar automáticamente a ACTIVO — cierra
             # el loop de la provisión mínima SSO sin exigir intervención de un
             # administrador.
@@ -256,28 +333,24 @@ class EditarPerfilUseCase:
                 cuenta_objetivo.activar(datetime.now(timezone.utc))
                 cuenta_objetivo = self.cuentas_repo.guardar(cuenta_objetivo)
 
-            # 6. Actualizar estado en cuentas_usuarios si admin lo modificó
-            if nuevo_estado is not None and cuenta_objetivo is not None and nuevo_estado != cuenta_objetivo.id_estado_cuenta:
-                estado_actual = cuenta_objetivo.id_estado_cuenta
-                if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, set()):
-                    raise BusinessRuleError(
-                        code="TRANSICION_INVALIDA",
-                        message=f"No se puede cambiar el estado de la cuenta de {estado_actual} a {nuevo_estado} porque la transición no está permitida.",
-                    )
-                cuenta_objetivo.cambiar_estado(nuevo_estado)
-                self.cuentas_repo.guardar(cuenta_objetivo)
-
-            # 7. Poner cuenta en PENDIENTE si correo fue modificado
+            # 7. Si cambia el correo, la cuenta vuelve a estado pendiente.
             if correo_modificado and cuenta_objetivo is not None:
                 token_verificacion = secrets.token_urlsafe(32)
+
                 cuenta_objetivo.poner_pendiente(
                     calcular_hash_token(token_verificacion),
                     datetime.now(timezone.utc),
                 )
+
                 self.cuentas_repo.guardar(cuenta_objetivo)
 
-            # 8. Registrar evento de auditoría
-            tipo_actor = "Administrador" if es_admin else "Usuario"
+            # 8. Registrar auditoría.
+            tipo_actor = (
+                "Administrador"
+                if es_edicion_administrativa
+                else "Usuario"
+            )
+
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
                 exitoso=True,
@@ -287,21 +360,28 @@ class EditarPerfilUseCase:
                     "tipo_actor": tipo_actor,
                     "campos_modificados": list(cambios.keys()),
                     "valores_anteriores": valores_anteriores,
-                    "valores_nuevos": {campo: _valor_columna(usuario, campo) for campo in cambios},
+                    "valores_nuevos": {
+                        campo: _valor_columna(usuario, campo)
+                        for campo in cambios
+                    },
                 },
             )
 
             self.db.commit()
+
         except Exception:
             self.db.rollback()
             raise
 
-        # 9. Enviar email de verificación si el correo fue modificado (después del commit)
+        # 9. Enviar verificación si cambió el correo.
         if correo_modificado and token_verificacion is not None:
             send_email(
                 to=nuevo_correo,
                 subject="Verifica tu nuevo correo en SGPMP",
-                html_body=activation_email(usuario.nombre, token_verificacion),
+                html_body=activation_email(
+                    usuario.nombre,
+                    token_verificacion,
+                ),
             )
 
         if self.notificacion_service:
