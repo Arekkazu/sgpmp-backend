@@ -17,12 +17,12 @@ class CuentaRepository(ABC):
     """Contrato de acceso a datos para el agregado :class:`Cuenta`."""
 
     @abstractmethod
-    def crear(self, id_usuario: int, token: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
+    def crear(self, id_usuario: int, token_hash: str, id_estado_cuenta: Optional[int] = None) -> Cuenta:
         """Crea una cuenta nueva, por defecto en estado PENDIENTE con token de activación.
 
         Args:
             id_usuario: Usuario propietario de la nueva cuenta.
-            token: Token de activación inicial.
+            token_hash: Hash SHA-256 del token de activación inicial.
             id_estado_cuenta: Estado inicial. Si es ``None`` usa
                 :data:`Cuenta.ESTADO_PENDIENTE` (caso normal de autorregistro).
                 La provisión mínima SSO lo fija en
@@ -44,8 +44,15 @@ class CuentaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def obtener_por_token(self, token: str) -> Optional[Cuenta]:
-        """Obtiene la cuenta cuyo token de activación/recuperación coincide, o ``None``."""
+    def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
+        """Obtiene la cuenta cuyo hash de token coincide, o ``None``.
+
+        Args:
+            token_hash: Hash SHA-256 del token de activación o recuperación.
+
+        Returns:
+            La cuenta asociada al hash, o ``None`` si no existe.
+        """
         raise NotImplementedError
 
     @abstractmethod

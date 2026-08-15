@@ -109,11 +109,6 @@ curl -s -X POST http://localhost:8000/usuarios/me/fcm-token \
   }' | jq
 ```
 
-### Listar usuarios (básico, sin auth)
-```bash
-curl -s -X GET http://localhost:8000/usuarios/ | jq
-```
-
 ### Listar usuarios paginado (admin)
 ```bash
 curl -s -X GET "http://localhost:8000/usuarios/admin?pagina=1&tamano=20" \
@@ -123,6 +118,8 @@ curl -s -X GET "http://localhost:8000/usuarios/admin?pagina=1&tamano=20" \
 curl -s -X GET "http://localhost:8000/usuarios/admin?nombre=Juan&id_rol=2&pagina=1&tamano=10" \
   -H "Authorization: Bearer <TOKEN>" | jq
 ```
+> El endpoint legacy `GET /usuarios/` fue retirado por RF-11 porque no tenía
+> autenticación, no estaba paginado y exponía datos personales completos.
 
 ### Ver detalle de un usuario (admin)
 ```bash

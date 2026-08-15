@@ -19,7 +19,7 @@ from src.configuration.application.use_cases.infraestructuras.consultar_infraest
 from src.configuration.application.use_cases.infraestructuras.desactivar_infraestructura_use_case import DesactivarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.editar_infraestructura_use_case import EditarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.registrar_infraestructura_use_case import RegistrarInfraestructuraUseCase
-from src.configuration.infrastructure.adapters.infraestructura_stub_adapter import InfraestructuraStubAdapter
+from src.configuration.infrastructure.adapters.infraestructura_dependency_adapter import InfraestructuraDependencyAdapter
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
 from src.configuration.infrastructure.repositories.auditoria_infraestructura_repository import SqlAlchemyAuditoriaInfraestructuraRepository
@@ -167,7 +167,7 @@ def desactivar_infraestructura(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
-        dependency_port=InfraestructuraStubAdapter(),
+        dependency_port=InfraestructuraDependencyAdapter(db),
     )
     infra = use_case.execute(id_infraestructura, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)

@@ -6,7 +6,6 @@ gestión de estado de cuenta y registro de tokens FCM.
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -23,7 +22,6 @@ from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarC
 from src.shared.rbac import require_permission
 from src.identity_access.infrastructure.dto.perfil_dto import (EditarPerfilAdminDTO, EditarPerfilDTO)
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
-from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
@@ -74,10 +72,6 @@ def _a_usuario_response(usuario) -> UsuarioResponse:
         version=usuario.version,
     )
 
-@router.get("/", response_model=list[UsuarioResponse])
-def listar_usuarios(db: Session = Depends(get_db)):
-    return db.scalars(select(Usuarios)).all()
-
 
 @router.get(
     "/admin",
@@ -85,6 +79,7 @@ def listar_usuarios(db: Session = Depends(get_db)):
     dependencies=[Depends(require_permission(1, 2))],
     responses={
         400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
     },
 )

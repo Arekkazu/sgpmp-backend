@@ -19,6 +19,7 @@ from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
 from src.identity_access.infrastructure.email_templates import activation_email
@@ -259,7 +260,7 @@ class EditarPerfilUseCase:
                 token_verificacion = secrets.token_urlsafe(32)
 
                 cuenta_objetivo.poner_pendiente(
-                    token_verificacion,
+                    calcular_hash_token(token_verificacion),
                     datetime.now(timezone.utc),
                 )
 
