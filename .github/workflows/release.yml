@@ -1,0 +1,46 @@
+name: Release a main
+
+# TODO(POC): "poc/docs-automation-setup" está temporalmente en la lista de
+# branches solo para poder validar este workflow sin publicar un release
+# real desde main. Quitarlo antes de promover esta plantilla a main.
+on:
+  push:
+    branches: [main, poc/docs-automation-setup]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar dependencias de release
+        run: |
+          npm install --no-save \
+            semantic-release \
+            @semantic-release/commit-analyzer \
+            @semantic-release/release-notes-generator \
+            @semantic-release/changelog \
+            @semantic-release/exec \
+            @semantic-release/git \
+            @semantic-release/github \
+            conventional-changelog-conventionalcommits
+
+      - name: Ejecutar semantic-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Confirmar publicación
+        run: echo "Release completado. Ver CHANGELOG.md y TRAZABILIDAD_CAMBIOS.md actualizados en este mismo commit."

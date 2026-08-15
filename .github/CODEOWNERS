@@ -1,0 +1,20 @@
+# CODEOWNERS
+# Reemplazar los @usuario por los handles reales de GitHub del equipo.
+# Rutas ajustadas a la estructura real del repo (src/<modulo>/...).
+
+# Regla general: todo PR requiere al menos un revisor de Análisis
+* @equipo-analisis
+
+# Módulos de criticidad Alta -> doble revisión
+/src/biological_assets/   @equipo-analisis @lider-tecnico
+/src/prediction/          @equipo-analisis @lider-tecnico
+/src/identity_access/     @equipo-analisis @lider-tecnico
+
+# Configuración transversal -> impacta a todos los módulos
+/src/configuration/       @equipo-analisis @lider-tecnico
+
+# Documentación del área de Análisis
+/docs/                    @equipo-analisis
+/anotaciones/             @equipo-analisis
+CONTRIBUTING.md           @equipo-analisis
+TRAZABILIDAD_CAMBIOS.md   @equipo-analisis

@@ -1,0 +1,65 @@
+name: PR checks (main)
+
+# TODO(POC): "poc/docs-automation-setup" está temporalmente en la lista de
+# branches solo para poder validar este workflow sin abrir un PR contra
+# main/dev reales. Quitarlo antes de promover esta plantilla a main.
+on:
+  pull_request:
+    branches: [main, poc/docs-automation-setup]
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  # 1. Valida que cada commit del PR sigue Conventional Commits
+  lint-commits:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.json
+
+  # 2. Verifica que el título del PR y al menos un commit referencian
+  #    un RF/RNF válido y, si aplica, un RFC.
+  verify-traceability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Comprobar referencia a RF/RNF en el título del PR
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "Título del PR: $PR_TITLE"
+          if ! echo "$PR_TITLE" | grep -Eq '\((RF|RNF)-[0-9]+\)'; then
+            echo "::error::El título del PR debe incluir un ID de requerimiento, ej: (RF-68)"
+            exit 1
+          fi
+      - name: Comprobar que el requerimiento existe en la RTM
+        run: |
+          # Placeholder: aquí se puede llamar a un script que lea la RTM
+          # (exportada como CSV/JSON en el repo, o vía API de Sheets) y
+          # confirme que el RF-XXX referenciado existe y no está en
+          # estado "Descartado". Se deja como paso manual/pendiente hasta
+          # que la RTM tenga una fuente consultable por CI.
+          echo "TODO: validar RF contra la RTM cuando esté disponible como fuente consultable"
+
+  # 3. Build y pruebas — stack real: Python 3.13 / FastAPI / pytest
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar pruebas (excluye integración, requiere Postgres dedicado)
+        run: pytest -m "not integration" --maxfail=1
