@@ -26,7 +26,7 @@ feature/* ──PR──▶ [1] pr-checks.yml ──merge──▶ main ──pu
 | | |
 |---|---|
 | Dispara con | Push directo a `main` (justo después de que un PR se fusiona) |
-| Qué hace | (a) `semantic-release` analiza los commits desde la última versión · (b) calcula el siguiente número SemVer · (c) genera/actualiza `CHANGELOG.md` · (d) crea el tag `vX.Y.Z` y el Release en GitHub · (e) corre `scripts/append_trazabilidad.js`, que agrega la fila correspondiente a `TRAZABILIDAD_CAMBIOS.md` |
+| Qué hace | (a) `semantic-release` analiza los commits desde la última versión · (b) calcula el siguiente número SemVer · (c) genera/actualiza `CHANGELOG.md` · (d) crea el tag `vX.Y.Z` y el Release en GitHub · (e) corre `scripts/append_trazabilidad.js`, que agrega la fila correspondiente a `docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md` |
 | Bloquea algo | No — es informativo/generativo, no vuelve a validar el código |
 | Resultado visible | Nuevo commit `chore(release): vX.Y.Z` en `main`, tag nuevo, Release en GitHub con las notas |
 
@@ -36,11 +36,33 @@ feature/* ──PR──▶ [1] pr-checks.yml ──merge──▶ main ──pu
   primero definir Dockerfile y ambiente de destino (ver sección 16 del manual
   de Análisis).
 
+## Estructura de archivos
+
+```
+.commitlintrc.json          # config, raíz por convención de la herramienta
+.releaserc.json             # config, raíz por convención de la herramienta
+.github/
+├── CODEOWNERS
+├── PULL_REQUEST_TEMPLATE.md
+├── CONTRIBUTING.md
+├── PIPELINES.md            # este archivo
+└── workflows/
+    ├── pr-checks.yml
+    └── release.yml
+docs/
+└── trazabilidad/
+    └── TRAZABILIDAD_CAMBIOS.md
+scripts/
+└── append_trazabilidad.js
+```
+
 ## Orden de instalación en un repositorio nuevo
 
-1. Copiar `.github/`, `scripts/`, `.releaserc.json`, `.commitlintrc.json`,
-   `CONTRIBUTING.md` y `TRAZABILIDAD_CAMBIOS.md` a la raíz del repo.
-2. Activar branch protection en `main` (sección 5 de `CONTRIBUTING.md`).
+1. Copiar `.github/` (completo), `scripts/`, `.releaserc.json` y
+   `.commitlintrc.json` a la raíz del repo destino. Crear
+   `docs/trazabilidad/` (puede empezar vacío; `append_trazabilidad.js` crea
+   el archivo con encabezado en el primer release si no existe).
+2. Activar branch protection en `main` (sección 5 de `.github/CONTRIBUTING.md`).
 3. Reemplazar los placeholders marcados con `TODO` en `pr-checks.yml`.
 4. Reemplazar los `@usuario` de `CODEOWNERS` por los handles reales.
 5. Hacer un primer PR de prueba para confirmar que los workflows encadenan

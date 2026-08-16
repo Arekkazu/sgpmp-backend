@@ -71,9 +71,9 @@ Un PR no puede fusionarse hasta que:
 |---|---|---|
 | Al abrir/actualizar el PR | Lint de commits, validación de que el título/commits referencian un RF o BUG válido, y `pytest` | `.github/workflows/pr-checks.yml` |
 | Al mergear a `main` | Cálculo de versión SemVer según el tipo de commit, generación de `CHANGELOG.md`, creación del tag y del Release en GitHub | `.github/workflows/release.yml` |
-| Al crear el Release | Append automático de una fila a `TRAZABILIDAD_CAMBIOS.md` con versión, PRs incluidos y RF/RFC referenciados | `scripts/append_trazabilidad.js`, invocado desde `release.yml` |
+| Al crear el Release | Append automático de una fila a `docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md` con versión, PRs incluidos y RF/RFC referenciados | `scripts/append_trazabilidad.js`, invocado desde `release.yml` |
 
-Ese archivo `TRAZABILIDAD_CAMBIOS.md` es lo que se entrega al director: una
+Ese archivo `docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md` es lo que se entrega al director: una
 tabla generada por el pipeline, no mantenida a mano, que cruza versión →
 requerimientos → PRs → fecha.
 
