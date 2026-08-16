@@ -4,21 +4,27 @@
 > queda fuera de esta primera fase porque el repo aún no tiene Dockerfile ni
 > infraestructura de despliegue definida — se agregará como fase siguiente.
 
-Dos workflows, cada uno con un disparador distinto:
+Dos workflows, cada uno con un disparador distinto, sobre un flujo de **dos
+etapas de aprobación** (ver `.github/CONTRIBUTING.md` sección 1):
 
 ```
-feature/* ──PR──▶ [1] pr-checks.yml ──merge──▶ main ──push──▶ [2] release.yml
-                    (valida)                                    (versiona)
+feature/* ──PR──▶ [1] pr-checks.yml ──▶ dev ──PR──▶ [1] pr-checks.yml ──▶ main ──push──▶ [2] release.yml
+              (valida)     aprueban:                (valida)   aprueban:                    (versiona)
+                       Desarrollo + IoT                    Pruebas + Proyecto
 ```
+
+`pr-checks.yml` es el **mismo workflow** en ambas etapas (mismos tres jobs);
+lo que cambia entre una y otra es quién aprueba el PR, no qué se valida
+automáticamente.
 
 ## 1. `pr-checks.yml` — Validación de Pull Request
 
 | | |
 |---|---|
-| Dispara con | Abrir, editar o actualizar un PR contra `main` |
+| Dispara con | Abrir, editar o actualizar un PR contra `dev` **o** contra `main` |
 | Qué hace | (a) Lint de commits con Conventional Commits · (b) verifica que el título del PR referencia un RF/RNF válido · (c) corre `pytest` |
-| Bloquea el merge si | Cualquier job falla — se configura como *required status check* en branch protection |
-| Quién lo mira | Desarrollo (mientras corrige su PR) y el revisor (antes de aprobar) |
+| Bloquea el merge si | Cualquier job falla — se configura como *required status check* en branch protection (en ambas ramas) |
+| Quién lo mira | Desarrollo (mientras corrige su PR) y quien deba aprobar esa etapa (Desarrollo/IoT en `dev`, Pruebas/Proyecto en `main`) |
 | Resultado visible | ✅/❌ en la pestaña "Checks" del PR, directo en GitHub |
 
 ## 2. `release.yml` — Versionamiento y trazabilidad
@@ -35,6 +41,11 @@ feature/* ──PR──▶ [1] pr-checks.yml ──merge──▶ main ──pu
 - `deploy.yml`: build de imagen + despliegue a Staging/Producción. Requiere
   primero definir Dockerfile y ambiente de destino (ver sección 16 del manual
   de Análisis).
+- Branch protection en `dev` y `main` (sección 6 de `.github/CONTRIBUTING.md`)
+  — sin esto, nada de lo anterior es obligatorio todavía, es solo lo que
+  correría automáticamente si el PR se abre.
+- Reemplazar los `@usuario` de `CODEOWNERS` por los handles reales de
+  Líder de Desarrollo, Líder de IoT, Líder de Pruebas y Líder de Proyecto.
 
 ## Estructura de archivos
 

@@ -1,11 +1,15 @@
-name: PR checks (main)
+name: PR checks (dev / main)
 
+# "dev" y "main" son los dos destinos reales del flujo de dos etapas (ver
+# .github/CONTRIBUTING.md sección 1): feature->dev lo aprueban Desarrollo/IoT,
+# dev->main lo aprueban Pruebas/Proyecto. Mismos checks en ambos casos.
+#
 # TODO(POC): "poc/docs-automation-setup" está temporalmente en la lista de
 # branches solo para poder validar este workflow sin abrir un PR contra
-# main/dev reales. Quitarlo antes de promover esta plantilla a main.
+# dev/main reales. Quitarlo antes de promover esta plantilla.
 on:
   pull_request:
-    branches: [main, poc/docs-automation-setup]
+    branches: [dev, main, poc/docs-automation-setup]
     types: [opened, edited, synchronize, reopened]
 
 jobs:
