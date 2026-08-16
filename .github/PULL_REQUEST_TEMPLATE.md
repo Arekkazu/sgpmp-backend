@@ -25,6 +25,10 @@
 - [ ] Pruebas unitarias/integración agregadas o actualizadas (`pytest`)
 - [ ] Documentación (manual técnico / manual de usuario) actualizada si el cambio afecta un flujo visible
 - [ ] No quedan credenciales, endpoints internos o datos sensibles en el diff
+- [ ] Pedí revisión ("Request review") a las personas correctas según el destino de este PR:
+      → hacia `dev`: Líder de Desarrollo + Líder de IoT (si aplica)
+      → hacia `main`: Líder de Pruebas + Líder de Proyecto
+- [ ] (opcional) Etiqueté a Líder de Análisis para visibilidad — su revisión no bloquea el merge
 
 ## Impacto
 

@@ -1,20 +1,35 @@
 # CODEOWNERS
 # Reemplazar los @usuario por los handles reales de GitHub del equipo.
-# Rutas ajustadas a la estructura real del repo (src/<modulo>/...).
+#
+# Flujo de dos etapas (ver .github/CONTRIBUTING.md secciones 1 y 3):
+#   feature/* -> PR -> dev   : aprueban Líder de Desarrollo y Líder de IoT
+#   dev       -> PR -> main  : aprueban Líder de Pruebas y Líder de Proyecto
+#   Líder de Análisis participa como revisor en ambos, pero NO es aprobador
+#   obligatorio (por eso no aparece en este archivo).
+#
+# Limitación técnica importante: CODEOWNERS es un solo archivo por repo,
+# basado en RUTA de archivo — GitHub no distingue hacia qué rama va el PR.
+# Por eso acá se lista la unión de todos los leads como aprobadores válidos
+# (satisface el check "Require review from Code Owners" en cualquier
+# destino); cuál de ellos debe aprobar según si el PR va a dev o a main es
+# una convención de equipo, no algo que este archivo fuerce por sí solo.
+# Quien abre el PR es responsable de pedir la revisión (Request review) a
+# las personas correctas según el destino.
 
-# Regla general: todo PR requiere al menos un revisor de Análisis
-* @equipo-analisis
+# Regla general: cualquier PR requiere al menos 1 aprobación de este grupo
+* @lider-desarrollo @lider-iot @lider-pruebas @lider-proyecto
 
-# Módulos de criticidad Alta -> doble revisión
-/src/biological_assets/   @equipo-analisis @lider-tecnico
-/src/prediction/          @equipo-analisis @lider-tecnico
-/src/identity_access/     @equipo-analisis @lider-tecnico
+# Módulos con componente IoT/sensores -> siempre incluir a Líder de IoT
+/src/telemetry/            @lider-desarrollo @lider-iot
+
+# Módulos de criticidad Alta -> requieren Líder de Desarrollo explícitamente
+/src/biological_assets/    @lider-desarrollo @lider-iot
+/src/prediction/           @lider-desarrollo @lider-iot
+/src/identity_access/      @lider-desarrollo
 
 # Configuración transversal -> impacta a todos los módulos
-/src/configuration/       @equipo-analisis @lider-tecnico
+/src/configuration/        @lider-desarrollo
 
-# Documentación del área de Análisis
-/docs/                                    @equipo-analisis
-/anotaciones/                             @equipo-analisis
-/.github/CONTRIBUTING.md                  @equipo-analisis
-/docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md @equipo-analisis
+# Documentación de gobernanza y trazabilidad
+/.github/CONTRIBUTING.md                   @lider-desarrollo @lider-pruebas
+/docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md @lider-desarrollo @lider-pruebas
