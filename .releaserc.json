@@ -22,7 +22,7 @@
       "prepareCmd": "node scripts/append_trazabilidad.js ${nextRelease.version} ${nextRelease.gitTag} ${lastRelease.version}"
     }],
     ["@semantic-release/git", {
-      "assets": ["CHANGELOG.md", "TRAZABILIDAD_CAMBIOS.md"],
+      "assets": ["CHANGELOG.md", "docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md"],
       "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
     }],
     "@semantic-release/github"
