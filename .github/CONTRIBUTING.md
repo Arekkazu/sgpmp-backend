@@ -52,6 +52,13 @@ RFC: RFC-014
 Todo commit que no incluya un ID de RF o BUG válido es rechazado automáticamente
 por el workflow `pr-checks.yml` (ver sección 4).
 
+> Al mergear `dev` u otra rama dentro de tu `feature/*` (para actualizarla),
+> dejá el mensaje de merge que genera Git por defecto (`Merge branch '...'`).
+> El lint de commits los ignora automáticamente solo si conservan ese formato
+> — si le escribís un mensaje propio (ej. `merge: actualizo con dev`), el
+> commit sí se linta como si fuera uno normal y el check falla por no tener
+> un tipo válido ni referencia a RF.
+
 ## 3. Pull Request hacia `main`
 
 Todo cambio a `main` pasa por PR usando la plantilla de
