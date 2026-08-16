@@ -14,7 +14,7 @@ const fs = require("fs");
 const path = require("path");
 
 const [, , nextVersion, gitTag, lastVersion] = process.argv;
-const FILE = path.join(__dirname, "..", "TRAZABILIDAD_CAMBIOS.md");
+const FILE = path.join(__dirname, "..", "docs", "trazabilidad", "TRAZABILIDAD_CAMBIOS.md");
 
 function getCommitsSinceLastRelease() {
   const range = lastVersion && lastVersion !== "undefined"
@@ -61,6 +61,7 @@ function buildRow() {
 
 function ensureFile() {
   if (!fs.existsSync(FILE)) {
+    fs.mkdirSync(path.dirname(FILE), { recursive: true });
     const header = `# Trazabilidad de cambios a main\n\n` +
       `Este archivo se genera automáticamente en cada release (ver ` +
       `\`scripts/append_trazabilidad.js\` y \`.releaserc.json\`). No editar a mano.\n\n` +
