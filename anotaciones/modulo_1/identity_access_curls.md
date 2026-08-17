@@ -138,15 +138,43 @@ curl -s -X GET "http://localhost:8000/usuarios/admin?pagina=1&tamano=20" \
 # Con filtros opcionales
 curl -s -X GET "http://localhost:8000/usuarios/admin?nombre=Juan&id_rol=2&pagina=1&tamano=10" \
   -H "Authorization: Bearer <TOKEN>" | jq
+
+# Filtro por nombre de estado de cuenta (case-insensitive), alternativa a id_estado
+curl -s -X GET "http://localhost:8000/usuarios/admin?estado_cuenta=Activo" \
+  -H "Authorization: Bearer <TOKEN>" | jq
+
+# Refresco incremental: solo usuarios modificados (datos o estado de cuenta)
+# desde el último `ultima_modificacion` visto en una fila del listado previo
+curl -s -X GET "http://localhost:8000/usuarios/admin?actualizado_desde=2026-08-17T20:00:00Z" \
+  -H "Authorization: Bearer <TOKEN>" | jq
 ```
 > El endpoint legacy `GET /usuarios/` fue retirado por RF-11 porque no tenía
 > autenticación, no estaba paginado y exponía datos personales completos.
+
+> El listado ordena por `fecha_registro` descendente y cada item incluye
+> `ultima_modificacion` (máximo entre `fecha_actualizacion` del usuario y
+> `fecha_cambio_estado` de su cuenta) para que el frontend detecte filas
+> desactualizadas sin recargar la página completa (RF-11, mecanismo de
+> refresco). Si el resultado queda vacío (por filtros o por
+> `actualizado_desde`), la respuesta incluye `mensaje` con un texto
+> explicativo en vez de solo `items: []`.
+
+> Solo el rol Administrador tiene el permiso `admin_leer_usuario`
+> (`require_permission(1, 2)`). Un token de Veterinario (o cualquier otro rol
+> no administrativo) recibe `403 ACCESO_DENEGADO`:
+> ```bash
+> curl -s -X GET http://localhost:8000/usuarios/admin \
+>   -H "Authorization: Bearer <TOKEN_VETERINARIO>" | jq
+> # {"error_code":"ACCESO_DENEGADO","message":"Acceso denegado. Su rol no tiene permisos para realizar esta operación."}
+> ```
 
 ### Ver detalle de un usuario (admin)
 ```bash
 curl -s -X GET http://localhost:8000/usuarios/<ID_USUARIO>/detalle \
   -H "Authorization: Bearer <TOKEN>" | jq
 ```
+> Comparte `require_permission(1, 2)` con el listado — mismo 403 para roles
+> no administrativos (ver nota de RF-11 arriba).
 
 ### Gestionar cuenta de usuario (admin)
 ```bash

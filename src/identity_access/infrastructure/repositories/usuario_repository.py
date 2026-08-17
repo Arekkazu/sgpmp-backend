@@ -7,9 +7,10 @@ aplicación trabaja siempre con la entidad pura.
 """
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.exc import InternalError
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,6 +21,7 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
+from src.identity_access.infrastructure.models.estados_cuentas_model import EstadosCuentas
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import ConflictError, PreconditionFailedError
@@ -72,6 +74,11 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
     @staticmethod
     def _a_detalle(orm: Usuarios) -> UsuarioDetalle:
         """Construye la proyección de lectura desde el grafo ORM (usuario+rol+estado)."""
+        candidatos_modificacion = [orm.fecha_actualizacion]
+        if orm.cuentas_usuarios is not None:
+            candidatos_modificacion.append(orm.cuentas_usuarios.fecha_cambio_estado)
+        candidatos_modificacion = [c for c in candidatos_modificacion if c is not None]
+
         return UsuarioDetalle(
             id_usuario=orm.id_usuario,
             nombre=orm.nombre,
@@ -86,6 +93,7 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             estado_cuenta=(
                 orm.cuentas_usuarios.estados_cuentas.nombre if orm.cuentas_usuarios else None
             ),
+            ultima_modificacion=max(candidatos_modificacion) if candidatos_modificacion else None,
         )
 
     # ── Operaciones del puerto ──────────────────────────────────────────────
@@ -194,8 +202,13 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         id_rol: Optional[int],
         offset: int,
         limit: int,
+        estado_cuenta: Optional[str] = None,
+        actualizado_desde: Optional[datetime] = None,
     ) -> list[UsuarioDetalle]:
-        query = self._query_detalle_con_filtros(nombre, correo, id_estado, id_rol)
+        query = self._query_detalle_con_filtros(
+            nombre, correo, id_estado, id_rol, estado_cuenta, actualizado_desde
+        )
+        query = query.order_by(Usuarios.fecha_registro.desc(), Usuarios.id_usuario.desc())
         return [self._a_detalle(o) for o in query.offset(offset).limit(limit).all()]
 
     def contar(
@@ -204,10 +217,22 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
         correo: Optional[str],
         id_estado: Optional[int],
         id_rol: Optional[int],
+        estado_cuenta: Optional[str] = None,
+        actualizado_desde: Optional[datetime] = None,
     ) -> int:
-        return self._query_detalle_con_filtros(nombre, correo, id_estado, id_rol).count()
+        return self._query_detalle_con_filtros(
+            nombre, correo, id_estado, id_rol, estado_cuenta, actualizado_desde
+        ).count()
 
-    def _query_detalle_con_filtros(self, nombre, correo, id_estado, id_rol):
+    def _query_detalle_con_filtros(
+        self,
+        nombre,
+        correo,
+        id_estado,
+        id_rol,
+        estado_cuenta: Optional[str] = None,
+        actualizado_desde: Optional[datetime] = None,
+    ):
         query = (
             self.db.query(Usuarios)
             .join(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
@@ -229,4 +254,15 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             query = query.filter(CuentasUsuarios.id_estado_cuenta == id_estado)
         if id_rol is not None:
             query = query.filter(Usuarios.id_rol == id_rol)
+        if estado_cuenta:
+            query = query.join(
+                EstadosCuentas, EstadosCuentas.id_estado_cuenta == CuentasUsuarios.id_estado_cuenta
+            ).filter(func.lower(EstadosCuentas.nombre) == estado_cuenta.strip().lower())
+        if actualizado_desde is not None:
+            query = query.filter(
+                func.greatest(
+                    Usuarios.fecha_actualizacion, CuentasUsuarios.fecha_cambio_estado
+                )
+                > actualizado_desde
+            )
         return query

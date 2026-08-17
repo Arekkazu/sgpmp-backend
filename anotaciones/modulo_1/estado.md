@@ -23,12 +23,12 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-08 | Recuperación de contraseña | ⚠️ Cumple parcialmente | ~70% |
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
 | RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~80% |
-| RF-11 | Visualización de usuarios (listado) | ⚠️ Cumple parcialmente | ~70% |
-| RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~85% |
+| RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
+| RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
 | RF-14 | Notificar a los usuarios | ⚠️ Cumple parcialmente | ~75% |
 
-**Lectura rápida:** el módulo está bastante más avanzado de lo que sugeriría el estado "Pendiente" marcado en cada ficha de requerimiento — la mayoría de los flujos centrales (registro, login, roles, permisos, contraseñas, auditoría, notificaciones) tienen implementación real y no trivial, con triggers de base de datos como segunda capa de defensa. Los gaps que aparecen no son "no se hizo nada", sino puntos concretos y acotados — el más serio de todos es el endpoint sin protección de RF-11 (ver más abajo) y el almacenamiento de tokens en texto plano (RF-08/RF-09).
+**Lectura rápida:** el módulo está bastante más avanzado de lo que sugeriría el estado "Pendiente" marcado en cada ficha de requerimiento — la mayoría de los flujos centrales (registro, login, roles, permisos, contraseñas, auditoría, notificaciones) tienen implementación real y no trivial, con triggers de base de datos como segunda capa de defensa. Los gaps que aparecen no son "no se hizo nada", sino puntos concretos y acotados. Los dos más serios que encontró esta auditoría — el endpoint sin protección de RF-11 y el sobre-permisionamiento RBAC de `leer_usuario` (RF-11/RF-12) — ya fueron corregidos (PR #13 y issue #17 respectivamente, ver esas secciones). El almacenamiento de tokens en texto plano (RF-08/RF-09) también fue corregido — ver `rf01_rf08_rf09_hash_tokens.md`.
 
 ---
 
@@ -256,26 +256,29 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 
 ## RF-11 — Visualización de usuarios del sistema (listado paginado)
 
-**Veredicto: ⚠️ Cumple parcialmente (~70%)** — el endpoint "oficial" está bien hecho, pero coexiste con un endpoint viejo sin ninguna protección que es un problema de seguridad real.
+**Veredicto: ✅ Cumple (~95%)** — el endpoint legacy sin protección fue retirado (PR #13) y el sobre-permisionamiento RBAC fue corregido (issue #17), ambos hallazgos críticos que tenía esta auditoría en su versión original (2026-08-05). Los gaps restantes se cerraron en la misma corrección.
 
 ### Qué SÍ cumple
 
-- Endpoint de listado para administradores con filtros combinables (nombre, correo, estado, rol) usando lógica "Y" entre ellos, tal como pide el RF.
+- Endpoint de listado para administradores con filtros combinables (nombre, correo, estado, rol, y ahora también `estado_cuenta` por nombre) usando lógica "Y" entre ellos, tal como pide el RF.
 - **Límite máximo de 50 registros por página**, validado en dos capas.
-- Solo expone los campos permitidos (nombre, correo, rol, estado) — nada de contraseñas, tokens ni datos sensibles.
+- Solo expone los campos permitidos (nombre, correo, rol, estado, última modificación) — nada de contraseñas, tokens ni datos sensibles.
 - Cada consulta queda registrada en auditoría.
+- **RBAC exclusivo de Administrador**: corregido en el issue #17 (2026-08-17) — se revocaron los permisos `prod_leer_usuario`, `vet_leer_usuario`, `ing_leer_usuario`, `cont_leer_usuario` que otorgaban acceso a roles no administrativos. Verificado en vivo: un token de Veterinario recibe `403 ACCESO_DENEGADO`. Ver [`pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md`](./pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md).
+- **Ordena por `fecha_registro` descendente**, agregado en el mismo fix.
+- **Mecanismo de refresco**: cada item expone `ultima_modificacion` (máximo entre `fecha_actualizacion` del usuario y `fecha_cambio_estado` de su cuenta) y el endpoint acepta `actualizado_desde` para polling incremental — cumple la disyunción "tiempo real o refresco manual" del RF sin necesitar WebSocket/SSE (infraestructura que el proyecto no tiene en ningún módulo).
+- Resultado vacío (por filtros o por `actualizado_desde`) incluye un `mensaje` informativo, no solo `items: []`.
+- **Endpoint legacy `GET /usuarios/` retirado** (PR #13, 2026-08-15) — ya no existe, responde `405`.
 
 ### Qué NO cumple / gaps
 
-- **No ordena por fecha de registro descendente** como pide el RF — el orden queda a discreción del motor de base de datos, no hay ningún `ORDER BY` explícito.
-- **No hay actualización en tiempo real ni websockets** — el RF pide que la vista se mantenga consistente ante cambios concurrentes; hoy eso requeriría refresco manual completo, y ni siquiera hay indicador visual de eso (aunque esto último es responsabilidad de frontend).
-- **Hallazgo de seguridad relevante: existe un endpoint más viejo (`GET /usuarios/`) sin autenticación ni control de acceso**, que ya estaba documentado como "básico, sin auth" en las notas de curls del proyecto. Este endpoint devuelve **todos los usuarios con todos sus campos**, incluyendo el número de identificación **sin enmascarar**, teléfono, dirección, género, etc. — sin necesitar ni siquiera estar logueado. Esto no es solo un gap del RF-11, es una fuga de datos personales real si ese endpoint quedara expuesto en producción tal como está hoy.
+- **410 (eliminación concurrente) y 500 (fuga de datos) no están implementados, por diseño**: no existe hard-delete de usuarios en el código (el "borrado" es un cambio de estado a `Eliminado`, ya detectable por el mecanismo de refresco), y el response schema es Pydantic con campos fijos, sin ningún path de serialización dinámica que pueda filtrar datos sensibles. Ver el razonamiento completo en `pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md`.
 
 ---
 
 ## RF-12 — Visualización de detalles del usuario (admin ve la ficha de cualquier usuario)
 
-**Veredicto: ⚠️ Cumple parcialmente (~85%)** — el código está completo y correcto; lo que falta es un dato de configuración en base de datos, no una funcionalidad.
+**Veredicto: ⚠️ Cumple parcialmente (~90%)** — el código está completo y correcto; el gap de acceso más amplio de lo debido ya se corrigió, queda pendiente sembrar el permiso especial de identificación completa.
 
 ### Qué SÍ cumple
 
@@ -283,11 +286,11 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Enmascaramiento del número de identificación por defecto** (primeros 4 dígitos + asteriscos), tal como pide el RF.
 - Mecanismo para mostrar el número completo si el usuario tiene el permiso especial correspondiente.
 - **Auditoría obligatoria de cada acceso**, sin excepción — se registra quién consultó a quién y cuándo.
+- **Acceso ahora restringido a Administrador**: `GET /usuarios/{id}/detalle` comparte `require_permission(1, 2)` con el listado de RF-11, así que la corrección aplicada en el issue #17 (revocar `*_leer_usuario` de Productor/Veterinario/Ingeniero de Campo/Contador) también resuelve este gap — verificado en vivo, un token de Veterinario recibe `403`. Ver [`pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md`](./pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md).
 
 ### Qué NO cumple / gaps
 
-- **Falta sembrar el permiso especial en base de datos.** El código que decide "¿este admin puede ver la identificación completa?" está listo y correcto, pero hoy **no existe ninguna fila en la tabla de permisos** que otorgue esa capacidad especial a ningún rol — ni siquiera al Administrador. En la práctica, esto significa que **actualmente nadie puede ver el número de identificación completo**, siempre se muestra enmascarado. Esto es exactamente el tipo de gap que `CLAUDE.md` pide prevenir en su "Paso 0" (verificar que los permisos necesarios existan en base de datos antes de dar por implementado un caso de uso) — aquí ese paso quedó pendiente.
-- El acceso a la ficha de usuario hoy no está restringido solo al rol Administrador — según cómo están configurados los permisos en base de datos, también pueden acceder Productor, Veterinario, Ingeniero de Campo y Contador. Esto es coherente con el diseño RBAC dinámico del proyecto (los permisos se definen en base de datos, no en código), pero si se interpreta el RF de forma literal ("Actores: Administrador/es del sistema"), hoy el acceso es más amplio de lo que la ficha sugiere.
+- **Falta sembrar el permiso especial en base de datos.** El código que decide "¿este admin puede ver la identificación completa?" está listo y correcto, pero hoy **no existe ninguna fila en la tabla de permisos** que otorgue esa capacidad especial a ningún rol — ni siquiera al Administrador. En la práctica, esto significa que **actualmente nadie puede ver el número de identificación completo**, siempre se muestra enmascarado. Esto es exactamente el tipo de gap que `CLAUDE.md` pide prevenir en su "Paso 0" (verificar que los permisos necesarios existan en base de datos antes de dar por implementado un caso de uso) — aquí ese paso quedó pendiente. No se corrigió en el issue #17 por estar fuera de su alcance (era sobre RBAC de lectura general y refresco, no sobre el permiso especial de identificación).
 
 ---
 
@@ -337,7 +340,7 @@ Estos son problemas que no son exclusivos de un solo requerimiento — vale la p
 
 3. **Cambiar el rol de un usuario no se aplica hasta que vuelve a loguearse.** El rol viaja fijo dentro del token desde el momento del login. *(Afecta RF-04 y RF-06.)*
 
-4. **Endpoint legacy sin protección que expone todos los usuarios sin enmascarar.** `GET /usuarios/` no tiene autenticación ni control de acceso. Es el hallazgo más urgente de esta auditoría. *(Afecta RF-11 directamente, y de rebote el objetivo general de protección de datos de RF-12/RF-13.)*
+4. **[RESUELTO]** ~~Endpoint legacy sin protección que expone todos los usuarios sin enmascarar.~~ `GET /usuarios/` fue retirado en el PR #13 (2026-08-15) — responde `405`. El listado sobrevive únicamente como `GET /usuarios/admin`, con RBAC. Adicionalmente, el issue #17 (2026-08-17) corrigió un sobre-permisionamiento del permiso `require_permission(1, 2)` que compartían ese endpoint y `GET /usuarios/{id}/detalle`: estaba concedido a Productor/Veterinario/Ingeniero de Campo/Contador además de Administrador. *(Afectaba RF-11 y RF-12.)*
 
 5. **Duración del JWT sin documentar.** El sistema corre con 24 horas de vigencia por defecto porque la variable que la controla no está en `.env.example`, cuando el RF pide 8 horas. *(Afecta RF-02.)*
 

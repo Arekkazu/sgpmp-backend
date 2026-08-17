@@ -36,6 +36,11 @@ class UsuarioDetalle:
             ``None`` que ``nombre``.
         fecha_nacimiento: Fecha de nacimiento. Mismo caso ``None`` que ``nombre``.
         estado_cuenta: Nombre del estado de la cuenta, o ``None`` si no tiene cuenta.
+        ultima_modificacion: Máximo entre ``fecha_actualizacion`` del usuario y
+            ``fecha_cambio_estado`` de su cuenta. Usado por el mecanismo de
+            refresco de ``GET /usuarios/admin`` para que el frontend detecte
+            filas modificadas por otro administrador sin recargar la página.
+            ``None`` si ninguna de las dos fuentes tiene valor.
     """
 
     id_usuario: int
@@ -49,3 +54,4 @@ class UsuarioDetalle:
     numero_identificacion: Optional[str] = None
     fecha_nacimiento: Optional[date] = None
     estado_cuenta: Optional[str] = None
+    ultima_modificacion: Optional[datetime] = None
