@@ -15,6 +15,7 @@ adentro (infraestructura → aplicación → dominio).
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from datetime import datetime
 from typing import Optional
 
 from src.identity_access.domain.entities.usuario import Usuario
@@ -128,16 +129,27 @@ class UsuarioRepository(ABC):
         id_rol: Optional[int],
         offset: int,
         limit: int,
+        estado_cuenta: Optional[str] = None,
+        actualizado_desde: Optional[datetime] = None,
     ) -> list[UsuarioDetalle]:
         """Retorna una página de proyecciones de lectura aplicando filtros opcionales.
+
+        Ordenada por ``fecha_registro`` descendente (más reciente primero).
 
         Args:
             nombre: Filtro parcial por nombre o apellidos (ILIKE).
             correo: Filtro parcial por correo electrónico (ILIKE).
-            id_estado: Filtro exacto por estado de cuenta.
+            id_estado: Filtro exacto por id de estado de cuenta.
             id_rol: Filtro exacto por rol.
             offset: Registros a saltar.
             limit: Máximo de registros a retornar.
+            estado_cuenta: Filtro exacto por nombre de estado de cuenta
+                (case-insensitive), resuelto contra el catálogo
+                ``modulo1.estados_cuentas``. Puede combinarse con ``id_estado``.
+            actualizado_desde: Si se indica, solo retorna usuarios cuya
+                ``fecha_actualizacion`` o ``fecha_cambio_estado`` de cuenta sea
+                posterior a este instante — soporta el polling incremental del
+                mecanismo de refresco de ``GET /usuarios/admin``.
 
         Returns:
             Lista de :class:`UsuarioDetalle` que cumplen los filtros.
@@ -151,6 +163,8 @@ class UsuarioRepository(ABC):
         correo: Optional[str],
         id_estado: Optional[int],
         id_rol: Optional[int],
+        estado_cuenta: Optional[str] = None,
+        actualizado_desde: Optional[datetime] = None,
     ) -> int:
         """Cuenta el total de usuarios que cumplen los filtros (para paginar)."""
         raise NotImplementedError
