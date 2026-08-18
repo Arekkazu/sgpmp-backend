@@ -60,7 +60,9 @@ class LoginUseCase:
         self.db = db
         self.notificacion_service = notificacion_service
 
-    def execute(self, dto: LoginDTO, ip: str, user_agent: str) -> tuple[str, datetime, bool, int]:
+    def execute(
+        self, dto: LoginDTO, ip: str, user_agent: str
+    ) -> tuple[str, datetime, bool, int, str, datetime]:
         """Autentica al usuario y crea una nueva sesión activa.
 
         Args:
@@ -69,9 +71,11 @@ class LoginUseCase:
             user_agent: Cadena User-Agent del cliente, truncada a 255 caracteres.
 
         Returns:
-            Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada, id_usuario)``
-            donde ``sesion_previa_cerrada`` indica si se invalidó una sesión activa
-            anterior (política de sesión única).
+            Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada, id_usuario,
+            refresh_raw, fecha_expiracion_refresco)`` donde ``sesion_previa_cerrada``
+            indica si se invalidó una sesión activa anterior (política de sesión
+            única) y ``refresh_raw`` es el valor en claro del refresh token
+            (se transporta por cookie, nunca en el JSON de respuesta).
 
         Raises:
             AuthenticationError: Credenciales incorrectas. HTTP 401.
@@ -144,7 +148,7 @@ class LoginUseCase:
             )
 
         # 5. Login exitoso
-        jwt_str, fecha_expiracion, sesion_previa_cerrada = emitir_sesion(
+        jwt_str, fecha_expiracion, sesion_previa_cerrada, refresh_raw, fecha_expiracion_refresco = emitir_sesion(
             usuario=usuario,
             cuenta=cuenta,
             ip=ip,
@@ -164,4 +168,11 @@ class LoginUseCase:
                 correo_destino=str(usuario.correo),
             )
 
-        return jwt_str, fecha_expiracion, sesion_previa_cerrada, usuario.id_usuario
+        return (
+            jwt_str,
+            fecha_expiracion,
+            sesion_previa_cerrada,
+            usuario.id_usuario,
+            refresh_raw,
+            fecha_expiracion_refresco,
+        )

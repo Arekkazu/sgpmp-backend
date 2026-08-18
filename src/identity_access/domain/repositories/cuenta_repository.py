@@ -44,6 +44,11 @@ class CuentaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_por_id(self, id_cuenta_usuario: int) -> Optional[Cuenta]:
+        """Obtiene la cuenta por su propia identidad, o ``None`` si no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
     def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
         """Obtiene la cuenta cuyo hash de token coincide, o ``None``.
 
