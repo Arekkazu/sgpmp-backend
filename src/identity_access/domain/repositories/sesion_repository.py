@@ -29,8 +29,18 @@ class SesionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def buscar_sesion_por_id(self, id_sesion: int) -> Optional[Sesion]:
+        """Retorna la sesión con esa identidad, o ``None``."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def buscar_token_por_hash(self, hash_valor: str) -> Optional[Token]:
+        """Retorna el token de refresco cuyo hash coincide, o ``None``."""
+        raise NotImplementedError
+
+    @abstractmethod
     def invalidar_sesion(self, sesion: Sesion) -> None:
-        """Cierra una sesión y marca su token como usado (hace ``flush``)."""
+        """Cierra una sesión y marca su token de acceso y de refresco como usados (hace ``flush``)."""
         raise NotImplementedError
 
     @abstractmethod
@@ -44,6 +54,31 @@ class SesionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def crear_token_refresco(self, fecha_expiracion: datetime, hash_valor: str) -> Token:
+        """Crea un token de refresco (hash del valor opaco, sin ``id_sesion`` aún) y lo devuelve."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def vincular_token_a_sesion(self, id_token: int, id_sesion: int) -> None:
+        """Backfillea ``tokens.id_sesion`` de un token de refresco ya creado (hace ``flush``)."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def rotar_tokens(
+        self,
+        sesion: Sesion,
+        nuevo_id_token_acceso: int,
+        nuevo_id_token_refresco: int,
+        nueva_fecha_expiracion: datetime,
+    ) -> Sesion:
+        """Marca como usados los tokens vigentes de la sesión y la repunta a los nuevos.
+
+        Extiende ``fecha_finalizacion`` a ``nueva_fecha_expiracion``. Hace
+        ``flush`` y devuelve la entidad refrescada.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def crear_sesion(
         self,
         id_cuenta_usuario: int,
@@ -51,6 +86,10 @@ class SesionRepository(ABC):
         direccion_ip: str,
         agente_usuario: str,
         fecha_expiracion: datetime,
+        id_token_refresco: Optional[int] = None,
     ) -> Sesion:
-        """Crea una sesión activa para la cuenta y la devuelve."""
+        """Crea una sesión activa para la cuenta y la devuelve.
+
+        ``id_token_refresco`` queda ``None`` en el camino M2M (sin cookie posible).
+        """
         raise NotImplementedError

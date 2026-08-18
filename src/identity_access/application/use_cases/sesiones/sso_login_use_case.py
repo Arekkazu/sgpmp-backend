@@ -68,7 +68,9 @@ class SsoLoginUseCase:
         self.db = db
         self.notificacion_service = notificacion_service
 
-    def execute(self, dto: SsoLoginDTO, ip: str, user_agent: str) -> tuple[str, datetime, bool, int, bool]:
+    def execute(
+        self, dto: SsoLoginDTO, ip: str, user_agent: str
+    ) -> tuple[str, datetime, bool, int, bool, str, datetime]:
         """Autentica vía SSO y crea una nueva sesión activa.
 
         Args:
@@ -78,8 +80,10 @@ class SsoLoginUseCase:
 
         Returns:
             Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada, id_usuario,
-            perfil_incompleto)``. ``perfil_incompleto`` es ``True`` si la cuenta
-            quedó (o seguía) en estado ``PENDIENTE_DATOS``.
+            perfil_incompleto, refresh_raw, fecha_expiracion_refresco)``.
+            ``perfil_incompleto`` es ``True`` si la cuenta quedó (o seguía) en
+            estado ``PENDIENTE_DATOS``. ``refresh_raw`` es el valor en claro del
+            refresh token (se transporta por cookie, nunca en el JSON de respuesta).
 
         Raises:
             AuthenticationError: Token SSO inválido/expirado. HTTP 401.
@@ -112,7 +116,7 @@ class SsoLoginUseCase:
                 verificar_estado_cuenta(cuenta, usuario, self.cuentas_repo, self.db, ahora)
 
         # 3. Emitir sesión — idéntico al login normal, sin validar contraseña
-        jwt_str, fecha_expiracion, sesion_previa_cerrada = emitir_sesion(
+        jwt_str, fecha_expiracion, sesion_previa_cerrada, refresh_raw, fecha_expiracion_refresco = emitir_sesion(
             usuario=usuario,
             cuenta=cuenta,
             ip=ip,
@@ -133,7 +137,15 @@ class SsoLoginUseCase:
                 correo_destino=str(usuario.correo),
             )
 
-        return jwt_str, fecha_expiracion, sesion_previa_cerrada, usuario.id_usuario, cuenta.esta_pendiente_datos()
+        return (
+            jwt_str,
+            fecha_expiracion,
+            sesion_previa_cerrada,
+            usuario.id_usuario,
+            cuenta.esta_pendiente_datos(),
+            refresh_raw,
+            fecha_expiracion_refresco,
+        )
 
     def _provisionar_minimo(self, identidad, ip: str, ahora: datetime) -> tuple[Usuario, Cuenta]:
         """Crea una cuenta mínima cuando el correo no existía todavía en sgpmp.

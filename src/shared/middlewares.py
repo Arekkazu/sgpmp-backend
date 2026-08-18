@@ -3,14 +3,16 @@
 - `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`
   y expone el correlativo como cabecera `X-Request-ID` en la respuesta.
 - `AccessLogMiddleware`: registra método, ruta, código de respuesta y latencia.
-- `setup_middlewares`: función de configuración que registra ambos middlewares y CORS.
+- `setup_middlewares`: función de configuración que registra ambos middlewares.
+  El CORS real está en `main.py` (con `allow_credentials=True` + orígenes
+  explícitos, requerido por la cookie de refresh token); este módulo no
+  declara CORS propio para evitar dos configuraciones divergentes.
 """
 import uuid
 import time
 import logging
 from typing import Optional
 from fastapi import Request
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
 log = logging.getLogger(__name__)
@@ -72,16 +74,6 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
 
 def setup_middlewares(app):
     """Agrega los middlewares a la aplicación FastAPI."""
-    # CORS (mantén X-Request-ID permitido)
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],            # TODO: restringir en prod
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-        expose_headers=["X-Request-ID"],   # para que el frontend pueda leerlo
-    )
-
     # Orden recomendado: primero contexto, luego logs
     app.add_middleware(RequestContextMiddleware)
     app.add_middleware(AccessLogMiddleware)

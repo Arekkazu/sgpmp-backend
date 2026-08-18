@@ -9,6 +9,8 @@ es idéntico. Este módulo extrae esa parte común para no triplicarla.
 """
 from __future__ import annotations
 
+import hashlib
+import secrets
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -20,7 +22,7 @@ from src.identity_access.domain.repositories.cuenta_repository import CuentaRepo
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.shared.errors import AuthorizationError, LockedError
-from src.shared.jwt import create_token, token_expiration
+from src.shared.jwt import create_token, refresh_token_expiration, token_expiration
 
 
 def verificar_estado_cuenta(
@@ -104,7 +106,8 @@ def emitir_sesion(
     db: Session,
     ahora: datetime,
     detalle_extra: Optional[dict] = None,
-) -> tuple[str, datetime, bool]:
+    emitir_refresco: bool = True,
+) -> tuple[str, datetime, bool, Optional[str], Optional[datetime]]:
     """Invalida la sesión previa (política de sesión única) y emite una nueva.
 
     Se asume que la identidad ya fue verificada por el llamador (contraseña,
@@ -122,9 +125,14 @@ def emitir_sesion(
             (distingue login normal, login SSO, o emisión M2M).
         detalle_extra: Campos adicionales a fusionar en el ``detalle`` del
             evento de auditoría (ej. ``{"mecanismo": "sso"}``).
+        emitir_refresco: Si ``True`` (login normal, SSO), también mintea un
+            refresh token opaco para la sesión. ``False`` en el camino M2M
+            (AgroFusion Mecanismo B): no hay navegador ni cookie posible ahí.
 
     Returns:
-        Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada)``.
+        Tupla ``(jwt_str, fecha_expiracion, sesion_previa_cerrada, refresh_raw,
+        fecha_expiracion_refresco)``. Los dos últimos son ``None`` cuando
+        ``emitir_refresco=False``.
     """
     try:
         cuenta.resetear_intentos()
@@ -139,13 +147,27 @@ def emitir_sesion(
         token = sesiones_repo.crear_token_acceso(fecha_expiracion)
         jwt_str, _ = create_token(token.id_token, usuario.id_usuario, usuario.id_rol)
 
+        refresh_raw: Optional[str] = None
+        fecha_expiracion_refresco: Optional[datetime] = None
+        id_token_refresco: Optional[int] = None
+        if emitir_refresco:
+            refresh_raw = secrets.token_urlsafe(32)
+            hash_valor = hashlib.sha256(refresh_raw.encode()).hexdigest()
+            fecha_expiracion_refresco = refresh_token_expiration()
+            token_refresco = sesiones_repo.crear_token_refresco(fecha_expiracion_refresco, hash_valor)
+            id_token_refresco = token_refresco.id_token
+
         sesion = sesiones_repo.crear_sesion(
             id_cuenta_usuario=cuenta.id_cuenta_usuario,
             id_token=token.id_token,
             direccion_ip=ip,
             agente_usuario=user_agent[:255],
             fecha_expiracion=fecha_expiracion,
+            id_token_refresco=id_token_refresco,
         )
+
+        if id_token_refresco is not None:
+            sesiones_repo.vincular_token_a_sesion(id_token_refresco, sesion.id_sesion)
 
         cuenta.registrar_acceso(ahora)
         cuentas_repo.guardar(cuenta)
@@ -167,4 +189,4 @@ def emitir_sesion(
         db.rollback()
         raise
 
-    return jwt_str, fecha_expiracion, sesion_previa_cerrada
+    return jwt_str, fecha_expiracion, sesion_previa_cerrada, refresh_raw, fecha_expiracion_refresco

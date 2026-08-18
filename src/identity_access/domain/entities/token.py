@@ -21,6 +21,8 @@ class Token:
         fecha_uso: Instante en que fue consumido, o ``None`` si sigue vigente.
         fecha_creacion: Marca de creación, o ``None``.
         id_token: Identidad del token. ``None`` hasta que se persiste.
+        hash_valor: Hash SHA-256 del valor en claro (solo tokens de refresco).
+        id_sesion: Sesión que emitió este token (solo tokens de refresco).
     """
 
     token_tipo: Optional[str] = None
@@ -28,6 +30,8 @@ class Token:
     fecha_uso: Optional[datetime] = None
     fecha_creacion: Optional[datetime] = None
     id_token: Optional[int] = None
+    hash_valor: Optional[str] = None
+    id_sesion: Optional[int] = None
 
     def esta_usado(self) -> bool:
         """Indica si el token ya fue consumido."""

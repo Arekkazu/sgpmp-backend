@@ -24,6 +24,37 @@ curl -s -X DELETE http://localhost:8000/sesiones/ \
   -H "Authorization: Bearer <TOKEN>" | jq
 ```
 
+### Refrescar sesión (refresh token en cookie httpOnly)
+
+El login deja la cookie `refresh_token` (`HttpOnly`, `path=/`) en el jar —
+`curl` no persiste cookies entre llamadas sin `-c`/`-b` explícitos. El refresh
+token **nunca** aparece en el body JSON, solo el access token nuevo.
+
+```bash
+# 1. Login — guarda la cookie de refresco en jar.txt
+curl -s -c jar.txt -X POST http://localhost:8000/sesiones/ \
+  -H "Content-Type: application/json" \
+  -d '{"correo_electronico":"usuario@ejemplo.com","contrasena":"Contrasena1!"}' | jq
+
+# 2. Refrescar — usa la cookie del jar, sin Authorization header
+curl -s -b jar.txt -c jar.txt -X POST http://localhost:8000/sesiones/refresh | jq
+# → nuevo access token en el body; el jar queda con una cookie ROTADA (valor distinto)
+
+# 3. Reusar la cookie ya rotada (guarda una copia de jar.txt antes del paso 2
+#    para probar esto) → detección de robo
+curl -s -b jar_viejo.txt -X POST http://localhost:8000/sesiones/refresh | jq
+# → 401 REFRESH_TOKEN_REUTILIZADO, y la sesión completa queda muerta
+#   (el access token del paso 2 también deja de servir)
+
+# 4. Sin cookie
+curl -s -X POST http://localhost:8000/sesiones/refresh | jq
+# → 401 REFRESH_TOKEN_REQUERIDO
+```
+
+Errores posibles: `401 REFRESH_TOKEN_REQUERIDO` (sin cookie), `401 REFRESH_TOKEN_INVALIDO`
+(hash no existe), `401 REFRESH_TOKEN_REUTILIZADO` (robo detectado — rotación),
+`410 REFRESH_TOKEN_EXPIRADO`, `401 SESION_INVALIDA` / `401 SESION_EXPIRADA_INACTIVIDAD`.
+
 ---
 
 ## Usuarios

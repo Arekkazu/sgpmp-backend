@@ -23,6 +23,8 @@ class Sesion:
         es_activa: Si la sesión sigue vigente.
         id_cuenta_usuario: Cuenta propietaria de la sesión.
         id_sesion: Identidad de la sesión. ``None`` hasta que se persiste.
+        id_token_refresco: Refresh token opaco vigente de la sesión. ``None``
+            en sesiones M2M (sin cookie posible).
     """
 
     id_token: int
@@ -33,6 +35,7 @@ class Sesion:
     es_activa: bool
     id_cuenta_usuario: int
     id_sesion: Optional[int] = None
+    id_token_refresco: Optional[int] = None
 
     def invalidar(self, ahora: datetime) -> None:
         """Marca la sesión como cerrada en el instante dado."""
