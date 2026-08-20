@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import uuid
+
+import bcrypt
 import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -52,6 +55,77 @@ def test_perfil_propio_usa_ruta_me_y_rechaza_estado_de_cuenta(
         campo["field"] == "id_estado_cuenta"
         for campo in con_estado.json()["fields"]
     )
+
+
+def test_completar_perfil_sso_parcialmente_no_revienta_en_500(
+    client,
+    db_session: Session,
+    crear_auth_headers,
+) -> None:
+    """Issue #18: PATCH /usuarios/me con solo parte de los 6 campos de una
+    cuenta PENDIENTE_DATOS (provista vía SSO) no debe romper la serialización
+    de la respuesta cuando genero/tipo/numero de identificación siguen NULL.
+    """
+    identificador = uuid.uuid4().int
+    fila = db_session.execute(
+        text(
+            """
+            INSERT INTO modulo1.usuarios (
+                tipo_identificacion, numero_identificacion, nombre, apellidos,
+                fecha_nacimiento, genero, correo_electronico,
+                contrasena_cifrada, telefono, direccion, id_rol, fecha_registro
+            ) VALUES (
+                NULL, NULL, NULL, NULL, NULL, NULL, :correo,
+                :contrasena, NULL, NULL, 2, now()
+            )
+            RETURNING id_usuario, version
+            """
+        ),
+        {
+            "correo": f"it-sso-{identificador}@example.com",
+            "contrasena": bcrypt.hashpw(
+                b"Inicial1!", bcrypt.gensalt(rounds=4)
+            ).decode("utf-8"),
+        },
+    ).mappings().one()
+
+    id_cuenta = db_session.execute(
+        text(
+            """
+            INSERT INTO modulo1.cuentas_usuarios (
+                id_usuario, id_estado_cuenta, tiene_correo_verificado,
+                ultimo_acceso
+            ) VALUES (:id_usuario, 6, TRUE, now())
+            RETURNING id_cuenta_usuario
+            """
+        ),
+        {"id_usuario": fila["id_usuario"]},
+    ).scalar_one()
+    db_session.flush()
+
+    usuario = {
+        "id_usuario": fila["id_usuario"],
+        "id_cuenta_usuario": id_cuenta,
+        "id_rol": 2,
+    }
+    headers = crear_auth_headers(usuario)
+
+    respuesta = client.patch(
+        "/usuarios/me",
+        headers=headers,
+        json={
+            "nombre": "Pendiente",
+            "apellidos": "Datos",
+            "tipo_identificacion": "CC",
+            "numero_identificacion": str(identificador % 10**15).zfill(15),
+            "version": fila["version"],
+        },
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["tipo_identificacion"] == "CC"
+    assert cuerpo["genero"] is None
 
 
 def test_edicion_administrativa_requiere_permiso_del_router(

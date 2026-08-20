@@ -4,12 +4,14 @@ Expone los endpoints de inicio y cierre de sesión con JWT.
 """
 import os
 from datetime import datetime, timezone
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Cookie, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
 from src.identity_access.application.use_cases.sesiones.logout_use_case import LogoutUseCase
+from src.identity_access.application.use_cases.sesiones.refresh_token_use_case import RefreshTokenUseCase
 from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
 from src.identity_access.infrastructure.adapters.agrofusion_sso_adapter import AgroFusionSsoAdapter
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -23,11 +25,30 @@ from src.identity_access.infrastructure.repositories.usuario_repository import S
 from src.identity_access.infrastructure.schema.permisos_schema import PermisoResumen, PermisosUsuarioResponse
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
-from src.shared.errors import ServiceUnavailableError
+from src.shared.errors import AuthenticationError, ServiceUnavailableError
 from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
+
+NOMBRE_COOKIE_REFRESH = "refresh_token"
+
+
+def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datetime) -> None:
+    """Setea la cookie HttpOnly del refresh token. ``path="/"``: ver nota en
+    ``anotaciones/modulo_1/gaps_bd_refresh_tokens.md`` sobre por qué no se usa
+    ``path="/sesiones"`` (el prefijo ``/api`` de producción es cosmético en la
+    app — lo agrega el proxy inverso, no root_path)."""
+    max_age = int((fecha_expiracion - datetime.now(timezone.utc)).total_seconds())
+    response.set_cookie(
+        key=NOMBRE_COOKIE_REFRESH,
+        value=valor,
+        max_age=max_age,
+        httponly=True,
+        secure=(os.getenv("ENV") == "production"),
+        samesite="strict",
+        path="/",
+    )
 
 
 @router.post(
@@ -41,7 +62,7 @@ router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db)):
+def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
 
@@ -53,7 +74,10 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
-    jwt_str, fecha_expiracion, sesion_previa_cerrada, _ = use_case.execute(dto, ip, user_agent)
+    jwt_str, fecha_expiracion, sesion_previa_cerrada, _, refresh_raw, fecha_expiracion_refresco = use_case.execute(
+        dto, ip, user_agent
+    )
+    _set_cookie_refresco(response, refresh_raw, fecha_expiracion_refresco)
 
     ahora = datetime.now(timezone.utc)
     expira_en = int((fecha_expiracion - ahora).total_seconds())
@@ -76,7 +100,7 @@ def iniciar_sesion(dto: LoginDTO, request: Request, db: Session = Depends(get_db
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, db: Session = Depends(get_db)):
+def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
     """Login SSO vía handoff RS256 de AgroFusion (Mecanismo A).
 
     Sin `require_permission`: la confianza la da la firma RS256 verificada
@@ -101,7 +125,16 @@ def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, db: Session = Depends
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )
-    jwt_str, fecha_expiracion, sesion_previa_cerrada, _, perfil_incompleto = use_case.execute(dto, ip, user_agent)
+    (
+        jwt_str,
+        fecha_expiracion,
+        sesion_previa_cerrada,
+        _,
+        perfil_incompleto,
+        refresh_raw,
+        fecha_expiracion_refresco,
+    ) = use_case.execute(dto, ip, user_agent)
+    _set_cookie_refresco(response, refresh_raw, fecha_expiracion_refresco)
 
     ahora = datetime.now(timezone.utc)
     expira_en = int((fecha_expiracion - ahora).total_seconds())
@@ -148,6 +181,7 @@ def obtener_mis_permisos(
     },
 )
 def cerrar_sesion(
+    response: Response,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
@@ -157,4 +191,53 @@ def cerrar_sesion(
         db=db,
     )
     use_case.execute(id_token=usuario_actual.id_token, id_usuario=usuario_actual.id_usuario)
+    response.delete_cookie(NOMBRE_COOKIE_REFRESH, path="/")
     return {"message": "Sesión cerrada exitosamente."}
+
+
+@router.post(
+    "/refresh",
+    response_model=LoginResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
+    },
+)
+def refrescar_sesion(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: Optional[str] = Cookie(None),
+):
+    """Canjea el refresh token de la cookie por un access token nuevo.
+
+    Sin RBAC, sin `get_current_user`: la confianza la da la cookie
+    `HttpOnly`, no un JWT — este endpoint reemplaza justamente la necesidad
+    de credenciales cuando el access token en memoria se perdió (recarga de
+    página) o expiró.
+    """
+    if not refresh_token:
+        raise AuthenticationError(
+            code="REFRESH_TOKEN_REQUERIDO",
+            message="No se encontró una sesión para renovar. Inicia sesión nuevamente.",
+        )
+
+    ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    use_case = RefreshTokenUseCase(
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+    )
+    jwt_str, fecha_expiracion, refresh_raw_nuevo, fecha_expiracion_refresco = use_case.execute(
+        refresh_token, ip, user_agent
+    )
+    _set_cookie_refresco(response, refresh_raw_nuevo, fecha_expiracion_refresco)
+
+    ahora = datetime.now(timezone.utc)
+    expira_en = int((fecha_expiracion - ahora).total_seconds())
+
+    return LoginResponse(token=jwt_str, expira_en=expira_en, message="Sesión renovada exitosamente.")

@@ -45,6 +45,17 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
 
+    def actualizar(self, config: ConfiguracionRemota) -> ConfiguracionRemota:
+        orm = self.db.get(ConfiguracionRemotaModel, config.id_configuracion_remota)
+        orm.estado = config.estado
+        orm.fecha_aplicacion = config.fecha_aplicacion
+        try:
+            self.db.flush()
+            self.db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc, {})
+        return self._a_entidad(orm)
+
     def obtener_pendiente(self, id_dispositivo_iot: int) -> Optional[ConfiguracionRemota]:
         orm = (
             self.db.query(ConfiguracionRemotaModel)

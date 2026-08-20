@@ -184,7 +184,7 @@ curl -X POST http://localhost:8000/configuracion/plantillas/1/aplicar \
   -H "Content-Type: application/json" \
   -d '{
     "id_especie_destino": 5,
-    "fecha_creacion_especie_destino": "2026-05-10T08:00:00Z"
+    "fecha_actualizacion_especie_destino": "2026-05-10T08:00:00Z"
   }'
 ```
 
@@ -217,7 +217,7 @@ Errores posibles:
 - `404` — plantilla no existe
 - `404` — especie destino no existe (FA-03)
 - `412` — schema_version del snapshot incompatible con la versión actual (FA-02)
-- `412` — `fecha_creacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11)
+- `412` — `fecha_actualizacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11)
 - `422` — especie destino inactiva
 
 ### Verificación en DB tras aplicar

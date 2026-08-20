@@ -947,7 +947,7 @@
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `id_especie_destino` | `int` | Especie destino donde se aplica la plantilla |
-| `fecha_creacion_especie_destino` | `datetime` | Control de concurrencia sobre la especie destino |
+| `fecha_actualizacion_especie_destino` | `datetime \| null` | Control de concurrencia sobre la especie destino (`fecha_actualizacion`, no `fecha_creacion`; puede ser `null` si la especie nunca fue editada) |
 
 **Response `AplicacionPlantillaResponse`:**
 

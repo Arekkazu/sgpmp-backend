@@ -58,6 +58,7 @@ class UsuarioListadoResponse(BaseModel):
     correo_electronico: str
     nombre_rol: str
     estado_cuenta: str
+    ultima_modificacion: Optional[datetime.datetime] = None
 
 
 class UsuarioListadoPaginadoResponse(BaseModel):
@@ -66,6 +67,7 @@ class UsuarioListadoPaginadoResponse(BaseModel):
     total: int
     pagina: int
     tamano: int
+    mensaje: Optional[str] = None
     items: list[UsuarioListadoResponse]
 
 

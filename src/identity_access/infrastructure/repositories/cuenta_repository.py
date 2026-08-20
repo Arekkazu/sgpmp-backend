@@ -84,6 +84,10 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         )
         return self._a_entidad(orm) if orm else None
 
+    def obtener_por_id(self, id_cuenta_usuario: int) -> Optional[Cuenta]:
+        orm = self.db.get(CuentasUsuarios, id_cuenta_usuario)
+        return self._a_entidad(orm) if orm else None
+
     def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
         orm = (
             self.db.query(CuentasUsuarios)

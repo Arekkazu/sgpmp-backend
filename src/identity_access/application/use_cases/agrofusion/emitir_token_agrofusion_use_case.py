@@ -69,7 +69,7 @@ class EmitirTokenAgroFusionUseCase:
         ahora = datetime.now(timezone.utc)
         verificar_estado_cuenta(cuenta, usuario, self.cuentas_repo, self.db, ahora)
 
-        jwt_str, fecha_expiracion, _ = emitir_sesion(
+        jwt_str, fecha_expiracion, _, _, _ = emitir_sesion(
             usuario=usuario,
             cuenta=cuenta,
             ip=ip,
@@ -81,6 +81,7 @@ class EmitirTokenAgroFusionUseCase:
             db=self.db,
             ahora=ahora,
             detalle_extra={"mecanismo": "agrofusion_m2m"},
+            emitir_refresco=False,
         )
 
         expira_en = int((fecha_expiracion - ahora).total_seconds())

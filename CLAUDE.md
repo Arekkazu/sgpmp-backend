@@ -518,7 +518,22 @@ FRONTEND_URL=http://localhost:3000
 El prefijo `/api` lo agrega el proxy inverso en producción. Localmente los endpoints se acceden sin ese prefijo: `http://localhost:8000/usuarios/`.
 
 **Autenticación frontend → backend**
-El backend expone JWT vía `Authorization: Bearer <token>` en el header HTTP. Dónde y cómo el frontend almacena el token (localStorage, IndexedDB, memoria) y cómo lo inyecta en cada request (manualmente o vía Service Worker) es **decisión exclusiva del equipo de frontend** y no afecta el contrato del backend.
+El backend usa dos tokens con transporte distinto (diseño completo en
+`anotaciones/modulo_1/gaps_bd_refresh_tokens.md` y `plan_access_refresh_tokens.md`):
+- **Access token** (JWT, `JWT_EXPIRE_HOURS` — 8h por RF-02): viaja en el body
+  JSON de `POST /sesiones/`, `POST /sesiones/sso` y `POST /sesiones/refresh`;
+  el frontend lo envía en `Authorization: Bearer <token>`. Dónde lo guarda en
+  memoria (nunca `localStorage`/`IndexedDB`) es decisión del equipo de frontend.
+- **Refresh token** (opaco, no JWT, `REFRESH_TOKEN_EXPIRE_DAYS` — 7 días):
+  gestionado exclusivamente por el backend vía cookie `HttpOnly; SameSite=Strict;
+  path=/` (+ `Secure` en producción), invisible para JS. Rota en cada uso;
+  reusar uno ya rotado revoca la sesión completa (detección de robo). El
+  frontend nunca la lee ni la transporta manualmente — esta parte del
+  mecanismo sí es contrato de backend, no decisión de frontend.
+
+Ante un `401 TOKEN_EXPIRADO`, el frontend debe llamar `POST /sesiones/refresh`
+(sin body, la cookie viaja sola) para obtener un access token nuevo antes de
+reintentar la request original.
 
 **Links en emails**
 Los templates de correo generan links hacia el frontend (`FRONTEND_URL`), no hacia el backend. El frontend extrae el token del query param y llama el endpoint de activación en el backend. Para pruebas sin frontend, usar Swagger o curl directamente.
