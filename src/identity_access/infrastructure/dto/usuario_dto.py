@@ -23,6 +23,12 @@ class LoginDTO(BaseDTO):
     contrasena: str
 
 
+class SsoLoginDTO(BaseDTO):
+    """Token de handoff SSO recibido del frontend (Mecanismo A de AgroFusion)."""
+
+    sso_token: str
+
+
 class UsuarioCreateDTO(BaseDTO):
     """Datos completos para registrar un nuevo usuario en el sistema."""
 

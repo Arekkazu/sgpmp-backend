@@ -498,7 +498,7 @@ DATABASE_URL=postgresql://usuario:clave@host:5432/dbname
 
 # JWT — el código lee SECRET_KEY (no JWT_SECRET). Algoritmo fijo HS256, no configurable.
 SECRET_KEY=clave_secreta_larga
-JWT_EXPIRE_HOURS=24
+JWT_EXPIRE_HOURS=8
 
 # SMTP
 SMTP_HOST=smtp.ejemplo.com

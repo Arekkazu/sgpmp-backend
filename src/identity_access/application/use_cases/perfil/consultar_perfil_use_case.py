@@ -3,6 +3,8 @@
 Retorna los datos del usuario con el número de identificación parcialmente
 enmascarado (primeros 4 dígitos visibles) y registra el acceso en auditoría.
 """
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
@@ -68,6 +70,7 @@ class ConsultarPerfilUseCase:
             raise
 
         return {
+            "id_usuario": detalle.id_usuario,
             "nombre": detalle.nombre,
             "apellidos": detalle.apellidos,
             "correo_electronico": detalle.correo_electronico,
@@ -77,17 +80,22 @@ class ConsultarPerfilUseCase:
             "fecha_registro": detalle.fecha_registro,
             "nombre_rol": detalle.nombre_rol,
             "estado_cuenta": detalle.estado_cuenta,
+            "version": detalle.version,
         }
 
-    def _enmascarar(self, numero: str) -> str:
+    def _enmascarar(self, numero: Optional[str]) -> Optional[str]:
         """Enmascara el número de identificación dejando visibles los 4 primeros dígitos.
 
         Args:
-            numero: Número de identificación completo.
+            numero: Número de identificación completo, o ``None`` en una cuenta
+                SSO mínima (``Pendiente Datos``) que aún no lo tiene.
 
         Returns:
-            Número con los últimos caracteres reemplazados por asteriscos.
+            Número con los últimos caracteres reemplazados por asteriscos, o
+            ``None`` si no había número que enmascarar.
         """
+        if numero is None:
+            return None
         if len(numero) <= 4:
             return "*" * len(numero)
         return numero[:4] + "*" * (len(numero) - 4)

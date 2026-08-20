@@ -58,6 +58,7 @@ from src.supplies.infrastructure.routers.batch_historial_suministros_router impo
 from src.supplies.infrastructure.routers.costeo_suministros_router import router as costeo_suministros_router
 from src.supplies.infrastructure.routers.provision_nic41_router import router as provision_nic41_router
 from src.supplies.infrastructure.routers.auditoria_suministros_router import router as auditoria_suministros_router
+from src.identity_access.infrastructure.routers.agrofusion_integration_router import router as agrofusion_router
 from src.identity_access.infrastructure.routers.contrasena_routers import router as contrasena_router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
@@ -301,6 +302,10 @@ app.include_router(sesiones_router)
 app.include_router(contrasena_router)
 app.include_router(auditoria_router)
 app.include_router(roles_router)
+if os.getenv("AGROFUSION_HUB_CLIENT_ID"):
+    # Integración M2M con AgroFusion (Mecanismo B) — ni siquiera se expone en
+    # un despliegue standalone sin credenciales configuradas.
+    app.include_router(agrofusion_router)
 app.include_router(activo_biologico_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)

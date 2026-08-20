@@ -14,6 +14,7 @@ from src.identity_access.domain.repositories.cuenta_repository import CuentaRepo
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
 from src.identity_access.infrastructure.email_templates import activation_email, recovery_email
 from src.shared.email import send_email
@@ -94,32 +95,34 @@ class SolicitarRecuperacionUseCase:
         if cuenta is None or cuenta.id_estado_cuenta == Cuenta.ESTADO_ELIMINADO:
             return _MENSAJE_GENERICO
 
-        # 3. Cuenta en PENDIENTE: enviar email de activación en su lugar
+        # 3. Cuenta en PENDIENTE: rotar y enviar un token de activación.
+        # El valor anterior no se puede recuperar porque la BD solo guarda su hash.
         if cuenta.esta_pendiente():
-            token_activacion = cuenta.token_activacion_actual
-            if token_activacion:
-                try:
-                    self.eventos_repo.registrar(
-                        tipo_evento=TIPO_SOLICITUD_RECUPERACION,
-                        exitoso=True,
-                        id_usuario=usuario.id_usuario,
-                        detalle={"ip": ip, "motivo": "cuenta_pendiente_redirigido_a_activacion"},
-                    )
-                    self.db.commit()
-                except Exception:
-                    self.db.rollback()
-                    raise
-                send_email(
-                    to=correo,
-                    subject="Activa tu cuenta en SGPMP",
-                    html_body=activation_email(usuario.nombre, token_activacion),
+            token_activacion = secrets.token_urlsafe(32)
+            try:
+                cuenta.asignar_token_activacion(calcular_hash_token(token_activacion), ahora)
+                self.cuentas_repo.guardar(cuenta)
+                self.eventos_repo.registrar(
+                    tipo_evento=TIPO_SOLICITUD_RECUPERACION,
+                    exitoso=True,
+                    id_usuario=usuario.id_usuario,
+                    detalle={"ip": ip, "motivo": "cuenta_pendiente_token_activacion_rotado"},
                 )
+                self.db.commit()
+            except Exception:
+                self.db.rollback()
+                raise
+            send_email(
+                to=correo,
+                subject="Activa tu cuenta en SGPMP",
+                html_body=activation_email(usuario.nombre, token_activacion),
+            )
             return _MENSAJE_GENERICO
 
         # 4. Generar token de recuperación y guardarlo
         token = secrets.token_urlsafe(32)
         try:
-            cuenta.asignar_token_recuperacion(token, ahora)
+            cuenta.asignar_token_recuperacion(calcular_hash_token(token), ahora)
             self.cuentas_repo.guardar(cuenta)
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_SOLICITUD_RECUPERACION,

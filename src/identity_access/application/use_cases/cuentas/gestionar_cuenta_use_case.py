@@ -6,16 +6,16 @@ transiciones de estado permitidas.
 """
 from sqlalchemy.orm import Session
 
+from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
 from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
-
-ROL_ADMINISTRADOR = 1
 
 ACCION_A_ESTADO = {
     EnumAccionCuenta.ACTIVAR:   2,
@@ -48,6 +48,7 @@ class GestionarCuentaUseCase:
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         sesiones_repo: SesionRepository,
+        roles_repo: RolRepository,
         db: Session,
         notificacion_service=None,
     ):
@@ -58,6 +59,8 @@ class GestionarCuentaUseCase:
             cuentas_repo: Repositorio de dominio del agregado Cuenta.
             eventos_repo: Repositorio de dominio de eventos (registro de auditoría).
             sesiones_repo: Repositorio de dominio de sesiones (invalidación).
+            roles_repo: Repositorio de roles para identificar roles protegidos
+                sin depender de IDs fijos.
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
@@ -65,6 +68,7 @@ class GestionarCuentaUseCase:
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.sesiones_repo = sesiones_repo
+        self.roles_repo = roles_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -77,25 +81,16 @@ class GestionarCuentaUseCase:
             usuario_actual: Usuario administrador que ejecuta la acción.
 
         Raises:
-            AuthorizationError: Si el actor no es administrador o intenta
-                gestionar su propia cuenta. HTTP 403.
+            AuthorizationError: Si el actor intenta gestionar su propia cuenta.
+                La autorización RBAC del actor se resuelve en el router. HTTP 403.
             NotFoundError: Si el usuario o su cuenta no existen. HTTP 404.
             ValidationError: Si la acción crítica no tiene motivo, o la cuenta
                 ya está en el estado solicitado. HTTP 400.
             BusinessRuleError: Si la transición de estado no es válida o se
                 intenta desactivar al único administrador activo. HTTP 422.
         """
-        # 1. Solo administradores
-        if usuario_actual.id_rol != ROL_ADMINISTRADOR:
-            raise AuthorizationError(
-                code="ACCESO_DENEGADO",
-                message=(
-                    "Acceso denegado. Se requieren privilegios administrativos para gestionar "
-                    "estados de cuenta. Este intento de acceso ha sido registrado en el log de auditoría."
-                ),
-            )
-
-        # 2. Admin no puede gestionar su propia cuenta
+        # 1. La autorización RBAC ya fue validada por require_permission en el router.
+        #    Se conserva como regla de negocio la prohibición de auto-gestión.
         if id_usuario == usuario_actual.id_usuario:
             raise AuthorizationError(
                 code="AUTOEDICION_ESTADO_PROHIBIDA",
@@ -105,7 +100,7 @@ class GestionarCuentaUseCase:
                 ),
             )
 
-        # 3. Buscar usuario y cuenta
+        # 2. Buscar usuario y cuenta
         usuario = self.usuarios_repo.obtener_por_id(id_usuario)
         if usuario is None:
             raise NotFoundError(
@@ -120,7 +115,7 @@ class GestionarCuentaUseCase:
                 message=f"El usuario con ID {id_usuario} no tiene una cuenta asociada.",
             )
 
-        # 4. Motivo obligatorio para acciones críticas
+        # 3. Motivo obligatorio para acciones críticas
         motivo = dto.motivo_accion
         if dto.accion_cuenta in ACCIONES_CRITICAS and not motivo:
             raise ValidationError(
@@ -133,7 +128,7 @@ class GestionarCuentaUseCase:
             )
         motivo = motivo or _MOTIVO_DEFAULT
 
-        # 5. Determinar estado destino y validar transición
+        # 4. Determinar estado destino y validar transición
         nuevo_estado = ACCION_A_ESTADO[dto.accion_cuenta]
         estado_actual = cuenta.id_estado_cuenta
 
@@ -158,9 +153,17 @@ class GestionarCuentaUseCase:
                 message=f"Transición de estado inválida ({estado_actual} → {nuevo_estado}).",
             )
 
-        # 6. Protección del último administrador activo
-        if usuario.id_rol == ROL_ADMINISTRADOR and dto.accion_cuenta in ACCIONES_QUE_REDUCEN_ADMINS:
-            if self.cuentas_repo.contar_admins_activos() <= 1:
+        # 5. Protección del último usuario activo de un rol de sistema.
+        #    El rol Administrador se identifica por es_protegido, no por id_rol=1.
+        rol_objetivo = self.roles_repo.obtener_por_id(usuario.id_rol)
+        reduce_rol_protegido = (
+            rol_objetivo is not None
+            and rol_objetivo.es_protegido
+            and cuenta.id_estado_cuenta == Cuenta.ESTADO_ACTIVO
+            and dto.accion_cuenta in ACCIONES_QUE_REDUCEN_ADMINS
+        )
+        if reduce_rol_protegido:
+            if self.cuentas_repo.contar_usuarios_activos_por_rol(usuario.id_rol) <= 1:
                 raise BusinessRuleError(
                     code="ULTIMO_ADMIN_PROTEGIDO",
                     message=(
@@ -170,16 +173,16 @@ class GestionarCuentaUseCase:
                     ),
                 )
 
-        # 7. Revocar sesiones ANTES del flush del estado (trigger las desactiva después)
+        # 6. Revocar sesiones ANTES del flush del estado (trigger las desactiva después)
         if nuevo_estado in ESTADOS_QUE_INVALIDAN_SESION:
             self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
 
         try:
-            # 8. Actualizar estado vía la entidad
+            # 7. Actualizar estado vía la entidad
             cuenta.cambiar_estado(nuevo_estado, motivo)
             self.cuentas_repo.guardar(cuenta)
 
-            # 9. Registrar en gestiones_cuenta
+            # 8. Registrar en gestiones_cuenta
             self.cuentas_repo.registrar_gestion(
                 id_cuenta_usuario=cuenta.id_cuenta_usuario,
                 accion=dto.accion_cuenta.value,
@@ -187,7 +190,7 @@ class GestionarCuentaUseCase:
                 id_responsable=usuario_actual.id_usuario,
             )
 
-            # 10. Registrar evento de auditoría
+            # 9. Registrar evento de auditoría
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_CAMBIO_ESTADO,
                 exitoso=True,

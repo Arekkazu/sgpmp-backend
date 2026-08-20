@@ -13,6 +13,7 @@ from src.identity_access.domain.repositories.evento_repository import EventoRepo
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
+from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import RestablecerContrasenaDTO
 from src.shared.errors import AuthenticationError, GoneError, LockedError
 
@@ -63,7 +64,7 @@ class RestablecerContrasenaUseCase:
             ConflictError: Si la nueva contraseña fue usada recientemente. HTTP 409.
         """
         # 1. Buscar cuenta por token
-        cuenta = self.cuentas_repo.obtener_por_token(dto.token)
+        cuenta = self.cuentas_repo.obtener_por_hash_token(calcular_hash_token(dto.token))
         if cuenta is None:
             raise AuthenticationError(
                 code="TOKEN_INVALIDO",
