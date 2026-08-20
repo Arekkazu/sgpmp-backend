@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Optional
 
 from src.identity_access.domain.entities.evento import Evento
+from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 
 
 class EventoRepository(ABC):
@@ -26,6 +27,7 @@ class EventoRepository(ABC):
         fecha_hasta: Optional[datetime],
         offset: int,
         limit: int,
+        categoria: Optional[EventoCategoria] = None,
     ) -> list[tuple[Evento, bool]]:
         """Retorna una página de eventos con su flag de integridad.
 
@@ -36,6 +38,7 @@ class EventoRepository(ABC):
             fecha_hasta: Límite superior del rango, o ``None``.
             offset: Registros a saltar.
             limit: Máximo de registros a retornar.
+            categoria: Filtro por categoría funcional, o ``None``.
 
         Returns:
             Lista de tuplas ``(Evento, integridad_ok)`` donde ``integridad_ok``
@@ -50,6 +53,7 @@ class EventoRepository(ABC):
         tipo_evento: Optional[int],
         fecha_desde: Optional[datetime],
         fecha_hasta: Optional[datetime],
+        categoria: Optional[EventoCategoria] = None,
     ) -> int:
         """Cuenta el total de eventos que cumplen los filtros (para paginar)."""
         raise NotImplementedError

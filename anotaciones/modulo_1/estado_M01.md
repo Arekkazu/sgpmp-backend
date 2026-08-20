@@ -22,7 +22,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
 | RF-08 | Recuperación de contraseña | ⚠️ Cumple parcialmente | ~70% |
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
-| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~80% |
+| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~95% |
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
 | RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
@@ -243,12 +243,12 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Sí existe un endpoint para consultar el historial** (`GET /auditoria/`), con filtros por usuario, tipo de evento, rango de fechas, y paginación con tope de 50 registros, restringido por RBAC.
 - **Los registros son verdaderamente inmutables**: hay triggers en base de datos que bloquean cualquier `UPDATE` o `DELETE` sobre la tabla de eventos, **incluso para el usuario administrador de la base de datos**. Esto se verificó directamente contra la base de datos, no solo leyendo el código.
 - **Hash de integridad SHA-256**: cada evento se guarda con un hash calculado sobre su contenido, y ese hash se recalcula y verifica cada vez que se consulta el historial, para detectar manipulación.
+- **Categorías funcionales corregidas**: los eventos se clasifican como `AUTENTICACION`, `MODIFICACION` o `CONSULTA` según su tipo. El endpoint también permite filtrar por categoría sin modificar eventos históricos inmutables.
+- **El registro de usuario y la activación de cuenta generan eventos de auditoría** (tipos 1 y 2).
 - Se auditan correctamente: login exitoso/fallido, cierre de sesión, cambio de contraseña, solicitud y confirmación de recuperación, actualización de perfil, cambio de estado de cuenta, creación/edición/eliminación de roles, asignación/revocación de permisos, y hasta las propias consultas de auditoría, de listado de usuarios y de perfiles.
 
 ### Qué NO cumple / gaps
 
-- **El registro de un nuevo usuario y la activación de su cuenta no generan evento de auditoría** (ver también RF-01) — son de los pocos eventos que el propio RF-10 pide auditar explícitamente y que hoy no dejan rastro.
-- **El campo "categoría" del evento siempre se guarda como "AUTENTICACION"**, sin importar si el evento real es una modificación de rol, una consulta de listado, etc. — el dato existe pero no es útil para filtrar por tipo de categoría real.
 - **No hay política de retención de 12 meses ni archivado automático** de registros antiguos — no existe ningún proceso programado para esto.
 - `audit_sdk`, la librería externa mencionada en `CLAUDE.md` como el mecanismo de auditoría del proyecto (*"Se inicializa en main.py mediante AuditContextMiddleware"*), **está importada pero nunca activada** — es código muerto. La auditoría real del módulo 1 corre por un mecanismo propio (tabla de eventos + hash SHA-256), completamente aparte de esta librería. Esto es una corrección a `CLAUDE.md`, no un gap de negocio: el mecanismo real funciona, solo que no es el que el documento de arquitectura describe.
 
