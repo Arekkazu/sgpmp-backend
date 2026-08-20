@@ -1,7 +1,9 @@
 """Modelo ORM para `modulo9.configuraciones_remotas` (RF-23).
 
 Cada fila representa un comando de configuración. La tabla es el historial
-de configuraciones enviadas/pendientes. Estado: PENDIENTE / APLICADA / FALLIDA.
+de configuraciones enviadas/pendientes.
+Estado: PENDIENTE / APLICADA / NO_CONF / CANCELADA (constraint real de BD;
+ver alembic/versions/7e2d5f3bf17a_rf23_mqtt_integracion.py).
 """
 from __future__ import annotations
 
