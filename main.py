@@ -279,13 +279,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-if os.getenv("ENV") == "production":
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-    allow_origins = [frontend_url]
-    allow_origin_regex = None
-else:
-    allow_origins = []
-    allow_origin_regex = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
+allow_origins = [frontend_url]
+# En producción solo se permite el origen exacto de FRONTEND_URL. Fuera de
+# producción se suma el regex de localhost por comodidad (permite correr el
+# front en cualquier puerto local sin tocar la env var); FRONTEND_URL se sigue
+# respetando siempre, para poder apuntar a un front remoto (ej. un dev/staging
+# desplegado, no localhost) sin depender de que ENV valga literalmente "production".
+allow_origin_regex = None if os.getenv("ENV") == "production" else r"http://(localhost|127\.0\.0\.1)(:\d+)?"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
