@@ -38,15 +38,21 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
     """Setea la cookie HttpOnly del refresh token. ``path="/"``: ver nota en
     ``anotaciones/modulo_1/gaps_bd_refresh_tokens.md`` sobre por qué no se usa
     ``path="/sesiones"`` (el prefijo ``/api`` de producción es cosmético en la
-    app — lo agrega el proxy inverso, no root_path)."""
+    app — lo agrega el proxy inverso, no root_path).
+
+    ``samesite``: en producción front y backend viven en dominios distintos
+    (deploy actual), así que la cookie debe viajar cross-site — requiere
+    ``SameSite=None``, que a su vez exige ``Secure`` (ya activo en prod). Fuera
+    de producción se mantiene ``Strict`` (front y backend comparten site en local)."""
+    es_produccion = os.getenv("ENV") == "production"
     max_age = int((fecha_expiracion - datetime.now(timezone.utc)).total_seconds())
     response.set_cookie(
         key=NOMBRE_COOKIE_REFRESH,
         value=valor,
         max_age=max_age,
         httponly=True,
-        secure=(os.getenv("ENV") == "production"),
-        samesite="strict",
+        secure=es_produccion,
+        samesite="none" if es_produccion else "strict",
         path="/",
     )
 

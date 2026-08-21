@@ -280,7 +280,7 @@ app = FastAPI(
 )
 
 if os.getenv("ENV") == "production":
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
     allow_origins = [frontend_url]
     allow_origin_regex = None
 else:
