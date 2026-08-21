@@ -8,7 +8,7 @@ services:
     ports:
       - "${DB_PORT:-5447}:5432"
     volumes:
-      - sgpmp_pgdata:/var/lib/postgresql
+      - sgpmp_pgdata_v2:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -32,4 +32,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  sgpmp_pgdata:
+  sgpmp_pgdata_v2:
