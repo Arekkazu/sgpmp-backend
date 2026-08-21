@@ -11,6 +11,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Optional
 
+from src.identity_access.domain.entities.notificacion import Notificacion
+
 
 class NotificacionRepository(ABC):
     """Contrato de acceso a datos para notificaciones y dispositivos FCM."""
@@ -66,6 +68,11 @@ class NotificacionRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def buscar_correo_usuario(self, id_usuario: int) -> Optional[str]:
+        """Retorna el correo del usuario, o ``None`` si no existe."""
+        raise NotImplementedError
+
+    @abstractmethod
     def buscar_fcm_tokens(self, id_usuario: int) -> list[str]:
         """Retorna los FCM tokens registrados del usuario (lista vacía si no hay)."""
         raise NotImplementedError
@@ -73,4 +80,34 @@ class NotificacionRepository(ABC):
     @abstractmethod
     def guardar_fcm_token(self, id_usuario: int, token: str, user_agent: Optional[str] = None) -> None:
         """Registra un dispositivo FCM para el usuario."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_internas(
+        self,
+        id_usuario: int,
+        solo_no_leidas: bool,
+        offset: int,
+        limit: int,
+    ) -> list[Notificacion]:
+        """Retorna una página de notificaciones internas del usuario."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_internas(self, id_usuario: int, solo_no_leidas: bool) -> int:
+        """Cuenta las notificaciones internas del usuario."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def obtener_interna(
+        self,
+        id_notificacion: int,
+        id_usuario: int,
+    ) -> Optional[Notificacion]:
+        """Obtiene una notificación interna si pertenece al usuario."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def guardar(self, notificacion: Notificacion) -> None:
+        """Persiste el estado de lectura de una notificación interna."""
         raise NotImplementedError

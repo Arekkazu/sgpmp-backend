@@ -161,6 +161,24 @@ curl -s -X POST http://localhost:8000/usuarios/me/fcm-token \
   }' | jq
 ```
 
+### Consultar bandeja de notificaciones internas
+```bash
+curl -s -X GET "http://localhost:8000/notificaciones?pagina=1&tamano=20" \
+  -H "Authorization: Bearer <TOKEN>" | jq
+
+# Solo las pendientes de lectura
+curl -s -X GET "http://localhost:8000/notificaciones?solo_no_leidas=true" \
+  -H "Authorization: Bearer <TOKEN>" | jq
+```
+
+### Marcar una notificación interna como leída
+```bash
+curl -s -X PATCH http://localhost:8000/notificaciones/<ID_NOTIFICACION>/leida \
+  -H "Authorization: Bearer <TOKEN>" | jq
+```
+> Solo permite modificar notificaciones del usuario autenticado. Una
+> notificación ajena, inexistente o de canal EMAIL responde `404`.
+
 ### Listar usuarios paginado (admin)
 ```bash
 curl -s -X GET "http://localhost:8000/usuarios/admin?pagina=1&tamano=20" \

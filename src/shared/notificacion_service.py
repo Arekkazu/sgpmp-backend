@@ -68,6 +68,9 @@ class NotificacionService:
         tipo_evento: int,
         id_usuario: int,
         correo_destino: Optional[str] = None,
+        asunto_email: Optional[str] = None,
+        contenido_html_email: Optional[str] = None,
+        resolver_correo_destino: bool = False,
     ) -> None:
         """Punto de entrada único para enviar notificaciones.
 
@@ -82,9 +85,23 @@ class NotificacionService:
             id_usuario: ID del usuario destinatario.
             correo_destino: Dirección de correo para el canal EMAIL. Si es
                 ``None``, el canal EMAIL se omite.
+            asunto_email: Asunto específico para EMAIL. Si se omite se usa el
+                título general del tipo de evento.
+            contenido_html_email: HTML específico para EMAIL. No se persiste
+                en la notificación interna, evitando almacenar tokens o links
+                sensibles en la bandeja.
+            resolver_correo_destino: Si es ``True`` y no se recibió correo,
+                el servicio lo consulta mediante su puerto.
         """
         try:
-            self._procesar(tipo_evento, id_usuario, correo_destino)
+            self._procesar(
+                tipo_evento,
+                id_usuario,
+                correo_destino,
+                asunto_email,
+                contenido_html_email,
+                resolver_correo_destino,
+            )
         except Exception as exc:
             logger.error(
                 "Error al procesar notificación tipo=%s usuario=%s: %s",
@@ -96,6 +113,9 @@ class NotificacionService:
         tipo_evento: int,
         id_usuario: int,
         correo_destino: Optional[str],
+        asunto_email: Optional[str],
+        contenido_html_email: Optional[str],
+        resolver_correo_destino: bool,
     ) -> None:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
@@ -124,6 +144,9 @@ class NotificacionService:
         if id_evento is None:
             return
 
+        if resolver_correo_destino and correo_destino is None:
+            correo_destino = self.port.buscar_correo_usuario(id_usuario)
+
         fcm_tokens = self.port.buscar_fcm_tokens(id_usuario)
 
         self._enviar_canal(
@@ -135,6 +158,8 @@ class NotificacionService:
             cuerpo=cuerpo,
             correo=correo_destino,
             fcm_tokens=[],
+            asunto_email=asunto_email,
+            contenido_html_email=contenido_html_email,
         )
 
         self._enviar_canal(
@@ -146,6 +171,8 @@ class NotificacionService:
             cuerpo=cuerpo,
             correo=None,
             fcm_tokens=fcm_tokens,
+            asunto_email=None,
+            contenido_html_email=None,
         )
 
     def _enviar_canal(
@@ -158,6 +185,8 @@ class NotificacionService:
         cuerpo: str,
         correo: Optional[str],
         fcm_tokens: list[str],
+        asunto_email: Optional[str],
+        contenido_html_email: Optional[str],
     ) -> None:
         """Persiste y despacha la notificación para un canal específico.
 
@@ -168,8 +197,10 @@ class NotificacionService:
         3. Despacha por el canal correspondiente (EMAIL o INTERNO).
         4. Actualiza el estado a ``enviado`` o ``fallido`` según el resultado.
 
-        Para el canal INTERNO, itera sobre todos los FCM tokens del usuario.
-        El estado final es ``enviado`` si al menos un token recibe el push.
+        Para el canal INTERNO, la persistencia constituye la entrega a la
+        bandeja. El push de Firebase es complementario: se intenta para todos
+        los dispositivos, pero su ausencia o fallo no invalida la entrega
+        interna ya confirmada.
 
         Args:
             canal: ID del canal (1=EMAIL, 2=INTERNO).
@@ -180,6 +211,8 @@ class NotificacionService:
             cuerpo: Cuerpo del mensaje.
             correo: Dirección de correo para EMAIL, o ``None``.
             fcm_tokens: Lista de tokens FCM para INTERNO. Lista vacía omite el envío push.
+            asunto_email: Asunto exclusivo del canal EMAIL, si aplica.
+            contenido_html_email: HTML exclusivo del canal EMAIL, si aplica.
         """
         if self.port.verificar_anti_spam(id_usuario, tipo_evento, canal, VENTANA_ANTI_SPAM_MINUTOS):
             return
@@ -198,14 +231,18 @@ class NotificacionService:
             logger.error("Error guardando notificación (canal=%s): %s", canal, exc)
             return
 
-        enviado = False
+        enviado = canal == ID_CANAL_INTERNO
         try:
             if canal == ID_CANAL_EMAIL and correo:
-                send_email(to=correo, subject=titulo, html_body=f"<p>{cuerpo}</p>")
+                send_email(
+                    to=correo,
+                    subject=asunto_email or titulo,
+                    html_body=contenido_html_email or f"<p>{cuerpo}</p>",
+                )
                 enviado = True
             elif canal == ID_CANAL_INTERNO and fcm_tokens:
-                resultados = [send_push(token=t, titulo=titulo, cuerpo=cuerpo) for t in fcm_tokens]
-                enviado = any(resultados)
+                for token in fcm_tokens:
+                    send_push(token=token, titulo=titulo, cuerpo=cuerpo)
         except Exception as exc:
             logger.error("Error enviando por canal=%s: %s", canal, exc)
 

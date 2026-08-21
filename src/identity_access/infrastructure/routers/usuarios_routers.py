@@ -172,6 +172,10 @@ def crear_usuario(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(dto, ip, user_agent)
@@ -221,6 +225,10 @@ def activar_cuenta(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(token, ip, user_agent)
