@@ -273,24 +273,25 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     lifespan=lifespan,
-    root_path="/api",
+    root_path=os.getenv("ROOT_PATH", "/api"),
     title="sistema gestion  - Gestión de Usuarios, Roles y Permisos",
     description="Microservicio de gestión de usuarios, roles y permisos dentro del sistema de gestión de maquinaria y nómina.",
     version="1.0.0",
 )
 
-frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
-allow_origins = [frontend_url]
-# En producción solo se permite el origen exacto de FRONTEND_URL. Fuera de
-# producción se suma el regex de localhost por comodidad (permite correr el
-# front en cualquier puerto local sin tocar la env var); FRONTEND_URL se sigue
-# respetando siempre, para poder apuntar a un front remoto (ej. un dev/staging
-# desplegado, no localhost) sin depender de que ENV valga literalmente "production".
-allow_origin_regex = None if os.getenv("ENV") == "production" else r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+# Allowlist explícita, sin depender de que ENV valga literalmente "production"
+# (poco confiable en el deploy actual). Agregar un front nuevo (URL de
+# Dokploy, dominio propio, etc.) es una env var, nunca un cambio de código.
+allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allow_origins,
-    allow_origin_regex=allow_origin_regex,
+    allow_origins=allowed_origins,
+    # Localhost siempre permitido para dev local, sin importar ALLOWED_ORIGINS.
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
