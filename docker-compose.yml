@@ -1,5 +1,13 @@
 services:
   db:
+    # container_name único (no el genérico "db"): Dokploy conecta el backend
+    # también a su red compartida "dokploy-network" además de la propia del
+    # proyecto, y ahí "db" puede colisionar con el alias del Postgres de OTRO
+    # proyecto desplegado en el mismo host — Docker resuelve el hostname
+    # ambiguo a cualquiera de los dos. ${POSTGRES_DB} ya es distinto por
+    # ambiente (ver DB_PORT más abajo), así que sirve como sufijo único sin
+    # agregar una env var nueva.
+    container_name: ${POSTGRES_DB}-db
     image: postgres:18
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -21,7 +29,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB}-db:5432/${POSTGRES_DB}
       SECRET_KEY: ${SECRET_KEY}
       FRONTEND_URL: ${FRONTEND_URL}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
