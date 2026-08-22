@@ -34,6 +34,7 @@ def test_registro_y_activacion_generan_auditoria(
     from src.identity_access.application.use_cases.registro import (
         crear_usuario_use_case,
     )
+    from src.shared import notificacion_service
 
     token_crudo = "token-integracion-auditoria"
 
@@ -43,11 +44,7 @@ def test_registro_y_activacion_generan_auditoria(
         "token_urlsafe",
         lambda _bytes: token_crudo,
     )
-    monkeypatch.setattr(
-        crear_usuario_use_case,
-        "send_email",
-        lambda **_kwargs: None,
-    )
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
 
     correo = "auditoria-registro@example.com"
     numero_identificacion = "900000000001"

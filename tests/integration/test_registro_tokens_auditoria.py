@@ -40,6 +40,7 @@ def test_registro_guarda_hash_y_activacion_consume_token(
     from src.identity_access.application.use_cases.registro import (
         crear_usuario_use_case,
     )
+    from src.shared import notificacion_service
 
     token_crudo = "token-integracion-registro"
 
@@ -51,11 +52,7 @@ def test_registro_guarda_hash_y_activacion_consume_token(
     )
 
     # Evitar envío real de correo durante la prueba.
-    monkeypatch.setattr(
-        crear_usuario_use_case,
-        "send_email",
-        lambda **_kwargs: None,
-    )
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
 
     correo = "registro-hash-integracion@example.com"
 

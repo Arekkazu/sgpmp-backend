@@ -63,6 +63,7 @@ from src.identity_access.infrastructure.routers.contrasena_routers import router
 from src.identity_access.infrastructure.routers.roles_routers import router as roles_router
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
+from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared.error_handlers import register_error_handlers
 
 
@@ -304,6 +305,7 @@ app.include_router(sesiones_router)
 app.include_router(contrasena_router)
 app.include_router(auditoria_router)
 app.include_router(roles_router)
+app.include_router(notificaciones_router)
 if os.getenv("AGROFUSION_HUB_CLIENT_ID"):
     # Integración M2M con AgroFusion (Mecanismo B) — ni siquiera se expone en
     # un despliegue standalone sin credenciales configuradas.

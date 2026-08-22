@@ -26,7 +26,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
 | RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
-| RF-14 | Notificar a los usuarios | ⚠️ Cumple parcialmente | ~75% |
+| RF-14 | Notificar a los usuarios | ✅ Cumple | ~100% |
 
 **Lectura rápida:** el módulo está bastante más avanzado de lo que sugeriría el estado "Pendiente" marcado en cada ficha de requerimiento — la mayoría de los flujos centrales (registro, login, roles, permisos, contraseñas, auditoría, notificaciones) tienen implementación real y no trivial, con triggers de base de datos como segunda capa de defensa. Los gaps que aparecen no son "no se hizo nada", sino puntos concretos y acotados. Los dos más serios que encontró esta auditoría — el endpoint sin protección de RF-11 y el sobre-permisionamiento RBAC de `leer_usuario` (RF-11/RF-12) — ya fueron corregidos (PR #13 y issue #17 respectivamente, ver esas secciones). El almacenamiento de tokens en texto plano (RF-08/RF-09) también fue corregido — ver `rf01_rf08_rf09_hash_tokens.md`.
 
@@ -313,20 +313,23 @@ Ninguno.
 
 ## RF-14 — Notificar a los usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~75%)** — hay un sistema de notificaciones real y bastante más sofisticado de lo esperado; el hueco más visible es que no hay forma de leerlas desde una "bandeja".
+**Veredicto: ✅ Cumple (~100%)** — los eventos relevantes pasan por el servicio centralizado y el usuario dispone de una bandeja interna autenticada.
 
 ### Qué SÍ cumple
 
-- Existe un servicio de notificaciones centralizado (no solo envíos de correo sueltos), con dos canales: **correo electrónico** y un canal **interno** (implementado como notificación push).
+- Existe un servicio de notificaciones centralizado (no solo envíos de correo sueltos), con dos canales: **correo electrónico** e **interno**. El canal interno persiste la bandeja y además intenta entregar un push mediante Firebase.
 - **Estados de envío** (en cola, enviado, fallido), tal como pide el RF.
 - **Política anti-spam de 5 minutos**: no se envía más de una notificación del mismo tipo, al mismo usuario, por el mismo canal, dentro de esa ventana — exactamente como especifica el RF.
 - **Reglas por estado de cuenta**: los usuarios inactivos no reciben ninguna notificación; los bloqueados solo reciben las de seguridad (login fallido, cambio de estado de cuenta) — igual que pide el RF.
-- Conectado a los flujos de login, cambio de contraseña, recuperación de contraseña, edición de perfil y gestión de cuenta, siempre enviado después de confirmar los cambios en base de datos.
+- Conectado a los flujos de registro, activación, login, cambio de contraseña, recuperación de contraseña, edición de perfil y gestión de cuenta, siempre después de confirmar los cambios en base de datos.
+- El correo de registro conserva el enlace de activación, pero el token crudo nunca se guarda en `notificaciones.mensaje`.
+- `GET /notificaciones` ofrece paginación, contador de no leídas y filtro `solo_no_leidas`; devuelve únicamente el canal interno del usuario autenticado.
+- `PATCH /notificaciones/{id_notificacion}/leida` marca una notificación propia de forma idempotente y responde `404` para registros ajenos o no internos.
+- El índice parcial `ix_notificaciones_bandeja_usuario` soporta el orden descendente de la bandeja sin cambiar el esquema funcional existente.
 
 ### Qué NO cumple / gaps
 
-- **El registro de usuario y la activación de cuenta no pasan por este sistema de notificaciones** — solo envían un correo directo, sin quedar registrados en la tabla de notificaciones ni pasar por el control anti-spam.
-- **No existe ningún endpoint para que el usuario vea o marque como leídas sus notificaciones internas.** El modelo de datos ya tiene una columna para eso, pero no hay ninguna ruta de API que la use — el canal "interno" hoy es, en la práctica, solo un push notification (que puede fallar silenciosamente si no hay credenciales configuradas), no una bandeja de notificaciones consultable dentro de la plataforma como sugiere el RF.
+Ninguno detectado dentro del alcance de RF-14.
 
 ---
 
