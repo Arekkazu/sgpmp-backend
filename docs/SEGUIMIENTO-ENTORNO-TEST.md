@@ -100,11 +100,13 @@ Se ejecutó:
 
 El comando no produjo diferencias.
 
-Resultado: el archivo `docker-compose.yml` utilizado como referencia permanece idéntico al existente en `origin/integration-v2`.
+Resultado en ese punto del proceso: el archivo `docker-compose.yml` utilizado como referencia permanecía idéntico al existente en `origin/integration-v2`.
 
 ## 6. Arquitectura TEST
 
-El entorno TEST se diseñará como un stack independiente dentro del repositorio Backend, sin modificar el `docker-compose.yml` utilizado como referencia DEV.
+El entorno TEST se diseñó inicialmente como un stack independiente dentro del repositorio Backend, sin modificar el `docker-compose.yml` utilizado como referencia DEV.
+
+Esta condición se mantuvo durante la construcción y validación inicial de TEST. Posteriormente, por solicitud explícita del líder de Desarrollo, se autorizó modificar `docker-compose.yml` para incorporar `pg_cron` al PostgreSQL DEV y pasar las variables SMTP al contenedor Backend DEV.
 
 El archivo previsto para este ambiente será:
 
@@ -197,7 +199,7 @@ TEST no deberá compartir con DEV:
 - credenciales;
 - datos persistentes.
 
-El archivo `docker-compose.yml` de DEV se mantendrá sin modificaciones mientras se construye y valida el ambiente TEST.
+Durante la construcción y validación inicial del ambiente TEST, el archivo `docker-compose.yml` de DEV se mantuvo sin modificaciones. Esta condición cambió posteriormente por solicitud explícita de Desarrollo, como se documenta en la sección de actualización posterior de DEV.
 
 ### Aislamiento del proyecto Docker Compose
 
@@ -258,11 +260,11 @@ La nueva red `sgpmp-test-internal` no existía al momento de la inspección y qu
 
 ### Estado del diseño
 
-Esta arquitectura queda definida como propuesta de implementación para TEST.
+Esta arquitectura quedó definida para la implementación del ambiente TEST.
 
-Se creó `docker-compose.test.yml` para el ambiente TEST. PostgreSQL TEST ya fue levantado y validado; Backend TEST todavía no ha sido iniciado.
+Se creó `docker-compose.test.yml` para el ambiente TEST. PostgreSQL TEST y Backend TEST fueron posteriormente levantados y validados de forma independiente.
 
-La configuración deberá validarse técnicamente antes de considerarse definitiva.
+Las validaciones realizadas y sus resultados se documentan en las secciones posteriores.
 
 ## 7. Archivos creados
 
@@ -270,12 +272,12 @@ La configuración deberá validarse técnicamente antes de considerarse definiti
 - `docker-compose.test.yml`
 - `.env.test.example`
 - `.env.test` (archivo local de configuración, ignorado por Git y no versionable)
+- `Dockerfile.postgres`: imagen PostgreSQL común para DEV y TEST con soporte de `pg_cron`.
 
 ## 8. Archivos modificados
 
 - `.gitignore`: se agregó la excepción `!.env.test.example` para permitir versionar únicamente la plantilla de variables TEST, manteniendo `.env.test` ignorado.
-
-No se ha modificado `docker-compose.yml` de DEV.
+- `docker-compose.yml`: inicialmente permaneció intacto durante la construcción de TEST. Posteriormente fue modificado por solicitud de Desarrollo para utilizar `Dockerfile.postgres`, habilitar `pg_cron` y pasar las variables SMTP al Backend DEV.
 
 ## 9. Variables y configuración
 
@@ -1336,9 +1338,199 @@ Resultado:
 
 Esto confirma que `docker-compose.yml` no presenta diferencias respecto de `origin/integration-v2`.
 
-Por tanto, la creación y validación del ambiente TEST no modificó la configuración Compose existente de DEV.
+Por tanto, la creación y validación inicial del ambiente TEST no modificó la configuración Compose existente de DEV.
 
-Resultado: **Correcto**.
+Resultado: **Correcto en ese punto del proceso**.
+
+### Actualización posterior del entorno DEV por solicitud de Desarrollo
+
+Después de finalizar la configuración inicial de TEST, el líder de Desarrollo solicitó explícitamente que PostgreSQL también tuviera disponible `pg_cron` en DEV, con el objetivo de evitar errores cuando Desarrollo valide localmente futuras migraciones y trabajos programados.
+
+También solicitó que el Backend DEV recibiera explícitamente las variables:
+
+    SMTP_HOST
+    SMTP_PORT
+    SMTP_USER
+    SMTP_PASSWORD
+
+Por esta razón se autorizó modificar posteriormente `docker-compose.yml` dentro de la misma rama de trabajo.
+
+#### Reutilización de la imagen PostgreSQL
+
+DEV fue actualizado para utilizar el mismo:
+
+    Dockerfile.postgres
+
+que ya había sido validado en TEST.
+
+La imagen parte de:
+
+    postgres:18
+
+e instala:
+
+    postgresql-18-cron
+
+El servicio PostgreSQL DEV arranca con:
+
+    shared_preload_libraries=pg_cron
+
+y:
+
+    cron.database_name=${POSTGRES_DB}
+
+De esta forma DEV y TEST comparten la misma capacidad de PostgreSQL respecto de `pg_cron`.
+
+#### Prueba DEV local aislada
+
+Para no reutilizar recursos históricos del antiguo repositorio central de Implementación se creó un proyecto Compose local independiente:
+
+    sgpmp-backend-dev-local
+
+Se comprobó que los contenedores DEV legado pertenecían al proyecto:
+
+    sgpmp-dev
+
+y tenían como directorio de trabajo:
+
+    implementacion/compose
+
+Por tanto, esos recursos no fueron reutilizados ni modificados.
+
+El nuevo DEV local creó un volumen independiente:
+
+    sgpmp-backend-dev-local_sgpmp_pgdata
+
+La base se publicó localmente mediante el puerto definido por el Compose DEV:
+
+    5447 -> 5432
+
+El puerto `5447` se encontraba libre antes del levantamiento.
+
+#### Validación de `pg_cron` en DEV
+
+PostgreSQL DEV inició correctamente utilizando la imagen construida con `Dockerfile.postgres`.
+
+Se comprobó:
+
+    shared_preload_libraries = pg_cron
+    cron.database_name = sgpmp_dev
+    pg_cron disponible = 1.6
+
+Posteriormente se ejecutó:
+
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+Resultado:
+
+    dev-create-pgcron-exit=0
+
+La extensión quedó instalada como:
+
+    pg_cron 1.6
+
+Para comprobar la ejecución real se creó temporalmente:
+
+    implementation_pgcron_dev_probe
+
+con el comando:
+
+    SELECT 1;
+
+El trabajo se ejecutó correctamente y `cron.job_run_details` reportó:
+
+    status = succeeded
+    return_message = 1 row
+
+Los logs de PostgreSQL confirmaron:
+
+    cron job 1 starting: SELECT 1;
+    cron job 1 completed: 1 row
+
+Durante la inicialización inicial de PostgreSQL se registró temporalmente:
+
+    FATAL: database "sgpmp_dev" does not exist
+
+Esto ocurrió mientras el entrypoint todavía estaba creando la base y antes del arranque definitivo del scheduler.
+
+Posteriormente los logs mostraron:
+
+    pg_cron scheduler started
+
+y la ejecución real del job fue exitosa, por lo que el evento inicial no impidió el funcionamiento posterior de `pg_cron`.
+
+Después de la prueba:
+
+- el job técnico fue eliminado mediante `cron.unschedule`;
+- `cron.job` volvió a `0` registros;
+- se inspeccionaron los dos registros técnicos generados por las ejecuciones;
+- se eliminaron exclusivamente dichos registros;
+- `cron.job_run_details` volvió a `0` registros.
+
+Estado final:
+
+    pg_cron = 1.6
+    shared_preload_libraries = pg_cron
+    cron.database_name = sgpmp_dev
+    cron.job = 0
+    cron.job_run_details = 0
+
+También se reinició únicamente PostgreSQL DEV.
+
+Resultado:
+
+    dev-db-restart-exit=0
+
+El servicio pasó nuevamente a:
+
+    healthy
+
+y `pg_cron` permaneció instalado, precargado y operativo después del reinicio.
+
+#### Validación de variables SMTP en Backend DEV
+
+El `docker-compose.yml` DEV fue actualizado para entregar al contenedor Backend:
+
+    SMTP_HOST
+    SMTP_PORT
+    SMTP_USER
+    SMTP_PASSWORD
+
+Para la prueba se utilizó un `.env.dev` local ignorado por Git. No se utilizaron ni mostraron credenciales SMTP reales.
+
+Dentro del contenedor Backend se comprobó únicamente presencia y estado de las variables.
+
+Resultado:
+
+    SMTP_HOST: PRESENTE / CON_VALOR
+    SMTP_PORT: PRESENTE / CON_VALOR
+    SMTP_USER: PRESENTE / VACIA
+    SMTP_PASSWORD: PRESENTE / VACIA
+
+`SMTP_USER` y `SMTP_PASSWORD` fueron dejadas vacías deliberadamente porque esta prueba solo tenía como objetivo demostrar que Compose pasa correctamente las cuatro variables al contenedor.
+
+Las credenciales reales no deberán versionarse.
+
+#### Hallazgo al iniciar Backend DEV con una base nueva
+
+El Backend DEV logró iniciar y Uvicorn reportó:
+
+    Application startup complete
+
+Sin embargo, durante uno de los procesos periódicos apareció:
+
+    relation "modulo5.configuracion_batch_historial_suministros" does not exist
+
+La base `sgpmp_dev` utilizada para esta prueba fue creada desde un volumen nuevo y no recibió restauración del backup ni inicialización completa del esquema funcional.
+
+Por tanto, este error no se atribuye a `pg_cron` ni a la configuración SMTP.
+
+La evidencia confirma que:
+
+    Backend -> PostgreSQL DEV = conexión alcanzada
+    esquema funcional completo DEV = no preparado en esta prueba
+
+No se creó manualmente la tabla faltante ni se alteró el esquema para ocultar este hallazgo.
 
 ## 13. Errores encontrados
 
@@ -1834,6 +2026,16 @@ Hasta este punto se completó:
 
 PostgreSQL TEST permanece en estado `healthy` y Backend TEST permanece en ejecución.
 
-Se comprobó formalmente que `docker-compose.yml` DEV permanece sin diferencias respecto de `origin/integration-v2`.
+La creación y validación inicial de TEST se realizó sin modificar `docker-compose.yml` DEV.
 
-Continúan pendientes las dependencias externas de QA, Frontend TEST y AIoT TEST, además de la revisión final previa al commit.
+Posteriormente, por solicitud explícita del líder de Desarrollo, `docker-compose.yml` DEV fue actualizado para:
+
+- reutilizar `Dockerfile.postgres`;
+- instalar y precargar `pg_cron` en PostgreSQL DEV;
+- pasar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` y `SMTP_PASSWORD` al contenedor Backend.
+
+`pg_cron` fue validado mediante una ejecución real, limpieza del job técnico y reinicio de PostgreSQL.
+
+Las variables SMTP fueron verificadas dentro del contenedor sin exponer valores sensibles.
+
+Continúan pendientes las dependencias externas de QA, la integración Frontend TEST - Backend TEST y AIoT TEST.
