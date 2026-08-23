@@ -2125,13 +2125,77 @@ Posteriormente podrá evaluarse un mecanismo explícito de reset controlado.
 
 ### Pruebas de carga
 
-QA indicó que las pruebas de carga con k6 deberán ejecutarse sobre una copia de la base de datos que pueda reiniciarse independientemente de los datos utilizados por las demás pruebas.
+La segunda evaluación del documento de Pruebas aclara que `k6` es una herramienta operada por el equipo de Pruebas y no debe ser instalada ni configurada por Implementación.
 
-Este requisito queda pendiente de diseño.
+La responsabilidad de Implementación para este punto consiste en:
 
-No se creará todavía una segunda base de datos ni otro stack hasta definir con precisión cómo se ejecutarán dichas pruebas.
+- disponer del ambiente TEST accesible;
+- proporcionar la URL correspondiente;
+- coordinar con Pruebas los endpoints o flujos críticos que serán utilizados para las pruebas de carga.
 
-El listado definitivo de endpoints de carga continúa pendiente por parte del equipo de Pruebas.
+Por tanto, no se instalará ni configurará `k6` dentro de los repositorios de Implementación.
+
+Cualquier necesidad adicional de aislamiento o reinicio de datos para las pruebas de carga deberá ser coordinada explícitamente con Pruebas y Base de Datos antes de crear nuevos recursos.
+
+### Ajuste de alcance respecto a herramientas del equipo de Pruebas
+
+Posteriormente se revisó el documento `Ambiente_Implementación (2).xlsx`, específicamente la hoja `Aprobacion de Ambientes`, con el fin de aclarar las responsabilidades entre Implementación y Pruebas.
+
+La segunda evaluación del documento corrige expresamente el criterio inicial relacionado con las herramientas de validación.
+
+Se establece que Implementación no es responsable de instalar, configurar ni mantener la infraestructura de:
+
+    Cypress
+    Playwright
+    cypress-axe
+    k6
+    OWASP ZAP
+
+Estas herramientas son operadas por el equipo de Pruebas contra el ambiente TEST suministrado por Implementación.
+
+La responsabilidad de Implementación queda limitada, según corresponda, a:
+
+- montar y orquestar el ambiente TEST;
+- mantener Backend, Frontend, PostgreSQL y demás componentes requeridos disponibles;
+- exponer URLs estables del ambiente;
+- comunicar la URL, prefijo y alcance del Backend;
+- informar restricciones de red;
+- coordinar con Pruebas los endpoints o flujos críticos que serán utilizados, por ejemplo, para pruebas de carga;
+- mantener el ambiente accesible para las actividades de E2E, accesibilidad, carga y seguridad.
+
+El documento resume esta separación mediante el criterio:
+
+    Implementación monta y orquesta el ambiente TEST.
+    Pruebas lo opera.
+
+#### Corrección de trabajo realizado por interpretación anterior
+
+Antes de revisar esta segunda evaluación se inició una validación técnica de herramientas de prueba como si su preparación correspondiera a Implementación.
+
+Al identificar la discrepancia se detuvo ese trabajo y se realizó una limpieza controlada.
+
+En Backend se realizó:
+
+- retiro de la documentación adicional generada específicamente para la ejecución de Pytest;
+- eliminación de la base auxiliar temporal `sgpmp_pytest_test`;
+- comprobación de que la base principal `sgpmp_test` permaneciera disponible;
+- comprobación de que `sgpmp_test` conservara sus tablas de usuario;
+- restauración de la rama al último commit correspondiente al trabajo válido del ambiente TEST.
+
+Resultado de la limpieza:
+
+    sgpmp_pytest_test = eliminada
+    sgpmp_test = disponible
+    tablas de usuario en sgpmp_test = 208
+    working tree Backend = limpio
+
+No se eliminaron Pytest ni los archivos de pruebas que ya pertenecían al repositorio de Desarrollo.
+
+No se realizó `push` de los cambios descartados.
+
+Resultado: **Alcance corregido**.
+
+A partir de este punto no se instalarán ni configurarán herramientas de Pruebas como parte del trabajo de Implementación.
 
 ## 16. Pendientes
 
@@ -2141,7 +2205,8 @@ El listado definitivo de endpoints de carga continúa pendiente por parte del eq
 - Validar posteriormente la integración desplegada utilizando las URLs públicas HTTPS definitivas de Frontend TEST y Backend TEST.
 - Validar nuevamente CORS utilizando los dominios HTTPS públicos reales de TEST cuando sean definidos.
 - Diseñar posteriormente el mecanismo explícito de reset de la BD TEST.
-- Definir posteriormente la estrategia de BD independiente para pruebas k6.
+- Coordinar con Pruebas los endpoints o flujos críticos para las pruebas de carga una vez TEST esté desplegado.
+- Entregar a Pruebas las URLs HTTPS estables, prefijo del Backend y restricciones de acceso del ambiente TEST.
 - Esperar acceso al repositorio AIoT para completar TEST de M03, M04 y M09.
 - Revisar archivos, secretos y diferencias antes de cada commit.
 
@@ -2190,4 +2255,6 @@ Posteriormente, por solicitud explícita del líder de Desarrollo, `docker-compo
 
 Las variables SMTP fueron verificadas dentro del contenedor sin exponer valores sensibles.
 
-Continúan pendientes las dependencias externas de QA, la validación con las URLs públicas HTTPS definitivas de TEST y AIoT TEST.
+Continúan pendientes las URLs públicas HTTPS definitivas de TEST, la entrega formal de URL/prefijo/alcance al equipo de Pruebas, las dependencias externas necesarias para completar el ambiente y AIoT TEST.
+
+Las herramientas de E2E, accesibilidad, carga y seguridad serán instaladas, configuradas y ejecutadas por el equipo de Pruebas contra el ambiente suministrado por Implementación.
