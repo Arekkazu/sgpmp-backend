@@ -2,7 +2,15 @@ name: sgpmp-backend-test
 
 services:
   db:
-    image: postgres:18
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requerido para TEST}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}

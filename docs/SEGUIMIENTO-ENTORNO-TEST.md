@@ -223,7 +223,8 @@ Se utilizarán como referencia los siguientes nombres:
 - proyecto Compose: `sgpmp-backend-test`;
 - red externa compartida: `sgpmp-test-internal`;
 - volumen lógico de PostgreSQL TEST: `sgpmp_pgdata_test`;
-- imagen PostgreSQL: `postgres:18`.
+- imagen base PostgreSQL: `postgres:18`;
+- imagen PostgreSQL TEST: construida localmente mediante `Dockerfile.postgres` a partir de `postgres:18`, incorporando `pg_cron`.
 
 El nombre físico final del volumen podrá ser administrado por Docker Compose a partir del nombre del proyecto y del volumen lógico.
 
@@ -1504,6 +1505,153 @@ Entradas filtradas:
     4164
 
 La extensión `pgcrypto` se conservó y fue restaurada correctamente.
+
+#### Incorporación posterior de `pg_cron` por solicitud de Desarrollo
+
+Posteriormente el líder de Desarrollo solicitó que la infraestructura PostgreSQL del Backend incluyera `pg_cron`, debido a que futuras migraciones y trabajos programados dependerán de esta extensión.
+
+Antes de modificar TEST se realizó una prueba aislada sobre la misma imagen base `postgres:18`.
+
+Se comprobó que:
+
+- la imagen utiliza Debian 13 `trixie`;
+- el paquete `postgresql-18-cron` está disponible en los repositorios configurados de la imagen;
+- se instaló correctamente la versión `1.6.7-3.pgdg13+1`;
+- PostgreSQL continuó utilizando la versión `18.6`;
+- el archivo `pg_cron.control` quedó disponible para PostgreSQL 18.
+
+Se creó el archivo:
+
+    Dockerfile.postgres
+
+Su objetivo es construir la imagen PostgreSQL utilizada por TEST a partir de `postgres:18` e instalar:
+
+    postgresql-18-cron
+
+El servicio `db` de `docker-compose.test.yml` se modificó para construir esta imagen y arrancar PostgreSQL con:
+
+    shared_preload_libraries=pg_cron
+
+y con:
+
+    cron.database_name=sgpmp_test
+
+Antes de recrear el contenedor PostgreSQL se registró la siguiente línea base:
+
+    user_tables=206
+    usuarios=22
+    telemetrias=10
+    versiones_modelos=15
+    dispositivos_iot=11
+
+El contenedor `db` fue recreado sin eliminar el volumen persistente.
+
+El volumen utilizado antes y después del cambio fue:
+
+    sgpmp-backend-test_sgpmp_pgdata_test -> /var/lib/postgresql
+
+Después de la recreación se obtuvieron nuevamente:
+
+    user_tables=206
+    usuarios=22
+    telemetrias=10
+    versiones_modelos=15
+    dispositivos_iot=11
+
+Por tanto, la incorporación de la nueva imagen PostgreSQL no produjo pérdida de los datos restaurados.
+
+Se comprobó posteriormente que:
+
+    shared_preload_libraries = pg_cron
+    cron.database_name = sgpmp_test
+    pg_cron disponible = 1.6
+    pgcrypto instalado = 1.4
+
+La extensión se activó en la base TEST mediante:
+
+    CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+Resultado:
+
+    create-pgcron-test-exit=0
+
+Los logs de PostgreSQL confirmaron:
+
+    pg_cron scheduler started
+
+Para validar que la extensión no estuviera únicamente instalada, sino funcional, se creó temporalmente el job técnico:
+
+    implementation_pgcron_probe
+
+con la instrucción:
+
+    SELECT 1;
+
+y programación de una ejecución por minuto.
+
+Se observaron dos ejecuciones reales con estado:
+
+    succeeded
+
+Los logs registraron tanto el inicio como la finalización correcta de ambas ejecuciones.
+
+Después de la validación:
+
+- el job técnico fue eliminado mediante `cron.unschedule`;
+- se verificó que `cron.job` volviera a contener `0` registros;
+- se inspeccionaron los dos registros de ejecución generados;
+- se eliminaron exclusivamente esos dos registros técnicos;
+- `cron.job_run_details` volvió a contener `0` registros;
+- `pg_cron` permaneció instalado y habilitado.
+
+Estado final:
+
+    cron.job = 0
+    cron.job_run_details = 0
+    pg_cron = 1.6
+    shared_preload_libraries = pg_cron
+    cron.database_name = sgpmp_test
+
+El Backend permaneció operativo después de la recreación de PostgreSQL y se verificó nuevamente la comunicación Backend - PostgreSQL mediante:
+
+    SELECT 1
+
+Resultado:
+
+    db_select_1=1
+
+Los recursos Docker creados exclusivamente para la prueba aislada inicial de `pg_cron` fueron eliminados después de completar la validación.
+
+#### Validación después de reiniciar PostgreSQL
+
+Como comprobación final se reinició únicamente el servicio `db`, sin recrear ni eliminar el volumen persistente.
+
+Resultado:
+
+    pgcron-db-restart-exit=0
+
+PostgreSQL pasó de:
+
+    starting
+
+a:
+
+    healthy
+
+Después del reinicio se volvió a verificar:
+
+    pg_cron = 1.6
+    pgcrypto = 1.4
+    shared_preload_libraries = pg_cron
+    cron.database_name = sgpmp_test
+    cron.job = 0
+    cron.job_run_details = 0
+    usuarios = 22
+
+Esto confirma que la configuración de `pg_cron`, la extensión instalada y los datos de TEST permanecen disponibles después de un reinicio normal del servicio PostgreSQL.
+
+
+No se incorporará ninguna otra extensión adicional hasta que Desarrollo confirme explícitamente su nombre y necesidad técnica.
 
 ### Estrategia de restauración
 
