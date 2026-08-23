@@ -1,0 +1,60 @@
+name: sgpmp-backend-test
+
+services:
+  db:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requerido para TEST}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+    expose:
+      - "5432"
+    volumes:
+      - sgpmp_pgdata_test:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER requerido para TEST} -d ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - sgpmp-test-internal
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER requerido para TEST}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}@db:5432/${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY requerido para TEST}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-8}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL requerido para TEST}
+      ENV: ${ENV:-test}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
+      MODELOS_STORAGE_PATH: ${MODELOS_STORAGE_PATH:-/tmp/sgpmp_modelos}
+      AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH:-}
+      AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE:-}
+      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
+      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID:-}
+      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET:-}
+      RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - sgpmp-test-internal
+
+volumes:
+  sgpmp_pgdata_test:
+
+networks:
+  sgpmp-test-internal:
+    external: true
+    name: sgpmp-test-internal
