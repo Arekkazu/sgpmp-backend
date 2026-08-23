@@ -41,14 +41,43 @@ jobs:
             echo "::error::El título del PR debe incluir un ID de requerimiento, ej: (RF-68)"
             exit 1
           fi
-      - name: Comprobar que el requerimiento existe en la RTM
+      - name: Descargar la RTM real (docs-sgpmp, privado)
+        uses: actions/checkout@v4
+        with:
+          repository: miguelortiz13/docs-sgpmp
+          token: ${{ secrets.DOCS_SGPMP_TOKEN }}
+          sparse-checkout: |
+            1-analisis/Matriz de Requerimientos F-NF.md
+          sparse-checkout-cone-mode: false
+          path: docs-sgpmp
+
+      - name: Comprobar que el requerimiento existe en la RTM y no está Descartado
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
-          # Placeholder: aquí se puede llamar a un script que lea la RTM
-          # (exportada como CSV/JSON en el repo, o vía API de Sheets) y
-          # confirme que el RF-XXX referenciado existe y no está en
-          # estado "Descartado". Se deja como paso manual/pendiente hasta
-          # que la RTM tenga una fuente consultable por CI.
-          echo "TODO: validar RF contra la RTM cuando esté disponible como fuente consultable"
+          RTM_FILE="docs-sgpmp/1-analisis/Matriz de Requerimientos F-NF.md"
+          RF_ID=$(echo "$PR_TITLE" | grep -oE '(RF|RNF)-[0-9]+' | head -1)
+
+          if [ -z "$RF_ID" ]; then
+            echo "::error::No se pudo extraer un ID de requerimiento del título del PR"
+            exit 1
+          fi
+
+          echo "Validando $RF_ID contra la RTM ($RTM_FILE)..."
+
+          ROW=$(grep -E "^\| $RF_ID \|" "$RTM_FILE" || true)
+          if [ -z "$ROW" ]; then
+            echo "::error::$RF_ID no existe en la RTM. Verifica el ID o actualiza Matriz de Requerimientos F-NF.md en docs-sgpmp primero."
+            exit 1
+          fi
+
+          if echo "$ROW" | grep -qi "descartado"; then
+            echo "::error::$RF_ID existe en la RTM pero está marcado como Descartado -- no se puede referenciar en un PR."
+            exit 1
+          fi
+
+          echo "OK: $RF_ID encontrado y vigente en la RTM."
+          echo "Fila: $ROW"
 
   # 3. Build y pruebas — stack real: Python 3.13 / FastAPI / pytest
   test:
