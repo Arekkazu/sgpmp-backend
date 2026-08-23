@@ -92,12 +92,13 @@ inconsistencia de permisos ya documentada por el propio equipo.
   el módulo de Predicción/IA — M04 — esté implementado"). El flujo alterno del RF que pide
   `HTTP 422` cuando hay un reentrenamiento de IA en curso está descrito en código pero no
   puede dispararse hoy con ningún dato real.
-- **Inconsistencia de permisos ya documentada por el equipo**
-  (`anotaciones/modulo_9/inconsistencias_permisos_m09.md`): el rol Veterinario tiene permiso
-  `U` (`vet_actualizar_especie`, id_permiso=48) sobre especies, pese a que RF-15 solo
-  autoriza edición a Administrador e Ingeniero de Campo. La decisión documentada fue dejarlo
-  así hasta que el equipo de análisis confirme si debe revocarse — sigue sin resolverse a la
-  fecha de esta auditoría.
+- **Inconsistencia de permisos — RESUELTA (2026-08-22, issue #1634).** El rol Veterinario
+  tenía permiso `U` (`vet_actualizar_especie`, id_permiso=48) sobre especies, pese a que
+  RF-15 solo autoriza edición a Administrador e Ingeniero de Campo. El equipo de análisis
+  confirmó que debe revocarse: se aplicó `UPDATE modulo1.permisos SET es_activo=false WHERE
+  id_recurso=8 AND id_accion=3 AND id_rol=3;`. El Veterinario ya no puede editar especies
+  (recibe `403`). Ver `anotaciones/modulo_9/inconsistencias_permisos_m09.md` y
+  `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - **No existe ningún mecanismo de modo offline / sincronización diferida.** El RF pide
   explícitamente (paso 9 del proceso, y como NFR de disponibilidad) que las operaciones se
   almacenen localmente sin conexión y se sincronicen al reconectar, incluyendo un flujo
@@ -295,13 +296,15 @@ más amplio del que el RF autoriza explícitamente.
   completos desde RF-21, y `src/biological_assets` ya está implementado). El comentario está
   desactualizado y el stub nunca fue reemplazado por la consulta real, pese a que las tablas
   necesarias para hacerla ya están disponibles.
-- **El acceso de solo-lectura es más amplio de lo que el RF autoriza explícitamente.** El RF
-  dice: *"Los usuarios con rol Productor solo pueden consultar la información de las fincas a
-  las que están asignados"* — listando a Productor como el único actor de consulta además del
-  Administrador. En la práctica, `modulo1.permisos` da `R` sobre el recurso `fincas` también a
-  Veterinario e Ingeniero de Campo. No es necesariamente incorrecto (el sistema es RBAC
-  dinámico por diseño), pero es una desviación del texto literal del RF, del mismo tipo que la
-  ya documentada para RF-15/Veterinario.
+- **El acceso de solo-lectura es más amplio que el texto literal del RF — DECISIÓN DE DISEÑO
+  APROBADA (2026-08-22, issue #1634).** El RF dice: *"Los usuarios con rol Productor solo
+  pueden consultar la información de las fincas a las que están asignados"* — listando a
+  Productor como único actor de consulta además del Administrador. En la práctica,
+  `modulo1.permisos` da `R` sobre `fincas` también a Veterinario e Ingeniero de Campo. El
+  equipo de análisis resolvió **mantener** esta lectura como decisión explícita de RBAC
+  dinámico: es solo lectura y es operativamente defendible (un veterinario/ingeniero necesita
+  saber en qué finca está un activo). Ya no es una desviación silenciosa. Ver
+  `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - No se verificó si el `R` de Productor está filtrado a "las fincas a las que está asignado"
   (via `fincas.id_usuario`) o si un Productor puede ver el listado completo de todas las
   fincas del sistema — este es un punto de aislamiento de datos entre productores que vale la
@@ -343,8 +346,10 @@ el RF describe.
   `False` para el chequeo de "no desactivar área con dispositivos/activos asociados", con el
   mismo comentario desactualizado sobre módulos "aún no implementados" que de hecho ya
   existen.
-- Mismo acceso más amplio de lo que el RF autoriza (Productor/Vet/Ing con `R`, cuando el RF
-  solo lista "Administrador del sistema, Productor (consulta)" como actores).
+- Mismo acceso de lectura más amplio que el texto del RF (Productor/Vet/Ing con `R`, cuando
+  el RF solo lista "Administrador del sistema, Productor (consulta)") — **DECISIÓN DE DISEÑO
+  APROBADA (2026-08-22, issue #1634)**: se mantiene como RBAC dinámico, igual que en RF-19.
+  Ver `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - El RF menciona `capacidad_maxima` de forma indirecta (vía RF-33/activos biológicos, no en
   su propia tabla de entradas) — la columna sí existe en DB
   (`infraestructuras.capacidad_maxima int`) aunque no aparece en la lista de "Entradas" del
@@ -884,14 +889,17 @@ propósito real.
    demás agregados del módulo (especies, fincas, plantillas, etc. sí tienen sus invariantes
    reforzadas por constraints o triggers). *(Afecta RF-26, RF-27, RF-28, RF-29.)*
 
-5. **RBAC más permisivo de lo que el texto de cada RF autoriza explícitamente, en un patrón
-   recurrente.** No es un solo caso aislado: RF-15 (Veterinario con `U` sobre especies, ya
-   documentado por el equipo), RF-19 y RF-20 (Veterinario e Ingeniero de Campo con `R` sobre
-   fincas/infraestructuras, cuando el RF solo lista "Productor (consulta)") comparten el mismo
-   patrón — alguien decidió dar acceso de lectura más amplio del que el documento de análisis
-   autoriza literalmente. Dado que el proyecto usa RBAC dinámico por diseño, esto no es
-   necesariamente un error, pero conviene que quede como una decisión explícita del equipo de
-   análisis en vez de una desviación silenciosa. *(Afecta RF-15, RF-19, RF-20.)*
+5. **RBAC más permisivo que el texto de cada RF — RESUELTO (2026-08-22, issue #1634).** El
+   patrón recurrente afectaba a RF-15 (Veterinario con `U` sobre especies), RF-19 y RF-20
+   (Veterinario e Ingeniero de Campo con `R` sobre fincas/infraestructuras, cuando el RF solo
+   lista "Productor (consulta)"). El equipo de análisis decidió, caso por caso:
+   - **RF-15 → revocado.** La `U` del Veterinario sobre especies es escritura y contradice los
+     actores del RF; se aplicó `es_activo=false` al permiso id=48.
+   - **RF-19 y RF-20 → mantenidos como decisión de diseño.** Las `R` de Vet/Ing sobre
+     fincas/infraestructuras son solo lectura y operativamente defendibles; se conservan como
+     RBAC dinámico explícito, ya no como desviación silenciosa.
+
+   Detalle y verificación en `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`. *(Afecta RF-15, RF-19, RF-20.)*
 
 6. **Posible bug de concurrencia optimista en RF-32** (`aplicar_plantilla_use_case.py`):
    compara `fecha_creacion` (inmutable) en vez de `fecha_actualizacion`, por lo que el chequeo
