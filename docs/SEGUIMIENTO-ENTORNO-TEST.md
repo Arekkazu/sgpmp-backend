@@ -1532,6 +1532,155 @@ La evidencia confirma que:
 
 No se creó manualmente la tabla faltante ni se alteró el esquema para ocultar este hallazgo.
 
+### Validación local de integración Frontend TEST - Backend TEST - PostgreSQL TEST
+
+Después de completar las validaciones independientes de Backend TEST y Frontend TEST se realizó una prueba de integración local controlada.
+
+Para esta prueba se utilizaron archivos locales:
+
+    docker-compose.local.yml
+
+ignorados mediante `.git/info/exclude` y no destinados a versionarse.
+
+La publicación temporal utilizada fue:
+
+    Frontend TEST: 127.0.0.1:8080 -> 80
+    Backend TEST: 127.0.0.1:8000 -> 8000
+
+PostgreSQL TEST permaneció sin publicación de puerto hacia el host.
+
+Se comprobó mediante inspección Docker:
+
+    Backend PortBindings = 127.0.0.1:8000
+    PostgreSQL PortBindings = {}
+
+El Backend respondió correctamente desde el host:
+
+    GET /health -> HTTP 200
+    GET / -> HTTP 200
+
+El Frontend fue reconstruido temporalmente con:
+
+    VITE_API_BASE_URL=http://127.0.0.1:8000/api
+
+Se verificó dentro del bundle generado que esta URL estaba presente y que no permanecían la URL ficticia anterior ni el fallback `http://localhost:8000`.
+
+También se comprobó que el Frontend respondía mediante Nginx:
+
+    GET / -> HTTP 200
+    GET /login -> HTTP 200
+
+#### Validación de CORS local
+
+Desde el origen:
+
+    http://127.0.0.1:8080
+
+se ejecutó una preflight contra:
+
+    OPTIONS /api/sesiones/
+
+Resultado:
+
+    HTTP 200
+    access-control-allow-origin: http://127.0.0.1:8080
+    access-control-allow-credentials: true
+
+También se comprobó:
+
+    GET /health -> HTTP 200
+
+con el mismo origen.
+
+Por tanto, CORS permitió correctamente la comunicación local entre Frontend TEST y Backend TEST.
+
+Esta validación no sustituye la comprobación posterior con los dominios HTTPS reales de TEST.
+
+#### Validación de ruta de autenticación
+
+El Frontend utiliza:
+
+    POST /sesiones/
+
+sobre la URL base configurada.
+
+Por tanto, durante la prueba local la solicitud real fue:
+
+    POST http://127.0.0.1:8000/api/sesiones/
+
+Una solicitud vacía alcanzó correctamente la validación del Backend y produjo:
+
+    HTTP 400
+    VAL_ENTRADA
+
+El contrato OpenAPI confirmó que `LoginDTO` requiere:
+
+    correo_electronico
+    contrasena
+
+Posteriormente se realizó desde el navegador un intento de autenticación controlado utilizando un usuario ficticio y una contraseña no real.
+
+Resultado:
+
+    Request Method: POST
+    Request URL: http://127.0.0.1:8000/api/sesiones/
+    Status Code: 401 Unauthorized
+    error_code: CREDENCIALES_INVALIDAS
+
+El resultado `401` era esperado y no representa un fallo de integración.
+
+#### Confirmación de acceso a PostgreSQL
+
+Se inspeccionó el flujo real del Backend.
+
+El router de sesiones inyecta:
+
+    db: Session = Depends(get_db)
+
+y construye:
+
+    SqlAlchemyUsuarioRepository(db)
+
+El caso de uso ejecuta primero:
+
+    usuarios_repo.obtener_por_correo(...)
+
+La implementación concreta realiza:
+
+    self.db.query(Usuarios)
+        .filter(...)
+        .first()
+
+Cuando el usuario no existe, después de esta consulta se genera:
+
+    CREDENCIALES_INVALIDAS
+
+También se comprobó que `get_db` utiliza `SessionLocal`, enlazada al engine construido a partir de `DATABASE_URL`.
+
+Dentro del contenedor Backend TEST se inspeccionó el destino de esa URL sin mostrar credenciales.
+
+Resultado:
+
+    driver = postgresql
+    host = db
+    port = 5432
+    database = sgpmp_test
+    password_configurada = True
+
+Por tanto, la evidencia confirma el recorrido técnico:
+
+    Frontend TEST
+        ->
+    Backend TEST
+        ->
+    SQLAlchemy
+        ->
+    PostgreSQL TEST
+
+Resultado de integración local: **Correcto**.
+
+La prueba demuestra conectividad y recorrido técnico de extremo a extremo, pero no valida un inicio de sesión exitoso con una cuenta TEST real.
+
 ## 13. Errores encontrados
 
 ### Primer intento de restauración del backup
@@ -1989,8 +2138,8 @@ El listado definitivo de endpoints de carga continúa pendiente por parte del eq
 - Confirmar con QA/Base de Datos que los datos restaurados corresponden al estado semilla oficial para regresión.
 - Confirmar con QA las credenciales utilizables para las cuentas de los cinco roles.
 - Confirmar con QA/Base de Datos la ausencia o ubicación de `member_qa`.
-- Validar posteriormente integración Frontend TEST - Backend TEST.
-- Registrar evidencia del posible bloqueo CORS si se presenta.
+- Validar posteriormente la integración desplegada utilizando las URLs públicas HTTPS definitivas de Frontend TEST y Backend TEST.
+- Validar nuevamente CORS utilizando los dominios HTTPS públicos reales de TEST cuando sean definidos.
 - Diseñar posteriormente el mecanismo explícito de reset de la BD TEST.
 - Definir posteriormente la estrategia de BD independiente para pruebas k6.
 - Esperar acceso al repositorio AIoT para completar TEST de M03, M04 y M09.
@@ -2022,7 +2171,10 @@ Hasta este punto se completó:
 - validación de `/docs`;
 - validación de `/openapi.json`;
 - validación del comportamiento del prefijo `/api`;
-- validación de comunicación Backend TEST - PostgreSQL TEST.
+- validación de comunicación Backend TEST - PostgreSQL TEST;
+- validación local Frontend TEST - Backend TEST - PostgreSQL TEST mediante una solicitud real desde navegador;
+- validación local de CORS desde `http://127.0.0.1:8080`;
+- verificación de que PostgreSQL TEST permaneció sin puerto publicado durante la integración local.
 
 PostgreSQL TEST permanece en estado `healthy` y Backend TEST permanece en ejecución.
 
@@ -2038,4 +2190,4 @@ Posteriormente, por solicitud explícita del líder de Desarrollo, `docker-compo
 
 Las variables SMTP fueron verificadas dentro del contenedor sin exponer valores sensibles.
 
-Continúan pendientes las dependencias externas de QA, la integración Frontend TEST - Backend TEST y AIoT TEST.
+Continúan pendientes las dependencias externas de QA, la validación con las URLs públicas HTTPS definitivas de TEST y AIoT TEST.
