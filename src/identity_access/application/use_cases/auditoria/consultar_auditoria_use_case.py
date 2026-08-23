@@ -1,6 +1,6 @@
 """Caso de uso: consulta paginada del historial de auditoría (solo administradores).
 
-Aplica filtros opcionales por usuario, tipo de evento y rango de fechas.
+Aplica filtros opcionales por usuario, tipo, categoría y rango de fechas.
 Registra el propio acceso como un evento de auditoría, incluso si el acceso
 fue denegado, para mantener trazabilidad completa.
 """
@@ -10,6 +10,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AuthorizationError, ValidationError
 
@@ -39,6 +40,7 @@ class ConsultarAuditoriaUseCase:
         fecha_hasta: Optional[datetime],
         pagina: int,
         tamano: int,
+        categoria: Optional[EventoCategoria] = None,
     ) -> dict:
         """Consulta el historial de auditoría con los filtros indicados.
 
@@ -50,6 +52,7 @@ class ConsultarAuditoriaUseCase:
             fecha_hasta: Fin del rango temporal (inclusive).
             pagina: Número de página (base 1).
             tamano: Cantidad de ítems por página (máximo efectivo: 50).
+            categoria: Filtrar por categoría funcional.
 
         Returns:
             Diccionario con ``total``, ``pagina``, ``tamano`` e ``items``, donde
@@ -94,8 +97,22 @@ class ConsultarAuditoriaUseCase:
         offset = (pagina - 1) * tamano
 
         # 4. Consultar eventos con verificación de integridad
-        total = self.eventos_repo.contar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta)
-        items = self.eventos_repo.listar_eventos(id_usuario, tipo_evento, fecha_desde, fecha_hasta, offset, tamano)
+        total = self.eventos_repo.contar_eventos(
+            id_usuario=id_usuario,
+            tipo_evento=tipo_evento,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            categoria=categoria,
+        )
+        items = self.eventos_repo.listar_eventos(
+            id_usuario=id_usuario,
+            tipo_evento=tipo_evento,
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            offset=offset,
+            limit=tamano,
+            categoria=categoria,
+        )
 
         # 5. Registrar evento de consulta
         try:
@@ -107,6 +124,7 @@ class ConsultarAuditoriaUseCase:
                     "filtros": {
                         "id_usuario": id_usuario,
                         "tipo_evento": tipo_evento,
+                        "categoria": categoria.value if categoria else None,
                         "fecha_desde": fecha_desde.isoformat() if fecha_desde else None,
                         "fecha_hasta": fecha_hasta.isoformat() if fecha_hasta else None,
                     },

@@ -376,6 +376,10 @@ curl -s -X GET "http://localhost:8000/auditoria/?pagina=1&tamano=20" \
 curl -s -X GET "http://localhost:8000/auditoria/?id_usuario=5&tipo_evento=1&pagina=1&tamano=10" \
   -H "Authorization: Bearer <TOKEN>" | jq
 
+# Por categoría funcional: AUTENTICACION, MODIFICACION o CONSULTA
+curl -s -X GET "http://localhost:8000/auditoria/?categoria=MODIFICACION&pagina=1&tamano=20" \
+  -H "Authorization: Bearer <TOKEN>" | jq
+
 # Con rango de fechas (formato ISO 8601)
 curl -s -X GET "http://localhost:8000/auditoria/?fecha_desde=2026-01-01T00:00:00&fecha_hasta=2026-06-10T23:59:59&pagina=1&tamano=20" \
   -H "Authorization: Bearer <TOKEN>" | jq

@@ -17,8 +17,14 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.evento import Evento
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.value_objects.evento_categoria import (
+    EventoCategoria,
+    categoria_para_tipo_evento,
+    tipos_evento_para_categoria,
+)
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
 from src.identity_access.infrastructure.models.eventos_model import Eventos
+from src.shared.errors import InfrastructureError
 
 
 class SqlAlchemyEventoRepository(EventoRepository):
@@ -30,6 +36,13 @@ class SqlAlchemyEventoRepository(EventoRepository):
     @staticmethod
     def _a_entidad(orm: Eventos) -> Evento:
         """Convierte una fila ORM ``Eventos`` en la entidad :class:`Evento`."""
+        try:
+            categoria = categoria_para_tipo_evento(orm.tipo_evento).value
+        except ValueError:
+            # Conserva accesibles los eventos históricos de tipos externos o
+            # aún no catalogados. Los eventos nuevos desconocidos se rechazan.
+            categoria = orm.categoria
+
         return Evento(
             id_evento=orm.id_evento,
             tipo_evento=orm.tipo_evento,
@@ -38,7 +51,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             resultado=getattr(orm.resultado, "value", orm.resultado),
             detalle=orm.detalle,
             id_usuario=orm.id_usuario,
-            categoria=orm.categoria,
+            categoria=categoria,
             estado=orm.estado,
             id_sesion=orm.id_sesion,
         )
@@ -51,9 +64,16 @@ class SqlAlchemyEventoRepository(EventoRepository):
         fecha_hasta: Optional[datetime],
         offset: int,
         limit: int,
+        categoria: Optional[EventoCategoria] = None,
     ) -> list[tuple[Evento, bool]]:
         eventos = (
-            self._query_con_filtros(id_usuario, tipo_evento, fecha_desde, fecha_hasta)
+            self._query_con_filtros(
+                id_usuario,
+                tipo_evento,
+                categoria,
+                fecha_desde,
+                fecha_hasta,
+            )
             .order_by(Eventos.fecha_evento.desc())
             .offset(offset)
             .limit(limit)
@@ -67,15 +87,36 @@ class SqlAlchemyEventoRepository(EventoRepository):
         tipo_evento: Optional[int],
         fecha_desde: Optional[datetime],
         fecha_hasta: Optional[datetime],
+        categoria: Optional[EventoCategoria] = None,
     ) -> int:
-        return self._query_con_filtros(id_usuario, tipo_evento, fecha_desde, fecha_hasta).count()
+        return self._query_con_filtros(
+            id_usuario,
+            tipo_evento,
+            categoria,
+            fecha_desde,
+            fecha_hasta,
+        ).count()
 
-    def _query_con_filtros(self, id_usuario, tipo_evento, fecha_desde, fecha_hasta):
+    def _query_con_filtros(
+        self,
+        id_usuario,
+        tipo_evento,
+        categoria,
+        fecha_desde,
+        fecha_hasta,
+    ):
         query = self.db.query(Eventos)
         if id_usuario is not None:
             query = query.filter(Eventos.id_usuario == id_usuario)
         if tipo_evento is not None:
             query = query.filter(Eventos.tipo_evento == tipo_evento)
+        if categoria is not None:
+            # La columna de los eventos históricos contiene el valor erróneo
+            # AUTENTICACION. Filtrar por tipos canónicos permite consultarlos
+            # correctamente sin violar la inmutabilidad de la auditoría.
+            query = query.filter(
+                Eventos.tipo_evento.in_(tipos_evento_para_categoria(categoria))
+            )
         if fecha_desde is not None:
             query = query.filter(Eventos.fecha_evento >= fecha_desde)
         if fecha_hasta is not None:
@@ -107,6 +148,19 @@ class SqlAlchemyEventoRepository(EventoRepository):
     ) -> None:
         # El hash SHA-256 cubre los campos clave del evento para detectar
         # modificaciones posteriores en la tabla de auditoría.
+        try:
+            categoria = categoria_para_tipo_evento(tipo_evento)
+        except ValueError as exc:
+            raise InfrastructureError(
+                code="CATEGORIA_EVENTO_NO_DEFINIDA",
+                message=(
+                    "No se pudo registrar la auditoría porque el tipo de evento "
+                    "no tiene una categoría configurada."
+                ),
+                original_error=exc,
+                field="tipo_evento",
+            ) from exc
+
         resultado = EnumEventoResultado.EXITOSO if exitoso else EnumEventoResultado.FALLIDO
         fecha = datetime.now(timezone.utc)
         contenido_hash = json.dumps({
@@ -126,7 +180,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             resultado=resultado,
             detalle=detalle,
             id_usuario=id_usuario,
-            categoria="AUTENTICACION",
+            categoria=categoria.value,
             estado="PROCESADO",
             id_sesion=id_sesion,
             hash_integridad=hash_integridad,
