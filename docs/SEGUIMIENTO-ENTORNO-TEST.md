@@ -2210,6 +2210,63 @@ A partir de este punto no se instalarán ni configurarán herramientas de Prueba
 - Esperar acceso al repositorio AIoT para completar TEST de M03, M04 y M09.
 - Revisar archivos, secretos y diferencias antes de cada commit.
 
+### Validación final previa a entrega de la rama
+
+Antes de preparar la entrega de la rama se actualizaron las referencias remotas mediante `git fetch origin`.
+
+La rama base Backend permaneció en:
+
+    origin/integration-v2 = 39b817c
+
+La comparación entre `origin/integration-v2` y `feat/ambiente-test` mostró únicamente commits propios de la rama de trabajo, sin nuevos commits pendientes provenientes de la rama base.
+
+También se revisó el conjunto completo de cambios respecto a `origin/integration-v2`.
+
+Archivos incluidos en la entrega Backend:
+
+    A  .env.test.example
+    M  .gitignore
+    A  Dockerfile.postgres
+    A  docker-compose.test.yml
+    M  docker-compose.yml
+    A  docs/SEGUIMIENTO-ENTORNO-TEST.md
+
+Se validó nuevamente `docker-compose.test.yml` sin utilizar el override local.
+
+Resultado de exposición de servicios:
+
+    Backend TEST = expose 8000
+    PostgreSQL TEST = expose 5432
+    ports publicados por Compose TEST base = ninguno
+
+Backend y PostgreSQL TEST permanecen conectados a la red externa:
+
+    sgpmp-test-internal
+
+Se revisaron los archivos técnicos modificados para detectar incorporaciones relacionadas con Cypress, Playwright, cypress-axe, Pytest, Vitest, Newman, k6 u OWASP ZAP.
+
+Resultado:
+
+    herramientas de Pruebas añadidas en archivos técnicos = ninguna
+
+También se inspeccionó el cambio realizado sobre `docker-compose.yml` DEV.
+
+El cambio DEV permanece limitado a:
+
+- construcción de PostgreSQL mediante `Dockerfile.postgres`;
+- precarga de `pg_cron`;
+- definición de `cron.database_name`;
+- paso de `SMTP_HOST`;
+- paso de `SMTP_PORT`;
+- paso de `SMTP_USER`;
+- paso de `SMTP_PASSWORD`.
+
+No se detectaron cambios adicionales fuera de ese alcance.
+
+El árbol de trabajo Backend quedó limpio al finalizar la auditoría.
+
+Resultado: **Validación previa a entrega correcta**.
+
 ## 17. Evidencias
 
 Las evidencias se agregarán progresivamente durante las pruebas del entorno.
