@@ -2267,6 +2267,27 @@ El árbol de trabajo Backend quedó limpio al finalizar la auditoría.
 
 Resultado: **Validación previa a entrega correcta**.
 
+### Publicación de la rama de trabajo Backend
+
+Después de completar las validaciones locales y la revisión previa a entrega, se publicó la rama de trabajo Backend en el repositorio remoto.
+
+Comando ejecutado:
+
+    git push -u origin feat/ambiente-test
+
+Resultado:
+
+    rama remota = origin/feat/ambiente-test
+    commit local = 5897c26
+    commit remoto = 5897c26
+    tracking configurado = correcto
+
+La publicación se realizó sin `merge` hacia `integration-v2`, `main` u otra rama.
+
+La rama queda disponible para revisión y posterior integración por parte del responsable correspondiente.
+
+Resultado: **Publicación Backend correcta**.
+
 ## 17. Evidencias
 
 Las evidencias se agregarán progresivamente durante las pruebas del entorno.
