@@ -1,0 +1,50 @@
+services:
+  db:
+    # container_name único (no el genérico "db"): Dokploy conecta el backend
+    # también a su red compartida "dokploy-network" además de la propia del
+    # proyecto, y ahí "db" puede colisionar con el alias del Postgres de OTRO
+    # proyecto desplegado en el mismo host — Docker resuelve el hostname
+    # ambiguo a cualquiera de los dos. ${POSTGRES_DB} ya es distinto por
+    # ambiente (ver DB_PORT más abajo), así que sirve como sufijo único sin
+    # agregar una env var nueva.
+    container_name: ${POSTGRES_DB}-db
+    image: postgres:18
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${DB_PORT:-5447}:5432"
+    volumes:
+      - sgpmp_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB}-db:5432/${POSTGRES_DB}
+      ENV: ${ENV}
+      SECRET_KEY: ${SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      ROOT_PATH: ${ROOT_PATH}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  sgpmp_pgdata:

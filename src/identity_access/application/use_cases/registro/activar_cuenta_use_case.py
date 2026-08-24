@@ -24,6 +24,7 @@ class ActivarCuentaUseCase:
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         db: Session,
+        notificacion_service=None,
     ):
         """Inicializa el use case.
 
@@ -31,10 +32,12 @@ class ActivarCuentaUseCase:
             cuentas_repo: Repositorio de dominio del agregado Cuenta.
             eventos_repo: Repositorio utilizado para registrar eventos de auditoría.
             db: Sesión SQLAlchemy activa del request.
+            notificacion_service: Servicio centralizado de notificaciones.
         """
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(
         self,
@@ -101,3 +104,10 @@ class ActivarCuentaUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_ACTIVACION_CUENTA,
+                id_usuario=cuenta.id_usuario,
+                resolver_correo_destino=True,
+            )

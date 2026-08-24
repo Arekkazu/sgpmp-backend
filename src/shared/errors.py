@@ -22,7 +22,8 @@ Jerarquía de uso::
     ├── LockedError            423  Recurso bloqueado temporalmente
     ├── TooManyRequestsError   429  Límite de concurrencia u operaciones simultáneas excedido
     ├── InfrastructureError    500  Fallo de adaptador externo
-    └── ServiceUnavailableError 503 Servicio externo no disponible temporalmente
+    ├── ServiceUnavailableError 503 Servicio externo no disponible temporalmente
+    └── GatewayTimeoutError    504  Servicio externo no confirmó a tiempo (timeout de ACK)
 """
 from __future__ import annotations
 
@@ -171,6 +172,32 @@ class InfrastructureError(AppError):
             original_error: Excepción original del adaptador, para logging.
             field: Nombre del campo relacionado, si aplica.
         """
+        super().__init__(code, message, field)
+        self.original_error = original_error
+
+
+class GatewayTimeoutError(AppError):
+    """Un servicio externo no confirmó la operación a tiempo (HTTP 504).
+
+    Usar cuando el flujo depende de una confirmación asíncrona de un
+    dispositivo/servicio de terceros (ej: ACK de un dispositivo IoT vía
+    MQTT) y el plazo de espera se agota sin respuesta. Distinto de
+    ``ServiceUnavailableError``: acá el servicio externo respondió (o el
+    comando se envió con éxito), solo que la confirmación no llegó a tiempo.
+
+    Attributes:
+        original_error: Excepción original capturada del adaptador, si aplica.
+    """
+
+    status_code = 504
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        original_error: Optional[BaseException] = None,
+        field: Optional[str] = None,
+    ):
         super().__init__(code, message, field)
         self.original_error = original_error
 

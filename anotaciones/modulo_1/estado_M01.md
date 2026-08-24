@@ -22,11 +22,11 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
 | RF-08 | Recuperación de contraseña | ⚠️ Cumple parcialmente | ~70% |
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
-| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~80% |
+| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~95% |
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
 | RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
-| RF-14 | Notificar a los usuarios | ⚠️ Cumple parcialmente | ~75% |
+| RF-14 | Notificar a los usuarios | ✅ Cumple | ~100% |
 
 **Lectura rápida:** el módulo está bastante más avanzado de lo que sugeriría el estado "Pendiente" marcado en cada ficha de requerimiento — la mayoría de los flujos centrales (registro, login, roles, permisos, contraseñas, auditoría, notificaciones) tienen implementación real y no trivial, con triggers de base de datos como segunda capa de defensa. Los gaps que aparecen no son "no se hizo nada", sino puntos concretos y acotados. Los dos más serios que encontró esta auditoría — el endpoint sin protección de RF-11 y el sobre-permisionamiento RBAC de `leer_usuario` (RF-11/RF-12) — ya fueron corregidos (PR #13 y issue #17 respectivamente, ver esas secciones). El almacenamiento de tokens en texto plano (RF-08/RF-09) también fue corregido — ver `rf01_rf08_rf09_hash_tokens.md`.
 
@@ -243,12 +243,12 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Sí existe un endpoint para consultar el historial** (`GET /auditoria/`), con filtros por usuario, tipo de evento, rango de fechas, y paginación con tope de 50 registros, restringido por RBAC.
 - **Los registros son verdaderamente inmutables**: hay triggers en base de datos que bloquean cualquier `UPDATE` o `DELETE` sobre la tabla de eventos, **incluso para el usuario administrador de la base de datos**. Esto se verificó directamente contra la base de datos, no solo leyendo el código.
 - **Hash de integridad SHA-256**: cada evento se guarda con un hash calculado sobre su contenido, y ese hash se recalcula y verifica cada vez que se consulta el historial, para detectar manipulación.
+- **Categorías funcionales corregidas**: los eventos se clasifican como `AUTENTICACION`, `MODIFICACION` o `CONSULTA` según su tipo. El endpoint también permite filtrar por categoría sin modificar eventos históricos inmutables.
+- **El registro de usuario y la activación de cuenta generan eventos de auditoría** (tipos 1 y 2).
 - Se auditan correctamente: login exitoso/fallido, cierre de sesión, cambio de contraseña, solicitud y confirmación de recuperación, actualización de perfil, cambio de estado de cuenta, creación/edición/eliminación de roles, asignación/revocación de permisos, y hasta las propias consultas de auditoría, de listado de usuarios y de perfiles.
 
 ### Qué NO cumple / gaps
 
-- **El registro de un nuevo usuario y la activación de su cuenta no generan evento de auditoría** (ver también RF-01) — son de los pocos eventos que el propio RF-10 pide auditar explícitamente y que hoy no dejan rastro.
-- **El campo "categoría" del evento siempre se guarda como "AUTENTICACION"**, sin importar si el evento real es una modificación de rol, una consulta de listado, etc. — el dato existe pero no es útil para filtrar por tipo de categoría real.
 - **No hay política de retención de 12 meses ni archivado automático** de registros antiguos — no existe ningún proceso programado para esto.
 - `audit_sdk`, la librería externa mencionada en `CLAUDE.md` como el mecanismo de auditoría del proyecto (*"Se inicializa en main.py mediante AuditContextMiddleware"*), **está importada pero nunca activada** — es código muerto. La auditoría real del módulo 1 corre por un mecanismo propio (tabla de eventos + hash SHA-256), completamente aparte de esta librería. Esto es una corrección a `CLAUDE.md`, no un gap de negocio: el mecanismo real funciona, solo que no es el que el documento de arquitectura describe.
 
@@ -313,20 +313,23 @@ Ninguno.
 
 ## RF-14 — Notificar a los usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~75%)** — hay un sistema de notificaciones real y bastante más sofisticado de lo esperado; el hueco más visible es que no hay forma de leerlas desde una "bandeja".
+**Veredicto: ✅ Cumple (~100%)** — los eventos relevantes pasan por el servicio centralizado y el usuario dispone de una bandeja interna autenticada.
 
 ### Qué SÍ cumple
 
-- Existe un servicio de notificaciones centralizado (no solo envíos de correo sueltos), con dos canales: **correo electrónico** y un canal **interno** (implementado como notificación push).
+- Existe un servicio de notificaciones centralizado (no solo envíos de correo sueltos), con dos canales: **correo electrónico** e **interno**. El canal interno persiste la bandeja y además intenta entregar un push mediante Firebase.
 - **Estados de envío** (en cola, enviado, fallido), tal como pide el RF.
 - **Política anti-spam de 5 minutos**: no se envía más de una notificación del mismo tipo, al mismo usuario, por el mismo canal, dentro de esa ventana — exactamente como especifica el RF.
 - **Reglas por estado de cuenta**: los usuarios inactivos no reciben ninguna notificación; los bloqueados solo reciben las de seguridad (login fallido, cambio de estado de cuenta) — igual que pide el RF.
-- Conectado a los flujos de login, cambio de contraseña, recuperación de contraseña, edición de perfil y gestión de cuenta, siempre enviado después de confirmar los cambios en base de datos.
+- Conectado a los flujos de registro, activación, login, cambio de contraseña, recuperación de contraseña, edición de perfil y gestión de cuenta, siempre después de confirmar los cambios en base de datos.
+- El correo de registro conserva el enlace de activación, pero el token crudo nunca se guarda en `notificaciones.mensaje`.
+- `GET /notificaciones` ofrece paginación, contador de no leídas y filtro `solo_no_leidas`; devuelve únicamente el canal interno del usuario autenticado.
+- `PATCH /notificaciones/{id_notificacion}/leida` marca una notificación propia de forma idempotente y responde `404` para registros ajenos o no internos.
+- El índice parcial `ix_notificaciones_bandeja_usuario` soporta el orden descendente de la bandeja sin cambiar el esquema funcional existente.
 
 ### Qué NO cumple / gaps
 
-- **El registro de usuario y la activación de cuenta no pasan por este sistema de notificaciones** — solo envían un correo directo, sin quedar registrados en la tabla de notificaciones ni pasar por el control anti-spam.
-- **No existe ningún endpoint para que el usuario vea o marque como leídas sus notificaciones internas.** El modelo de datos ya tiene una columna para eso, pero no hay ninguna ruta de API que la use — el canal "interno" hoy es, en la práctica, solo un push notification (que puede fallar silenciosamente si no hay credenciales configuradas), no una bandeja de notificaciones consultable dentro de la plataforma como sugiere el RF.
+Ninguno detectado dentro del alcance de RF-14.
 
 ---
 

@@ -82,9 +82,10 @@ class AplicarPlantillaUseCase:
                 field="id_especie_destino",
             )
 
-        # Concurrencia optimista sobre la especie destino
-        ts_db = especie_destino.fecha_creacion
-        ts_dto = dto.fecha_creacion_especie_destino
+        # Concurrencia optimista sobre la especie destino (fecha_actualizacion, no
+        # fecha_creacion: esta última es inmutable y nunca detectaría una edición real).
+        ts_db = especie_destino.fecha_actualizacion
+        ts_dto = dto.fecha_actualizacion_especie_destino
         if ts_db is not None and ts_dto is not None:
             if ts_db.astimezone(timezone.utc) != ts_dto.astimezone(timezone.utc):
                 raise PreconditionFailedError(

@@ -248,13 +248,25 @@ Respuesta esperada `200`:
 
 Recurso `id_recurso=11`, acción U(3). Admin / Ing.
 
-El endpoint siempre responde `202` porque el stub MQTT simula el dispositivo offline.
-La configuración queda en estado `PENDIENTE` hasta que el dispositivo se conecte.
+Integración MQTT real vía `BROKER-MQTT-SGPMP` (ya no es un stub). El endpoint
+llama al broker, que publica el comando y espera hasta 30s (configurable,
+`MQTT_ACK_TIMEOUT_SECONDS` en el broker) el ACK del dispositivo antes de
+responder. Según el resultado, el código HTTP y el `estado` final varían:
+
+| `estado` final | HTTP | Cuándo |
+|---|---|---|
+| `APLICADA` | `200` | El dispositivo confirmó el ACK dentro del timeout |
+| `PENDIENTE` | `202` | Dispositivo no `ACTIVO` en `modulo3.estados_dispositivos_iot`, o broker inalcanzable |
+| `NO_CONF` | `504` | Se publicó el comando pero no llegó ACK dentro del timeout |
+
+Verificado end-to-end (2026-08-20) contra backend + broker + Mosquitto reales,
+con un ACK simulado vía `mosquitto_pub` en `sgpmp/<serial>/status`.
 
 ### Enviar configuración remota (Flujo C)
 
 `intervalo_transmision` debe ser ≥ `frecuencia_captura` (FA-12).
-No puede existir una configuración `PENDIENTE` previa para el mismo dispositivo (FA-15).
+No puede existir una configuración `PENDIENTE` previa para el mismo dispositivo (FA-15,
+blindado con índice único parcial en BD, ver `alembic/versions/7e2d5f3bf17a_rf23_mqtt_integracion.py`).
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/dispositivos-iot/1/configurar \
@@ -266,18 +278,43 @@ curl -X POST http://localhost:8000/configuracion/dispositivos-iot/1/configurar \
   }'
 ```
 
-Respuesta esperada `202`:
+Caso `APLICADA` (dispositivo `ACTIVO`, ACK recibido a tiempo) — `200`:
 ```json
 {
-  "id_configuracion_remota": 1,
-  "id_dispositivo_iot": 1,
-  "frecuencia_captura": 30,
-  "intervalo_transmision": 60,
+  "id_configuracion_remota": 11,
+  "id_dispositivo_iot": 10,
+  "frecuencia_captura": 12,
+  "intervalo_transmision": 20,
+  "estado": "APLICADA",
+  "id_usuario": 43,
+  "fecha_creacion": "2026-08-20T14:11:41.833690Z",
+  "fecha_aplicacion": "2026-08-20T14:11:49.118642Z",
+  "mensaje": "El dispositivo confirmó la recepción de la configuración."
+}
+```
+
+Caso `PENDIENTE` (dispositivo no `ACTIVO`, respuesta inmediata) — `202`:
+```json
+{
+  "id_configuracion_remota": 12,
+  "id_dispositivo_iot": 2,
+  "frecuencia_captura": 5,
+  "intervalo_transmision": 15,
   "estado": "PENDIENTE",
-  "id_usuario": 1,
-  "fecha_creacion": "2026-06-21T18:36:02Z",
+  "id_usuario": 43,
+  "fecha_creacion": "2026-08-20T14:12:24.675930Z",
   "fecha_aplicacion": null,
-  "mensaje": "Dispositivo offline. La configuración ha sido almacenada y se enviará automáticamente en la próxima ventana de conexión del dispositivo."
+  "mensaje": "Dispositivo offline. La configuración quedará pendiente hasta que reconecte."
+}
+```
+
+Caso `NO_CONF` (dispositivo `ACTIVO`, sin ACK dentro de 30s) — `504`:
+```json
+{
+  "error_code": "CONFIGURACION_NO_CONFIRMADA",
+  "message": "El comando fue enviado pero el dispositivo no confirmó la recepción a tiempo.",
+  "fields": [],
+  "timestamp": "2026-08-20T14:13:05.862948+00:00"
 }
 ```
 
@@ -286,6 +323,7 @@ Errores posibles:
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
 - `409` — ya existe configuración PENDIENTE para el dispositivo (FA-15) — `CONFIG_PENDIENTE_EXISTENTE`
+- `504` — se envió pero no hubo ACK a tiempo — `CONFIGURACION_NO_CONFIRMADA`
 - `403` — rol sin permiso U sobre dispositivos_iot (FA-01)
 
 ---
@@ -414,7 +452,7 @@ Respuesta esperada `200`:
 
 ## Notas técnicas
 
-- **MQTT stub**: La comunicación MQTT con dispositivos LoRaWAN está simulada con un adaptador stub (`MqttStubAdapter`) que siempre retorna `False` (dispositivo offline). Todas las configuraciones remotas quedan en estado `PENDIENTE`. El endpoint responde `202 Accepted` en todos los casos.
+- **MQTT real (RF-23)**: `MqttHttpAdapter` llama a `BROKER-MQTT-SGPMP` (`POST /v1/commands`, autenticado con un token de servicio validado contra `modulo1.credenciales_servicio`). El broker publica en Mosquitto y espera el ACK; el resultado (`APLICADA`/`PENDIENTE`/`NO_CONF`) se traduce a `200`/`202`/`504`. El broker ya **no** escribe `modulo9.configuraciones_remotas` — esa tabla es propiedad exclusiva de este backend. Fuera de esta entrega: reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (requiere webhook broker→backend, contrato de topics aún no cerrado con el equipo IoT).
 - **Sensor fijo a infraestructura**: La DB impide mediante trigger (`trg_fn_sensor_asociacion_infraestructura_fija`) que un sensor sea asociado a más de una infraestructura en toda su vida útil. Una vez asociado al área X, nunca puede moverse al área Y.
 - **Serial único**: El serial del dispositivo es globalmente único. La validación se hace con pre-check en el use case antes del INSERT para obtener un `409` limpio.
 - **Auditoría de dispositivos**: Las operaciones CREATE, DEACTIVATE y GET sobre dispositivos quedan registradas en `modulo9.auditorias_dispositivos_iot`.

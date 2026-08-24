@@ -34,7 +34,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-20 | Gestión de infraestructura productiva | ⚠️ Cumple parcialmente | ~80% |
 | RF-21 | Registro de dispositivos IoT | ✅ Cumple | ~95% |
 | RF-22 | Asociación de sensores a estructuras productivas | ✅ Cumple | ~90% |
-| RF-23 | Configuración remota de dispositivos IoT | ⚠️ Cumple parcialmente | ~55% |
+| RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
 | RF-24 | Calibración de dispositivos IoT | ⚠️ Cumple parcialmente | ~65% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
@@ -51,8 +51,9 @@ repositorios, routers con RBAC), con triggers de base de datos como segunda capa
 en casi todos los agregados. Los gaps más serios no son de "código faltante" sino de
 **reglas de negocio que existen pero están gateadas por un adaptador stub que siempre
 responde "sin dependencias"** (afecta RF-15, RF-16, RF-19, RF-20), de **integraciones
-externas nunca conectadas** (MQTT real para RF-23, motor de traducción para RF-29), y de un
-**posible bug de concurrencia en RF-32** que compara el campo equivocado.
+externas nunca conectadas** (MQTT real para RF-23 — resuelto 2026-08-20, ver su sección —,
+motor de traducción para RF-29), y de un **posible bug de concurrencia en RF-32** que compara
+el campo equivocado.
 
 ---
 
@@ -91,12 +92,13 @@ inconsistencia de permisos ya documentada por el propio equipo.
   el módulo de Predicción/IA — M04 — esté implementado"). El flujo alterno del RF que pide
   `HTTP 422` cuando hay un reentrenamiento de IA en curso está descrito en código pero no
   puede dispararse hoy con ningún dato real.
-- **Inconsistencia de permisos ya documentada por el equipo**
-  (`anotaciones/modulo_9/inconsistencias_permisos_m09.md`): el rol Veterinario tiene permiso
-  `U` (`vet_actualizar_especie`, id_permiso=48) sobre especies, pese a que RF-15 solo
-  autoriza edición a Administrador e Ingeniero de Campo. La decisión documentada fue dejarlo
-  así hasta que el equipo de análisis confirme si debe revocarse — sigue sin resolverse a la
-  fecha de esta auditoría.
+- **Inconsistencia de permisos — RESUELTA (2026-08-22, issue #1634).** El rol Veterinario
+  tenía permiso `U` (`vet_actualizar_especie`, id_permiso=48) sobre especies, pese a que
+  RF-15 solo autoriza edición a Administrador e Ingeniero de Campo. El equipo de análisis
+  confirmó que debe revocarse: se aplicó `UPDATE modulo1.permisos SET es_activo=false WHERE
+  id_recurso=8 AND id_accion=3 AND id_rol=3;`. El Veterinario ya no puede editar especies
+  (recibe `403`). Ver `anotaciones/modulo_9/inconsistencias_permisos_m09.md` y
+  `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - **No existe ningún mecanismo de modo offline / sincronización diferida.** El RF pide
   explícitamente (paso 9 del proceso, y como NFR de disponibilidad) que las operaciones se
   almacenen localmente sin conexión y se sincronicen al reconectar, incluyendo un flujo
@@ -294,13 +296,15 @@ más amplio del que el RF autoriza explícitamente.
   completos desde RF-21, y `src/biological_assets` ya está implementado). El comentario está
   desactualizado y el stub nunca fue reemplazado por la consulta real, pese a que las tablas
   necesarias para hacerla ya están disponibles.
-- **El acceso de solo-lectura es más amplio de lo que el RF autoriza explícitamente.** El RF
-  dice: *"Los usuarios con rol Productor solo pueden consultar la información de las fincas a
-  las que están asignados"* — listando a Productor como el único actor de consulta además del
-  Administrador. En la práctica, `modulo1.permisos` da `R` sobre el recurso `fincas` también a
-  Veterinario e Ingeniero de Campo. No es necesariamente incorrecto (el sistema es RBAC
-  dinámico por diseño), pero es una desviación del texto literal del RF, del mismo tipo que la
-  ya documentada para RF-15/Veterinario.
+- **El acceso de solo-lectura es más amplio que el texto literal del RF — DECISIÓN DE DISEÑO
+  APROBADA (2026-08-22, issue #1634).** El RF dice: *"Los usuarios con rol Productor solo
+  pueden consultar la información de las fincas a las que están asignados"* — listando a
+  Productor como único actor de consulta además del Administrador. En la práctica,
+  `modulo1.permisos` da `R` sobre `fincas` también a Veterinario e Ingeniero de Campo. El
+  equipo de análisis resolvió **mantener** esta lectura como decisión explícita de RBAC
+  dinámico: es solo lectura y es operativamente defendible (un veterinario/ingeniero necesita
+  saber en qué finca está un activo). Ya no es una desviación silenciosa. Ver
+  `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - No se verificó si el `R` de Productor está filtrado a "las fincas a las que está asignado"
   (via `fincas.id_usuario`) o si un Productor puede ver el listado completo de todas las
   fincas del sistema — este es un punto de aislamiento de datos entre productores que vale la
@@ -342,8 +346,10 @@ el RF describe.
   `False` para el chequeo de "no desactivar área con dispositivos/activos asociados", con el
   mismo comentario desactualizado sobre módulos "aún no implementados" que de hecho ya
   existen.
-- Mismo acceso más amplio de lo que el RF autoriza (Productor/Vet/Ing con `R`, cuando el RF
-  solo lista "Administrador del sistema, Productor (consulta)" como actores).
+- Mismo acceso de lectura más amplio que el texto del RF (Productor/Vet/Ing con `R`, cuando
+  el RF solo lista "Administrador del sistema, Productor (consulta)") — **DECISIÓN DE DISEÑO
+  APROBADA (2026-08-22, issue #1634)**: se mantiene como RBAC dinámico, igual que en RF-19.
+  Ver `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 - El RF menciona `capacidad_maxima` de forma indirecta (vía RF-33/activos biológicos, no en
   su propia tabla de entradas) — la columna sí existe en DB
   (`infraestructuras.capacidad_maxima int`) aunque no aparece en la lista de "Entradas" del
@@ -422,51 +428,61 @@ resueltos y verificados.
 
 ## RF-23 — Configuración remota de dispositivos IoT
 
-**Veredicto: ⚠️ Cumple parcialmente (~55%)** — el flujo de aplicación (validación, persistencia,
-estado `PENDIENTE`, auditoría) está completo, pero la pieza central del RF — la entrega real
-vía MQTT/LoRaWAN — es un stub permanente, y el manejo de timeout de confirmación no existe.
+**Veredicto: ✅ Cumple (~90%), MVP síncrono (2026-08-20)** — se reemplazó el stub por
+integración MQTT real vía `BROKER-MQTT-SGPMP` (repo hermano). Verificado end-to-end con
+backend + broker + Mosquitto reales. Detalle completo del diseño y las decisiones en
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md`. Queda fuera de esta entrega el reenvío
+automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
 
 - `configurar_remotamente_use_case.py` implementa el flujo: valida existencia y estado activo
   del dispositivo, impide una segunda configuración mientras hay una `PENDIENTE`
-  (`ConflictError`, coincide con el flujo alterno de "comandos concurrentes" del RF), persiste
-  la configuración, hace `commit()`, y **después** del commit intenta el envío MQTT — respeta
-  el patrón "notificaciones después de confirmar en DB" del proyecto.
-- Endpoint retorna `HTTP 202 Accepted` cuando el dispositivo queda pendiente, coincidiendo
-  exactamente con el flujo alterno "Dispositivo fuera de línea" del RF.
-- Estados de la configuración remota (`PENDIENTE`/`APLICADA`/`CANCELADA`) modelados con
-  `CHECK` constraint en `modulo9.configuraciones_remotas.estado`.
+  (`ConflictError`, ahora blindado además por un índice único parcial en BD — antes era solo
+  un `SELECT` sin bloqueo, TOCTOU real bajo requests concurrentes), persiste la configuración,
+  hace `commit()`, y **después** del commit llama al broker MQTT real (bloqueante, hasta
+  ~35s) — respeta el patrón "notificaciones después de confirmar en DB" del proyecto.
+- `MqttHttpAdapter` (`infrastructure/adapters/mqtt_http_adapter.py`) llama a
+  `POST /v1/commands` del broker, autenticado con un token de servicio validado contra
+  `modulo1.credenciales_servicio` (hash sha256, no un secreto estático compartido). El broker
+  publica en Mosquitto y espera de forma acotada el ACK del dispositivo antes de responder.
+- Endpoint retorna `200 APLICADA` (ACK confirmado), `202 PENDIENTE` (dispositivo offline o
+  broker inalcanzable, sin esperar) o `504 NO_CONF` (se publicó pero no hubo ACK a tiempo,
+  vía la nueva clase `GatewayTimeoutError` en `src/shared/errors.py`) — cubre los tres flujos
+  alternos relevantes del RF ("dispositivo fuera de línea", "timeout de confirmación ACK") con
+  el código HTTP exacto que pide el documento de análisis.
+- Estados de la configuración remota (`PENDIENTE`/`APLICADA`/`CANCELADA`/`NO_CONF`) modelados
+  con `CHECK` constraint en `modulo9.configuraciones_remotas.estado` — `NO_CONF` agregado por
+  la migración Alembic `7e2d5f3bf17a_rf23_mqtt_integracion.py` (primera migración real del
+  proyecto; hasta ahora los gaps de Paso 0 se aplicaban directo a la BD vía MCP postgres).
 - Historial de configuración por dispositivo consultable
   (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`).
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
-  `frecuencia_captura`/`intervalo_transmision` a nivel de DB.
+  `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
+  `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
+- Corrección de ownership: el broker ya no escribe `modulo9.configuraciones_remotas` (antes
+  insertaba una fila duplicada con `id_usuario=NULL` cada vez que despachaba un comando,
+  colisionando con la fila que este backend ya persiste). El backend es el único escritor.
 
 ### Qué NO cumple / gaps
 
-- **No existe integración real con ningún broker MQTT.** `MqttPort` está implementado
-  exclusivamente por `infrastructure/adapters/mqtt_stub_adapter.py`, que **siempre retorna
-  `False`** ("dispositivo offline") sin excepción. Esto significa que **ninguna configuración
-  remota puede llegar jamás a estado `APLICADA`** en el sistema actual — el ciclo de vida
-  completo que describe el RF (envío → espera de ACK → confirmación) nunca se completa,
-  siempre termina en `PENDIENTE`. Documentado también en `cu05_gaps_bd_rf21_rf24.md`
-  ("MQTT (RF-23): No implementado").
-- **No hay timeout de confirmación (ACK) de 30 segundos.** El RF define un flujo alterno
-  específico: si el mensaje se envía pero no llega confirmación en 30 segundos, el sistema
-  debe marcar el comando como "No Confirmado" y responder `504 Gateway Timeout`. Revisando
-  `configurar_remotamente_use_case.py` completo, la llamada a
-  `mqtt_port.enviar_configuracion(...)` es síncrona y no implementa ningún mecanismo de
-  timeout, reintento programado, ni un estado distinto de "No Confirmado" — solo existe la
-  distinción binaria `PENDIENTE`/`APLICADA` sin el estado intermedio que pide el RF.
+- **No hay reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde.** El RF
+  pide que la configuración pendiente se envíe sola cuando el dispositivo recupera
+  conectividad; eso requeriría un webhook broker→backend inverso, y el equipo IoT aún no ha
+  cerrado el contrato de topics para ese flujo. Decisión explícita de alcance (confirmada con
+  el usuario): MVP síncrono solamente para esta entrega, este ítem queda como ticket de
+  seguimiento. Hoy, si un dispositivo queda `PENDIENTE`, un humano debe reintentar
+  manualmente (el índice único de BD permite un nuevo intento en cuanto el anterior deja de
+  estar `PENDIENTE`).
 - **No hay rangos de configuración por tipo de dispositivo.** El RF pide que los rangos
   permitidos de `frecuencia_captura`/`intervalo_transmision` sean "configurables según el
-  tipo de dispositivo IoT registrado". La tabla `dispositivos_iot` no tiene columna `tipo`, y
-  la validación real es un mínimo fijo de 1 minuto sin diferenciación por hardware
-  (confirmado en `cu05_gaps_bd_rf21_rf24.md`).
-- No se verificó si existe la validación de "intervalo_transmision >= frecuencia_captura" que
-  pide el flujo alterno de "inconsistencia lógica de tiempos" — el trigger
-  `trg_configuracion_remota_tiempos_validos` sugiere que sí, pero no se inspeccionó su
-  definición SQL exacta.
+  tipo de dispositivo IoT registrado". La tabla `dispositivos_iot` sigue sin columna `tipo` —
+  gap preexistente desde RF-21, no resuelto en esta entrega (fuera de su alcance declarado).
+- **El ACK del dispositivo no está autenticado más allá del token de servicio del backend.**
+  Mosquitto corre con `allow_anonymous true` en dev — cualquier cliente en la red podría
+  publicar en `sgpmp/<serial>/status` y falsificar un ACK. Mismo nivel de gap que el `serial`
+  reusado como credencial débil de telemetría en módulo 3 (ya documentado ahí); no es
+  específico de esta entrega ni se resuelve acá.
 
 ---
 
@@ -858,12 +874,11 @@ propósito real.
    en `src/configuration/` ni en ningún otro módulo del backend. *(Afecta RF-15, RF-16; en
    menor medida RF-21 vía su flujo alterno de "conflicto de sincronización offline".)*
 
-3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia.** El
-   broker MQTT real para configuración remota de IoT (RF-23) y el motor de traducción/i18n
-   (RF-29) son, cada uno, la pieza central del RF que representan — y ninguno de los dos
-   existe. A diferencia de los stubs del punto 1 (donde el flujo alrededor sí está completo),
-   estos dos gaps dejan el RF correspondiente estructuralmente incompleto en su propósito
-   principal. *(Afecta directamente a RF-23 y RF-29.)*
+3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia.**
+   *(Resuelto para RF-23 el 2026-08-20 — ver su sección arriba. Sigue afectando a RF-29.)*
+   El motor de traducción/i18n (RF-29) es la pieza central del RF que representa, y no existe.
+   A diferencia de los stubs del punto 1 (donde el flujo alrededor sí está completo), este gap
+   deja el RF estructuralmente incompleto en su propósito principal.
 
 4. **Sin constraint `UNIQUE` de "una fila por usuario/finca" en cuatro tablas.**
    `modulo9.temas_visuales`, `modulo9.dashboard_layouts` y `modulo9.preferencias_idiomas` no
@@ -874,14 +889,17 @@ propósito real.
    demás agregados del módulo (especies, fincas, plantillas, etc. sí tienen sus invariantes
    reforzadas por constraints o triggers). *(Afecta RF-26, RF-27, RF-28, RF-29.)*
 
-5. **RBAC más permisivo de lo que el texto de cada RF autoriza explícitamente, en un patrón
-   recurrente.** No es un solo caso aislado: RF-15 (Veterinario con `U` sobre especies, ya
-   documentado por el equipo), RF-19 y RF-20 (Veterinario e Ingeniero de Campo con `R` sobre
-   fincas/infraestructuras, cuando el RF solo lista "Productor (consulta)") comparten el mismo
-   patrón — alguien decidió dar acceso de lectura más amplio del que el documento de análisis
-   autoriza literalmente. Dado que el proyecto usa RBAC dinámico por diseño, esto no es
-   necesariamente un error, pero conviene que quede como una decisión explícita del equipo de
-   análisis en vez de una desviación silenciosa. *(Afecta RF-15, RF-19, RF-20.)*
+5. **RBAC más permisivo que el texto de cada RF — RESUELTO (2026-08-22, issue #1634).** El
+   patrón recurrente afectaba a RF-15 (Veterinario con `U` sobre especies), RF-19 y RF-20
+   (Veterinario e Ingeniero de Campo con `R` sobre fincas/infraestructuras, cuando el RF solo
+   lista "Productor (consulta)"). El equipo de análisis decidió, caso por caso:
+   - **RF-15 → revocado.** La `U` del Veterinario sobre especies es escritura y contradice los
+     actores del RF; se aplicó `es_activo=false` al permiso id=48.
+   - **RF-19 y RF-20 → mantenidos como decisión de diseño.** Las `R` de Vet/Ing sobre
+     fincas/infraestructuras son solo lectura y operativamente defendibles; se conservan como
+     RBAC dinámico explícito, ya no como desviación silenciosa.
+
+   Detalle y verificación en `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`. *(Afecta RF-15, RF-19, RF-20.)*
 
 6. **Posible bug de concurrencia optimista en RF-32** (`aplicar_plantilla_use_case.py`):
    compara `fecha_creacion` (inmutable) en vez de `fecha_actualizacion`, por lo que el chequeo

@@ -14,7 +14,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from .errors import AppError, InfrastructureError, ServiceUnavailableError
+from .errors import AppError, GatewayTimeoutError, InfrastructureError, ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,10 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     Returns:
         JSONResponse con el código HTTP y cuerpo estándar de error.
     """
-    if isinstance(exc, (InfrastructureError, ServiceUnavailableError)) and exc.original_error is not None:
+    if (
+        isinstance(exc, (InfrastructureError, ServiceUnavailableError, GatewayTimeoutError))
+        and exc.original_error is not None
+    ):
         logger.error(
             "%s [%s] en %s: %r",
             type(exc).__name__,

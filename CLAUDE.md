@@ -525,11 +525,14 @@ El backend usa dos tokens con transporte distinto (diseño completo en
   el frontend lo envía en `Authorization: Bearer <token>`. Dónde lo guarda en
   memoria (nunca `localStorage`/`IndexedDB`) es decisión del equipo de frontend.
 - **Refresh token** (opaco, no JWT, `REFRESH_TOKEN_EXPIRE_DAYS` — 7 días):
-  gestionado exclusivamente por el backend vía cookie `HttpOnly; SameSite=Strict;
-  path=/` (+ `Secure` en producción), invisible para JS. Rota en cada uso;
-  reusar uno ya rotado revoca la sesión completa (detección de robo). El
-  frontend nunca la lee ni la transporta manualmente — esta parte del
-  mecanismo sí es contrato de backend, no decisión de frontend.
+  gestionado exclusivamente por el backend vía cookie `HttpOnly; path=/`,
+  invisible para JS. En producción front y backend viven en dominios
+  distintos, así que la cookie usa `SameSite=None; Secure` (requiere que el
+  frontend llame con `credentials: 'include'`); fuera de producción se usa
+  `SameSite=Strict` sin `Secure` (front y backend comparten site en local).
+  Rota en cada uso; reusar uno ya rotado revoca la sesión completa (detección
+  de robo). El frontend nunca la lee ni la transporta manualmente — esta
+  parte del mecanismo sí es contrato de backend, no decisión de frontend.
 
 Ante un `401 TOKEN_EXPIRADO`, el frontend debe llamar `POST /sesiones/refresh`
 (sin body, la cookie viaja sola) para obtener un access token nuevo antes de

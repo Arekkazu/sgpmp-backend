@@ -1,7 +1,7 @@
 """Router FastAPI para el módulo de auditoría (`/auditoria`).
 
 Expone la consulta paginada del log de eventos con filtros por usuario,
-tipo de evento y rango de fechas. Solo accesible por administradores.
+tipo, categoría y rango de fechas. Solo accesible por administradores.
 """
 from datetime import datetime
 from typing import Optional
@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.auditoria.consultar_auditoria_use_case import ConsultarAuditoriaUseCase
+from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.schema.gestion_schema import AuditoriaItemResponse, AuditoriaPaginadaResponse
@@ -32,6 +33,7 @@ router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
 def consultar_auditoria(
     id_usuario: Optional[int] = Query(None),
     tipo_evento: Optional[int] = Query(None),
+    categoria: Optional[EventoCategoria] = Query(None),
     fecha_desde: Optional[datetime] = Query(None),
     fecha_hasta: Optional[datetime] = Query(None),
     pagina: int = Query(1, ge=1),
@@ -47,6 +49,7 @@ def consultar_auditoria(
         usuario_actual=usuario_actual,
         id_usuario=id_usuario,
         tipo_evento=tipo_evento,
+        categoria=categoria,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
         pagina=pagina,

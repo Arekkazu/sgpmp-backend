@@ -23,17 +23,17 @@ contra lo que establece el documento RF-15.
 Solo el **Administrador** y el **Ingeniero de Campo** pueden editar especies.
 El Veterinario no aparece como actor del CU01 para ninguna operación de escritura.
 
-**Decisión tomada:** Se dejó el permiso tal como está en DB y se implementó el código
-respetando el permiso RBAC existente. Si el equipo de análisis confirma que el Veterinario
-**no debe** poder editar especies, se debe ejecutar:
+**Decisión — RESUELTA (2026-08-22, issue #1634): REVOCADA.** El equipo de análisis confirmó
+que el Veterinario **no debe** poder editar especies. Se aplicó:
 
 ```sql
 UPDATE modulo1.permisos
 SET es_activo = false
-WHERE id_recurso = 8 AND id_accion = 3 AND id_rol = 3;
+WHERE id_recurso = 8 AND id_accion = 3 AND id_rol = 3;  -- id_permiso = 48
 ```
 
-Y actualizar el permiso `nombre` para reflejar el cambio.
+El Veterinario ahora recibe `403` al intentar `PATCH /configuracion/especies/{id}`. Ver
+`rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
 
 ---
 
@@ -66,6 +66,6 @@ del Administrador.
 | 55 | ing_leer_especie | R | Ingeniero de Campo |
 | 67 | cont_leer_especie | R | Contador |
 | 36 | admin_actualizar_especie | U | Administrador |
-| 48 | vet_actualizar_especie | U | Veterinario ⚠️ ver inconsistencia 1 |
+| 48 | vet_actualizar_especie | U | Veterinario ❌ revocado (es_activo=false, issue #1634) |
 | 56 | ing_actualizar_especie | U | Ingeniero de Campo |
 | 78 | admin_eliminar_especie | D | Administrador ✓ insertado en CU01 |
