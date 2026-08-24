@@ -37,6 +37,7 @@ from src.configuration.infrastructure.repositories.configuracion_remota_reposito
 from src.configuration.infrastructure.repositories.dispositivo_iot_repository import SqlAlchemyDispositivoIotRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
 from src.configuration.infrastructure.repositories.sensor_repository import SqlAlchemySensorRepository
+from src.configuration.infrastructure.repositories.tipo_dispositivo_iot_repository import SqlAlchemyTipoDispositivoIotRepository
 from src.configuration.infrastructure.schema.configuracion_remota_schema import ConfiguracionRemotaResponse, ListaConfiguracionesRemotasResponse
 from src.configuration.infrastructure.schema.dispositivo_iot_schema import DispositivoIotResponse, ListaDispositivosIotResponse
 from src.configuration.infrastructure.schema.sensor_schema import ListaSensoresResponse, SensorResponse
@@ -76,6 +77,7 @@ def registrar_dispositivo_iot(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
+        tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaDispositivoIotRepository(db),
     )
     dispositivo = use_case.execute(dto, usuario_actual)
@@ -248,6 +250,7 @@ def configurar_remotamente(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
+        tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
         mqtt_port=MqttHttpAdapter(),
     )
     config, mensaje = use_case.execute(id_dispositivo_iot, dto, usuario_actual)

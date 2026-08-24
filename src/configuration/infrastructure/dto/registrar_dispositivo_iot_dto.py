@@ -10,6 +10,7 @@ class RegistrarDispositivoIotDTO(BaseDTO):
     serial: str
     descripcion: str
     id_infraestructura: int
+    id_tipo_dispositivo: int
     es_activo: bool = True
 
     @field_validator("serial")

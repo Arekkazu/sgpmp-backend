@@ -13,6 +13,7 @@ class DispositivoIot:
     serial: SerialDispositivo
     descripcion: str
     id_infraestructura: int
+    id_tipo_dispositivo: int
     es_activo: bool
     fecha_creacion: datetime.datetime
     id_dispositivo_iot: Optional[int] = None
@@ -24,12 +25,14 @@ class DispositivoIot:
         serial: SerialDispositivo,
         descripcion: str,
         id_infraestructura: int,
+        id_tipo_dispositivo: int,
         es_activo: bool = True,
     ) -> DispositivoIot:
         return cls(
             serial=serial,
             descripcion=descripcion,
             id_infraestructura=id_infraestructura,
+            id_tipo_dispositivo=id_tipo_dispositivo,
             es_activo=es_activo,
             fecha_creacion=datetime.datetime.now(datetime.timezone.utc),
         )
@@ -42,6 +45,7 @@ class DispositivoIot:
             "serial": self.serial.valor,
             "descripcion": self.descripcion,
             "id_infraestructura": self.id_infraestructura,
+            "id_tipo_dispositivo": self.id_tipo_dispositivo,
             "es_activo": self.es_activo,
         }
 

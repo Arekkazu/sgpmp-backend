@@ -426,11 +426,13 @@ resueltos y verificados.
 
 ## RF-23 — Configuración remota de dispositivos IoT
 
-**Veredicto: ✅ Cumple (~90%), MVP síncrono (2026-08-20)** — se reemplazó el stub por
-integración MQTT real vía `BROKER-MQTT-SGPMP` (repo hermano). Verificado end-to-end con
-backend + broker + Mosquitto reales. Detalle completo del diseño y las decisiones en
-`anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md`. Queda fuera de esta entrega el reenvío
-automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
+**Veredicto: ✅ Cumple (~95%), MVP síncrono (2026-08-20) + rangos por tipo (2026-08-24)** —
+se reemplazó el stub por integración MQTT real vía `BROKER-MQTT-SGPMP` (repo hermano),
+verificado end-to-end con backend + broker + Mosquitto reales. El 2026-08-24 (issue #1632) se
+agregaron los **rangos de configuración por tipo de dispositivo**, cerrando ese gap. Detalle
+del MVP en `anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md` y de los rangos por tipo en
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. Queda fuera de esta entrega el
+reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
 
@@ -458,6 +460,14 @@ automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
   `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
   `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
+- **Rangos por tipo de dispositivo (issue #1632, 2026-08-24):** nueva tabla
+  `modulo9.tipos_dispositivo_iot` (nombre + min/max de cada parámetro, con `CHECK`), FK
+  `dispositivos_iot.id_tipo_dispositivo` (NOT NULL, existentes backfilled a `GENERICO`). El
+  registro de dispositivo (RF-21) ahora exige `id_tipo_dispositivo`; `ConfigurarRemotamenteUseCase`
+  valida `frecuencia_captura`/`intervalo_transmision` contra el rango del tipo del dispositivo y
+  responde `400 PARAMETRO_FUERA_DE_RANGO` con el mensaje exacto del FA (min/max/valor). Nuevo
+  `GET /configuracion/tipos-dispositivo-iot` (solo lectura, RBAC 11/R) expone el catálogo para el
+  front. Los rangos se gestionan por seed/SQL (sin CRUD de escritura por ahora).
 - Corrección de ownership: el broker ya no escribe `modulo9.configuraciones_remotas` (antes
   insertaba una fila duplicada con `id_usuario=NULL` cada vez que despachaba un comando,
   colisionando con la fila que este backend ya persiste). El backend es el único escritor.
@@ -472,10 +482,12 @@ automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO
   seguimiento. Hoy, si un dispositivo queda `PENDIENTE`, un humano debe reintentar
   manualmente (el índice único de BD permite un nuevo intento en cuanto el anterior deja de
   estar `PENDIENTE`).
-- **No hay rangos de configuración por tipo de dispositivo.** El RF pide que los rangos
-  permitidos de `frecuencia_captura`/`intervalo_transmision` sean "configurables según el
-  tipo de dispositivo IoT registrado". La tabla `dispositivos_iot` sigue sin columna `tipo` —
-  gap preexistente desde RF-21, no resuelto en esta entrega (fuera de su alcance declarado).
+- ~~No hay rangos de configuración por tipo de dispositivo.~~ **Resuelto (issue #1632,
+  2026-08-24)** — ver "Qué SÍ cumple". Nota de alcance: los rangos seed son ilustrativos
+  (perilla de calibración, `# ponytail:` en la migración) y no hay CRUD de escritura de tipos;
+  ambos se ajustan por seed/SQL hasta que la UI lo requiera. El FA lista además un input
+  `estado_dispositivo` (boolean) para el endpoint de configurar que #1632 no menciona y no
+  está en el DTO — desviación conocida, fuera de alcance de esta entrega.
 - **El ACK del dispositivo no está autenticado más allá del token de servicio del backend.**
   Mosquitto corre con `allow_anonymous true` en dev — cualquier cliente en la red podría
   publicar en `sgpmp/<serial>/status` y falsificar un ACK. Mismo nivel de gap que el `serial`
