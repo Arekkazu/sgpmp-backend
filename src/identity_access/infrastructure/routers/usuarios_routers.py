@@ -3,6 +3,7 @@
 Expone endpoints de registro, activación, perfil, edición, listado administrativo,
 gestión de estado de cuenta y registro de tokens FCM.
 """
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -101,6 +102,12 @@ def listar_usuarios_admin(
     correo: Optional[str] = Query(None),
     id_estado: Optional[int] = Query(None),
     id_rol: Optional[int] = Query(None),
+    estado_cuenta: Optional[str] = Query(
+        None, description="Nombre del estado de cuenta (ej: Activo, Bloqueado), case-insensitive."
+    ),
+    actualizado_desde: Optional[datetime] = Query(
+        None, description="Solo usuarios modificados (datos o estado de cuenta) desde este instante."
+    ),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -119,6 +126,8 @@ def listar_usuarios_admin(
         id_rol=id_rol,
         pagina=pagina,
         tamano=tamano,
+        estado_cuenta=estado_cuenta,
+        actualizado_desde=actualizado_desde,
     )
     items = [
         UsuarioListadoResponse(
@@ -126,6 +135,7 @@ def listar_usuarios_admin(
             correo_electronico=u.correo_electronico,
             nombre_rol=u.nombre_rol,
             estado_cuenta=u.estado_cuenta or "",
+            ultima_modificacion=u.ultima_modificacion,
         )
         for u in resultado["items"]
     ]
@@ -133,6 +143,7 @@ def listar_usuarios_admin(
         total=resultado["total"],
         pagina=resultado["pagina"],
         tamano=resultado["tamano"],
+        mensaje=resultado.get("mensaje"),
         items=items,
     )
 
@@ -161,6 +172,10 @@ def crear_usuario(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(dto, ip, user_agent)
@@ -210,6 +225,10 @@ def activar_cuenta(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(token, ip, user_agent)

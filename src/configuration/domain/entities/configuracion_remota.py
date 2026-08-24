@@ -1,6 +1,8 @@
 """Entidad de dominio ``ConfiguracionRemota`` — comando de configuración enviado a un dispositivo IoT (RF-23).
 
-Estado: PENDIENTE (guardado pero no aplicado) / APLICADA / FALLIDA.
+Estado: PENDIENTE (guardado, en vuelo o dispositivo offline) / APLICADA
+(ACK confirmado) / NO_CONF (se publicó pero el ACK no llegó dentro del
+timeout) / CANCELADA (no escrito por ningún código hoy).
 Cada cambio de configuración crea un nuevo registro; la tabla es el historial.
 """
 from __future__ import annotations
@@ -37,6 +39,13 @@ class ConfiguracionRemota:
             estado="PENDIENTE",
             id_usuario=id_usuario,
         )
+
+    def marcar_aplicada(self, fecha: datetime.datetime) -> None:
+        self.estado = "APLICADA"
+        self.fecha_aplicacion = fecha
+
+    def marcar_no_confirmada(self) -> None:
+        self.estado = "NO_CONF"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ConfiguracionRemota):

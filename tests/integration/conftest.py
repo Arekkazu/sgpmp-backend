@@ -129,6 +129,9 @@ def integration_app() -> FastAPI:
     from src.identity_access.infrastructure.routers.sesiones_routers import (
         router as sesiones_router,
     )
+    from src.identity_access.infrastructure.routers.notificaciones_routers import (
+        router as notificaciones_router,
+    )
     from src.identity_access.infrastructure.routers.usuarios_routers import (
         router as usuarios_router,
     )
@@ -140,6 +143,7 @@ def integration_app() -> FastAPI:
     app.include_router(contrasena_router)
     app.include_router(auditoria_router)
     app.include_router(sesiones_router)
+    app.include_router(notificaciones_router)
     return app
 
 

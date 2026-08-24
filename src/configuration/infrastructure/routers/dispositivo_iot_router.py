@@ -28,7 +28,7 @@ from src.configuration.application.use_cases.dispositivos_iot.consultar_disposit
 from src.configuration.application.use_cases.dispositivos_iot.desactivar_dispositivo_iot_use_case import DesactivarDispositivoIotUseCase
 from src.configuration.application.use_cases.dispositivos_iot.registrar_dispositivo_iot_use_case import RegistrarDispositivoIotUseCase
 from src.configuration.application.use_cases.dispositivos_iot.registrar_sensor_use_case import ConsultarSensoresUseCase, RegistrarSensorUseCase
-from src.configuration.infrastructure.adapters.mqtt_stub_adapter import MqttStubAdapter
+from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter
 from src.configuration.infrastructure.dto.configurar_remotamente_dto import ConfigurarRemotamenteDTO
 from src.configuration.infrastructure.dto.registrar_dispositivo_iot_dto import RegistrarDispositivoIotDTO
 from src.configuration.infrastructure.dto.registrar_sensor_dto import RegistrarSensorDTO
@@ -42,6 +42,7 @@ from src.configuration.infrastructure.schema.dispositivo_iot_schema import Dispo
 from src.configuration.infrastructure.schema.sensor_schema import ListaSensoresResponse, SensorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.errors import GatewayTimeoutError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -218,11 +219,14 @@ def listar_sensores(
 
 # ── RF-23: Configurar dispositivo remotamente ────────────────────────────────
 
+_ESTADO_A_HTTP = {"APLICADA": 200, "PENDIENTE": 202}
+
+
 @router.post(
     "/{id_dispositivo_iot}/configurar",
-    status_code=202,
     dependencies=[Depends(require_permission(_RECURSO, 3))],
     responses={
+        200: {"model": ConfiguracionRemotaResponse},
         202: {"model": ConfiguracionRemotaResponse},
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
@@ -230,6 +234,7 @@ def listar_sensores(
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        504: {"model": ErrorResponse},
     },
     summary="Configurar dispositivo IoT remotamente (RF-23 Flujo C)",
 )
@@ -243,14 +248,21 @@ def configurar_remotamente(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
-        mqtt_port=MqttStubAdapter(),
+        mqtt_port=MqttHttpAdapter(),
     )
-    config = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
-    response = ConfiguracionRemotaResponse.from_entity(
-        config,
-        mensaje="Dispositivo offline. La configuración ha sido almacenada y se enviará automáticamente en la próxima ventana de conexión del dispositivo.",
+    config, mensaje = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
+
+    if config.estado == "NO_CONF":
+        raise GatewayTimeoutError(
+            code="CONFIGURACION_NO_CONFIRMADA",
+            message=mensaje,
+        )
+
+    response = ConfiguracionRemotaResponse.from_entity(config, mensaje=mensaje)
+    return JSONResponse(
+        status_code=_ESTADO_A_HTTP[config.estado],
+        content=response.model_dump(mode="json"),
     )
-    return JSONResponse(status_code=202, content=response.model_dump(mode="json"))
 
 
 # ── RF-23: Historial de configuraciones ──────────────────────────────────────

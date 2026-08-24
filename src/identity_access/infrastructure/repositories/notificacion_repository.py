@@ -11,12 +11,18 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.identity_access.domain.entities.notificacion import Notificacion
 from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.dispositivos_fcm_model import DispositivosFcm
 from src.identity_access.infrastructure.models.enums_models import EnumEstadoEnvio
 from src.identity_access.infrastructure.models.eventos_model import Eventos
 from src.identity_access.infrastructure.models.notificaciones_model import Notificaciones
+from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from src.shared.db_error_translator import raise_from_db_error
+
+
+ID_CANAL_INTERNO = 2
 
 
 class SqlAlchemyNotificacionRepository(NotificacionRepository):
@@ -24,6 +30,19 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
 
     def __init__(self, db: Session):
         self.db = db
+
+    @staticmethod
+    def _a_entidad(orm: Notificaciones, tipo_evento: int) -> Notificacion:
+        return Notificacion(
+            id_notificacion=orm.id_notificacion,
+            id_evento=orm.id_evento,
+            tipo_evento=tipo_evento,
+            id_usuario=orm.id_usuario,
+            mensaje=orm.mensaje,
+            fecha_envio=orm.fecha_envio,
+            es_leido=orm.es_leido,
+            estado_envio=getattr(orm.estado_envio, "value", orm.estado_envio),
+        )
 
     def registrar(
         self,
@@ -89,6 +108,14 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         )
         return cuenta.id_estado_cuenta if cuenta else None
 
+    def buscar_correo_usuario(self, id_usuario: int) -> Optional[str]:
+        fila = (
+            self.db.query(Usuarios.correo_electronico)
+            .filter(Usuarios.id_usuario == id_usuario)
+            .first()
+        )
+        return fila.correo_electronico if fila else None
+
     def buscar_fcm_tokens(self, id_usuario: int) -> list[str]:
         rows = (
             self.db.query(DispositivosFcm.fcm_token)
@@ -105,3 +132,71 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         )
         self.db.add(dispositivo)
         self.db.flush()
+
+    def _query_internas(self, id_usuario: int, solo_no_leidas: bool):
+        query = (
+            self.db.query(Notificaciones, Eventos.tipo_evento)
+            .join(Eventos, Notificaciones.id_evento == Eventos.id_evento)
+            .filter(
+                Notificaciones.id_usuario == id_usuario,
+                Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+            )
+        )
+        if solo_no_leidas:
+            query = query.filter(Notificaciones.es_leido.is_(False))
+        return query
+
+    def listar_internas(
+        self,
+        id_usuario: int,
+        solo_no_leidas: bool,
+        offset: int,
+        limit: int,
+    ) -> list[Notificacion]:
+        filas = (
+            self._query_internas(id_usuario, solo_no_leidas)
+            .order_by(
+                Notificaciones.fecha_envio.desc(),
+                Notificaciones.id_notificacion.desc(),
+            )
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return [self._a_entidad(orm, tipo_evento) for orm, tipo_evento in filas]
+
+    def contar_internas(self, id_usuario: int, solo_no_leidas: bool) -> int:
+        return self._query_internas(id_usuario, solo_no_leidas).count()
+
+    def obtener_interna(
+        self,
+        id_notificacion: int,
+        id_usuario: int,
+    ) -> Optional[Notificacion]:
+        fila = (
+            self._query_internas(id_usuario, solo_no_leidas=False)
+            .filter(Notificaciones.id_notificacion == id_notificacion)
+            .first()
+        )
+        if fila is None:
+            return None
+        orm, tipo_evento = fila
+        return self._a_entidad(orm, tipo_evento)
+
+    def guardar(self, notificacion: Notificacion) -> None:
+        orm = (
+            self.db.query(Notificaciones)
+            .filter(
+                Notificaciones.id_notificacion == notificacion.id_notificacion,
+                Notificaciones.id_usuario == notificacion.id_usuario,
+                Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+            )
+            .first()
+        )
+        if orm is None:
+            return
+        orm.es_leido = notificacion.es_leido
+        try:
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)

@@ -22,7 +22,6 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.infrastructure.email_templates import activation_email
-from src.shared.email import send_email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.shared.errors import AuthorizationError
 
@@ -37,6 +36,7 @@ class CrearUsuarioUseCase:
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         db: Session,
+        notificacion_service=None,
     ):
         """Inicializa el use case.
 
@@ -46,11 +46,13 @@ class CrearUsuarioUseCase:
             cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
+            notificacion_service: Servicio centralizado de notificaciones.
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(
         self,
@@ -123,10 +125,13 @@ class CrearUsuarioUseCase:
             raise
 
         # 5. Notificación fuera de la transacción (CLAUDE.md: tras el commit).
-        send_email(
-            to=str(usuario.correo),
-            subject="Activa tu cuenta en SGPMP",
-            html_body=activation_email(usuario.nombre, token),
-        )
+        if self.notificacion_service:
+            self.notificacion_service.notificar(
+                tipo_evento=TIPO_REGISTRO_USUARIO,
+                id_usuario=usuario.id_usuario,
+                correo_destino=str(usuario.correo),
+                asunto_email="Activa tu cuenta en SGPMP",
+                contenido_html_email=activation_email(usuario.nombre, token),
+            )
 
         return usuario

@@ -17,9 +17,9 @@ class UsuarioResponse(BaseModel):
     nombre: str
     apellidos: str
     correo_electronico: EmailStr
-    tipo_identificacion: str
-    numero_identificacion: str
-    genero: EnumUsuarioGenero
+    tipo_identificacion: str | None
+    numero_identificacion: str | None
+    genero: EnumUsuarioGenero | None
     id_rol: int
     fecha_registro: datetime.datetime
     telefono: str | None

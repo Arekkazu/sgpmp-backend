@@ -1,10 +1,13 @@
 """Caso de uso: Configurar dispositivo IoT remotamente (POST /{id}/configurar RF-23).
 
-El sistema intenta enviar la configuración vía MQTT (stub → siempre offline).
-Si el dispositivo no está disponible, almacena la config con estado PENDIENTE.
-Retorna HTTP 202 con el registro de configuración creado.
+El sistema envía la configuración vía MQTT (BROKER-MQTT-SGPMP), que espera
+de forma acotada el ACK del dispositivo. Según el resultado, la
+configuración queda PENDIENTE (dispositivo offline / broker inalcanzable),
+APLICADA (ACK recibido) o NO_CONF (se publicó pero no hubo ACK a tiempo).
 """
 from __future__ import annotations
+
+import datetime
 
 from sqlalchemy.orm import Session
 
@@ -31,7 +34,9 @@ class ConfigurarRemotamenteUseCase:
         self.config_repo = config_repo
         self.mqtt_port = mqtt_port
 
-    def execute(self, id_dispositivo_iot: int, dto: ConfigurarRemotamenteDTO, usuario_actual: UsuarioActual) -> ConfiguracionRemota:
+    def execute(
+        self, id_dispositivo_iot: int, dto: ConfigurarRemotamenteDTO, usuario_actual: UsuarioActual
+    ) -> tuple[ConfiguracionRemota, str]:
         dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
         if dispositivo is None:
             raise NotFoundError(
@@ -63,16 +68,31 @@ class ConfigurarRemotamenteUseCase:
             self.db.rollback()
             raise
 
-        # POST-commit: intento de envío MQTT (stub → siempre offline)
-        self.mqtt_port.enviar_configuracion(
-            id_dispositivo_iot,
+        # POST-commit: intento de envío MQTT vía el broker (bloqueante, hasta ~35s)
+        resultado = self.mqtt_port.enviar_configuracion(
+            dispositivo.serial.valor,
             {
                 "frecuencia_captura": config_guardada.frecuencia_captura,
                 "intervalo_transmision": config_guardada.intervalo_transmision,
             },
         )
 
-        return config_guardada
+        if resultado.estado == "PENDIENTE":
+            return config_guardada, resultado.mensaje
+
+        if resultado.estado == "APLICADA":
+            config_guardada.marcar_aplicada(datetime.datetime.now(datetime.timezone.utc))
+        else:
+            config_guardada.marcar_no_confirmada()
+
+        try:
+            config_guardada = self.config_repo.actualizar(config_guardada)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return config_guardada, resultado.mensaje
 
 
 class ConsultarConfiguracionesUseCase:

@@ -2,7 +2,9 @@
 
 Usa ``python-jose`` con algoritmo HS256. La clave secreta y el tiempo de
 expiración se leen de las variables de entorno ``SECRET_KEY`` y
-``JWT_EXPIRE_HOURS`` (por defecto 8 horas, según RF-02).
+``JWT_EXPIRE_HOURS`` (por defecto 8 horas, según RF-02). El refresh token
+(opaco, no JWT — ver ``sesion_comun.py``) usa por separado
+``REFRESH_TOKEN_EXPIRE_DAYS`` (por defecto 7 días).
 
 El payload del token contiene:
     - ``sub``: ID del usuario (string).
@@ -15,13 +17,14 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from dotenv import load_dotenv
-from jose import JWTError, jwt
+from jose import ExpiredSignatureError, JWTError, jwt
 
 from src.shared.errors import AuthenticationError
 
 load_dotenv()
 
 JWT_EXPIRE_HOURS_DEFAULT = 8
+REFRESH_TOKEN_EXPIRE_DAYS_DEFAULT = 7
 
 
 def _leer_horas_expiracion() -> int:
@@ -29,9 +32,15 @@ def _leer_horas_expiracion() -> int:
     return int(os.getenv("JWT_EXPIRE_HOURS", str(JWT_EXPIRE_HOURS_DEFAULT)))
 
 
+def _leer_dias_expiracion_refresco() -> int:
+    """Lee la vigencia configurable del refresh token (por defecto 7 días)."""
+    return int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", str(REFRESH_TOKEN_EXPIRE_DAYS_DEFAULT)))
+
+
 _SECRET_KEY = os.getenv("SECRET_KEY")
 _ALGORITHM = "HS256"
 _EXPIRE_HOURS = _leer_horas_expiracion()
+_REFRESH_EXPIRE_DAYS = _leer_dias_expiracion_refresco()
 
 
 def create_token(jti: int, id_usuario: int, id_rol: int) -> tuple[str, datetime]:
@@ -68,6 +77,15 @@ def token_expiration() -> datetime:
     return datetime.now(timezone.utc) + timedelta(hours=_EXPIRE_HOURS)
 
 
+def refresh_token_expiration() -> datetime:
+    """Calcula la fecha de expiración para un refresh token emitido ahora.
+
+    Returns:
+        Datetime UTC correspondiente a ``ahora + REFRESH_TOKEN_EXPIRE_DAYS``.
+    """
+    return datetime.now(timezone.utc) + timedelta(days=_REFRESH_EXPIRE_DAYS)
+
+
 def verify_token(token: str) -> dict:
     """Verifica y decodifica un JWT.
 
@@ -78,12 +96,19 @@ def verify_token(token: str) -> dict:
         Diccionario con el payload decodificado del token.
 
     Raises:
-        AuthenticationError: Si el token es inválido, está mal formado o
-            ha expirado. Código ``TOKEN_INVALIDO``, HTTP 401.
+        AuthenticationError: Código ``TOKEN_EXPIRADO`` si el token es válido
+            pero ya expiró (el frontend puede intentar refrescar en silencio);
+            código ``TOKEN_INVALIDO`` si está mal formado o la firma no
+            corresponde. Ambos HTTP 401.
     """
     try:
         payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
         return payload
+    except ExpiredSignatureError:
+        raise AuthenticationError(
+            code="TOKEN_EXPIRADO",
+            message="El token de acceso ha expirado.",
+        )
     except JWTError:
         raise AuthenticationError(
             code="TOKEN_INVALIDO",

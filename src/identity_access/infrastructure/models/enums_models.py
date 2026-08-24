@@ -32,6 +32,7 @@ class EnumTokenTipo(str, enum.Enum):
     RECUPERACION = 'recuperacion'
     VERIFICACION_CORREO = 'verificacion_correo'
     ACCESO = 'acceso'
+    REFRESCO = 'refresco'
 
 
 class EnumUsuarioGenero(str, enum.Enum):
