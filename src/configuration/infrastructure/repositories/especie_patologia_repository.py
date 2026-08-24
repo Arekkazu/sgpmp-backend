@@ -1,20 +1,22 @@
 """Implementación SQLAlchemy del puerto :class:`EspeciePatologiaRepository`.
 
-Gestiona la tabla pivot ``modulo9.especies_patologias`` y el join con
-``modulo9.patologias`` para listar patologías por especie.
+Gestiona la tabla ``modulo9.especies_patologias`` como entidad M09 de patologías
+por especie. No toca el catálogo clínico M04 (``modulo9.patologias``).
 """
 from __future__ import annotations
 
 from typing import Optional
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.especie_patologia import EspeciePatologia
 from src.configuration.domain.repositories.especie_patologia_repository import EspeciePatologiaRepository
 from src.configuration.domain.value_objects.nombre_patologia import NombrePatologia
 from src.configuration.infrastructure.models.especie_patologia_model import EspeciePatologiaModel
-from src.configuration.infrastructure.models.patologia_model import PatologiaModel
 from src.shared.db_error_translator import raise_from_db_error
+
+_DUP_MSG = "Ya existe una patología con ese nombre para esta especie."
 
 
 class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
@@ -23,48 +25,76 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         self.db = db
 
     @staticmethod
-    def _a_entidad(pivot: EspeciePatologiaModel, patologia: PatologiaModel) -> EspeciePatologia:
+    def _a_entidad(orm: EspeciePatologiaModel) -> EspeciePatologia:
         return EspeciePatologia(
-            id_especies_patologias=pivot.id_especies_patologias,
-            id_patologia=pivot.id_patologia,
-            id_especie=pivot.id_especie,
-            nombre=NombrePatologia(patologia.nombre),
-            descripcion=patologia.descripcion,
-            es_activo=patologia.es_activo,
-            fecha_actualizacion=patologia.fecha_actualizacion,
+            id_especies_patologias=orm.id_especies_patologias,
+            id_especie=orm.id_especie,
+            id_patologia=orm.id_patologia,
+            nombre=NombrePatologia(orm.nombre),
+            descripcion=orm.descripcion,
+            es_activo=orm.es_activo,
+            fecha_actualizacion=orm.fecha_actualizacion,
+            fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_especie_y_patologia(
-        self, id_especie: int, id_patologia: int
+    def obtener_por_id(self, id_especies_patologias: int) -> Optional[EspeciePatologia]:
+        orm = self.db.get(EspeciePatologiaModel, id_especies_patologias)
+        return self._a_entidad(orm) if orm else None
+
+    def obtener_por_especie_y_nombre(
+        self, id_especie: int, nombre: NombrePatologia
     ) -> Optional[EspeciePatologia]:
-        row = (
-            self.db.query(EspeciePatologiaModel, PatologiaModel)
-            .join(PatologiaModel, PatologiaModel.id_patologia == EspeciePatologiaModel.id_patologia)
+        orm = (
+            self.db.query(EspeciePatologiaModel)
             .filter(
                 EspeciePatologiaModel.id_especie == id_especie,
-                EspeciePatologiaModel.id_patologia == id_patologia,
+                func.lower(EspeciePatologiaModel.nombre) == nombre.normalizado(),
             )
             .first()
         )
-        if row is None:
-            return None
-        pivot, pat = row
-        return self._a_entidad(pivot, pat)
+        return self._a_entidad(orm) if orm else None
 
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
     ) -> list[EspeciePatologia]:
-        query = (
-            self.db.query(EspeciePatologiaModel, PatologiaModel)
-            .join(PatologiaModel, PatologiaModel.id_patologia == EspeciePatologiaModel.id_patologia)
-            .filter(EspeciePatologiaModel.id_especie == id_especie)
+        query = self.db.query(EspeciePatologiaModel).filter(
+            EspeciePatologiaModel.id_especie == id_especie,
         )
         if solo_activas:
-            query = query.filter(PatologiaModel.es_activo.is_(True))
+            query = query.filter(EspeciePatologiaModel.es_activo.is_(True))
         return [
-            self._a_entidad(pivot, pat)
-            for pivot, pat in query.order_by(PatologiaModel.nombre).all()
+            self._a_entidad(orm)
+            for orm in query.order_by(EspeciePatologiaModel.nombre).all()
         ]
+
+    def guardar(self, entidad: EspeciePatologia) -> EspeciePatologia:
+        orm = EspeciePatologiaModel(
+            id_especie=entidad.id_especie,
+            id_patologia=entidad.id_patologia,
+            nombre=entidad.nombre.valor,
+            descripcion=entidad.descripcion,
+            es_activo=entidad.es_activo,
+        )
+        try:
+            self.db.add(orm)
+            self.db.flush()
+            self.db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc, {"uq_especie_patologia_nombre": _DUP_MSG})
+        return self._a_entidad(orm)
+
+    def actualizar(self, entidad: EspeciePatologia) -> EspeciePatologia:
+        orm = self.db.get(EspeciePatologiaModel, entidad.id_especies_patologias)
+        orm.nombre = entidad.nombre.valor
+        orm.descripcion = entidad.descripcion
+        orm.es_activo = entidad.es_activo
+        orm.fecha_actualizacion = entidad.fecha_actualizacion
+        try:
+            self.db.flush()
+            self.db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc, {"uq_especie_patologia_nombre": _DUP_MSG})
+        return self._a_entidad(orm)
 
     def eliminar_todas_de_especie(self, id_especie: int) -> None:
         try:
@@ -75,25 +105,15 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
         except Exception as exc:
             raise_from_db_error(exc, {})
 
-    def vincular_desde_snapshot(self, id_especie: int, id_patologia: int) -> None:
-        pivot = EspeciePatologiaModel(id_especie=id_especie, id_patologia=id_patologia)
+    def vincular_desde_snapshot(self, id_especie: int, datos: dict) -> None:
+        orm = EspeciePatologiaModel(
+            id_especie=id_especie,
+            nombre=datos["nombre"],
+            descripcion=datos.get("descripcion"),
+            es_activo=datos.get("es_activo", True),
+        )
         try:
-            self.db.add(pivot)
+            self.db.add(orm)
             self.db.flush()
         except Exception as exc:
-            raise_from_db_error(exc, {})
-
-    def asociar(self, id_especie: int, id_patologia: int) -> EspeciePatologia:
-        pivot = EspeciePatologiaModel(id_especie=id_especie, id_patologia=id_patologia)
-        try:
-            self.db.add(pivot)
-            self.db.flush()
-            self.db.refresh(pivot)
-        except Exception as exc:
-            raise_from_db_error(exc, {
-                "uq_especie_patologia": (
-                    "La patología ya está asociada a esta especie."
-                ),
-            })
-        pat = self.db.get(PatologiaModel, id_patologia)
-        return self._a_entidad(pivot, pat)
+            raise_from_db_error(exc, {"uq_especie_patologia_nombre": _DUP_MSG})

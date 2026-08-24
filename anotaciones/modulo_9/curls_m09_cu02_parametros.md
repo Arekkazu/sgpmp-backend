@@ -117,8 +117,10 @@ Errores posibles:
 
 ### Flujo E — Registrar patología para una especie
 
-Si el nombre no existe globalmente, crea la patología y la asocia.
-Si ya existe globalmente pero no está asociada a esta especie, solo asocia.
+Crea una patología **propia de la especie** (entidad M09 en `especies_patologias`).
+El nombre es único **por especie** (case-insensitive): el mismo nombre puede existir
+en otra especie con datos propios. No escribe el catálogo clínico M04
+(`id_patologia` queda `null`).
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/patologias \
@@ -135,7 +137,7 @@ Respuesta esperada `201`:
 ```json
 {
   "id_especies_patologias": 11,
-  "id_patologia": 6,
+  "id_patologia": null,
   "id_especie": 1,
   "nombre": "Enfermedad X",
   "descripcion": "Descripción opcional de la patología",
@@ -146,7 +148,7 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `404` — especie no existe o está inactiva
-- `409` — patología con ese nombre ya está asociada a esta especie (FA-02)
+- `409` — ya existe una patología con ese nombre para esta especie (FA-02)
 - `403` — sin permiso C sobre patologias
 
 ---
@@ -184,12 +186,13 @@ Respuesta esperada `200`:
 
 ---
 
-### Flujo F — Editar patología
+### Flujo F — Editar patología de la especie
 
-Edita el registro global de la patología (afecta a todas las especies asociadas).
+Edita **solo** la patología de esa especie (nombre/descripción propios). El path param
+es `id_especies_patologias` (la identidad de la patología por especie), no el catálogo M04.
 
 ```bash
-curl -X PATCH http://localhost:8000/configuracion/patologias/6 \
+curl -X PATCH http://localhost:8000/configuracion/patologias/11 \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
@@ -201,24 +204,25 @@ curl -X PATCH http://localhost:8000/configuracion/patologias/6 \
 
 Errores posibles:
 - `404` — patología no existe
-- `409` — nombre ya existe en el catálogo global
+- `409` — ya existe una patología con ese nombre para esta especie
 - `412` — conflicto de concurrencia
 - `422` — patología inactiva
 
 ---
 
-### Flujo G — Desactivar patología
+### Flujo G — Desactivar patología de la especie
 
-Desactiva la patología globalmente (para todas las especies).
+Desactiva (baja lógica) la patología de esa especie. El path param es
+`id_especies_patologias`.
 
 ```bash
-curl -X PATCH http://localhost:8000/configuracion/patologias/6/desactivar \
+curl -X PATCH http://localhost:8000/configuracion/patologias/11/desactivar \
   -H "Authorization: Bearer <TOKEN>"
 ```
 
 Errores posibles:
 - `404` — patología no existe
-- `422` — patología ya inactiva o tiene historial clínico asociado
+- `422` — patología ya inactiva o (si está vinculada a catálogo M04) tiene historial clínico asociado
 
 ---
 
@@ -353,7 +357,7 @@ Errores posibles:
 - El nombre de patología acepta letras, números, espacios, guiones, paréntesis y puntos (3–60 chars).
 - El nombre de métrica acepta letras, números, espacios, guiones, paréntesis y barras (3–60 chars).
 - Unicidad de etapas: por especie (case-insensitive).
-- Unicidad de patologías: global en el catálogo. FA-02 se activa si la misma patología ya está asociada a esa especie.
+- Unicidad de patologías: **por especie** (case-insensitive), índice `uq_especie_patologia_nombre`. FA-02 se activa si ya existe ese nombre en la misma especie. `id_patologia` (vínculo al catálogo clínico M04) es opcional/`null` para las creadas por M09. (#1633)
 - Unicidad de métricas: por especie (case-insensitive), mismo patrón que etapas.
 - `duracion_dias` debe ser entero positivo mayor a 0.
 - Para probar con Swagger: `http://localhost:8000/docs` → secciones "Configuración - Ciclos Productivos", "Configuración - Patologías" y "Configuración - Métricas de Producción".
