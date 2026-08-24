@@ -2,6 +2,7 @@ name: sgpmp-backend-test
 
 services:
   db:
+    container_name: ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}-db
     build:
       context: .
       dockerfile: Dockerfile.postgres
@@ -31,11 +32,14 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER requerido para TEST}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}@db:5432/${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER requerido para TEST}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}@${POSTGRES_DB:?POSTGRES_DB requerido para TEST}-db:5432/${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY requerido para TEST}
       JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-8}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL requerido para TEST}
-      ENV: ${ENV:-test}
+      ENV: ${ENV:?ENV requerido para TEST}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
+      ROOT_PATH: ${ROOT_PATH:-/api}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-}
