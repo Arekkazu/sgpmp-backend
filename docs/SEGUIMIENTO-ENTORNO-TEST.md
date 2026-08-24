@@ -2,1672 +2,945 @@
 
 ## 1. Objetivo
 
-Implementar y validar un entorno TEST independiente para el Backend del proyecto SGPMP, tomando como referencia la configuración DEV existente en la rama `integration-v2`.
+Preparar, validar y dejar técnicamente listo para entrega a Despliegue un entorno TEST independiente para el Backend del proyecto SGPMP, tomando como referencia la configuración vigente de Desarrollo y sin modificar el funcionamiento de la rama `dev`.
 
 El trabajo contempla:
 
-- creación del entorno TEST;
-- aislamiento de PostgreSQL TEST respecto a DEV;
+- configuración Docker específica para TEST;
+- aislamiento de PostgreSQL TEST respecto a otros ambientes;
+- restauración controlada de la base de datos;
+- aplicación y validación de migraciones Alembic;
 - aplicación del principio de mínima exposición de puertos;
 - validación de persistencia;
-- validación de conectividad Backend - PostgreSQL;
-- documentación de decisiones, pruebas, hallazgos y evidencias.
+- validación de comunicación Backend - PostgreSQL;
+- validación de `health`, rutas y CORS;
+- sincronización final con la rama `dev`;
+- documentación de comandos, resultados, hallazgos, evidencias y pendientes.
 
 ## 2. Alcance
 
-El alcance actual del grupo de Implementación comprende exclusivamente:
+El alcance actual del grupo de Implementación comprende:
 
-- entorno TEST;
-- seguridad de puertos;
-- documentación.
+- entorno TEST del Backend;
+- PostgreSQL TEST asociado al Backend;
+- seguridad y exposición de puertos;
+- validación técnica local;
+- documentación para entrega a Despliegue.
 
-El entorno PROD queda fuera del alcance actual.
+Quedan fuera del alcance actual:
 
-El archivo DEV `docker-compose.yml` no debe modificarse innecesariamente.
+- PROD;
+- configuración final de Dokploy;
+- dominios y certificados HTTPS;
+- instalación o mantenimiento de herramientas propias del equipo de Pruebas;
+- implementación del entorno AIoT;
+- modificación funcional del código de Desarrollo para corregir hallazgos que no sean responsabilidad de Implementación.
+
+La rama `dev` se utiliza como referencia vigente de Desarrollo y no se modifica desde la rama de trabajo de Implementación.
+
+---
 
 ## 3. Repositorio y ramas
 
-- Repositorio: `Arekkazu/sgpmp-backend`
-- Rama DEV de referencia: `integration-v2`
-- Rama de trabajo: `feat/ambiente-test`
-- Commit base de `integration-v2`: `39b817c453719110cd7af4eb2616fc0d41f7cebe`
-- Mensaje del commit base: `Remove the Oracle-specific direct-port override`
+Repositorio:
 
-La rama `feat/ambiente-test` fue creada directamente desde `origin/integration-v2`.
+    Arekkazu/sgpmp-backend
 
-## 4. Estado inicial
+### Base histórica inicial
+
+La rama de trabajo TEST se creó originalmente desde:
+
+    origin/integration-v2
+
+Commit base histórico:
+
+    39b817c453719110cd7af4eb2616fc0d41f7cebe
+
+Mensaje:
+
+    Remove the Oracle-specific direct-port override
+
+Rama de trabajo:
+
+    feat/ambiente-test
+
+### Sincronización final con DEV
+
+Posteriormente se determinó que el ambiente TEST debía quedar alineado con la rama de Desarrollo vigente.
+
+Se actualizó:
+
+    origin/dev
+
+Commit DEV incorporado:
+
+    a61e458
+
+Antes de sincronizar se creó un respaldo local de la rama TEST:
+
+    backup/ambiente-test-pre-dev-sync
+
+apuntando al estado:
+
+    6611fb4
+
+La incorporación de DEV se realizó desde:
+
+    feat/ambiente-test
+
+mediante un merge de:
+
+    origin/dev -> feat/ambiente-test
+
+Commit de merge:
+
+    6866c1d merge: incorpora cambios de dev en ambiente test
+
+El único conflicto ocurrió en:
+
+    docker-compose.yml
+
+Como dicho archivo corresponde a la configuración DEV, se conservó exactamente la versión de `origin/dev`.
+
+Se comprobó posteriormente:
+
+    git diff origin/dev -- docker-compose.yml
+
+Resultado:
+
+    sin diferencias
+
+Después de adaptar TEST al contrato actual de DEV se creó:
+
+    d710681 feat(test): sincroniza configuración backend con dev
+
+Validación final:
+
+    origin/dev...HEAD = 0 10
+
+Interpretación:
+
+- `0`: la rama TEST no tiene commits pendientes por incorporar desde `dev`;
+- `10`: la rama TEST contiene sus commits propios adicionales.
+
+La rama de trabajo fue publicada y se confirmó:
+
+    local = d710681
+    origin/feat/ambiente-test = d710681
+    local vs remoto = 0 0
+
+No se realizó merge ni push hacia `dev`, `main` o `integration-v2`.
+
+---
+
+## 4. Estado inicial y evolución del trabajo
 
 Antes de realizar modificaciones se verificó:
 
-- el clon local corresponde a `sgpmp-backend`;
-- el remoto `origin` corresponde a `https://github.com/Arekkazu/sgpmp-backend.git`;
-- el árbol de trabajo estaba limpio;
-- `origin/integration-v2` existe;
-- se actualizaron las referencias mediante `git fetch origin --prune`;
-- la rama de trabajo fue creada desde el mismo SHA que `origin/integration-v2`.
+- repositorio correcto;
+- remoto `origin` correcto;
+- árbol de trabajo limpio;
+- referencias remotas actualizadas;
+- creación controlada de `feat/ambiente-test`;
+- protección de archivos `.env` reales.
 
-## 5. Arquitectura DEV de referencia
+Durante una primera etapa TEST se tomó `integration-v2` como referencia.
 
-Se auditó el archivo `docker-compose.yml` existente en `integration-v2`.
+Posteriormente Desarrollo avanzó y la referencia vigente pasó a ser `dev`.
 
-La configuración DEV confirmada contiene dos servicios:
+Por esta razón, varias decisiones históricas fueron reevaluadas.
 
-- `db`
-- `backend`
+### Decisiones históricas posteriormente reemplazadas
+
+En fases anteriores se llegó a:
+
+- proponer una red externa `sgpmp-test-internal`;
+- modificar temporalmente la configuración DEV para pruebas relacionadas con `pg_cron` y SMTP;
+- considerar `ENV=test` como valor definitivo del entorno desplegado;
+- utilizar `db` como hostname fijo de PostgreSQL;
+- realizar restauraciones iniciales con estrategias específicas para excluir `pg_cron`.
+
+Estas decisiones no representan el estado final.
+
+Después de sincronizar con `dev` se definió como estado vigente:
+
+- sin red externa obligatoria;
+- `docker-compose.yml` DEV idéntico a `origin/dev`;
+- TEST aislado mediante su propia red automática de Docker Compose;
+- PostgreSQL TEST con nombre único basado en `POSTGRES_DB`;
+- soporte de `pg_cron` mantenido únicamente donde TEST lo necesita para compatibilidad con el backup;
+- `ENV=production` para TEST desplegado por HTTPS debido al comportamiento actual de la cookie refresh;
+- `ENV=test` permitido para validaciones locales HTTP.
+
+---
+
+## 5. Arquitectura DEV vigente de referencia
+
+El archivo vigente de Desarrollo es:
+
+    docker-compose.yml
+
+La versión final de este archivo en `feat/ambiente-test` coincide exactamente con:
+
+    origin/dev
 
 ### PostgreSQL DEV
 
-El servicio `db` utiliza:
+La configuración actual de DEV utiliza:
 
-- imagen `postgres:18`;
-- variables `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`;
-- publicación de puerto `${DB_PORT:-5447}:5432`;
-- volumen persistente `sgpmp_pgdata`;
-- healthcheck mediante `pg_isready`;
-- política de reinicio `unless-stopped`.
+- `postgres:18`;
+- `POSTGRES_USER`;
+- `POSTGRES_PASSWORD`;
+- `POSTGRES_DB`;
+- publicación `${DB_PORT:-5447}:5432`;
+- volumen persistente;
+- healthcheck con `pg_isready`;
+- nombre de contenedor basado en la base:
 
-El volumen se monta en:
+    ${POSTGRES_DB}-db
 
-    /var/lib/postgresql
+Este cambio de nomenclatura evita colisiones de DNS cuando existen varios stacks en infraestructura compartida.
 
 ### Backend DEV
 
-El servicio `backend`:
+El Backend:
 
-- se construye desde el `Dockerfile` del repositorio;
-- recibe explícitamente `DATABASE_URL`, `SECRET_KEY` y `FRONTEND_URL`;
-- conecta a PostgreSQL mediante el hostname Docker `db` y el puerto interno `5432`;
-- utiliza `expose` para el puerto interno `8000`;
-- no publica directamente el puerto `8000` mediante `ports`;
-- depende de que `db` alcance el estado `service_healthy`;
-- utiliza la política de reinicio `unless-stopped`.
+- se construye desde `Dockerfile`;
+- usa Uvicorn en `8000`;
+- utiliza `expose: 8000`;
+- depende de PostgreSQL saludable;
+- construye `DATABASE_URL` usando como hostname:
 
-La conexión configurada tiene la forma:
+    ${POSTGRES_DB}-db
 
-    postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+DEV también entrega al contenedor variables de runtime como:
 
-### Red DEV
+- `ENV`;
+- `SECRET_KEY`;
+- `FRONTEND_URL`;
+- `ALLOWED_ORIGINS`;
+- `ROOT_PATH`;
+- variables SMTP.
 
-El Compose auditado no declara una sección `networks` explícita.
+---
 
-Por lo tanto, los servicios `db` y `backend` utilizan la red predeterminada creada por Docker Compose para este proyecto.
+## 6. Arquitectura TEST final implementada
 
-### Validación de integridad de DEV
-
-Se ejecutó:
-
-    git diff origin/integration-v2 -- docker-compose.yml
-
-El comando no produjo diferencias.
-
-Resultado en ese punto del proceso: el archivo `docker-compose.yml` utilizado como referencia permanecía idéntico al existente en `origin/integration-v2`.
-
-## 6. Arquitectura TEST
-
-El entorno TEST se diseñó inicialmente como un stack independiente dentro del repositorio Backend, sin modificar el `docker-compose.yml` utilizado como referencia DEV.
-
-Esta condición se mantuvo durante la construcción y validación inicial de TEST. Posteriormente, por solicitud explícita del líder de Desarrollo, se autorizó modificar `docker-compose.yml` para incorporar `pg_cron` al PostgreSQL DEV y pasar las variables SMTP al contenedor Backend DEV.
-
-El archivo previsto para este ambiente será:
+El archivo específico de TEST es:
 
     docker-compose.test.yml
 
-La arquitectura propuesta contiene dos servicios:
-
-- `db`
-- `backend`
-
-### PostgreSQL TEST
-
-El servicio `db` utilizará:
-
-- la misma versión de PostgreSQL que DEV: `postgres:18`;
-- credenciales específicas de TEST;
-- una base de datos específica de TEST;
-- un volumen persistente exclusivo de TEST;
-- healthcheck mediante `pg_isready`;
-- puerto interno `5432`;
-- ninguna publicación directa de `5432` hacia el host.
-
-El volumen TEST deberá ser diferente de `sgpmp_pgdata`, utilizado actualmente por DEV.
-
-Nombre propuesto:
-
-    sgpmp_pgdata_test
-
-El backup de la base de datos deberá restaurarse sobre este PostgreSQL TEST una vez inicializado.
-
-El backup no se restaurará automáticamente en cada `docker compose up`.
-
-### Backend TEST
-
-El servicio `backend` continuará:
-
-- construyéndose desde el `Dockerfile` actual;
-- ejecutándose mediante Uvicorn en el puerto interno `8000`;
-- esperando a que PostgreSQL alcance el estado saludable;
-- conectándose a PostgreSQL mediante DNS interno de Docker.
-
-La conexión mantendrá el patrón:
-
-    postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-
-El Backend TEST no publicará directamente:
-
-    8000:8000
-
-Se conservará el uso del puerto interno `8000` para permitir posteriormente el enrutamiento mediante Dokploy/Traefik cuando corresponda.
-
-### Red compartida TEST
-
-Se propone utilizar una red Docker externa específica del ambiente:
-
-    sgpmp-test-internal
-
-Tanto `db` como `backend` se conectarán a esta red.
-
-Esta red permitirá posteriormente conectar el Gateway TEST del repositorio AIoT al mismo PostgreSQL TEST sin crear una segunda base de datos y sin publicar PostgreSQL hacia Internet.
-
-Arquitectura conceptual:
-
-    Backend TEST
-    ┌──────────────────────────────┐
-    │                              │
-    │ backend                      │
-    │   puerto interno 8000        │
-    │        │                     │
-    │        ▼                     │
-    │ db                           │
-    │   PostgreSQL 18              │
-    │   puerto interno 5432        │
-    │   volumen TEST independiente │
-    │                              │
-    └────────────┬─────────────────┘
-                 │
-                 │ sgpmp-test-internal
-                 │
-                 ▼
-           Gateway TEST
-           (fase AIoT posterior)
-
-### Aislamiento respecto a DEV
-
-TEST no deberá compartir con DEV:
-
-- volumen PostgreSQL;
-- base de datos;
-- credenciales;
-- datos persistentes.
-
-Durante la construcción y validación inicial del ambiente TEST, el archivo `docker-compose.yml` de DEV se mantuvo sin modificaciones. Esta condición cambió posteriormente por solicitud explícita de Desarrollo, como se documenta en la sección de actualización posterior de DEV.
-
-### Aislamiento del proyecto Docker Compose
-
-Se inspeccionó el estado local de Docker antes de implementar TEST.
-
-La versión disponible es:
-
-- Docker `29.6.2`;
-- Docker Compose `v5.3.1`.
-
-El nuevo stack Backend TEST utilizará un nombre de proyecto Compose independiente:
+Proyecto Compose:
 
     sgpmp-backend-test
 
-Esto permitirá diferenciar los recursos TEST de otros stacks ejecutados desde el mismo equipo o repositorio.
+Servicios:
 
-No se utilizará `container_name` por defecto. Se permitirá que Docker Compose administre los nombres de los contenedores dentro del proyecto `sgpmp-backend-test`.
+- `db`;
+- `backend`.
 
-### Nomenclatura del nuevo ambiente
+### 6.1 PostgreSQL TEST
 
-Se utilizarán como referencia los siguientes nombres:
+PostgreSQL TEST utiliza una imagen construida mediante:
 
-- proyecto Compose: `sgpmp-backend-test`;
-- red externa compartida: `sgpmp-test-internal`;
-- volumen lógico de PostgreSQL TEST: `sgpmp_pgdata_test`;
-- imagen base PostgreSQL: `postgres:18`;
-- imagen PostgreSQL TEST: construida localmente mediante `Dockerfile.postgres` a partir de `postgres:18`, incorporando `pg_cron`.
+    Dockerfile.postgres
 
-El nombre físico final del volumen podrá ser administrado por Docker Compose a partir del nombre del proyecto y del volumen lógico.
+Base:
 
-### Recursos TEST legado encontrados
+    postgres:18
 
-Durante la inspección local se encontraron recursos pertenecientes a una implementación TEST anterior:
+El Dockerfile instala:
 
-- contenedor `sgpmp-postgres-test`;
-- volumen `sgpmp-postgres-test-data`;
-- red `sgpmp-test-network`.
+    postgresql-18-cron
 
-Se comprobó que:
+Esto permite restaurar y mantener la extensión `pg_cron` incluida en la base TEST.
 
-- `sgpmp-postgres-test` utiliza `postgres:16`;
-- pertenece al proyecto Compose `implementacion`;
-- utiliza el volumen `sgpmp-postgres-test-data`;
-- dicho volumen también está etiquetado como perteneciente al proyecto `implementacion`;
-- la red `sgpmp-test-network` actualmente no tiene contenedores conectados.
-
-Estos recursos se consideran legado respecto al nuevo trabajo.
-
-No serán:
-
-- reutilizados;
-- modificados;
-- eliminados;
-
-como parte de la creación inicial del nuevo Backend TEST.
-
-La nueva red `sgpmp-test-internal` no existía al momento de la inspección y queda reservada conceptualmente para la arquitectura TEST actual.
-
-### Estado del diseño
-
-Esta arquitectura quedó definida para la implementación del ambiente TEST.
-
-Se creó `docker-compose.test.yml` para el ambiente TEST. PostgreSQL TEST y Backend TEST fueron posteriormente levantados y validados de forma independiente.
-
-Las validaciones realizadas y sus resultados se documentan en las secciones posteriores.
-
-## 7. Archivos creados
-
-- `docs/SEGUIMIENTO-ENTORNO-TEST.md`
-- `docker-compose.test.yml`
-- `.env.test.example`
-- `.env.test` (archivo local de configuración, ignorado por Git y no versionable)
-- `Dockerfile.postgres`: imagen PostgreSQL común para DEV y TEST con soporte de `pg_cron`.
-
-## 8. Archivos modificados
-
-- `.gitignore`: se agregó la excepción `!.env.test.example` para permitir versionar únicamente la plantilla de variables TEST, manteniendo `.env.test` ignorado.
-- `docker-compose.yml`: inicialmente permaneció intacto durante la construcción de TEST. Posteriormente fue modificado por solicitud de Desarrollo para utilizar `Dockerfile.postgres`, habilitar `pg_cron` y pasar las variables SMTP al Backend DEV.
-
-## 9. Variables y configuración
-
-Se auditó el archivo `.env.example` de `integration-v2`.
-
-### Variables declaradas
-
-#### PostgreSQL
-
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
-- `DB_PORT`
-
-El Compose DEV construye `DATABASE_URL` a partir de las variables de PostgreSQL.
-
-#### Autenticación
-
-- `SECRET_KEY`
-- `JWT_EXPIRE_HOURS`
-
-#### Frontend y CORS
-
-- `FRONTEND_URL`
-
-#### Ambiente de ejecución
-
-- `ENV`
-
-La documentación existente indica que `production` habilita comportamiento específico de producción y que DEV/TEST deben utilizar otro valor o dejarlo vacío.
-
-#### SMTP
-
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASSWORD`
-
-#### Firebase
-
-- `FIREBASE_CREDENTIALS_PATH`
-
-#### Almacenamiento de modelos
-
-- `MODELOS_STORAGE_PATH`
-
-#### AgroFusion
-
-- `AGROFUSION_SSO_PUBLIC_KEY_PATH`
-- `AGROFUSION_PROJECT_CODE`
-- `AGROFUSION_ISSUER`
-- `AGROFUSION_HUB_CLIENT_ID`
-- `AGROFUSION_HUB_CLIENT_SECRET`
-
-### Clasificación parcial confirmada
-
-La revisión del código permitió confirmar el comportamiento de las variables principales.
-
-#### `DATABASE_URL`
-
-`src/shared/database.py` obtiene `DATABASE_URL` mediante `os.getenv` y la utiliza inmediatamente para crear el engine de SQLAlchemy.
-
-Además, múltiples routers importados durante el arranque de `main.py` importan a su vez `src.shared.database`.
-
-Por lo tanto:
-
-- `DATABASE_URL` debe estar disponible cuando arranca el Backend;
-- no tiene un valor por defecto en el código;
-- en Docker Compose DEV se construye a partir de `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB`.
-
-#### `POSTGRES_*`
-
-Las variables:
-
-- `POSTGRES_USER`
-- `POSTGRES_PASSWORD`
-- `POSTGRES_DB`
-
-no son consumidas directamente por el código Python encontrado.
-
-Son utilizadas por Docker Compose para:
-
-- configurar PostgreSQL;
-- construir `DATABASE_URL` para el Backend.
-
-#### `SECRET_KEY`
-
-`src/shared/jwt.py` obtiene `SECRET_KEY` sin valor por defecto.
-
-La variable se utiliza para firmar y verificar tokens JWT.
-
-No se observó una validación explícita durante la importación del módulo, pero la funcionalidad de autenticación requiere que TEST proporcione una clave válida.
-
-No se debe versionar su valor real.
-
-#### `JWT_EXPIRE_HOURS`
-
-`JWT_EXPIRE_HOURS` es configurable y tiene un valor por defecto de `8` horas definido en el código.
-
-Por lo tanto, no es estrictamente necesaria para inicializar la aplicación, aunque se mantendrá explícita en la configuración TEST para que el comportamiento del ambiente quede documentado.
-
-### Carga de variables dentro del contenedor
-
-El código utiliza `load_dotenv()`, pero el `Dockerfile` no define variables mediante `ENV` o `ARG`.
-
-Además, `.dockerignore` excluye:
-
-    .env
-    .env.*
-
-Por lo tanto, el diseño TEST no debe depender de que un archivo `.env.test` sea copiado dentro de la imagen.
-
-Las variables requeridas por la aplicación deberán ser inyectadas al contenedor mediante la configuración del entorno de ejecución, por ejemplo Docker Compose o posteriormente Dokploy.
-
-### Hallazgo adicional: `RF71_INTERNAL_KEY`
-
-Durante la búsqueda del consumo de variables se encontró:
-
-    RF71_INTERNAL_KEY
-
-en el código del módulo de predicción.
-
-Esta variable no aparece actualmente en `.env.example`.
-
-El hallazgo queda pendiente de revisión antes de definir el contrato definitivo de variables TEST. No se considera todavía un error ni se agregará automáticamente sin analizar su función y necesidad.
-
-### Diferencia entre DEV y variables declaradas
-
-El `docker-compose.yml` DEV auditado entrega explícitamente al contenedor `backend` únicamente:
-
-- `DATABASE_URL`
-- `SECRET_KEY`
-- `FRONTEND_URL`
-
-Existen otras variables declaradas en `.env.example` que son consumidas por el código.
-
-Su obligatoriedad y comportamiento se continuará auditando antes de crear `.env.test.example`.
-
-### Clasificación de variables SMTP
-
-Se auditó `src/shared/email.py` y la cadena de imports utilizada durante el arranque del Backend.
-
-Se confirmó que `src.shared.email` es cargado durante la inicialización de la aplicación a través de módulos importados por los routers de identidad y acceso.
-
-El módulo obtiene:
-
-- `SMTP_HOST`
-- `SMTP_PORT`
-- `SMTP_USER`
-- `SMTP_PASSWORD`
-
-#### `SMTP_HOST`
-
-Tiene como valor por defecto:
-
-    smtp.gmail.com
-
-Si la variable no está definida, no impide por sí sola el arranque del Backend.
-
-#### `SMTP_PORT`
-
-Tiene como valor por defecto:
-
-    587
-
-El código realiza:
-
-    int(os.getenv("SMTP_PORT", "587"))
-
-Por lo tanto:
-
-- si `SMTP_PORT` no existe, se utiliza `587`;
-- si `SMTP_PORT` existe pero contiene una cadena vacía, el código intentaría convertir `""` a entero y podría producir un `ValueError` durante la carga del módulo.
-
-Por esta razón, TEST no debe configurar `SMTP_PORT` como valor vacío.
-
-#### `SMTP_USER` y `SMTP_PASSWORD`
-
-No tienen valor por defecto.
-
-Su ausencia no provoca una validación explícita durante la importación del módulo, pero son necesarias para autenticar y enviar correos mediante SMTP.
-
-Las funcionalidades que utilizan correo incluyen, entre otras:
-
-- creación y activación de cuentas;
-- recuperación de contraseña;
-- reenvío de tokens;
-- algunas notificaciones de la aplicación.
-
-Si el envío SMTP falla durante una operación, el código realiza hasta tres intentos y posteriormente genera un error controlado `EMAIL_NO_DISPONIBLE`.
-
-Para TEST, las credenciales SMTP reales no deberán versionarse en Git.
-
-
-### Clasificación de Firebase
-
-Se auditó `src/shared/firebase.py` y su uso desde `src/shared/notificacion_service.py`.
-
-La variable involucrada es:
-
-- `FIREBASE_CREDENTIALS_PATH`
-
-La inicialización de Firebase es lazy: el SDK no se inicializa durante la importación del módulo, sino cuando se intenta enviar una notificación push.
-
-#### `FIREBASE_CREDENTIALS_PATH`
-
-No es obligatoria para que el Backend arranque.
-
-Si la variable no está definida:
-
-- Firebase no se inicializa;
-- `_get_app()` retorna `None`;
-- las notificaciones push se omiten;
-- el resto del Backend puede continuar funcionando.
-
-Si la ruta está definida pero las credenciales son inválidas o no pueden cargarse, la excepción es capturada y se registra una advertencia.
-
-La función de envío push retorna `False` en caso de fallo y no propaga la excepción al resto de la aplicación.
-
-Por lo tanto, `FIREBASE_CREDENTIALS_PATH` se clasifica como una variable opcional para el arranque del entorno TEST, aunque será necesaria si se desea validar funcionalmente las notificaciones push.
-
-Las credenciales reales de Firebase no deberán almacenarse en Git.
-
-### Clasificación de `MODELOS_STORAGE_PATH`
-
-Se auditó el uso de `MODELOS_STORAGE_PATH` en el módulo de predicción.
-
-La variable solamente se consulta dentro del método encargado de guardar artefactos de modelos y no durante el arranque general del Backend.
-
-Si `MODELOS_STORAGE_PATH` no está definida, el código utiliza como valor por defecto:
-
-    /tmp/sgpmp_modelos
-
-El directorio se crea automáticamente mediante `os.makedirs` cuando se necesita almacenar un artefacto.
-
-Por lo tanto:
-
-- `MODELOS_STORAGE_PATH` no es obligatoria para arrancar Backend TEST;
-- la variable se evalúa únicamente cuando se ejecuta la funcionalidad de almacenamiento de modelos;
-- si no se configura, los artefactos se almacenan dentro de `/tmp/sgpmp_modelos` en el filesystem del contenedor.
-
-### Hallazgo de persistencia de artefactos
-
-El `docker-compose.yml` DEV auditado no define actualmente un volumen para el servicio `backend`.
-
-Por ello, si se utiliza la ruta por defecto `/tmp/sgpmp_modelos`, los artefactos almacenados dependen del filesystem del contenedor.
-
-Este hallazgo queda pendiente de análisis.
-
-No se añadirá todavía un volumen TEST ni se modificará la estrategia de almacenamiento hasta determinar si la persistencia de estos artefactos forma parte de las responsabilidades del entorno de Implementación o requiere una definición de Desarrollo.
-
-### Clasificación de variables AgroFusion
-
-Se auditó la configuración de los dos mecanismos de integración con AgroFusion:
-
-- Mecanismo A: SSO interactivo;
-- Mecanismo B: integración server-to-server (M2M).
-
-#### SSO de AgroFusion
-
-Las variables involucradas son:
-
-- `AGROFUSION_SSO_PUBLIC_KEY_PATH`
-- `AGROFUSION_PROJECT_CODE`
-- `AGROFUSION_ISSUER`
-
-El endpoint SSO comprueba que existan `AGROFUSION_SSO_PUBLIC_KEY_PATH` y `AGROFUSION_PROJECT_CODE` antes de instanciar el adaptador.
-
-Si no están configuradas, responde mediante el error controlado:
-
-    SSO_NO_CONFIGURADO
-
-con estado HTTP 503.
-
-Por tanto:
-
-- `AGROFUSION_SSO_PUBLIC_KEY_PATH` no es obligatoria para arrancar Backend TEST;
-- `AGROFUSION_PROJECT_CODE` no es obligatoria para arrancar Backend TEST;
-- ambas son necesarias únicamente para habilitar funcionalmente el SSO con AgroFusion.
-
-`AGROFUSION_ISSUER` tiene como valor por defecto:
-
-    agrofusion-auth
-
-#### Integración M2M de AgroFusion
-
-Las variables involucradas son:
-
-- `AGROFUSION_HUB_CLIENT_ID`
-- `AGROFUSION_HUB_CLIENT_SECRET`
-
-La integración se considera configurada solamente cuando existen ambas variables.
-
-Los cinco endpoints M2M implementados actualmente ejecutan `verify_agrofusion_client` antes de realizar su operación.
-
-Si las credenciales M2M no están completas, la validación genera el error controlado:
-
-    AGROFUSION_NO_CONFIGURADO
-
-con estado HTTP 503.
-
-Además, `main.py` solo monta el router M2M cuando existe `AGROFUSION_HUB_CLIENT_ID`.
-
-Se identificó que esta condición de montaje revisa solamente el `CLIENT_ID`, mientras la validación funcional exige tanto `CLIENT_ID` como `CLIENT_SECRET`.
-
-Por lo tanto:
-
-- ninguna de las variables AgroFusion es obligatoria para el arranque básico de Backend TEST;
-- el Backend puede funcionar en modo standalone sin esta integración;
-- si se desea validar SSO o M2M en TEST, se deberán proporcionar las variables correspondientes;
-- los secretos reales de AgroFusion no deberán versionarse en Git.
-
-### Clasificación de `RF71_INTERNAL_KEY`
-
-Durante la auditoría del código se identificó una variable adicional que no está declarada actualmente en `.env.example`:
-
-- `RF71_INTERNAL_KEY`
-
-Esta variable protege una operación interna del módulo de predicción.
-
-El endpoint involucrado es:
-
-    POST /prediccion/modelos
-
-Este endpoint no utiliza RBAC convencional. Recibe la clave interna mediante el header:
-
-    X-RF71-Internal-Key
-
-El router declara el header como opcional a nivel de FastAPI y lo entrega al caso de uso `RegistrarVersionModeloUseCase`.
-
-El caso de uso obtiene el valor esperado mediante:
-
-    os.environ.get("RF71_INTERNAL_KEY", "")
-
-y rechaza la operación cuando:
-
-- el header no está presente;
-- el header está vacío;
-- el valor recibido no coincide con `RF71_INTERNAL_KEY`.
-
-Por lo tanto:
-
-- `RF71_INTERNAL_KEY` no es necesaria para arrancar Backend TEST;
-- sí es necesaria para validar funcionalmente el registro interno de nuevas versiones de modelos correspondiente al flujo RF-71;
-- si no se configura, dicha operación interna queda bloqueada;
-- su valor debe tratarse como secreto y nunca deberá almacenarse en Git.
-
-### Hallazgo: variable ausente de `.env.example`
-
-`RF71_INTERNAL_KEY` es consumida realmente por el código, pero no aparece actualmente documentada en `.env.example`.
-
-No se modificará el `.env.example` de DEV de forma automática.
-
-El hallazgo se conservará para:
-
-- incluir la variable de forma segura en el contrato específico de TEST si corresponde;
-- informar a Desarrollo sobre la diferencia entre las variables consumidas por el código y las documentadas actualmente.
-
-### Contrato propuesto de variables para TEST
-
-A partir de la auditoría del código y de la configuración DEV se define el siguiente contrato inicial para el ambiente TEST.
-
-La clasificación distingue entre:
-
-- requerida para inicialización del ambiente;
-- requerida para una funcionalidad concreta;
-- opcional con valor por defecto o degradación controlada;
-- no utilizada por la configuración TEST propuesta.
-
-| Variable | Servicio | Clasificación en TEST | Observación |
-| --- | --- | --- | --- |
-| `POSTGRES_USER` | `db` / Compose | Requerida para inicialización | Usuario exclusivo de PostgreSQL TEST. |
-| `POSTGRES_PASSWORD` | `db` / Compose | Requerida para inicialización | Secreto exclusivo de TEST. No versionar valor real. |
-| `POSTGRES_DB` | `db` / Compose | Requerida para inicialización | Base de datos exclusiva de TEST. |
-| `DB_PORT` | Compose | No utilizada por TEST | TEST no publicará PostgreSQL hacia el host. |
-| `DATABASE_URL` | `backend` | Requerida para inicialización | Compose la construirá usando `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y `db:5432`. |
-| `SECRET_KEY` | `backend` | Requerida para funcionalidad | Necesaria para creación y verificación de JWT. No versionar valor real. |
-| `JWT_EXPIRE_HOURS` | `backend` | Opcional con default | El código utiliza `8` si no está definida. Se propone mantener `8` explícitamente en TEST. |
-| `FRONTEND_URL` | `backend` | Requerida para funcionamiento correcto de TEST | Necesaria para enlaces de correo y para representar la URL real del Frontend TEST. |
-| `ENV` | `backend` | Configuración explícita de ambiente | TEST utilizará semánticamente `test`. La incompatibilidad CORS con dominios HTTPS reales permanece documentada como hallazgo. |
-| `SMTP_HOST` | `backend` | Opcional con default | Si no existe, utiliza `smtp.gmail.com`. |
-| `SMTP_PORT` | `backend` | Opcional con default | Si no existe, utiliza `587`. Si se define, no debe quedar vacío y debe contener un entero válido. |
-| `SMTP_USER` | `backend` | Requerida para funcionalidad de correo | No es necesaria para el arranque, pero sí para autenticación SMTP real. |
-| `SMTP_PASSWORD` | `backend` | Requerida para funcionalidad de correo | Secreto. No versionar valor real. |
-| `FIREBASE_CREDENTIALS_PATH` | `backend` | Opcional | Sin configuración, las notificaciones push se degradan de forma controlada. |
-| `MODELOS_STORAGE_PATH` | `backend` | Opcional con default | Sin configuración utiliza `/tmp/sgpmp_modelos`. La persistencia de artefactos permanece pendiente de definición. |
-| `AGROFUSION_SSO_PUBLIC_KEY_PATH` | `backend` | Opcional | Necesaria solamente para habilitar SSO con AgroFusion. |
-| `AGROFUSION_PROJECT_CODE` | `backend` | Opcional | Necesaria solamente para habilitar SSO con AgroFusion. |
-| `AGROFUSION_ISSUER` | `backend` | Opcional con default | Default `agrofusion-auth`. |
-| `AGROFUSION_HUB_CLIENT_ID` | `backend` | Opcional | Necesaria solamente para habilitar integración M2M. |
-| `AGROFUSION_HUB_CLIENT_SECRET` | `backend` | Opcional | Secreto necesario solamente para integración M2M. |
-| `RF71_INTERNAL_KEY` | `backend` | Requerida para funcionalidad RF-71 | Protege `POST /prediccion/modelos`. Secreto no documentado actualmente en `.env.example`. |
-
-### Decisiones para el futuro Compose TEST
-
-El servicio `db` recibirá directamente:
+El servicio utiliza:
 
 - `POSTGRES_USER`;
 - `POSTGRES_PASSWORD`;
-- `POSTGRES_DB`.
+- `POSTGRES_DB`;
+- volumen exclusivo:
 
-No se utilizará `DB_PORT` porque PostgreSQL TEST no tendrá una publicación mediante `ports`.
+    sgpmp_pgdata_test
 
-El servicio `backend` deberá recibir explícitamente las variables de runtime necesarias para evitar depender de archivos `.env` copiados dentro de la imagen.
+- healthcheck mediante `pg_isready`;
+- `expose: 5432`;
+- ninguna publicación mediante `ports`.
 
-`DATABASE_URL` se construirá dentro del Compose utilizando el hostname interno:
+Nombre final del contenedor:
 
-    db:5432
+    ${POSTGRES_DB}-db
 
-### Valor de `ENV` en TEST
+Con el valor local utilizado:
 
-El valor propuesto es:
+    sgpmp_test-db
+
+### 6.2 Backend TEST
+
+El servicio `backend`:
+
+- se construye con `Dockerfile`;
+- ejecuta Uvicorn en `8000`;
+- utiliza `expose: 8000`;
+- no publica `8000` al host en el Compose entregable;
+- espera a que PostgreSQL esté `healthy`;
+- se conecta mediante:
+
+    ${POSTGRES_DB}-db:5432
+
+La forma general de la conexión es:
+
+    postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB}-db:5432/${POSTGRES_DB}
+
+### 6.3 Red Docker final
+
+No existe una dependencia de una red Docker externa.
+
+El stack utiliza la red automática creada por Docker Compose:
+
+    sgpmp-backend-test_default
+
+Esta decisión reemplaza la propuesta histórica:
+
+    sgpmp-test-internal
+
+La red externa fue descartada porque AIoT no forma parte del alcance actual y Backend TEST no requiere dicha dependencia para funcionar.
+
+### 6.4 Volumen persistente
+
+El volumen físico validado es:
+
+    sgpmp-backend-test_sgpmp_pgdata_test
+
+Montado en:
+
+    /var/lib/postgresql
+
+No se comparte con DEV ni con recursos legado.
+
+---
+
+## 7. Archivos del ambiente TEST
+
+### Archivos creados durante el trabajo
+
+    docs/SEGUIMIENTO-ENTORNO-TEST.md
+    docker-compose.test.yml
+    .env.test.example
+    Dockerfile.postgres
+
+### Archivos locales no versionables
+
+    .env.test
+    docker-compose.local.yml
+
+`.env.test` está protegido por `.gitignore`.
+
+`docker-compose.local.yml` se mantuvo excluido localmente mediante:
+
+    .git/info/exclude
+
+El override local se utilizó exclusivamente para publicar temporalmente:
+
+    127.0.0.1:8000 -> 8000
+
+durante pruebas locales.
+
+No forma parte del Compose entregable a Despliegue.
+
+### Integridad de DEV
+
+El estado final de:
+
+    docker-compose.yml
+
+es idéntico a `origin/dev`.
+
+Los experimentos o modificaciones históricas realizadas sobre DEV durante etapas anteriores quedaron reemplazados por la sincronización final con `dev`.
+
+---
+
+## 8. Variables y contrato TEST vigente
+
+El contrato final de TEST se revisó nuevamente después de incorporar `dev`.
+
+### PostgreSQL
+
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+
+`DB_PORT` no es necesario para el Compose TEST porque PostgreSQL no se publica hacia el host.
+
+`DATABASE_URL` no se almacena en `.env.test`; Docker Compose la construye internamente.
+
+### Backend principal
+
+- `SECRET_KEY`
+- `JWT_EXPIRE_HOURS`
+- `REFRESH_TOKEN_EXPIRE_DAYS`
+- `FRONTEND_URL`
+- `ENV`
+- `ALLOWED_ORIGINS`
+- `ROOT_PATH`
+
+### SMTP
+
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASSWORD`
+
+### Firebase
+
+El código consume:
+
+    FIREBASE_CREDENTIALS_PATH
+
+La inicialización es diferida y no bloquea el arranque básico si la variable no está configurada.
+
+### Modelos
+
+- `MODELOS_STORAGE_PATH`
+
+Si no se define, el código puede utilizar:
+
+    /tmp/sgpmp_modelos
+
+La persistencia funcional de artefactos deberá definirse con Desarrollo/Despliegue si dicha funcionalidad forma parte de las pruebas.
+
+### AgroFusion
+
+- `AGROFUSION_SSO_PUBLIC_KEY_PATH`
+- `AGROFUSION_PROJECT_CODE`
+- `AGROFUSION_ISSUER`
+- `AGROFUSION_HUB_CLIENT_ID`
+- `AGROFUSION_HUB_CLIENT_SECRET`
+
+No son necesarias para el arranque básico si las integraciones correspondientes no se validan.
+
+### RF-71
+
+- `RF71_INTERNAL_KEY`
+
+Es utilizada por el flujo interno de registro de versiones de modelo y debe tratarse como secreto.
+
+### MQTT
+
+Después de sincronizar con `dev` se identificó soporte para:
+
+- `MQTT_BROKER_URL`
+- `MQTT_BROKER_TOKEN`
+
+Sin embargo, AIoT no forma parte del alcance actual.
+
+El adaptador actual degrada de forma controlada cuando estas variables no se proporcionan, por lo que no fueron incorporadas forzosamente al entorno TEST en esta fase.
+
+---
+
+## 9. `ENV`, CORS, cookies y `ROOT_PATH`
+
+Esta parte cambió respecto de la auditoría inicial y debe utilizarse el comportamiento vigente.
+
+### 9.1 CORS actual
+
+`main.py` utiliza:
+
+    ALLOWED_ORIGINS
+
+como lista explícita de orígenes permitidos.
+
+También mantiene soporte local para:
+
+    localhost
+    127.0.0.1
+
+La validación local comprobó que:
+
+    Origin: http://127.0.0.1:8080
+
+es aceptado y recibe:
+
+    Access-Control-Allow-Origin: http://127.0.0.1:8080
+    Access-Control-Allow-Credentials: true
+
+Un origen HTTPS ficticio no incluido en `ALLOWED_ORIGINS` no recibió `Access-Control-Allow-Origin`.
+
+Esto confirma que el control de origen funciona.
+
+### 9.2 Cookie refresh
+
+El código actual determina el comportamiento de la cookie refresh mediante:
+
+    ENV == "production"
+
+Cuando es `production` utiliza:
+
+    Secure=true
+    SameSite=None
+
+Para una integración Frontend TEST / Backend TEST desplegada mediante dominios HTTPS separados, esta configuración es necesaria para el flujo actual de autenticación.
+
+Por esta razón `.env.test.example` documenta:
+
+    ENV=production
+
+para TEST desplegado por HTTPS.
+
+Para validaciones locales HTTP puede utilizarse:
 
     ENV=test
 
-No se utilizará `ENV=production` únicamente para evitar el problema CORS.
+### 9.3 `ALLOWED_ORIGINS`
 
-La incompatibilidad de la lógica CORS actual con un Frontend TEST desplegado mediante HTTPS deberá comprobarse durante la integración y, si se reproduce, reportarse a Desarrollo.
+Despliegue deberá definir:
 
-### Secretos
+    ALLOWED_ORIGINS=https://<frontend-test-real>
 
-Los valores reales de las siguientes variables no deberán incluirse en `.env.test.example` ni en Git:
+sin inventar el dominio antes de que exista.
 
-- `POSTGRES_PASSWORD`;
-- `SECRET_KEY`;
-- `SMTP_PASSWORD`;
-- `AGROFUSION_HUB_CLIENT_SECRET`;
-- `RF71_INTERNAL_KEY`;
-- cualquier credencial privada adicional utilizada por integraciones externas.
+### 9.4 `ROOT_PATH`
 
-El futuro `.env.test.example` utilizará únicamente valores de ejemplo seguros o marcadores explícitos.
+Se utiliza:
 
-### Integridad del archivo DEV
+    ROOT_PATH=/api
 
-Se ejecutó:
+Se validó que funcionan:
 
-    git diff origin/integration-v2 -- .env.example
+    GET /health
+    GET /api/health
 
-El comando no produjo diferencias.
+ambos con HTTP 200 en el entorno local validado.
 
-Resultado: `.env.example` permanece idéntico al existente en `origin/integration-v2`.
+---
 
 ## 10. Seguridad de puertos
 
-El entorno TEST aplicará el principio de mínima exposición.
+Se aplicó el principio de mínima exposición.
 
-La comunicación entre servicios deberá utilizar puertos internos y redes Docker siempre que no exista una necesidad justificada de publicar un puerto hacia el host.
+### PostgreSQL TEST
+
+Puerto interno:
+
+    5432
+
+Compose TEST:
+
+    expose:
+      - "5432"
+
+No existe:
+
+    ports:
+      - "5432:5432"
+
+Validación en ejecución:
+
+    5432/tcp
+
+sin binding al host.
 
 ### Backend TEST
 
-El Backend escucha internamente en:
+Puerto interno:
 
     8000
 
-Se conservará el patrón utilizado por DEV:
+Compose TEST:
 
     expose:
       - "8000"
 
-No se deberá utilizar por defecto:
+No existe publicación directa mediante:
 
     ports:
       - "8000:8000"
 
-El acceso externo al Backend TEST deberá realizarse posteriormente mediante Dokploy/Traefik y HTTPS, direccionando hacia el puerto interno `8000`.
+### Acceso local controlado
 
-Arquitectura esperada:
+Para las pruebas locales se utilizó un override no versionado con:
+
+    127.0.0.1:8000:8000
+
+No se utilizó:
+
+    0.0.0.0:8000:8000
+
+### Exposición esperada en Despliegue
+
+Arquitectura:
 
     Internet
         |
-      HTTPS
-       443
+      HTTPS 443
         |
         v
     Traefik / Dokploy
         |
         v
-    backend:8000
-
-### PostgreSQL TEST
-
-PostgreSQL escucha internamente en:
-
-    5432
-
-TEST no deberá publicar este puerto hacia el host mediante `ports`.
-
-El acceso de Backend TEST se realizará mediante la red Docker:
-
-    backend -> db:5432
-
-Posteriormente, Gateway TEST también deberá acceder a la misma base mediante la red compartida:
-
-    gateway -> db:5432
-
-La arquitectura esperada es:
-
-    Internet
-        X
+    Backend TEST :8000
         |
-    PostgreSQL:5432
+        v
+    PostgreSQL TEST :5432
 
-mientras que internamente:
+PostgreSQL no debe exponerse públicamente.
 
-    backend -----> db:5432
-    gateway -----> db:5432
+TLS/HTTPS debe terminar en Traefik/Dokploy; Uvicorn permanece en el puerto interno `8000`.
 
-No se deberá utilizar por defecto una publicación equivalente a:
+Resultado: **Seguridad de puertos validada**.
 
-    0.0.0.0:<puerto>:5432
+---
 
-### Administración excepcional de PostgreSQL
+## 11. Base de datos TEST, backup y migraciones
 
-Si durante una actividad de administración o diagnóstico se requiere acceso a PostgreSQL desde el host, la necesidad deberá evaluarse explícitamente.
+### 11.1 Backup original
 
-Una alternativa más restringida sería vincular temporalmente el puerto únicamente a loopback, por ejemplo:
+Se trabajó inicialmente con el backup entregado por Desarrollo:
 
-    127.0.0.1:<puerto>:5432
+    backup_sgpmp.dump
 
-Esto no formará parte de la configuración TEST por defecto.
+Características históricas verificadas:
 
-### Red Docker compartida
+- formato PostgreSQL CUSTOM;
+- tamaño aproximado 6,5 MB;
+- origen funcional de la base entregada;
+- restauración realizada con herramientas PostgreSQL disponibles en el contenedor.
 
-La red externa definida para TEST es:
+SHA-256 registrado:
 
-    sgpmp-test-internal
+    9a1da173b1076dcc5f5e2f955353ca1c762981b1cec6b850e0a4a840f4a9a6b3
 
-La red fue creada manualmente como red Docker `bridge` de alcance local para permitir que distintos proyectos Compose del ambiente TEST puedan compartir conectividad interna sin publicar los puertos de PostgreSQL hacia el host.
+### 11.2 Estado posterior a la sincronización con DEV
 
-En la fase Backend se conectarán:
+Después de incorporar `dev`, el repositorio contiene migraciones Alembic:
 
-- `db`;
-- `backend`.
+    f7fe43537842  baseline
+    7e2d5f3bf17a  RF-23
+    aa24fc52896e  RF-14
 
-Posteriormente, cuando se pueda implementar AIoT TEST, se conectará también:
+Head actual:
 
-- `gateway`.
+    aa24fc52896e
 
-La red fue inspeccionada después de su creación y se confirmó:
+La base TEST se encontró inicialmente en:
 
-    Name=sgpmp-test-internal
-    Driver=bridge
-    Scope=local
-    Containers=0
+    7e2d5f3bf17a
 
-El valor `Containers=0` era el esperado en este punto porque todavía no se había levantado ningún servicio TEST.
+La migración RF-14 fue aplicada mediante:
 
-### Estado
+    alembic upgrade head
 
-La política de seguridad de puertos ya fue aplicada a nivel de configuración en `docker-compose.test.yml`:
+Resultado:
 
-- PostgreSQL utiliza únicamente el puerto interno `5432`;
-- Backend utiliza únicamente el puerto interno `8000`;
-- ninguno de los dos servicios contiene una publicación mediante `ports`.
+    aa24fc52896e (head)
 
-La red externa `sgpmp-test-internal` ya fue creada y validada.
+También se comprobó la creación del índice:
 
-PostgreSQL TEST ya fue validado en ejecución y se confirmó que no publica el puerto `5432` hacia el host.
+    modulo1.ix_notificaciones_bandeja_usuario
 
-Todavía falta realizar la misma comprobación sobre Backend TEST cuando sea levantado.
-## 11. Comandos ejecutados
+### 11.3 Backup pre-RF14 utilizado para reproducibilidad
 
-Se realizaron comandos de inspección Git para:
+Antes de aplicar RF-14 se generó un nuevo backup de seguridad:
 
-- localizar el repositorio;
-- verificar el estado del árbol de trabajo;
-- verificar remotos;
-- consultar ramas locales y remotas;
-- actualizar referencias remotas;
-- validar el commit base;
-- crear la rama `feat/ambiente-test`.
+    sgpmp_test_pre_rf14_20260823_200815.dump
 
-## 12. Pruebas y validaciones
+Tamaño:
 
-### Validación de rama base
+    6,708,764 bytes
 
-`HEAD` de `feat/ambiente-test` y `origin/integration-v2` apuntaron al mismo commit:
+SHA-256:
 
-`39b817c453719110cd7af4eb2616fc0d41f7cebe`
+    716a855169afe7c8cec64b4c864d71327127251714566bd8f747359d01608c8b
 
-Resultado: **Correcto**.
+La lista del dump fue validada correctamente con `pg_restore -l`.
 
-### Validación estructural inicial de `docker-compose.test.yml`
+El backup representa una base con:
 
-Se creó una primera versión de `docker-compose.test.yml` que contiene únicamente el servicio PostgreSQL TEST.
+    208 tablas de usuario
+    Alembic = 7e2d5f3bf17a
+    pg_cron = 1.6
 
-Para validar la sintaxis y resolución de variables se ejecutó `docker compose config` utilizando valores temporales de ejemplo proporcionados únicamente al comando.
+y sin el índice RF-14 todavía aplicado.
 
-La validación produjo una configuración válida.
+### 11.4 Estrategia final de creación de una BD TEST nueva
 
-Se confirmó que Docker Compose reconoce únicamente el servicio:
+El repositorio no contiene un mecanismo automático de restauración del backup.
 
-    db
+Además, el baseline Alembic es intencionalmente un no-op, por lo que una base completamente vacía no puede construirse únicamente mediante:
 
-También se comprobó que:
+    alembic upgrade head
 
-- el proyecto se resuelve como `sgpmp-backend-test`;
-- la imagen configurada es `postgres:18`;
-- PostgreSQL utiliza únicamente `expose: 5432`;
-- no existe publicación mediante `ports`;
-- la red se referencia como externa con el nombre `sgpmp-test-internal`;
-- el volumen lógico es `sgpmp_pgdata_test`;
-- Docker Compose resolvería el volumen físico como `sgpmp-backend-test_sgpmp_pgdata_test`.
+El procedimiento validado es:
 
-Los valores utilizados durante esta validación fueron placeholders temporales y no fueron almacenados en archivos.
+    1. levantar PostgreSQL TEST vacío
+    2. restaurar el backup base una sola vez
+    3. ejecutar alembic upgrade head
+    4. levantar/usar Backend TEST
+    5. conservar el volumen persistente
 
-No se ejecutó `docker compose up`, por lo que hasta este punto:
+La restauración no debe ejecutarse automáticamente en cada:
 
-- no se han creado contenedores TEST;
-- no se ha creado el volumen PostgreSQL TEST;
-- no se ha creado la red `sgpmp-test-internal`.
+    docker compose up
 
-Resultado: **Correcto**.
+### 11.5 Opciones de restauración validadas
 
-### Validación estructural del Compose TEST completo
+En la prueba final se utilizó el `pg_restore` disponible dentro del contenedor PostgreSQL:
 
-Después de agregar el servicio `backend`, se volvió a validar `docker-compose.test.yml` mediante `docker compose config`.
+    --no-owner
+    --no-privileges
+    --exit-on-error
 
-Se utilizaron únicamente valores temporales de ejemplo para las variables requeridas.
+No fue necesario exponer PostgreSQL al host.
 
-Docker Compose reconoció correctamente los servicios:
+El host local no disponía de `pg_restore`, por lo que se utilizaron las herramientas del contenedor.
 
-    db
-    backend
+---
 
-Se comprobó que el Backend TEST:
+## 12. Prueba de reproducibilidad `fresh-check`
 
-- se construye utilizando el `Dockerfile` actual;
-- depende de que `db` alcance estado `healthy`;
-- utiliza `db:5432` como dirección interna de PostgreSQL;
-- expone internamente el puerto `8000`;
-- no publica el puerto `8000` mediante `ports`;
-- pertenece a la red externa `sgpmp-test-internal`.
+Para demostrar que TEST puede levantarse desde cero sin tocar la instancia TEST real, se creó un proyecto Compose completamente aislado:
 
-También se confirmó la resolución esperada de variables y valores por defecto:
+    sgpmp-backend-test-freshcheck
 
-- `ENV=test`;
-- `JWT_EXPIRE_HOURS=8`;
-- `SMTP_PORT=587`;
-- `MODELOS_STORAGE_PATH=/tmp/sgpmp_modelos`;
-- `AGROFUSION_ISSUER=agrofusion-auth`.
+Base de datos:
 
-Resultado: **Correcto**.
+    sgpmp_test_freshcheck
 
-### Validación de variables obligatorias
+Contenedor:
 
-Se configuraron como obligatorias para la interpolación del Compose TEST:
+    sgpmp_test_freshcheck-db
 
-- `POSTGRES_USER`;
-- `POSTGRES_PASSWORD`;
-- `POSTGRES_DB`;
-- `SECRET_KEY`;
-- `FRONTEND_URL`.
+Volumen:
 
-Con todas las variables requeridas presentes, el comando:
+    sgpmp-backend-test-freshcheck_sgpmp_pgdata_test
 
-    docker compose -f docker-compose.test.yml config --services
+Red:
 
-resolvió correctamente:
+    sgpmp-backend-test-freshcheck_default
 
-    db
-    backend
+### 12.1 Estado vacío inicial
 
-Posteriormente se realizó una prueba negativa controlada omitiendo `SECRET_KEY`.
+Antes de restaurar:
 
-Docker Compose detuvo la interpretación de la configuración con el mensaje:
+    tablas de usuario = 0
 
-    required variable SECRET_KEY is missing a value: SECRET_KEY requerido para TEST
+El TEST real permaneció:
 
-Este comportamiento es el esperado.
+    healthy
 
-La validación demuestra que el stack no puede continuar accidentalmente cuando falta esta variable crítica.
+### 12.2 Restauración
 
-No se creó ningún contenedor, volumen ni red durante estas pruebas.
+Se restauró el backup pre-RF14.
 
-Resultado: **Correcto**.
+Resultado:
 
-### Validación de `.env.test.example`
+    restore-exit=0
 
-Se creó `.env.test.example` como plantilla versionable para la configuración del Backend TEST.
+Después de la restauración:
 
-La plantilla contiene únicamente valores de ejemplo, valores por defecto y campos vacíos para variables que deben definirse localmente.
+    tablas de usuario = 208
+    Alembic = 7e2d5f3bf17a
+    pg_cron = 1.6
+    índice RF-14 = ausente
 
-No contiene secretos reales.
+Este era exactamente el estado esperado del backup.
 
-Se confirmó que `.env.test.example` declara exactamente las mismas variables interpoladas por `docker-compose.test.yml`.
+### 12.3 Migración
 
-La comparación se realizó extrayendo ambos conjuntos de variables y utilizando:
+Desde el mismo Compose TEST se ejecutó:
 
-    comm -3
+    alembic current
 
-El comando no produjo salida.
+Resultado:
 
-Esto confirma que:
+    7e2d5f3bf17a
 
-- no existen variables utilizadas por el Compose que falten en `.env.test.example`;
-- no existen variables adicionales en `.env.test.example` que no sean utilizadas por el Compose.
+Posteriormente:
 
-Se confirmó además que:
+    alembic upgrade head
 
-    .env.test.example exit=1
+Resultado:
 
-por lo que la plantilla no está ignorada por Git y puede versionarse.
+    fresh-migration-exit=0
 
-También se confirmó:
+Estado final:
 
-    .env.test exit=0
+    Alembic = aa24fc52896e
+    índice RF-14 = modulo1|ix_notificaciones_bandeja_usuario
+    tablas de usuario = 208
 
-por lo que el archivo real de configuración TEST continúa ignorado.
+### 12.4 Levantamiento de Backend sobre fresh-check
 
-`DB_PORT` no forma parte de la plantilla TEST porque PostgreSQL no se publica hacia el host.
+Se levantó el Backend utilizando la misma configuración TEST.
 
-`DATABASE_URL` tampoco se declara en la plantilla porque `docker-compose.test.yml` la construye internamente utilizando `db:5432`.
+Resultado:
 
-Resultado: **Correcto**.
+    backend = Up
+    db = healthy
 
-### Validación de `.env.test` local
+Health:
 
-Se creó `.env.test` como archivo local a partir de `.env.test.example`.
+    status=200
+    {"status":"ok","message":"API funcionando correctamente"}
 
-Las variables críticas requeridas para la configuración local fueron completadas sin registrar sus valores en la documentación ni mostrarlos durante la validación.
+Conexión SQL desde Backend:
 
-Se comprobó únicamente su estado:
+    database=sgpmp_test_freshcheck
+    alembic=aa24fc52896e
+    sql=OK
 
-    POSTGRES_USER=SET
-    POSTGRES_PASSWORD=SET
-    POSTGRES_DB=SET
-    SECRET_KEY=SET
-    FRONTEND_URL=SET
+Los logs mostraron arranque normal de Uvicorn y `GET /health` con `200 OK`.
 
-También se validó que Git continúa ignorando el archivo:
+### 12.5 Aislamiento respecto al TEST real
 
-    .env.test exit=0
+Durante toda la prueba:
 
-Por tanto, `.env.test` no aparece en `git status` y sus valores locales no serán versionados.
+    sgpmp_test-db = healthy
+    TEST real /health = 200
+    TEST real Alembic = aa24fc52896e
 
-Finalmente se ejecutó:
+Por tanto, `fresh-check` no modificó la instancia real.
+
+### 12.6 Limpieza
+
+Después de completar la validación se eliminó únicamente:
+
+    sgpmp-backend-test-freshcheck
+
+incluyendo su volumen descartable mediante:
+
+    docker compose -p sgpmp-backend-test-freshcheck ... down -v
+
+Se comprobó posteriormente:
+
+- sin contenedores fresh-check;
+- sin volumen fresh-check;
+- TEST real operativo;
+- TEST real PostgreSQL `healthy`;
+- TEST real `/health = 200`;
+- TEST real Alembic `aa24fc52896e`.
+
+Resultado general: **Reproducibilidad desde cero validada**.
+
+---
+
+## 13. Pruebas y validaciones finales del Backend TEST
+
+### 13.1 Compose
+
+Se validó:
 
     docker compose --env-file .env.test -f docker-compose.test.yml config --quiet
 
 Resultado:
 
-    Compose TEST: OK
+    exit=0
 
-Esto confirma que la configuración local puede resolver correctamente `docker-compose.test.yml`.
+También se ejecutó:
 
-No se mostraron ni documentaron secretos reales.
-
-No se ejecutó `docker compose up`, por lo que todavía no se han creado los servicios TEST.
-
-Resultado: **Correcto**.
-
-### Creación y validación de la red TEST
-
-Antes de crear la red se comprobó que `sgpmp-test-internal` no existía.
-
-La comprobación produjo:
-
-    network exists exit=1
-
-Posteriormente se creó mediante:
-
-    docker network create --driver bridge sgpmp-test-internal
-
-Después de la creación se inspeccionó la red.
+    git diff --check
 
 Resultado:
 
-    Name=sgpmp-test-internal Driver=bridge Scope=local Containers=0
+    exit=0
 
-Se confirmó además que no existía todavía ningún contenedor asociado al proyecto Compose:
+### 13.2 Persistencia
 
-    sgpmp-backend-test
+El volumen utilizado por TEST es:
 
-Por tanto, la creación de la red fue el único cambio realizado en Docker durante este checkpoint.
-
-Resultado: **Correcto**.
-
-### Levantamiento y validación de PostgreSQL TEST
-
-Se levantó únicamente el servicio:
-
-    db
-
-mediante `docker-compose.test.yml` y `.env.test`.
-
-Docker Compose creó:
-
-    sgpmp-backend-test-db-1
     sgpmp-backend-test_sgpmp_pgdata_test
 
-El contenedor utilizó la imagen:
+Después de recrear servicios, los datos permanecieron disponibles.
 
-    postgres:18
+Estado final observado:
 
-Después del arranque se comprobó:
-
-    Status=running
-    Health=healthy
-
-La versión efectiva del servidor fue:
-
-    PostgreSQL 18.6
-
-### Validación SQL
-
-Se ejecutó dentro del contenedor:
-
-    SELECT 1;
-
-Resultado:
-
-    1
-
-Esto confirma que PostgreSQL TEST acepta conexiones y ejecuta consultas correctamente.
-
-### Validación del volumen
-
-Se comprobó el montaje:
-
-    Source=sgpmp-backend-test_sgpmp_pgdata_test
-    Destination=/var/lib/postgresql
-
-El volumen es independiente de los volúmenes DEV y de los recursos TEST legado identificados previamente.
-
-### Validación de red
-
-El contenedor quedó conectado a:
-
-    sgpmp-test-internal
-
-### Validación de seguridad del puerto PostgreSQL
-
-`docker compose ps` muestra:
-
-    5432/tcp
-
-Este valor representa el puerto interno declarado por el contenedor y no una publicación hacia el host.
-
-Para verificarlo se ejecutó:
-
-    docker port <contenedor-db>
-
-El comando no produjo salida.
-
-Por tanto, PostgreSQL TEST no tiene ningún `host:puerto` asociado a su puerto interno `5432`.
-
-Resultado: **Correcto**.
-
-### Revisión de logs de PostgreSQL
-
-Los logs mostraron el ciclo normal de inicialización de la imagen oficial de PostgreSQL y finalizaron con:
-
-    database system is ready to accept connections
-
-Durante la inicialización apareció un apagado temporal del servidor utilizado por el proceso `initdb`. Posteriormente PostgreSQL inició nuevamente y permaneció operativo.
-
-Al finalizar la revisión, el servicio continuaba:
-
-    Up (healthy)
-
-Resultado: **Correcto**.
-
-### Validación de persistencia de PostgreSQL TEST
-
-Después de restaurar el backup se validó que los datos permanecieran almacenados en el volumen persistente aunque el contenedor PostgreSQL fuera eliminado y recreado.
-
-Antes de detener el stack se obtuvo:
-
-    user_tables=206
-    usuarios=22
-    telemetrias=10
-    versiones_modelos=15
-    dispositivos_iot=11
-
-Se ejecutó:
-
-    docker compose --env-file .env.test -f docker-compose.test.yml down
-
-No se utilizó la opción `-v`.
-
-Después del `down` se confirmó que el contenedor había sido eliminado, mientras que el volumen continuaba existiendo:
-
-    Name=sgpmp-backend-test_sgpmp_pgdata_test
-    Driver=local
-
-Posteriormente se recreó únicamente PostgreSQL TEST mediante:
-
-    docker compose --env-file .env.test -f docker-compose.test.yml up -d db
-
-Una vez iniciado nuevamente, los conteos permanecieron sin cambios:
-
-    user_tables=206
-    usuarios=22
-    telemetrias=10
-    versiones_modelos=15
-    dispositivos_iot=11
-
-Finalmente PostgreSQL alcanzó el estado:
-
-    healthy
-
-Esto demuestra que los datos restaurados permanecen en el volumen `sgpmp-backend-test_sgpmp_pgdata_test` y sobreviven a la eliminación y recreación normal del contenedor.
-
-Resultado: **Correcto**.
-
-### Construcción y levantamiento de Backend TEST
-
-Se construyó y levantó por primera vez el servicio `backend` utilizando:
-
-    docker compose --env-file .env.test -f docker-compose.test.yml up -d --build backend
-
-Resultado:
-
-    backend-up exit=0
-
-Docker Compose informó:
-
-    Image sgpmp-backend-test-backend Built
-    Container sgpmp-backend-test-db-1 Healthy
-    Container sgpmp-backend-test-backend-1 Started
-
-El estado posterior fue:
-
-    backend -> Up
-    db -> Up (healthy)
-
-Los logs de arranque del Backend mostraron:
-
-    Started server process [1]
-    Waiting for application startup.
-    Application startup complete.
-    Uvicorn running on http://0.0.0.0:8000
-
-No se observaron excepciones críticas durante el arranque.
-
-Resultado: **Correcto**.
-
-### Validación de seguridad del puerto `8000`
-
-Se comprobó en ejecución que Backend TEST utiliza únicamente el puerto interno `8000/tcp`.
-
-El comando:
-
-    docker port "$BACKEND_CONTAINER"
-
-no produjo salida.
-
-También se inspeccionó directamente la configuración del contenedor:
-
-    PortBindings={}
-
-Por tanto, el puerto `8000` no está publicado hacia el host.
-
-La visualización:
-
-    8000/tcp
-
-en `docker compose ps` corresponde únicamente al puerto interno expuesto por el contenedor.
-
-Resultado: **Correcto**.
-
-### Validación de `GET /health`
-
-La ruta de salud fue consultada desde el propio contenedor Backend:
-
-    GET /health
-
-Resultado:
-
-    status=200
-    body={"status":"ok","message":"API funcionando correctamente"}
-
-Los logs registraron:
-
-    "GET /health HTTP/1.1" 200 OK
-
-Resultado: **Correcto**.
-
-### Validación de ruta raíz, documentación y OpenAPI
-
-Se validaron directamente las rutas internas del Backend TEST.
-
-Resultados:
-
-    GET / -> 200
-    body="hello world!"
-
-    GET /docs -> 200
-    content_type=text/html; charset=utf-8
-
-    GET /openapi.json -> 200
-    content_type=application/json
-    openapi=3.1.0
-    servers=[{'url': '/api'}]
-
-Por tanto, la aplicación expone correctamente su ruta raíz, documentación Swagger y especificación OpenAPI.
-
-Resultado: **Correcto**.
-
-### Validación del prefijo `/api`
-
-Se comprobó el comportamiento real del `root_path="/api"` configurado por la aplicación.
-
-Resultados:
-
-    GET /api -> 307 Temporary Redirect
-    GET /api/health -> 200
-    GET /api/docs -> 200
-    GET /api/openapi.json -> 200
-
-Los logs del Backend confirmaron las cuatro solicitudes.
-
-Además, la especificación OpenAPI declara:
-
-    servers=[{'url': '/api'}]
-
-Por tanto, el Backend acepta las rutas prefijadas con `/api` y anuncia dicho prefijo en OpenAPI.
-
-La configuración definitiva de exposición mediante Traefik/Dokploy deberá respetar este comportamiento y será validada nuevamente cuando exista la URL pública de TEST.
-
-Resultado: **Correcto en ejecución local TEST**.
-
-### Validación de comunicación Backend TEST - PostgreSQL TEST
-
-Se realizó una consulta desde el contenedor Backend utilizando la variable `DATABASE_URL` inyectada por Docker Compose.
-
-No se imprimió el contenido de `DATABASE_URL` ni ninguna credencial.
-
-Resultados:
-
-    db_select_1=1
-    db_user_tables=206
-
-Esto demuestra que Backend TEST pudo:
-
-- utilizar su configuración real de conexión;
-- resolver el servicio interno `db`;
-- autenticarse contra PostgreSQL TEST;
-- ejecutar consultas sobre la base restaurada.
-
-Después de la prueba:
-
-    backend -> Up
-    db -> Up (healthy)
-
-Resultado: **Correcto**.
-
-### Validación de integridad de `docker-compose.yml` DEV
-
-Después de completar la configuración y las pruebas locales de TEST se comparó el archivo DEV actual contra la rama base:
-
-    git diff --exit-code origin/integration-v2 -- docker-compose.yml
-
-Resultado:
-
-    dev-compose-diff-exit=0
-
-Esto confirma que `docker-compose.yml` no presenta diferencias respecto de `origin/integration-v2`.
-
-Por tanto, la creación y validación inicial del ambiente TEST no modificó la configuración Compose existente de DEV.
-
-Resultado: **Correcto en ese punto del proceso**.
-
-### Actualización posterior del entorno DEV por solicitud de Desarrollo
-
-Después de finalizar la configuración inicial de TEST, el líder de Desarrollo solicitó explícitamente que PostgreSQL también tuviera disponible `pg_cron` en DEV, con el objetivo de evitar errores cuando Desarrollo valide localmente futuras migraciones y trabajos programados.
-
-También solicitó que el Backend DEV recibiera explícitamente las variables:
-
-    SMTP_HOST
-    SMTP_PORT
-    SMTP_USER
-    SMTP_PASSWORD
-
-Por esta razón se autorizó modificar posteriormente `docker-compose.yml` dentro de la misma rama de trabajo.
-
-#### Reutilización de la imagen PostgreSQL
-
-DEV fue actualizado para utilizar el mismo:
-
-    Dockerfile.postgres
-
-que ya había sido validado en TEST.
-
-La imagen parte de:
-
-    postgres:18
-
-e instala:
-
-    postgresql-18-cron
-
-El servicio PostgreSQL DEV arranca con:
-
-    shared_preload_libraries=pg_cron
-
-y:
-
-    cron.database_name=${POSTGRES_DB}
-
-De esta forma DEV y TEST comparten la misma capacidad de PostgreSQL respecto de `pg_cron`.
-
-#### Prueba DEV local aislada
-
-Para no reutilizar recursos históricos del antiguo repositorio central de Implementación se creó un proyecto Compose local independiente:
-
-    sgpmp-backend-dev-local
-
-Se comprobó que los contenedores DEV legado pertenecían al proyecto:
-
-    sgpmp-dev
-
-y tenían como directorio de trabajo:
-
-    implementacion/compose
-
-Por tanto, esos recursos no fueron reutilizados ni modificados.
-
-El nuevo DEV local creó un volumen independiente:
-
-    sgpmp-backend-dev-local_sgpmp_pgdata
-
-La base se publicó localmente mediante el puerto definido por el Compose DEV:
-
-    5447 -> 5432
-
-El puerto `5447` se encontraba libre antes del levantamiento.
-
-#### Validación de `pg_cron` en DEV
-
-PostgreSQL DEV inició correctamente utilizando la imagen construida con `Dockerfile.postgres`.
-
-Se comprobó:
-
-    shared_preload_libraries = pg_cron
-    cron.database_name = sgpmp_dev
-    pg_cron disponible = 1.6
-
-Posteriormente se ejecutó:
-
-    CREATE EXTENSION IF NOT EXISTS pg_cron;
-
-Resultado:
-
-    dev-create-pgcron-exit=0
-
-La extensión quedó instalada como:
-
-    pg_cron 1.6
-
-Para comprobar la ejecución real se creó temporalmente:
-
-    implementation_pgcron_dev_probe
-
-con el comando:
-
-    SELECT 1;
-
-El trabajo se ejecutó correctamente y `cron.job_run_details` reportó:
-
-    status = succeeded
-    return_message = 1 row
-
-Los logs de PostgreSQL confirmaron:
-
-    cron job 1 starting: SELECT 1;
-    cron job 1 completed: 1 row
-
-Durante la inicialización inicial de PostgreSQL se registró temporalmente:
-
-    FATAL: database "sgpmp_dev" does not exist
-
-Esto ocurrió mientras el entrypoint todavía estaba creando la base y antes del arranque definitivo del scheduler.
-
-Posteriormente los logs mostraron:
-
-    pg_cron scheduler started
-
-y la ejecución real del job fue exitosa, por lo que el evento inicial no impidió el funcionamiento posterior de `pg_cron`.
-
-Después de la prueba:
-
-- el job técnico fue eliminado mediante `cron.unschedule`;
-- `cron.job` volvió a `0` registros;
-- se inspeccionaron los dos registros técnicos generados por las ejecuciones;
-- se eliminaron exclusivamente dichos registros;
-- `cron.job_run_details` volvió a `0` registros.
-
-Estado final:
-
+    tablas de usuario = 208
+    Alembic = aa24fc52896e
     pg_cron = 1.6
-    shared_preload_libraries = pg_cron
-    cron.database_name = sgpmp_dev
-    cron.job = 0
-    cron.job_run_details = 0
+    índice RF-14 presente
 
-También se reinició únicamente PostgreSQL DEV.
+### 13.3 DNS interno
 
-Resultado:
+Desde Backend se comprobó resolución del hostname:
 
-    dev-db-restart-exit=0
+    sgpmp_test-db
 
-El servicio pasó nuevamente a:
+y conectividad TCP a:
 
-    healthy
+    5432
 
-y `pg_cron` permaneció instalado, precargado y operativo después del reinicio.
+Resultado: **Correcto**.
 
-#### Validación de variables SMTP en Backend DEV
+### 13.4 Backend -> PostgreSQL
 
-El `docker-compose.yml` DEV fue actualizado para entregar al contenedor Backend:
+Usando el `DATABASE_URL` real del contenedor, sin imprimir secretos:
 
-    SMTP_HOST
-    SMTP_PORT
-    SMTP_USER
-    SMTP_PASSWORD
+    database=sgpmp_test
+    sql=OK
+    alembic=aa24fc52896e
 
-Para la prueba se utilizó un `.env.dev` local ignorado por Git. No se utilizaron ni mostraron credenciales SMTP reales.
+Resultado: **Correcto**.
 
-Dentro del contenedor Backend se comprobó únicamente presencia y estado de las variables.
+### 13.5 Health
 
-Resultado:
-
-    SMTP_HOST: PRESENTE / CON_VALOR
-    SMTP_PORT: PRESENTE / CON_VALOR
-    SMTP_USER: PRESENTE / VACIA
-    SMTP_PASSWORD: PRESENTE / VACIA
-
-`SMTP_USER` y `SMTP_PASSWORD` fueron dejadas vacías deliberadamente porque esta prueba solo tenía como objetivo demostrar que Compose pasa correctamente las cuatro variables al contenedor.
-
-Las credenciales reales no deberán versionarse.
-
-#### Hallazgo al iniciar Backend DEV con una base nueva
-
-El Backend DEV logró iniciar y Uvicorn reportó:
-
-    Application startup complete
-
-Sin embargo, durante uno de los procesos periódicos apareció:
-
-    relation "modulo5.configuracion_batch_historial_suministros" does not exist
-
-La base `sgpmp_dev` utilizada para esta prueba fue creada desde un volumen nuevo y no recibió restauración del backup ni inicialización completa del esquema funcional.
-
-Por tanto, este error no se atribuye a `pg_cron` ni a la configuración SMTP.
-
-La evidencia confirma que:
-
-    Backend -> PostgreSQL DEV = conexión alcanzada
-    esquema funcional completo DEV = no preparado en esta prueba
-
-No se creó manualmente la tabla faltante ni se alteró el esquema para ocultar este hallazgo.
-
-### Validación local de integración Frontend TEST - Backend TEST - PostgreSQL TEST
-
-Después de completar las validaciones independientes de Backend TEST y Frontend TEST se realizó una prueba de integración local controlada.
-
-Para esta prueba se utilizaron archivos locales:
-
-    docker-compose.local.yml
-
-ignorados mediante `.git/info/exclude` y no destinados a versionarse.
-
-La publicación temporal utilizada fue:
-
-    Frontend TEST: 127.0.0.1:8080 -> 80
-    Backend TEST: 127.0.0.1:8000 -> 8000
-
-PostgreSQL TEST permaneció sin publicación de puerto hacia el host.
-
-Se comprobó mediante inspección Docker:
-
-    Backend PortBindings = 127.0.0.1:8000
-    PostgreSQL PortBindings = {}
-
-El Backend respondió correctamente desde el host:
-
-    GET /health -> HTTP 200
-    GET / -> HTTP 200
-
-El Frontend fue reconstruido temporalmente con:
-
-    VITE_API_BASE_URL=http://127.0.0.1:8000/api
-
-Se verificó dentro del bundle generado que esta URL estaba presente y que no permanecían la URL ficticia anterior ni el fallback `http://localhost:8000`.
-
-También se comprobó que el Frontend respondía mediante Nginx:
-
-    GET / -> HTTP 200
-    GET /login -> HTTP 200
-
-#### Validación de CORS local
-
-Desde el origen:
-
-    http://127.0.0.1:8080
-
-se ejecutó una preflight contra:
-
-    OPTIONS /api/sesiones/
+    GET http://127.0.0.1:8000/health
 
 Resultado:
 
     HTTP 200
-    access-control-allow-origin: http://127.0.0.1:8080
-    access-control-allow-credentials: true
+    {"status":"ok","message":"API funcionando correctamente"}
 
 También se comprobó:
 
-    GET /health -> HTTP 200
+    GET /api/health -> HTTP 200
 
-con el mismo origen.
+### 13.6 Logs
 
-Por tanto, CORS permitió correctamente la comunicación local entre Frontend TEST y Backend TEST.
+Los logs mostraron:
 
-Esta validación no sustituye la comprobación posterior con los dominios HTTPS reales de TEST.
+    Started server process
+    Waiting for application startup
+    Application startup complete
+    Uvicorn running on http://0.0.0.0:8000
+    GET /health -> 200 OK
 
-#### Validación de ruta de autenticación
+No se observaron errores críticos de inicialización en la validación final.
 
-El Frontend utiliza:
+### 13.7 CORS local
 
-    POST /sesiones/
+Origen probado:
 
-sobre la URL base configurada.
+    http://127.0.0.1:8080
 
-Por tanto, durante la prueba local la solicitud real fue:
+Preflight:
 
-    POST http://127.0.0.1:8000/api/sesiones/
+    HTTP 200
+    Access-Control-Allow-Origin: http://127.0.0.1:8080
+    Access-Control-Allow-Credentials: true
+    Access-Control-Allow-Headers: authorization,content-type
 
-Una solicitud vacía alcanzó correctamente la validación del Backend y produjo:
+Se validó tanto sobre rutas directas como con prefijo `/api`.
 
-    HTTP 400
-    VAL_ENTRADA
+### 13.8 CORS externo no autorizado
 
-El contrato OpenAPI confirmó que `LoginDTO` requiere:
+Con un origen HTTPS ficticio no configurado se comprobó que no se entrega `Access-Control-Allow-Origin`.
 
-    correo_electronico
-    contrasena
+Resultado: **Correcto**.
 
-Posteriormente se realizó desde el navegador un intento de autenticación controlado utilizando un usuario ficticio y una contraseña no real.
+### 13.9 Integración local con Frontend
 
-Resultado:
+Frontend TEST fue construido temporalmente con:
 
-    Request Method: POST
-    Request URL: http://127.0.0.1:8000/api/sesiones/
-    Status Code: 401 Unauthorized
-    error_code: CREDENCIALES_INVALIDAS
+    VITE_API_BASE_URL=http://127.0.0.1:8000/api
 
-El resultado `401` era esperado y no representa un fallo de integración.
+Se comprobó que:
 
-#### Confirmación de acceso a PostgreSQL
+    /api/health -> 200
 
-Se inspeccionó el flujo real del Backend.
+y que el Backend permite el origen local del Frontend con credenciales.
 
-El router de sesiones inyecta:
-
-    db: Session = Depends(get_db)
-
-y construye:
-
-    SqlAlchemyUsuarioRepository(db)
-
-El caso de uso ejecuta primero:
-
-    usuarios_repo.obtener_por_correo(...)
-
-La implementación concreta realiza:
-
-    self.db.query(Usuarios)
-        .filter(...)
-        .first()
-
-Cuando el usuario no existe, después de esta consulta se genera:
-
-    CREDENCIALES_INVALIDAS
-
-También se comprobó que `get_db` utiliza `SessionLocal`, enlazada al engine construido a partir de `DATABASE_URL`.
-
-Dentro del contenedor Backend TEST se inspeccionó el destino de esa URL sin mostrar credenciales.
-
-Resultado:
-
-    driver = postgresql
-    host = db
-    port = 5432
-    database = sgpmp_test
-    password_configurada = True
-
-Por tanto, la evidencia confirma el recorrido técnico:
+Las pruebas anteriores de autenticación ya habían demostrado el recorrido técnico:
 
     Frontend TEST
         ->
@@ -1677,662 +950,332 @@ Por tanto, la evidencia confirma el recorrido técnico:
         ->
     PostgreSQL TEST
 
-Resultado de integración local: **Correcto**.
+Resultado: **Integración local técnica correcta**.
 
-La prueba demuestra conectividad y recorrido técnico de extremo a extremo, pero no valida un inicio de sesión exitoso con una cuenta TEST real.
+---
 
-## 13. Errores encontrados
+## 14. `pg_cron`
 
-### Primer intento de restauración del backup
+### Estado histórico
 
-El primer intento de `pg_restore` falló antes de iniciar la restauración porque no se indicó explícitamente el usuario PostgreSQL.
+En una fase inicial, debido a que la imagen estándar `postgres:18` no incluía `pg_cron`, se evaluó filtrar las entradas relacionadas con la extensión durante la restauración.
 
-El error recibido fue:
-
-    FATAL: role "root" does not exist
-
-Resultado del comando:
-
-    restore exit=1
-
-Antes de reintentar se comprobó que la base continuaba sin tablas de usuario:
-
-    user_tables=0
-
-y que PostgreSQL permanecía:
-
-    healthy
-
-La causa fue que `pg_restore` intentó utilizar el usuario de sistema `root` dentro del contenedor.
-
-Se corrigió agregando:
-
-    --username="$POSTGRES_USER"
-
-El segundo intento finalizó correctamente:
-
-    restore exit=0
-
-No quedó una restauración parcial del primer intento.
-
-Estado: **Resuelto**.
-
-## 14. Hallazgos
-
-### Excepción de Git para `.env.test.example`
-
-Durante la auditoría inicial se comprobó que la regla:
-
-    .env.*
-
-provocaba que `.env.test.example` fuera ignorado por Git.
-
-Para permitir versionar exclusivamente la plantilla TEST se agregó a `.gitignore`:
-
-    !.env.test.example
-
-La configuración resultante mantiene:
-
-    .env
-    .env.*
-    !.env.example
-    !.env.test.example
-
-Se validó el comportamiento mediante `git check-ignore`.
-
-Resultado para `.env.test.example`:
-
-    exit=1
-
-Esto confirma que `.env.test.example` ya no está ignorado y podrá versionarse.
-
-Resultado para `.env.test`:
-
-    exit=0
-
-Esto confirma que `.env.test` continúa ignorado y protegido frente a inclusión accidental en Git.
-
-Resultado: **Hallazgo resuelto**.
-
-### CORS de TEST con dominio real
-
-Se auditó la configuración de CORS existente en `main.py`.
-
-El comportamiento confirmado es:
-
-- si `ENV` es exactamente `production`, el Backend permite como origen el valor configurado en `FRONTEND_URL`;
-- para cualquier otro valor de `ENV`, el Backend no utiliza `FRONTEND_URL` como origen permitido;
-- en ambientes distintos de `production` únicamente se permiten orígenes HTTP sobre `localhost` o `127.0.0.1`.
-
-La expresión regular utilizada actualmente para ambientes distintos de producción es:
-
-    http://(localhost|127\.0\.0\.1)(:\d+)?
-
-Por lo tanto, un Frontend TEST desplegado mediante un dominio HTTPS real, por ejemplo:
-
-    https://frontend-test...
-
-no coincidiría con la configuración CORS actual.
-
-Esto representa un posible bloqueo para la integración Frontend TEST -> Backend TEST.
-
-No se modificará automáticamente `main.py` ni se utilizará `ENV=production` como solución para TEST.
-
-El procedimiento acordado es:
-
-- construir el entorno TEST respetando la semántica del ambiente;
-- comprobar el comportamiento durante la integración real con Frontend TEST;
-- registrar evidencia si CORS bloquea la comunicación;
-- reportar a Desarrollo la necesidad de ajustar la lógica de CORS.
-
-### Uso de `FRONTEND_URL`
-
-También se confirmó que `FRONTEND_URL` se utiliza para generar enlaces enviados por correo, incluyendo:
-
-- activación de cuenta;
-- recuperación de contraseña.
-
-Si no se proporciona, el código utiliza como fallback:
-
-    http://localhost:3000
-
-Por tanto, `FRONTEND_URL` deberá configurarse explícitamente en TEST con la URL correspondiente al Frontend TEST.
-
-## 15. Dependencias externas
-
-### Backup de PostgreSQL
-
-Se identificó como respaldo entregado por Desarrollo:
-
-    backup_sgpmp.dump
-
-Características verificadas:
-
-- tamaño aproximado: `6,5 MB`;
-- formato: PostgreSQL `CUSTOM`;
-- versión del formato del dump: `1.16-0`;
-- base origen: PostgreSQL `17.10`;
-- generado mediante `pg_dump 18.4`;
-- restaurado con herramientas PostgreSQL `18.6`.
-
-SHA-256 del archivo utilizado:
-
-    9a1da173b1076dcc5f5e2f955353ca1c762981b1cec6b850e0a4a840f4a9a6b3
-
-El respaldo contiene estructura y datos:
-
-    TABLE=331
-    TABLE DATA=208
-
-### Tratamiento de `pg_cron`
-
-El backup contenía la extensión `pg_cron`, pero la imagen `postgres:18` utilizada en TEST no la incluye.
-
-Se comprobó que:
-
-- el código del Backend no contiene referencias a `pg_cron`, `cron.schedule` ni `cron.unschedule`;
-- `cron.job` contiene `0` registros;
-- `cron.job_run_details` contiene `0` registros;
-- el SQL del esquema solo contiene la creación y comentario de la extensión.
-
-Por esta razón se generó una lista de restauración filtrada excluyendo únicamente seis entradas relacionadas con `pg_cron`.
-
-Entradas originales del TOC:
-
-    4170
-
-Entradas filtradas:
-
-    4164
-
-La extensión `pgcrypto` se conservó y fue restaurada correctamente.
-
-#### Incorporación posterior de `pg_cron` por solicitud de Desarrollo
-
-Posteriormente el líder de Desarrollo solicitó que la infraestructura PostgreSQL del Backend incluyera `pg_cron`, debido a que futuras migraciones y trabajos programados dependerán de esta extensión.
-
-Antes de modificar TEST se realizó una prueba aislada sobre la misma imagen base `postgres:18`.
-
-Se comprobó que:
-
-- la imagen utiliza Debian 13 `trixie`;
-- el paquete `postgresql-18-cron` está disponible en los repositorios configurados de la imagen;
-- se instaló correctamente la versión `1.6.7-3.pgdg13+1`;
-- PostgreSQL continuó utilizando la versión `18.6`;
-- el archivo `pg_cron.control` quedó disponible para PostgreSQL 18.
-
-Se creó el archivo:
+Posteriormente se incorporó:
 
     Dockerfile.postgres
 
-Su objetivo es construir la imagen PostgreSQL utilizada por TEST a partir de `postgres:18` e instalar:
+con:
 
     postgresql-18-cron
 
-El servicio `db` de `docker-compose.test.yml` se modificó para construir esta imagen y arrancar PostgreSQL con:
+Por tanto, la estrategia de excluir `pg_cron` del backup quedó reemplazada.
 
-    shared_preload_libraries=pg_cron
+### Estado final TEST
 
-y con:
+TEST mantiene soporte para:
 
-    cron.database_name=sgpmp_test
+    pg_cron 1.6
 
-Antes de recrear el contenedor PostgreSQL se registró la siguiente línea base:
+porque:
 
-    user_tables=206
-    usuarios=22
-    telemetrias=10
-    versiones_modelos=15
-    dispositivos_iot=11
+- el backup restaurado contiene la extensión;
+- una restauración nueva debe disponer del paquete;
+- el uso de la imagen personalizada evita incompatibilidades al reproducir la base.
 
-El contenedor `db` fue recreado sin eliminar el volumen persistente.
-
-El volumen utilizado antes y después del cambio fue:
-
-    sgpmp-backend-test_sgpmp_pgdata_test -> /var/lib/postgresql
-
-Después de la recreación se obtuvieron nuevamente:
-
-    user_tables=206
-    usuarios=22
-    telemetrias=10
-    versiones_modelos=15
-    dispositivos_iot=11
-
-Por tanto, la incorporación de la nueva imagen PostgreSQL no produjo pérdida de los datos restaurados.
-
-Se comprobó posteriormente que:
-
-    shared_preload_libraries = pg_cron
-    cron.database_name = sgpmp_test
-    pg_cron disponible = 1.6
-    pgcrypto instalado = 1.4
-
-La extensión se activó en la base TEST mediante:
-
-    CREATE EXTENSION IF NOT EXISTS pg_cron;
-
-Resultado:
-
-    create-pgcron-test-exit=0
-
-Los logs de PostgreSQL confirmaron:
-
-    pg_cron scheduler started
-
-Para validar que la extensión no estuviera únicamente instalada, sino funcional, se creó temporalmente el job técnico:
-
-    implementation_pgcron_probe
-
-con la instrucción:
-
-    SELECT 1;
-
-y programación de una ejecución por minuto.
-
-Se observaron dos ejecuciones reales con estado:
-
-    succeeded
-
-Los logs registraron tanto el inicio como la finalización correcta de ambas ejecuciones.
-
-Después de la validación:
-
-- el job técnico fue eliminado mediante `cron.unschedule`;
-- se verificó que `cron.job` volviera a contener `0` registros;
-- se inspeccionaron los dos registros de ejecución generados;
-- se eliminaron exclusivamente esos dos registros técnicos;
-- `cron.job_run_details` volvió a contener `0` registros;
-- `pg_cron` permaneció instalado y habilitado.
-
-Estado final:
-
-    cron.job = 0
-    cron.job_run_details = 0
-    pg_cron = 1.6
-    shared_preload_libraries = pg_cron
-    cron.database_name = sgpmp_test
-
-El Backend permaneció operativo después de la recreación de PostgreSQL y se verificó nuevamente la comunicación Backend - PostgreSQL mediante:
-
-    SELECT 1
-
-Resultado:
-
-    db_select_1=1
-
-Los recursos Docker creados exclusivamente para la prueba aislada inicial de `pg_cron` fueron eliminados después de completar la validación.
-
-#### Validación después de reiniciar PostgreSQL
-
-Como comprobación final se reinició únicamente el servicio `db`, sin recrear ni eliminar el volumen persistente.
-
-Resultado:
-
-    pgcron-db-restart-exit=0
-
-PostgreSQL pasó de:
-
-    starting
-
-a:
-
-    healthy
-
-Después del reinicio se volvió a verificar:
+Se comprobó después de la sincronización con DEV:
 
     pg_cron = 1.6
-    pgcrypto = 1.4
-    shared_preload_libraries = pg_cron
-    cron.database_name = sgpmp_test
-    cron.job = 0
-    cron.job_run_details = 0
-    usuarios = 22
 
-Esto confirma que la configuración de `pg_cron`, la extensión instalada y los datos de TEST permanecen disponibles después de un reinicio normal del servicio PostgreSQL.
+y el backup pre-RF14 pudo restaurarse correctamente sobre una instancia nueva.
 
+### DEV
 
-No se incorporará ninguna otra extensión adicional hasta que Desarrollo confirme explícitamente su nombre y necesidad técnica.
+La configuración final de:
 
-### Estrategia de restauración
+    docker-compose.yml
 
-La restauración se ejecutó utilizando:
+se conserva exactamente como `origin/dev`.
 
-- `--no-owner`, porque los objetos del origen pertenecían principalmente al rol `postgres` y dicho rol no existe en TEST;
-- `--exit-on-error`;
-- `--single-transaction`;
-- usuario explícito `POSTGRES_USER`;
-- lista filtrada sin `pg_cron`.
+No se fuerza `pg_cron` sobre DEV desde la rama TEST.
 
-La restauración final terminó con:
+---
 
-    restore exit=0
+## 15. Errores y hallazgos
 
-La restauración no será automática en cada `docker compose up`.
+### 15.1 Primer intento histórico de `pg_restore`
 
-### Dependencia con AIoT
+Un primer intento de restauración falló al no especificar el usuario PostgreSQL:
 
-El repositorio AIoT continúa siendo de solo lectura para el grupo de Implementación.
+    FATAL: role "root" does not exist
 
-El equipo de Pruebas indicó que para la validación funcional de los módulos:
+La base permaneció sin restauración parcial.
 
-- M03 - Telemetría IoT;
-- M04 - Predicción;
-- M09 - Configuración relacionada con dispositivos IoT;
+Se corrigió usando el usuario PostgreSQL explícito.
 
-será necesario disponer también de:
+Estado: **Resuelto**.
 
-- Gateway AIoT;
-- Mosquitto.
+### 15.2 Red externa TEST
 
-Por tanto, el Backend TEST podrá construirse y validarse de forma independiente, pero la validación funcional completa de esos módulos dependerá de la futura disponibilidad del entorno AIoT TEST.
+La propuesta inicial:
 
-### Requisitos recibidos del equipo de Pruebas
+    sgpmp-test-internal
 
-El equipo de Pruebas informó que las herramientas de integración, E2E, carga y seguridad utilizarán las URLs reales expuestas por el ambiente TEST.
+fue reevaluada y eliminada de la configuración final.
 
-Al momento de entregar el ambiente deberán definirse claramente:
+Motivo:
 
-- URL del Frontend TEST;
-- URL del Backend TEST;
-- ruta o prefijo utilizado por el Backend;
-- cualquier restricción de red requerida para acceder al ambiente.
+- Backend y PostgreSQL funcionan correctamente con la red propia de Compose;
+- AIoT se encuentra fuera del alcance actual;
+- no existe justificación para obligar a Despliegue a crear una red externa adicional.
 
-También se indicó que deberán estar disponibles para validación:
+Estado: **Resuelto / decisión reemplazada**.
 
-- `GET /health`;
-- `GET /`;
-- documentación `/docs`;
-- especificación OpenAPI del Backend.
+### 15.3 CORS
 
-La aplicación real del prefijo `/api` en TEST deberá comprobarse ejecutando el ambiente antes de responder formalmente al equipo de Pruebas.
+La auditoría histórica de CORS quedó desactualizada después de incorporar `dev`.
 
-### Datos y usuarios de prueba
+El comportamiento actual utiliza:
 
-QA requiere datos semilla para ejecutar los ciclos de prueba.
+    ALLOWED_ORIGINS
 
-El backup restaurado contiene datos funcionales. Entre las comprobaciones realizadas se obtuvieron:
+más soporte local para localhost/127.0.0.1.
 
-    modulo1.roles=9
-    modulo1.usuarios=22
-    modulo1.cuentas_usuarios=21
-    modulo3.telemetrias=10
-    modulo4.versiones_modelos=15
-    modulo9.dispositivos_iot=11
-    modulo9.sensores=21
+La integración desplegada debe definir el origen HTTPS real del Frontend TEST.
 
-Esto confirma que el respaldo contiene datos además de estructura.
+### 15.4 Cookies refresh y `ENV`
 
-Todavía debe confirmarse con QA o Base de Datos que este conjunto corresponde oficialmente al estado semilla que deberá utilizarse para los ciclos de regresión.
+TEST desplegado requiere:
 
-### Roles requeridos por QA
+    ENV=production
 
-QA solicitó disponer de cuentas para:
+bajo el código actual para obtener:
 
-- Administrador;
-- Productor;
-- Veterinario;
-- Contador;
-- Ingeniero de Campo.
+    Secure=true
+    SameSite=None
 
-Se comprobó que existe al menos una cuenta por cada rol que cumple simultáneamente:
+No significa que TEST se convierta en PROD; corresponde al comportamiento técnico actual de la cookie.
 
-- estado `Activo`;
-- correo verificado;
-- contraseña cifrada presente.
+Este punto debe quedar comunicado a Despliegue.
 
-Resultado agregado:
+### 15.5 Alembic no crea una base completamente vacía
 
-    Administrador|login_ready=2
-    Contador|login_ready=1
-    Ingeniero de Campo|login_ready=2
-    Productor|login_ready=1
-    Veterinario|login_ready=1
+El baseline actual no reconstruye el esquema histórico.
 
-Esto confirma que la base restaurada contiene cuentas potencialmente utilizables para autenticación en los cinco roles.
+Por tanto:
 
-No se ha comprobado todavía que el equipo de Pruebas conozca las credenciales correspondientes.
+    PostgreSQL vacío + alembic upgrade head
 
-### Discrepancia sobre `member_qa`
+no es suficiente.
 
-El equipo de Pruebas informó que el usuario `member_qa` había sido preparado previamente.
+Se requiere restaurar primero el backup base.
 
-En la base TEST restaurada se realizaron búsquedas controladas sin exponer datos personales.
+Estado: **Limitación conocida y procedimiento validado**.
 
-Resultado:
+### 15.6 `.env.example` y variables reales consumidas
 
-    member_qa en usuarios=false
-    member_qa en credenciales_servicio=false
-    member_qa en pg_roles=false
+Se identificaron diferencias entre algunas variables documentadas y las realmente consumidas por el código, incluyendo históricamente:
 
-Por tanto, `member_qa` no fue localizado en el backup restaurado mediante las estructuras revisadas.
+- `RF71_INTERNAL_KEY`;
+- `FIREBASE_CREDENTIALS_PATH`;
+- variables MQTT.
 
-No se creará automáticamente.
+No se modificó automáticamente `.env.example` de DEV para corregir estos puntos.
 
-La discrepancia deberá confirmarse con QA y/o el equipo responsable de Base de Datos.
+### 15.7 AIoT / MQTT
 
-### Política de reinicio de datos
+`dev` contiene soporte MQTT, pero la integración AIoT no forma parte de esta etapa.
 
-QA recomienda restaurar la base a un estado conocido antes de cada ciclo de regresión, pero no antes de cada prueba individual.
+No se agregaron valores ficticios ni recursos de AIoT al entorno TEST.
 
-Esta necesidad es compatible con el diseño actual de TEST:
+---
 
-- volumen persistente;
-- restauración inicial del backup;
-- ausencia de reset automático en cada `docker compose up`.
+## 16. Alcance respecto a herramientas de Pruebas
 
-Posteriormente podrá evaluarse un mecanismo explícito de reset controlado.
+Implementación no debe instalar, configurar ni mantener herramientas como:
 
-### Pruebas de carga
+- Cypress;
+- Playwright;
+- cypress-axe;
+- k6;
+- OWASP ZAP;
+- otras herramientas de E2E, carga o seguridad propias del equipo de Pruebas.
 
-La segunda evaluación del documento de Pruebas aclara que `k6` es una herramienta operada por el equipo de Pruebas y no debe ser instalada ni configurada por Implementación.
-
-La responsabilidad de Implementación para este punto consiste en:
-
-- disponer del ambiente TEST accesible;
-- proporcionar la URL correspondiente;
-- coordinar con Pruebas los endpoints o flujos críticos que serán utilizados para las pruebas de carga.
-
-Por tanto, no se instalará ni configurará `k6` dentro de los repositorios de Implementación.
-
-Cualquier necesidad adicional de aislamiento o reinicio de datos para las pruebas de carga deberá ser coordinada explícitamente con Pruebas y Base de Datos antes de crear nuevos recursos.
-
-### Ajuste de alcance respecto a herramientas del equipo de Pruebas
-
-Posteriormente se revisó el documento `Ambiente_Implementación (2).xlsx`, específicamente la hoja `Aprobacion de Ambientes`, con el fin de aclarar las responsabilidades entre Implementación y Pruebas.
-
-La segunda evaluación del documento corrige expresamente el criterio inicial relacionado con las herramientas de validación.
-
-Se establece que Implementación no es responsable de instalar, configurar ni mantener la infraestructura de:
-
-    Cypress
-    Playwright
-    cypress-axe
-    k6
-    OWASP ZAP
-
-Estas herramientas son operadas por el equipo de Pruebas contra el ambiente TEST suministrado por Implementación.
-
-La responsabilidad de Implementación queda limitada, según corresponda, a:
-
-- montar y orquestar el ambiente TEST;
-- mantener Backend, Frontend, PostgreSQL y demás componentes requeridos disponibles;
-- exponer URLs estables del ambiente;
-- comunicar la URL, prefijo y alcance del Backend;
-- informar restricciones de red;
-- coordinar con Pruebas los endpoints o flujos críticos que serán utilizados, por ejemplo, para pruebas de carga;
-- mantener el ambiente accesible para las actividades de E2E, accesibilidad, carga y seguridad.
-
-El documento resume esta separación mediante el criterio:
+El criterio utilizado es:
 
     Implementación monta y orquesta el ambiente TEST.
     Pruebas lo opera.
 
-#### Corrección de trabajo realizado por interpretación anterior
+Los experimentos anteriores relacionados con tooling de QA fueron limpiados y no forman parte del estado final del repositorio.
 
-Antes de revisar esta segunda evaluación se inició una validación técnica de herramientas de prueba como si su preparación correspondiera a Implementación.
+No se eliminaron las herramientas o pruebas que ya pertenecieran originalmente a Desarrollo.
 
-Al identificar la discrepancia se detuvo ese trabajo y se realizó una limpieza controlada.
+---
 
-En Backend se realizó:
+## 17. Entrega a Despliegue
 
-- retiro de la documentación adicional generada específicamente para la ejecución de Pytest;
-- eliminación de la base auxiliar temporal `sgpmp_pytest_test`;
-- comprobación de que la base principal `sgpmp_test` permaneciera disponible;
-- comprobación de que `sgpmp_test` conservara sus tablas de usuario;
-- restauración de la rama al último commit correspondiente al trabajo válido del ambiente TEST.
+### 17.1 Estado técnico disponible
 
-Resultado de la limpieza:
+La rama técnica validada y publicada es:
 
-    sgpmp_pytest_test = eliminada
-    sgpmp_test = disponible
-    tablas de usuario en sgpmp_test = 208
-    working tree Backend = limpio
+    origin/feat/ambiente-test
 
-No se eliminaron Pytest ni los archivos de pruebas que ya pertenecían al repositorio de Desarrollo.
+Estado técnico publicado antes de esta actualización documental:
 
-No se realizó `push` de los cambios descartados.
+    d710681
 
-Resultado: **Alcance corregido**.
+La rama contiene todos los commits vigentes de `dev`.
 
-A partir de este punto no se instalarán ni configurarán herramientas de Pruebas como parte del trabajo de Implementación.
+### 17.2 Recursos que recibe Despliegue
 
-## 16. Pendientes
+- `docker-compose.test.yml`;
+- `.env.test.example`;
+- `Dockerfile.postgres`;
+- código Backend sincronizado con `dev`;
+- migraciones Alembic vigentes;
+- documentación de seguimiento.
 
-- Confirmar con QA/Base de Datos que los datos restaurados corresponden al estado semilla oficial para regresión.
-- Confirmar con QA las credenciales utilizables para las cuentas de los cinco roles.
-- Confirmar con QA/Base de Datos la ausencia o ubicación de `member_qa`.
-- Validar posteriormente la integración desplegada utilizando las URLs públicas HTTPS definitivas de Frontend TEST y Backend TEST.
-- Validar nuevamente CORS utilizando los dominios HTTPS públicos reales de TEST cuando sean definidos.
-- Diseñar posteriormente el mecanismo explícito de reset de la BD TEST.
-- Coordinar con Pruebas los endpoints o flujos críticos para las pruebas de carga una vez TEST esté desplegado.
-- Entregar a Pruebas las URLs HTTPS estables, prefijo del Backend y restricciones de acceso del ambiente TEST.
-- Esperar acceso al repositorio AIoT para completar TEST de M03, M04 y M09.
-- Revisar archivos, secretos y diferencias antes de cada commit.
+### 17.3 Variables reales
 
-### Validación final previa a entrega de la rama
+Despliegue debe configurar valores reales y secretos fuera de Git.
 
-Antes de preparar la entrega de la rama se actualizaron las referencias remotas mediante `git fetch origin`.
+Especialmente:
 
-La rama base Backend permaneció en:
+    POSTGRES_USER
+    POSTGRES_PASSWORD
+    POSTGRES_DB
+    SECRET_KEY
+    FRONTEND_URL
+    ENV=production
+    ALLOWED_ORIGINS=https://<frontend-test-real>
+    ROOT_PATH=/api
 
-    origin/integration-v2 = 39b817c
+y las variables de funcionalidades externas que correspondan al alcance funcional del ambiente.
 
-La comparación entre `origin/integration-v2` y `feat/ambiente-test` mostró únicamente commits propios de la rama de trabajo, sin nuevos commits pendientes provenientes de la rama base.
+### 17.4 Procedimiento validado para una instalación nueva
 
-También se revisó el conjunto completo de cambios respecto a `origin/integration-v2`.
+Orden recomendado:
 
-Archivos incluidos en la entrega Backend:
+    1. configurar variables TEST reales
+    2. levantar PostgreSQL TEST
+    3. restaurar el backup base una sola vez
+    4. ejecutar alembic upgrade head
+    5. levantar Backend TEST
+    6. configurar dominio y HTTPS en Dokploy/Traefik
+    7. validar /health
+    8. validar conexión Backend - PostgreSQL
+    9. revisar logs
+    10. validar CORS con el dominio real del Frontend TEST
 
-    A  .env.test.example
-    M  .gitignore
-    A  Dockerfile.postgres
-    A  docker-compose.test.yml
-    M  docker-compose.yml
-    A  docs/SEGUIMIENTO-ENTORNO-TEST.md
+### 17.5 Puertos
 
-Se validó nuevamente `docker-compose.test.yml` sin utilizar el override local.
+Despliegue debe conservar:
 
-Resultado de exposición de servicios:
+    PostgreSQL 5432 -> interno únicamente
+    Backend 8000 -> interno únicamente
 
-    Backend TEST = expose 8000
-    PostgreSQL TEST = expose 5432
-    ports publicados por Compose TEST base = ninguno
+La exposición pública esperada debe realizarse por HTTPS:
 
-Backend y PostgreSQL TEST permanecen conectados a la red externa:
+    443 -> Traefik/Dokploy -> backend:8000
 
-    sgpmp-test-internal
+PostgreSQL no debe publicarse directamente.
 
-Se revisaron los archivos técnicos modificados para detectar incorporaciones relacionadas con Cypress, Playwright, cypress-axe, Pytest, Vitest, Newman, k6 u OWASP ZAP.
+---
 
-Resultado:
+## 18. Pendientes posteriores
 
-    herramientas de Pruebas añadidas en archivos técnicos = ninguna
+Continúan pendientes acciones que requieren infraestructura o definiciones externas:
 
-También se inspeccionó el cambio realizado sobre `docker-compose.yml` DEV.
+- configurar la URL pública HTTPS definitiva del Backend TEST;
+- configurar la URL pública HTTPS definitiva del Frontend TEST;
+- establecer `ALLOWED_ORIGINS` con el origen real;
+- validar CORS sobre los dominios públicos reales;
+- validar el comportamiento de la cookie refresh sobre HTTPS real;
+- confirmar variables Firebase requeridas para pruebas funcionales;
+- confirmar variables AgroFusion si esas integraciones entran en el ciclo TEST;
+- confirmar `RF71_INTERNAL_KEY` para la funcionalidad correspondiente;
+- coordinar con Pruebas datos/credenciales de prueba;
+- evaluar posteriormente un mecanismo explícito y controlado de reset de BD si QA lo requiere;
+- integrar AIoT únicamente cuando exista autorización y alcance formal;
+- revisar secretos, `git status`, `git diff` y archivos ignorados antes de cada entrega.
 
-El cambio DEV permanece limitado a:
+No debe agregarse un reset automático de la base a cada `docker compose up`.
 
-- construcción de PostgreSQL mediante `Dockerfile.postgres`;
-- precarga de `pg_cron`;
-- definición de `cron.database_name`;
-- paso de `SMTP_HOST`;
-- paso de `SMTP_PORT`;
-- paso de `SMTP_USER`;
-- paso de `SMTP_PASSWORD`.
+---
 
-No se detectaron cambios adicionales fuera de ese alcance.
+## 19. Evidencias finales
 
-El árbol de trabajo Backend quedó limpio al finalizar la auditoría.
+Evidencias técnicas obtenidas durante la preparación:
 
-Resultado: **Validación previa a entrega correcta**.
+    Rama de trabajo                               feat/ambiente-test
+    DEV incorporado                              a61e458
+    Merge DEV -> TEST                            6866c1d
+    Commit técnico final                         d710681
+    origin/dev...HEAD                            0 10
+    local/remoto técnico                         d710681 / d710681
 
-### Publicación de la rama de trabajo Backend
+    Compose TEST                                 VALIDADO
+    PostgreSQL TEST                              HEALTHY
+    Backend TEST                                 UP
+    PostgreSQL puerto 5432 público               NO
+    Backend puerto 8000 público                  NO
+    Override local Backend                       127.0.0.1:8000
 
-Después de completar las validaciones locales y la revisión previa a entrega, se publicó la rama de trabajo Backend en el repositorio remoto.
+    Tablas de usuario                            208
+    pg_cron                                      1.6
+    Alembic head                                 aa24fc52896e
+    Índice RF-14                                 PRESENTE
 
-Comando ejecutado:
+    GET /health                                  200
+    GET /api/health                              200
+    Backend -> PostgreSQL                        SQL OK
+    CORS localhost                               VALIDADO
+    credentials CORS                             true
 
-    git push -u origin feat/ambiente-test
+    Fresh-check DB vacía                         0 tablas
+    Restore fresh-check                          EXIT 0
+    Fresh-check post-restore                     208 tablas
+    Fresh-check Alembic inicial                  7e2d5f3bf17a
+    Fresh-check alembic upgrade head             EXIT 0
+    Fresh-check Alembic final                    aa24fc52896e
+    Fresh-check Backend /health                  200
+    Fresh-check Backend -> PostgreSQL             SQL OK
+    Fresh-check eliminado                        SÍ
+    TEST real después de fresh-check              HEALTHY
 
-Resultado:
+    .env.test                                    IGNORADO
+    docker-compose.local.yml                     IGNORADO LOCALMENTE
+    git diff --check                             0
 
-    rama remota = origin/feat/ambiente-test
-    commit local = 5897c26
-    commit remoto = 5897c26
-    tracking configurado = correcto
+---
 
-La publicación se realizó sin `merge` hacia `integration-v2`, `main` u otra rama.
+## 20. Estado final
 
-La rama queda disponible para revisión y posterior integración por parte del responsable correspondiente.
+**Configuración técnica del Backend TEST completada y lista para entrega a Despliegue.**
 
-Resultado: **Publicación Backend correcta**.
+El Backend TEST:
 
-## 17. Evidencias
+- está sincronizado con la rama `dev` vigente;
+- no modifica `dev`;
+- utiliza una configuración TEST separada;
+- mantiene PostgreSQL aislado y persistente;
+- no expone PostgreSQL al host;
+- no expone directamente Backend al host en el Compose entregable;
+- soporta el backup actual con `pg_cron`;
+- tiene migraciones Alembic actualizadas hasta `aa24fc52896e`;
+- fue validado mediante restauración real;
+- fue validado mediante una instalación aislada desde cero;
+- responde `HTTP 200` en `/health`;
+- se conecta correctamente a PostgreSQL;
+- tiene CORS local y prefijo `/api` validados;
+- tiene la rama técnica publicada en `origin/feat/ambiente-test`.
 
-Las evidencias se agregarán progresivamente durante las pruebas del entorno.
+La siguiente etapa corresponde a Despliegue:
 
-## 18. Estado actual
+- configurar variables reales;
+- restaurar el backup en la infraestructura TEST nueva;
+- aplicar Alembic;
+- configurar dominio y HTTPS;
+- definir `ALLOWED_ORIGINS`;
+- validar health, conexión a base, logs y CORS sobre las URLs reales.
 
-**En progreso.**
-
-PostgreSQL TEST y Backend TEST se encuentran levantados y operativos.
-
-Hasta este punto se completó:
-
-- creación de la red interna TEST;
-- creación y validación del volumen PostgreSQL TEST independiente;
-- restauración controlada del backup;
-- validación de estructura y datos restaurados;
-- validación de cuentas correspondientes a los roles requeridos por QA;
-- validación de persistencia de PostgreSQL;
-- construcción y levantamiento de Backend TEST;
-- validación de que PostgreSQL no publica `5432` hacia el host;
-- validación de que Backend no publica `8000` hacia el host;
-- validación de `GET /health`;
-- validación de `GET /`;
-- validación de `/docs`;
-- validación de `/openapi.json`;
-- validación del comportamiento del prefijo `/api`;
-- validación de comunicación Backend TEST - PostgreSQL TEST;
-- validación local Frontend TEST - Backend TEST - PostgreSQL TEST mediante una solicitud real desde navegador;
-- validación local de CORS desde `http://127.0.0.1:8080`;
-- verificación de que PostgreSQL TEST permaneció sin puerto publicado durante la integración local.
-
-PostgreSQL TEST permanece en estado `healthy` y Backend TEST permanece en ejecución.
-
-La creación y validación inicial de TEST se realizó sin modificar `docker-compose.yml` DEV.
-
-Posteriormente, por solicitud explícita del líder de Desarrollo, `docker-compose.yml` DEV fue actualizado para:
-
-- reutilizar `Dockerfile.postgres`;
-- instalar y precargar `pg_cron` en PostgreSQL DEV;
-- pasar `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER` y `SMTP_PASSWORD` al contenedor Backend.
-
-`pg_cron` fue validado mediante una ejecución real, limpieza del job técnico y reinicio de PostgreSQL.
-
-Las variables SMTP fueron verificadas dentro del contenedor sin exponer valores sensibles.
-
-Continúan pendientes las URLs públicas HTTPS definitivas de TEST, la entrega formal de URL/prefijo/alcance al equipo de Pruebas, las dependencias externas necesarias para completar el ambiente y AIoT TEST.
-
-Las herramientas de E2E, accesibilidad, carga y seguridad serán instaladas, configuradas y ejecutadas por el equipo de Pruebas contra el ambiente suministrado por Implementación.
+Las herramientas de pruebas E2E, carga, accesibilidad y seguridad serán operadas por el equipo de Pruebas contra el ambiente TEST entregado por Implementación.
