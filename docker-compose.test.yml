@@ -1,7 +1,32 @@
 name: sgpmp-backend-test
 
 services:
-  
+  db:
+    container_name: ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}-db
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requerido para TEST}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+    expose:
+      - "5432"
+    volumes:
+      - sgpmp_pgdata_test:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER requerido para TEST} -d ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   backend:
     build:
       context: .
