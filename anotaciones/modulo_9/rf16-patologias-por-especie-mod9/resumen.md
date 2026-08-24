@@ -72,8 +72,16 @@ inserciones/updates nuevos; las filas legacy se toleran (limpieza = tarea aparte
   `test_rf16_editar_patologia_use_case.py`, `test_rf16_metricas_coherencia.py`.
 - Integración (compuerta RBAC recurso 18, patrón `test_rbac_mod9_1634.py`):
   `tests/integration/test_rf16_patologias_rbac.py`.
+- Integración de flujo de negocio (**guardados**: hacen `skip` si falta `modulo9` o no
+  hay especies activas — hoy skip porque `pruebas` no tiene `modulo9`; listos para un CI
+  con `modulo9` provisionado): `tests/integration/test_rf16_patologias_por_especie.py`
+  (mismo nombre en 2 especies → 201/201; dup en misma especie → 409; descripción
+  independiente por especie; 412; desactivar excluye de activas) y
+  `tests/integration/test_rf16_metricas_checks.py` (tipo_medicion fuera de dominio → 422;
+  PESO+litros → 422 `UNIDAD_MEDIDA_INCOHERENTE`; VOLUMEN+`l` → 201).
 - Regresión RF-32: `test_rf32_concurrencia_aplicar_plantilla.py` sigue verde.
-- Resultado: 22 passed (`tests/configuration` + integración M09), `TEST_DATABASE_URL=pruebas`.
+- Resultado: 22 passed + 7 skipped (guardados) (`tests/configuration` + integración M09),
+  `TEST_DATABASE_URL=pruebas`.
 
 ## Verificación end-to-end
 Ejercido contra `sgpmp` real (con rollback): mismo nombre en 2 especies → OK;
