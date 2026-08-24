@@ -118,8 +118,8 @@ class AplicarPlantillaUseCase:
             for datos in snapshot.get('umbrales_ambientales', []):
                 self.umbral_repo.guardar_desde_snapshot(datos, id_dest, usuario_actual.id_usuario)
 
-            for id_patologia in snapshot.get('patologias', []):
-                self.patologia_repo.vincular_desde_snapshot(id_dest, int(id_patologia))
+            for datos in snapshot.get('patologias', []):
+                self.patologia_repo.vincular_desde_snapshot(id_dest, datos)
 
             after_snapshot = self._capturar_estado(id_dest)
 
@@ -176,5 +176,8 @@ class AplicarPlantillaUseCase:
                 }
                 for u in umbrales
             ],
-            "patologias": [p.id_patologia for p in patologias],
+            "patologias": [
+                {"nombre": p.nombre.valor, "descripcion": p.descripcion, "es_activo": p.es_activo}
+                for p in patologias
+            ],
         }

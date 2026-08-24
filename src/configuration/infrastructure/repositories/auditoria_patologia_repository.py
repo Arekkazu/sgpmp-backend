@@ -18,14 +18,14 @@ class SqlAlchemyAuditoriaPatologiaRepository(AuditoriaPatologiaRepository):
     def registrar(
         self,
         *,
-        id_patologia: int,
+        id_especies_patologias: int,
         id_usuario: int,
         tipo_operacion: str,
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
         orm = AuditoriaPatologiaModel(
-            id_patologia=id_patologia,
+            id_especies_patologias=id_especies_patologias,
             id_usuario=id_usuario,
             tipo_operacion=tipo_operacion,
             valores_nuevos=valores_nuevos,

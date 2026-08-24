@@ -119,8 +119,8 @@ inconsistencia de permisos ya documentada por el propio equipo.
 
 **Veredicto: ⚠️ Cumple parcialmente (~80%)** — de los tres sub-catálogos que pide el RF, las
 **etapas** tienen el chequeo de dependencias real (consulta una vista SQL), mientras que
-**patologías** y **métricas** lo tienen stubbeado a la espera de M04. Además, patologías es
-un catálogo global, no "único por especie" como pide el RF.
+**patologías** y **métricas** lo tienen stubbeado a la espera de M04. (La discrepancia de
+"patologías global vs. por especie" fue **resuelta** en #1633, 2026-08-23 — ver abajo.)
 
 ### Qué SÍ cumple
 
@@ -149,16 +149,14 @@ un catálogo global, no "único por especie" como pide el RF.
 
 ### Qué NO cumple / gaps
 
-- **Patologías es un catálogo global, no "único por especie" como pide RF-16.** El RF dice
-  explícitamente: "el nombre de cada patología debe ser obligatorio, único por especie". La
-  DB real tiene `modulo9.patologias.nombre` con restricción `UNIQUE` **global**
-  (`uq_enfermedad_nombre`), y la relación con la especie va por una tabla pivot
-  (`especies_patologias`, con `UNIQUE(id_patologia, id_especie)`, que evita duplicar la
-  misma patología en la misma especie pero no impide que "Fiebre Aftosa" exista una sola vez
-  en todo el sistema y no pueda repetirse el nombre para otra especie con datos distintos).
-  Esta decisión está documentada como deliberada en `cu02_gaps_bd_rf16.md` ("si global: el
-  documento RF-16 está equivocado en ese punto") pero implica que el sistema **no cumple
-  literalmente** esa restricción del RF.
+- ~~**Patologías es un catálogo global, no "único por especie".**~~ **RESUELTO (#1633,
+  2026-08-23).** Ahora patologías es **por especie**: la entidad M09 vive en
+  `modulo9.especies_patologias` con `nombre`/`descripcion`/`es_activo` propios y unicidad
+  `(id_especie, lower(nombre))` (índice `uq_especie_patologia_nombre`). `modulo9.patologias`
+  (catálogo clínico de M04) y su `uq_enfermedad_nombre` quedaron intactos; el vínculo
+  `id_patologia` es opcional/NULL. M09 ya **no escribe** el catálogo M04 (antes lo hacía —
+  mezcla de responsabilidades corregida). Ver `rf16-patologias-por-especie-mod9/resumen.md`
+  y la migración `alembic/versions/192872fafd40_...py`.
 - **Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**
   `desactivar_patologia_use_case.py` usa `DependenciaPatologiaPort`, implementado por
   `infrastructure/adapters/dependencia_patologia_stub.py` (siempre `False`, pendiente de

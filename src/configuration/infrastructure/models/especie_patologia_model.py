@@ -1,11 +1,17 @@
 """Modelo ORM para la tabla `modulo9.especies_patologias`.
 
-Tabla pivot que asocia patologías globales a especies específicas.
-La combinación (id_patologia, id_especie) es única (uq_especie_patologia).
+Entidad M09 de patologías por especie (RF-16): nombre, descripción y estado son
+propios de cada especie. El nombre es único por especie, case-insensitive
+(índice funcional `uq_especie_patologia_nombre` sobre ``(id_especie, lower(nombre))``,
+creado en la migración). El vínculo ``id_patologia`` al catálogo clínico M04 es
+opcional (nullable).
 """
 from __future__ import annotations
 
-from sqlalchemy import ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, UniqueConstraint
+import datetime
+from typing import Optional
+
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -14,7 +20,6 @@ from .base_model import Base
 class EspeciePatologiaModel(Base):
     __tablename__ = 'especies_patologias'
     __table_args__ = (
-        UniqueConstraint('id_patologia', 'id_especie', name='uq_especie_patologia'),
         ForeignKeyConstraint(
             ['id_patologia'],
             ['modulo9.patologias.id_patologia'],
@@ -34,5 +39,16 @@ class EspeciePatologiaModel(Base):
         Sequence('especies_patologias_id_especies_patologias_seq', schema='modulo9'),
         primary_key=True,
     )
-    id_patologia: Mapped[int] = mapped_column(Integer, nullable=False)
     id_especie: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_patologia: Mapped[Optional[int]] = mapped_column(Integer)
+    nombre: Mapped[str] = mapped_column(String(60), nullable=False)
+    descripcion: Mapped[Optional[str]] = mapped_column(String(255))
+    es_activo: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text('true'),
+    )
+    fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(
+        DateTime(timezone=True),
+    )
+    fecha_creacion: Mapped[datetime.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text('now()'),
+    )

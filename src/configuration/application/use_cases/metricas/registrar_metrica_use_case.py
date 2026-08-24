@@ -22,7 +22,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 # FA-10: unidades permitidas por tipo de medición (valores normalizados a minúsculas)
 _UNIDADES_POR_TIPO: dict[str, set[str] | None] = {
     'PESO': {'kg', 'g', 'lb'},
-    'VOLUMEN': {'litros', 'ml'},
+    'VOLUMEN': {'litros', 'l', 'ml'},
     'LONGITUD': {'cm', 'm'},
     'CONTEO': {'unidades'},
     'OTRO': None,  # None significa cualquier valor
