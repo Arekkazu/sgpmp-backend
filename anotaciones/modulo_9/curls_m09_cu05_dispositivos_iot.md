@@ -16,6 +16,7 @@ Recurso `id_recurso=11`.
 ### Registrar dispositivo IoT (Flujo A)
 
 El área (`id_infraestructura`) debe existir y estar activa. El serial debe ser único en el sistema.
+Desde RF-23/#1632 el campo `id_tipo_dispositivo` es **obligatorio** (ver "Tipos de dispositivo IoT" abajo).
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
@@ -24,7 +25,8 @@ curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
   -d '{
     "serial": "IOT-EST01-HLA-001",
     "descripcion": "Nodo IoT principal estanque 01, gateway LoRaWAN",
-    "id_infraestructura": 1
+    "id_infraestructura": 1,
+    "id_tipo_dispositivo": 1
   }'
 ```
 
@@ -35,6 +37,7 @@ Respuesta esperada `201`:
   "serial": "IOT-EST01-HLA-001",
   "descripcion": "Nodo IoT principal estanque 01, gateway LoRaWAN",
   "id_infraestructura": 1,
+  "id_tipo_dispositivo": 1,
   "es_activo": true,
   "fecha_creacion": "2026-06-21T18:33:40Z"
 }
@@ -42,9 +45,34 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `404` — área productiva no existe (FA-03) — `AREA_NO_ENCONTRADA`
+- `404` — tipo de dispositivo no existe — `TIPO_DISPOSITIVO_NO_ENCONTRADO`
 - `422` — área productiva inactiva (FA-04) — `AREA_NO_DISPONIBLE`
 - `409` — serial ya registrado en el sistema (FA-07) — `SERIAL_DUPLICADO`
 - `403` — rol sin permiso C sobre dispositivos_iot (FA-01)
+
+---
+
+### Tipos de dispositivo IoT (`/configuracion/tipos-dispositivo-iot`) — RF-23/#1632
+
+Catálogo de solo lectura con los rangos min/max permitidos por tipo. Recurso `id_recurso=11`, acción R(2).
+El front lo usa para poblar el selector de `id_tipo_dispositivo` al registrar y para mostrar los rangos.
+
+```bash
+curl -X GET http://localhost:8000/configuracion/tipos-dispositivo-iot \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 3,
+  "items": [
+    {"id_tipo_dispositivo": 1, "nombre": "GENERICO", "frecuencia_captura_min": 1, "frecuencia_captura_max": 1440, "intervalo_transmision_min": 1, "intervalo_transmision_max": 1440},
+    {"id_tipo_dispositivo": 2, "nombre": "NODO_BAJO_CONSUMO", "frecuencia_captura_min": 15, "frecuencia_captura_max": 1440, "intervalo_transmision_min": 15, "intervalo_transmision_max": 1440},
+    {"id_tipo_dispositivo": 3, "nombre": "SENSOR_AMBIENTAL", "frecuencia_captura_min": 5, "frecuencia_captura_max": 120, "intervalo_transmision_min": 5, "intervalo_transmision_max": 240}
+  ]
+}
+```
 
 ---
 
@@ -265,6 +293,9 @@ con un ACK simulado vía `mosquitto_pub` en `sgpmp/<serial>/status`.
 ### Enviar configuración remota (Flujo C)
 
 `intervalo_transmision` debe ser ≥ `frecuencia_captura` (FA-12).
+`frecuencia_captura`/`intervalo_transmision` deben caer dentro del rango del **tipo** del
+dispositivo (RF-23/#1632, FA "parámetros fuera de rango técnico"); los rangos se consultan en
+`GET /configuracion/tipos-dispositivo-iot`.
 No puede existir una configuración `PENDIENTE` previa para el mismo dispositivo (FA-15,
 blindado con índice único parcial en BD, ver `alembic/versions/7e2d5f3bf17a_rf23_mqtt_integracion.py`).
 
@@ -322,6 +353,9 @@ Errores posibles:
 - `404` — dispositivo no existe (FA-02)
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
+- `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
+  (mensaje: "Valor inválido: El parámetro {frecuencia_captura|intervalo_transmision} debe estar
+  entre {min} y {max} minutos para este tipo de dispositivo. Valor recibido: {valor}.")
 - `409` — ya existe configuración PENDIENTE para el dispositivo (FA-15) — `CONFIG_PENDIENTE_EXISTENTE`
 - `504` — se envió pero no hubo ACK a tiempo — `CONFIGURACION_NO_CONFIRMADA`
 - `403` — rol sin permiso U sobre dispositivos_iot (FA-01)

@@ -24,6 +24,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             serial=SerialDispositivo(orm.serial),
             descripcion=orm.descripcion,
             id_infraestructura=orm.id_infraestructura,
+            id_tipo_dispositivo=orm.id_tipo_dispositivo,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
         )
@@ -45,6 +46,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             serial=dispositivo.serial.valor,
             descripcion=dispositivo.descripcion,
             id_infraestructura=dispositivo.id_infraestructura,
+            id_tipo_dispositivo=dispositivo.id_tipo_dispositivo,
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
         )
