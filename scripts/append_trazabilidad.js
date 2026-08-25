@@ -4,8 +4,14 @@
  * plugin @semantic-release/exec, hook "prepareCmd").
  *
  * Recorre los commits entre la versión anterior y la nueva, extrae los
- * IDs de RF/RNF/RFC/BUG referenciados (según la convención definida en
- * CONTRIBUTING.md) y agrega una fila a TRAZABILIDAD_CAMBIOS.md.
+ * IDs de RF/RNF/RFC/BUG referenciados y agrega una fila a
+ * TRAZABILIDAD_CAMBIOS.md.
+ *
+ * La extracción es deliberadamente tolerante en el formato (mayúsculas/
+ * minúsculas, con o sin guión: "RF-14", "rf14", "RF 14") en vez de exigir
+ * un formato exacto -- así se documenta cómo el equipo escribe los commits
+ * de verdad, sin depender de que cambien un hábito ya establecido. También
+ * expande el atajo "RF-15/19/20" a RF-15, RF-19, RF-20.
  *
  * Uso: node append_trazabilidad.js <nextVersion> <gitTag> <lastVersion>
  */
@@ -32,9 +38,23 @@ function getCommitsSinceLastRelease() {
 }
 
 function extractIds(subject) {
-  const rf = [...subject.matchAll(/\b(RF|RNF)-\d+\b/g)].map(m => m[0]);
-  const rfc = [...subject.matchAll(/\bRFC-\d+\b/g)].map(m => m[0]);
-  const bug = [...subject.matchAll(/\bBUG-\d+\b/g)].map(m => m[0]);
+  // Case-insensitive y separador opcional (guion, espacio o nada) entre la
+  // sigla y el número -- el equipo escribe "RF-14", "rf14", "RF 14" o
+  // "rf-14" indistintamente, y exigir un formato exacto solo generaba
+  // filas de trazabilidad vacías pese a que el commit sí referenciaba un RF.
+  // También expande el atajo "RF-15/19/20" -> RF-15, RF-19, RF-20.
+  const rf = [];
+  const rfPattern = /\b(rf|rnf)[\s-]?(\d+)((?:\s*\/\s*\d+)*)\b/gi;
+  let match;
+  while ((match = rfPattern.exec(subject)) !== null) {
+    const prefix = match[1].toUpperCase();
+    rf.push(`${prefix}-${match[2]}`);
+    const extras = match[3].match(/\d+/g) || [];
+    extras.forEach(n => rf.push(`${prefix}-${n}`));
+  }
+
+  const rfc = [...subject.matchAll(/\brfc[\s-]?(\d+)\b/gi)].map(m => `RFC-${m[1]}`);
+  const bug = [...subject.matchAll(/\bbug[\s-]?(\d+)\b/gi)].map(m => `BUG-${m[1]}`);
   return { rf, rfc, bug };
 }
 
