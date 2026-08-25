@@ -517,7 +517,14 @@ ambos con HTTP 200 en el entorno local validado.
 
 ## 10. Seguridad de puertos
 
-Se aplicó el principio de mínima exposición.
+**Actualizado — decisión final revisada.** Esta sección describía
+originalmente `expose`-only para PostgreSQL (sin publicar al host). Esa
+decisión quedó reemplazada por el commit "Configuración final del Compose
+de TEST": `docker-compose.test.yml` **sí publica** PostgreSQL al host
+(`${DB_PORT:-5448}:5432`), el mismo patrón que ya usa `dev` (`5447`). El
+texto de abajo quedaba desactualizado respecto al compose real; se corrige
+aquí en vez de mantener una descripción que ya no coincide con lo que se
+despliega.
 
 ### PostgreSQL TEST
 
@@ -527,19 +534,29 @@ Puerto interno:
 
 Compose TEST:
 
-    expose:
-      - "5432"
-
-No existe:
-
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5448}:5432"
 
-Validación en ejecución:
+**Por qué se publica, y no `expose`-only:** el equipo de Pruebas/DBA
+necesita poder conectarse directo con `psql`/DBeaver/pgAdmin durante el
+ciclo de pruebas para verificar datos — sin eso, cada verificación
+manual requeriría pasar por el backend o pedirle a alguien con acceso al
+servidor que la haga por ellos. Es el mismo patrón ya validado y usado
+activamente en `dev` (puerto `5447`).
 
-    5432/tcp
+**El control de seguridad real no es el compose, es el firewall del
+servidor.** Publicar el puerto en Docker solo lo hace alcanzable *dentro*
+de la red del servidor; que sea alcanzable desde *internet* depende de si
+alguien abre ese puerto en `ufw`/el firewall del proveedor. La
+recomendación de seguridad real es:
 
-sin binding al host.
+- Pedir que `DB_PORT` (`5448`) se habilite en el firewall **solo para IPs
+  conocidas** (IP de oficina/VPN del equipo), no abierto a `0.0.0.0/0` —
+  mismo criterio que ya se usa para el puerto de PostgreSQL de `dev`.
+- Postgres sigue exigiendo usuario/contraseña — publicar el puerto no
+  expone los datos sin autenticación, solo la superficie de conexión.
+- Usar una contraseña de `POSTGRES_PASSWORD` distinta y fuerte para TEST,
+  no reutilizar la de `dev`.
 
 ### Backend TEST
 
@@ -573,22 +590,26 @@ Arquitectura:
 
     Internet
         |
-      HTTPS 443
-        |
-        v
-    Traefik / Dokploy
-        |
-        v
-    Backend TEST :8000
-        |
-        v
-    PostgreSQL TEST :5432
+      HTTPS 443              Puerto DB_PORT (5448)
+        |                     restringido a IPs conocidas
+        v                              |
+    Traefik / Dokploy                  v
+        |                    PostgreSQL TEST :5432
+        v                    (acceso directo, autenticado,
+    Backend TEST :8000         solo para Pruebas/DBA)
 
-PostgreSQL no debe exponerse públicamente.
+PostgreSQL se publica al host (ver sección "PostgreSQL TEST" arriba),
+restringido a nivel de firewall a IPs conocidas — no queda abierto a
+cualquier IP de internet, ni depende únicamente de la autenticación de
+Postgres como única barrera.
 
-TLS/HTTPS debe terminar en Traefik/Dokploy; Uvicorn permanece en el puerto interno `8000`.
+TLS/HTTPS debe terminar en Traefik/Dokploy para el Backend; Uvicorn
+permanece en el puerto interno `8000` sin publicar al host, enrutado por
+dominio.
 
-Resultado: **Seguridad de puertos validada**.
+Resultado: **Seguridad de puertos validada** — con la corrección de esta
+revisión: PostgreSQL publicado con acceso restringido por firewall, no
+`expose`-only.
 
 ---
 
