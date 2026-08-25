@@ -16,6 +16,12 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER requerido para TEST}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD requerido para TEST}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB requerido para TEST}
+    # Se publica al host (no expose-only) a propósito: Pruebas/DBA necesitan
+    # psql/DBeaver directo durante el ciclo de pruebas, mismo patrón que dev
+    # (puerto 5447). Postgres sigue exigiendo usuario/contraseña; el control
+    # real de seguridad es pedir que DB_PORT quede restringido en el
+    # firewall del servidor a IPs conocidas, no abierto a 0.0.0.0/0 — ver
+    # docs/SEGUIMIENTO-ENTORNO-TEST.md sección 10.
     ports:
       - "${DB_PORT:-5448}:5432"
     volumes:
