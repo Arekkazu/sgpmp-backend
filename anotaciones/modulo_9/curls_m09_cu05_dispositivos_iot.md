@@ -409,7 +409,11 @@ Recurso `id_recurso=12`, acción C(1). Admin / Ing.
 ### Registrar calibración (Flujo D)
 
 El sensor debe existir, el dispositivo debe estar activo y el sensor debe tener
-una asociación activa en el área indicada.
+una asociación activa en el área indicada. `valor_referencia` (y el `offset` si se
+envía) deben caer dentro del rango de seguridad del tipo de sensor (RF-24 / #1635).
+
+`ganancia` (default `1.0`) y `offset` (default = `valor_referencia`) son opcionales:
+componen el modelo lineal `valor_ajustado = ganancia * crudo + offset` que consume telemetry.
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
@@ -419,6 +423,8 @@ curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
     "id_dispositivo_iot": 1,
     "id_infraestructura": 1,
     "valor_referencia": "25.50",
+    "ganancia": "1.0",
+    "offset": "0.20",
     "fecha_calibracion": "2026-06-21T10:00:00Z",
     "observaciones": "Calibración con termómetro patrón certificado"
   }'
@@ -431,6 +437,8 @@ Respuesta esperada `201`:
   "id_dispositivo_iot": 1,
   "id_sensor": 1,
   "valor_referencia": "25.5000",
+  "ganancia": "1.0000",
+  "offset": "0.2000",
   "fecha_calibracion": "2026-06-21T10:00:00Z",
   "id_usuario": 1,
   "observaciones": "Calibración con termómetro patrón certificado"
@@ -443,8 +451,44 @@ Errores posibles:
 - `422` — dispositivo inactivo (FA-14) — `DISPOSITIVO_INACTIVO`
 - `422` — sensor no pertenece al dispositivo (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
 - `400` — sensor no tiene asociación activa en el área indicada (FA-03) — `SENSOR_AREA_INVALIDA`
-- `400` — `valor_referencia` ≤ 0 (FA-11) — `VALOR_CALIBRACION_INVALIDO`
+- `400` — `valor_referencia`/`offset` fuera del rango de seguridad del tipo de sensor
+  (FA-11, ej. temperatura 500 °C) — `VALOR_FUERA_DE_RANGO`
+- `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
+  (fallback) — `VALOR_CALIBRACION_INVALIDO`
+- `400` — `ganancia` ≤ 0 (validación de DTO)
 - `403` — rol sin permiso C sobre sensores (FA-01)
+
+Ejemplo de rechazo por rango (`400`):
+```bash
+curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"id_dispositivo_iot":1,"id_infraestructura":1,"valor_referencia":"500",
+       "fecha_calibracion":"2026-06-21T10:00:00Z"}'
+# {"error_code":"VALOR_FUERA_DE_RANGO","message":"El ajuste de 500 excede los rangos
+#  de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000)...","field":"valor_referencia"}
+```
+
+---
+
+### Catálogo de rangos de calibración por tipo de sensor (RF-24 / #1635)
+
+Recurso `id_recurso=12`, acción R(2). El frontend lo consume para mostrar los límites válidos.
+
+```bash
+curl -X GET http://localhost:8000/configuracion/sensores/rangos-calibracion \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 7,
+  "items": [
+    {"categoria": "AMONIACO", "valor_min": "0.0000", "valor_max": "10.0000"},
+    {"categoria": "TEMPERATURA", "valor_min": "0.0000", "valor_max": "45.0000"}
+  ]
+}
+```
 
 ---
 
@@ -465,6 +509,8 @@ Respuesta esperada `200`:
       "id_dispositivo_iot": 1,
       "id_sensor": 1,
       "valor_referencia": "25.5000",
+      "ganancia": "1.0000",
+      "offset": "0.2000",
       "fecha_calibracion": "2026-06-21T10:00:00Z",
       "id_usuario": 1,
       "observaciones": "Calibración con termómetro patrón certificado"
@@ -474,6 +520,8 @@ Respuesta esperada `200`:
       "id_dispositivo_iot": 1,
       "id_sensor": 1,
       "valor_referencia": "25.0000",
+      "ganancia": "1.0000",
+      "offset": "25.0000",
       "fecha_calibracion": "2026-03-29T14:42:28Z",
       "id_usuario": 1,
       "observaciones": "Calibración inicial con termómetro patrón certificado NIST."

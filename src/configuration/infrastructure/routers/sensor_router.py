@@ -24,9 +24,15 @@ from src.configuration.infrastructure.repositories.auditoria_sensor_area_reposit
 from src.configuration.infrastructure.repositories.calibracion_repository import SqlAlchemyCalibracionRepository
 from src.configuration.infrastructure.repositories.dispositivo_iot_repository import SqlAlchemyDispositivoIotRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
+from src.configuration.infrastructure.repositories.rango_calibracion_repository import SqlAlchemyRangoCalibracionRepository
 from src.configuration.infrastructure.repositories.sensor_area_repository import SqlAlchemySensorAreaRepository
 from src.configuration.infrastructure.repositories.sensor_repository import SqlAlchemySensorRepository
-from src.configuration.infrastructure.schema.calibracion_schema import CalibracionResponse, ListaCalibracionesResponse
+from src.configuration.infrastructure.schema.calibracion_schema import (
+    CalibracionResponse,
+    ListaCalibracionesResponse,
+    ListaRangosCalibracionResponse,
+    RangoCalibracionResponse,
+)
 from src.configuration.infrastructure.schema.sensor_area_schema import ListaSensorAreasResponse, SensorAreaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -125,9 +131,31 @@ def registrar_calibracion(
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
         calibracion_repo=SqlAlchemyCalibracionRepository(db),
+        rango_repo=SqlAlchemyRangoCalibracionRepository(db),
     )
     calibracion = use_case.execute(id_sensor, dto, usuario_actual)
     return CalibracionResponse.from_entity(calibracion)
+
+
+# ── RF-24: Catálogo de rangos de calibración por tipo de sensor ────────────────
+
+@router.get(
+    "/rangos-calibracion",
+    response_model=ListaRangosCalibracionResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Listar rangos de seguridad de calibración por tipo de sensor (RF-24)",
+)
+def listar_rangos_calibracion(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ListaRangosCalibracionResponse:
+    rangos = SqlAlchemyRangoCalibracionRepository(db).listar()
+    items = [RangoCalibracionResponse.from_entity(r) for r in rangos]
+    return ListaRangosCalibracionResponse(total=len(items), items=items)
 
 
 # ── RF-24: Historial de calibraciones del sensor ──────────────────────────────
