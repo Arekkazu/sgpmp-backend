@@ -48,6 +48,19 @@ class Calibracion:
             observaciones=observaciones,
         )
 
+    def _snapshot(self) -> dict:
+        """Estado JSON-serializable para el historial de auditoría (RF-10)."""
+        return {
+            "id_dispositivo_iot": self.id_dispositivo_iot,
+            "id_sensor": self.id_sensor,
+            "valor_referencia": str(self.valor_referencia),
+            "ganancia": str(self.ganancia),
+            "offset": str(self.offset),
+            "fecha_calibracion": self.fecha_calibracion.isoformat(),
+            "id_usuario": self.id_usuario,
+            "observaciones": self.observaciones,
+        }
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Calibracion):
             return NotImplemented

@@ -35,7 +35,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-21 | Registro de dispositivos IoT | ✅ Cumple | ~95% |
 | RF-22 | Asociación de sensores a estructuras productivas | ✅ Cumple | ~90% |
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
-| RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~95% |
+| RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~100% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
@@ -498,8 +498,9 @@ reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver
 
 ## RF-24 — Calibración de dispositivos IoT
 
-**Veredicto: ✅ Cumple (~95%)** — el flujo CRUD y de trazabilidad ya estaba completo; la
-entrega #1635 cerró los dos gaps de modelo (rango por tipo de sensor + ganancia/offset).
+**Veredicto: ✅ Cumple (~100%)** — la entrega #1635 cerró los dos gaps de modelo (rango por
+tipo de sensor + ganancia/offset) y, en la segunda pasada, los dos flujos alternos que
+faltaban: auditoría inmutable RF-10 con rollback→500 y formato no numérico→400.
 
 ### Cierre de gaps — issue #1635 (rama `feature/rf24-validacion-rango-calibracion-mod9`)
 
@@ -536,10 +537,15 @@ entrega #1635 cerró los dos gaps de modelo (rango por tipo de sensor + ganancia
   por tipo vía `modulo9.rangos_calibracion`; fuera de rango → `400 VALOR_FUERA_DE_RANGO`.
 - ~~`modulo9.calibraciones` no tiene ganancia/offset.~~ **Resuelto:** columnas `ganancia` y
   `offset_calibracion`; el consumidor de telemetry ya no aproxima.
-- La restricción del RF de "no se permiten valores no numéricos" está cubierta por el tipo de
-  columna (`numeric`) y por Pydantic a nivel de DTO.
+- ~~Flujo alterno "Fallo en el registro de auditoría" (RF-10) no implementado.~~ **Resuelto:**
+  tabla `modulo9.auditorias_calibraciones` inmutable (trigger bloquea UPDATE/DELETE). El use
+  case escribe la traza dentro de la transacción; si falla → rollback + `500
+  AUDITORIA_CALIBRACION_FALLIDA` ("No se pudo garantizar la trazabilidad...").
+- ~~Formato no numérico devolvía 422 (Pydantic) en vez del 400 del RF.~~ **Resuelto:** el DTO
+  acepta `valor_referencia` permisivo y el use case devuelve `400 VALOR_CALIBRACION_INVALIDO`
+  ante valor no numérico, vacío o nulo.
 
-### Pendiente menor (~5%)
+### Pendiente menor
 
 - Los rangos sembrados son ilustrativos (espejo de `variables_ambientales` acuícolas); el
   estándar de calibración real necesita tuning por SQL (perilla de calibración).
