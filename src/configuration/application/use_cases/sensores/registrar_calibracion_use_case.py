@@ -11,6 +11,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.calibracion import Calibracion
+from src.configuration.domain.repositories.auditoria_calibracion_repository import AuditoriaCalibracionRepository
 from src.configuration.domain.repositories.calibracion_repository import CalibracionRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.rango_calibracion_repository import RangoCalibracionRepository
@@ -18,7 +19,7 @@ from src.configuration.domain.repositories.sensor_area_repository import SensorA
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import BusinessRuleError, InfrastructureError, NotFoundError, ValidationError
 
 
 class RegistrarCalibracionUseCase:
@@ -31,6 +32,7 @@ class RegistrarCalibracionUseCase:
         sensor_area_repo: SensorAreaRepository,
         calibracion_repo: CalibracionRepository,
         rango_repo: RangoCalibracionRepository,
+        auditoria_repo: AuditoriaCalibracionRepository,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
@@ -38,6 +40,7 @@ class RegistrarCalibracionUseCase:
         self.sensor_area_repo = sensor_area_repo
         self.calibracion_repo = calibracion_repo
         self.rango_repo = rango_repo
+        self.auditoria_repo = auditoria_repo
 
     def execute(self, id_sensor: int, dto: RegistrarCalibracionDTO, usuario_actual: UsuarioActual) -> Calibracion:
         dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
@@ -119,6 +122,25 @@ class RegistrarCalibracionUseCase:
 
         try:
             calibracion_guardada = self.calibracion_repo.guardar(calibracion)
+            # RF-24 FA / RF-10: traza en el historial de auditoría inmutable. Si falla,
+            # el rollback deshace la calibración y se responde 500 (no queda calibración
+            # sin trazabilidad).
+            try:
+                self.auditoria_repo.registrar(
+                    id_calibracion=calibracion_guardada.id_calibracion,
+                    id_usuario=usuario_actual.id_usuario,
+                    tipo_operacion="CREATE",
+                    valores_nuevos=calibracion_guardada._snapshot(),
+                )
+            except Exception as exc:
+                raise InfrastructureError(
+                    code="AUDITORIA_CALIBRACION_FALLIDA",
+                    message=(
+                        "Error de integridad: No se pudo garantizar la trazabilidad de la "
+                        "calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
+                    ),
+                    original_error=exc,
+                )
             self.db.commit()
         except Exception:
             self.db.rollback()

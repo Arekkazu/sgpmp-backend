@@ -65,6 +65,39 @@ solo-`modulo1`; los tests de M09 hacen `pytest.skip` cuando falta el schema, as�
 requiere esta migración. `offset_calibracion` (no `offset`) porque `OFFSET` es palabra
 reservada en SQL. RBAC: sin cambios — el catálogo se lee con recurso 12 (`sensores`), acción 2.
 
+### 8. RF-24 — auditoría inmutable de calibraciones (flujo alterno RF-10)
+**Gap:** el flujo alterno "Fallo en el registro de auditoría → rollback → 500" no existía;
+no había ninguna escritura de auditoría en el registro de calibración.
+
+**Decisión (migración Alembic `d4e2f8a15c9b`, down_revision `c3f1a9e42b7d`):**
+
+```sql
+CREATE TABLE modulo9.auditorias_calibraciones (
+    id_auditoria_calibracion SERIAL PRIMARY KEY,
+    id_calibracion   INTEGER NOT NULL REFERENCES modulo9.calibraciones(id_calibracion),
+    id_usuario       INTEGER NOT NULL REFERENCES modulo1.usuarios(id_usuario),
+    tipo_operacion   VARCHAR(20) NOT NULL CHECK (tipo_operacion IN ('CREATE','GET')),
+    valores_anteriores JSONB,
+    valores_nuevos     JSONB NOT NULL,
+    fecha_gestion    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- Inmutabilidad RF-10 (mismo patrón que auditorias_especies): bloquea UPDATE/DELETE.
+CREATE FUNCTION modulo9.trg_fn_auditorias_calibraciones_inmutable() RETURNS trigger ...
+CREATE TRIGGER trg_auditorias_calibraciones_inmutable
+  BEFORE UPDATE OR DELETE ON modulo9.auditorias_calibraciones ...;
+```
+
+El use case escribe la traza dentro de la misma transacción de la calibración; si la
+escritura falla, hace rollback y responde `500 AUDITORIA_CALIBRACION_FALLIDA`. Mismo esquema
+que `auditorias_sensores_areas`.
+
+### 9. RF-24 — formato no numérico devuelve 400 (no 422)
+**Gap:** el DTO declaraba `valor_referencia: Decimal`, así que un valor no numérico lo
+rechazaba Pydantic con `422`, pero el RF pide `400`.
+**Decisión (solo código, sin BD):** el DTO acepta `valor_referencia` permisivo
+(`Decimal | str | None`) y el use case lo convierte; no numérico/vacío/nulo →
+`400 VALOR_CALIBRACION_INVALIDO`.
+
 ## Simplificaciones conocidas
 
 - **MQTT (RF-23):** No implementado. Stub `MqttStubAdapter` retorna siempre `False` (dispositivo offline). Todas las configuraciones quedan en estado `PENDIENTE`. HTTP 202.
