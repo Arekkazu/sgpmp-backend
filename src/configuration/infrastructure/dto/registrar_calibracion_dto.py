@@ -14,12 +14,17 @@ class RegistrarCalibracionDTO(BaseDTO):
     id_dispositivo_iot: int
     id_infraestructura: int
     valor_referencia: Decimal
+    ganancia: Decimal = Decimal("1.0")
+    offset: Optional[Decimal] = None
     fecha_calibracion: datetime
     observaciones: Optional[str] = None
 
-    @field_validator("valor_referencia")
+    # El rango válido de valor_referencia/offset lo impone el rango por tipo de
+    # sensor en el use case (RF-24); aquí solo se valida el formato numérico y
+    # que la ganancia sea positiva (un factor de escala no puede ser <= 0).
+    @field_validator("ganancia")
     @classmethod
-    def validar_valor(cls, v: Decimal) -> Decimal:
+    def validar_ganancia(cls, v: Decimal) -> Decimal:
         if v <= Decimal("0"):
-            raise ValueError(f"El valor de referencia debe ser positivo. Valor recibido: {v}.")
+            raise ValueError(f"La ganancia debe ser positiva. Valor recibido: {v}.")
         return v

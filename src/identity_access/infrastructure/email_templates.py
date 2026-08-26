@@ -43,7 +43,7 @@ def activation_email(nombre: str, token: str) -> str:
     Returns:
         String HTML listo para enviar por SMTP.
     """
-    link = f"{_FRONTEND_URL}/activar-cuenta?token={token}"
+    link = f"{_FRONTEND_URL}/activar?token={token}"
     return f"""
     <h2>Hola, {nombre}</h2>
     <p>Para activar tu cuenta haz clic en el siguiente enlace:</p>

@@ -1,7 +1,8 @@
 """Caso de uso: Registrar calibración de sensor (POST /{id}/calibrar RF-24).
 
-Valida: dispositivo activo, sensor pertenece al dispositivo,
-sensor tiene asociación activa con el área indicada, valor_referencia > 0.
+Valida: dispositivo activo, sensor pertenece al dispositivo, sensor tiene
+asociación activa con el área indicada, y que valor_referencia/offset caigan
+dentro del rango de seguridad definido para el tipo de sensor (categoria).
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.calibracion import Calibracion
 from src.configuration.domain.repositories.calibracion_repository import CalibracionRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
+from src.configuration.domain.repositories.rango_calibracion_repository import RangoCalibracionRepository
 from src.configuration.domain.repositories.sensor_area_repository import SensorAreaRepository
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
@@ -28,12 +30,14 @@ class RegistrarCalibracionUseCase:
         dispositivo_repo: DispositivoIotRepository,
         sensor_area_repo: SensorAreaRepository,
         calibracion_repo: CalibracionRepository,
+        rango_repo: RangoCalibracionRepository,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
         self.dispositivo_repo = dispositivo_repo
         self.sensor_area_repo = sensor_area_repo
         self.calibracion_repo = calibracion_repo
+        self.rango_repo = rango_repo
 
     def execute(self, id_sensor: int, dto: RegistrarCalibracionDTO, usuario_actual: UsuarioActual) -> Calibracion:
         dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
@@ -70,13 +74,32 @@ class RegistrarCalibracionUseCase:
 
         try:
             valor = Decimal(str(dto.valor_referencia))
+            offset = Decimal(str(dto.offset)) if dto.offset is not None else valor
         except InvalidOperation:
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
                 message="El valor de referencia debe ser un número decimal válido.",
                 field="valor_referencia",
             )
-        if valor <= 0:
+
+        # RF-24: rango de seguridad por tipo de sensor (categoria).
+        rango = self.rango_repo.obtener_por_categoria(sensor.categoria) if sensor.categoria else None
+        if rango is not None:
+            for campo, candidato in (("valor_referencia", valor), ("offset", offset)):
+                viol = rango.verificar(candidato)
+                if viol is not None:
+                    raise ValidationError(
+                        code="VALOR_FUERA_DE_RANGO",
+                        message=(
+                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
+                            f"para la variable {sensor.categoria} "
+                            f"(permitido {viol['min']}–{viol['max']}). "
+                            "Verifique el estándar de calibración utilizado."
+                        ),
+                        field=campo,
+                    )
+        # ponytail: sin rango configurado para la categoria -> fallback al chequeo > 0 previo.
+        elif valor <= 0:
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
                 message="El valor de referencia debe ser un número positivo.",
@@ -89,6 +112,8 @@ class RegistrarCalibracionUseCase:
             valor_referencia=valor,
             fecha_calibracion=dto.fecha_calibracion,
             id_usuario=usuario_actual.id_usuario,
+            ganancia=Decimal(str(dto.ganancia)),
+            offset=offset,
             observaciones=dto.observaciones,
         )
 

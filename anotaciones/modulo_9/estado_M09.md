@@ -35,7 +35,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-21 | Registro de dispositivos IoT | ✅ Cumple | ~95% |
 | RF-22 | Asociación de sensores a estructuras productivas | ✅ Cumple | ~90% |
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
-| RF-24 | Calibración de dispositivos IoT | ⚠️ Cumple parcialmente | ~65% |
+| RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~95% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
@@ -498,8 +498,22 @@ reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver
 
 ## RF-24 — Calibración de dispositivos IoT
 
-**Veredicto: ⚠️ Cumple parcialmente (~65%)** — el flujo CRUD y de trazabilidad está completo,
-pero el modelo de calibración en sí es más simple que lo que pide el RF.
+**Veredicto: ✅ Cumple (~95%)** — el flujo CRUD y de trazabilidad ya estaba completo; la
+entrega #1635 cerró los dos gaps de modelo (rango por tipo de sensor + ganancia/offset).
+
+### Cierre de gaps — issue #1635 (rama `feature/rf24-validacion-rango-calibracion-mod9`)
+
+- **Validación de rango por tipo de sensor.** Nueva tabla catálogo
+  `modulo9.rangos_calibracion` (min/max por `categoria` del sensor, sembrada para los 7
+  valores del enum). El use case `registrar_calibracion_use_case.py` valida
+  `valor_referencia` y `offset` contra ese rango; fuera de rango → `400 VALOR_FUERA_DE_RANGO`
+  (ej. temperatura 500 °C). Entidad de dominio `RangoCalibracion.verificar`, puerto
+  `RangoCalibracionRepository`, router `GET /configuracion/sensores/rangos-calibracion`.
+- **Modelo de dos parámetros (ganancia/offset).** `modulo9.calibraciones` ahora tiene
+  `ganancia` y `offset_calibracion` (backfill `offset = valor_referencia`). El consumidor
+  `src/telemetry/.../calibracion_m09_adapter.py` ya **no aproxima** — lee los valores reales.
+- Migración Alembic `c3f1a9e42b7d` aplicada a `sgpmp`. Verificado end-to-end: in-range
+  persiste, out-of-range (valor y offset) rechazado 400, dos parámetros almacenados.
 
 ### Qué SÍ cumple
 
@@ -516,22 +530,21 @@ pero el modelo de calibración en sí es más simple que lo que pide el RF.
 - RBAC sobre recurso `sensores` (id=12), coherente con los roles que el RF autoriza para esta
   operación (Ingeniero de Campo/Administrador).
 
-### Qué NO cumple / gaps
+### Gaps ya resueltos (issue #1635)
 
-- **No existe validación de rango de calibración por tipo de sensor.** El RF pide rechazar
-  valores "fuera del rango de seguridad para la variable" (ej. offset de temperatura de
-  500°C). La validación real es una comparación genérica `valor_referencia > 0`, sin ninguna
-  tabla de rangos físicos por tipo de sensor — documentado explícitamente como simplificación
-  conocida en `cu05_gaps_bd_rf21_rf24.md`. Un valor absurdo pero positivo (ej. 999999) pasaría
-  la validación sin problema.
-- **`modulo9.calibraciones` no tiene ganancia/offset**, solo `valor_referencia` — el
-  adaptador `src/telemetry/infrastructure/adapters/calibracion_m09_adapter.py` (consumidor
-  cross-módulo) tiene que aproximar `ganancia=1.0, offset=valor_referencia` porque el modelo
-  de datos de M09 no captura una calibración de dos parámetros, lo cual sugiere que el modelo
-  actual es más simple de lo que otros módulos del sistema necesitan.
+- ~~No existe validación de rango de calibración por tipo de sensor.~~ **Resuelto:** rango
+  por tipo vía `modulo9.rangos_calibracion`; fuera de rango → `400 VALOR_FUERA_DE_RANGO`.
+- ~~`modulo9.calibraciones` no tiene ganancia/offset.~~ **Resuelto:** columnas `ganancia` y
+  `offset_calibracion`; el consumidor de telemetry ya no aproxima.
 - La restricción del RF de "no se permiten valores no numéricos" está cubierta por el tipo de
-  columna (`numeric`) y por Pydantic a nivel de DTO — no se verificó el mensaje de error
-  exacto para ese caso.
+  columna (`numeric`) y por Pydantic a nivel de DTO.
+
+### Pendiente menor (~5%)
+
+- Los rangos sembrados son ilustrativos (espejo de `variables_ambientales` acuícolas); el
+  estándar de calibración real necesita tuning por SQL (perilla de calibración).
+- No hay CRUD de escritura para `rangos_calibracion` (se administra por SQL, igual que el
+  catálogo de RF-23).
 
 ---
 
