@@ -317,6 +317,7 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
         categoria: str,
         detalle: dict[str, Any] | None = None,
         fecha: datetime | None = None,
+        hash_integridad: str | None = None,
     ) -> int:
         return db_session.execute(
             text(
@@ -327,7 +328,7 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
                 ) VALUES (
                     :tipo, :fecha, 'MODULO1',
                     CAST('exitoso' AS modulo1.enum_evento_resultado),
-                    CAST(:detalle AS jsonb), :usuario, :categoria, 'PROCESADO', NULL
+                    CAST(:detalle AS jsonb), :usuario, :categoria, 'PROCESADO', :hash
                 )
                 RETURNING id_evento
                 """
@@ -338,6 +339,7 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
                 "detalle": __import__("json").dumps(detalle or {"origen": "integracion"}),
                 "usuario": id_usuario,
                 "categoria": categoria,
+                "hash": hash_integridad,
             },
         ).scalar_one()
 

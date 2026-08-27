@@ -1,8 +1,7 @@
-"""Puerto de persistencia (lectura) del agregado ``Evento`` (capa de dominio).
+"""Puerto de persistencia del agregado ``Evento`` (capa de dominio).
 
-Contrato de consulta del log de auditoría, expresado en términos del dominio:
-devuelve la entidad :class:`Evento` acompañada de su flag de integridad. La
-implementación concreta vive en
+Incluye consulta, registro y archivado histórico del log de auditoría. Sus
+operaciones se expresan en términos del dominio y la implementación concreta vive en
 ``infrastructure/repositories/evento_repository.py``.
 """
 from __future__ import annotations
@@ -16,7 +15,7 @@ from src.identity_access.domain.value_objects.evento_categoria import EventoCate
 
 
 class EventoRepository(ABC):
-    """Contrato de acceso a datos para la consulta de eventos de auditoría."""
+    """Contrato de persistencia para eventos y su archivo histórico."""
 
     @abstractmethod
     def listar_eventos(
@@ -84,4 +83,18 @@ class EventoRepository(ABC):
 
         Se usa para aplicar rate limiting al endpoint de recuperación de contraseña.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def adquirir_bloqueo_archivado(self) -> bool:
+        """Intenta obtener el bloqueo transaccional exclusivo del archivado RF-10."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def archivar_eventos_anteriores(
+        self,
+        fecha_corte: datetime,
+        limite: int,
+    ) -> int:
+        """Copia un lote de eventos no archivados anteriores a ``fecha_corte``."""
         raise NotImplementedError

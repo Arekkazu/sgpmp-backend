@@ -10,6 +10,7 @@ from .enums_models import (
 )
 from .estados_cuentas_model import EstadosCuentas
 from .eventos_model import Eventos
+from .eventos_archivados_model import EventosArchivados
 from .gestiones_cuenta_model import GestionesCuenta
 from .notificaciones_canal_model import NotificacionesCanal
 from .notificaciones_model import Notificaciones

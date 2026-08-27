@@ -12,7 +12,7 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.evento import Evento
@@ -198,4 +198,89 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 Eventos.detalle["ip"].astext == ip,
             )
             .scalar()
+        )
+
+    def adquirir_bloqueo_archivado(self) -> bool:
+        """Evita que dos réplicas ejecuten simultáneamente el archivado diario."""
+        return bool(
+            self.db.execute(
+                text("SELECT pg_try_advisory_xact_lock(:lock_id)"),
+                {"lock_id": 10101608},
+            ).scalar_one()
+        )
+
+    def archivar_eventos_anteriores(
+        self,
+        fecha_corte: datetime,
+        limite: int,
+    ) -> int:
+        """Copia en forma idempotente un lote hacia el histórico inmutable."""
+        return int(
+            self.db.execute(
+                text(
+                    """
+                    WITH candidatos AS (
+                        SELECT
+                            e.id_evento,
+                            e.tipo_evento,
+                            e.fecha_evento,
+                            e.modulo,
+                            e.resultado,
+                            e.detalle,
+                            e.id_usuario,
+                            e.categoria,
+                            e.estado,
+                            e.descripcion,
+                            e.id_sesion,
+                            e.hash_integridad
+                        FROM modulo1.eventos AS e
+                        WHERE e.fecha_evento < :fecha_corte
+                          AND NOT EXISTS (
+                              SELECT 1
+                              FROM modulo1.eventos_archivados AS a
+                              WHERE a.id_evento = e.id_evento
+                          )
+                        ORDER BY e.fecha_evento, e.id_evento
+                        LIMIT :limite
+                    ),
+                    insertados AS (
+                        INSERT INTO modulo1.eventos_archivados (
+                            id_evento,
+                            tipo_evento,
+                            fecha_evento,
+                            modulo,
+                            resultado,
+                            detalle,
+                            id_usuario,
+                            categoria,
+                            estado,
+                            descripcion,
+                            id_sesion,
+                            hash_integridad
+                        )
+                        SELECT
+                            id_evento,
+                            tipo_evento,
+                            fecha_evento,
+                            modulo,
+                            resultado,
+                            detalle,
+                            id_usuario,
+                            categoria,
+                            estado,
+                            descripcion,
+                            id_sesion,
+                            hash_integridad
+                        FROM candidatos
+                        ON CONFLICT (id_evento) DO NOTHING
+                        RETURNING id_evento
+                    )
+                    SELECT count(*) FROM insertados
+                    """
+                ),
+                {
+                    "fecha_corte": fecha_corte,
+                    "limite": limite,
+                },
+            ).scalar_one()
         )

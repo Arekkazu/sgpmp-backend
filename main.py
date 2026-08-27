@@ -177,6 +177,67 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
             logger.exception("Error en la tarea diaria de reversión de retiros vencidos.")
 
 
+async def _archivar_auditoria_diariamente() -> None:
+    """Tarea diaria RF-10: archiva eventos con más de 12 meses a las 04:00 UTC."""
+    from datetime import datetime, time as dtime, timedelta, timezone
+
+    from src.identity_access.application.use_cases.auditoria.archivar_auditoria_use_case import (
+        ArchivarAuditoriaUseCase,
+    )
+    from src.identity_access.infrastructure.repositories.evento_repository import (
+        SqlAlchemyEventoRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    hora = dtime(4, 0)
+
+    while True:
+        ahora = datetime.now(timezone.utc)
+        proximo = ahora.replace(
+            hour=hora.hour,
+            minute=hora.minute,
+            second=0,
+            microsecond=0,
+        )
+        if proximo <= ahora:
+            proximo += timedelta(days=1)
+        await asyncio.sleep((proximo - ahora).total_seconds())
+
+        def ejecutar_archivado():
+            db = SessionLocal()
+            try:
+                return ArchivarAuditoriaUseCase(
+                    eventos_repo=SqlAlchemyEventoRepository(db),
+                    db=db,
+                ).execute()
+            finally:
+                db.close()
+
+        try:
+            resultado = await asyncio.to_thread(ejecutar_archivado)
+            if not resultado.bloqueo_adquirido:
+                logger.info(
+                    "Archivado RF-10 omitido: otra réplica tiene el bloqueo del proceso."
+                )
+                continue
+            logger.info(
+                "Archivado RF-10 completado: %d evento(s) en %d lote(s), corte=%s.",
+                resultado.eventos_archivados,
+                resultado.lotes_procesados,
+                resultado.fecha_corte.isoformat(),
+            )
+            if resultado.limite_alcanzado:
+                logger.warning(
+                    "ALERTA INTERNA RF-10: el archivado alcanzó el límite de lotes; "
+                    "el remanente se procesará en la siguiente ejecución."
+                )
+        except Exception:
+            logger.exception(
+                "ALERTA INTERNA RF-10: no se pudo completar el archivado automático "
+                "de eventos antiguos."
+            )
+
+
 async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     """Poller RF-77: procesa la cola de generación async de reportes de gastos.
 
@@ -260,6 +321,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
+        asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
     ]
