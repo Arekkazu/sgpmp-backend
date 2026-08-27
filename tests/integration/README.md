@@ -8,7 +8,8 @@ que no conserva usuarios, sesiones, eventos, permisos ni cambios DDL de pytest.
 ## Requisitos
 
 - Una base PostgreSQL exclusiva para pruebas con el esquema `modulo1` cargado.
-- El nombre de la base debe contener `test` o ser exactamente `pruebas`.
+- El nombre debe contener `test` o ser una base local permitida explícitamente:
+  `pruebas` o `pruebas-integrador`.
 - La variable `TEST_DATABASE_URL` debe definirse solo en la terminal. No se debe
   guardar una contrasena real en `.env`, `.env.example` ni en archivos versionados.
 
@@ -58,6 +59,7 @@ Remove-Item Env:TEST_DATABASE_URL
 - RF-10: categoria canonica de eventos al consultar auditoria.
 - RF-11: ausencia del listado legacy, permiso del listado administrativo y orden
   descendente por fecha de registro.
-- RF-12: semilla idempotente del permiso y enmascaramiento de identificacion.
+- RF-12: migracion Alembic idempotente del permiso exclusivo del Administrador
+  y enmascaramiento de identificacion para actores sin esa capacidad.
 - RF-14: persistencia por el servicio central, bandeja interna y marcado como
   leida sin acceso a notificaciones de otros usuarios.

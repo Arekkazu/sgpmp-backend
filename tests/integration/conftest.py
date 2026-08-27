@@ -25,6 +25,7 @@ from sqlalchemy.orm import Session
 
 ROOT = Path(__file__).resolve().parents[2]
 JWT_SECRET_INTEGRACION = "sgpmp-integration-tests-only"
+BASES_PRUEBA_PERMITIDAS = {"pruebas", "pruebas-integrador"}
 TABLAS_MODULO1_REQUERIDAS = {
     "acciones",
     "cuentas_usuarios",
@@ -46,10 +47,11 @@ def _validar_url_pruebas(url: str) -> None:
     nombre = (parsed.database or "").lower()
     if not parsed.drivername.startswith("postgresql"):
         pytest.fail("TEST_DATABASE_URL debe apuntar a PostgreSQL.")
-    if "test" not in nombre and nombre != "pruebas":
+    if "test" not in nombre and nombre not in BASES_PRUEBA_PERMITIDAS:
         pytest.fail(
             "Protección de seguridad: la base indicada por TEST_DATABASE_URL "
-            "debe contener 'test' en su nombre o llamarse exactamente 'pruebas'."
+            "debe contener 'test' o pertenecer a la lista explícita de bases "
+            "de integración permitidas."
         )
 
 

@@ -32,9 +32,9 @@ roles y permisos (CRUD dinámico, no catálogo fijo), gestión de cuentas, contr
 auditoría inmutable con hash SHA-256 y triggers que bloquean UPDATE/DELETE.
 
 **Gaps conocidos:** CAPTCHA ausente en registro (RF-01); `ROL_ADMINISTRADOR = 1` hardcodeado
-en use cases de edición de perfil y gestión de cuentas (RF-05/06); permiso especial de
-identificación completa sin sembrar en BD (RF-12, nadie ve el documento completo).
-Refresh tokens, hash de tokens de un solo uso y RBAC del listado de usuarios **ya resueltos**.
+en use cases de edición de perfil y gestión de cuentas (RF-05/06).
+Refresh tokens, hash de tokens de un solo uso, RBAC del listado de usuarios y el permiso
+especial de identificación completa de RF-12 **ya están resueltos**.
 
 📄 Detalle: [`modulo_1/estado.md`](./modulo_1/estado.md)
 
