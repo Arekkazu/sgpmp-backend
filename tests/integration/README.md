@@ -53,8 +53,10 @@ Remove-Item Env:TEST_DATABASE_URL
   hacia activacion, hash del token y restablecimiento de contrasena.
 - RF-01: validacion del script SQL de identificacion numerica, incluyendo el
   bloqueo seguro si existen datos historicos invalidos.
-- RF-05/06: autorizacion RBAC en router, edicion del perfil propio y proteccion
-  del ultimo usuario activo de un rol protegido.
+- RF-04/06: autorizacion RBAC en vivo y cambio de rol aplicado con el JWT vigente
+  sin invalidar la sesion ni exigir relogin.
+- RF-05/06: edicion del perfil propio y proteccion del ultimo usuario activo de
+  un rol protegido.
 - RF-10: categoria canonica de eventos al consultar auditoria.
 - RF-11: ausencia del listado legacy, permiso del listado administrativo y orden
   descendente por fecha de registro.

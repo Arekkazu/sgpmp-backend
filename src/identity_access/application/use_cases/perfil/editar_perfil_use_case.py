@@ -267,11 +267,10 @@ class EditarPerfilUseCase:
                     field="id_rol",
                 )
 
-        # El rol forma parte del JWT. Cuando cambia el rol se invalidan las
-        # sesiones para que los nuevos permisos se apliquen en el siguiente login.
-        if (
-            correo_modificado or rol_modificado
-        ) and cuenta_objetivo is not None:
+        # Cambiar el correo conserva la política de revocar sesiones. Un cambio
+        # de rol no las invalida: get_current_user obtiene el rol vigente desde
+        # la DB en cada request y RBAC aplica los permisos nuevos de inmediato.
+        if correo_modificado and cuenta_objetivo is not None:
             self.sesiones_repo.invalidar_todas_sesiones(
                 cuenta_objetivo.id_cuenta_usuario
             )

@@ -29,9 +29,10 @@ registraba la operación en `gestiones_cuenta`.
   marca `roles.es_protegido`. El conteo usa ese `id_rol` obtenido de base de
   datos; no existe un ID de administrador fijo en los casos de uso ni en el
   repositorio de cuentas.
-- Al cambiar un rol se invalidan todas las sesiones del usuario afectado, porque
-  el rol forma parte del JWT y los permisos nuevos deben aplicarse desde el
-  siguiente inicio de sesión.
+- Al cambiar un rol se conserva la sesión del usuario afectado. El claim `rol`
+  permanece en el JWT por compatibilidad, pero `get_current_user` consulta el
+  rol vigente en base de datos y los permisos nuevos se aplican en el siguiente
+  request. Ver `rf04_rf06_cambio_rol_sin_relogin.md`.
 
 ## Configuración RBAC requerida
 

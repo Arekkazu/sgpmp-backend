@@ -1,8 +1,8 @@
 """Dependencias de autenticación para los endpoints de FastAPI.
 
-`get_current_user` valida el token Bearer, verifica la blacklist de tokens y
-aplica el timeout de inactividad de 30 minutos. Se usa como `Depends` en los
-endpoints que requieren autenticación.
+`get_current_user` valida el token Bearer, verifica la blacklist, obtiene el rol
+vigente desde la base y aplica el timeout de inactividad de 30 minutos. Se usa
+como `Depends` en los endpoints que requieren autenticación.
 """
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
+from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError
 from src.shared.jwt import verify_token
@@ -23,7 +24,7 @@ INACTIVIDAD_MINUTOS = 30
 
 @dataclass
 class UsuarioActual:
-    """Datos del usuario autenticado extraídos del JWT y verificados contra la DB."""
+    """Identidad autenticada con el rol vigente verificado contra la DB."""
 
     id_usuario: int
     id_token: int
@@ -41,7 +42,7 @@ def get_current_user(
         db: Sesión de base de datos inyectada por FastAPI.
 
     Returns:
-        `UsuarioActual` con `id_usuario`, `id_token` e `id_rol`.
+        `UsuarioActual` con la identidad del JWT y el rol vigente en la base.
 
     Raises:
         AuthenticationError: Si falta el token, está revocado o la sesión
@@ -58,7 +59,6 @@ def get_current_user(
 
     id_token = int(payload["jti"])
     id_usuario = int(payload["sub"])
-    id_rol = payload["rol"]
 
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
@@ -66,6 +66,20 @@ def get_current_user(
         raise AuthenticationError(
             code="TOKEN_REVOCADO",
             message="El token de sesión ha sido revocado o es inválido.",
+        )
+
+    # El claim ``rol`` se conserva en el JWT por compatibilidad, pero no es
+    # autoridad para RBAC. Consultar el rol vigente en cada request permite
+    # aplicar una reasignación administrativa sin cerrar la sesión del usuario.
+    id_rol_vigente = (
+        db.query(Usuarios.id_rol)
+        .filter(Usuarios.id_usuario == id_usuario)
+        .scalar()
+    )
+    if id_rol_vigente is None:
+        raise AuthenticationError(
+            code="USUARIO_SESION_INVALIDO",
+            message="El usuario asociado a la sesión ya no existe.",
         )
 
     # Verificar inactividad de 30 minutos
@@ -98,4 +112,8 @@ def get_current_user(
         cuenta.ultimo_acceso = ahora
         db.commit()
 
-    return UsuarioActual(id_usuario=id_usuario, id_token=id_token, id_rol=id_rol)
+    return UsuarioActual(
+        id_usuario=id_usuario,
+        id_token=id_token,
+        id_rol=id_rol_vigente,
+    )
