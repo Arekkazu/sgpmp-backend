@@ -22,6 +22,10 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
         with:
+          # Necesario para que el diff contra github.event.before (paso
+          # "Detectar si hay revisiones nuevas") tenga el commit anterior
+          # disponible localmente; con el shallow clone por defecto (depth 1)
+          # ese commit no existe en el repo y el diff falla.
           fetch-depth: 0
 
       - name: Configurar Python
@@ -35,21 +39,42 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Mostrar estado actual de la DB
+      - name: Detectar si hay revisiones nuevas de Alembic
+        id: check_migrations
+        run: |
+          # Compara contra el commit anterior al push para confirmar
+          # que efectivamente hay .py nuevos en alembic/versions/
+          BEFORE_SHA="${{ github.event.before }}"
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
+          else
+            CHANGED=$(git diff --name-only --diff-filter=A "$BEFORE_SHA" "${{ github.sha }}" -- alembic/versions/)
+            if [ -n "$CHANGED" ]; then
+              echo "Nuevas migraciones detectadas:"
+              echo "$CHANGED"
+              echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No hay archivos nuevos en alembic/versions/, se omite el upgrade."
+              echo "has_new_migrations=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Mostrar estado actual de la DB (heads / current)
+        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: |
           alembic current
           alembic heads
 
-      - name: Ejecutar migraciones
+      - name: Ejecutar alembic upgrade head
+        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-        run: |
-          alembic upgrade head
+        run: alembic upgrade head
 
       - name: Confirmar versión final aplicada
+        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-        run: |
-          alembic current
+        run: alembic current
