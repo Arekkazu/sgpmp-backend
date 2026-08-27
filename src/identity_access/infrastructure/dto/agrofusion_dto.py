@@ -10,10 +10,11 @@ router.
 import datetime
 from typing import Optional
 
-from pydantic import EmailStr
+from pydantic import EmailStr, Field, field_validator
 
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
+from src.shared.regex import NUMERO_IDENTIFICACION
 
 
 class AgroFusionCredencialesDTO(BaseDTO):
@@ -36,12 +37,22 @@ class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
     nombre: str
     apellidos: str
     tipo_identificacion: str
-    numero_identificacion: str
+    numero_identificacion: str = Field(min_length=1, max_length=20)
     fecha_nacimiento: datetime.date
     genero: EnumUsuarioGenero
     rol_codigo: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+
+    @field_validator("numero_identificacion")
+    @classmethod
+    def validar_numero_identificacion(cls, v: str) -> str:
+        if not NUMERO_IDENTIFICACION.fullmatch(v):
+            raise ValueError(
+                "El número de identificación debe contener únicamente "
+                "dígitos del 0 al 9"
+            )
+        return v
 
 
 class AgroFusionEstadoDTO(AgroFusionCredencialesDTO):

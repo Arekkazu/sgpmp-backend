@@ -18,6 +18,8 @@ from typing import ClassVar, Optional
 
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
+from src.shared.errors import ValidationError
+from src.shared.regex import NUMERO_IDENTIFICACION
 
 
 @dataclass(eq=False)
@@ -93,6 +95,16 @@ class Usuario:
         Returns:
             Una nueva instancia de :class:`Usuario` lista para validar y guardar.
         """
+        if not NUMERO_IDENTIFICACION.fullmatch(numero_identificacion):
+            raise ValidationError(
+                code="NUMERO_IDENTIFICACION_INVALIDO",
+                message=(
+                    "El número de identificación debe contener únicamente "
+                    "dígitos del 0 al 9."
+                ),
+                field="numero_identificacion",
+            )
+
         return cls(
             correo=correo,
             contrasena=contrasena,

@@ -13,7 +13,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
-| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~80% |
+| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~95% |
 | RF-02 | Autenticación de usuarios | ⚠️ Cumple parcialmente | ~85% |
 | RF-03 | Gestión de roles | ✅ Cumple | ~95% |
 | RF-04 | Gestión de permisos | ✅ Cumple (con salvedad) | ~90% |
@@ -34,7 +34,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-01 — Registro de usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — el flujo completo de registro y activación funciona; faltan CAPTCHA, confirmación de contraseña y algunas validaciones de formato.
+**Veredicto: ⚠️ Cumple parcialmente (~95%)** — el flujo completo de registro y activación funciona; el gap restante es CAPTCHA.
 
 ### Qué SÍ cumple
 
@@ -44,7 +44,9 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Hash bcrypt**: la contraseña nunca se guarda en texto plano, se cifra con bcrypt antes de persistir (`contrasena.py:62`).
 - **Estado inicial "Pendiente de activación"** y **rol por defecto (Productor) asignado automáticamente**: el usuario no puede elegir su rol porque el campo directamente no existe en el formulario de registro — es estructuralmente imposible enviarlo.
 - **Token de activación con validez de 24 horas**, generado de forma aleatoria y segura (`secrets.token_urlsafe`).
-- **Envío del correo de activación** después de confirmar la transacción en base de datos (como pide el patrón del proyecto), con reintento automático hasta 3 veces si el SMTP falla.
+- **Confirmación de contraseña**: `confirmar_contrasena` es obligatorio y debe coincidir exactamente con `contrasena`.
+- **Identificación numérica**: el DTO y el dominio aceptan únicamente dígitos ASCII; una migración Alembic protege también nuevas altas y cambios directos en PostgreSQL sin alterar datos históricos incompatibles.
+- **Envío asíncrono del correo de activación** después de confirmar la transacción, mediante `BackgroundTasks` y una sesión independiente. Los 3 reintentos con pausas de 5 segundos ya no bloquean la respuesta HTTP.
 - **Endpoint de activación por token**, que distingue correctamente token inexistente (400), token expirado (410, con mensaje que incluye la fecha) y cuenta ya activada (422).
 - **Reenvío de token de activación** si el original expiró.
 - **Validación de mayoría de edad (18 años)**: si el usuario declara ser menor, el registro se rechaza con `403 Forbidden`, tal como pide el RF.
@@ -53,10 +55,6 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 ### Qué NO cumple / gaps
 
 - **No hay CAPTCHA en absoluto.** El RF lo pide explícitamente como requisito no funcional de seguridad ("Implementar CAPTCHA — Google reCAPTCHA v2 o v3") y también como flujo alterno con `HTTP 400`. Hoy no existe ninguna referencia a CAPTCHA/reCAPTCHA en todo el código ni en las variables de entorno.
-- **Falta el campo `confirmar_contraseña`** en el formulario de registro. El RF pide que el usuario escriba la contraseña dos veces para evitar errores de tipeo, pero el DTO de registro solo tiene el campo de contraseña (a diferencia de cambio y restablecimiento de contraseña, que sí piden confirmación).
-- **`numero_identificacion` no valida que sea solo numérico.** El RF especifica que la identificación debe ser numérica; hoy el campo acepta cualquier texto, tanto en el formulario como en la base de datos.
-- **El reintento de envío de correo es síncrono, no asíncrono.** El RF pide que, si el SMTP falla, el sistema reintente "de forma asíncrona" para no bloquear al usuario. En la implementación actual, el reintento (hasta 3 veces, con pausas de 5 segundos entre intentos) ocurre dentro del mismo request HTTP — si el correo falla, el usuario que se está registrando puede quedar esperando hasta ~15 segundos antes de recibir respuesta.
-- **El registro y la activación de cuenta no generan evento de auditoría.** El RF-10 exige que "registro de nuevo usuario" sea un evento auditable, pero ni `CrearUsuarioUseCase` ni `ActivarCuentaUseCase` escriben en la tabla de eventos — son de los pocos flujos del módulo que no dejan rastro.
 
 ---
 
