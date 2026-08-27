@@ -1,15 +1,12 @@
 name: Deploy Migrations to Dev DB
 
-# Se dispara SOLO cuando llega un push a main que toca la carpeta
-# de migraciones de Alembic (nuevos archivos en alembic/versions/).
 on:
   push:
     branches:
-      - main
+      - dev
     paths:
       - "alembic/versions/**"
 
-# Evita que dos runs se pisen si llegan varios pushes seguidos
 concurrency:
   group: deploy-migrations-dev
   cancel-in-progress: false
@@ -18,15 +15,14 @@ jobs:
   migrate:
     name: Run Alembic upgrade on dev DB
     runs-on: ubuntu-latest
-    # Si tienes un "environment" configurado en GitHub (Settings > Environments)
-    # llamado "development", esto te permite además pedir aprobación manual
-    # o restringir quién puede correr el job. Si no lo tienes, puedes borrar
-    # esta línea sin problema.
+
     environment: development
 
     steps:
       - name: Checkout código
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -39,42 +35,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Detectar si hay revisiones nuevas de Alembic
-        id: check_migrations
-        run: |
-          # Compara contra el commit anterior al push para confirmar
-          # que efectivamente hay .py nuevos en alembic/versions/
-          BEFORE_SHA="${{ github.event.before }}"
-          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
-          else
-            CHANGED=$(git diff --name-only --diff-filter=A "$BEFORE_SHA" "${{ github.sha }}" -- alembic/versions/)
-            if [ -n "$CHANGED" ]; then
-              echo "Nuevas migraciones detectadas:"
-              echo "$CHANGED"
-              echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "No hay archivos nuevos en alembic/versions/, se omite el upgrade."
-              echo "has_new_migrations=false" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
-      - name: Mostrar estado actual de la DB (heads / current)
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
+      - name: Mostrar estado actual de la DB
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: |
           alembic current
           alembic heads
 
-      - name: Ejecutar alembic upgrade head
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
+      - name: Ejecutar migraciones
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-        run: alembic upgrade head
+        run: |
+          alembic upgrade head
 
       - name: Confirmar versión final aplicada
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-        run: alembic current
+        run: |
+          alembic current
