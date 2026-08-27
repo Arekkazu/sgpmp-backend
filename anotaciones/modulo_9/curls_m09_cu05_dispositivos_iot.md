@@ -453,10 +453,14 @@ Errores posibles:
 - `400` — sensor no tiene asociación activa en el área indicada (FA-03) — `SENSOR_AREA_INVALIDA`
 - `400` — `valor_referencia`/`offset` fuera del rango de seguridad del tipo de sensor
   (FA-11, ej. temperatura 500 °C) — `VALOR_FUERA_DE_RANGO`
+- `400` — `valor_referencia` no numérico, vacío o nulo (FA "Datos no numéricos o
+  incompletos") — `VALOR_CALIBRACION_INVALIDO`
 - `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
   (fallback) — `VALOR_CALIBRACION_INVALIDO`
 - `400` — `ganancia` ≤ 0 (validación de DTO)
-- `403` — rol sin permiso C sobre sensores (FA-01)
+- `403` — rol sin permiso C sobre sensores (FA-01) — solo Ing. de Campo y Admin pueden calibrar
+- `500` — falla la escritura del historial de auditoría inmutable (FA RF-10): se hace
+  rollback de la calibración — `AUDITORIA_CALIBRACION_FALLIDA`
 
 Ejemplo de rechazo por rango (`400`):
 ```bash

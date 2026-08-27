@@ -45,7 +45,27 @@ concepto de calibración, ni actor Ingeniero de campo, ni endpoint de registro; 
 
 ### RBAC
 Sin cambios: se reutiliza el recurso 12 (`sensores`), acción C(1) para calibrar y R(2) para
-el catálogo. No se insertaron filas nuevas en `modulo1.permisos`.
+el catálogo. No se insertaron filas nuevas en `modulo1.permisos`. Verificado en DB: solo
+Administrador e Ingeniero de Campo tienen C sobre recurso 12 (Productor/Contador → 403).
+
+### Segunda pasada — flujos alternos RF-24 restantes
+
+Tras revisar la implementación contra el texto completo del RF-24, se cerraron dos flujos
+alternos que faltaban:
+
+- **Auditoría inmutable RF-10 + rollback → 500.** Nueva tabla `modulo9.auditorias_calibraciones`
+  (migración Alembic `d4e2f8a15c9b`), inmutable por trigger (`trg_auditorias_calibraciones_inmutable`
+  bloquea UPDATE/DELETE, patrón de `auditorias_especies`). El use case escribe la traza dentro
+  de la transacción vía `AuditoriaCalibracionRepository` y `Calibracion._snapshot()`; si falla →
+  `InfrastructureError` → rollback → `500 AUDITORIA_CALIBRACION_FALLIDA`. Sigue el patrón del
+  flujo hermano `asociar_sensor_area_use_case`.
+- **Formato no numérico → 400 (antes 422).** El DTO acepta `valor_referencia` permisivo
+  (`Decimal | str | None`) para no dispararse el 422 de Pydantic; el use case convierte y
+  devuelve `400 VALOR_CALIBRACION_INVALIDO` ante valor no numérico, vacío o nulo.
+
+Verificación adicional: `tests/test_registrar_calibracion_use_case.py` (fakes en memoria) cubre
+happy-path escribe auditoría, fallo de auditoría→500+rollback, no numérico/vacío/nulo→400 y
+fuera de rango→400. Inmutabilidad del trigger comprobada contra la BD.
 
 ## Verificación
 - Test de dominio: `tests/test_rango_calibracion.py` (`RangoCalibracion.verificar`) — pasa.
