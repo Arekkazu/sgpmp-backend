@@ -184,12 +184,38 @@ async def _archivar_auditoria_diariamente() -> None:
     from src.identity_access.application.use_cases.auditoria.archivar_auditoria_use_case import (
         ArchivarAuditoriaUseCase,
     )
+    from src.identity_access.application.use_cases.auditoria.notificar_fallo_archivado_use_case import (
+        NotificarFalloArchivadoUseCase,
+    )
     from src.identity_access.infrastructure.repositories.evento_repository import (
         SqlAlchemyEventoRepository,
+    )
+    from src.identity_access.infrastructure.repositories.notificacion_repository import (
+        SqlAlchemyNotificacionRepository,
+    )
+    from src.identity_access.infrastructure.repositories.usuario_repository import (
+        SqlAlchemyUsuarioRepository,
     )
     from src.shared.database import SessionLocal
 
     hora = dtime(4, 0)
+
+    def alertar_fallo(causa: str) -> int:
+        """Emite la alerta interna del FA de RF-10 en una sesión limpia.
+
+        La sesión del archivado quedó en rollback, así que la notificación necesita
+        una propia.
+        """
+        db = SessionLocal()
+        try:
+            return NotificarFalloArchivadoUseCase(
+                eventos_repo=SqlAlchemyEventoRepository(db),
+                notificaciones_repo=SqlAlchemyNotificacionRepository(db),
+                usuarios_repo=SqlAlchemyUsuarioRepository(db),
+                db=db,
+            ).execute(causa=causa)
+        finally:
+            db.close()
 
     while True:
         ahora = datetime.now(timezone.utc)
@@ -231,11 +257,23 @@ async def _archivar_auditoria_diariamente() -> None:
                     "ALERTA INTERNA RF-10: el archivado alcanzó el límite de lotes; "
                     "el remanente se procesará en la siguiente ejecución."
                 )
-        except Exception:
+        except Exception as exc:
             logger.exception(
                 "ALERTA INTERNA RF-10: no se pudo completar el archivado automático "
                 "de eventos antiguos."
             )
+            # El FA de RF-10 exige avisar al administrador, no solo dejar el log.
+            # Un fallo de la propia alerta no debe tumbar el bucle diario.
+            try:
+                avisados = await asyncio.to_thread(alertar_fallo, f"{type(exc).__name__}: {exc}")
+                logger.info(
+                    "Alerta de fallo de archivado RF-10 notificada a %d administrador(es).",
+                    avisados,
+                )
+            except Exception:
+                logger.exception(
+                    "ALERTA INTERNA RF-10: tampoco se pudo notificar el fallo del archivado."
+                )
 
 
 async def _procesar_cola_reportes_gastos_periodicamente() -> None:

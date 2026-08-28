@@ -27,6 +27,7 @@ class EventoRepository(ABC):
         offset: int,
         limit: int,
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> list[tuple[Evento, bool]]:
         """Retorna una página de eventos con su flag de integridad.
 
@@ -38,6 +39,7 @@ class EventoRepository(ABC):
             offset: Registros a saltar.
             limit: Máximo de registros a retornar.
             categoria: Filtro por categoría funcional, o ``None``.
+            archivados: Consultar el archivo histórico en vez del log activo.
 
         Returns:
             Lista de tuplas ``(Evento, integridad_ok)`` donde ``integridad_ok``
@@ -53,6 +55,7 @@ class EventoRepository(ABC):
         fecha_desde: Optional[datetime],
         fecha_hasta: Optional[datetime],
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> int:
         """Cuenta el total de eventos que cumplen los filtros (para paginar)."""
         raise NotImplementedError

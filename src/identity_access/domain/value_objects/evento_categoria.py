@@ -42,6 +42,10 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     13: EventoCategoria.MODIFICACION,
     14: EventoCategoria.MODIFICACION,
     15: EventoCategoria.MODIFICACION,
+    # Fallo del proceso automático de retención de auditoría (RF-10). No es una
+    # consulta ni una autenticación: el proceso actúa sobre el propio almacén de
+    # auditoría, así que se clasifica como MODIFICACION.
+    25: EventoCategoria.MODIFICACION,
     # Consultas de auditoría, usuarios y perfil propio.
     16: EventoCategoria.CONSULTA,
     17: EventoCategoria.CONSULTA,

@@ -246,7 +246,9 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Categorías funcionales corregidas**: los eventos se clasifican como `AUTENTICACION`, `MODIFICACION` o `CONSULTA` según su tipo. El endpoint también permite filtrar por categoría sin modificar eventos históricos inmutables.
 - **El registro de usuario y la activación de cuenta generan eventos de auditoría** (tipos 1 y 2).
 - Se auditan correctamente: login exitoso/fallido, cierre de sesión, cambio de contraseña, solicitud y confirmación de recuperación, actualización de perfil, cambio de estado de cuenta, creación/edición/eliminación de roles, asignación/revocación de permisos, y hasta las propias consultas de auditoría, de listado de usuarios y de perfiles.
-- **Retención y archivado automático de 12 meses**: una tarea diaria copia en lotes los eventos vencidos a `modulo1.eventos_archivados`, conserva el hash y los originales inmutables, evita concurrencia entre réplicas mediante advisory lock y genera alertas internas por log ante fallos. La tabla y sus índices se crean mediante Alembic. Ver [`rf10_retencion_auditoria_12_meses.md`](./rf10_retencion_auditoria_12_meses.md).
+- **Retención y archivado automático de 12 meses**: una tarea diaria copia en lotes los eventos vencidos a `modulo1.eventos_archivados`, conserva el hash y los originales inmutables, y evita concurrencia entre réplicas mediante advisory lock. La tabla y sus índices se crean mediante Alembic.
+- **El archivo histórico es consultable**: `GET /auditoria/archivado/` reusa el mismo caso de uso, permiso RBAC, filtros, paginación y verificación de hash que el log activo.
+- **El fallo del archivado alerta al administrador**: además del log, registra un evento tipo 25 (`FALLO_ARCHIVADO_AUDITORIA`) y una notificación en la bandeja interna (RF-14) para quien tenga permiso de lectura de auditoría. Ver [`rf10_retencion_auditoria/RESUMEN_FINAL.md`](./rf10_retencion_auditoria/RESUMEN_FINAL.md).
 
 ### Qué NO cumple / gaps
 

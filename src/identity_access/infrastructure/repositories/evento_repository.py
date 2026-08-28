@@ -23,6 +23,7 @@ from src.identity_access.domain.value_objects.evento_categoria import (
     tipos_evento_para_categoria,
 )
 from src.identity_access.infrastructure.models.enums_models import EnumEventoResultado
+from src.identity_access.infrastructure.models.eventos_archivados_model import EventosArchivados
 from src.identity_access.infrastructure.models.eventos_model import Eventos
 from src.shared.errors import InfrastructureError
 
@@ -34,8 +35,12 @@ class SqlAlchemyEventoRepository(EventoRepository):
         self.db = db
 
     @staticmethod
-    def _a_entidad(orm: Eventos) -> Evento:
-        """Convierte una fila ORM ``Eventos`` en la entidad :class:`Evento`."""
+    def _a_entidad(orm: Eventos | EventosArchivados) -> Evento:
+        """Convierte una fila ORM de eventos (activos o archivados) en :class:`Evento`.
+
+        ``EventosArchivados`` replica los nombres de columna de ``Eventos``, así que
+        la conversión y la verificación del hash sirven para ambos sin duplicarse.
+        """
         try:
             categoria = categoria_para_tipo_evento(orm.tipo_evento).value
         except ValueError:
@@ -65,7 +70,9 @@ class SqlAlchemyEventoRepository(EventoRepository):
         offset: int,
         limit: int,
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> list[tuple[Evento, bool]]:
+        modelo = EventosArchivados if archivados else Eventos
         eventos = (
             self._query_con_filtros(
                 id_usuario,
@@ -73,8 +80,9 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 categoria,
                 fecha_desde,
                 fecha_hasta,
+                modelo,
             )
-            .order_by(Eventos.fecha_evento.desc())
+            .order_by(modelo.fecha_evento.desc())
             .offset(offset)
             .limit(limit)
             .all()
@@ -88,6 +96,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         fecha_desde: Optional[datetime],
         fecha_hasta: Optional[datetime],
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> int:
         return self._query_con_filtros(
             id_usuario,
@@ -95,6 +104,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             categoria,
             fecha_desde,
             fecha_hasta,
+            EventosArchivados if archivados else Eventos,
         ).count()
 
     def _query_con_filtros(
@@ -104,26 +114,27 @@ class SqlAlchemyEventoRepository(EventoRepository):
         categoria,
         fecha_desde,
         fecha_hasta,
+        modelo=Eventos,
     ):
-        query = self.db.query(Eventos)
+        query = self.db.query(modelo)
         if id_usuario is not None:
-            query = query.filter(Eventos.id_usuario == id_usuario)
+            query = query.filter(modelo.id_usuario == id_usuario)
         if tipo_evento is not None:
-            query = query.filter(Eventos.tipo_evento == tipo_evento)
+            query = query.filter(modelo.tipo_evento == tipo_evento)
         if categoria is not None:
             # La columna de los eventos históricos contiene el valor erróneo
             # AUTENTICACION. Filtrar por tipos canónicos permite consultarlos
             # correctamente sin violar la inmutabilidad de la auditoría.
             query = query.filter(
-                Eventos.tipo_evento.in_(tipos_evento_para_categoria(categoria))
+                modelo.tipo_evento.in_(tipos_evento_para_categoria(categoria))
             )
         if fecha_desde is not None:
-            query = query.filter(Eventos.fecha_evento >= fecha_desde)
+            query = query.filter(modelo.fecha_evento >= fecha_desde)
         if fecha_hasta is not None:
-            query = query.filter(Eventos.fecha_evento <= fecha_hasta)
+            query = query.filter(modelo.fecha_evento <= fecha_hasta)
         return query
 
-    def _verificar_hash(self, evento: Eventos) -> bool:
+    def _verificar_hash(self, evento: Eventos | EventosArchivados) -> bool:
         if evento.hash_integridad is None:
             return True
         contenido = json.dumps({

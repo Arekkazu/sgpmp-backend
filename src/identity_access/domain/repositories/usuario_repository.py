@@ -168,3 +168,20 @@ class UsuarioRepository(ABC):
     ) -> int:
         """Cuenta el total de usuarios que cumplen los filtros (para paginar)."""
         raise NotImplementedError
+
+    @abstractmethod
+    def listar_ids_con_permiso(self, id_recurso: int, id_accion: int) -> list[int]:
+        """Retorna los IDs de usuarios activos cuyo rol tiene ese permiso activo.
+
+        Permite dirigir una notificación al conjunto de destinatarios correcto sin
+        codificar un ``id_rol`` concreto: quién recibe la alerta se decide en
+        ``modulo1.permisos``, igual que el acceso a los endpoints.
+
+        Args:
+            id_recurso: ID del recurso (tabla ``modulo1.recursos``).
+            id_accion: ID de la acción (tabla ``modulo1.acciones``).
+
+        Returns:
+            Lista de ``id_usuario`` ordenada ascendentemente; vacía si nadie califica.
+        """
+        raise NotImplementedError

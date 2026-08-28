@@ -41,6 +41,7 @@ class ConsultarAuditoriaUseCase:
         pagina: int,
         tamano: int,
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> dict:
         """Consulta el historial de auditoría con los filtros indicados.
 
@@ -53,6 +54,9 @@ class ConsultarAuditoriaUseCase:
             pagina: Número de página (base 1).
             tamano: Cantidad de ítems por página (máximo efectivo: 50).
             categoria: Filtrar por categoría funcional.
+            archivados: Consultar el archivo histórico de RF-10 (eventos con más
+                de 12 meses) en vez del log activo. Los mismos filtros, la misma
+                paginación y las mismas reglas de acceso aplican a ambos.
 
         Returns:
             Diccionario con ``total``, ``pagina``, ``tamano`` e ``items``, donde
@@ -69,7 +73,7 @@ class ConsultarAuditoriaUseCase:
                     tipo_evento=TIPO_CONSULTA_AUDITORIA,
                     exitoso=False,
                     id_usuario=usuario_actual.id_usuario,
-                    detalle={"razon": "ACCESO_DENEGADO"},
+                    detalle={"razon": "ACCESO_DENEGADO", "archivados": archivados},
                 )
                 self.db.commit()
             except Exception:
@@ -103,6 +107,7 @@ class ConsultarAuditoriaUseCase:
             fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta,
             categoria=categoria,
+            archivados=archivados,
         )
         items = self.eventos_repo.listar_eventos(
             id_usuario=id_usuario,
@@ -112,6 +117,7 @@ class ConsultarAuditoriaUseCase:
             offset=offset,
             limit=tamano,
             categoria=categoria,
+            archivados=archivados,
         )
 
         # 5. Registrar evento de consulta
@@ -128,6 +134,7 @@ class ConsultarAuditoriaUseCase:
                         "fecha_desde": fecha_desde.isoformat() if fecha_desde else None,
                         "fecha_hasta": fecha_hasta.isoformat() if fecha_hasta else None,
                     },
+                    "archivados": archivados,
                     "total_resultados": total,
                 },
             )
