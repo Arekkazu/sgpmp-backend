@@ -97,4 +97,4 @@ RBAC: sin cambios. No hay recurso ni permiso nuevo.
 ## Entrega
 
 - [x] Merge de `dev` en la rama (necesario para encadenar la migración).
-- [ ] Push a `feature/rf01-validaciones-registro-correo-asincrono` (PR #48).
+- [x] Push a `feature/rf01-validaciones-registro-correo-asincrono` (PR #48).
