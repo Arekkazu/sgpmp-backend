@@ -8,10 +8,14 @@ credenciales por query params (sin body), declarados directamente en el
 router.
 """
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import EmailStr
+from pydantic import EmailStr, Field, ValidationInfo, field_validator
 
+from src.identity_access.domain.value_objects.identificacion import (
+    identificacion_valida,
+    mensaje_identificacion_invalida,
+)
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
 
@@ -35,13 +39,21 @@ class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
     correo_electronico: EmailStr
     nombre: str
     apellidos: str
-    tipo_identificacion: str
-    numero_identificacion: str
+    tipo_identificacion: Literal["CC", "CE", "Pasaporte"]
+    numero_identificacion: str = Field(min_length=1, max_length=20)
     fecha_nacimiento: datetime.date
     genero: EnumUsuarioGenero
     rol_codigo: Optional[str] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
+
+    @field_validator("numero_identificacion")
+    @classmethod
+    def validar_identificacion(cls, v: str, info: ValidationInfo) -> str:
+        tipo = info.data.get("tipo_identificacion")
+        if not identificacion_valida(tipo, v):
+            raise ValueError(mensaje_identificacion_invalida(tipo))
+        return v
 
 
 class AgroFusionEstadoDTO(AgroFusionCredencialesDTO):

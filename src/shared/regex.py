@@ -16,3 +16,11 @@ NOMBRE = re.compile(
 TELEFONO = re.compile(
     r"^\d{7,15}$"
 )
+
+IDENTIFICACION_NUMERICA = re.compile(
+    r"^[0-9]+$"
+)
+
+IDENTIFICACION_PASAPORTE = re.compile(
+    r"^[A-Za-z0-9]+$"
+)

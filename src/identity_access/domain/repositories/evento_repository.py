@@ -1,8 +1,7 @@
-"""Puerto de persistencia (lectura) del agregado ``Evento`` (capa de dominio).
+"""Puerto de persistencia del agregado ``Evento`` (capa de dominio).
 
-Contrato de consulta del log de auditoría, expresado en términos del dominio:
-devuelve la entidad :class:`Evento` acompañada de su flag de integridad. La
-implementación concreta vive en
+Incluye consulta, registro y archivado histórico del log de auditoría. Sus
+operaciones se expresan en términos del dominio y la implementación concreta vive en
 ``infrastructure/repositories/evento_repository.py``.
 """
 from __future__ import annotations
@@ -16,7 +15,7 @@ from src.identity_access.domain.value_objects.evento_categoria import EventoCate
 
 
 class EventoRepository(ABC):
-    """Contrato de acceso a datos para la consulta de eventos de auditoría."""
+    """Contrato de persistencia para eventos y su archivo histórico."""
 
     @abstractmethod
     def listar_eventos(
@@ -28,8 +27,9 @@ class EventoRepository(ABC):
         offset: int,
         limit: int,
         categoria: Optional[EventoCategoria] = None,
-    ) -> list[tuple[Evento, bool]]:
-        """Retorna una página de eventos con su flag de integridad.
+        archivados: bool = False,
+    ) -> list[tuple[Evento, str]]:
+        """Retorna una página de eventos con su clasificación de integridad.
 
         Args:
             id_usuario: Filtro por usuario, o ``None``.
@@ -39,10 +39,14 @@ class EventoRepository(ABC):
             offset: Registros a saltar.
             limit: Máximo de registros a retornar.
             categoria: Filtro por categoría funcional, o ``None``.
+            archivados: Consultar el archivo histórico en vez del log activo.
 
         Returns:
-            Lista de tuplas ``(Evento, integridad_ok)`` donde ``integridad_ok``
-            indica si el hash almacenado coincide con el recalculado.
+            Lista de tuplas ``(Evento, clasificacion)`` donde ``clasificacion`` es
+            ``INTEGRO`` si el hash almacenado coincide con el recalculado,
+            ``LEGADO`` si el registro ya no era verificable antes de adoptar la
+            política y no ha cambiado desde entonces, o ``MANIPULADO`` si el
+            contenido fue alterado.
         """
         raise NotImplementedError
 
@@ -54,6 +58,7 @@ class EventoRepository(ABC):
         fecha_desde: Optional[datetime],
         fecha_hasta: Optional[datetime],
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> int:
         """Cuenta el total de eventos que cumplen los filtros (para paginar)."""
         raise NotImplementedError
@@ -66,8 +71,12 @@ class EventoRepository(ABC):
         id_usuario: int,
         detalle: dict,
         id_sesion: Optional[int] = None,
+        descripcion: Optional[str] = None,
     ) -> None:
         """Registra un evento de auditoría con su hash de integridad SHA-256.
+
+        La IP, el user-agent y la sesión se toman del contexto del request cuando
+        el llamador no los indica, de modo que ningún registro quede sin ellos.
 
         Args:
             tipo_evento: ID del tipo de evento.
@@ -84,4 +93,18 @@ class EventoRepository(ABC):
 
         Se usa para aplicar rate limiting al endpoint de recuperación de contraseña.
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def adquirir_bloqueo_archivado(self) -> bool:
+        """Intenta obtener el bloqueo transaccional exclusivo del archivado RF-10."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def archivar_eventos_anteriores(
+        self,
+        fecha_corte: datetime,
+        limite: int,
+    ) -> int:
+        """Copia un lote de eventos no archivados anteriores a ``fecha_corte``."""
         raise NotImplementedError

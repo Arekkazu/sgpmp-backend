@@ -15,13 +15,15 @@ import secrets
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.repositories.correo_activacion_port import (
+    CorreoActivacionPort,
+)
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
-from src.identity_access.infrastructure.email_templates import activation_email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.shared.errors import AuthorizationError
 
@@ -35,8 +37,8 @@ class CrearUsuarioUseCase:
         usuarios_repo: UsuarioRepository,
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
+        correo_activacion_port: CorreoActivacionPort,
         db: Session,
-        notificacion_service=None,
     ):
         """Inicializa el use case.
 
@@ -44,15 +46,15 @@ class CrearUsuarioUseCase:
             usuarios_repo: Repositorio de dominio del agregado Usuario.
             eventos_repo: Repositorio utilizado para registrar eventos de auditoría.
             cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
+            correo_activacion_port: Salida que agenda el correo después del commit.
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
-            notificacion_service: Servicio centralizado de notificaciones.
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
+        self.correo_activacion_port = correo_activacion_port
         self.db = db
-        self.notificacion_service = notificacion_service
 
     def execute(
         self,
@@ -124,14 +126,12 @@ class CrearUsuarioUseCase:
             self.db.rollback()
             raise
 
-        # 5. Notificación fuera de la transacción (CLAUDE.md: tras el commit).
-        if self.notificacion_service:
-            self.notificacion_service.notificar(
-                tipo_evento=TIPO_REGISTRO_USUARIO,
-                id_usuario=usuario.id_usuario,
-                correo_destino=str(usuario.correo),
-                asunto_email="Activa tu cuenta en SGPMP",
-                contenido_html_email=activation_email(usuario.nombre, token),
-            )
+        # 5. Notificación fuera de la transacción y del tiempo de respuesta HTTP.
+        self.correo_activacion_port.programar_envio(
+            correo=str(usuario.correo),
+            nombre=usuario.nombre,
+            token=token,
+            id_usuario=usuario.id_usuario,
+        )
 
         return usuario
