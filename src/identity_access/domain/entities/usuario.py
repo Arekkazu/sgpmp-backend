@@ -18,6 +18,11 @@ from typing import ClassVar, Optional
 
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.identificacion import (
+    identificacion_valida,
+    mensaje_identificacion_invalida,
+)
+from src.shared.errors import ValidationError
 
 
 @dataclass(eq=False)
@@ -93,6 +98,13 @@ class Usuario:
         Returns:
             Una nueva instancia de :class:`Usuario` lista para validar y guardar.
         """
+        if not identificacion_valida(tipo_identificacion, numero_identificacion):
+            raise ValidationError(
+                code="NUMERO_IDENTIFICACION_INVALIDO",
+                message=mensaje_identificacion_invalida(tipo_identificacion),
+                field="numero_identificacion",
+            )
+
         return cls(
             correo=correo,
             contrasena=contrasena,

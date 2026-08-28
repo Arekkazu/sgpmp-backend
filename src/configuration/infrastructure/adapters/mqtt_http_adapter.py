@@ -28,7 +28,11 @@ logger = logging.getLogger(__name__)
 # aplica para esta entrega.
 _semaforo_llamadas_broker = threading.Semaphore(10)
 
-_TIMEOUT_HTTP_SEGUNDOS = 35.0
+# Timeout HTTP hacia el broker. Debe ser > que el timeout de ACK del broker
+# (MQTT_ACK_TIMEOUT_SECONDS=30s en BROKER-MQTT-SGPMP) para dar margen a que el
+# broker responda su veredicto NO_CONF en vez de que corte primero la red.
+# Configurable por si el contrato de 30s cambia.
+_TIMEOUT_HTTP_SEGUNDOS = float(os.environ.get("MQTT_BROKER_HTTP_TIMEOUT", "35"))
 _MENSAJE_BROKER_NO_DISPONIBLE = "No se pudo contactar al broker MQTT. La configuración quedará pendiente."
 
 

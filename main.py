@@ -18,6 +18,7 @@ from src.configuration.infrastructure.routers.configuracion_global_router import
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
 from src.configuration.infrastructure.routers.finca_router import router as finca_router
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
+from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import router as tipo_dispositivo_iot_router
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
@@ -65,6 +66,7 @@ from src.identity_access.infrastructure.routers.sesiones_routers import router a
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared.error_handlers import register_error_handlers
+from src.shared.middlewares import RequestContextMiddleware
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -176,6 +178,105 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
             logger.exception("Error en la tarea diaria de reversión de retiros vencidos.")
 
 
+async def _archivar_auditoria_diariamente() -> None:
+    """Tarea diaria RF-10: archiva eventos con más de 12 meses a las 04:00 UTC."""
+    from datetime import datetime, time as dtime, timedelta, timezone
+
+    from src.identity_access.application.use_cases.auditoria.archivar_auditoria_use_case import (
+        ArchivarAuditoriaUseCase,
+    )
+    from src.identity_access.application.use_cases.auditoria.notificar_fallo_archivado_use_case import (
+        NotificarFalloArchivadoUseCase,
+    )
+    from src.identity_access.infrastructure.repositories.evento_repository import (
+        SqlAlchemyEventoRepository,
+    )
+    from src.identity_access.infrastructure.repositories.notificacion_repository import (
+        SqlAlchemyNotificacionRepository,
+    )
+    from src.identity_access.infrastructure.repositories.usuario_repository import (
+        SqlAlchemyUsuarioRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    hora = dtime(4, 0)
+
+    def alertar_fallo(causa: str) -> int:
+        """Emite la alerta interna del FA de RF-10 en una sesión limpia.
+
+        La sesión del archivado quedó en rollback, así que la notificación necesita
+        una propia.
+        """
+        db = SessionLocal()
+        try:
+            return NotificarFalloArchivadoUseCase(
+                eventos_repo=SqlAlchemyEventoRepository(db),
+                notificaciones_repo=SqlAlchemyNotificacionRepository(db),
+                usuarios_repo=SqlAlchemyUsuarioRepository(db),
+                db=db,
+            ).execute(causa=causa)
+        finally:
+            db.close()
+
+    while True:
+        ahora = datetime.now(timezone.utc)
+        proximo = ahora.replace(
+            hour=hora.hour,
+            minute=hora.minute,
+            second=0,
+            microsecond=0,
+        )
+        if proximo <= ahora:
+            proximo += timedelta(days=1)
+        await asyncio.sleep((proximo - ahora).total_seconds())
+
+        def ejecutar_archivado():
+            db = SessionLocal()
+            try:
+                return ArchivarAuditoriaUseCase(
+                    eventos_repo=SqlAlchemyEventoRepository(db),
+                    db=db,
+                ).execute()
+            finally:
+                db.close()
+
+        try:
+            resultado = await asyncio.to_thread(ejecutar_archivado)
+            if not resultado.bloqueo_adquirido:
+                logger.info(
+                    "Archivado RF-10 omitido: otra réplica tiene el bloqueo del proceso."
+                )
+                continue
+            logger.info(
+                "Archivado RF-10 completado: %d evento(s) en %d lote(s), corte=%s.",
+                resultado.eventos_archivados,
+                resultado.lotes_procesados,
+                resultado.fecha_corte.isoformat(),
+            )
+            if resultado.limite_alcanzado:
+                logger.warning(
+                    "ALERTA INTERNA RF-10: el archivado alcanzó el límite de lotes; "
+                    "el remanente se procesará en la siguiente ejecución."
+                )
+        except Exception as exc:
+            logger.exception(
+                "ALERTA INTERNA RF-10: no se pudo completar el archivado automático "
+                "de eventos antiguos."
+            )
+            # El FA de RF-10 exige avisar al administrador, no solo dejar el log.
+            # Un fallo de la propia alerta no debe tumbar el bucle diario.
+            try:
+                avisados = await asyncio.to_thread(alertar_fallo, f"{type(exc).__name__}: {exc}")
+                logger.info(
+                    "Alerta de fallo de archivado RF-10 notificada a %d administrador(es).",
+                    avisados,
+                )
+            except Exception:
+                logger.exception(
+                    "ALERTA INTERNA RF-10: tampoco se pudo notificar el fallo del archivado."
+                )
+
+
 async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     """Poller RF-77: procesa la cola de generación async de reportes de gastos.
 
@@ -259,6 +360,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
         asyncio.create_task(_revertir_retiros_vencidos_diariamente()),
+        asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
     ]
@@ -298,6 +400,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
+# user-agent y esos campos quedan vacíos en cada evento.
+app.add_middleware(RequestContextMiddleware)
+
 register_error_handlers(app)
 
 app.include_router(usuarios_router)
@@ -321,6 +427,7 @@ app.include_router(configuracion_global_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
 app.include_router(dispositivo_iot_router)
+app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)
 app.include_router(contexto_interfaz_router)
 app.include_router(identidad_visual_router)

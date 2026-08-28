@@ -23,7 +23,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, P
 
 _UNIDADES_POR_TIPO: dict[str, set[str] | None] = {
     'PESO': {'kg', 'g', 'lb'},
-    'VOLUMEN': {'litros', 'ml'},
+    'VOLUMEN': {'litros', 'l', 'ml'},
     'LONGITUD': {'cm', 'm'},
     'CONTEO': {'unidades'},
     'OTRO': None,

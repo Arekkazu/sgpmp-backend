@@ -13,6 +13,8 @@ class CalibracionResponse(BaseModel):
     id_dispositivo_iot: int
     id_sensor: int
     valor_referencia: Decimal
+    ganancia: Decimal
+    offset: Decimal
     fecha_calibracion: datetime.datetime
     id_usuario: int
     observaciones: Optional[str]
@@ -26,6 +28,8 @@ class CalibracionResponse(BaseModel):
             id_dispositivo_iot=calibracion.id_dispositivo_iot,
             id_sensor=calibracion.id_sensor,
             valor_referencia=calibracion.valor_referencia,
+            ganancia=calibracion.ganancia,
+            offset=calibracion.offset,
             fecha_calibracion=calibracion.fecha_calibracion,
             id_usuario=calibracion.id_usuario,
             observaciones=calibracion.observaciones,
@@ -35,3 +39,22 @@ class CalibracionResponse(BaseModel):
 class ListaCalibracionesResponse(BaseModel):
     total: int
     items: list[CalibracionResponse]
+
+
+class RangoCalibracionResponse(BaseModel):
+    categoria: str
+    valor_min: Decimal
+    valor_max: Decimal
+
+    @classmethod
+    def from_entity(cls, rango) -> RangoCalibracionResponse:
+        return cls(
+            categoria=rango.categoria,
+            valor_min=rango.valor_min,
+            valor_max=rango.valor_max,
+        )
+
+
+class ListaRangosCalibracionResponse(BaseModel):
+    total: int
+    items: list[RangoCalibracionResponse]

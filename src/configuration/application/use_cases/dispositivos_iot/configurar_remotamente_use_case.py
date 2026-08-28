@@ -15,9 +15,10 @@ from src.configuration.domain.entities.configuracion_remota import Configuracion
 from src.configuration.domain.repositories.configuracion_remota_repository import ConfiguracionRemotaRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.mqtt_port import MqttPort
+from src.configuration.domain.repositories.tipo_dispositivo_iot_repository import TipoDispositivoIotRepository
 from src.configuration.infrastructure.dto.configurar_remotamente_dto import ConfigurarRemotamenteDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class ConfigurarRemotamenteUseCase:
@@ -27,11 +28,13 @@ class ConfigurarRemotamenteUseCase:
         db: Session,
         dispositivo_repo: DispositivoIotRepository,
         config_repo: ConfiguracionRemotaRepository,
+        tipo_repo: TipoDispositivoIotRepository,
         mqtt_port: MqttPort,
     ) -> None:
         self.db = db
         self.dispositivo_repo = dispositivo_repo
         self.config_repo = config_repo
+        self.tipo_repo = tipo_repo
         self.mqtt_port = mqtt_port
 
     def execute(
@@ -48,6 +51,25 @@ class ConfigurarRemotamenteUseCase:
                 code="DISPOSITIVO_INACTIVO",
                 message="No se puede configurar un dispositivo inactivo.",
             )
+
+        tipo = self.tipo_repo.obtener_por_id(dispositivo.id_tipo_dispositivo)
+        if tipo is None:
+            raise NotFoundError(
+                code="TIPO_DISPOSITIVO_NO_ENCONTRADO",
+                message=f"No existe el tipo de dispositivo con ID {dispositivo.id_tipo_dispositivo}.",
+            )
+        violacion = tipo.verificar_rango(dto.frecuencia_captura, dto.intervalo_transmision)
+        if violacion is not None:
+            raise ValidationError(
+                code="PARAMETRO_FUERA_DE_RANGO",
+                message=(
+                    f"Valor inválido: El parámetro {violacion['field']} debe estar entre "
+                    f"{violacion['min']} y {violacion['max']} minutos para este tipo de dispositivo. "
+                    f"Valor recibido: {violacion['valor']}."
+                ),
+                field=violacion["field"],
+            )
+
         if self.config_repo.obtener_pendiente(id_dispositivo_iot) is not None:
             raise ConflictError(
                 code="CONFIG_PENDIENTE_EXISTENTE",

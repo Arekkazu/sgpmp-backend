@@ -126,11 +126,13 @@ class UsuarioCrearRepoFake:
         return self.usuario
 
 
-class NotificacionServiceFake:
-    def __init__(self) -> None:
+class CorreoActivacionPortFake:
+    def __init__(self, db: DbFake) -> None:
+        self.db = db
         self.llamadas = []
 
-    def notificar(self, **datos) -> None:
+    def programar_envio(self, **datos) -> None:
+        assert self.db.commits == 1
         self.llamadas.append(datos)
 
 
@@ -159,7 +161,8 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     )
 
     cuentas_repo = CuentaCrearRepoFake()
-    notificaciones = NotificacionServiceFake()
+    db = DbFake()
+    correos = CorreoActivacionPortFake(db)
 
     monkeypatch.setattr(
         crear_module.secrets,
@@ -183,8 +186,8 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
         usuarios_repo=UsuarioCrearRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
-        db=DbFake(),
-        notificacion_service=notificaciones,
+        correo_activacion_port=correos,
+        db=db,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -206,10 +209,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
 
     assert cuentas_repo.token_hash == TOKEN_HASH
 
-    assert notificaciones.llamadas
-    html_email = notificaciones.llamadas[0]["contenido_html_email"]
-    assert TOKEN_CRUDO in html_email
-    assert TOKEN_HASH not in html_email
+    assert correos.llamadas
+    assert correos.llamadas[0]["token"] == TOKEN_CRUDO
+    assert correos.llamadas[0]["token"] != TOKEN_HASH
 
 
 def test_activar_cuenta_consulta_por_hash_y_consume_el_token() -> None:

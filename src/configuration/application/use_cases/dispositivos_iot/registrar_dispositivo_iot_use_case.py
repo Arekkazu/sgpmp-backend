@@ -7,6 +7,7 @@ from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.repositories.auditoria_dispositivo_iot_repository import AuditoriaDispositivoIotRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
+from src.configuration.domain.repositories.tipo_dispositivo_iot_repository import TipoDispositivoIotRepository
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.infrastructure.dto.registrar_dispositivo_iot_dto import RegistrarDispositivoIotDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -20,11 +21,13 @@ class RegistrarDispositivoIotUseCase:
         db: Session,
         dispositivo_repo: DispositivoIotRepository,
         infra_repo: InfraestructuraRepository,
+        tipo_repo: TipoDispositivoIotRepository,
         auditoria_repo: AuditoriaDispositivoIotRepository,
     ) -> None:
         self.db = db
         self.dispositivo_repo = dispositivo_repo
         self.infra_repo = infra_repo
+        self.tipo_repo = tipo_repo
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarDispositivoIotDTO, usuario_actual: UsuarioActual) -> DispositivoIot:
@@ -38,6 +41,12 @@ class RegistrarDispositivoIotUseCase:
             raise BusinessRuleError(
                 code="AREA_NO_DISPONIBLE",
                 message="No se puede registrar el dispositivo porque el área productiva seleccionada está desactivada.",
+            )
+
+        if self.tipo_repo.obtener_por_id(dto.id_tipo_dispositivo) is None:
+            raise NotFoundError(
+                code="TIPO_DISPOSITIVO_NO_ENCONTRADO",
+                message=f"No existe un tipo de dispositivo con ID {dto.id_tipo_dispositivo}.",
             )
 
         serial = SerialDispositivo(dto.serial)
@@ -54,6 +63,7 @@ class RegistrarDispositivoIotUseCase:
             serial=serial,
             descripcion=dto.descripcion,
             id_infraestructura=dto.id_infraestructura,
+            id_tipo_dispositivo=dto.id_tipo_dispositivo,
             es_activo=dto.es_activo,
         )
 

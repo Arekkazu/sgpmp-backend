@@ -133,6 +133,17 @@ class AuthorizationError(AppError):
     status_code = 403
 
 
+class MethodNotAllowedError(AppError):
+    """El método HTTP no está permitido sobre el recurso (HTTP 405).
+
+    Usar cuando el recurso existe pero la operación está prohibida por diseño,
+    no por falta de permisos. Caso de referencia: los registros de auditoría de
+    RF-10, inmutables tanto a nivel de API como de base de datos.
+    """
+
+    status_code = 405
+
+
 class GoneError(AppError):
     """El recurso existió pero ya no está disponible (HTTP 410).
 

@@ -13,7 +13,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
-| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~80% |
+| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~95% |
 | RF-02 | Autenticación de usuarios | ⚠️ Cumple parcialmente | ~85% |
 | RF-03 | Gestión de roles | ✅ Cumple | ~95% |
 | RF-04 | Gestión de permisos | ✅ Cumple (con salvedad) | ~90% |
@@ -22,7 +22,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
 | RF-08 | Recuperación de contraseña | ⚠️ Cumple parcialmente | ~70% |
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
-| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~95% |
+| RF-10 | Historial de acceso y auditoría | ✅ Cumple | ~100% |
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
 | RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
@@ -34,7 +34,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-01 — Registro de usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — el flujo completo de registro y activación funciona; faltan CAPTCHA, confirmación de contraseña y algunas validaciones de formato.
+**Veredicto: ⚠️ Cumple parcialmente (~95%)** — el flujo completo de registro y activación funciona; el gap restante es CAPTCHA.
 
 ### Qué SÍ cumple
 
@@ -44,7 +44,9 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Hash bcrypt**: la contraseña nunca se guarda en texto plano, se cifra con bcrypt antes de persistir (`contrasena.py:62`).
 - **Estado inicial "Pendiente de activación"** y **rol por defecto (Productor) asignado automáticamente**: el usuario no puede elegir su rol porque el campo directamente no existe en el formulario de registro — es estructuralmente imposible enviarlo.
 - **Token de activación con validez de 24 horas**, generado de forma aleatoria y segura (`secrets.token_urlsafe`).
-- **Envío del correo de activación** después de confirmar la transacción en base de datos (como pide el patrón del proyecto), con reintento automático hasta 3 veces si el SMTP falla.
+- **Confirmación de contraseña**: `confirmar_contrasena` es obligatorio y debe coincidir exactamente con `contrasena`.
+- **Formato de identificación por tipo**: `CC` y `CE` aceptan únicamente dígitos; `Pasaporte` acepta alfanumérico, porque el propio RF lo lista como tipo válido y un pasaporte no es numérico. La regla vive en `domain/value_objects/identificacion.py` y la comparten registro, edición de perfil y la sincronización con AgroFusion. Una migración Alembic instala el mismo criterio como trigger en PostgreSQL, protegiendo nuevas altas y cambios del documento sin alterar datos históricos incompatibles.
+- **Envío asíncrono del correo de activación** después de confirmar la transacción, mediante `BackgroundTasks` y una sesión independiente. Los 3 reintentos con pausas de 5 segundos ya no bloquean la respuesta HTTP.
 - **Endpoint de activación por token**, que distingue correctamente token inexistente (400), token expirado (410, con mensaje que incluye la fecha) y cuenta ya activada (422).
 - **Reenvío de token de activación** si el original expiró.
 - **Validación de mayoría de edad (18 años)**: si el usuario declara ser menor, el registro se rechaza con `403 Forbidden`, tal como pide el RF.
@@ -53,10 +55,6 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 ### Qué NO cumple / gaps
 
 - **No hay CAPTCHA en absoluto.** El RF lo pide explícitamente como requisito no funcional de seguridad ("Implementar CAPTCHA — Google reCAPTCHA v2 o v3") y también como flujo alterno con `HTTP 400`. Hoy no existe ninguna referencia a CAPTCHA/reCAPTCHA en todo el código ni en las variables de entorno.
-- **Falta el campo `confirmar_contraseña`** en el formulario de registro. El RF pide que el usuario escriba la contraseña dos veces para evitar errores de tipeo, pero el DTO de registro solo tiene el campo de contraseña (a diferencia de cambio y restablecimiento de contraseña, que sí piden confirmación).
-- **`numero_identificacion` no valida que sea solo numérico.** El RF especifica que la identificación debe ser numérica; hoy el campo acepta cualquier texto, tanto en el formulario como en la base de datos.
-- **El reintento de envío de correo es síncrono, no asíncrono.** El RF pide que, si el SMTP falla, el sistema reintente "de forma asíncrona" para no bloquear al usuario. En la implementación actual, el reintento (hasta 3 veces, con pausas de 5 segundos entre intentos) ocurre dentro del mismo request HTTP — si el correo falla, el usuario que se está registrando puede quedar esperando hasta ~15 segundos antes de recibir respuesta.
-- **El registro y la activación de cuenta no generan evento de auditoría.** El RF-10 exige que "registro de nuevo usuario" sea un evento auditable, pero ni `CrearUsuarioUseCase` ni `ActivarCuentaUseCase` escriben en la tabla de eventos — son de los pocos flujos del módulo que no dejan rastro.
 
 ---
 
@@ -236,7 +234,7 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 
 ## RF-10 — Historial de acceso y auditoría
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — sorprendentemente completo: sí existe endpoint de consulta, con inmutabilidad real y verificación de integridad.
+**Veredicto: ✅ Cumple (~100%)** — existe consulta protegida, inmutabilidad real, verificación de integridad y archivado automático con retención mínima de 12 meses.
 
 ### Qué SÍ cumple
 
@@ -246,11 +244,20 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Categorías funcionales corregidas**: los eventos se clasifican como `AUTENTICACION`, `MODIFICACION` o `CONSULTA` según su tipo. El endpoint también permite filtrar por categoría sin modificar eventos históricos inmutables.
 - **El registro de usuario y la activación de cuenta generan eventos de auditoría** (tipos 1 y 2).
 - Se auditan correctamente: login exitoso/fallido, cierre de sesión, cambio de contraseña, solicitud y confirmación de recuperación, actualización de perfil, cambio de estado de cuenta, creación/edición/eliminación de roles, asignación/revocación de permisos, y hasta las propias consultas de auditoría, de listado de usuarios y de perfiles.
+- **Retención y archivado automático de 12 meses**: una tarea diaria copia en lotes los eventos vencidos a `modulo1.eventos_archivados`, conserva el hash y los originales inmutables, y evita concurrencia entre réplicas mediante advisory lock. La tabla y sus índices se crean mediante Alembic.
+- **El archivo histórico es consultable**: `GET /auditoria/archivado/` reusa el mismo caso de uso, permiso RBAC, filtros, paginación y verificación de hash que el log activo.
+- **El fallo del archivado alerta al administrador**: además del log, registra un evento tipo 25 (`FALLO_ARCHIVADO_AUDITORIA`) y una notificación en la bandeja interna (RF-14) para quien tenga permiso de lectura de auditoría.
+- **Campos obligatorios completos**: `nombre_usuario`, `direccion_ip`, `user_agent`, `id_sesion` y `descripcion` se llenan en todos los eventos desde el contexto del request, no sólo en los flujos de sesión.
+- **Todos los flujos alternos implementados con sus códigos y mensajes**: 500 por hash mismatch (con línea base para el legado irreparable), 500 por auditoría obligatoria fallida, 403 auditado, 405 de inmutabilidad, 400 de filtros inconsistentes y 206 por consulta extensa.
+- **RNF de rendimiento**: tres índices sobre `modulo1.eventos` para los filtros y el orden del endpoint.
+
+Ver [`rf10_retencion_auditoria/RESUMEN_FINAL.md`](./rf10_retencion_auditoria/RESUMEN_FINAL.md) y la [auditoría de conformidad](./rf10_retencion_auditoria/auditoria_cumplimiento_rf10.md).
 
 ### Qué NO cumple / gaps
 
-- **No hay política de retención de 12 meses ni archivado automático** de registros antiguos — no existe ningún proceso programado para esto.
-- `audit_sdk`, la librería externa mencionada en `CLAUDE.md` como el mecanismo de auditoría del proyecto (*"Se inicializa en main.py mediante AuditContextMiddleware"*), **está importada pero nunca activada** — es código muerto. La auditoría real del módulo 1 corre por un mecanismo propio (tabla de eventos + hash SHA-256), completamente aparte de esta librería. Esto es una corrección a `CLAUDE.md`, no un gap de negocio: el mecanismo real funciona, solo que no es el que el documento de arquitectura describe.
+Ninguno detectado dentro del alcance de RF-10.
+
+**Nota de arquitectura:** `audit_sdk`, la librería externa mencionada en `CLAUDE.md`, continúa importada pero no activada. La auditoría real del módulo 1 usa su mecanismo propio (`modulo1.eventos` + SHA-256); esto no afecta el cumplimiento del RF.
 
 ---
 

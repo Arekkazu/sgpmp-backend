@@ -16,6 +16,7 @@ Recurso `id_recurso=11`.
 ### Registrar dispositivo IoT (Flujo A)
 
 El área (`id_infraestructura`) debe existir y estar activa. El serial debe ser único en el sistema.
+Desde RF-23/#1632 el campo `id_tipo_dispositivo` es **obligatorio** (ver "Tipos de dispositivo IoT" abajo).
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
@@ -24,7 +25,8 @@ curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
   -d '{
     "serial": "IOT-EST01-HLA-001",
     "descripcion": "Nodo IoT principal estanque 01, gateway LoRaWAN",
-    "id_infraestructura": 1
+    "id_infraestructura": 1,
+    "id_tipo_dispositivo": 1
   }'
 ```
 
@@ -35,6 +37,7 @@ Respuesta esperada `201`:
   "serial": "IOT-EST01-HLA-001",
   "descripcion": "Nodo IoT principal estanque 01, gateway LoRaWAN",
   "id_infraestructura": 1,
+  "id_tipo_dispositivo": 1,
   "es_activo": true,
   "fecha_creacion": "2026-06-21T18:33:40Z"
 }
@@ -42,9 +45,34 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `404` — área productiva no existe (FA-03) — `AREA_NO_ENCONTRADA`
+- `404` — tipo de dispositivo no existe — `TIPO_DISPOSITIVO_NO_ENCONTRADO`
 - `422` — área productiva inactiva (FA-04) — `AREA_NO_DISPONIBLE`
 - `409` — serial ya registrado en el sistema (FA-07) — `SERIAL_DUPLICADO`
 - `403` — rol sin permiso C sobre dispositivos_iot (FA-01)
+
+---
+
+### Tipos de dispositivo IoT (`/configuracion/tipos-dispositivo-iot`) — RF-23/#1632
+
+Catálogo de solo lectura con los rangos min/max permitidos por tipo. Recurso `id_recurso=11`, acción R(2).
+El front lo usa para poblar el selector de `id_tipo_dispositivo` al registrar y para mostrar los rangos.
+
+```bash
+curl -X GET http://localhost:8000/configuracion/tipos-dispositivo-iot \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 3,
+  "items": [
+    {"id_tipo_dispositivo": 1, "nombre": "GENERICO", "frecuencia_captura_min": 1, "frecuencia_captura_max": 1440, "intervalo_transmision_min": 1, "intervalo_transmision_max": 1440},
+    {"id_tipo_dispositivo": 2, "nombre": "NODO_BAJO_CONSUMO", "frecuencia_captura_min": 15, "frecuencia_captura_max": 1440, "intervalo_transmision_min": 15, "intervalo_transmision_max": 1440},
+    {"id_tipo_dispositivo": 3, "nombre": "SENSOR_AMBIENTAL", "frecuencia_captura_min": 5, "frecuencia_captura_max": 120, "intervalo_transmision_min": 5, "intervalo_transmision_max": 240}
+  ]
+}
+```
 
 ---
 
@@ -265,6 +293,9 @@ con un ACK simulado vía `mosquitto_pub` en `sgpmp/<serial>/status`.
 ### Enviar configuración remota (Flujo C)
 
 `intervalo_transmision` debe ser ≥ `frecuencia_captura` (FA-12).
+`frecuencia_captura`/`intervalo_transmision` deben caer dentro del rango del **tipo** del
+dispositivo (RF-23/#1632, FA "parámetros fuera de rango técnico"); los rangos se consultan en
+`GET /configuracion/tipos-dispositivo-iot`.
 No puede existir una configuración `PENDIENTE` previa para el mismo dispositivo (FA-15,
 blindado con índice único parcial en BD, ver `alembic/versions/7e2d5f3bf17a_rf23_mqtt_integracion.py`).
 
@@ -322,6 +353,9 @@ Errores posibles:
 - `404` — dispositivo no existe (FA-02)
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
+- `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
+  (mensaje: "Valor inválido: El parámetro {frecuencia_captura|intervalo_transmision} debe estar
+  entre {min} y {max} minutos para este tipo de dispositivo. Valor recibido: {valor}.")
 - `409` — ya existe configuración PENDIENTE para el dispositivo (FA-15) — `CONFIG_PENDIENTE_EXISTENTE`
 - `504` — se envió pero no hubo ACK a tiempo — `CONFIGURACION_NO_CONFIRMADA`
 - `403` — rol sin permiso U sobre dispositivos_iot (FA-01)
@@ -375,7 +409,11 @@ Recurso `id_recurso=12`, acción C(1). Admin / Ing.
 ### Registrar calibración (Flujo D)
 
 El sensor debe existir, el dispositivo debe estar activo y el sensor debe tener
-una asociación activa en el área indicada.
+una asociación activa en el área indicada. `valor_referencia` (y el `offset` si se
+envía) deben caer dentro del rango de seguridad del tipo de sensor (RF-24 / #1635).
+
+`ganancia` (default `1.0`) y `offset` (default = `valor_referencia`) son opcionales:
+componen el modelo lineal `valor_ajustado = ganancia * crudo + offset` que consume telemetry.
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
@@ -385,6 +423,8 @@ curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
     "id_dispositivo_iot": 1,
     "id_infraestructura": 1,
     "valor_referencia": "25.50",
+    "ganancia": "1.0",
+    "offset": "0.20",
     "fecha_calibracion": "2026-06-21T10:00:00Z",
     "observaciones": "Calibración con termómetro patrón certificado"
   }'
@@ -397,6 +437,8 @@ Respuesta esperada `201`:
   "id_dispositivo_iot": 1,
   "id_sensor": 1,
   "valor_referencia": "25.5000",
+  "ganancia": "1.0000",
+  "offset": "0.2000",
   "fecha_calibracion": "2026-06-21T10:00:00Z",
   "id_usuario": 1,
   "observaciones": "Calibración con termómetro patrón certificado"
@@ -409,8 +451,48 @@ Errores posibles:
 - `422` — dispositivo inactivo (FA-14) — `DISPOSITIVO_INACTIVO`
 - `422` — sensor no pertenece al dispositivo (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
 - `400` — sensor no tiene asociación activa en el área indicada (FA-03) — `SENSOR_AREA_INVALIDA`
-- `400` — `valor_referencia` ≤ 0 (FA-11) — `VALOR_CALIBRACION_INVALIDO`
-- `403` — rol sin permiso C sobre sensores (FA-01)
+- `400` — `valor_referencia`/`offset` fuera del rango de seguridad del tipo de sensor
+  (FA-11, ej. temperatura 500 °C) — `VALOR_FUERA_DE_RANGO`
+- `400` — `valor_referencia` no numérico, vacío o nulo (FA "Datos no numéricos o
+  incompletos") — `VALOR_CALIBRACION_INVALIDO`
+- `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
+  (fallback) — `VALOR_CALIBRACION_INVALIDO`
+- `400` — `ganancia` ≤ 0 (validación de DTO)
+- `403` — rol sin permiso C sobre sensores (FA-01) — solo Ing. de Campo y Admin pueden calibrar
+- `500` — falla la escritura del historial de auditoría inmutable (FA RF-10): se hace
+  rollback de la calibración — `AUDITORIA_CALIBRACION_FALLIDA`
+
+Ejemplo de rechazo por rango (`400`):
+```bash
+curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
+  -H "Authorization: Bearer <TOKEN>" -H "Content-Type: application/json" \
+  -d '{"id_dispositivo_iot":1,"id_infraestructura":1,"valor_referencia":"500",
+       "fecha_calibracion":"2026-06-21T10:00:00Z"}'
+# {"error_code":"VALOR_FUERA_DE_RANGO","message":"El ajuste de 500 excede los rangos
+#  de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000)...","field":"valor_referencia"}
+```
+
+---
+
+### Catálogo de rangos de calibración por tipo de sensor (RF-24 / #1635)
+
+Recurso `id_recurso=12`, acción R(2). El frontend lo consume para mostrar los límites válidos.
+
+```bash
+curl -X GET http://localhost:8000/configuracion/sensores/rangos-calibracion \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 7,
+  "items": [
+    {"categoria": "AMONIACO", "valor_min": "0.0000", "valor_max": "10.0000"},
+    {"categoria": "TEMPERATURA", "valor_min": "0.0000", "valor_max": "45.0000"}
+  ]
+}
+```
 
 ---
 
@@ -431,6 +513,8 @@ Respuesta esperada `200`:
       "id_dispositivo_iot": 1,
       "id_sensor": 1,
       "valor_referencia": "25.5000",
+      "ganancia": "1.0000",
+      "offset": "0.2000",
       "fecha_calibracion": "2026-06-21T10:00:00Z",
       "id_usuario": 1,
       "observaciones": "Calibración con termómetro patrón certificado"
@@ -440,6 +524,8 @@ Respuesta esperada `200`:
       "id_dispositivo_iot": 1,
       "id_sensor": 1,
       "valor_referencia": "25.0000",
+      "ganancia": "1.0000",
+      "offset": "25.0000",
       "fecha_calibracion": "2026-03-29T14:42:28Z",
       "id_usuario": 1,
       "observaciones": "Calibración inicial con termómetro patrón certificado NIST."

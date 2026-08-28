@@ -27,6 +27,11 @@ class AuditoriaPatologiaModel(Base):
             name='auditorias_patologias_id_patologia_fkey',
         ),
         ForeignKeyConstraint(
+            ['id_especies_patologias'],
+            ['modulo9.especies_patologias.id_especies_patologias'],
+            name='auditorias_patologias_id_especies_patologias_fkey',
+        ),
+        ForeignKeyConstraint(
             ['id_usuario'],
             ['modulo1.usuarios.id_usuario'],
             name='auditorias_patologias_id_usuario_fkey',
@@ -40,7 +45,8 @@ class AuditoriaPatologiaModel(Base):
         Sequence('auditorias_patologias_id_auditoria_patologia_seq', schema='modulo9'),
         primary_key=True,
     )
-    id_patologia: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_patologia: Mapped[Optional[int]] = mapped_column(Integer)
+    id_especies_patologias: Mapped[Optional[int]] = mapped_column(Integer)
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False)
     tipo_operacion: Mapped[str] = mapped_column(String(20), nullable=False)
     valores_anteriores: Mapped[Optional[dict]] = mapped_column(JSONB)

@@ -21,6 +21,11 @@ class DispositivoIotModel(Base):
             ['modulo9.infraestructuras.id_infraestructura'],
             name='dispositivos_iot_id_infraestructura_fkey',
         ),
+        ForeignKeyConstraint(
+            ['id_tipo_dispositivo'],
+            ['modulo9.tipos_dispositivo_iot.id_tipo_dispositivo'],
+            name='dispositivos_iot_id_tipo_dispositivo_fkey',
+        ),
         PrimaryKeyConstraint('id_dispositivo_iot', name='dispositivos_iot_pkey'),
         UniqueConstraint('serial', name='uq_dispositivo_iot_serial'),
         {'schema': 'modulo9'},
@@ -34,6 +39,7 @@ class DispositivoIotModel(Base):
     serial: Mapped[str] = mapped_column(String(50), nullable=False)
     descripcion: Mapped[str] = mapped_column(String(100), nullable=False)
     id_infraestructura: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_tipo_dispositivo: Mapped[int] = mapped_column(Integer, nullable=False)
     es_activo: Mapped[bool] = mapped_column(Boolean, nullable=False)
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

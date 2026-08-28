@@ -47,6 +47,11 @@ class Eventos(Base):
     descripcion: Mapped[Optional[str]] = mapped_column(Text, comment='Descripción en lenguaje natural del evento registrado. Opcional.')
     id_sesion: Mapped[Optional[int]] = mapped_column(Integer)
     hash_integridad: Mapped[Optional[str]] = mapped_column(Text)
+    # Campos exigidos por la seccion "Entradas" de RF-10. Nullable porque los
+    # eventos anteriores a la migracion son inmutables y no se pueden rellenar.
+    nombre_usuario: Mapped[Optional[str]] = mapped_column(String(80), comment='Nombre o correo del actor en el momento del evento.')
+    direccion_ip: Mapped[Optional[str]] = mapped_column(String(45), comment='IP de origen de la peticion que genero el evento.')
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255), comment='Navegador o dispositivo desde el que se origino el evento.')
 
     usuarios: Mapped['Usuarios'] = relationship('Usuarios', back_populates='eventos')
     tipos_eventos: Mapped['TiposEventos'] = relationship('TiposEventos', back_populates='eventos')

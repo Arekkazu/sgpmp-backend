@@ -35,7 +35,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-21 | Registro de dispositivos IoT | ✅ Cumple | ~95% |
 | RF-22 | Asociación de sensores a estructuras productivas | ✅ Cumple | ~90% |
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
-| RF-24 | Calibración de dispositivos IoT | ⚠️ Cumple parcialmente | ~65% |
+| RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~100% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
@@ -119,8 +119,8 @@ inconsistencia de permisos ya documentada por el propio equipo.
 
 **Veredicto: ⚠️ Cumple parcialmente (~80%)** — de los tres sub-catálogos que pide el RF, las
 **etapas** tienen el chequeo de dependencias real (consulta una vista SQL), mientras que
-**patologías** y **métricas** lo tienen stubbeado a la espera de M04. Además, patologías es
-un catálogo global, no "único por especie" como pide el RF.
+**patologías** y **métricas** lo tienen stubbeado a la espera de M04. (La discrepancia de
+"patologías global vs. por especie" fue **resuelta** en #1633, 2026-08-23 — ver abajo.)
 
 ### Qué SÍ cumple
 
@@ -149,16 +149,14 @@ un catálogo global, no "único por especie" como pide el RF.
 
 ### Qué NO cumple / gaps
 
-- **Patologías es un catálogo global, no "único por especie" como pide RF-16.** El RF dice
-  explícitamente: "el nombre de cada patología debe ser obligatorio, único por especie". La
-  DB real tiene `modulo9.patologias.nombre` con restricción `UNIQUE` **global**
-  (`uq_enfermedad_nombre`), y la relación con la especie va por una tabla pivot
-  (`especies_patologias`, con `UNIQUE(id_patologia, id_especie)`, que evita duplicar la
-  misma patología en la misma especie pero no impide que "Fiebre Aftosa" exista una sola vez
-  en todo el sistema y no pueda repetirse el nombre para otra especie con datos distintos).
-  Esta decisión está documentada como deliberada en `cu02_gaps_bd_rf16.md` ("si global: el
-  documento RF-16 está equivocado en ese punto") pero implica que el sistema **no cumple
-  literalmente** esa restricción del RF.
+- ~~**Patologías es un catálogo global, no "único por especie".**~~ **RESUELTO (#1633,
+  2026-08-23).** Ahora patologías es **por especie**: la entidad M09 vive en
+  `modulo9.especies_patologias` con `nombre`/`descripcion`/`es_activo` propios y unicidad
+  `(id_especie, lower(nombre))` (índice `uq_especie_patologia_nombre`). `modulo9.patologias`
+  (catálogo clínico de M04) y su `uq_enfermedad_nombre` quedaron intactos; el vínculo
+  `id_patologia` es opcional/NULL. M09 ya **no escribe** el catálogo M04 (antes lo hacía —
+  mezcla de responsabilidades corregida). Ver `rf16-patologias-por-especie-mod9/resumen.md`
+  y la migración `alembic/versions/192872fafd40_...py`.
 - **Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**
   `desactivar_patologia_use_case.py` usa `DependenciaPatologiaPort`, implementado por
   `infrastructure/adapters/dependencia_patologia_stub.py` (siempre `False`, pendiente de
@@ -428,11 +426,13 @@ resueltos y verificados.
 
 ## RF-23 — Configuración remota de dispositivos IoT
 
-**Veredicto: ✅ Cumple (~90%), MVP síncrono (2026-08-20)** — se reemplazó el stub por
-integración MQTT real vía `BROKER-MQTT-SGPMP` (repo hermano). Verificado end-to-end con
-backend + broker + Mosquitto reales. Detalle completo del diseño y las decisiones en
-`anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md`. Queda fuera de esta entrega el reenvío
-automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
+**Veredicto: ✅ Cumple (~95%), MVP síncrono (2026-08-20) + rangos por tipo (2026-08-24)** —
+se reemplazó el stub por integración MQTT real vía `BROKER-MQTT-SGPMP` (repo hermano),
+verificado end-to-end con backend + broker + Mosquitto reales. El 2026-08-24 (issue #1632) se
+agregaron los **rangos de configuración por tipo de dispositivo**, cerrando ese gap. Detalle
+del MVP en `anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md` y de los rangos por tipo en
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. Queda fuera de esta entrega el
+reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
 
@@ -460,6 +460,14 @@ automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
   `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
   `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
+- **Rangos por tipo de dispositivo (issue #1632, 2026-08-24):** nueva tabla
+  `modulo9.tipos_dispositivo_iot` (nombre + min/max de cada parámetro, con `CHECK`), FK
+  `dispositivos_iot.id_tipo_dispositivo` (NOT NULL, existentes backfilled a `GENERICO`). El
+  registro de dispositivo (RF-21) ahora exige `id_tipo_dispositivo`; `ConfigurarRemotamenteUseCase`
+  valida `frecuencia_captura`/`intervalo_transmision` contra el rango del tipo del dispositivo y
+  responde `400 PARAMETRO_FUERA_DE_RANGO` con el mensaje exacto del FA (min/max/valor). Nuevo
+  `GET /configuracion/tipos-dispositivo-iot` (solo lectura, RBAC 11/R) expone el catálogo para el
+  front. Los rangos se gestionan por seed/SQL (sin CRUD de escritura por ahora).
 - Corrección de ownership: el broker ya no escribe `modulo9.configuraciones_remotas` (antes
   insertaba una fila duplicada con `id_usuario=NULL` cada vez que despachaba un comando,
   colisionando con la fila que este backend ya persiste). El backend es el único escritor.
@@ -474,10 +482,12 @@ automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO
   seguimiento. Hoy, si un dispositivo queda `PENDIENTE`, un humano debe reintentar
   manualmente (el índice único de BD permite un nuevo intento en cuanto el anterior deja de
   estar `PENDIENTE`).
-- **No hay rangos de configuración por tipo de dispositivo.** El RF pide que los rangos
-  permitidos de `frecuencia_captura`/`intervalo_transmision` sean "configurables según el
-  tipo de dispositivo IoT registrado". La tabla `dispositivos_iot` sigue sin columna `tipo` —
-  gap preexistente desde RF-21, no resuelto en esta entrega (fuera de su alcance declarado).
+- ~~No hay rangos de configuración por tipo de dispositivo.~~ **Resuelto (issue #1632,
+  2026-08-24)** — ver "Qué SÍ cumple". Nota de alcance: los rangos seed son ilustrativos
+  (perilla de calibración, `# ponytail:` en la migración) y no hay CRUD de escritura de tipos;
+  ambos se ajustan por seed/SQL hasta que la UI lo requiera. El FA lista además un input
+  `estado_dispositivo` (boolean) para el endpoint de configurar que #1632 no menciona y no
+  está en el DTO — desviación conocida, fuera de alcance de esta entrega.
 - **El ACK del dispositivo no está autenticado más allá del token de servicio del backend.**
   Mosquitto corre con `allow_anonymous true` en dev — cualquier cliente en la red podría
   publicar en `sgpmp/<serial>/status` y falsificar un ACK. Mismo nivel de gap que el `serial`
@@ -488,8 +498,23 @@ automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO
 
 ## RF-24 — Calibración de dispositivos IoT
 
-**Veredicto: ⚠️ Cumple parcialmente (~65%)** — el flujo CRUD y de trazabilidad está completo,
-pero el modelo de calibración en sí es más simple que lo que pide el RF.
+**Veredicto: ✅ Cumple (~100%)** — la entrega #1635 cerró los dos gaps de modelo (rango por
+tipo de sensor + ganancia/offset) y, en la segunda pasada, los dos flujos alternos que
+faltaban: auditoría inmutable RF-10 con rollback→500 y formato no numérico→400.
+
+### Cierre de gaps — issue #1635 (rama `feature/rf24-validacion-rango-calibracion-mod9`)
+
+- **Validación de rango por tipo de sensor.** Nueva tabla catálogo
+  `modulo9.rangos_calibracion` (min/max por `categoria` del sensor, sembrada para los 7
+  valores del enum). El use case `registrar_calibracion_use_case.py` valida
+  `valor_referencia` y `offset` contra ese rango; fuera de rango → `400 VALOR_FUERA_DE_RANGO`
+  (ej. temperatura 500 °C). Entidad de dominio `RangoCalibracion.verificar`, puerto
+  `RangoCalibracionRepository`, router `GET /configuracion/sensores/rangos-calibracion`.
+- **Modelo de dos parámetros (ganancia/offset).** `modulo9.calibraciones` ahora tiene
+  `ganancia` y `offset_calibracion` (backfill `offset = valor_referencia`). El consumidor
+  `src/telemetry/.../calibracion_m09_adapter.py` ya **no aproxima** — lee los valores reales.
+- Migración Alembic `c3f1a9e42b7d` aplicada a `sgpmp`. Verificado end-to-end: in-range
+  persiste, out-of-range (valor y offset) rechazado 400, dos parámetros almacenados.
 
 ### Qué SÍ cumple
 
@@ -506,22 +531,26 @@ pero el modelo de calibración en sí es más simple que lo que pide el RF.
 - RBAC sobre recurso `sensores` (id=12), coherente con los roles que el RF autoriza para esta
   operación (Ingeniero de Campo/Administrador).
 
-### Qué NO cumple / gaps
+### Gaps ya resueltos (issue #1635)
 
-- **No existe validación de rango de calibración por tipo de sensor.** El RF pide rechazar
-  valores "fuera del rango de seguridad para la variable" (ej. offset de temperatura de
-  500°C). La validación real es una comparación genérica `valor_referencia > 0`, sin ninguna
-  tabla de rangos físicos por tipo de sensor — documentado explícitamente como simplificación
-  conocida en `cu05_gaps_bd_rf21_rf24.md`. Un valor absurdo pero positivo (ej. 999999) pasaría
-  la validación sin problema.
-- **`modulo9.calibraciones` no tiene ganancia/offset**, solo `valor_referencia` — el
-  adaptador `src/telemetry/infrastructure/adapters/calibracion_m09_adapter.py` (consumidor
-  cross-módulo) tiene que aproximar `ganancia=1.0, offset=valor_referencia` porque el modelo
-  de datos de M09 no captura una calibración de dos parámetros, lo cual sugiere que el modelo
-  actual es más simple de lo que otros módulos del sistema necesitan.
-- La restricción del RF de "no se permiten valores no numéricos" está cubierta por el tipo de
-  columna (`numeric`) y por Pydantic a nivel de DTO — no se verificó el mensaje de error
-  exacto para ese caso.
+- ~~No existe validación de rango de calibración por tipo de sensor.~~ **Resuelto:** rango
+  por tipo vía `modulo9.rangos_calibracion`; fuera de rango → `400 VALOR_FUERA_DE_RANGO`.
+- ~~`modulo9.calibraciones` no tiene ganancia/offset.~~ **Resuelto:** columnas `ganancia` y
+  `offset_calibracion`; el consumidor de telemetry ya no aproxima.
+- ~~Flujo alterno "Fallo en el registro de auditoría" (RF-10) no implementado.~~ **Resuelto:**
+  tabla `modulo9.auditorias_calibraciones` inmutable (trigger bloquea UPDATE/DELETE). El use
+  case escribe la traza dentro de la transacción; si falla → rollback + `500
+  AUDITORIA_CALIBRACION_FALLIDA` ("No se pudo garantizar la trazabilidad...").
+- ~~Formato no numérico devolvía 422 (Pydantic) en vez del 400 del RF.~~ **Resuelto:** el DTO
+  acepta `valor_referencia` permisivo y el use case devuelve `400 VALOR_CALIBRACION_INVALIDO`
+  ante valor no numérico, vacío o nulo.
+
+### Pendiente menor
+
+- Los rangos sembrados son ilustrativos (espejo de `variables_ambientales` acuícolas); el
+  estándar de calibración real necesita tuning por SQL (perilla de calibración).
+- No hay CRUD de escritura para `rangos_calibracion` (se administra por SQL, igual que el
+  catálogo de RF-23).
 
 ---
 

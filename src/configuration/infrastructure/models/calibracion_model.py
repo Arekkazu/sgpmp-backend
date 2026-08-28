@@ -40,5 +40,7 @@ class CalibracionModel(Base):
     id_sensor: Mapped[int] = mapped_column(Integer, nullable=False)
     fecha_calibracion: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     valor_referencia: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    ganancia: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
+    offset_calibracion: Mapped[float] = mapped_column(Numeric(10, 4), nullable=False)
     observaciones: Mapped[Optional[str]] = mapped_column(Text)
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False)

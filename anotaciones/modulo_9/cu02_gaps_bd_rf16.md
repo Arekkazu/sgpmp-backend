@@ -61,6 +61,18 @@ pendiente hasta que se agregue la columna. Se anota en código con un `# TODO`.
 
 ## Gap 2 — Patologías: catálogo global vs. catálogo por especie
 
+> **RESUELTO (2026-08-23, issue #1633).** Se decidió cumplir la **letra del RF-16**:
+> patologías **por especie**. La discrepancia se cerró **sin tocar** `modulo9.patologias`
+> ni su constraint `uq_enfermedad_nombre` — esa tabla es el catálogo clínico de **M04**
+> (`src/prediction`: FK `modulo4.patologias_variables_sensoricas → modulo9.patologias`).
+> La entidad M09 por especie pasó a vivir en `modulo9.especies_patologias`, ahora con
+> `nombre`/`descripcion`/`es_activo`/`fecha_actualizacion`/`fecha_creacion` propios y
+> unicidad por especie vía índice funcional `uq_especie_patologia_nombre (id_especie,
+> lower(nombre))`. El vínculo `id_patologia` al catálogo M04 quedó **opcional (nullable)**.
+> Migración: `alembic/versions/192872fafd40_rf16_patologias_por_especie_y_metricas_.py`.
+> Detalle en `rf16-patologias-por-especie-mod9/resumen.md`.
+
+
 ### Lo que dice el documento RF-16
 
 - Las patologías son configurables **por especie**.
@@ -220,14 +232,10 @@ Se documenta en código con un TODO y en anotaciones.
 
 ## Resumen de decisiones pendientes
 
-| # | Tema | Decisión requerida |
+| # | Tema | Decisión tomada |
 |---|------|-------------------|
-| 1 | Etapas — concurrencia | ¿Agregar `fecha_actualizacion` a `ciclos_biologicos`? |
-| 2a | Patologías — unicidad | ¿Global o por especie? |
-| 2b | Patologías — campos M04 | ¿Los gestiona M09 o solo M04? |
-| 2c | Patologías — flujo insert | ¿Inserta en `patologias` + pivot, o solo en pivot? |
-| 3 | Métricas — estructura | ¿Opción A (ALTER), B (tabla nueva), o C (diferir)? |
-
-Hasta tener respuesta a estas preguntas, la implementación de CU02 cubre
-**etapas y patologías** (con los supuestos indicados) y deja **métricas**
-en espera.
+| 1 | Etapas — concurrencia | `fecha_actualizacion` agregada a `ciclos_biologicos` (Opción A). |
+| 2a | Patologías — unicidad | **Por especie** (#1633): unicidad `(id_especie, lower(nombre))` en `especies_patologias`. |
+| 2b | Patologías — campos M04 | Solo M04 los gestiona; `modulo9.patologias` no se toca desde M09. |
+| 2c | Patologías — flujo insert | M09 inserta solo en `especies_patologias`; `id_patologia` (vínculo M04) opcional/NULL. |
+| 3 | Métricas — estructura | Opción A (ALTER ya aplicado antes) + CHECKs de dominio (`tipo_medicion`/`aplica_a_tipo_activo`) en #1633. |

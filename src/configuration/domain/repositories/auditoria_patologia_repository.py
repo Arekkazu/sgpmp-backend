@@ -11,7 +11,7 @@ class AuditoriaPatologiaRepository(ABC):
     def registrar(
         self,
         *,
-        id_patologia: int,
+        id_especies_patologias: int,
         id_usuario: int,
         tipo_operacion: str,
         valores_nuevos: dict[str, Any],
