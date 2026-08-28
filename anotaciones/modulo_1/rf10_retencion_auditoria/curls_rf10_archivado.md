@@ -80,13 +80,13 @@ curl -X GET "http://localhost:8000/auditoria/archivado/" \
 ```json
 {
   "error_code": "ACCESO_DENEGADO",
-  "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+  "message": "Acceso denegado: No posee privilegios de administrador para consultar el historial de auditoría. Este incidente ha sido registrado."
 }
 ```
 
-Si el rol sí tiene el permiso RBAC pero no es administrador, el use case devuelve el
-403 con el mensaje del RF y **registra el intento** como evento tipo 16 con resultado
-`fallido`.
+El intento queda registrado como evento tipo 16 con resultado `fallido`, tal como
+exige el flujo alterno. La decisión de acceso sigue saliendo de `modulo1.permisos`
+(recurso 6, acción 2), no de un `id_rol` en código.
 
 ### FA "Filtro de búsqueda inválido" — 400
 
@@ -97,24 +97,72 @@ curl -X GET "http://localhost:8000/auditoria/archivado/?fecha_desde=2026-08-01T0
 
 ```json
 {
-  "error_code": "RANGO_FECHAS_INVALIDO",
+  "error_code": "FILTROS_INCONSISTENTES",
   "message": "Error de consulta: Los parámetros de filtrado son inconsistentes. Verifique el rango de fechas y los identificadores de usuario seleccionados."
 }
 ```
 
-### FA "Intento de modificación o eliminación" — sin endpoint
+El mismo 400 se produce con un `id_usuario` que no existe:
 
-No existe `PUT`, `PATCH` ni `DELETE` sobre `/auditoria` ni `/auditoria/archivado`.
-FastAPI responde **405 Method Not Allowed** por ruta no registrada:
+```bash
+curl -X GET "http://localhost:8000/auditoria/archivado/?id_usuario=99999999" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### FA "Intento de modificación o eliminación" — 405
 
 ```bash
 curl -i -X DELETE "http://localhost:8000/auditoria/archivado/" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-A nivel de base, el trigger `trg_proteger_eventos_archivados` bloquea `UPDATE` y
-`DELETE` con `IMMUTABLE_RECORD`, igual que `trg_proteger_auditoria_*` sobre
-`modulo1.eventos`.
+```json
+{
+  "error_code": "AUDITORIA_INMUTABLE",
+  "message": "Operación no permitida: Los registros de auditoría son inmutables por diseño y no pueden ser modificados ni eliminados bajo ninguna circunstancia."
+}
+```
+
+Igual con `PUT` y `PATCH`, sobre `/auditoria/` y sobre cualquier subruta. A nivel
+de base, los triggers `trg_proteger_auditoria_*`,
+`trg_proteger_eventos_archivados` y `trg_proteger_integridad_baseline` bloquean
+`UPDATE` y `DELETE` con `IMMUTABLE_RECORD`.
+
+### FA "Fallo de integridad del registro" — 500
+
+Si un registro de la página consultada fue manipulado:
+
+```json
+{
+  "error_code": "INTEGRIDAD_AUDITORIA_VIOLADA",
+  "message": "Alerta de seguridad: Se ha detectado una violación de integridad en el registro de auditoría 568. Los datos han sido manipulados o están corruptos. Se ha notificado al oficial de seguridad."
+}
+```
+
+Cada ítem trae además el campo `integridad`:
+
+- `INTEGRO` — el hash almacenado coincide con el recalculado.
+- `LEGADO` — no verificable desde antes de la política y sin cambios desde
+  entonces. Se reporta pero no escala a 500.
+- `MANIPULADO` — dispara el 500 anterior.
+
+`integridad_ok` se mantiene como booleano y es `true` sólo cuando es `INTEGRO`.
+
+### FA "Exceso de resultados en consulta" — 206
+
+Cuando el total supera 10.000 registros la respuesta viaja con **HTTP 206**:
+
+```json
+{
+  "total": 12500,
+  "pagina": 1,
+  "tamano": 50,
+  "items": [],
+  "mensaje": "Consulta extensa: Se muestran los primeros 50 resultados. Utilice los parámetros de paginación o filtros adicionales para refinar la búsqueda."
+}
+```
+
+Por debajo del umbral responde 200 con `mensaje: null`.
 
 ### 401 sin token o con token vencido
 

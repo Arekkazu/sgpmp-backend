@@ -66,6 +66,7 @@ from src.identity_access.infrastructure.routers.sesiones_routers import router a
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared.error_handlers import register_error_handlers
+from src.shared.middlewares import RequestContextMiddleware
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -398,6 +399,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
+# user-agent y esos campos quedan vacíos en cada evento.
+app.add_middleware(RequestContextMiddleware)
 
 register_error_handlers(app)
 

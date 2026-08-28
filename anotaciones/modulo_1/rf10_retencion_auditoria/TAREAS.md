@@ -60,6 +60,29 @@ administrador — Notificación Interna"*.
 - [x] `tests/integration/README.md` actualizado
 - [x] Suite completa en verde
 
+## Fase 6 — Conformidad literal con el RF
+
+Auditoría campo por campo y flujo por flujo tras cerrar la retención; encontró 8
+incumplimientos. Detalle en [`auditoria_cumplimiento_rf10.md`](./auditoria_cumplimiento_rf10.md).
+
+- [x] A · `nombre_usuario`, `direccion_ip`, `user_agent` como columnas, llenadas
+      desde el contexto del request en el único punto por el que pasan todos los eventos
+- [x] A · `id_sesion` derivado del JWT (antes sólo en 4 de 29 puntos de registro)
+- [x] A · `RequestContextMiddleware` registrado en `main.py` (existía pero era código muerto)
+- [x] A · los campos nuevos expuestos en la respuesta y copiados al histórico
+- [x] B · FA hash mismatch → 500 `INTEGRIDAD_AUDITORIA_VIOLADA`
+- [x] B · `modulo1.integridad_baseline` para el legado irreparable (92 registros)
+- [x] B · un evento sin hash ya no se reporta como íntegro
+- [x] C · FA acceso denegado → mensaje del RF y el intento queda auditado
+- [x] C · eliminado el `ROL_ADMINISTRADOR = 1` del caso de uso
+- [x] D · FA inmutabilidad → 405 con el mensaje del RF y el formato de error del proyecto
+- [x] E · FA exceso de resultados → HTTP 206 + campo `mensaje`
+- [x] F · FA filtro inválido → 400 también por `id_usuario` inexistente
+- [x] G · FA blocker → 500 con el mensaje del RF desde `registrar()`
+- [x] H · 3 índices sobre `modulo1.eventos` para los filtros y el orden
+- [x] 14 pruebas de conformidad, una por punto
+- [x] Suite completa en verde: **138 passed, 7 skipped**
+
 ## Fase 5 — Cierre
 
 - [x] `diseno.md` ampliado con lo de Fases 2-3
@@ -77,6 +100,12 @@ administrador — Notificación Interna"*.
 | 1 | `CREATE TABLE modulo1.eventos_archivados` + 2 índices + trigger de inmutabilidad | ✅ | ✅ |
 | 2 | `INSERT` `id_tipo_evento = 25` (`FALLO_ARCHIVADO_AUDITORIA`) en `modulo1.tipos_eventos` | ✅ | ✅ |
 | 3 | `setval` de `modulo1.tipos_evento_id_tipo_evento_seq` tras el insert explícito | ✅ | ✅ |
+| 4 | `nombre_usuario`, `direccion_ip`, `user_agent` en `eventos` y `eventos_archivados` | ✅ | ✅ |
+| 5 | `ix_eventos_fecha`, `ix_eventos_usuario_fecha`, `ix_eventos_tipo_fecha` | ✅ | ✅ |
+| 6 | `CREATE TABLE modulo1.integridad_baseline` + trigger de inmutabilidad | ✅ | ✅ |
+| 7 | Siembra de la línea base (92 filas en `sgpmp`, 0 en `pruebas`: no tiene legado) | ✅ | ✅ |
+
+Cadena Alembic: `8fc28a787fc8` → `a3b7c1d95e40` → `b5d81f27ac93` → `c8e4a5b13d72` (head).
 
 Sin cambios de RBAC: la lectura del histórico reusa el permiso existente
 `require_permission(6, 2)` (recurso 6 = auditoría, acción 2 = leer).

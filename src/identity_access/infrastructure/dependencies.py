@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
+from src.shared.audit_context import establecer_id_token
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError
 from src.shared.jwt import verify_token
@@ -97,5 +98,9 @@ def get_current_user(
     if cuenta is not None:
         cuenta.ultimo_acceso = ahora
         db.commit()
+
+    # RF-10: de este token el repositorio de auditoría deriva la sesión con la
+    # que se registra cada evento del request.
+    establecer_id_token(id_token)
 
     return UsuarioActual(id_usuario=id_usuario, id_token=id_token, id_rol=id_rol)

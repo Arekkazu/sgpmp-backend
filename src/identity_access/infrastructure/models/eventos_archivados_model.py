@@ -67,6 +67,9 @@ class EventosArchivados(Base):
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
     id_sesion: Mapped[Optional[int]] = mapped_column(Integer)
     hash_integridad: Mapped[Optional[str]] = mapped_column(Text)
+    nombre_usuario: Mapped[Optional[str]] = mapped_column(String(80))
+    direccion_ip: Mapped[Optional[str]] = mapped_column(String(45))
+    user_agent: Mapped[Optional[str]] = mapped_column(String(255))
     fecha_archivado: Mapped[datetime.datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -82,7 +82,7 @@ def test_filtro_por_categoria_incluye_historicos_mal_clasificados(
     )
 
     assert len(eventos) == 1
-    evento, integridad_ok = eventos[0]
+    evento, integridad = eventos[0]
     assert evento.id_evento == id_evento
     assert evento.categoria == "MODIFICACION"
-    assert integridad_ok is True
+    assert integridad == "INTEGRO"

@@ -15,6 +15,8 @@ from typing import Optional
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from src.shared import audit_context
+
 log = logging.getLogger(__name__)
 
 def _get_client_ip(request: Request) -> Optional[str]:
@@ -49,6 +51,14 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             request.state.request_id = str(uuid.uuid4())
             request.state.ip = None
             request.state.user_agent = None
+
+        # RF-10: deja el origen disponible para el repositorio de auditoría sin
+        # que cada caso de uso tenga que arrastrarlo. Abrir el contexto aquí
+        # también evita que un request herede el del anterior si comparten hilo.
+        audit_context.iniciar_request(
+            ip=getattr(request.state, "ip", None),
+            user_agent=getattr(request.state, "user_agent", None),
+        )
 
         response = await call_next(request)
         # Propaga el correlativo a la respuesta

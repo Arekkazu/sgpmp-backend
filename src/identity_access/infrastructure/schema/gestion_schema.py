@@ -107,7 +107,13 @@ class AuditoriaItemResponse(BaseModel):
     categoria: str
     estado: str
     id_sesion: Optional[int] = None
+    nombre_usuario: Optional[str] = None
+    direccion_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    descripcion: Optional[str] = None
     integridad_ok: bool
+    # INTEGRO | LEGADO (no verificable desde antes de la política) | MANIPULADO.
+    integridad: str
 
     model_config = {"from_attributes": True}
 
@@ -119,3 +125,6 @@ class AuditoriaPaginadaResponse(BaseModel):
     pagina: int
     tamano: int
     items: list[AuditoriaItemResponse]
+    # Se llena sólo cuando la consulta supera el umbral de saturación y la
+    # respuesta viaja con HTTP 206.
+    mensaje: Optional[str] = None

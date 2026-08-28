@@ -6,6 +6,8 @@ revierte la transacción exterior, por lo que la base no conserva datos de prueb
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import uuid
@@ -136,8 +138,12 @@ def integration_app() -> FastAPI:
         router as usuarios_router,
     )
     from src.shared.error_handlers import register_error_handlers
+    from src.shared.middlewares import RequestContextMiddleware
 
     app = FastAPI()
+    # Igual que en `main.py`: sin este middleware la auditoría no recibe IP ni
+    # user-agent, y las pruebas dejarían de reflejar el comportamiento real.
+    app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
     app.include_router(usuarios_router)
     app.include_router(contrasena_router)
@@ -319,6 +325,31 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
         fecha: datetime | None = None,
         hash_integridad: str | None = None,
     ) -> int:
+        """Inserta un evento de auditoría válido.
+
+        Por defecto calcula el hash real del contenido con la misma fórmula del
+        repositorio, porque desde RF-10 un evento sin hash o con hash que no
+        cuadra ya no cuenta como íntegro. Para probar la detección de
+        manipulación se pasa `hash_integridad` explícito.
+        """
+        fecha_evento = fecha or datetime.now(timezone.utc)
+        contenido = detalle or {"origen": "integracion"}
+        if hash_integridad is None:
+            hash_integridad = hashlib.sha256(
+                json.dumps(
+                    {
+                        "tipo_evento": tipo_evento,
+                        "fecha_evento": fecha_evento.isoformat(),
+                        "id_usuario": id_usuario,
+                        "resultado": "exitoso",
+                        "modulo": "MODULO1",
+                        "detalle": contenido,
+                    },
+                    sort_keys=True,
+                    default=str,
+                ).encode("utf-8")
+            ).hexdigest()
+
         return db_session.execute(
             text(
                 """
@@ -335,8 +366,8 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
             ),
             {
                 "tipo": tipo_evento,
-                "fecha": fecha or datetime.now(timezone.utc),
-                "detalle": __import__("json").dumps(detalle or {"origen": "integracion"}),
+                "fecha": fecha_evento,
+                "detalle": json.dumps(contenido),
                 "usuario": id_usuario,
                 "categoria": categoria,
                 "hash": hash_integridad,

@@ -28,8 +28,8 @@ class EventoRepository(ABC):
         limit: int,
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
-    ) -> list[tuple[Evento, bool]]:
-        """Retorna una página de eventos con su flag de integridad.
+    ) -> list[tuple[Evento, str]]:
+        """Retorna una página de eventos con su clasificación de integridad.
 
         Args:
             id_usuario: Filtro por usuario, o ``None``.
@@ -42,8 +42,11 @@ class EventoRepository(ABC):
             archivados: Consultar el archivo histórico en vez del log activo.
 
         Returns:
-            Lista de tuplas ``(Evento, integridad_ok)`` donde ``integridad_ok``
-            indica si el hash almacenado coincide con el recalculado.
+            Lista de tuplas ``(Evento, clasificacion)`` donde ``clasificacion`` es
+            ``INTEGRO`` si el hash almacenado coincide con el recalculado,
+            ``LEGADO`` si el registro ya no era verificable antes de adoptar la
+            política y no ha cambiado desde entonces, o ``MANIPULADO`` si el
+            contenido fue alterado.
         """
         raise NotImplementedError
 
@@ -68,8 +71,12 @@ class EventoRepository(ABC):
         id_usuario: int,
         detalle: dict,
         id_sesion: Optional[int] = None,
+        descripcion: Optional[str] = None,
     ) -> None:
         """Registra un evento de auditoría con su hash de integridad SHA-256.
+
+        La IP, el user-agent y la sesión se toman del contexto del request cuando
+        el llamador no los indica, de modo que ningún registro quede sin ellos.
 
         Args:
             tipo_evento: ID del tipo de evento.

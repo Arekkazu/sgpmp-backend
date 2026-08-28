@@ -163,6 +163,10 @@ def test_lectura_corrige_categoria_historica_sin_modificar_la_fila() -> None:
         categoria="AUTENTICACION",
         estado="PROCESADO",
         id_sesion=None,
+        nombre_usuario=None,
+        direccion_ip=None,
+        user_agent=None,
+        descripcion=None,
     )
 
     evento = SqlAlchemyEventoRepository._a_entidad(fila_historica)
