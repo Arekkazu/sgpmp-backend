@@ -8,13 +8,13 @@ El estado de cuenta se gestiona exclusivamente mediante RF-06.
 """
 
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import ConfigDict, EmailStr, Field, field_validator
 
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
-from src.shared.regex import NOMBRE, NUMERO_IDENTIFICACION, TELEFONO
+from src.shared.regex import NOMBRE, TELEFONO
 
 
 class EditarPerfilDTO(BaseDTO):
@@ -34,7 +34,7 @@ class EditarPerfilDTO(BaseDTO):
     correo_electronico: Optional[EmailStr] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
-    tipo_identificacion: Optional[str] = None
+    tipo_identificacion: Optional[Literal["CC", "CE", "Pasaporte"]] = None
     numero_identificacion: Optional[str] = Field(
         default=None,
         min_length=1,
@@ -61,16 +61,6 @@ class EditarPerfilDTO(BaseDTO):
             raise ValueError(
                 "Número telefónico inválido. Asegúrese de ingresar solo dígitos "
                 "numéricos (mínimo 7, máximo 15)"
-            )
-        return v
-
-    @field_validator("numero_identificacion")
-    @classmethod
-    def validar_numero_identificacion(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and not NUMERO_IDENTIFICACION.fullmatch(v):
-            raise ValueError(
-                "El número de identificación debe contener únicamente "
-                "dígitos del 0 al 9"
             )
         return v
 

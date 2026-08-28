@@ -8,13 +8,16 @@ credenciales por query params (sin body), declarados directamente en el
 router.
 """
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import EmailStr, Field, field_validator
+from pydantic import EmailStr, Field, ValidationInfo, field_validator
 
+from src.identity_access.domain.value_objects.identificacion import (
+    identificacion_valida,
+    mensaje_identificacion_invalida,
+)
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
-from src.shared.regex import NUMERO_IDENTIFICACION
 
 
 class AgroFusionCredencialesDTO(BaseDTO):
@@ -36,7 +39,7 @@ class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
     correo_electronico: EmailStr
     nombre: str
     apellidos: str
-    tipo_identificacion: str
+    tipo_identificacion: Literal["CC", "CE", "Pasaporte"]
     numero_identificacion: str = Field(min_length=1, max_length=20)
     fecha_nacimiento: datetime.date
     genero: EnumUsuarioGenero
@@ -46,12 +49,10 @@ class AgroFusionCreateUserDTO(AgroFusionCredencialesDTO):
 
     @field_validator("numero_identificacion")
     @classmethod
-    def validar_numero_identificacion(cls, v: str) -> str:
-        if not NUMERO_IDENTIFICACION.fullmatch(v):
-            raise ValueError(
-                "El número de identificación debe contener únicamente "
-                "dígitos del 0 al 9"
-            )
+    def validar_identificacion(cls, v: str, info: ValidationInfo) -> str:
+        tipo = info.data.get("tipo_identificacion")
+        if not identificacion_valida(tipo, v):
+            raise ValueError(mensaje_identificacion_invalida(tipo))
         return v
 
 

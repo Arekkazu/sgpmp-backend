@@ -45,7 +45,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Estado inicial "Pendiente de activación"** y **rol por defecto (Productor) asignado automáticamente**: el usuario no puede elegir su rol porque el campo directamente no existe en el formulario de registro — es estructuralmente imposible enviarlo.
 - **Token de activación con validez de 24 horas**, generado de forma aleatoria y segura (`secrets.token_urlsafe`).
 - **Confirmación de contraseña**: `confirmar_contrasena` es obligatorio y debe coincidir exactamente con `contrasena`.
-- **Identificación numérica**: el DTO y el dominio aceptan únicamente dígitos ASCII; una migración Alembic protege también nuevas altas y cambios directos en PostgreSQL sin alterar datos históricos incompatibles.
+- **Formato de identificación por tipo**: `CC` y `CE` aceptan únicamente dígitos; `Pasaporte` acepta alfanumérico, porque el propio RF lo lista como tipo válido y un pasaporte no es numérico. La regla vive en `domain/value_objects/identificacion.py` y la comparten registro, edición de perfil y la sincronización con AgroFusion. Una migración Alembic instala el mismo criterio como trigger en PostgreSQL, protegiendo nuevas altas y cambios del documento sin alterar datos históricos incompatibles.
 - **Envío asíncrono del correo de activación** después de confirmar la transacción, mediante `BackgroundTasks` y una sesión independiente. Los 3 reintentos con pausas de 5 segundos ya no bloquean la respuesta HTTP.
 - **Endpoint de activación por token**, que distingue correctamente token inexistente (400), token expirado (410, con mensaje que incluye la fecha) y cuenta ya activada (422).
 - **Reenvío de token de activación** si el original expiró.

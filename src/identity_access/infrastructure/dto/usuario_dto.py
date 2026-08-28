@@ -4,12 +4,17 @@ Todos heredan de `BaseDTO` (Pydantic) y aplican validaciones de formato
 antes de llegar al use case.
 """
 import datetime
+from typing import Literal
 
 from pydantic import EmailStr, Field, ValidationInfo, field_validator
 
+from src.identity_access.domain.value_objects.identificacion import (
+    identificacion_valida,
+    mensaje_identificacion_invalida,
+)
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
-from src.shared.regex import NUMERO_IDENTIFICACION, PASSWORD
+from src.shared.regex import PASSWORD
 
 
 class ReenviarTokenDTO(BaseDTO):
@@ -36,7 +41,7 @@ class UsuarioCreateDTO(BaseDTO):
 
     correo_electronico: EmailStr
     telefono: str
-    tipo_identificacion: str
+    tipo_identificacion: Literal["CC", "CE", "Pasaporte"]
     numero_identificacion: str = Field(min_length=1, max_length=20)
     nombre: str
     apellidos: str
@@ -45,16 +50,6 @@ class UsuarioCreateDTO(BaseDTO):
     contrasena: str
     confirmar_contrasena: str
     direccion: str
-
-    @field_validator("numero_identificacion")
-    @classmethod
-    def validar_numero_identificacion(cls, v: str) -> str:
-        if not NUMERO_IDENTIFICACION.fullmatch(v):
-            raise ValueError(
-                "El número de identificación debe contener únicamente "
-                "dígitos del 0 al 9"
-            )
-        return v
 
     @field_validator("contrasena")
     @classmethod
@@ -73,7 +68,22 @@ class UsuarioCreateDTO(BaseDTO):
         v: str,
         info: ValidationInfo,
     ) -> str:
+        # `contrasena` se declara antes, así que ya está en `info.data` salvo
+        # que haya fallado su propia política — en ese caso ese error basta.
         contrasena = info.data.get("contrasena")
         if contrasena is not None and v != contrasena:
-            raise ValueError("Las contraseñas ingresadas no coinciden")
+            raise ValueError(
+                "Error de confirmación. Las contraseñas ingresadas no coinciden. "
+                "Por favor, verifique e intente de nuevo."
+            )
+        return v
+
+    @field_validator("numero_identificacion")
+    @classmethod
+    def validar_identificacion(cls, v: str, info: ValidationInfo) -> str:
+        # Si `tipo_identificacion` no superó el `Literal`, `info.data` no lo
+        # trae y se aplica la regla numérica, que es la más estricta.
+        tipo = info.data.get("tipo_identificacion")
+        if not identificacion_valida(tipo, v):
+            raise ValueError(mensaje_identificacion_invalida(tipo))
         return v
