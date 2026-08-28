@@ -10,26 +10,38 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AuthorizationError, ValidationError
+from src.shared.errors import InfrastructureError, ValidationError
 
-ROL_ADMINISTRADOR = 1
 TIPO_CONSULTA_AUDITORIA = 16
+
+# Umbral del FA "Exceso de resultados en consulta (Saturación)".
+UMBRAL_SATURACION = 10_000
+TAMANO_MAXIMO_PAGINA = 50
 
 
 class ConsultarAuditoriaUseCase:
     """Orquesta la consulta del log de auditoría con validación de acceso y filtros."""
 
-    def __init__(self, eventos_repo: EventoRepository, db: Session):
+    def __init__(
+        self,
+        eventos_repo: EventoRepository,
+        db: Session,
+        usuarios_repo: Optional[UsuarioRepository] = None,
+    ):
         """Inicializa el use case.
 
         Args:
             eventos_repo: Repositorio de dominio de eventos (consulta y registro).
             db: Sesión SQLAlchemy activa del request.
+            usuarios_repo: Repositorio de usuarios, para rechazar un filtro con un
+                ``id_usuario`` inexistente. Si no se inyecta, ese filtro no se valida.
         """
         self.eventos_repo = eventos_repo
         self.db = db
+        self.usuarios_repo = usuarios_repo
 
     def execute(
         self,
@@ -41,6 +53,7 @@ class ConsultarAuditoriaUseCase:
         pagina: int,
         tamano: int,
         categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
     ) -> dict:
         """Consulta el historial de auditoría con los filtros indicados.
 
@@ -53,56 +66,51 @@ class ConsultarAuditoriaUseCase:
             pagina: Número de página (base 1).
             tamano: Cantidad de ítems por página (máximo efectivo: 50).
             categoria: Filtrar por categoría funcional.
+            archivados: Consultar el archivo histórico de RF-10 (eventos con más
+                de 12 meses) en vez del log activo. Los mismos filtros, la misma
+                paginación y las mismas reglas de acceso aplican a ambos.
 
         Returns:
-            Diccionario con ``total``, ``pagina``, ``tamano`` e ``items``, donde
-            cada ítem es una tupla ``(Evento, integridad_ok)``.
+            Diccionario con ``total``, ``pagina``, ``tamano``, ``items``,
+            ``saturada`` y ``mensaje``. Cada ítem es una tupla
+            ``(Evento, clasificacion_integridad)``.
 
         Raises:
-            AuthorizationError: Si el actor no tiene rol de administrador. HTTP 403.
-            ValidationError: Si ``fecha_desde`` es posterior a ``fecha_hasta``. HTTP 400.
+            ValidationError: Si el rango de fechas es inconsistente o el
+                ``id_usuario`` del filtro no existe. HTTP 400.
+            InfrastructureError: Si algún registro devuelto fue manipulado. HTTP 500.
         """
-        # 1. Solo administradores
-        if usuario_actual.id_rol != ROL_ADMINISTRADOR:
-            try:
-                self.eventos_repo.registrar(
-                    tipo_evento=TIPO_CONSULTA_AUDITORIA,
-                    exitoso=False,
-                    id_usuario=usuario_actual.id_usuario,
-                    detalle={"razon": "ACCESO_DENEGADO"},
-                )
-                self.db.commit()
-            except Exception:
-                self.db.rollback()
-            raise AuthorizationError(
-                code="ACCESO_DENEGADO",
-                message=(
-                    "Acceso denegado: No posee privilegios de administrador para consultar "
-                    "el historial de auditoría. Este incidente ha sido registrado."
-                ),
-            )
+        # La autorización es RBAC y vive en el router (`verificar_acceso_auditoria`),
+        # que además audita el intento denegado como exige el flujo alterno.
 
-        # 2. Validar rango de fechas
-        if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+        # 1. Validar filtros: rango de fechas y existencia del usuario filtrado.
+        filtros_inconsistentes = bool(
+            fecha_desde and fecha_hasta and fecha_desde > fecha_hasta
+        )
+        if not filtros_inconsistentes and id_usuario is not None and self.usuarios_repo:
+            filtros_inconsistentes = self.usuarios_repo.obtener_por_id(id_usuario) is None
+
+        if filtros_inconsistentes:
             raise ValidationError(
-                code="RANGO_FECHAS_INVALIDO",
+                code="FILTROS_INCONSISTENTES",
                 message=(
                     "Error de consulta: Los parámetros de filtrado son inconsistentes. "
                     "Verifique el rango de fechas y los identificadores de usuario seleccionados."
                 ),
             )
 
-        # 3. Limitar tamaño de página
-        tamano = min(tamano, 50)
+        # 2. Limitar tamaño de página
+        tamano = min(tamano, TAMANO_MAXIMO_PAGINA)
         offset = (pagina - 1) * tamano
 
-        # 4. Consultar eventos con verificación de integridad
+        # 3. Consultar eventos con verificación de integridad
         total = self.eventos_repo.contar_eventos(
             id_usuario=id_usuario,
             tipo_evento=tipo_evento,
             fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta,
             categoria=categoria,
+            archivados=archivados,
         )
         items = self.eventos_repo.listar_eventos(
             id_usuario=id_usuario,
@@ -112,7 +120,24 @@ class ConsultarAuditoriaUseCase:
             offset=offset,
             limit=tamano,
             categoria=categoria,
+            archivados=archivados,
         )
+
+        # 4. FA "Fallo de integridad del registro": un registro alterado es un
+        # incidente de seguridad, no un dato más de la respuesta.
+        manipulados = [
+            evento.id_evento for evento, clase in items if clase == "MANIPULADO"
+        ]
+        if manipulados:
+            raise InfrastructureError(
+                code="INTEGRIDAD_AUDITORIA_VIOLADA",
+                message=(
+                    "Alerta de seguridad: Se ha detectado una violación de integridad "
+                    f"en el registro de auditoría {', '.join(str(i) for i in manipulados)}. "
+                    "Los datos han sido manipulados o están corruptos. Se ha notificado "
+                    "al oficial de seguridad."
+                ),
+            )
 
         # 5. Registrar evento de consulta
         try:
@@ -128,6 +153,7 @@ class ConsultarAuditoriaUseCase:
                         "fecha_desde": fecha_desde.isoformat() if fecha_desde else None,
                         "fecha_hasta": fecha_hasta.isoformat() if fecha_hasta else None,
                     },
+                    "archivados": archivados,
                     "total_resultados": total,
                 },
             )
@@ -136,9 +162,23 @@ class ConsultarAuditoriaUseCase:
             self.db.rollback()
             raise
 
+        # 6. FA "Exceso de resultados en consulta": la paginación ya protege el
+        # rendimiento, pero el RF exige avisar explícitamente que la respuesta es
+        # parcial para que el administrador refine la búsqueda.
+        saturada = total > UMBRAL_SATURACION
+        mensaje = (
+            f"Consulta extensa: Se muestran los primeros {tamano} resultados. "
+            "Utilice los parámetros de paginación o filtros adicionales para "
+            "refinar la búsqueda."
+            if saturada
+            else None
+        )
+
         return {
             "total": total,
             "pagina": pagina,
             "tamano": tamano,
             "items": items,
+            "saturada": saturada,
+            "mensaje": mensaje,
         }
