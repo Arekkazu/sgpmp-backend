@@ -22,7 +22,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
 | RF-08 | Recuperación de contraseña | ⚠️ Cumple parcialmente | ~70% |
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
-| RF-10 | Historial de acceso y auditoría | ⚠️ Cumple parcialmente | ~95% |
+| RF-10 | Historial de acceso y auditoría | ✅ Cumple | ~100% |
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
 | RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
@@ -236,7 +236,7 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 
 ## RF-10 — Historial de acceso y auditoría
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — sorprendentemente completo: sí existe endpoint de consulta, con inmutabilidad real y verificación de integridad.
+**Veredicto: ✅ Cumple (~100%)** — existe consulta protegida, inmutabilidad real, verificación de integridad y archivado automático con retención mínima de 12 meses.
 
 ### Qué SÍ cumple
 
@@ -246,11 +246,20 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - **Categorías funcionales corregidas**: los eventos se clasifican como `AUTENTICACION`, `MODIFICACION` o `CONSULTA` según su tipo. El endpoint también permite filtrar por categoría sin modificar eventos históricos inmutables.
 - **El registro de usuario y la activación de cuenta generan eventos de auditoría** (tipos 1 y 2).
 - Se auditan correctamente: login exitoso/fallido, cierre de sesión, cambio de contraseña, solicitud y confirmación de recuperación, actualización de perfil, cambio de estado de cuenta, creación/edición/eliminación de roles, asignación/revocación de permisos, y hasta las propias consultas de auditoría, de listado de usuarios y de perfiles.
+- **Retención y archivado automático de 12 meses**: una tarea diaria copia en lotes los eventos vencidos a `modulo1.eventos_archivados`, conserva el hash y los originales inmutables, y evita concurrencia entre réplicas mediante advisory lock. La tabla y sus índices se crean mediante Alembic.
+- **El archivo histórico es consultable**: `GET /auditoria/archivado/` reusa el mismo caso de uso, permiso RBAC, filtros, paginación y verificación de hash que el log activo.
+- **El fallo del archivado alerta al administrador**: además del log, registra un evento tipo 25 (`FALLO_ARCHIVADO_AUDITORIA`) y una notificación en la bandeja interna (RF-14) para quien tenga permiso de lectura de auditoría.
+- **Campos obligatorios completos**: `nombre_usuario`, `direccion_ip`, `user_agent`, `id_sesion` y `descripcion` se llenan en todos los eventos desde el contexto del request, no sólo en los flujos de sesión.
+- **Todos los flujos alternos implementados con sus códigos y mensajes**: 500 por hash mismatch (con línea base para el legado irreparable), 500 por auditoría obligatoria fallida, 403 auditado, 405 de inmutabilidad, 400 de filtros inconsistentes y 206 por consulta extensa.
+- **RNF de rendimiento**: tres índices sobre `modulo1.eventos` para los filtros y el orden del endpoint.
+
+Ver [`rf10_retencion_auditoria/RESUMEN_FINAL.md`](./rf10_retencion_auditoria/RESUMEN_FINAL.md) y la [auditoría de conformidad](./rf10_retencion_auditoria/auditoria_cumplimiento_rf10.md).
 
 ### Qué NO cumple / gaps
 
-- **No hay política de retención de 12 meses ni archivado automático** de registros antiguos — no existe ningún proceso programado para esto.
-- `audit_sdk`, la librería externa mencionada en `CLAUDE.md` como el mecanismo de auditoría del proyecto (*"Se inicializa en main.py mediante AuditContextMiddleware"*), **está importada pero nunca activada** — es código muerto. La auditoría real del módulo 1 corre por un mecanismo propio (tabla de eventos + hash SHA-256), completamente aparte de esta librería. Esto es una corrección a `CLAUDE.md`, no un gap de negocio: el mecanismo real funciona, solo que no es el que el documento de arquitectura describe.
+Ninguno detectado dentro del alcance de RF-10.
+
+**Nota de arquitectura:** `audit_sdk`, la librería externa mencionada en `CLAUDE.md`, continúa importada pero no activada. La auditoría real del módulo 1 usa su mecanismo propio (`modulo1.eventos` + SHA-256); esto no afecta el cumplimiento del RF.
 
 ---
 

@@ -56,6 +56,11 @@ Remove-Item Env:TEST_DATABASE_URL
 - RF-05/06: autorizacion RBAC en router, edicion del perfil propio y proteccion
   del ultimo usuario activo de un rol protegido.
 - RF-10: categoria canonica de eventos al consultar auditoria.
+- RF-10: retención mínima de 12 meses, archivado histórico idempotente e
+  inmutabilidad de los registros archivados.
+- RF-10: consulta del archivo histórico (`GET /auditoria/archivado/`) con filtros,
+  paginación, 403 al no administrador y 400 por rango de fechas inconsistente; y
+  alerta interna al administrador cuando el archivado automático falla.
 - RF-11: ausencia del listado legacy, permiso del listado administrativo y orden
   descendente por fecha de registro.
 - RF-12: semilla idempotente del permiso y enmascaramiento de identificacion.

@@ -22,6 +22,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.identity_access.infrastructure.models.estados_cuentas_model import EstadosCuentas
+from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import ConflictError, PreconditionFailedError
@@ -266,3 +267,24 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
                 > actualizado_desde
             )
         return query
+
+    def listar_ids_con_permiso(self, id_recurso: int, id_accion: int) -> list[int]:
+        filas = (
+            self.db.query(Usuarios.id_usuario)
+            .join(Permisos, Permisos.id_rol == Usuarios.id_rol)
+            .join(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
+            .join(
+                EstadosCuentas,
+                EstadosCuentas.id_estado_cuenta == CuentasUsuarios.id_estado_cuenta,
+            )
+            .filter(
+                Permisos.id_recurso == id_recurso,
+                Permisos.id_accion == id_accion,
+                Permisos.es_activo.is_(True),
+                func.lower(EstadosCuentas.nombre) == "activo",
+            )
+            .order_by(Usuarios.id_usuario)
+            .distinct()
+            .all()
+        )
+        return [fila.id_usuario for fila in filas]
