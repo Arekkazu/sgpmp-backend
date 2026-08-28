@@ -1,0 +1,66 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-07 Contrasena limite inferior rechazada",
+    "description": "Coleccion para RF-01 / TC-M01-07: contrasena de 7 caracteres (bajo el minimo de 8) que cumple el resto de criterios debe ser rechazada (HTTP 400). Valor limite inferior no aceptado. Se ejecuta junto a TC-M01-06 (8 caracteres, aceptado).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-07 - Contrasena de 7 caracteres (bajo el limite) debe ser rechazada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-07: HTTP 400 por contrasena bajo el minimo de 8 caracteres', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('TC-M01-07: el mensaje hace referencia a la contrasena o longitud', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('contrase') || b.includes('password') || b.includes('longitud') || b.includes('caracteres') || b.includes('8');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-07: el campo reportado es contrasena (si el backend lo incluye)', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.fields && json.fields.length) {",
+              "        const fieldsStr = JSON.stringify(json.fields).toLowerCase();",
+              "        pm.expect(fieldsStr).to.satisfy(function (s) {",
+              "            return s.includes('contrasena') || s.includes('password');",
+              "        });",
+              "    } else if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('contrasena');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('TC-M01-07: no se creo una cuenta (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0507.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550508\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000508\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Bajo Limite\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abc12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}
