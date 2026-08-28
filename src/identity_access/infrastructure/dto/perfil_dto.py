@@ -8,9 +8,9 @@ El estado de cuenta se gestiona exclusivamente mediante RF-06.
 """
 
 import datetime
-from typing import Optional
+from typing import Literal, Optional
 
-from pydantic import ConfigDict, EmailStr, field_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator
 
 from src.identity_access.infrastructure.models.enums_models import EnumUsuarioGenero
 from src.shared.base_dto import BaseDTO
@@ -34,8 +34,12 @@ class EditarPerfilDTO(BaseDTO):
     correo_electronico: Optional[EmailStr] = None
     telefono: Optional[str] = None
     direccion: Optional[str] = None
-    tipo_identificacion: Optional[str] = None
-    numero_identificacion: Optional[str] = None
+    tipo_identificacion: Optional[Literal["CC", "CE", "Pasaporte"]] = None
+    numero_identificacion: Optional[str] = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+    )
     fecha_nacimiento: Optional[datetime.date] = None
     genero: Optional[EnumUsuarioGenero] = None
     version: int

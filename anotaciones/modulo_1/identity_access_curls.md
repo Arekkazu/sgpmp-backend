@@ -73,9 +73,55 @@ curl -s -X POST http://localhost:8000/usuarios/ \
     "fecha_nacimiento": "1990-05-15",
     "genero": "M",
     "contrasena": "Contrasena1!",
+    "confirmar_contrasena": "Contrasena1!",
     "direccion": "Calle 123 # 45-67"
   }' | jq
 ```
+
+Respuesta `201`:
+
+```json
+{ "message": "Registro exitoso, envío de correo en proceso." }
+```
+
+El correo de activación se agenda en segundo plano (`BackgroundTasks`), así que
+el endpoint responde de inmediato aunque el SMTP esté caído. Los 3 reintentos
+con pausas de 5 s siguen ocurriendo, ya fuera del tiempo de respuesta — por eso
+este endpoint no devuelve `503`.
+
+`tipo_identificacion` admite `CC`, `CE` y `Pasaporte`. El formato de
+`numero_identificacion` depende del tipo: solo dígitos para `CC`/`CE`,
+alfanumérico para `Pasaporte`.
+
+```bash
+# Pasaporte: alfanumérico aceptado
+curl -s -X POST http://localhost:8000/usuarios/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "correo_electronico": "viajero@ejemplo.com",
+    "telefono": "3001234567",
+    "tipo_identificacion": "Pasaporte",
+    "numero_identificacion": "AB1234567",
+    "nombre": "Ana",
+    "apellidos": "Gómez",
+    "fecha_nacimiento": "1990-05-15",
+    "genero": "F",
+    "contrasena": "Contrasena1!",
+    "confirmar_contrasena": "Contrasena1!",
+    "direccion": "Calle 123 # 45-67"
+  }' | jq
+```
+
+Errores posibles:
+
+| HTTP | `error_code` | `field` | Caso (FA del RF-01) |
+|------|--------------|---------|---------------------|
+| 400 | `VAL_ENTRADA` | `confirmar_contrasena` | Las contraseñas no coinciden |
+| 400 | `VAL_ENTRADA` | `contrasena` | Incumple la política de contraseñas |
+| 400 | `VAL_ENTRADA` | `numero_identificacion` | Formato inválido para el tipo declarado |
+| 400 | `VAL_ENTRADA` | `tipo_identificacion` | Tipo distinto de `CC`/`CE`/`Pasaporte` |
+| 403 | `EDAD_MINIMA_REQUERIDA` | `fecha_nacimiento` | Usuario menor de 18 años |
+| 409 | `UNICIDAD` | `correo_electronico` / `numero_identificacion` | Ya registrado |
 
 ### Activar cuenta con token
 ```bash

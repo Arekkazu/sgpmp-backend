@@ -146,6 +146,7 @@ def test_registro_y_activacion_usan_servicio_central_sin_guardar_token(
             "fecha_nacimiento": "1990-01-01",
             "genero": "M",
             "contrasena": "Segura1!",
+            "confirmar_contrasena": "Segura1!",
             "direccion": "Dirección de prueba",
         },
     )

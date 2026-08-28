@@ -159,6 +159,9 @@ def client(
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[TestClient, None, None]:
+    from src.identity_access.infrastructure.adapters import (
+        correo_activacion_background_adapter,
+    )
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
 
@@ -168,7 +171,20 @@ def client(
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
+    def crear_sesion_background() -> Session:
+        """Crea una sesión aislada sobre la transacción exterior de la prueba."""
+        return Session(
+            bind=db_session.connection(),
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+
     integration_app.dependency_overrides[get_db] = override_get_db
+    monkeypatch.setattr(
+        correo_activacion_background_adapter,
+        "SessionLocal",
+        crear_sesion_background,
+    )
     with TestClient(
         integration_app,
         client=("sgpmp-integration-tests", 50000),

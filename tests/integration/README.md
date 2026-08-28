@@ -46,13 +46,14 @@ Remove-Item Env:TEST_DATABASE_URL
 
 ## Cobertura integrada
 
-- RF-01: CAPTCHA, confirmacion de contrasena, identificacion numerica, registro,
-  reenvio, hash del token, auditoria y activacion.
+- RF-01: confirmacion de contrasena, identificacion numerica, correo de
+  activacion asincrono, registro, reenvio, hash del token, auditoria y
+  activacion.
 - RF-02: login, JWT y sesion persistida con vigencia de ocho horas.
 - RF-01/08/09: recuperacion de cuenta activa, redireccion de cuenta pendiente
   hacia activacion, hash del token y restablecimiento de contrasena.
-- RF-01: validacion del script SQL de identificacion numerica, incluyendo el
-  bloqueo seguro si existen datos historicos invalidos.
+- RF-01: validacion de la migracion Alembic que protege nuevas identificaciones
+  sin bloquear la edicion de otros campos en filas historicas incompatibles.
 - RF-05/06: autorizacion RBAC en router, edicion del perfil propio y proteccion
   del ultimo usuario activo de un rol protegido.
 - RF-10: categoria canonica de eventos al consultar auditoria.
