@@ -67,3 +67,9 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: alembic current
+
+      - name: Aplicar migraciones en TEST DB
+        if: ${{ secrets.TEST_DB_URL != '' }}
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DB_URL }}
+        run: alembic upgrade head
