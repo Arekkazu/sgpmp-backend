@@ -1,0 +1,175 @@
+{
+    "info": {
+        "_postman_id": "TC-M01-30",
+        "name": "TC-M01-30 - Cambio de contraseña exitoso",
+        "description": "Prueba automatizada del RF-07: cambio de contraseña exitoso con contraseña actual correcta y nueva contraseña conforme a las políticas de seguridad.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Iniciar sesión",
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo_electronico\": \"{{qa_email}}\",\n  \"contrasena\": \"{{qa_password}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/sesiones/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "sesiones",
+                        ""
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log(\"Respuesta del login:\", pm.response.text());",
+                            "",
+                            "pm.test(\"Login exitoso\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"La respuesta del login es JSON\", function () {",
+                            "    pm.response.to.be.json;",
+                            "});",
+                            "",
+                            "if (pm.response.code !== 200) {",
+                            "    console.error(\"El login fallo. No se continuara con el cambio de contraseña.\");",
+                            "    pm.execution.setNextRequest(null);",
+                            "} else {",
+                            "    const loginResponse = pm.response.json();",
+                            "",
+                            "    pm.test(\"La respuesta contiene el token\", function () {",
+                            "        pm.expect(loginResponse).to.have.property(\"token\");",
+                            "        pm.expect(loginResponse.token).to.be.a(\"string\").and.not.empty;",
+                            "    });",
+                            "",
+                            "    pm.test(\"El tipo de token es Bearer\", function () {",
+                            "        pm.expect(loginResponse.tipo).to.eql(\"Bearer\");",
+                            "    });",
+                            "",
+                            "    pm.collectionVariables.set(\"token\", loginResponse.token);",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. TC-M01-30 - Cambio de contraseña",
+            "request": {
+                "method": "PUT",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    },
+                    {
+                        "key": "Accept",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"contrasena_actual\": \"{{qa_password}}\",\n  \"nueva_contrasena\": \"{{new_password}}\",\n  \"confirmar_nueva_contrasena\": \"{{new_password}}\"\n}",
+                    "options": {
+                        "raw": {
+                            "language": "json"
+                        }
+                    }
+                },
+                "url": {
+                    "raw": "{{base_url}}/contrasena/usuarios/41",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "contrasena",
+                        "usuarios",
+                        "41"
+                    ]
+                }
+            },
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                            "console.log(\"Respuesta cambio de contraseña:\", pm.response.text());",
+                            "",
+                            "pm.test(\"TC-M01-30 - Respuesta exitosa\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "",
+                            "pm.test(\"La respuesta es JSON\", function () {",
+                            "    pm.response.to.be.json;",
+                            "});",
+                            "",
+                            "if (pm.response.code === 200) {",
+                            "    const passwordResponse = pm.response.json();",
+                            "",
+                            "    pm.test(\"La respuesta contiene el campo message\", function () {",
+                            "        pm.expect(passwordResponse).to.have.property(\"message\");",
+                            "    });",
+                            "",
+                            "    pm.test(\"El campo message es texto\", function () {",
+                            "        pm.expect(passwordResponse.message).to.be.a(\"string\");",
+                            "    });",
+                            "}"
+                        ]
+                    }
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+        },
+        {
+            "key": "qa_email",
+            "value": ""
+        },
+        {
+            "key": "qa_password",
+            "value": ""
+        },
+        {
+            "key": "new_password",
+            "value": ""
+        },
+        {
+            "key": "token",
+            "value": ""
+        }
+    ]
+}
