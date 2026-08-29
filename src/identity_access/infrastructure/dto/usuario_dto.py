@@ -4,7 +4,7 @@ Todos heredan de `BaseDTO` (Pydantic) y aplican validaciones de formato
 antes de llegar al use case.
 """
 import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import EmailStr, Field, ValidationInfo, field_validator
 
@@ -40,7 +40,9 @@ class UsuarioCreateDTO(BaseDTO):
     """Datos completos para registrar un nuevo usuario en el sistema."""
 
     correo_electronico: EmailStr
-    telefono: str
+    # La columna es nullable y la entidad los declara opcionales: el registro
+    # no debe exigirlos solo porque el DTO no traía default.
+    telefono: Optional[str] = None
     tipo_identificacion: Literal["CC", "CE", "Pasaporte"]
     numero_identificacion: str = Field(min_length=1, max_length=20)
     nombre: str
@@ -49,7 +51,7 @@ class UsuarioCreateDTO(BaseDTO):
     genero: EnumUsuarioGenero
     contrasena: str
     confirmar_contrasena: str
-    direccion: str
+    direccion: Optional[str] = None
 
     @field_validator("contrasena")
     @classmethod
