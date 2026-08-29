@@ -336,6 +336,7 @@ def editar_perfil_admin(
     responses={
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
 )
 def detalle_usuario(

@@ -34,7 +34,8 @@ auditoría inmutable con hash SHA-256 y triggers que bloquean UPDATE/DELETE.
 **Gaps conocidos:** CAPTCHA ausente en registro (RF-01); `ROL_ADMINISTRADOR = 1` hardcodeado
 en use cases de edición de perfil y gestión de cuentas (RF-05/06).
 Refresh tokens, hash de tokens de un solo uso, RBAC del listado de usuarios y el permiso
-especial de identificación completa de RF-12 **ya están resueltos**.
+especial de identificación completa de RF-12 **ya están resueltos**. RF-12 incorpora además
+rate limiting (429) sobre la consulta de fichas, calculado sobre la propia auditoría.
 
 📄 Detalle: [`modulo_1/estado.md`](./modulo_1/estado.md)
 

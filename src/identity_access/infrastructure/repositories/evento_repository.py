@@ -340,6 +340,21 @@ class SqlAlchemyEventoRepository(EventoRepository):
             .scalar()
         )
 
+    def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
+        # Solo las exitosas: los eventos de bloqueo (RF-12, 429) se registran con
+        # resultado FALLIDO justamente para no realimentar su propia ventana.
+        # Resuelto por el indice ix_eventos_usuario_fecha (id_usuario, fecha_evento DESC).
+        return (
+            self.db.query(func.count(Eventos.id_evento))
+            .filter(
+                Eventos.tipo_evento == 18,  # CONSULTA_DETALLE_USUARIO
+                Eventos.id_usuario == id_usuario,
+                Eventos.fecha_evento >= desde,
+                Eventos.resultado == EnumEventoResultado.EXITOSO,
+            )
+            .scalar()
+        )
+
     def adquirir_bloqueo_archivado(self) -> bool:
         """Evita que dos réplicas ejecuten simultáneamente el archivado diario."""
         return bool(
