@@ -24,7 +24,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-09 | Restablecimiento de contraseña | ⚠️ Cumple parcialmente | ~75% |
 | RF-10 | Historial de acceso y auditoría | ✅ Cumple | ~100% |
 | RF-11 | Visualización de usuarios (listado) | ✅ Cumple | ~95% |
-| RF-12 | Visualización de detalle de usuario | ⚠️ Cumple parcialmente | ~90% |
+| RF-12 | Visualización de detalle de usuario | ✅ Cumple | ~100% |
 | RF-13 | Visualización de perfil propio | ✅ Cumple | ~100% |
 | RF-14 | Notificar a los usuarios | ✅ Cumple | ~100% |
 
@@ -285,7 +285,7 @@ Ninguno detectado dentro del alcance de RF-10.
 
 ## RF-12 — Visualización de detalles del usuario (admin ve la ficha de cualquier usuario)
 
-**Veredicto: ⚠️ Cumple parcialmente (~90%)** — el código está completo y correcto; el gap de acceso más amplio de lo debido ya se corrigió, queda pendiente sembrar el permiso especial de identificación completa.
+**Veredicto: ✅ Cumple (~100%)** — enmascaramiento, RBAC de acceso, semilla del permiso especial y los tres flujos alternos del RF (429 por patrón inusual, enmascarado defensivo ante fallo de permisos, bloqueo si no se puede auditar).
 
 ### Qué SÍ cumple
 
@@ -294,10 +294,15 @@ Ninguno detectado dentro del alcance de RF-10.
 - Mecanismo para mostrar el número completo si el usuario tiene el permiso especial correspondiente.
 - **Auditoría obligatoria de cada acceso**, sin excepción — se registra quién consultó a quién y cuándo.
 - **Acceso ahora restringido a Administrador**: `GET /usuarios/{id}/detalle` comparte `require_permission(1, 2)` con el listado de RF-11, así que la corrección aplicada en el issue #17 (revocar `*_leer_usuario` de Productor/Veterinario/Ingeniero de Campo/Contador) también resuelve este gap — verificado en vivo, un token de Veterinario recibe `403`. Ver [`pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md`](./pr17_rf11_rf12_paso0_gap_rbac_y_refresco.md).
+- **Permiso especial sembrado mediante Alembic**: la revisión `f2c84d91a6e7` concede únicamente al Administrador la acción Ejecutar `(5)` sobre Usuarios `(1)`. La migración valida los catálogos y es idempotente. Ver [`rf12_permiso_identificacion_completa/`](./rf12_permiso_identificacion_completa/resumen.md).
+- **Los tres flujos alternos del RF están implementados**, no solo la ruta feliz:
+  - *Fallo al validar el permiso* → se enmascara por defecto en vez de devolver 500, priorizando la privacidad sobre la visualización tal como pide el RF. Incluye exigir `es_activo`, que `PermisoRepository.buscar()` no filtra (a diferencia de `require_permission`).
+  - *Patrón de consulta inusual* → `429 PATRON_CONSULTA_INUSUAL` cuando un mismo actor supera el umbral de consultas de detalle en la ventana vigente, contado sobre los eventos de auditoría tipo 18 que esta vista ya registraba. El intento bloqueado queda como evento fallido — la alerta de seguridad que exige el RF. Sin DDL ni infraestructura nueva: reutiliza el índice `ix_eventos_usuario_fecha` y el patrón de rate limiting de RF-08/09.
+  - *Auditoría no disponible* → `500 AUDITORIA_NO_DISPONIBLE` con el mensaje del RF. El acceso ya se bloqueaba; faltaba el contrato de respuesta.
 
 ### Qué NO cumple / gaps
 
-- **Falta sembrar el permiso especial en base de datos.** El código que decide "¿este admin puede ver la identificación completa?" está listo y correcto, pero hoy **no existe ninguna fila en la tabla de permisos** que otorgue esa capacidad especial a ningún rol — ni siquiera al Administrador. En la práctica, esto significa que **actualmente nadie puede ver el número de identificación completo**, siempre se muestra enmascarado. Esto es exactamente el tipo de gap que `CLAUDE.md` pide prevenir en su "Paso 0" (verificar que los permisos necesarios existan en base de datos antes de dar por implementado un caso de uso) — aquí ese paso quedó pendiente. No se corrigió en el issue #17 por estar fuera de su alcance (era sobre RBAC de lectura general y refresco, no sobre el permiso especial de identificación).
+Ninguno detectado para el alcance de RF-12.
 
 ---
 
