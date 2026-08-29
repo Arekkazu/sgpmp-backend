@@ -55,6 +55,18 @@ def test_registro_exige_confirmacion_de_contrasena() -> None:
     assert error.value.errors()[0]["loc"] == ("confirmar_contrasena",)
 
 
+def test_registro_acepta_telefono_y_direccion_ausentes() -> None:
+    """Ambas columnas son nullable y la entidad los declara opcionales."""
+    datos = _registro()
+    datos.pop("telefono")
+    datos.pop("direccion")
+
+    dto = UsuarioCreateDTO(**datos)
+
+    assert dto.telefono is None
+    assert dto.direccion is None
+
+
 def test_registro_rechaza_contrasenas_que_no_coinciden() -> None:
     with pytest.raises(PydanticValidationError) as error:
         UsuarioCreateDTO(**_registro(confirmar_contrasena="OtraClave1!"))

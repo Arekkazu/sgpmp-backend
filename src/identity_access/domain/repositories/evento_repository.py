@@ -96,6 +96,17 @@ class EventoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
+        """Cuenta las consultas de detalle (tipo 18) exitosas de un actor desde ``desde``.
+
+        Se usa para detectar patrones de extracción masiva de fichas de usuario
+        (RF-12) y responder 429. Solo cuenta las consultas que efectivamente
+        entregaron datos: si contara también los intentos bloqueados, cada
+        reintento alimentaría la ventana y el bloqueo no expiraría nunca.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def adquirir_bloqueo_archivado(self) -> bool:
         """Intenta obtener el bloqueo transaccional exclusivo del archivado RF-10."""
         raise NotImplementedError
