@@ -187,19 +187,20 @@ def crear_usuario(
     "/activar/reenviar",
     response_model=MessageResponse,
     responses={
-        400: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
 )
-def reenviar_token(dto: ReenviarTokenDTO, db: Session = Depends(get_db)):
+def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depends(get_db)):
+    ip, _ = _contexto_auditoria(request)
+
     use_case = ReenviarTokenUseCase(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
-    use_case.execute(dto)
-    return {"message": "Token reenviado. Revisa tu correo para activar tu cuenta."}
+    return {"message": use_case.execute(dto, ip)}
 
 
 @router.get(
