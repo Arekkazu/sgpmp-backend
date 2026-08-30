@@ -70,28 +70,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: |
+          alembic current
           alembic heads
-          if ! alembic current; then
-            echo "::warning::No se pudo resolver la revisión actual de Alembic en la DB de dev. Se intentará reparar antes del upgrade."
-          fi
-
-      - name: Reparar revisión huérfana de Alembic (solo si aplica)
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
-        env:
-          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
-        run: |
-          set -euo pipefail
-          if alembic current >/tmp/alembic-current.log 2>&1; then
-            cat /tmp/alembic-current.log
-          else
-            cat /tmp/alembic-current.log
-            if grep -q "Can't locate revision identified by" /tmp/alembic-current.log; then
-              echo "::warning::Se detectó una revisión huérfana en alembic_version. Se aplica 'alembic stamp head' para reconciliar el estado."
-              alembic stamp head
-            else
-              exit 1
-            fi
-          fi
 
       - name: Ejecutar alembic upgrade head
         if: steps.check_migrations.outputs.has_new_migrations == 'true'
