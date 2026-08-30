@@ -19,6 +19,10 @@ from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.domain.repositories.sesion_repository import SesionRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
+from src.identity_access.domain.value_objects.identificacion import (
+    identificacion_valida,
+    mensaje_identificacion_invalida,
+)
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
@@ -301,6 +305,24 @@ class EditarPerfilUseCase:
 
             if "numero_identificacion" in cambios:
                 usuario.numero_identificacion = cambios["numero_identificacion"]
+
+            # El DTO no puede validar el formato del documento: en una edición
+            # parcial puede llegar el número sin el tipo (o al revés). Aquí ya
+            # está el par efectivo — el declarado o el que la cuenta tenía.
+            if (
+                "tipo_identificacion" in cambios
+                or "numero_identificacion" in cambios
+            ) and not identificacion_valida(
+                usuario.tipo_identificacion,
+                usuario.numero_identificacion,
+            ):
+                raise ValidationError(
+                    code="NUMERO_IDENTIFICACION_INVALIDO",
+                    message=mensaje_identificacion_invalida(
+                        usuario.tipo_identificacion
+                    ),
+                    field="numero_identificacion",
+                )
 
             if "fecha_nacimiento" in cambios:
                 usuario.fecha_nacimiento = cambios["fecha_nacimiento"]

@@ -6,6 +6,8 @@ revierte la transacción exterior, por lo que la base no conserva datos de prueb
 """
 from __future__ import annotations
 
+import hashlib
+import json
 import os
 import re
 import uuid
@@ -25,6 +27,7 @@ from sqlalchemy.orm import Session
 
 ROOT = Path(__file__).resolve().parents[2]
 JWT_SECRET_INTEGRACION = "sgpmp-integration-tests-only"
+BASES_PRUEBA_PERMITIDAS = {"pruebas", "pruebas-integrador"}
 TABLAS_MODULO1_REQUERIDAS = {
     "acciones",
     "cuentas_usuarios",
@@ -46,10 +49,11 @@ def _validar_url_pruebas(url: str) -> None:
     nombre = (parsed.database or "").lower()
     if not parsed.drivername.startswith("postgresql"):
         pytest.fail("TEST_DATABASE_URL debe apuntar a PostgreSQL.")
-    if "test" not in nombre and nombre != "pruebas":
+    if "test" not in nombre and nombre not in BASES_PRUEBA_PERMITIDAS:
         pytest.fail(
             "Protección de seguridad: la base indicada por TEST_DATABASE_URL "
-            "debe contener 'test' en su nombre o llamarse exactamente 'pruebas'."
+            "debe contener 'test' o pertenecer a la lista explícita de bases "
+            "de integración permitidas."
         )
 
 
@@ -136,8 +140,12 @@ def integration_app() -> FastAPI:
         router as usuarios_router,
     )
     from src.shared.error_handlers import register_error_handlers
+    from src.shared.middlewares import RequestContextMiddleware
 
     app = FastAPI()
+    # Igual que en `main.py`: sin este middleware la auditoría no recibe IP ni
+    # user-agent, y las pruebas dejarían de reflejar el comportamiento real.
+    app.add_middleware(RequestContextMiddleware)
     register_error_handlers(app)
     app.include_router(usuarios_router)
     app.include_router(contrasena_router)
@@ -153,6 +161,9 @@ def client(
     db_session: Session,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[TestClient, None, None]:
+    from src.identity_access.infrastructure.adapters import (
+        correo_activacion_background_adapter,
+    )
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
 
@@ -162,7 +173,20 @@ def client(
     def override_get_db() -> Generator[Session, None, None]:
         yield db_session
 
+    def crear_sesion_background() -> Session:
+        """Crea una sesión aislada sobre la transacción exterior de la prueba."""
+        return Session(
+            bind=db_session.connection(),
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+
     integration_app.dependency_overrides[get_db] = override_get_db
+    monkeypatch.setattr(
+        correo_activacion_background_adapter,
+        "SessionLocal",
+        crear_sesion_background,
+    )
     with TestClient(
         integration_app,
         client=("sgpmp-integration-tests", 50000),
@@ -317,7 +341,33 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
         categoria: str,
         detalle: dict[str, Any] | None = None,
         fecha: datetime | None = None,
+        hash_integridad: str | None = None,
     ) -> int:
+        """Inserta un evento de auditoría válido.
+
+        Por defecto calcula el hash real del contenido con la misma fórmula del
+        repositorio, porque desde RF-10 un evento sin hash o con hash que no
+        cuadra ya no cuenta como íntegro. Para probar la detección de
+        manipulación se pasa `hash_integridad` explícito.
+        """
+        fecha_evento = fecha or datetime.now(timezone.utc)
+        contenido = detalle or {"origen": "integracion"}
+        if hash_integridad is None:
+            hash_integridad = hashlib.sha256(
+                json.dumps(
+                    {
+                        "tipo_evento": tipo_evento,
+                        "fecha_evento": fecha_evento.isoformat(),
+                        "id_usuario": id_usuario,
+                        "resultado": "exitoso",
+                        "modulo": "MODULO1",
+                        "detalle": contenido,
+                    },
+                    sort_keys=True,
+                    default=str,
+                ).encode("utf-8")
+            ).hexdigest()
+
         return db_session.execute(
             text(
                 """
@@ -327,17 +377,18 @@ def crear_evento_db(db_session: Session) -> Callable[..., int]:
                 ) VALUES (
                     :tipo, :fecha, 'MODULO1',
                     CAST('exitoso' AS modulo1.enum_evento_resultado),
-                    CAST(:detalle AS jsonb), :usuario, :categoria, 'PROCESADO', NULL
+                    CAST(:detalle AS jsonb), :usuario, :categoria, 'PROCESADO', :hash
                 )
                 RETURNING id_evento
                 """
             ),
             {
                 "tipo": tipo_evento,
-                "fecha": fecha or datetime.now(timezone.utc),
-                "detalle": __import__("json").dumps(detalle or {"origen": "integracion"}),
+                "fecha": fecha_evento,
+                "detalle": json.dumps(contenido),
                 "usuario": id_usuario,
                 "categoria": categoria,
+                "hash": hash_integridad,
             },
         ).scalar_one()
 

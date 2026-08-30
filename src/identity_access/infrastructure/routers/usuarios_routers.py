@@ -6,7 +6,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -18,6 +18,9 @@ from src.identity_access.application.use_cases.registro.crear_usuario_use_case i
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
+from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
+    CorreoActivacionBackgroundAdapter,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.shared.rbac import require_permission
@@ -157,12 +160,12 @@ def listar_usuarios_admin(
         403: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
-        503: {"model": ErrorResponse},
     },
 )
 def crear_usuario(
     dto: UsuarioCreateDTO,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
     ip, user_agent = _contexto_auditoria(request)
@@ -171,37 +174,33 @@ def crear_usuario(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        correo_activacion_port=CorreoActivacionBackgroundAdapter(background_tasks),
         db=db,
-        notificacion_service=NotificacionService(
-            port=SqlAlchemyNotificacionRepository(db),
-            db=db,
-        ),
     )
 
     use_case.execute(dto, ip, user_agent)
 
-    return {
-        "message": "Registro exitoso. Revisa tu correo para activar tu cuenta."
-    }
+    return {"message": "Registro exitoso, envío de correo en proceso."}
 
 
 @router.post(
     "/activar/reenviar",
     response_model=MessageResponse,
     responses={
-        400: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
     },
 )
-def reenviar_token(dto: ReenviarTokenDTO, db: Session = Depends(get_db)):
+def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depends(get_db)):
+    ip, _ = _contexto_auditoria(request)
+
     use_case = ReenviarTokenUseCase(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
     )
-    use_case.execute(dto)
-    return {"message": "Token reenviado. Revisa tu correo para activar tu cuenta."}
+    return {"message": use_case.execute(dto, ip)}
 
 
 @router.get(
@@ -338,6 +337,7 @@ def editar_perfil_admin(
     responses={
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
 )
 def detalle_usuario(

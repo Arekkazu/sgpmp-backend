@@ -27,6 +27,10 @@ class Evento:
         categoria: Categoría funcional (AUTENTICACION, MODIFICACION, ...).
         estado: Estado del evento en su ciclo de vida.
         id_sesion: Sesión asociada, si aplica.
+        nombre_usuario: Nombre o correo del actor al momento del evento.
+        direccion_ip: IP de origen de la petición que lo generó.
+        user_agent: Navegador o dispositivo desde el que se originó.
+        descripcion: Detalle en lenguaje natural del evento.
     """
 
     id_evento: int
@@ -39,6 +43,10 @@ class Evento:
     categoria: str
     estado: str
     id_sesion: Optional[int] = None
+    nombre_usuario: Optional[str] = None
+    direccion_ip: Optional[str] = None
+    user_agent: Optional[str] = None
+    descripcion: Optional[str] = None
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Evento):

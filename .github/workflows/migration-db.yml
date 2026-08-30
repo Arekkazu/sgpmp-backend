@@ -1,22 +1,28 @@
-name: Deploy Migrations to Dev DB
+name: Deploy Migrations to Dev & Test DBs
 
-# Se dispara SOLO cuando llega un push a main que toca la carpeta
-# de migraciones de Alembic (nuevos archivos en alembic/versions/).
+# Se dispara cuando llega un push a dev que toca la carpeta de
+# migraciones de Alembic, o manualmente desde la pestaña Actions.
+#
+# workflow_dispatch existe porque el filtro de "paths" solo reacciona a
+# pushes que tocan alembic/versions/. Si la DB se queda atrasada por
+# cualquier motivo (un run que falló, una migración aplicada a mano),
+# este es el botón para ponerla al día sin esperar a la próxima migración.
 on:
   push:
     branches:
       - dev
     paths:
       - "alembic/versions/**"
+  workflow_dispatch:
 
 # Evita que dos runs se pisen si llegan varios pushes seguidos
 concurrency:
-  group: deploy-migrations-dev
+  group: deploy-migrations-dev-test
   cancel-in-progress: false
 
 jobs:
   migrate:
-    name: Run Alembic upgrade on dev DB
+    name: Run Alembic upgrade on dev and test DBs
     runs-on: ubuntu-latest
     # Si tienes un "environment" configurado en GitHub (Settings > Environments)
     # llamado "development", esto te permite además pedir aprobación manual
@@ -39,42 +45,36 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Detectar si hay revisiones nuevas de Alembic
-        id: check_migrations
-        run: |
-          # Compara contra el commit anterior al push para confirmar
-          # que efectivamente hay .py nuevos en alembic/versions/
-          BEFORE_SHA="${{ github.event.before }}"
-          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
-            echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
-          else
-            CHANGED=$(git diff --name-only --diff-filter=A "$BEFORE_SHA" "${{ github.sha }}" -- alembic/versions/)
-            if [ -n "$CHANGED" ]; then
-              echo "Nuevas migraciones detectadas:"
-              echo "$CHANGED"
-              echo "has_new_migrations=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "No hay archivos nuevos en alembic/versions/, se omite el upgrade."
-              echo "has_new_migrations=false" >> "$GITHUB_OUTPUT"
-            fi
-          fi
-
-      - name: Mostrar estado actual de la DB (heads / current)
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
+      # Diagnóstico: si el upgrade falla (p. ej. por heads múltiples tras
+      # mergear dos ramas con migraciones paralelas), estas dos líneas
+      # dejan en el log en qué revisión está la DB y cuál es el head del repo.
+      - name: Mostrar estado actual de la DB (current / heads)
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: |
           alembic current
           alembic heads
 
+      # Aplica TODAS las revisiones pendientes, no solo la del último push:
+      # si hubo runs fallidos, este paso alcanza el backlog completo de una vez.
+      # Si la DB ya está en head, no ejecuta nada.
       - name: Ejecutar alembic upgrade head
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: alembic upgrade head
 
       - name: Confirmar versión final aplicada
-        if: steps.check_migrations.outputs.has_new_migrations == 'true'
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: alembic current
+
+      # Segundo destino: la DB de test va siempre al mismo head que dev, para
+      # que las pruebas corran contra el esquema recién aplicado. Se ejecuta
+      # después de dev: si dev falla, el job corta y test no se toca.
+      - name: Ejecutar alembic upgrade head en la DB de test
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: |
+          alembic current
+          alembic upgrade head
+          alembic current
