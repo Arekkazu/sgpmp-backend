@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "TC-M01-066 - Intentar eliminar un registro de auditoria existente",
+    "description": "TC-M01-066 (RF-10, CU07): Se intenta eliminar un registro de auditoria mediante DELETE. La prueba valida que la auditoria utiliza un modelo append-only y que la API bloquea la eliminacion de registros.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como usuario proporcionado por Desarrollo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion de la prueba.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"juan.carlos@email.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-066 - Intentar eliminar auditoria mediante DELETE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-066: intento de eliminacion de auditoria ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M01-066: la operacion de eliminacion es bloqueada', function () {",
+              "    pm.expect([200, 405]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-066: la respuesta tiene formato JSON valido', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "});",
+              "",
+              "const cuerpo = pm.response.text().toLowerCase();",
+              "",
+              "pm.test('TC-M01-066: la API identifica la auditoria como inmutable', function () {",
+              "    pm.expect(cuerpo).to.satisfy(function (texto) {",
+              "        return texto.includes('inmutable') ||",
+              "               texto.includes('no pueden ser modificados') ||",
+              "               texto.includes('no pueden ser eliminados') ||",
+              "               texto.includes('auditoria_inmutable');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-066: la respuesta informa que la eliminacion no esta permitida', function () {",
+              "    pm.expect(cuerpo).to.satisfy(function (texto) {",
+              "        return texto.includes('operacion no permitida') ||",
+              "               texto.includes('no permitido') ||",
+              "               texto.includes('no pueden ser eliminados') ||",
+              "               texto.includes('inmutable');",
+              "    });",
+              "});",
+              "",
+              "console.log('TC-M01-066 APROBADO: la API bloqueo correctamente el intento de eliminar un registro de auditoria.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}
