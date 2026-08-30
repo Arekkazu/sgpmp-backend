@@ -9,6 +9,7 @@ from typing import Callable
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.shared.database import get_db
@@ -36,13 +37,29 @@ def require_permission(id_recurso: int, id_accion: int) -> Callable:
         Función de dependencia compatible con ``fastapi.Depends``.
 
     Raises:
-        AuthorizationError: Si el rol del usuario no tiene el permiso activo,
-            con código ``ACCESO_DENEGADO`` y HTTP 403.
+        AuthorizationError: Si la cuenta del usuario no está activa
+            (``CUENTA_NO_ACTIVA``) o si su rol no tiene el permiso activo
+            (``ACCESO_DENEGADO``). Ambos con HTTP 403.
     """
     def dependency(
         db: Session = Depends(get_db),
         usuario_actual: UsuarioActual = Depends(get_current_user),
     ) -> None:
+        # RF-04: "Los permisos asociados a un rol solo serán efectivos para
+        # usuarios que se encuentren en estado activo dentro del sistema."
+        # El estado ya viene resuelto en ``UsuarioActual``, así que no hay
+        # consulta extra. El gate va aquí y no en ``get_current_user`` porque
+        # una cuenta PENDIENTE_DATOS (alta por SSO) sí debe poder autenticarse
+        # para completar su perfil por `/usuarios/me`, que no pasa por RBAC.
+        if usuario_actual.id_estado_cuenta != Cuenta.ESTADO_ACTIVO:
+            raise AuthorizationError(
+                code="CUENTA_NO_ACTIVA",
+                message=(
+                    "Acceso denegado. Su cuenta no se encuentra activa, por lo "
+                    "que los permisos de su rol no son efectivos."
+                ),
+            )
+
         tiene_permiso = (
             db.query(Permisos)
             .filter(

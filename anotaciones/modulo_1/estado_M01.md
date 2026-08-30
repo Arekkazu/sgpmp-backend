@@ -16,7 +16,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~95% |
 | RF-02 | Autenticación de usuarios | ⚠️ Cumple parcialmente | ~85% |
 | RF-03 | Gestión de roles | ✅ Cumple | ~95% |
-| RF-04 | Gestión de permisos | ✅ Cumple (con salvedad) | ~90% |
+| RF-04 | Gestión de permisos | ✅ Cumple | ~100% |
 | RF-05 | Edición de datos de usuario | ⚠️ Cumple parcialmente | ~85% |
 | RF-06 | Gestión de cuentas de usuario | ⚠️ Cumple parcialmente | ~75% |
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
@@ -100,13 +100,14 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 ### Qué NO cumple / gaps
 
 - **No hay control de concurrencia optimista al editar un rol.** Si dos administradores editan el mismo rol al mismo tiempo, no hay ningún aviso — el último que guarda gana, sin el mecanismo de "412 Precondition Failed" que sí existe para editar usuarios.
-- **No hay invalidación explícita de sesión cuando se modifican los permisos de un rol.** En la práctica esto casi no importa porque cada request vuelve a consultar los permisos en vivo (ver RF-04), pero formalmente no hay un mecanismo de "forzar relogin" ante cambios de rol.
+- No se requiere invalidar sesiones al modificar permisos o reasignar un rol:
+  cada request consulta tanto el rol vigente del usuario como sus permisos activos.
 
 ---
 
 ## RF-04 — Gestión de permisos
 
-**Veredicto: ✅ Cumple, con una salvedad importante (~90%)**
+**Veredicto: ✅ Cumple (~100%)**
 
 > **Corrección a `CLAUDE.md`:** al igual que con los roles, sí existe una API administrativa completa para asignar y retirar permisos — no es solo edición manual en base de datos como sugiere el documento de arquitectura.
 
@@ -117,12 +118,13 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - Se valida que el recurso y la acción existan antes de crear el permiso.
 - Los permisos `admin_*` están protegidos por triggers: solo pueden asignarse al rol Administrador y no pueden eliminarse.
 - **Validación en cada request sin caché**: `require_permission` (el mecanismo central de RBAC, en `src/shared/rbac.py`) consulta la tabla de permisos en cada petición HTTP, sin ningún tipo de caché — así que un cambio en los permisos de un rol se refleja de inmediato en el siguiente request de cualquier usuario con ese rol, tal como pide el RF ("sin requerir cierre de sesión").
+- **Reasignación de rol sin relogin**: `get_current_user` obtiene `usuarios.id_rol`
+  desde la base en cada request. El claim `rol` del JWT ya no decide la autorización,
+  por lo que el rol nuevo y la retirada de permisos anteriores se aplican de inmediato.
 
 ### Qué NO cumple / gaps
 
-- **Salvedad importante — reasignar el rol de un usuario específico SÍ requiere relogin, aunque cambiar los permisos de un rol NO.** El rol del usuario (`id_rol`) queda grabado dentro del JWT en el momento del login y nunca se vuelve a consultar contra la base de datos en peticiones posteriores. Esto significa:
-  - Si un admin agrega o quita un permiso a un rol → se aplica de inmediato a todos los usuarios de ese rol, sin relogin. **Esto sí cumple el RF.**
-  - Si un admin cambia el rol *de un usuario puntual* (por ejemplo, de Productor a Veterinario) → ese usuario sigue operando con los permisos de su rol anterior hasta que su token expire (hasta 24h, ver RF-02) o cierre sesión manualmente. **Esto no cumple la parte del RF que exige aplicar los cambios "sin requerir cierre de sesión" para este caso específico.**
+Ninguno detectado para la aplicación inmediata de roles y permisos.
 
 ---
 

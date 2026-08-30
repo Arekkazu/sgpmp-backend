@@ -55,6 +55,8 @@ Remove-Item Env:TEST_DATABASE_URL
   hacia activacion, hash del token y restablecimiento de contrasena.
 - RF-01: validacion de la migracion Alembic que protege nuevas identificaciones
   sin bloquear la edicion de otros campos en filas historicas incompatibles.
+- RF-04/06: cambio de rol aplicado con el JWT vigente, sin invalidar la sesion
+  ni exigir relogin.
 - RF-05/06: autorizacion RBAC en router, edicion del perfil propio y proteccion
   del ultimo usuario activo de un rol protegido.
 - RF-10: categoria canonica de eventos al consultar auditoria.

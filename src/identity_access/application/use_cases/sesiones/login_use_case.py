@@ -103,6 +103,22 @@ class LoginUseCase:
                 cuenta.incrementar_intentos(ahora)
                 alcanzado_limite = cuenta.intentos_fallidos >= MAX_INTENTOS
                 if alcanzado_limite:
+                    # RF-06: pasar a BLOQUEADO obliga a invalidar los tokens
+                    # activos del usuario. Sin esto, quien ya tuviera la sesión
+                    # abierta en otro dispositivo seguía operando mientras un
+                    # tercero le bloqueaba la cuenta por fuerza bruta: el
+                    # trigger `trg_invalidar_sesiones_por_estado` solo marca
+                    # `sesiones.es_activa`, y la autenticación valida contra
+                    # `tokens.fecha_uso`.
+                    #
+                    # Va ANTES de guardar la cuenta, igual que en
+                    # `gestionar_cuenta_use_case`: ese trigger corre en el
+                    # UPDATE del estado y deja las sesiones inactivas, y este
+                    # método filtra por sesiones activas para poder marcar sus
+                    # tokens como usados.
+                    self.sesiones_repo.invalidar_todas_sesiones(
+                        cuenta.id_cuenta_usuario
+                    )
                     cuenta.bloquear(ahora)
                 self.cuentas_repo.guardar(cuenta)
                 self.eventos_repo.registrar(

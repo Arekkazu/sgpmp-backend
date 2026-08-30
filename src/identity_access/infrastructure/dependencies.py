@@ -1,8 +1,8 @@
 """Dependencias de autenticación para los endpoints de FastAPI.
 
-`get_current_user` valida el token Bearer, verifica la blacklist de tokens y
-aplica el timeout de inactividad de 30 minutos. Se usa como `Depends` en los
-endpoints que requieren autenticación.
+`get_current_user` valida el token Bearer, verifica la blacklist, obtiene el rol
+vigente desde la base y aplica el timeout de inactividad de 30 minutos. Se usa
+como `Depends` en los endpoints que requieren autenticación.
 """
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
+from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.audit_context import establecer_id_token
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError
@@ -24,11 +25,16 @@ INACTIVIDAD_MINUTOS = 30
 
 @dataclass
 class UsuarioActual:
-    """Datos del usuario autenticado extraídos del JWT y verificados contra la DB."""
+    """Identidad autenticada con el rol y el estado de cuenta vigentes en la DB."""
 
     id_usuario: int
     id_token: int
     id_rol: int
+    # RF-04 exige que los permisos solo sean efectivos para cuentas activas.
+    # ``require_permission`` lo comprueba leyendo este campo, así se evita que
+    # RBAC tenga que volver a consultar la cuenta. El default ``None`` deja el
+    # chequeo cerrado por omisión para cualquier construcción manual.
+    id_estado_cuenta: Optional[int] = None
 
 
 def get_current_user(
@@ -42,7 +48,8 @@ def get_current_user(
         db: Sesión de base de datos inyectada por FastAPI.
 
     Returns:
-        `UsuarioActual` con `id_usuario`, `id_token` e `id_rol`.
+        `UsuarioActual` con la identidad del JWT y el rol y estado de cuenta
+        vigentes en la base.
 
     Raises:
         AuthenticationError: Si falta el token, está revocado o la sesión
@@ -59,7 +66,6 @@ def get_current_user(
 
     id_token = int(payload["jti"])
     id_usuario = int(payload["sub"])
-    id_rol = payload["rol"]
 
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
@@ -69,9 +75,30 @@ def get_current_user(
             message="El token de sesión ha sido revocado o es inválido.",
         )
 
+    # El claim ``rol`` se conserva en el JWT por compatibilidad, pero no es
+    # autoridad para RBAC. Consultar el rol vigente en cada request permite
+    # aplicar una reasignación administrativa sin cerrar la sesión del usuario
+    # (RF-04). Se lee junto con la cuenta en una sola consulta porque el bloque
+    # de inactividad de abajo necesita esa fila de todos modos.
+    fila = (
+        db.query(Usuarios.id_rol, CuentasUsuarios)
+        .outerjoin(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
+        .filter(Usuarios.id_usuario == id_usuario)
+        .first()
+    )
+    if fila is None:
+        # RF-06 prohíbe el borrado físico de usuarios, así que llegar aquí
+        # significa que la sesión apunta a una fila que ya no existe. Para el
+        # cliente es indistinguible de un token revocado.
+        raise AuthenticationError(
+            code="TOKEN_REVOCADO",
+            message="El token de sesión ha sido revocado o es inválido.",
+        )
+
+    id_rol_vigente, cuenta = fila
+
     # Verificar inactividad de 30 minutos
     ahora = datetime.now(timezone.utc)
-    cuenta = db.query(CuentasUsuarios).filter(CuentasUsuarios.id_usuario == id_usuario).first()
 
     if cuenta is not None and cuenta.ultimo_acceso is not None:
         ultimo_acceso = cuenta.ultimo_acceso
@@ -103,4 +130,9 @@ def get_current_user(
     # que se registra cada evento del request.
     establecer_id_token(id_token)
 
-    return UsuarioActual(id_usuario=id_usuario, id_token=id_token, id_rol=id_rol)
+    return UsuarioActual(
+        id_usuario=id_usuario,
+        id_token=id_token,
+        id_rol=id_rol_vigente,
+        id_estado_cuenta=cuenta.id_estado_cuenta if cuenta is not None else None,
+    )
