@@ -51,6 +51,10 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     17: EventoCategoria.CONSULTA,
     18: EventoCategoria.CONSULTA,
     19: EventoCategoria.CONSULTA,
+    # Exportación del historial (RF-10). Lee el log, igual que una consulta, pero
+    # con tipo propio para poder responder "quién se llevó la auditoría" sin
+    # rebuscar dentro del JSON de `detalle`.
+    26: EventoCategoria.CONSULTA,
 }
 
 
@@ -85,6 +89,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     23: "REFRESH_TOKEN_ROTADO",
     24: "REUSO_TOKEN_REFRESCO_DETECTADO",
     25: "FALLO_ARCHIVADO_AUDITORIA",
+    26: "EXPORTACION_AUDITORIA",
 }
 
 

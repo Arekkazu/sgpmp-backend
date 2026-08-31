@@ -14,11 +14,15 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.auditoria.consultar_auditoria_use_case import (
     TIPO_CONSULTA_AUDITORIA,
     ConsultarAuditoriaUseCase,
+)
+from src.identity_access.application.use_cases.auditoria.exportar_auditoria_use_case import (
+    ExportarAuditoriaUseCase,
 )
 from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -224,6 +228,59 @@ def consultar_auditoria_archivada(
         pagina=pagina,
         tamano=tamano,
         archivados=True,
+    )
+
+
+@router.get(
+    "/exportar",
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        500: {"model": ErrorResponse, "description": "Violación de integridad detectada."},
+    },
+    summary="Exportar el historial de auditoría completo en CSV (RF-10)",
+)
+def exportar_auditoria(
+    id_usuario: Optional[int] = Query(None),
+    tipo_evento: Optional[int] = Query(None),
+    categoria: Optional[EventoCategoria] = Query(None),
+    fecha_desde: Optional[datetime] = Query(None),
+    fecha_hasta: Optional[datetime] = Query(None),
+    archivados: bool = Query(False, description="Exportar el archivo histórico en vez del log activo."),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
+) -> StreamingResponse:
+    """Entrega en un solo request lo que antes costaba una petición por página.
+
+    El conteo, la verificación de integridad y el evento de auditoría ocurren una
+    única vez; el archivo se transmite en streaming.
+    """
+    use_case = ExportarAuditoriaUseCase(
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        db=db,
+    )
+    lineas, total_disponible, total_exportado = use_case.execute(
+        usuario_actual=usuario_actual,
+        id_usuario=id_usuario,
+        tipo_evento=tipo_evento,
+        categoria=categoria,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        archivados=archivados,
+    )
+
+    nombre = f"auditoria-{datetime.now().date().isoformat()}.csv"
+    return StreamingResponse(
+        lineas,
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{nombre}"',
+            # El cliente deriva "truncado" comparando ambos; requieren estar en
+            # `expose_headers` del CORS o el navegador se los oculta.
+            "X-Total-Registros": str(total_disponible),
+            "X-Registros-Exportados": str(total_exportado),
+        },
     )
 
 
