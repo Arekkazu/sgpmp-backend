@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Iterator, Optional
 
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
@@ -98,6 +98,77 @@ class SqlAlchemyEventoRepository(EventoRepository):
         )
         clasificacion = self.clasificar_integridad(eventos)
         return [(self._a_entidad(e), clasificacion[e.id_evento]) for e in eventos]
+
+    # ── Exportación en dos pasadas (RF-10) ──────────────────────────────────
+    # La decisión de abortar con 500 ante un registro MANIPULADO obliga a conocer
+    # la integridad de TODO el conjunto antes de emitir el primer byte. Por eso
+    # son dos recorridos y no uno: el primero clasifica quedándose solo con los
+    # ids, y el segundo transmite las filas. Cuesta una lectura extra del índice,
+    # a cambio de que el pico de memoria no crezca con el tamaño del conjunto.
+
+    _LOTE_EXPORTACION = 500
+
+    def clasificar_conjunto(
+        self,
+        id_usuario: Optional[int],
+        tipo_evento: Optional[int],
+        fecha_desde: Optional[datetime],
+        fecha_hasta: Optional[datetime],
+        limite: int,
+        categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
+    ) -> dict[int, str]:
+        modelo = EventosArchivados if archivados else Eventos
+        clasificacion: dict[int, str] = {}
+        for lote in self._lotes(
+            id_usuario, tipo_evento, categoria, fecha_desde, fecha_hasta, modelo, limite
+        ):
+            clasificacion.update(self.clasificar_integridad(lote))
+        return clasificacion
+
+    def iterar_eventos(
+        self,
+        id_usuario: Optional[int],
+        tipo_evento: Optional[int],
+        fecha_desde: Optional[datetime],
+        fecha_hasta: Optional[datetime],
+        limite: int,
+        categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
+    ) -> Iterator[Evento]:
+        modelo = EventosArchivados if archivados else Eventos
+        for lote in self._lotes(
+            id_usuario, tipo_evento, categoria, fecha_desde, fecha_hasta, modelo, limite
+        ):
+            for orm in lote:
+                yield self._a_entidad(orm)
+
+    def _lotes(
+        self,
+        id_usuario,
+        tipo_evento,
+        categoria,
+        fecha_desde,
+        fecha_hasta,
+        modelo,
+        limite: int,
+    ) -> Iterator[list]:
+        """Recorre el conjunto filtrado de a lotes con cursor de servidor."""
+        query = (
+            self._query_con_filtros(
+                id_usuario, tipo_evento, categoria, fecha_desde, fecha_hasta, modelo
+            )
+            .order_by(modelo.fecha_evento.desc())
+            .limit(limite)
+        )
+        lote: list = []
+        for orm in query.yield_per(self._LOTE_EXPORTACION):
+            lote.append(orm)
+            if len(lote) == self._LOTE_EXPORTACION:
+                yield lote
+                lote = []
+        if lote:
+            yield lote
 
     def contar_eventos(
         self,
