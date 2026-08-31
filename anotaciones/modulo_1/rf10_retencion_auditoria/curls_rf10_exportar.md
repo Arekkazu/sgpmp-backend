@@ -121,3 +121,39 @@ SELECT detalle FROM modulo1.eventos WHERE tipo_evento = 26 ORDER BY id_evento DE
 
 El `detalle` guarda los filtros aplicados, `total_disponible`, `total_exportado` y
 `truncado`.
+
+---
+
+## 5. Catálogo de tipos de evento
+
+El cliente necesita traducir el `tipo_evento` numérico de cada registro a una
+etiqueta. Mantener esa tabla a mano en el frontend ya provocó que las 25 etiquetas
+se desincronizaran y el CSV saliera con el evento equivocado en cada fila.
+
+```bash
+curl -X GET "http://localhost:8000/auditoria/catalogo/tipos-evento" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**200 OK**
+
+```json
+[
+  {"id_tipo_evento": 1, "nombre": "REGISTRO_USUARIO", "accion": "Creación cuenta usuario", "categoria": "AUTENTICACION"},
+  {"id_tipo_evento": 26, "nombre": "EXPORTACION_AUDITORIA", "accion": "Exportacion del historial de auditoria", "categoria": "CONSULTA"}
+]
+```
+
+`categoria` es `AUTENTICACION` | `MODIFICACION` | `CONSULTA`, y sale de
+`categoria_para_tipo_evento()`. Permite agrupar o colorear por 3 valores en vez de
+mantener un mapa de 25 ids en el cliente. Es `null` si la DB tuviera un tipo sin
+clasificar en el dominio.
+
+A diferencia del resto del router, este endpoint usa `require_permission(6, 2)` y no
+`verificar_acceso_auditoria`: esa dependencia audita el intento denegado, y el
+catálogo se pide cada vez que se pinta el desplegable de filtros — no puede dejar un
+evento por carga.
+
+| HTTP | `error_code` | Cuándo |
+|------|--------------|--------|
+| 403 | `ACCESO_DENEGADO` | El rol no tiene `(recurso 6, acción 2)` |

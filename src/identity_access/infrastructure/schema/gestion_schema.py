@@ -94,6 +94,25 @@ class UsuarioDetalleResponse(BaseModel):
     version: int
 
 
+class TipoEventoResponse(BaseModel):
+    """Entrada del catálogo `modulo1.tipos_eventos`.
+
+    El cliente necesita traducir el `tipo_evento` numérico de cada registro a una
+    etiqueta legible. Mantener esa tabla duplicada en el frontend ya provocó que
+    las 25 etiquetas se desincronizaran y el CSV exportado saliera con el evento
+    equivocado en cada fila; por eso el catálogo se sirve desde aquí.
+    """
+
+    id_tipo_evento: int
+    nombre: str
+    accion: Optional[str] = None
+    # Permite al cliente agrupar o colorear por 3 categorías en vez de mantener
+    # un mapa de 25 ids.
+    categoria: Optional[str] = None
+
+    model_config = {"from_attributes": True}
+
+
 class AuditoriaItemResponse(BaseModel):
     """Evento de auditoría con indicador de integridad del hash SHA-256."""
 

@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import select
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -24,14 +25,23 @@ from src.identity_access.application.use_cases.auditoria.consultar_auditoria_use
 from src.identity_access.application.use_cases.auditoria.exportar_auditoria_use_case import (
     ExportarAuditoriaUseCase,
 )
-from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
+from src.identity_access.domain.value_objects.evento_categoria import (
+    EventoCategoria,
+    categoria_para_tipo_evento,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
+from src.identity_access.infrastructure.models.tipo_eventos_model import TiposEventos
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
-from src.identity_access.infrastructure.schema.gestion_schema import AuditoriaItemResponse, AuditoriaPaginadaResponse
+from src.identity_access.infrastructure.schema.gestion_schema import (
+    AuditoriaItemResponse,
+    AuditoriaPaginadaResponse,
+    TipoEventoResponse,
+)
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError, MethodNotAllowedError
+from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/auditoria", tags=["Auditoría"])
@@ -229,6 +239,41 @@ def consultar_auditoria_archivada(
         tamano=tamano,
         archivados=True,
     )
+
+
+@router.get(
+    "/catalogo/tipos-evento",
+    response_model=list[TipoEventoResponse],
+    dependencies=[Depends(require_permission(ID_RECURSO_AUDITORIA, ID_ACCION_LEER))],
+    responses={403: {"model": ErrorResponse}},
+    summary="Catálogo de tipos de evento para etiquetar la auditoría",
+)
+def listar_tipos_evento(db: Session = Depends(get_db)) -> list[TipoEventoResponse]:
+    """Sirve `modulo1.tipos_eventos` para que el cliente no lo mantenga a mano.
+
+    Va con `require_permission` y no con `verificar_acceso_auditoria`: esa
+    dependencia audita el intento denegado, y no queremos un evento por cada vez
+    que se pinta el desplegable de filtros.
+    """
+    return [
+        TipoEventoResponse(
+            id_tipo_evento=tipo.id_tipo_evento,
+            nombre=tipo.nombre,
+            accion=tipo.accion,
+            categoria=_categoria_o_none(tipo.id_tipo_evento),
+        )
+        for tipo in db.scalars(
+            select(TiposEventos).order_by(TiposEventos.id_tipo_evento)
+        ).all()
+    ]
+
+
+def _categoria_o_none(id_tipo_evento: int) -> Optional[str]:
+    """Categoría funcional del tipo, o ``None`` si la DB tiene uno sin clasificar."""
+    try:
+        return categoria_para_tipo_evento(id_tipo_evento).value
+    except ValueError:
+        return None
 
 
 @router.get(

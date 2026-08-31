@@ -166,3 +166,46 @@ def test_sin_permiso_de_auditoria_no_se_puede_exportar(
 
     assert respuesta.status_code == 403
     assert respuesta.json()["error_code"] == "ACCESO_DENEGADO"
+
+
+def test_el_catalogo_de_tipos_evita_que_el_cliente_mantenga_su_propia_copia(
+    client: TestClient,
+    db_session: Session,
+    crear_usuario_db: Callable[..., dict[str, Any]],
+    crear_auth_headers: Callable[[dict[str, Any]], dict[str, str]],
+) -> None:
+    admin = crear_usuario_db(id_rol=1)
+    headers = crear_auth_headers(admin)
+
+    respuesta = client.get("/auditoria/catalogo/tipos-evento", headers=headers)
+
+    assert respuesta.status_code == 200
+    catalogo = respuesta.json()
+    en_db = dict(
+        db_session.execute(
+            text("SELECT id_tipo_evento, nombre FROM modulo1.tipos_eventos")
+        ).all()
+    )
+    assert {t["id_tipo_evento"]: t["nombre"] for t in catalogo} == en_db
+    # La categoría permite colorear por 3 valores en vez de un mapa de 25 ids.
+    assert {t["categoria"] for t in catalogo} <= {
+        "AUTENTICACION",
+        "MODIFICACION",
+        "CONSULTA",
+        None,
+    }
+
+
+def test_consultar_el_catalogo_no_ensucia_la_auditoria(
+    client: TestClient,
+    db_session: Session,
+    crear_usuario_db: Callable[..., dict[str, Any]],
+    crear_auth_headers: Callable[[dict[str, Any]], dict[str, str]],
+) -> None:
+    """Se pinta en cada carga del filtro: no puede dejar un evento cada vez."""
+    admin = crear_usuario_db(id_rol=1)
+    headers = crear_auth_headers(admin)
+
+    client.get("/auditoria/catalogo/tipos-evento", headers=headers)
+
+    assert _contar_eventos(db_session, admin["id_usuario"], TIPO_CONSULTA_AUDITORIA) == 0
