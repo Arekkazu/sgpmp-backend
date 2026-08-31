@@ -1,0 +1,98 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-073-rf10",
+    "name": "TC-M01-073 - Exportar historial de auditoría con filtros",
+    "description": "Caso de prueba para verificar la exportación del historial de auditoría conservando los filtros aplicados. RF-10.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-073 - Consultar auditoría con filtro CAMBIO_CONTRASEÑA",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "CAMBIO_CONTRASEÑA",
+              "disabled": false
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La consulta de auditoría responde correctamente', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M01-073 - Exportar historial de auditoría filtrado",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auditoria/exportar?tipo_evento=CAMBIO_CONTRASEÑA",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            "exportar"
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "CAMBIO_CONTRASEÑA",
+              "disabled": false
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Debe existir el endpoint de exportación del historial de auditoría', function () {",
+              "    pm.expect(pm.response.code).to.not.eql(404);",
+              "});",
+              "",
+              "pm.test('La exportación debe responder exitosamente', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('La respuesta debe generar un archivo exportable', function () {",
+              "    const contentType = pm.response.headers.get('Content-Type') || '';",
+              "    pm.expect(contentType).to.match(/csv|json|octet-stream|spreadsheet|pdf/i);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000"
+    }
+  ]
+}
