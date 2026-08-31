@@ -136,6 +136,15 @@ class CorreoActivacionPortFake:
         self.llamadas.append(datos)
 
 
+class CaptchaVerifierFake:
+    def __init__(self) -> None:
+        self.llamadas = []
+
+    def verificar(self, token: str, ip: str | None = None) -> bool:
+        self.llamadas.append((token, ip))
+        return True
+
+
 def nueva_cuenta(estado: int) -> Cuenta:
     return Cuenta(
         id_cuenta_usuario=11,
@@ -163,6 +172,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     cuentas_repo = CuentaCrearRepoFake()
     db = DbFake()
     correos = CorreoActivacionPortFake(db)
+    captcha = CaptchaVerifierFake()
 
     monkeypatch.setattr(
         crear_module.secrets,
@@ -187,6 +197,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
         correo_activacion_port=correos,
+        captcha_verifier=captcha,
         db=db,
     ).execute(
         SimpleNamespace(
@@ -208,6 +219,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     )
 
     assert cuentas_repo.token_hash == TOKEN_HASH
+    assert captcha.llamadas == [("captcha-valido", "127.0.0.1")]
 
     assert correos.llamadas
     assert correos.llamadas[0]["token"] == TOKEN_CRUDO

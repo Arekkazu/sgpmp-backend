@@ -15,6 +15,9 @@ import secrets
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.usuario import Usuario
+from src.identity_access.domain.repositories.captcha_verifier_port import (
+    CaptchaVerifierPort,
+)
 from src.identity_access.domain.repositories.correo_activacion_port import (
     CorreoActivacionPort,
 )
@@ -25,7 +28,7 @@ from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
-from src.shared.errors import AuthorizationError
+from src.shared.errors import AuthorizationError, ValidationError
 
 TIPO_REGISTRO_USUARIO = 1
 
@@ -38,6 +41,7 @@ class CrearUsuarioUseCase:
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         correo_activacion_port: CorreoActivacionPort,
+        captcha_verifier: CaptchaVerifierPort,
         db: Session,
     ):
         """Inicializa el use case.
@@ -47,6 +51,7 @@ class CrearUsuarioUseCase:
             eventos_repo: Repositorio utilizado para registrar eventos de auditoría.
             cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
             correo_activacion_port: Salida que agenda el correo después del commit.
+            captcha_verifier: Puerto que valida el desafío CAPTCHA del registro.
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
         """
@@ -54,6 +59,7 @@ class CrearUsuarioUseCase:
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.correo_activacion_port = correo_activacion_port
+        self.captcha_verifier = captcha_verifier
         self.db = db
 
     def execute(
@@ -72,16 +78,31 @@ class CrearUsuarioUseCase:
             La entidad :class:`Usuario` creada, con su identidad asignada.
 
         Raises:
-            ValidationError: Si el correo o la contraseña no son válidos. HTTP 400.
+            ValidationError: Si el CAPTCHA, correo o contraseña no son válidos.
+                HTTP 400.
             AuthorizationError: Si la edad es menor de 18 años. HTTP 403.
             ConflictError: Si el correo o la identificación ya están registrados.
                 HTTP 409.
+            ServiceUnavailableError: Si el proveedor CAPTCHA no está disponible.
+                HTTP 503.
         """
-        # 1. Value objects: validan formato y política al construirse.
+        # 1. La barrera anti-bot se valida antes de construir o persistir
+        # cualquier dato. Ante error no se crea usuario, cuenta, token ni evento.
+        if not self.captcha_verifier.verificar(dto.captcha_token, ip):
+            raise ValidationError(
+                code="CAPTCHA_INVALIDO",
+                message=(
+                    "Validación de seguridad fallida. Por favor, confirme que "
+                    "no es un robot e intente enviar el formulario nuevamente."
+                ),
+                field="captcha_token",
+            )
+
+        # 2. Value objects: validan formato y política al construirse.
         correo = Email(dto.correo_electronico)
         contrasena = Contrasena.desde_texto_plano(dto.contrasena)
 
-        # 2. Entidad de dominio mediante su factory (fija rol e invariantes de alta).
+        # 3. Entidad de dominio mediante su factory (fija rol e invariantes de alta).
         usuario = Usuario.registrar_nuevo(
             correo=correo,
             contrasena=contrasena,
@@ -95,7 +116,7 @@ class CrearUsuarioUseCase:
             direccion=dto.direccion,
         )
 
-        # 3. Regla de negocio que vive en la entidad, no en el caso de uso.
+        # 4. Regla de negocio que vive en la entidad, no en el caso de uso.
         if not usuario.es_mayor_de_edad():
             raise AuthorizationError(
                 code="EDAD_MINIMA_REQUERIDA",
@@ -103,7 +124,7 @@ class CrearUsuarioUseCase:
                 field="fecha_nacimiento",
             )
 
-        # 4. Persistencia vía repositorio de dominio + cuenta asociada.
+        # 5. Persistencia vía repositorio de dominio + cuenta asociada.
         try:
             usuario = self.usuarios_repo.guardar(usuario)
             token = secrets.token_urlsafe(32)
@@ -126,7 +147,7 @@ class CrearUsuarioUseCase:
             self.db.rollback()
             raise
 
-        # 5. Notificación fuera de la transacción y del tiempo de respuesta HTTP.
+        # 6. Notificación fuera de la transacción y del tiempo de respuesta HTTP.
         self.correo_activacion_port.programar_envio(
             correo=str(usuario.correo),
             nombre=usuario.nombre,

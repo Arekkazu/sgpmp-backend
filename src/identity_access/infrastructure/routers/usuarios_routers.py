@@ -18,8 +18,14 @@ from src.identity_access.application.use_cases.registro.crear_usuario_use_case i
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
+from src.identity_access.domain.repositories.captcha_verifier_port import (
+    CaptchaVerifierPort,
+)
 from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
     CorreoActivacionBackgroundAdapter,
+)
+from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
+    GoogleRecaptchaAdapter,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
@@ -44,6 +50,12 @@ from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
+
+
+def get_captcha_verifier() -> CaptchaVerifierPort:
+    """Construye el adaptador CAPTCHA; se puede sustituir en pruebas."""
+    return GoogleRecaptchaAdapter()
+
 
 def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
     return EditarPerfilUseCase(
@@ -160,6 +172,7 @@ def listar_usuarios_admin(
         403: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
     },
 )
 def crear_usuario(
@@ -167,6 +180,7 @@ def crear_usuario(
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    captcha_verifier: CaptchaVerifierPort = Depends(get_captcha_verifier),
 ):
     ip, user_agent = _contexto_auditoria(request)
 
@@ -175,6 +189,7 @@ def crear_usuario(
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         correo_activacion_port=CorreoActivacionBackgroundAdapter(background_tasks),
+        captcha_verifier=captcha_verifier,
         db=db,
     )
 
