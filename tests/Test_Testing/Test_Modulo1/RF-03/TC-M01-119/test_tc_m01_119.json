@@ -1,0 +1,201 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-119-eliminar-rol",
+    "name": "TC-M01-119 - Eliminar un rol sin usuarios asociados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Inicio de sesión exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "",
+              "pm.test(\"El token existe\", function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.environment.set(\"token\", respuesta.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar roles registrados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Consulta de roles exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "",
+              "var rolAuxiliar = roles.find(function (rol) {",
+              "    return rol.nombre_rol === \"Auxiliar de Campo\";",
+              "});",
+              "",
+              "pm.test(\"El rol Auxiliar de Campo existe\", function () {",
+              "    pm.expect(rolAuxiliar).to.exist;",
+              "});",
+              "",
+              "if (rolAuxiliar) {",
+              "    pm.environment.set(\"idRolAuxiliar\", rolAuxiliar.id_rol);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Eliminar el rol Auxiliar de Campo",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRolAuxiliar}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRolAuxiliar}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Eliminación del rol exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var contentType = pm.response.headers.get(\"Content-Type\");",
+              "",
+              "if (contentType && contentType.includes(\"application/json\")) {",
+              "    var respuesta = pm.response.json();",
+              "",
+              "    pm.test(\"La respuesta confirma la eliminación\", function () {",
+              "        pm.expect(respuesta.message).to.exist;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Verificar que el rol fue eliminado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Consulta de roles posterior a la eliminación exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "",
+              "var rolEliminado = roles.find(function (rol) {",
+              "    return rol.nombre_rol === \"Auxiliar de Campo\";",
+              "});",
+              "",
+              "pm.test(\"El rol Auxiliar de Campo ya no existe\", function () {",
+              "    pm.expect(rolEliminado).to.not.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    }
+  ]
+}
