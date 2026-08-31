@@ -29,7 +29,7 @@ from src.identity_access.domain.value_objects.evento_categoria import (
     nombre_para_tipo_evento,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import BusinessRuleError, InfrastructureError, ValidationError
 
 TIPO_EXPORTACION_AUDITORIA = 26
 
@@ -72,6 +72,7 @@ class ExportarAuditoriaUseCase:
         fecha_hasta: Optional[datetime],
         categoria: Optional[EventoCategoria] = None,
         archivados: bool = False,
+        umbral_async: Optional[int] = None,
     ) -> tuple[Iterator[str], int, int]:
         """Prepara la exportación y devuelve el generador del CSV.
 
@@ -81,8 +82,15 @@ class ExportarAuditoriaUseCase:
             la verificación de integridad ya ocurrieron, así que cualquier error
             se levantó antes de que el router arme la respuesta.
 
+        Args:
+            umbral_async: Volumen a partir del cual la exportación deja de
+                resolverse en línea. Solo lo pasa el endpoint síncrono, que tiene
+                una petición HTTP esperando; el worker de la cola lo omite porque
+                allí no hay nadie colgado del otro lado.
+
         Raises:
             ValidationError: Filtros inconsistentes. HTTP 400.
+            BusinessRuleError: El volumen exige el modo asíncrono. HTTP 422.
             InfrastructureError: Algún registro del conjunto fue manipulado. HTTP 500.
         """
         self._validar_filtros(id_usuario, fecha_desde, fecha_hasta)
@@ -98,6 +106,17 @@ class ExportarAuditoriaUseCase:
 
         total_disponible = self.eventos_repo.contar_eventos(**filtros)
         total_exportado = min(total_disponible, LIMITE_EXPORTACION)
+
+        if umbral_async is not None and total_disponible > umbral_async:
+            raise BusinessRuleError(
+                code="EXPORTACION_REQUIERE_MODO_ASINCRONO",
+                message=(
+                    f"La consulta arroja {total_disponible} registros y supera el "
+                    f"límite de {umbral_async} para una descarga inmediata. "
+                    "Solicítela con POST /auditoria/exportaciones y descárguela "
+                    "cuando esté lista."
+                ),
+            )
 
         # Pasada 1: integridad de todo el conjunto, antes de emitir nada.
         clasificacion = self.eventos_repo.clasificar_conjunto(

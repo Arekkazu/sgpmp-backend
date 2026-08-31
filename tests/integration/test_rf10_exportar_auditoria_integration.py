@@ -209,3 +209,111 @@ def test_consultar_el_catalogo_no_ensucia_la_auditoria(
     client.get("/auditoria/catalogo/tipos-evento", headers=headers)
 
     assert _contar_eventos(db_session, admin["id_usuario"], TIPO_CONSULTA_AUDITORIA) == 0
+
+
+# ── Cola asíncrona ───────────────────────────────────────────────────────────
+
+def _fijar_umbral(db_session: Session, valor: int) -> None:
+    db_session.execute(
+        text(
+            "UPDATE modulo1.configuracion_batch_exportacion_auditoria "
+            "SET umbral_exportacion_async = :v"
+        ),
+        {"v": valor},
+    )
+
+
+def test_por_encima_del_umbral_el_export_sincrono_redirige_a_la_cola(
+    client: TestClient,
+    db_session: Session,
+    crear_usuario_db: Callable[..., dict[str, Any]],
+    crear_auth_headers: Callable[[dict[str, Any]], dict[str, str]],
+    crear_evento_db: Callable[..., int],
+) -> None:
+    admin = crear_usuario_db(id_rol=1)
+    headers = crear_auth_headers(admin)
+    for _ in range(3):
+        crear_evento_db(
+            id_usuario=admin["id_usuario"], tipo_evento=3, categoria="AUTENTICACION"
+        )
+    _fijar_umbral(db_session, 1)
+
+    respuesta = client.get(
+        "/auditoria/exportar",
+        params={"id_usuario": admin["id_usuario"], "tipo_evento": 3},
+        headers=headers,
+    )
+
+    assert respuesta.status_code == 422
+    assert respuesta.json()["error_code"] == "EXPORTACION_REQUIERE_MODO_ASINCRONO"
+
+
+def test_el_ciclo_encolar_procesar_descargar(
+    client: TestClient,
+    db_session: Session,
+    crear_usuario_db: Callable[..., dict[str, Any]],
+    crear_auth_headers: Callable[[dict[str, Any]], dict[str, str]],
+    crear_evento_db: Callable[..., int],
+) -> None:
+    from src.identity_access.application.use_cases.auditoria.exportacion_async_use_cases import (
+        ProcesarColaExportacionesUseCase,
+    )
+    from src.identity_access.application.use_cases.auditoria.exportar_auditoria_use_case import (
+        ExportarAuditoriaUseCase,
+    )
+    from src.identity_access.infrastructure.repositories.evento_repository import (
+        SqlAlchemyEventoRepository,
+    )
+    from src.identity_access.infrastructure.repositories.exportacion_auditoria_repository import (
+        SqlAlchemyExportacionAuditoriaRepository,
+    )
+
+    admin = crear_usuario_db(id_rol=1)
+    headers = crear_auth_headers(admin)
+    crear_evento_db(
+        id_usuario=admin["id_usuario"], tipo_evento=3, categoria="AUTENTICACION"
+    )
+
+    encolada = client.post(
+        "/auditoria/exportaciones",
+        params={"id_usuario": admin["id_usuario"], "tipo_evento": 3},
+        headers=headers,
+    )
+    assert encolada.status_code == 202
+    id_cola = encolada.json()["id_cola"]
+
+    # Mientras no se procese, el archivo no existe todavía.
+    pendiente = client.get(f"/auditoria/exportaciones/{id_cola}/descargar", headers=headers)
+    assert pendiente.status_code == 422
+    assert pendiente.json()["error_code"] == "EXPORTACION_NO_DISPONIBLE"
+
+    ProcesarColaExportacionesUseCase(
+        db=db_session,
+        cola_repo=SqlAlchemyExportacionAuditoriaRepository(db_session),
+        exportar_use_case=ExportarAuditoriaUseCase(
+            eventos_repo=SqlAlchemyEventoRepository(db_session), db=db_session
+        ),
+    ).ejecutar()
+
+    estado = client.get(f"/auditoria/exportaciones/{id_cola}", headers=headers).json()
+    assert estado["estado"] == "COMPLETADO"
+    assert estado["descargable"] is True
+
+    descarga = client.get(f"/auditoria/exportaciones/{id_cola}/descargar", headers=headers)
+    assert descarga.status_code == 200
+    assert descarga.text.startswith("﻿")
+    assert "LOGIN_EXITOSO" in descarga.text
+
+
+def test_una_exportacion_inexistente_es_404(
+    client: TestClient,
+    crear_usuario_db: Callable[..., dict[str, Any]],
+    crear_auth_headers: Callable[[dict[str, Any]], dict[str, str]],
+) -> None:
+    admin = crear_usuario_db(id_rol=1)
+    headers = crear_auth_headers(admin)
+
+    respuesta = client.get("/auditoria/exportaciones/999999", headers=headers)
+
+    assert respuesta.status_code == 404
+    assert respuesta.json()["error_code"] == "EXPORTACION_NO_ENCONTRADA"

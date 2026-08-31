@@ -94,6 +94,28 @@ class UsuarioDetalleResponse(BaseModel):
     version: int
 
 
+class ExportacionEncoladaResponse(BaseModel):
+    """Acuse de una exportación aceptada para procesamiento diferido."""
+
+    id_cola: int
+    estado: str
+    mensaje: str
+
+
+class EstadoExportacionResponse(BaseModel):
+    """Estado de un trabajo de exportación en la cola."""
+
+    id_cola: int
+    estado: str
+    intentos: int
+    error: Optional[str] = None
+    fecha_solicitud: Optional[datetime.datetime] = None
+    fecha_procesado: Optional[datetime.datetime] = None
+    total_exportado: Optional[int] = None
+    total_disponible: Optional[int] = None
+    descargable: bool
+
+
 class TipoEventoResponse(BaseModel):
     """Entrada del catálogo `modulo1.tipos_eventos`.
 

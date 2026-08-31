@@ -22,6 +22,11 @@ from src.identity_access.application.use_cases.auditoria.consultar_auditoria_use
     TIPO_CONSULTA_AUDITORIA,
     ConsultarAuditoriaUseCase,
 )
+from src.identity_access.application.use_cases.auditoria.exportacion_async_use_cases import (
+    ConsultarExportacionAuditoriaUseCase,
+    DescargarExportacionAuditoriaUseCase,
+    SolicitarExportacionAuditoriaUseCase,
+)
 from src.identity_access.application.use_cases.auditoria.exportar_auditoria_use_case import (
     ExportarAuditoriaUseCase,
 )
@@ -34,9 +39,14 @@ from src.identity_access.infrastructure.models.permisos_model import Permisos
 from src.identity_access.infrastructure.models.tipo_eventos_model import TiposEventos
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
+from src.identity_access.infrastructure.repositories.exportacion_auditoria_repository import (
+    SqlAlchemyExportacionAuditoriaRepository,
+)
 from src.identity_access.infrastructure.schema.gestion_schema import (
     AuditoriaItemResponse,
     AuditoriaPaginadaResponse,
+    EstadoExportacionResponse,
+    ExportacionEncoladaResponse,
     TipoEventoResponse,
 )
 from src.shared.database import get_db
@@ -305,7 +315,9 @@ def exportar_auditoria(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         db=db,
     )
+    config = SqlAlchemyExportacionAuditoriaRepository(db).obtener_configuracion()
     lineas, total_disponible, total_exportado = use_case.execute(
+        umbral_async=config.umbral_exportacion_async,
         usuario_actual=usuario_actual,
         id_usuario=id_usuario,
         tipo_evento=tipo_evento,
@@ -325,6 +337,108 @@ def exportar_auditoria(
             # `expose_headers` del CORS o el navegador se los oculta.
             "X-Total-Registros": str(total_disponible),
             "X-Registros-Exportados": str(total_exportado),
+        },
+    )
+
+
+@router.post(
+    "/exportaciones",
+    status_code=202,
+    response_model=ExportacionEncoladaResponse,
+    responses={
+        403: {"model": ErrorResponse},
+        429: {"model": ErrorResponse, "description": "Demasiadas exportaciones simultáneas."},
+    },
+    summary="Solicitar una exportación diferida de auditoría (RF-10)",
+)
+def solicitar_exportacion(
+    id_usuario: Optional[int] = Query(None),
+    tipo_evento: Optional[int] = Query(None),
+    categoria: Optional[EventoCategoria] = Query(None),
+    fecha_desde: Optional[datetime] = Query(None),
+    fecha_hasta: Optional[datetime] = Query(None),
+    archivados: bool = Query(False),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
+) -> ExportacionEncoladaResponse:
+    """Encola una exportación demasiado grande para resolverse en línea."""
+    use_case = SolicitarExportacionAuditoriaUseCase(
+        db=db, cola_repo=SqlAlchemyExportacionAuditoriaRepository(db)
+    )
+    trabajo = use_case.execute(
+        filtros={
+            "id_usuario": id_usuario,
+            "tipo_evento": tipo_evento,
+            "categoria": categoria,
+            "fecha_desde": fecha_desde,
+            "fecha_hasta": fecha_hasta,
+            "archivados": archivados,
+        },
+        id_usuario=usuario_actual.id_usuario,
+    )
+    return ExportacionEncoladaResponse(
+        id_cola=trabajo.id_cola,
+        estado=trabajo.estado,
+        mensaje=(
+            "Exportación encolada. Consulte su estado en "
+            f"GET /auditoria/exportaciones/{trabajo.id_cola}."
+        ),
+    )
+
+
+@router.get(
+    "/exportaciones/{id_cola}",
+    response_model=EstadoExportacionResponse,
+    responses={403: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    summary="Estado de una exportación diferida",
+)
+def consultar_exportacion(
+    id_cola: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
+) -> EstadoExportacionResponse:
+    use_case = ConsultarExportacionAuditoriaUseCase(
+        cola_repo=SqlAlchemyExportacionAuditoriaRepository(db)
+    )
+    trabajo = use_case.execute(id_cola)
+    return EstadoExportacionResponse(
+        id_cola=trabajo.id_cola,
+        estado=trabajo.estado,
+        intentos=trabajo.intentos,
+        error=trabajo.error,
+        fecha_solicitud=trabajo.fecha_solicitud,
+        fecha_procesado=trabajo.fecha_procesado,
+        total_exportado=trabajo.total_exportado,
+        total_disponible=trabajo.total_disponible,
+        descargable=trabajo.descargable,
+    )
+
+
+@router.get(
+    "/exportaciones/{id_cola}/descargar",
+    responses={
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse, "description": "La exportación aún no está lista."},
+    },
+    summary="Descargar el CSV de una exportación diferida ya completada",
+)
+def descargar_exportacion(
+    id_cola: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(verificar_acceso_auditoria),
+) -> StreamingResponse:
+    use_case = DescargarExportacionAuditoriaUseCase(
+        cola_repo=SqlAlchemyExportacionAuditoriaRepository(db)
+    )
+    resultado = use_case.execute(id_cola)
+    return StreamingResponse(
+        iter([resultado.contenido_csv]),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{resultado.nombre_archivo}"',
+            "X-Total-Registros": str(resultado.total_disponible),
+            "X-Registros-Exportados": str(resultado.total_exportado),
         },
     )
 

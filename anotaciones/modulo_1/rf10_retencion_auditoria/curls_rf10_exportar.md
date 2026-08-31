@@ -157,3 +157,90 @@ evento por carga.
 | HTTP | `error_code` | Cuándo |
 |------|--------------|--------|
 | 403 | `ACCESO_DENEGADO` | El rol no tiene `(recurso 6, acción 2)` |
+
+---
+
+## 6. Exportación asíncrona (volúmenes grandes)
+
+`GET /auditoria/exportar` mantiene la petición abierta mientras arma el archivo.
+Por encima de `configuracion_batch_exportacion_auditoria.umbral_exportacion_async`
+(10.000 por defecto) eso deja de ser razonable y el endpoint responde **422**
+redirigiendo a la cola:
+
+```json
+{
+  "error_code": "EXPORTACION_REQUIERE_MODO_ASINCRONO",
+  "message": "La consulta arroja 42000 registros y supera el límite de 10000 para una descarga inmediata. Solicítela con POST /auditoria/exportaciones y descárguela cuando esté lista."
+}
+```
+
+### 6.1 Encolar
+
+```bash
+curl -X POST "http://localhost:8000/auditoria/exportaciones?tipo_evento=16" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**202 Accepted**
+
+```json
+{
+  "id_cola": 1,
+  "estado": "PENDIENTE",
+  "mensaje": "Exportación encolada. Consulte su estado en GET /auditoria/exportaciones/1."
+}
+```
+
+Mismos filtros que el export síncrono. **429 `LIMITE_EXPORTACIONES_EXCEDIDO`** si ya
+hay `limite_concurrencia` trabajos en `PENDIENTE`/`EN_PROCESO`.
+
+### 6.2 Consultar el estado
+
+```bash
+curl -X GET "http://localhost:8000/auditoria/exportaciones/1" -H "Authorization: Bearer $TOKEN"
+```
+
+```json
+{
+  "id_cola": 1, "estado": "COMPLETADO", "intentos": 1, "error": null,
+  "total_exportado": 42000, "total_disponible": 42000, "descargable": true
+}
+```
+
+Estados: `PENDIENTE` → `EN_PROCESO` → `COMPLETADO` | `FALLIDO`. Un fallo vuelve a
+`PENDIENTE` mientras queden reintentos (`max_reintentos`, 3 por defecto) y solo
+entonces pasa a `FALLIDO` con el motivo en `error`.
+
+### 6.3 Descargar
+
+```bash
+curl -X GET "http://localhost:8000/auditoria/exportaciones/1/descargar" \
+  -H "Authorization: Bearer $TOKEN" -o auditoria.csv
+```
+
+Mismo CSV y mismas cabeceras de conteo que el export síncrono.
+
+| HTTP | `error_code` | Cuándo |
+|------|--------------|--------|
+| 404 | `EXPORTACION_NO_ENCONTRADA` | El `id_cola` no existe |
+| 422 | `EXPORTACION_NO_DISPONIBLE` | Todavía en `PENDIENTE`/`EN_PROCESO`, o `FALLIDO` |
+
+### 6.4 El poller
+
+`_procesar_cola_exportaciones_auditoria_periodicamente()` en `main.py` corre cada
+`intervalo_poll_segundos` (15 por defecto) y toma hasta `num_workers_max` trabajos
+por vuelta. Reclama las filas con `FOR UPDATE SKIP LOCKED`, así que dos instancias
+del backend no procesan el mismo trabajo.
+
+El worker reusa el mismo use case del export síncrono **sin** el umbral: ese corte
+existe para no dejar una petición HTTP colgada, y en la cola no hay ninguna esperando.
+
+Ajustes operativos:
+
+```sql
+UPDATE modulo1.configuracion_batch_exportacion_auditoria
+SET umbral_exportacion_async = 5000, intervalo_poll_segundos = 30;
+
+-- Apagar el procesamiento sin tumbar el backend
+UPDATE modulo1.configuracion_batch_exportacion_auditoria SET es_activo = false;
+```
