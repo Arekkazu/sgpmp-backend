@@ -83,7 +83,9 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-03 — Gestión de roles
 
-**Veredicto: ✅ Cumple (~95%)** — implementación completa y más robusta de lo esperado.
+**Veredicto: ✅ Cumple (~95%)** — el incidente INC-M01-03-119, que impedía
+eliminar cualquier rol con permisos aun sin usuarios, fue corregido mediante
+la migración Alembic `c4a19e7d2b63` y cobertura de regresión.
 
 > **Corrección a `CLAUDE.md`:** el documento de arquitectura sugiere que los roles son un catálogo fijo (Administrador/Productor/Veterinario/Ingeniero/Contador, IDs 1-5) sin gestión dinámica. Esto **ya no es así**: existe un CRUD completo y en uso real — la tabla de roles en base de datos ya tiene 8 filas, 3 de ellas (Supervisor, Gestor de Granja, Revisor Fiscal) claramente creadas después del catálogo semilla original, lo que confirma que el endpoint de creación se usa en producción/desarrollo.
 
@@ -95,6 +97,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Todo rol debe tener al menos un permiso**: validado en tres capas distintas (al crear, al crear vía el stored procedure, y al intentar retirar el último permiso de un rol que ya existe — este último bloqueado por un trigger de base de datos).
 - **El rol Administrador está protegido**: no se puede eliminar ni cambiarle el nombre, reforzado tanto en la aplicación como con triggers de base de datos (doble capa de seguridad).
 - **No se puede eliminar un rol que tiene usuarios asignados**, también con doble capa (aplicación + trigger).
+- **La eliminación de un rol sin usuarios borra atómicamente sus permisos asociados** mediante `ON DELETE CASCADE`; la eliminación manual del último permiso continúa bloqueada.
 - Cada operación (crear, editar, eliminar rol) queda registrada en el historial de auditoría.
 
 ### Qué NO cumple / gaps
