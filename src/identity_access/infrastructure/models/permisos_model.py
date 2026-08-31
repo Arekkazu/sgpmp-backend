@@ -26,7 +26,12 @@ class Permisos(Base):
     __table_args__ = (
         ForeignKeyConstraint(['id_accion'], ['modulo1.acciones.id_accion'], name='fk_accion_permiso'),
         ForeignKeyConstraint(['id_recurso'], ['modulo1.recursos.id_recurso'], name='fk_recurso_permiso'),
-        ForeignKeyConstraint(['id_rol'], ['modulo1.roles.id_rol'], name='fk_recurso_rol'),
+        ForeignKeyConstraint(
+            ['id_rol'],
+            ['modulo1.roles.id_rol'],
+            name='fk_recurso_rol',
+            ondelete='CASCADE',
+        ),
         PrimaryKeyConstraint('id_permiso', name='permisos_pkey'),
         UniqueConstraint('id_rol', 'id_recurso', 'id_accion', name='uq_permiso_unico'),
         {'comment': 'Define los permisos del sistema, asociando un rol a una acción '

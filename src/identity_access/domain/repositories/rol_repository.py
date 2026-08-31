@@ -84,6 +84,7 @@ class RolRepository(ABC):
             rol: Entidad del rol a eliminar.
 
         Raises:
-            BusinessRuleError: Si el rol es protegido o tiene usuarios asignados. HTTP 422.
+            AuthorizationError: Si el rol es protegido. HTTP 403.
+            BusinessRuleError: Si el rol tiene usuarios asignados. HTTP 422.
         """
         raise NotImplementedError

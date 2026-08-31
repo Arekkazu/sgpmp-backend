@@ -11,21 +11,26 @@ import json
 from typing import Optional
 
 from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError, ProgrammingError
+from sqlalchemy.exc import IntegrityError, InternalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.rol import Rol
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.models.roles_model import Roles
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
-from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import (
+    AuthorizationError,
+    BusinessRuleError,
+    ConflictError,
+    ValidationError,
+)
 
 _ERRCODE_PROTEGIDO = "P0004"
 _ERRCODE_EN_USO = "P0005"
 
 _MSG_PROTEGIDO = (
-    "Acción denegada: El rol 'Administrador' es un objeto protegido por el sistema. "
-    "No se permite su eliminación ni el cambio de su identificador base."
+    "El rol 'Administrador' es un objeto protegido por el sistema. "
+    "No se permite su eliminación ni cambio de identificador base."
 )
 
 
@@ -135,18 +140,17 @@ class SqlAlchemyRolRepository(RolRepository):
         self.db.delete(orm)
         try:
             self.db.flush()
-        except ProgrammingError as e:
-            self.db.rollback()
+        except (InternalError, ProgrammingError) as e:
             pgcode = getattr(e.orig, "pgcode", "")
             msg = str(e.orig)
             if pgcode == _ERRCODE_PROTEGIDO or "PROTECTED_ROLE" in msg:
-                raise BusinessRuleError(code="ROL_PROTEGIDO", message=_MSG_PROTEGIDO)
+                raise AuthorizationError(code="ROL_PROTEGIDO", message=_MSG_PROTEGIDO)
             if pgcode == _ERRCODE_EN_USO or "ROLE_IN_USE" in msg:
                 raise BusinessRuleError(
                     code="ROL_EN_USO",
                     message=(
                         "No se puede eliminar el rol: existen usuarios vinculados. "
-                        "Para proceder, debe reasignar estos usuarios a un rol diferente."
+                        "Reasigne a estos usuarios primero."
                     ),
                 )
             raise
