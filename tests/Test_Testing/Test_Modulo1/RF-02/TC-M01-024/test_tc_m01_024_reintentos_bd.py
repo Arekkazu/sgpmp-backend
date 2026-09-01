@@ -5,31 +5,60 @@ base de datos no responde tras 3 reintentos internos.
 RF relacionado: RF-02
 Categoria: Manejo de errores (RESILIENCIA)
 
-IMPORTANTE - Resultado esperado de este test:
-Segun src/shared/database.py, la funcion get_db() NO implementa ningun
-mecanismo de reintentos (a diferencia de src/shared/email.py, que si
-tiene un _MAX_RETRIES=3 explicito). get_db() simplemente instancia
-SessionLocal() sin try/except ni bucle.
+Criterio de aceptacion (segun la ficha, flujo alterno "Indisponibilidad
+del servicio de identidad"):
+    "El motor de base de datos... no responde tras 3 intentos internos.
+    El sistema responde con HTTP 503: Service Unavailable."
 
-Por lo tanto, se espera que este test demuestre que:
-1. Ante un fallo de conexion, NO hay 3 reintentos (el conteo real sera 1).
-2. El error que se propaga es la excepcion cruda de SQLAlchemy
-   (OperationalError), NO un ServiceUnavailableError controlado con
-   codigo 503.
+Este archivo prueba ese criterio en dos niveles:
 
-Si estas dos aserciones "de defecto documentado" SI pasan, significa
-que TC-M01-024 esta REPROBADO tal como esta implementado el codigo hoy:
-el comportamiento descrito en la ficha (3 reintentos, luego 503) no
-existe en get_db(). Esto habria que reportarlo como hallazgo, no
-como un error de la prueba.
+1. test_get_db_reintenta_3_veces_y_traduce_a_service_unavailable
+   Nivel unitario: simula que SessionLocal() falla siempre y verifica
+   directamente sobre get_db() que (a) se reintenta 3 veces y (b) el
+   error final es un ServiceUnavailableError (503), no la excepcion
+   cruda de SQLAlchemy.
 
-Como correrlo:
-    pytest test_tc_m01_024_reintentos_bd.py -v \
+2. test_endpoint_login_responde_503_cuando_bd_no_disponible
+   Nivel de integracion (in-process, sin red): monta el router real de
+   /sesiones con los error handlers reales de la app y confirma que un
+   POST /sesiones/ con la BD caida efectivamente devuelve HTTP 503 al
+   cliente, que es lo que la ficha exige en terminos de contrato HTTP.
+
+Estado conocido al momento de escribir este archivo: `get_db()` en
+src/shared/database.py NO implementa reintentos ni traduce el fallo a
+ServiceUnavailableError (a diferencia de src/shared/email.py, que si
+tiene _MAX_RETRIES=3). Por lo tanto se espera que AMBAS pruebas FALLEN
+hoy, documentando honestamente que TC-M01-024 esta REPROBADO: la
+excepcion cruda de SQLAlchemy queda sin manejar y el endpoint responde
+500 (no controlado), no 503. Esto debe reportarse como hallazgo
+(INC-M01-02-xxx), no interpretarse como un error de la prueba.
+
+Por que local y no contra el backend TEST desplegado: simular una BD
+caida contra ese entorno exigiria o bien detener el contenedor de
+Postgres (acceso de infraestructura que el equipo de QA no tiene), o
+bien agotar max_connections desde el usuario de BD de pruebas, lo cual
+tumbaria la BD compartida para cualquier otra persona probando en ese
+momento (frontend, Postman, otros pytest). Como get_db() es exactamente
+el mismo codigo que corre en el backend desplegado, parchear
+SessionLocal en local prueba el comportamiento real sin ese riesgo:
+no se abre ninguna conexion de red ni a Postgres real.
+
+Requiere la variable de entorno DATABASE_URL (por el import de
+src.shared.database, que crea el engine de SQLAlchemy al importarse).
+Cualquier valor con formato de URL de PostgreSQL sirve: no se abre
+conexion real, SessionLocal queda parcheado en cada test.
+
+Como correrlo (desde la raiz del repo):
+
+    $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
+    python -m pytest <ruta>\\test_tc_m01_024_reintentos_bd.py -v \
         --html=reporte-TC-M01-024.html --self-contained-html
 """
 from unittest.mock import patch
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
 from src.shared.database import get_db
@@ -37,78 +66,80 @@ from src.shared.errors import ServiceUnavailableError
 
 
 class TestTCM01024ReintentosBD:
-    """Suite de pruebas para el (inexistente, segun el codigo) mecanismo
-    de reintentos de conexion a base de datos."""
+    """Suite de pruebas para TC-M01-024."""
 
     @patch("src.shared.database.SessionLocal")
-    def test_documenta_que_no_hay_reintentos_ante_fallo_de_conexion(
+    def test_get_db_reintenta_3_veces_y_traduce_a_service_unavailable(
         self, mock_session_local
     ):
         """
-        Simula que SessionLocal() falla siempre (BD caida). Documenta
-        cuantas veces se intenta conectar en la practica.
-
-        Resultado esperado segun la ficha: 3 intentos.
-        Resultado real observado en el codigo actual: 1 intento
-        (no hay reintentos implementados).
+        RF-02: ante un fallo de conexion, get_db() debe reintentar 3 veces
+        y, si los 3 fallan, lanzar ServiceUnavailableError (503) en vez de
+        la excepcion cruda de SQLAlchemy.
         """
         mock_session_local.side_effect = OperationalError(
             "conexion rechazada (simulada)", None, None
         )
 
         generador = get_db()
-
-        with pytest.raises(OperationalError):
+        try:
             next(generador)
+            excepcion_lanzada = None
+        except Exception as exc:
+            excepcion_lanzada = exc
 
-        assert mock_session_local.call_count == 1, (
-            f"Se esperaban 3 reintentos segun TC-M01-024, pero el codigo "
-            f"actual de get_db() solo intento conectar "
-            f"{mock_session_local.call_count} vez/veces. No hay logica de "
-            f"reintentos implementada en src/shared/database.py."
+        assert excepcion_lanzada is not None, (
+            "Se esperaba que get_db() lanzara una excepcion ante el fallo "
+            "de conexion simulado, pero no lanzo ninguna."
         )
+        assert mock_session_local.call_count == 3, (
+            f"RF-02 exige 3 intentos internos de conexion antes de fallar; "
+            f"get_db() intento conectar {mock_session_local.call_count} "
+            f"vez/veces."
+        )
+        assert isinstance(excepcion_lanzada, ServiceUnavailableError), (
+            f"RF-02 exige que, agotados los reintentos, se lance "
+            f"ServiceUnavailableError (mapeado a HTTP 503) en vez de la "
+            f"excepcion cruda de infraestructura. Se obtuvo: "
+            f"{type(excepcion_lanzada).__name__}: {excepcion_lanzada}"
+        )
+        assert getattr(excepcion_lanzada, "status_code", None) == 503
 
     @patch("src.shared.database.SessionLocal")
-    def test_el_error_propagado_no_es_un_503_controlado(self, mock_session_local):
+    def test_endpoint_login_responde_503_cuando_bd_no_disponible(
+        self, mock_session_local
+    ):
         """
-        Documenta que el error que sale de get_db() es la excepcion CRUDA
-        de SQLAlchemy, no un ServiceUnavailableError (que es el que el
-        proyecto usa para mapear a HTTP 503 segun la jerarquia de errores
-        del CLAUDE.md).
+        RF-02: un POST /sesiones/ con la BD caida debe devolver HTTP 503
+        con un mensaje claro, no un error no controlado.
         """
+        from src.identity_access.infrastructure.routers.sesiones_routers import (
+            router as sesiones_router,
+        )
+        from src.shared.error_handlers import register_error_handlers
+
         mock_session_local.side_effect = OperationalError(
             "conexion rechazada (simulada)", None, None
         )
 
-        generador = get_db()
+        app = FastAPI()
+        register_error_handlers(app)
+        app.include_router(sesiones_router)
+        # raise_server_exceptions=False: que devuelva la respuesta HTTP
+        # real (como la veria un cliente contra un servidor desplegado)
+        # en vez de relanzar la excepcion en el proceso de la prueba.
+        client = TestClient(app, raise_server_exceptions=False)
 
-        with pytest.raises(OperationalError) as exc_info:
-            next(generador)
-
-        # Si esto pasa, confirma que NO se esta traduciendo a
-        # ServiceUnavailableError/503 en ningun punto de get_db().
-        assert isinstance(exc_info.value, OperationalError)
-        assert not isinstance(exc_info.value, ServiceUnavailableError), (
-            "Se esperaba que el error NO fuera un ServiceUnavailableError "
-            "controlado (el que el proyecto usa para mapear a HTTP 503), "
-            "sino la excepcion cruda de SQLAlchemy. Si esta asercion falla, "
-            "significa que SI existe una traduccion a 503 en algun punto "
-            "(buena noticia, pero contradice lo observado en el codigo)."
+        response = client.post(
+            "/sesiones/",
+            json={
+                "correo_electronico": "usuario.prueba@ejemplo.com",
+                "contrasena": "cualquiera",
+            },
         )
 
-    def test_get_db_no_tiene_bloque_try_except_para_la_conexion_inicial(self):
-        """
-        Verificacion de codigo fuente: confirma via inspeccion que
-        get_db() no envuelve la creacion de la sesion en un manejo
-        de errores propio.
-        """
-        import inspect
-
-        from src.shared import database
-
-        codigo_fuente = inspect.getsource(database.get_db)
-        assert "except" not in codigo_fuente.split("db = SessionLocal()")[0], (
-            "Se esperaba NO encontrar manejo de errores antes de "
-            "'db = SessionLocal()', confirmando ausencia de reintentos "
-            "o captura de fallos de conexion."
+        assert response.status_code == 503, (
+            f"RF-02 exige HTTP 503 cuando la BD no responde tras 3 "
+            f"reintentos internos; el endpoint respondio "
+            f"{response.status_code}. Cuerpo: {response.text}"
         )
