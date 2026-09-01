@@ -1,0 +1,65 @@
+{
+  "info": {
+    "name": "TC-M01-043",
+    "description": "Verifica el bloqueo tras la 4ta solicitud de recuperacion de contrasena en 1 hora desde la misma conexion. IMPORTANTE: para ver la secuencia limpia 202-202-202-429/422, esta coleccion debe correrse en una conexion que NO haya hecho ninguna solicitud de recuperacion en la ultima hora (si se corre justo despues de otro caso de recuperacion, las primeras solicitudes ya saldran rechazadas). DEFECTO CONOCIDO: el sistema responde 422 en vez de 429 al exceder el limite - la asercion del paso 4 documenta esto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Solicitud de recuperacion (1 de 3 permitidas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted', function () { pm.response.to.have.status(202); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"tc043-intento1@sgpmp-test.com\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "2. Solicitud de recuperacion (2 de 3 permitidas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted', function () { pm.response.to.have.status(202); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"tc043-intento2@sgpmp-test.com\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "3. Solicitud de recuperacion (3 de 3 permitidas)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted', function () { pm.response.to.have.status(202); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"tc043-intento3@sgpmp-test.com\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "4. Solicitud numero 4 - debe rechazarse (ficha espera 429; DEFECTO: responde 422)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('TC-M01-043: el sistema rechaza la 4ta solicitud (bloqueo funciona)', function () {",
+        "    pm.expect(pm.response.code).to.be.oneOf([422, 429]);",
+        "});",
+        "pm.test('TC-M01-043: el codigo deberia ser 429 Too Many Requests segun la ficha (DEFECTO: hoy responde 422)', function () {",
+        "    pm.response.to.have.status(429);",
+        "});",
+        "pm.test('El error_code es LIMITE_SOLICITUDES_EXCEDIDO', function () {",
+        "    pm.expect(pm.response.json().error_code).to.eql('LIMITE_SOLICITUDES_EXCEDIDO');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"tc043-intento4@sgpmp-test.com\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    }
+  ]
+}

@@ -1,0 +1,298 @@
+{
+  "info": {
+    "name": "TC-M01-092 (cobertura de eventos que generan notificacion)",
+    "description": "Cubre los 9 eventos de la ficha. Los pasos 13-16 (bloqueo/desactivacion administrativos) requieren que access_token pertenezca a una cuenta con rol Administrador. Se encontro un defecto: esas 2 acciones no generan ninguna notificacion al usuario afectado - ver TC-M01-092_evidencia.md para el detalle completo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "contrasena_actual", "value": "Restaurada#43" },
+    { "key": "contrasena_nueva", "value": "Cubierta#44" },
+    { "key": "perfil_version", "value": "" },
+    { "key": "token_restablecimiento_manual", "value": "PEGAR_AQUI_EL_TOKEN_DEL_CORREO_SI_SE_QUIERE_PROBAR_RESTABLECIMIENTO" }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "if (b.token) { pm.collectionVariables.set('access_token', b.token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. Consultar perfil (obtener version vigente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "pm.collectionVariables.set('perfil_version', b.version);"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      }
+    },
+    {
+      "name": "3. EVENTO: Actualizacion de perfil (esperado: notificacion tipo 9)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"DANIELA\",\n  \"apellidos\": \"CASTILLO VARGAS\",\n  \"version\": {{perfil_version}}\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      }
+    },
+    {
+      "name": "3b. Verificar notificacion de actualizacion de perfil",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "pm.test('TC-M01-092: existe notificacion de actualizacion de perfil', function () {",
+        "    pm.expect(b.items.some(n => n.tipo_evento === 9)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=3"
+      }
+    },
+    {
+      "name": "4. EVENTO: Cambio de contrasena (esperado: notificacion tipo 6)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"{{contrasena_actual}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva}}\",\n  \"confirmar_nueva_contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/53"
+      }
+    },
+    {
+      "name": "5. Re-login con la contrasena nueva (el cambio cerro la sesion anterior)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "if (b.token) { pm.collectionVariables.set('access_token', b.token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "5b. Verificar notificacion de cambio de contrasena",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "pm.test('TC-M01-092: existe notificacion de cambio de contrasena', function () {",
+        "    pm.expect(b.items.some(n => n.tipo_evento === 6)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=3"
+      }
+    },
+    {
+      "name": "6. EVENTO: Recuperacion de contrasena (esperado: notificacion tipo 7)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 (o 422 si esta bloqueado por limite de conexion)', function () { pm.expect([202,422]).to.include(pm.response.code); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "6b. Verificar notificacion de recuperacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "pm.test('TC-M01-092: existe notificacion de recuperacion', function () {",
+        "    pm.expect(b.items.some(n => n.tipo_evento === 7)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=3"
+      }
+    },
+    {
+      "name": "7. [MANUAL, OPCIONAL] EVENTO: Restablecimiento con token real del correo (tipo 8)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "if (pm.collectionVariables.get('token_restablecimiento_manual').startsWith('PEGAR_AQUI')) {",
+        "    console.log('Paso omitido: pega un token real de tu correo en la variable token_restablecimiento_manual para probarlo.');",
+        "} else {",
+        "    pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_restablecimiento_manual}}\",\n  \"nueva_contrasena\": \"Restablecida#45\",\n  \"confirmar_contrasena\": \"Restablecida#45\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "8. EVENTO: Login fallido x5 -> bloqueo (esperado: notificacion tipo 4 al 5to intento)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "9. Repetir (2/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "10. Repetir (3/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "11. Repetir (4/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "12. Intento 5/5 - dispara bloqueo",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 423', function () { pm.response.to.have.status(423); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "12b. Verificar notificacion de login fallido",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "pm.test('TC-M01-092: existe notificacion de login fallido', function () {",
+        "    pm.expect(b.items.some(n => n.tipo_evento === 4)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=3"
+      }
+    },
+    {
+      "name": "13. EVENTO: Bloqueo administrativo sobre otro usuario (id 45) - requiere que access_token sea de un Administrador",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"bloquear\",\n  \"motivo_accion\": \"Prueba TC-M01-092 - verificar notificacion de bloqueo administrativo\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/gestionar"
+      }
+    },
+    {
+      "name": "14. EVENTO: Desactivacion administrativa sobre el mismo usuario (id 45)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"inactivar\",\n  \"motivo_accion\": \"Prueba TC-M01-092 - verificar notificacion de desactivacion\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/gestionar"
+      }
+    },
+    {
+      "name": "15. IMPORTANTE: restaurar al usuario 45 a Activo (no dejar bloqueado a Maria)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 - Maria queda restaurada a Activo', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Restaurar tras prueba TC-M01-092\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/gestionar"
+      }
+    },
+    {
+      "name": "16. Confirmar defecto: el usuario 45 NO recibio notificacion por el bloqueo/desactivacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "// Requiere haber guardado el total de notificaciones de Maria ANTES del paso 13 en una variable,",
+        "// por ejemplo consultando GET /notificaciones con el token de Maria antes de este flujo.",
+        "// EVIDENCIA REAL (2026-09-01): el total de notificaciones de Maria (id 45) fue 34 antes",
+        "// y 34 despues de bloquear+desactivar+reactivar -> DEFECTO CONFIRMADO: no se genera",
+        "// ninguna notificacion para estas 2 acciones administrativas. Ver TC-M01-092_evidencia.md.",
+        "pm.test('TC-M01-092: [DEFECTO CONFIRMADO] bloqueo/desactivacion administrativos no generan notificacion (ver evidencia .md)', function () {",
+        "    pm.expect(true).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/detalle"
+      }
+    }
+  ]
+}

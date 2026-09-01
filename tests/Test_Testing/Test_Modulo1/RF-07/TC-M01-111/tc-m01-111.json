@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "TC-M01-111",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "msg1", "value": "" },
+    { "key": "msg2", "value": "" },
+    { "key": "msg3", "value": "" },
+    { "key": "msg4", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+          "const jsonData = pm.response.json();",
+          "if (jsonData.token) { pm.collectionVariables.set('access_token', jsonData.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Recuperada#30\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. Intento fallido 1 (guardar mensaje)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "pm.collectionVariables.set('msg1', b.message.replace('Intento 1 de 5', 'Intento N de 5'));"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "2. Intento fallido 2 (comparar mensaje)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = b.message.replace('Intento 2 de 5', 'Intento N de 5');",
+          "pm.test('TC-M01-111: mensaje consistente con intento 1', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msg1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "3. Intento fallido 3 (comparar mensaje)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = b.message.replace('Intento 3 de 5', 'Intento N de 5');",
+          "pm.test('TC-M01-111: mensaje consistente con intento 1', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msg1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "4. Intento fallido 4 (comparar mensaje)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = b.message.replace('Intento 4 de 5', 'Intento N de 5');",
+          "pm.test('TC-M01-111: mensaje consistente con intento 1', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msg1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "5. Intento 5 - dispara bloqueo (esperado 423, distinto a proposito)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('TC-M01-111: intento 5 dispara bloqueo 423 (comportamiento de TC-M01-032)', function () {",
+          "    pm.response.to.have.status(423);",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    }
+  ]
+}
