@@ -36,6 +36,13 @@ class Roles(Base):
     fecha_creacion: Mapped[Optional[datetime.time]] = mapped_column(Time(True), server_default=text('now()'), comment='Marca temporal (con zona horaria) del momento en que se creó el rol.')
     fecha_actualizacion: Mapped[Optional[datetime.time]] = mapped_column(Time(True), comment='Marca temporal (con zona horaria) de la última modificación del rol.\nDebe actualizarse mediante trigger.')
 
-    permisos: Mapped[list['Permisos']] = relationship('Permisos', back_populates='roles')
+    # La base de datos elimina los permisos al borrar el rol. ``"all"`` evita
+    # que SQLAlchemy intente poner ``id_rol=NULL`` o borrar los hijos antes que
+    # el padre, lo cual chocaria con el NOT NULL y con la guarda de permiso minimo.
+    permisos: Mapped[list['Permisos']] = relationship(
+        'Permisos',
+        back_populates='roles',
+        passive_deletes='all',
+    )
     usuarios: Mapped[list['Usuarios']] = relationship('Usuarios', back_populates='roles')
 
