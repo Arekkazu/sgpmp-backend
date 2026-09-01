@@ -1,0 +1,253 @@
+{
+  "info": {
+    "name": "TC-M01-079 - Verificar busqueda de usuarios sin distincion entre mayusculas y minusculas",
+    "description": "TC-M01-079 (RF-11, CU07 - Consultar Historial y Auditoria): Administrador autorizado consulta GET /usuarios/admin usando el parametro nombre con tres variantes del mismo termino de busqueda ('juan', 'JUAN', 'Juan'), comparando los tres resultados entre si para confirmar que la busqueda es case-insensitive (segun lo definido en el requisito). Responsable: Juan Parra. Prioridad: Media. Tipo: Pruebas funcionales - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con las busquedas de usuarios.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-079 - Buscar usuario 'juan' (minusculas)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Termino de busqueda utilizado: juan ---');",
+              "",
+              "pm.test('TC-M01-079: la busqueda con nombre=juan responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa de la busqueda \"juan\" (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const items = respuesta.items || respuesta;",
+              "",
+              "    pm.test('TC-M01-079: la busqueda \"juan\" devuelve al menos un resultado', function () {",
+              "        pm.expect(items).to.satisfy(function (val) {",
+              "            return Array.isArray(val) && val.length > 0;",
+              "        });",
+              "    });",
+              "",
+              "    pm.collectionVariables.set('resultado_minusculas', JSON.stringify(items));",
+              "    console.log('Resultado de referencia (minusculas) almacenado para comparar con las siguientes busquedas.');",
+              "} else {",
+              "    console.log('ADVERTENCIA: la busqueda no devolvio una respuesta valida. Revisar si el parametro \"nombre\" es correcto o si existe un usuario con \"juan\" en el nombre en el ambiente de TEST.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/admin?nombre=juan",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "admin" ],
+          "query": [
+            { "key": "nombre", "value": "juan" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-079 - Buscar usuario 'JUAN' (mayusculas)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Termino de busqueda utilizado: JUAN ---');",
+              "",
+              "pm.test('TC-M01-079: la busqueda con nombre=JUAN responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa de la busqueda \"JUAN\" (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const items = respuesta.items || respuesta;",
+              "    const referencia = pm.collectionVariables.get('resultado_minusculas');",
+              "",
+              "    pm.test('TC-M01-079: la busqueda \"JUAN\" devuelve al menos un resultado', function () {",
+              "        pm.expect(items).to.satisfy(function (val) {",
+              "            return Array.isArray(val) && val.length > 0;",
+              "        });",
+              "    });",
+              "",
+              "    pm.test('TC-M01-079: la busqueda \"JUAN\" devuelve exactamente el mismo resultado que \"juan\"', function () {",
+              "        pm.expect(referencia).to.not.equal(undefined);",
+              "        pm.expect(JSON.stringify(items)).to.equal(referencia);",
+              "    });",
+              "} else {",
+              "    console.log('ADVERTENCIA: la busqueda no devolvio una respuesta valida.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/admin?nombre=JUAN",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "admin" ],
+          "query": [
+            { "key": "nombre", "value": "JUAN" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-079 - Buscar usuario 'Juan' (formato mixto)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Termino de busqueda utilizado: Juan ---');",
+              "",
+              "pm.test('TC-M01-079: la busqueda con nombre=Juan responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa de la busqueda \"Juan\" (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const items = respuesta.items || respuesta;",
+              "    const referencia = pm.collectionVariables.get('resultado_minusculas');",
+              "",
+              "    pm.test('TC-M01-079: la busqueda \"Juan\" devuelve al menos un resultado', function () {",
+              "        pm.expect(items).to.satisfy(function (val) {",
+              "            return Array.isArray(val) && val.length > 0;",
+              "        });",
+              "    });",
+              "",
+              "    pm.test('TC-M01-079: la busqueda \"Juan\" devuelve exactamente el mismo resultado que \"juan\" (case-insensitive confirmado en las 3 variantes)', function () {",
+              "        pm.expect(referencia).to.not.equal(undefined);",
+              "        pm.expect(JSON.stringify(items)).to.equal(referencia);",
+              "    });",
+              "} else {",
+              "    console.log('ADVERTENCIA: la busqueda no devolvio una respuesta valida.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/admin?nombre=Juan",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "admin" ],
+          "query": [
+            { "key": "nombre", "value": "Juan" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "resultado_minusculas", "value": "" }
+  ]
+}
