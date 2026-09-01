@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-027 Contrato API - POST /sesiones/",
+    "description": "Test de contrato: valida no solo el codigo HTTP sino la ESTRUCTURA completa de la respuesta en 3 escenarios: credenciales validas (200 + JWT bien formado), credenciales invalidas (401 + schema de error), y cuenta bloqueada tras 5 intentos (423 + schema de error). Usa la cuenta jmanuelgomen+tcm017@gmail.com (id_cuenta_usuario=54). Todo en una sola corrida, sin intentos exitosos intercalados, para no resetear el contador de bloqueo a mitad de la prueba.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Escenario 1 - Credenciales validas: 200 + contrato del JWT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: HTTP 200', function () { pm.response.to.have.status(200); });",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test('Escenario 1: contiene los 5 campos esperados', function () {",
+              "    pm.expect(json).to.have.all.keys('token', 'tipo', 'expira_en', 'message', 'perfil_incompleto');",
+              "});",
+              "",
+              "pm.test('Escenario 1: tipos de dato correctos', function () {",
+              "    pm.expect(json.token).to.be.a('string');",
+              "    pm.expect(json.tipo).to.eql('Bearer');",
+              "    pm.expect(json.expira_en).to.be.a('number');",
+              "    pm.expect(json.message).to.be.a('string');",
+              "    pm.expect(json.perfil_incompleto).to.be.a('boolean');",
+              "});",
+              "",
+              "pm.test('Escenario 1: el token tiene formato JWT (3 partes separadas por punto)', function () {",
+              "    const partes = json.token.split('.');",
+              "    pm.expect(partes.length).to.eql(3);",
+              "});",
+              "",
+              "pm.test('Escenario 1: el payload del JWT decodificado tiene los campos del contrato', function () {",
+              "    const partes = json.token.split('.');",
+              "    const payload = JSON.parse(atob(partes[1].replace(/-/g, '+').replace(/_/g, '/')));",
+              "    pm.expect(payload).to.have.all.keys('sub', 'jti', 'rol', 'exp', 'iat');",
+              "    pm.expect(payload.rol).to.be.a('number');",
+              "    console.log('Payload JWT decodificado: ' + JSON.stringify(payload));",
+              "});",
+              "",
+              "console.log('Escenario 1 (validas): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - Credenciales invalidas: 401 + schema de error (intento 1 de 5)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: HTTP 401', function () { pm.response.to.have.status(401); });",
+              "const json = pm.response.json();",
+              "pm.test('Escenario 2: contiene los 4 campos del schema de error', function () {",
+              "    pm.expect(json).to.have.all.keys('error_code', 'message', 'fields', 'timestamp');",
+              "});",
+              "pm.test('Escenario 2: tipos de dato correctos', function () {",
+              "    pm.expect(json.error_code).to.eql('CREDENCIALES_INVALIDAS');",
+              "    pm.expect(json.message).to.be.a('string');",
+              "    pm.expect(json.fields).to.be.an('array');",
+              "    pm.expect(json.timestamp).to.be.a('string');",
+              "});",
+              "console.log('Escenario 2 (invalidas, 1/5): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Fallido 2 de 5 (interno, para llegar al bloqueo)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 2: HTTP 401', function () { pm.response.to.have.status(401); });"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 3 de 5 (interno, para llegar al bloqueo)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 3: HTTP 401', function () { pm.response.to.have.status(401); });"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 4 de 5 (interno, para llegar al bloqueo)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 4: HTTP 401', function () { pm.response.to.have.status(401); });"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Escenario 3 - Cuenta bloqueada (5to intento): 423 + schema de error",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 3: HTTP 423', function () { pm.response.to.have.status(423); });",
+              "const json = pm.response.json();",
+              "pm.test('Escenario 3: contiene los 4 campos del schema de error', function () {",
+              "    pm.expect(json).to.have.all.keys('error_code', 'message', 'fields', 'timestamp');",
+              "});",
+              "pm.test('Escenario 3: tipos de dato correctos', function () {",
+              "    pm.expect(json.error_code).to.eql('CUENTA_BLOQUEADA');",
+              "    pm.expect(json.message).to.be.a('string');",
+              "    pm.expect(json.fields).to.be.an('array');",
+              "    pm.expect(json.timestamp).to.be.a('string');",
+              "});",
+              "console.log('Escenario 3 (bloqueada): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

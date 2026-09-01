@@ -1,0 +1,78 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-019 DEFINITIVO - 5 intentos seguidos sin reset",
+    "description": "Manda 5 intentos fallidos CONSECUTIVOS (sin ningun intento con clave correcta de por medio, para no resetear el contador). El 5to debe dar 423. Al final, UNA sola verificacion con clave correcta mientras esta bloqueada (debe seguir dando 423). Precondicion: correr antes un UPDATE que ponga intentos_fallidos=0 y bloqueado_hasta=NULL para partir de cero limpio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Fallido 1 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 1: HTTP 401', function () { pm.response.to.have.status(401); });",
+        "console.log('1: ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 2 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 2: HTTP 401', function () { pm.response.to.have.status(401); });",
+        "console.log('2: ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 3 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 3: HTTP 401', function () { pm.response.to.have.status(401); });",
+        "console.log('3: ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 4 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 4: HTTP 401', function () { pm.response.to.have.status(401); });",
+        "console.log('4: ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Fallido 5 de 5 (debe bloquear, 423)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Fallido 5: HTTP 423 Locked', function () { pm.response.to.have.status(423); });",
+        "console.log('5 (debe bloquear): ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    },
+    {
+      "name": "Verificacion final - clave CORRECTA mientras esta bloqueada",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Con clave correcta pero bloqueada: sigue dando 423, NO 200', function () { pm.response.to.have.status(423); });",
+        "console.log('Verificacion final: ' + pm.response.code + ' - ' + pm.response.text());"
+      ]}}],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] } },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}
