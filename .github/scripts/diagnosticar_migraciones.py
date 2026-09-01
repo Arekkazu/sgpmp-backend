@@ -11,6 +11,11 @@ import psycopg2
 
 MARCADORES = [
     (
+        "f2c84d91a6e7",
+        "rf12 permiso admin_ejecutar_identificacion_completa",
+        "SELECT EXISTS (SELECT 1 FROM modulo1.permisos WHERE nombre = 'admin_ejecutar_identificacion_completa')",
+    ),
+    (
         "e8bb4f321a44",
         "rf06 trigger revoca tokens al inactivar/bloquear/eliminar",
         """
