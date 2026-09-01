@@ -15,6 +15,14 @@ on:
       - "alembic/versions/**"
   workflow_dispatch:
     inputs:
+      stamp_dev:
+        description: "Revisión a re-estampar en DEV_DATABASE_URL antes del upgrade. Solo para reparar un alembic_version huérfano en dev. Vacío en runs normales."
+        required: false
+        default: ""
+      stamp_test:
+        description: "Revisión a re-estampar en TEST_DATABASE_URL antes del upgrade. Solo para reparar un alembic_version huérfano en test. Vacío en runs normales."
+        required: false
+        default: ""
       solo_diagnostico:
         description: "true = no toca ninguna DB, solo compara alembic_version contra marcadores reales de esquema en dev y test (INC-M01-03-119)."
         required: false
@@ -80,10 +88,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Escotilla de reparación para dev. Si alembic_version quedó apuntando a una
+      # revisión borrada o reescrita, TODO comando de alembic falla con "Can't
+      # locate revision". --purge reescribe la tabla sin tener que resolver la
+      # revisión actual, que es justo lo que está roto. dev y test se reparan por
+      # separado porque pueden quedar varadas en revisiones distintas (INC-M01-03-119:
+      # dev llegó a repararse sola, test no) — estampar ambas con el mismo valor a
+      # ciegas puede hacer retroceder una DB que ya estaba sana.
+      - name: Reparar alembic_version en dev (solo si se pasó "stamp_dev")
+        if: inputs.stamp_dev != ''
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+        run: alembic stamp "${{ inputs.stamp_dev }}" --purge
+
       # Diagnóstico: si el upgrade falla (p. ej. por heads múltiples tras
       # mergear dos ramas con migraciones paralelas), estas dos líneas
       # dejan en el log en qué revisión está la DB y cuál es el head del repo.
       - name: Mostrar estado actual de la DB (current / heads)
+        continue-on-error: true   # es diagnóstico: no debe decidir el resultado del job
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: |
@@ -102,6 +124,15 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
         run: alembic current
+
+      # Escotilla de reparación para test, misma lógica que la de dev pero con su
+      # propia revisión: usar solo el valor real que corresponde al esquema que
+      # la DB de test ya tiene aplicado (verificar con solo_diagnostico=true antes).
+      - name: Reparar alembic_version en test (solo si se pasó "stamp_test")
+        if: inputs.stamp_test != ''
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+        run: alembic stamp "${{ inputs.stamp_test }}" --purge
 
       # Segundo destino: la DB de test va siempre al mismo head que dev, para
       # que las pruebas corran contra el esquema recién aplicado. Se ejecuta
