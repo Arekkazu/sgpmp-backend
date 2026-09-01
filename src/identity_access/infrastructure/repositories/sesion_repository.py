@@ -72,7 +72,19 @@ class SqlAlchemySesionRepository(SesionRepository):
         return self._sesion_a_entidad(orm) if orm else None
 
     def buscar_token_por_hash(self, hash_valor: str) -> Optional[Token]:
-        orm = self.db.query(Tokens).filter(Tokens.hash_valor == hash_valor).first()
+        # FOR UPDATE (bloqueante, sin NOWAIT/SKIP LOCKED): dos refrescos
+        # concurrentes con el mismo refresh token (dos tabs, doble clic, un
+        # bootstrap de sesión que compite con un login explícito) deben
+        # serializarse, no leer ambos "no usado" antes de que el primero
+        # rote el token — eso producía un falso positivo de reuso que mataba
+        # la sesión que el primero acababa de emitir. El segundo espera al
+        # primero y relee `fecha_uso` ya actualizado.
+        orm = (
+            self.db.query(Tokens)
+            .filter(Tokens.hash_valor == hash_valor)
+            .with_for_update()
+            .first()
+        )
         return self._token_a_entidad(orm) if orm else None
 
     def invalidar_sesion(self, sesion: Sesion) -> None:
