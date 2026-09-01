@@ -125,6 +125,15 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
         return [row.fcm_token for row in rows]
 
     def guardar_fcm_token(self, id_usuario: int, token: str, user_agent: Optional[str] = None) -> None:
+        """Registra el token del dispositivo del usuario.
+
+        No lleva UPSERT a proposito: `uq_dispositivos_fcm_token` la resuelve el
+        trigger `trg_fcm_2_revocar_token_previo`, que borra la fila previa con
+        ese token antes del INSERT. Un token FCM es por navegador, no por
+        usuario, asi que al entrar un segundo usuario en el mismo equipo el
+        dispositivo se reasigna en vez de chocar. Ver
+        `anotaciones/modulo_1/fcm_tokens.md`.
+        """
         dispositivo = DispositivosFcm(
             id_usuario=id_usuario,
             fcm_token=token,
