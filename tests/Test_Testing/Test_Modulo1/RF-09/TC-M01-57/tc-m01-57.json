@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "TC-M01-57",
+    "description": "Verifica el rechazo (409 Conflict esperado) al restablecer la contrasena a un valor IDENTICO a la contrasena actual del usuario. NOTA: ya se ejecuto manualmente y se confirmo un DEFECTO -- el sistema acepta el restablecimiento (200) en vez de rechazarlo (409). Esta coleccion documenta ese hallazgo de forma reproducible: el Test del paso 2 esta escrito para pasar SOLO si el defecto es corregido (espera 409); mientras el defecto siga presente, ese test fallara intencionalmente, sirviendo como evidencia repetible del problema. Requiere un token real de recuperacion (un solo uso) -- pegar el que llegue al correo antes de correr desde el paso 1 en adelante.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_cuenta", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "contrasena_actual", "value": "Verificada#45" },
+    { "key": "token_recuperacion", "value": "VVHjdM5zFWjRkDoTmKGIJeSMUDvbScWUG2b7xdEwAKA"}
+  ],
+  "item": [
+    {
+      "name": "1. Restablecer con la MISMA contrasena actual",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Recordatorio: la variable token_recuperacion debe tener un token real, no el placeholder', function () {",
+        "    pm.expect(pm.collectionVariables.get('token_recuperacion')).to.not.eql('PEGAR_AQUI_EL_TOKEN_DEL_CORREO');",
+        "});",
+        "pm.test('TC-M01-57: deberia responder 409 Conflict (fallara mientras el defecto siga sin corregirse)', function () {",
+        "    pm.response.to.have.status(409);",
+        "});",
+        "pm.test('Documentacion del comportamiento actual observado', function () {",
+        "    console.log('Status real obtenido: ' + pm.response.code + ' (se esperaba 409). Si es 200, confirma el defecto ya reportado: el sistema no compara la nueva contrasena contra la actual.');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"{{contrasena_actual}}\",\n  \"confirmar_contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "{{base_url}}/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "2. Confirmar estado de la cuenta con login (para dejar evidencia del efecto real)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('El login sigue funcionando con la misma contrasena de siempre', function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "pm.test('Nota', function () {",
+        "    console.log('Si el paso 1 respondio 200 (defecto), este login exitoso confirma que el restablecimiento efectivamente se aplico (aunque la contrasena nueva y la vieja eran iguales) -- la cuenta no quedo en un estado inconsistente, solo falta la validacion de rechazo.');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_cuenta}}\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    }
+  ]
+}

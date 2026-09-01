@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "TC-M01-112",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "msg1", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Solicitud de recuperacion 1/3 (esperado 202)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 202', function () { pm.response.to.have.status(202); });",
+          "pm.collectionVariables.set('msg1', pm.response.json().message);"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "2. Solicitud de recuperacion 2/3 (mensaje debe ser identico)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 202', function () { pm.response.to.have.status(202); });",
+          "pm.test('Mensaje identico a la solicitud 1', function () {",
+          "    pm.expect(pm.response.json().message).to.eql(pm.collectionVariables.get('msg1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "3. Solicitud de recuperacion 3/3 (mensaje debe ser identico)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 202', function () { pm.response.to.have.status(202); });",
+          "pm.test('Mensaje identico a la solicitud 1', function () {",
+          "    pm.expect(pm.response.json().message).to.eql(pm.collectionVariables.get('msg1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "4. Solicitud 4/4 - debe bloquearse (esperado 429; defecto conocido: responde 422)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('TC-M01-112: responde 429 Too Many Requests', function () {",
+          "    pm.response.to.have.status(429);",
+          "});",
+          "const jsonData = pm.response.json();",
+          "pm.test('TC-M01-112: no filtra informacion adicional sobre la cuenta', function () {",
+          "    pm.expect(jsonData.message).to.not.include('@');",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    }
+  ]
+}

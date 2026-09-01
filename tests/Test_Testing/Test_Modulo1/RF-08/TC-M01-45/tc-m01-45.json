@@ -1,0 +1,120 @@
+{
+  "info": {
+    "name": "TC-M01-045",
+    "description": "Verifica que una cuenta en estado ELIMINADO no reciba token de recuperacion de contrasena, aunque la API siga respondiendo 202 (mensaje generico, anti-enumeracion). Requiere access_token de una cuenta Administrador. IMPORTANTE: la verificacion de que NO llego correo es manual (revisar la bandeja real) - Newman solo automatiza la verificacion cruzada por auditoria.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "admin_correo", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "admin_contrasena", "value": "Confirmada#44" },
+    { "key": "objetivo_correo", "value": "u20222208793@usco.edu.co" },
+    { "key": "objetivo_id", "value": "67" },
+    { "key": "access_token", "value": "" },
+    { "key": "baseline_max_evento", "value": "0" }
+  ],
+  "item": [
+    {
+      "name": "0. Login como Administrador (Daniela)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('access_token', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. Admin: marcar cuenta objetivo como ELIMINADO",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"eliminar\",\n  \"motivo_accion\": \"TC-M01-045 - no debe generarse token de recuperacion\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/gestionar"
+      }
+    },
+    {
+      "name": "2. Confirmar estado_cuenta = Eliminado",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('estado_cuenta es Eliminado', function () {",
+        "    pm.expect(pm.response.json().estado_cuenta).to.eql('Eliminado');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
+      }
+    },
+    {
+      "name": "3. Baseline de auditoria antes de solicitar recuperacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const items = pm.response.json().items || [];",
+        "const propios = items.filter(i => i.id_usuario === parseInt(pm.collectionVariables.get('objetivo_id')) || (i.detalle && i.detalle.id_usuario_afectado === parseInt(pm.collectionVariables.get('objetivo_id'))));",
+        "const maxId = propios.reduce((m, i) => Math.max(m, i.id_evento), 0);",
+        "pm.collectionVariables.set('baseline_max_evento', maxId);"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
+      }
+    },
+    {
+      "name": "4. Solicitar recuperacion de contrasena sobre la cuenta ELIMINADA",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted (mensaje generico, no revela el estado)', function () {",
+        "    pm.response.to.have.status(202);",
+        "    pm.expect(pm.response.json().message).to.include('Si el correo está registrado');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "5. Verificar en auditoria que NO se proceso una recuperacion real",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const items = pm.response.json().items || [];",
+        "const objetivoId = parseInt(pm.collectionVariables.get('objetivo_id'));",
+        "const baseline = parseInt(pm.collectionVariables.get('baseline_max_evento'));",
+        "const nuevos = items.filter(i => (i.id_usuario === objetivoId || (i.detalle && i.detalle.id_usuario_afectado === objetivoId)) && i.id_evento > baseline);",
+        "pm.test('TC-M01-045: no hay ningun evento nuevo de auditoria para la cuenta eliminada tras la solicitud de recuperacion', function () {",
+        "    pm.expect(nuevos.length).to.eql(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
+      }
+    },
+    {
+      "name": "6. (Manual) Confirmar en la bandeja real que NO llego correo de recuperacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Recordatorio manual: revisar la bandeja de objetivo_correo y confirmar que no llego ningun correo de recuperacion despues del paso 4', function () {",
+        "    pm.expect(true).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    }
+  ]
+}

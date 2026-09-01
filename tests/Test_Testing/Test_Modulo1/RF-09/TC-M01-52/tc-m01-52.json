@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "TC-M01-52",
+    "description": "Verifica que un token de recuperacion de contrasena se rechace (401 TOKEN_INVALIDO) una vez transcurridos los 15 minutos de validez. Como los tokens no se guardan en la base de datos accesible (ver TC-M01-48), no se puede adelantar la expiracion manipulando datos -- hay que esperar el tiempo real. Usar el script tc-m01-52-ejecutar-todo.ps1 que ya integra la espera de 15+ minutos automaticamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_cuenta", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "token_recuperacion", "value": "PEGAR_AQUI_EL_TOKEN_DEL_CORREO" },
+    { "key": "nueva_contrasena_prueba", "value": "Expirada#60" }
+  ],
+  "item": [
+    {
+      "name": "0. Disparar recuperacion",
+      "item": [
+        {
+          "name": "0.1 Solicitar recuperacion de contrasena",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 202', function () { pm.response.to.have.status(202); });",
+            "console.log('Recuperacion disparada a las: ' + new Date().toISOString() + ' -- revisa tu correo, copia el token y pegalo en la variable token_recuperacion del archivo tc-m01-52.json antes de continuar.');"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_cuenta}}\"\n}" },
+            "url": "{{base_url}}/contrasena/recuperar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar usar el token ya expirado (15+ min despues)",
+      "item": [
+        {
+          "name": "1.1 Restablecer con el token vencido",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Recordatorio: token_recuperacion debe ser el token real, no el placeholder', function () {",
+            "    pm.expect(pm.collectionVariables.get('token_recuperacion')).to.not.eql('PEGAR_AQUI_EL_TOKEN_DEL_CORREO');",
+            "});",
+            "pm.test('TC-M01-52: el token vencido debe ser rechazado con 401 TOKEN_INVALIDO', function () {",
+            "    pm.response.to.have.status(401);",
+            "    pm.expect(pm.response.json().error_code).to.eql('TOKEN_INVALIDO');",
+            "});"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"{{nueva_contrasena_prueba}}\",\n  \"confirmar_contrasena\": \"{{nueva_contrasena_prueba}}\"\n}" },
+            "url": "{{base_url}}/contrasena/restablecer"
+          }
+        }
+      ]
+    }
+  ]
+}

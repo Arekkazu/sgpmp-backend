@@ -1,0 +1,91 @@
+{
+  "info": {
+    "name": "TC-M01-046",
+    "description": "Verifica que una cuenta en estado Pendiente (registrada, sin activar) reciba el enlace de activacion en lugar de un token de recuperacion al solicitar 'olvide mi contrasena'. Requiere una cuenta real recien registrada y SIN activar, y access_token de una cuenta Administrador. La verificacion de que tipo de correo llego es manual (Newman no tiene acceso al correo) - la coleccion automatiza la verificacion cruzada contra la bitacora de auditoria.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "admin_correo", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "admin_contrasena", "value": "Confirmada#44" },
+    { "key": "objetivo_correo", "value": "daniiella.vargass@gmail.com" },
+    { "key": "objetivo_id", "value": "68" },
+    { "key": "access_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login como Administrador (Daniela)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('access_token', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. Confirmar que la cuenta objetivo esta en estado Pendiente",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.test('estado_cuenta es Pendiente', function () {",
+        "    pm.expect(pm.response.json().estado_cuenta).to.eql('Pendiente');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
+      }
+    },
+    {
+      "name": "2. Solicitar recuperacion de contrasena sobre la cuenta PENDIENTE",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted (mensaje generico)', function () {",
+        "    pm.response.to.have.status(202);",
+        "    pm.expect(pm.response.json().message).to.include('Si el correo está registrado');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "3. Verificar en auditoria que se roto el token de ACTIVACION, no uno de recuperacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const items = pm.response.json().items || [];",
+        "const objetivoId = parseInt(pm.collectionVariables.get('objetivo_id'));",
+        "const evento = items.find(i => i.id_usuario === objetivoId && i.descripcion === 'SOLICITUD_RECUPERACION');",
+        "pm.test('Existe el evento SOLICITUD_RECUPERACION para la cuenta objetivo', function () {",
+        "    pm.expect(evento).to.not.be.undefined;",
+        "});",
+        "pm.test('El motivo indica que se roto el token de activacion (no uno de restablecimiento)', function () {",
+        "    pm.expect(evento.detalle.motivo).to.include('activacion');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=5"
+      }
+    },
+    {
+      "name": "4. (Manual) Confirmar en la bandeja real que llego un enlace de ACTIVACION, no de restablecimiento",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Recordatorio manual: revisar la bandeja de objetivo_correo y confirmar que el enlace recibido es de activacion de cuenta', function () {",
+        "    pm.expect(true).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    }
+  ]
+}
