@@ -1,0 +1,50 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-08 Paso 1 - Activar con token expirado",
+    "description": "Solo la verificacion de HTTP 410. Aislado del paso de reenvio para no invalidar el token entre corridas. Actualiza la variable token_expirado con el valor mas reciente de token_activacion_actual antes de correr.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-08 - Activar cuenta con token expirado (debe dar 410)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-08: HTTP 410 Gone por token expirado', function () {",
+              "    pm.response.to.have.status(410);",
+              "});",
+              "",
+              "pm.test('TC-M01-08: el mensaje hace referencia a expiracion del token', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('expir') || b.includes('vencid') || b.includes('token');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-08: no se activo la cuenta (no 200/204)', function () {",
+              "    pm.expect([200, 204]).to.not.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/{{token_expirado}}",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "{{token_expirado}}"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_expirado", "value": "-L3u45XqFFTUiQOJtVcEBVXr1ThdJ7s9eOA6RpAkrGA" }
+  ]
+}
