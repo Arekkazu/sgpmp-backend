@@ -13,7 +13,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
-| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~95% |
+| RF-01 | Registro de usuarios | ✅ Cumple | ~100% |
 | RF-02 | Autenticación de usuarios | ⚠️ Cumple parcialmente | ~85% |
 | RF-03 | Gestión de roles | ✅ Cumple | ~95% |
 | RF-04 | Gestión de permisos | ✅ Cumple | ~100% |
@@ -34,7 +34,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-01 — Registro de usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~95%)** — el flujo completo de registro y activación funciona; el gap restante es CAPTCHA.
+**Veredicto: ✅ Cumple (~100%)** — el flujo completo de registro y activación incluye la barrera CAPTCHA exigida por el RF.
 
 ### Qué SÍ cumple
 
@@ -51,10 +51,16 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Reenvío de token de activación** si el original expiró.
 - **Validación de mayoría de edad (18 años)**: si el usuario declara ser menor, el registro se rechaza con `403 Forbidden`, tal como pide el RF.
 - El formato del correo se valida tanto en el dominio como con un `CHECK` en la base de datos.
+- **CAPTCHA Google reCAPTCHA v2**: `captcha_token` es obligatorio y se verifica
+  contra `siteverify` antes de construir o persistir cualquier dato. Un desafío
+  rechazado responde `400 CAPTCHA_INVALIDO` con el mensaje del RF; una caída o
+  mala configuración del proveedor falla de forma cerrada con `503`, sin crear
+  usuario, cuenta, token ni evento.
 
 ### Qué NO cumple / gaps
 
-- **No hay CAPTCHA en absoluto.** El RF lo pide explícitamente como requisito no funcional de seguridad ("Implementar CAPTCHA — Google reCAPTCHA v2 o v3") y también como flujo alterno con `HTTP 400`. Hoy no existe ninguna referencia a CAPTCHA/reCAPTCHA en todo el código ni en las variables de entorno.
+- No quedan gaps identificados en el alcance actual de RF-01. El frontend debe
+  integrar el widget reCAPTCHA v2 y enviar su respuesta en `captcha_token`.
 
 ---
 
@@ -370,14 +376,23 @@ Estos son problemas que no son exclusivos de un solo requerimiento — vale la p
 
 ---
 
-## Si se agrega la medida de seguridad de CAPTCHA
+## Implementación de la medida de seguridad CAPTCHA
 
 El CAPTCHA solo aparece mencionado explícitamente en **un** requerimiento: RF-01 (registro), tanto en su lista de requisitos no funcionales de seguridad como en su flujo alterno de "Fallo en la validación de seguridad (CAPTCHA)" con respuesta `400`. Ningún otro RF de los 14 (ni login, ni recuperación de contraseña, ni ningún otro flujo) lo menciona en el texto entregado.
 
-**Qué cambiaría si se implementa:**
+**Cambios implementados:**
 
-- **Nuevo campo en el formulario de registro**: el DTO de entrada (`UsuarioCreateDTO`) necesitaría un campo adicional, por ejemplo `captcha_token`, que el frontend obtendría del widget de Google reCAPTCHA y enviaría junto con el resto de los datos.
-- **Nueva validación en el use case de registro**: `CrearUsuarioUseCase` necesitaría verificar ese token contra la API de Google reCAPTCHA antes de continuar con el resto de las validaciones. Como es una llamada a un servicio externo, encajaría como un adaptador nuevo en `infrastructure/adapters/`, siguiendo el mismo patrón que ya usa el proyecto para dependencias externas (ver el patrón de "adaptador stub" documentado en `CLAUDE.md`).
-- **Nuevo error de dominio**: un `ValidationError` con código de negocio propio (por ejemplo `CAPTCHA_INVALIDO`), que se traduciría al `HTTP 400` que pide el RF.
-- **Nueva variable de entorno**: algo como `RECAPTCHA_SECRET_KEY`, que habría que sumar a `.env.example`.
-- **Alcance del cambio**: esto solo movería el estado de **RF-01** — no tocaría el login (RF-02), ni la recuperación/restablecimiento de contraseña (RF-08/RF-09), ni ningún otro requerimiento, porque el texto entregado no pide CAPTCHA en esos flujos. Es un cambio acotado y no afecta ninguna de las otras piezas evaluadas en este documento.
+- **Nuevo campo en el formulario de registro**: `UsuarioCreateDTO.captcha_token`,
+  obtenido por el frontend desde el widget Google reCAPTCHA v2.
+- **Validación en el caso de uso**: `CrearUsuarioUseCase` usa
+  `CaptchaVerifierPort` antes de cualquier operación de dominio o persistencia.
+- **Adaptador externo**: `GoogleRecaptchaAdapter` ejecuta `POST` contra
+  `https://www.google.com/recaptcha/api/siteverify`, con timeout y fallo cerrado.
+- **Errores diferenciados**: `400 CAPTCHA_INVALIDO` para un desafío rechazado y
+  `503 CAPTCHA_SERVICIO_NO_DISPONIBLE` para configuración, red o respuesta
+  inválida del proveedor.
+- **Configuración**: `RECAPTCHA_SECRET_KEY` está declarada en `.env.example` y
+  se propaga al contenedor del backend desde `docker-compose.yml`.
+- **Alcance del cambio**: solo modifica **RF-01** — no toca el login (RF-02),
+  la recuperación/restablecimiento de contraseña (RF-08/RF-09) ni ningún otro
+  requerimiento, porque el texto entregado no pide CAPTCHA en esos flujos.

@@ -48,8 +48,8 @@ Remove-Item Env:TEST_DATABASE_URL
 ## Cobertura integrada
 
 - RF-01: confirmacion de contrasena, identificacion numerica, correo de
-  activacion asincrono, registro, reenvio, hash del token, auditoria y
-  activacion.
+  activacion asincrono, CAPTCHA obligatorio antes de persistir, registro,
+  reenvio, hash del token, auditoria y activacion.
 - RF-02: login, JWT y sesion persistida con vigencia de ocho horas.
 - RF-01/08/09: recuperacion de cuenta activa, redireccion de cuenta pendiente
   hacia activacion, hash del token y restablecimiento de contrasena.

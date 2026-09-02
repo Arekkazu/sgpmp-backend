@@ -14,7 +14,9 @@ El resumen definitivo queda en `resumen.md` de esta misma carpeta.
 3. Envío del correo de activación fuera del request (los 3 reintentos con
    pausas de 5 s bloqueaban hasta ~15 s la respuesta al usuario).
 
-Fuera de alcance: CAPTCHA (único gap restante de RF-01 según `estado_M01.md`).
+Fuera del alcance histórico de este PR: CAPTCHA. Fue resuelto posteriormente
+en la implementación dedicada de la issue #1600; consultar
+`anotaciones/modulo_1/rf01_captcha_registro.md`.
 
 ---
 

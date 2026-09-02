@@ -52,6 +52,7 @@ class UsuarioCreateDTO(BaseDTO):
     contrasena: str
     confirmar_contrasena: str
     direccion: Optional[str] = None
+    captcha_token: str = Field(min_length=1, max_length=4096)
 
     @field_validator("contrasena")
     @classmethod

@@ -508,6 +508,9 @@ SMTP_PASSWORD=clave
 
 # Frontend (usado en links dentro de emails)
 FRONTEND_URL=http://localhost:3000
+
+# Google reCAPTCHA v2 (RF-01, validación del registro en backend)
+RECAPTCHA_SECRET_KEY=clave_secreta_del_sitio
 ```
 
 ---
