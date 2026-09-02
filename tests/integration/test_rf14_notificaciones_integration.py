@@ -148,6 +148,7 @@ def test_registro_y_activacion_usan_servicio_central_sin_guardar_token(
             "contrasena": "Segura1!",
             "confirmar_contrasena": "Segura1!",
             "direccion": "Dirección de prueba",
+            "captcha_token": "captcha-prueba-valido",
         },
     )
     assert respuesta.status_code == 201, respuesta.text

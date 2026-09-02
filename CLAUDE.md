@@ -21,6 +21,19 @@
 
 ---
 
+## Convención de commits (obligatoria en `dev`)
+
+`dev` corre un pipeline de versionamiento automatizado que lee el historial
+de commits para calcular versión, `CHANGELOG.md` y trazabilidad de RF/RFC/BUG.
+**Todo commit generado en este repo — incluido por una IA — debe seguir el
+formato de `CONTRIBUTING.md`** (`tipo(scope): descripción`, tipos
+`feat`/`fix`/`perf`/`refactor`/`docs`/`chore`/`test`/`build`/`ci`/`style`,
+referencia a RF/RNF/RFC/BUG en el subject cuando aplique). Un commit sin ese
+formato es válido para Git pero invisible para el pipeline — no bumpea
+versión y no queda en la trazabilidad, aunque el cambio sí sea real.
+
+---
+
 ## Stack
 
 | Componente   | Tecnología                        |
@@ -508,6 +521,9 @@ SMTP_PASSWORD=clave
 
 # Frontend (usado en links dentro de emails)
 FRONTEND_URL=http://localhost:3000
+
+# Google reCAPTCHA v2 (RF-01, validación del registro en backend)
+RECAPTCHA_SECRET_KEY=clave_secreta_del_sitio
 ```
 
 ---

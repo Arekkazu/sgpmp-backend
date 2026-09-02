@@ -157,8 +157,9 @@ público y el resto de endpoints tocados ya tenían sus permisos.
 
 ## Fuera de alcance
 
-- **CAPTCHA.** Único gap restante de RF-01 (`estado_M01.md`). El RF lo pide como
-  requisito no funcional de seguridad y como flujo alterno con `HTTP 400`.
+- **CAPTCHA.** Estuvo fuera del alcance histórico del PR #48 y fue resuelto
+  posteriormente por la implementación dedicada de la issue #1600. Ver
+  `anotaciones/modulo_1/rf01_captcha_registro.md`.
 - **Cola durable para el correo.** `BackgroundTasks` vive en el proceso de
   FastAPI: si el proceso se reinicia con tareas pendientes, esos correos se
   pierden. Sacarlo a una cola persistente es una mejora de infraestructura

@@ -40,6 +40,7 @@ def _registro(**cambios) -> dict:
         "contrasena": "Contrasena1!",
         "confirmar_contrasena": "Contrasena1!",
         "direccion": "Calle 1",
+        "captcha_token": "captcha-prueba-valido",
     }
     datos.update(cambios)
     return datos
@@ -53,6 +54,16 @@ def test_registro_exige_confirmacion_de_contrasena() -> None:
         UsuarioCreateDTO(**datos)
 
     assert error.value.errors()[0]["loc"] == ("confirmar_contrasena",)
+
+
+def test_registro_exige_token_captcha() -> None:
+    datos = _registro()
+    datos.pop("captcha_token")
+
+    with pytest.raises(PydanticValidationError) as error:
+        UsuarioCreateDTO(**datos)
+
+    assert error.value.errors()[0]["loc"] == ("captcha_token",)
 
 
 def test_registro_acepta_telefono_y_direccion_ausentes() -> None:
