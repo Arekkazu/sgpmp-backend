@@ -2,28 +2,23 @@
 
 Grilla 4×3 con máximo 12 widgets activos. El JSONB se estructura como
 ``{"grid": [...WidgetConfig...]}``. La columna de array ``active_widget``
-contiene los identificadores de widgets visibles.
+contiene las claves de los indicadores visibles.
+
+Los layouts predeterminados por rol ya no viven acá: están en
+``modulo9.dashboard_layouts_default``. Tenerlos quemados obligaba a nombrar
+``id_rol`` dentro del dominio y dejaba fuera a todo rol creado después del seed.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Optional
 
-from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import ConflictError, ValidationError
 
 _MAX_WIDGETS = 12
 _MAX_FILAS = 3
 _MAX_COLUMNAS = 4
-
-# Layouts predeterminados por id_rol (vacío hasta definir el catálogo de widgets)
-_DEFAULT_GRID_POR_ROL: dict[int, list[dict]] = {
-    1: [],
-    2: [],
-    3: [],
-    4: [],
-    5: [],
-}
 
 
 @dataclass
@@ -73,7 +68,7 @@ class DashboardLayout:
         grid: list[WidgetConfig],
         active_widget: list[str],
     ) -> DashboardLayout:
-        cls._validar_grid(grid)
+        cls._validar(grid, active_widget)
         return cls(
             id_usuario=id_usuario,
             grid=grid,
@@ -81,35 +76,37 @@ class DashboardLayout:
             fecha_actualizacion=datetime.now(timezone.utc),
         )
 
-    @classmethod
-    def default_para_rol(cls, id_usuario: int, id_rol: int) -> DashboardLayout:
-        grid_dicts = _DEFAULT_GRID_POR_ROL.get(id_rol, [])
-        grid = [WidgetConfig.from_dict(d) for d in grid_dicts]
-        return cls(
-            id_usuario=id_usuario,
-            grid=grid,
-            active_widget=[],
-            fecha_actualizacion=datetime.now(timezone.utc),
-        )
-
     def actualizar(self, *, grid: list[WidgetConfig], active_widget: list[str]) -> None:
-        self._validar_grid(grid)
+        self._validar(grid, active_widget)
         self.grid = grid
         self.active_widget = active_widget
         self.fecha_actualizacion = datetime.now(timezone.utc)
 
+    @classmethod
+    def _validar(cls, grid: list[WidgetConfig], active_widget: list[str]) -> None:
+        cls._validar_grid(grid)
+        cls._validar_active_widget(active_widget)
+
     @staticmethod
     def _validar_grid(grid: list[WidgetConfig]) -> None:
+        # Un widget oculto no cuenta para el límite ni ocupa celda: el propio RF
+        # ofrece "desactive un widget antes de agregar uno nuevo" como remedio,
+        # así que apagar uno tiene que liberar de verdad su lugar en la grilla.
         activos = [w for w in grid if w.visible]
+
         if len(activos) > _MAX_WIDGETS:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code="LIMITE_WIDGETS_ALCANZADO",
                 message=(
-                    f"El dashboard permite un máximo de {_MAX_WIDGETS} widgets activos simultáneamente. "
-                    "Por favor, desactive un widget antes de agregar uno nuevo."
+                    f"Límite de widgets alcanzado: El dashboard permite un máximo de "
+                    f"{_MAX_WIDGETS} elementos activos simultáneamente. Por favor, "
+                    "desactive un widget antes de agregar uno nuevo."
                 ),
+                field="layout_config",
             )
 
+        # Los rangos sí se validan sobre todo el grid, visible u oculto: un widget
+        # apagado con coordenadas basura vuelve a encenderse algún día.
         for w in grid:
             if w.posicion_fila < 1 or w.posicion_fila > _MAX_FILAS:
                 raise ValidationError(
@@ -133,26 +130,51 @@ class DashboardLayout:
                 raise ValidationError(
                     code="DESBORDE_HORIZONTAL",
                     message=(
-                        f"Un widget con span de {w.span_columnas} columnas no puede ubicarse "
-                        f"en la columna {w.posicion_columna} (desborde fuera de la grilla)."
+                        f"Error de dimensiones: Un widget con extensión de {w.span_columnas} "
+                        "columnas no puede ubicarse en la última columna "
+                        f"(columna {_MAX_COLUMNAS}) de la grilla."
                     ),
                     field="posicion_columna",
                 )
 
-        # Verificar solapamiento de celdas
+        # Solapamiento: una celda ocupada dos veces, ya sea directamente o porque
+        # cae dentro del rango de expansión de un widget de span 2.
         celdas_ocupadas: set[tuple[int, int]] = set()
-        for w in grid:
+        for w in activos:
             for col_offset in range(w.span_columnas):
                 celda = (w.posicion_fila, w.posicion_columna + col_offset)
                 if celda in celdas_ocupadas:
                     raise ConflictError(
                         code="SOLAPAMIENTO_WIDGETS",
                         message=(
-                            f"Conflicto de posición: la celda fila {celda[0]}, columna {celda[1]} "
-                            "ya está ocupada por otro widget."
+                            f"Conflicto de posición: La ubicación en la fila {celda[0]} y "
+                            f"columna {celda[1]} ya está ocupada por otro elemento o se "
+                            "encuentra dentro del rango de expansión de un widget adyacente."
                         ),
+                        field="layout_config",
                     )
                 celdas_ocupadas.add(celda)
+
+    @staticmethod
+    def _validar_active_widget(active_widget: list[str]) -> None:
+        # Sin este tope, el límite de 12 se burlaba entero: `layout_config: []`
+        # más un `active_widget` de 500 entradas pasaba sin objeción.
+        if len(active_widget) > _MAX_WIDGETS:
+            raise ValidationError(
+                code="LIMITE_WIDGETS_ALCANZADO",
+                message=(
+                    f"Límite de widgets alcanzado: El dashboard permite un máximo de "
+                    f"{_MAX_WIDGETS} elementos activos simultáneamente. Por favor, "
+                    "desactive un widget antes de agregar uno nuevo."
+                ),
+                field="active_widget",
+            )
+        if len(set(active_widget)) != len(active_widget):
+            raise ValidationError(
+                code="ACTIVE_WIDGET_DUPLICADO",
+                message="La lista de indicadores activos no puede repetir un mismo identificador.",
+                field="active_widget",
+            )
 
     def config_jsonb(self) -> dict:
         return {"grid": [w.to_dict() for w in self.grid]}
