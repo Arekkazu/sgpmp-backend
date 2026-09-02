@@ -1,0 +1,20 @@
+name: Deploy Migrations - dev
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "alembic/versions/**"
+  workflow_dispatch:
+
+concurrency:
+  group: alembic-migrate-dev
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    uses: ./.github/workflows/_migrate-template.yml
+    with:
+      environment_name: development
+    secrets: inherit
