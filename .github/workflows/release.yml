@@ -1,11 +1,19 @@
-name: Release a main
+name: Versionamiento automatizado
 
-# TODO(POC): "poc/docs-automation-setup" está temporalmente en la lista de
-# branches solo para poder validar este workflow sin publicar un release
-# real desde main. Quitarlo antes de promover esta plantilla a main.
+# Flujo confirmado con el líder de desarrollo: dev publica release
+# candidates (1.x.y-rc.N — ya arrancó a mano en v1.0.0-rc.1, este pipeline
+# continúa esa numeración con rc.2, rc.3...). Cuando Pruebas aprueba un rc,
+# se mergea dev -> main y ESE push computa la versión final estable
+# (1.x.y, sin sufijo) sobre el mismo conjunto de commits — patrón estándar
+# de "prerelease branch" de semantic-release, no hace falta un paso manual
+# aparte. La rama test (ambiente de Pruebas) no dispara release propio: el
+# rc ya generado en dev es lo que se despliega ahí para validar.
+#
+# Validado con una prueba aislada real en poc/docs-automation-setup (tag
+# poc-v1.0.0, borrado tras confirmar) antes de promover esta config.
 on:
   push:
-    branches: [main, poc/docs-automation-setup]
+    branches: [main, dev]
 
 permissions:
   contents: write
@@ -43,4 +51,4 @@ jobs:
         run: npx semantic-release
 
       - name: Confirmar publicación
-        run: echo "Release completado. Ver CHANGELOG.md y TRAZABILIDAD_CAMBIOS.md actualizados en este mismo commit."
+        run: echo "Versionamiento completado. Ver CHANGELOG.md y docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md actualizados en este mismo commit."

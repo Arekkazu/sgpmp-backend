@@ -82,7 +82,7 @@ function buildRow() {
 function ensureFile() {
   if (!fs.existsSync(FILE)) {
     fs.mkdirSync(path.dirname(FILE), { recursive: true });
-    const header = `# Trazabilidad de cambios a main\n\n` +
+    const header = `# Trazabilidad de cambios\n\n` +
       `Este archivo se genera automáticamente en cada release (ver ` +
       `\`scripts/append_trazabilidad.js\` y \`.releaserc.json\`). No editar a mano.\n\n` +
       `| Versión | Tag | Fecha | RF/RNF | RFC | Bugs | Commits incluidos |\n` +
