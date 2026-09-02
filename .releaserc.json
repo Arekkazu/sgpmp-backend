@@ -1,5 +1,7 @@
 {
-  "branches": ["main"],
+  "_POC_TEMPORAL": "branches/tagFormat aislados para validar el pipeline sin tocar main/dev ni colisionar con la numeracion real futura. @semantic-release/github tambien fue quitado temporalmente para no crear un Release publico de prueba. Revertir todo esto antes de promover a dev.",
+  "branches": ["poc/docs-automation-setup"],
+  "tagFormat": "poc-v${version}",
   "plugins": [
     ["@semantic-release/commit-analyzer", {
       "preset": "conventionalcommits",
@@ -23,8 +25,7 @@
     }],
     ["@semantic-release/git", {
       "assets": ["CHANGELOG.md", "docs/trazabilidad/TRAZABILIDAD_CAMBIOS.md"],
-      "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
-    }],
-    "@semantic-release/github"
+      "message": "chore(release): ${nextRelease.version} [skip ci] [POC]\n\n${nextRelease.notes}"
+    }]
   ]
 }
