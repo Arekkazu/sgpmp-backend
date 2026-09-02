@@ -53,7 +53,7 @@ class RegistrarEventoReproductivoUseCase:
         validar_fecha_evento(fecha, activo, self.evento_repo)
 
         # FA-04: validar categoría según tipo de activo
-        if activo.tipo == 'LOTE' and dto.categoria != 'nacimiento':
+        if activo.tipo == 'POBLACIONAL' and dto.categoria != 'nacimiento':
             raise BusinessRuleError(
                 code='EVENTO_NO_PERMITIDO_LOTE',
                 message='Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento.',
