@@ -62,14 +62,23 @@ def _headers_vet(crear_usuario_db, crear_auth_headers) -> dict:
     return crear_auth_headers(vet)
 
 
-def test_tipo_medicion_fuera_de_dominio_422(config_client, una_especie, crear_usuario_db, crear_auth_headers) -> None:
+def test_tipo_medicion_fuera_de_dominio_400(config_client, una_especie, crear_usuario_db, crear_auth_headers) -> None:
+    """Un valor fuera del enum lo rechaza Pydantic, no una regla de negocio.
+
+    Esperaba 422, pero `request_validation_error_handler` mapea todo
+    `RequestValidationError` a 400 `VAL_ENTRADA`. La prueba nunca lo detectó
+    porque la base de pruebas no tenía el esquema `modulo9` y jamás llegó a
+    ejecutarse. El 422 sí es correcto para la incoherencia unidad↔tipo de la
+    prueba de abajo, que es una regla de dominio y no un formato inválido.
+    """
     h = _headers_vet(crear_usuario_db, crear_auth_headers)
     r = config_client.post(
         "/configuracion/metricas",
         json={"id_especie": una_especie, "nombre": "Metrica Rf Test", "unidad_medida": "kg", "tipo_medicion": "BASURA"},
         headers=h,
     )
-    assert r.status_code == 422
+    assert r.status_code == 400
+    assert r.json()["error_code"] == "VAL_ENTRADA"
 
 
 def test_peso_con_unidad_volumen_incoherente_422(config_client, una_especie, crear_usuario_db, crear_auth_headers) -> None:

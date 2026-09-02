@@ -1,13 +1,40 @@
-# Pruebas de integracion del modulo 1
+# Pruebas de integracion
 
 Estas pruebas ejercitan los routers, casos de uso, repositorios SQLAlchemy y el
 esquema real de PostgreSQL. Cada prueba abre una transaccion exterior y convierte
 los `commit()` de la aplicacion en savepoints. Al finalizar hace rollback, por lo
 que no conserva usuarios, sesiones, eventos, permisos ni cambios DDL de pytest.
 
+## Provisionar la base de pruebas
+
+```bash
+./scripts/provisionar_pruebas.sh
+```
+
+Recrea la base de pruebas a partir del esquema de la base de desarrollo (todos
+los schemas de negocio, mas los catalogos de referencia) y la sella en head.
+
+**Hace falta porque `alembic upgrade head` no puede levantar una base desde
+cero.** El baseline `f7fe43537842` es un no-op deliberado: el esquema hasta ese
+punto se construyo a mano, modulo por modulo, con SQL suelto. Alembic solo
+aplica los deltas posteriores, asi que sobre una base vacia falla en cuanto
+intenta `ALTER` sobre una tabla que no existe. Por eso la base de pruebas vivio
+mucho tiempo con solo `modulo1` y sellada en el baseline, y la integracion de
+modulo 9 nunca llego a ejecutarse.
+
+Mientras el baseline siga siendo un no-op, la unica fuente fiel del esquema
+completo es la base de desarrollo. El script aborta si esa base no esta en head,
+porque en ese caso el sello mentiria.
+
+El script **borra y recrea** la base de destino, previo respaldo en `backups/`.
+Solo acepta nombres de base de pruebas (la misma lista que valida `conftest.py`).
+No copia datos transaccionales: los tests crean lo que necesitan y cada uno se
+revierte en su transaccion. Si lo corres con migraciones sin mergear en tu rama,
+la base queda sellada en una revision que `dev` desconoce.
+
 ## Requisitos
 
-- Una base PostgreSQL exclusiva para pruebas con el esquema `modulo1` cargado.
+- Una base PostgreSQL exclusiva para pruebas, provisionada con el script de arriba.
 - El nombre debe contener `test` o ser una base local permitida explícitamente:
   `pruebas` o `pruebas-integrador`.
 - La variable `TEST_DATABASE_URL` debe definirse solo en la terminal. No se debe
