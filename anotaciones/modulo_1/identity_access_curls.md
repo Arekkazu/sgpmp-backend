@@ -74,7 +74,8 @@ curl -s -X POST http://localhost:8000/usuarios/ \
     "genero": "M",
     "contrasena": "Contrasena1!",
     "confirmar_contrasena": "Contrasena1!",
-    "direccion": "Calle 123 # 45-67"
+    "direccion": "Calle 123 # 45-67",
+    "captcha_token": "<TOKEN_RECAPTCHA_V2_DEL_FRONTEND>"
   }' | jq
 ```
 
@@ -93,6 +94,10 @@ este endpoint no devuelve `503`.
 `numero_identificacion` depende del tipo: solo dígitos para `CC`/`CE`,
 alfanumérico para `Pasaporte`.
 
+`captcha_token` es obligatorio y lo genera el widget reCAPTCHA v2 del frontend.
+Google permite verificarlo una sola vez y durante aproximadamente dos minutos;
+por eso no se debe reutilizar un token de ejemplos anteriores.
+
 ```bash
 # Pasaporte: alfanumérico aceptado
 curl -s -X POST http://localhost:8000/usuarios/ \
@@ -108,7 +113,8 @@ curl -s -X POST http://localhost:8000/usuarios/ \
     "genero": "F",
     "contrasena": "Contrasena1!",
     "confirmar_contrasena": "Contrasena1!",
-    "direccion": "Calle 123 # 45-67"
+    "direccion": "Calle 123 # 45-67",
+    "captcha_token": "<TOKEN_RECAPTCHA_V2_DEL_FRONTEND>"
   }' | jq
 ```
 
@@ -120,8 +126,11 @@ Errores posibles:
 | 400 | `VAL_ENTRADA` | `contrasena` | Incumple la política de contraseñas |
 | 400 | `VAL_ENTRADA` | `numero_identificacion` | Formato inválido para el tipo declarado |
 | 400 | `VAL_ENTRADA` | `tipo_identificacion` | Tipo distinto de `CC`/`CE`/`Pasaporte` |
+| 400 | `VAL_ENTRADA` | `captcha_token` | El campo no fue enviado o está vacío |
+| 400 | `CAPTCHA_INVALIDO` | `captcha_token` | Google rechazó, expiró o ya consumió el desafío |
 | 403 | `EDAD_MINIMA_REQUERIDA` | `fecha_nacimiento` | Usuario menor de 18 años |
 | 409 | `UNICIDAD` | `correo_electronico` / `numero_identificacion` | Ya registrado |
+| 503 | `CAPTCHA_SERVICIO_NO_DISPONIBLE` | — | Clave no configurada, timeout, error de red o respuesta inválida de Google |
 
 ### Activar cuenta con token
 ```bash

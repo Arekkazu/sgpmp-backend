@@ -27,6 +27,7 @@ def _registro(numero: str, correo: str) -> dict:
         "contrasena": "Segura1!",
         "confirmar_contrasena": "Segura1!",
         "direccion": "Direccion Integracion",
+        "captcha_token": "captcha-prueba-valido",
     }
 
 
