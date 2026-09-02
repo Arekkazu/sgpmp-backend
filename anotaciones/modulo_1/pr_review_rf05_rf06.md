@@ -88,7 +88,9 @@ no deja residuos):
   a `ACTIVO` automáticamente. Un usuario no-admin fuera de `PENDIENTE_DATOS`
   que intenta enviar campos de identificación recibe `403
   SIN_PERMISO_CAMPOS_IDENTIFICACION`.
-- Cambio de rol por un admin invalida la sesión activa de la víctima.
+- **Superado por RF-04/06:** el cambio de rol conserva la sesión y el rol
+  vigente se consulta en base de datos en cada request. Ver
+  `rf04_rf06_cambio_rol_sin_relogin.md`.
 - Concurrencia optimista: versión desincronizada → `412`.
 - Correo duplicado → `409`.
 - Cambio de correo propio → cuenta pasa a `PENDIENTE`, se dispara el envío de

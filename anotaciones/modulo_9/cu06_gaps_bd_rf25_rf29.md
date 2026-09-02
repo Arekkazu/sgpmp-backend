@@ -76,7 +76,64 @@ Tabla de auditoría `modulo9.auditorias_visuales`:
 | active_widget      | ARRAY       | NO       | TEXT[] — **singular, no plural** |
 | fecha_actualizacion| timestamptz | YES      |                               |
 
-**Decisión**: El JSONB tiene clave `"grid"` con array de widgets. La columna es `config` (no `layout_config`) y el array es `active_widget` (no `active_widgets`). Múltiples registros por usuario posibles; la vista usa el más reciente.
+**Decisión**: El JSONB tiene clave `"grid"` con array de widgets. La columna es `config` (no `layout_config`) y el array es `active_widget` (no `active_widgets`).
+
+> **Actualización 2026-09-02 — migración `a7f3c92e4d18`.** El "múltiples registros por usuario
+> posibles" que decía esta nota era un gap, no una decisión: dos `PATCH` concurrentes de un usuario
+> sin fila previa insertaban dos filas y el repositorio desempataba por `fecha_actualizacion DESC`.
+> Ya está resuelto con `UNIQUE(id_usuario)`, previo dedup (no-op en dev: 0 duplicados). En la misma
+> migración se validó la FK `dashboard_layouts_id_usuario_fkey`, que estaba `NOT VALID` desde su
+> creación: nunca se había comprobado contra las filas existentes.
+
+---
+
+### `modulo9.widgets` (RF-28) — creada 2026-09-02
+
+Catálogo de widgets del dashboard. No existía; `config->grid[].id_widget` era un entero libre, sin
+nada contra qué validarlo, así que los flujos alternos de "tipo de widget inexistente" y "widget no
+disponible para su rol" eran inaplicables.
+
+| Columna             | Tipo          | Nullable | Nota                                             |
+|--------------------|---------------|----------|--------------------------------------------------|
+| id_widget          | integer (PK)  | NO       | Ids 1-15 fijos, los mismos que el frontend usaba  |
+| clave              | varchar(40)   | NO       | UNIQUE — es lo que viaja en `active_widget`       |
+| nombre             | varchar(80)   | NO       |                                                   |
+| grupo              | varchar(40)   | NO       | Ambiental / IoT / Alertas / Histórico / …         |
+| span_predeterminado| smallint      | NO       | CHECK IN (1,2)                                    |
+| id_recurso         | integer       | NO       | FK → `modulo1.recursos` — **gobierna el 403**     |
+| fuente_datos       | varchar(60)   | YES      | Vista `vw_rf28_widget_*`; NULL = sin fuente aún   |
+| es_activo          | boolean       | NO       | DEFAULT true                                      |
+
+**Decisión**: la autorización por widget se resuelve por `id_recurso`, no por rol. Un widget se ve si
+el rol tiene permiso `R` sobre su recurso en `modulo1.permisos`, así que cambiar una fila de permisos
+cambia qué ve cada rol sin tocar código y sin escribir ningún `id_rol` en el backend. Los ids y
+claves replican exactamente los que el frontend tenía quemados, para que los layouts ya guardados
+sigan resolviendo sin migración de datos.
+
+Mapeo widget → recurso: ambientales (1-5) → 33 `monitoreo_telemetria`; 6 → 35 `infraestructura_iot`;
+7 y 15 → 11 `dispositivos_iot`; 8-9 → 32 `alertas_operativas`; 10-11 → 34 `historial_telemetria`;
+12-13 → 19 `metricas_produccion`; 14 → 9 `fincas`.
+
+---
+
+### `modulo9.dashboard_layouts_default` (RF-28) — creada 2026-09-02
+
+Layout base por rol. Antes vivía en `_DEFAULT_GRID_POR_ROL`, un diccionario **vacío** quemado en la
+entidad de dominio con llaves 1-5: "Restaurar configuración predeterminada" era un no-op silencioso
+y los roles 6-9 ni figuraban.
+
+| Columna       | Tipo         | Nullable | Nota                                    |
+|--------------|--------------|----------|-----------------------------------------|
+| id_rol       | integer (PK) | NO       | FK → `modulo1.roles` ON DELETE CASCADE  |
+| config       | jsonb        | NO       | Mismo formato que `dashboard_layouts`   |
+| active_widget| ARRAY        | NO       | TEXT[]                                  |
+
+**Decisión**: una fila por cada uno de los 9 roles existentes. Regla del seed: **un default solo
+contiene widgets cuyo recurso ese rol lee de verdad**, verificado contra `modulo1.permisos`. Los
+roles 6-9 (Supervisor, Gestor de Granja, Revisor Fiscal, Externo AgroFusion) no tienen `R` sobre
+ningún recurso de widget, así que su grid base es vacío a propósito. Un rol creado *después* de esta
+migración no tendrá fila y `POST /restaurar` responderá `500 RESTAURACION_SIN_DEFAULT` — que es
+exactamente el flujo alterno que el RF define; la corrección operativa es insertarle su layout base.
 
 ---
 
@@ -133,3 +190,54 @@ INSERT INTO modulo1.recursos (nombre_recurso, descripcion, es_proceso_especial, 
 -- Permisos: ver texto completo de la sesión de implementación (2026-06-21)
 -- 40 permisos insertados, IDs 117–156
 ```
+
+
+---
+
+## RF-28 — DDL aplicado (2026-09-02)
+
+Todo por **migración Alembic `a7f3c92e4d18`** (`down_revision` `c4a19e7d2b63`), no por SQL suelto:
+el DDL manual vía MCP es lo que dejó a `sgpmp` y `pruebas` desincronizadas en otros cambios de este
+módulo, y solo lo que vive en `alembic/versions/` llega a las bases de dev y test por CI.
+
+```sql
+-- 1. Catálogo de widgets, con el recurso que gobierna cada uno
+CREATE TABLE modulo9.widgets (
+  id_widget            INTEGER PRIMARY KEY,
+  clave                VARCHAR(40)  NOT NULL UNIQUE,
+  nombre               VARCHAR(80)  NOT NULL,
+  grupo                VARCHAR(40)  NOT NULL,
+  span_predeterminado  SMALLINT     NOT NULL,
+  id_recurso           INTEGER      NOT NULL REFERENCES modulo1.recursos(id_recurso),
+  fuente_datos         VARCHAR(60),
+  es_activo            BOOLEAN      NOT NULL DEFAULT true,
+  CONSTRAINT widgets_span_predeterminado_check CHECK (span_predeterminado IN (1, 2))
+);
+-- + seed de los 15 widgets
+
+-- 2. Layout base por rol
+CREATE TABLE modulo9.dashboard_layouts_default (
+  id_rol        INTEGER PRIMARY KEY REFERENCES modulo1.roles(id_rol) ON DELETE CASCADE,
+  config        JSONB   NOT NULL,
+  active_widget TEXT[]  NOT NULL
+);
+-- + seed de 9 filas (una por rol)
+
+-- 3. Un layout por usuario (dedup previo, no-op en dev: 0 duplicados)
+DELETE FROM modulo9.dashboard_layouts a USING modulo9.dashboard_layouts b
+ WHERE a.id_usuario = b.id_usuario AND (... conserva la más reciente ...);
+ALTER TABLE modulo9.dashboard_layouts
+  ADD CONSTRAINT uq_dashboard_layouts_usuario UNIQUE (id_usuario);
+
+-- 4. La FK nunca se había comprobado
+ALTER TABLE modulo9.dashboard_layouts
+  VALIDATE CONSTRAINT dashboard_layouts_id_usuario_fkey;
+```
+
+**RBAC**: no hizo falta DML. El recurso 25 `dashboard_layout` y sus permisos `R`/`U` para los roles
+1-5 ya existían desde 2026-06-21. Los permisos por widget se leen de los recursos que ya gobiernan
+cada módulo (9, 11, 19, 32, 33, 34, 35), sin filas nuevas.
+
+**Verificación post-migración**: 15 filas en `widgets`, 9 en `dashboard_layouts_default`,
+`UNIQUE` presente, FK con `convalidated = true`, y 0 defaults referenciando un widget que su rol no
+pueda leer. `alembic downgrade -1` y `upgrade head` probados en dev.

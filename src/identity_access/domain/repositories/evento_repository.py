@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Optional
+from typing import Iterator, Optional
 
 from src.identity_access.domain.entities.evento import Evento
 from src.identity_access.domain.value_objects.evento_categoria import EventoCategoria
@@ -47,6 +47,54 @@ class EventoRepository(ABC):
             ``LEGADO`` si el registro ya no era verificable antes de adoptar la
             política y no ha cambiado desde entonces, o ``MANIPULADO`` si el
             contenido fue alterado.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def clasificar_conjunto(
+        self,
+        id_usuario: Optional[int],
+        tipo_evento: Optional[int],
+        fecha_desde: Optional[datetime],
+        fecha_hasta: Optional[datetime],
+        limite: int,
+        categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
+    ) -> dict[int, str]:
+        """Clasifica la integridad de todo el conjunto filtrado, sin materializarlo.
+
+        Primera de las dos pasadas de la exportación (RF-10). Recorre el conjunto
+        con un cursor de servidor y devuelve solo ``{id_evento: clasificacion}``,
+        que pesa órdenes de magnitud menos que las filas completas. Existe para
+        que el use case pueda decidir si aborta con 500 por un registro
+        ``MANIPULADO`` **antes** de que la respuesta empiece a transmitirse: una
+        vez enviadas las cabeceras del 200 ya no se puede convertir en error.
+
+        Args:
+            limite: Máximo de registros a considerar, igual que el de la exportación.
+
+        Returns:
+            Mapa de ``id_evento`` a ``INTEGRO`` | ``LEGADO`` | ``MANIPULADO``.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def iterar_eventos(
+        self,
+        id_usuario: Optional[int],
+        tipo_evento: Optional[int],
+        fecha_desde: Optional[datetime],
+        fecha_hasta: Optional[datetime],
+        limite: int,
+        categoria: Optional[EventoCategoria] = None,
+        archivados: bool = False,
+    ) -> Iterator[Evento]:
+        """Itera el conjunto filtrado con cursor de servidor, sin cargarlo entero.
+
+        Segunda pasada de la exportación: emite las entidades de a lotes para que
+        el CSV se transmita mientras se lee, en vez de construir el archivo
+        completo en memoria. La clasificación de integridad no viene aquí; se
+        obtiene antes con :meth:`clasificar_conjunto`.
         """
         raise NotImplementedError
 

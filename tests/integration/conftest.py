@@ -136,6 +136,9 @@ def integration_app() -> FastAPI:
     from src.identity_access.infrastructure.routers.notificaciones_routers import (
         router as notificaciones_router,
     )
+    from src.identity_access.infrastructure.routers.roles_routers import (
+        router as roles_router,
+    )
     from src.identity_access.infrastructure.routers.usuarios_routers import (
         router as usuarios_router,
     )
@@ -152,6 +155,7 @@ def integration_app() -> FastAPI:
     app.include_router(auditoria_router)
     app.include_router(sesiones_router)
     app.include_router(notificaciones_router)
+    app.include_router(roles_router)
     return app
 
 
@@ -166,6 +170,9 @@ def client(
     )
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
+    from src.identity_access.infrastructure.routers.usuarios_routers import (
+        get_captcha_verifier,
+    )
 
     monkeypatch.setattr(jwt_module, "_SECRET_KEY", JWT_SECRET_INTEGRACION)
     monkeypatch.setattr(jwt_module, "_EXPIRE_HOURS", 8)
@@ -181,7 +188,16 @@ def client(
             join_transaction_mode="create_savepoint",
         )
 
+    class CaptchaValidoStub:
+        """Evita llamadas a Google en pruebas que no evalúan CAPTCHA."""
+
+        def verificar(self, _token: str, _ip: str | None = None) -> bool:
+            return True
+
     integration_app.dependency_overrides[get_db] = override_get_db
+    integration_app.dependency_overrides[get_captcha_verifier] = (
+        lambda: CaptchaValidoStub()
+    )
     monkeypatch.setattr(
         correo_activacion_background_adapter,
         "SessionLocal",

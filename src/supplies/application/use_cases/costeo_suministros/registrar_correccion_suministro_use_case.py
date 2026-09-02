@@ -25,7 +25,14 @@ from psycopg2 import errors as pg_errors
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
+from src.shared.errors import (
+    AppError,
+    BusinessRuleError,
+    ConflictError,
+    InfrastructureError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
 from src.supplies.domain.entities.registro_suministro_directo import RegistroSuministroDirecto
 from src.supplies.domain.repositories.acumulado_ciclo_repository import AcumuladoCicloRepository
 from src.supplies.domain.repositories.auditoria_suministro_port import (
@@ -51,6 +58,10 @@ _BACKOFF_SEGUNDOS = (1, 3, 5)
 _ESCALA_CANTIDAD = Decimal("0.0001")
 _ESCALA_PRECIO = Decimal("0.01")
 _ERRORES_CONCURRENCIA = (pg_errors.LockNotAvailable, pg_errors.DeadlockDetected)
+# Errores transitorios de infraestructura que justifican reintentar. Desde
+# INC-M01-06-024 un fallo de conectividad sale como ServiceUnavailableError en
+# vez de InfrastructureError, así que el reintento tiene que cubrir ambos.
+_ERRORES_REINTENTABLES = (InfrastructureError, ServiceUnavailableError)
 
 
 class RegistrarCorreccionSuministroUseCase:
@@ -120,7 +131,7 @@ class RegistrarCorreccionSuministroUseCase:
         dto: RegistrarCorreccionSuministroDTO,
         usuario_actual: UsuarioActual,
     ) -> ResultadoRegistroDirecto:
-        ultimo_error: Optional[InfrastructureError] = None
+        ultimo_error: Optional[AppError] = None
         for intento in range(1, _MAX_REINTENTOS + 1):
             try:
                 acumulado = self.acumulado_repo.obtener_bloqueando(original.id_gestion_fases)
@@ -156,7 +167,7 @@ class RegistrarCorreccionSuministroUseCase:
                 )
                 self.db.commit()
                 return ResultadoRegistroDirecto(registro=guardado, ya_procesado=False)
-            except InfrastructureError as exc:
+            except _ERRORES_REINTENTABLES as exc:
                 self.db.rollback()
                 ultimo_error = exc
                 if intento < _MAX_REINTENTOS:
@@ -183,7 +194,7 @@ class RegistrarCorreccionSuministroUseCase:
         raise ultimo_error  # pragma: no cover — inalcanzable, el loop siempre retorna o lanza
 
     @staticmethod
-    def _es_conflicto_concurrencia(exc: InfrastructureError) -> bool:
+    def _es_conflicto_concurrencia(exc: AppError) -> bool:
         original = getattr(exc, "original_error", None)
         orig = getattr(original, "orig", None)
         return isinstance(orig, _ERRORES_CONCURRENCIA)

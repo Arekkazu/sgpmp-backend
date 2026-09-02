@@ -354,6 +354,61 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
             db.close()
 
 
+async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
+    """Poller RF-10: procesa las exportaciones de auditoría demasiado grandes
+    para resolverse dentro de la petición. Mismo patrón que los pollers de RF-77
+    y RF-81."""
+    from src.shared.database import SessionLocal
+    from src.identity_access.application.use_cases.auditoria.exportacion_async_use_cases import (
+        ProcesarColaExportacionesUseCase,
+    )
+    from src.identity_access.application.use_cases.auditoria.exportar_auditoria_use_case import (
+        ExportarAuditoriaUseCase,
+    )
+    from src.identity_access.infrastructure.repositories.evento_repository import (
+        SqlAlchemyEventoRepository,
+    )
+    from src.identity_access.infrastructure.repositories.exportacion_auditoria_repository import (
+        SqlAlchemyExportacionAuditoriaRepository,
+    )
+
+    while True:
+        db = SessionLocal()
+        try:
+            intervalo = (
+                SqlAlchemyExportacionAuditoriaRepository(db)
+                .obtener_configuracion()
+                .intervalo_poll_segundos
+            )
+        except Exception:
+            logger.exception(
+                "Poller de exportaciones de auditoría: no se pudo leer la configuración; se usan 15s."
+            )
+            intervalo = 15
+        finally:
+            db.close()
+
+        await asyncio.sleep(intervalo)
+
+        db = SessionLocal()
+        try:
+            cola_repo = SqlAlchemyExportacionAuditoriaRepository(db)
+            use_case = ProcesarColaExportacionesUseCase(
+                db=db,
+                cola_repo=cola_repo,
+                exportar_use_case=ExportarAuditoriaUseCase(
+                    eventos_repo=SqlAlchemyEventoRepository(db), db=db
+                ),
+            )
+            n = await asyncio.to_thread(use_case.ejecutar)
+            if n > 0:
+                logger.info("Poller de exportaciones de auditoría: %d completada(s).", n)
+        except Exception:
+            logger.exception("Error en el poller de exportaciones de auditoría.")
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     tasks = [
@@ -363,6 +418,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_archivar_auditoria_diariamente()),
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
+        asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
     ]
     yield
     for task in tasks:
@@ -398,6 +454,9 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
+    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan.
+    expose_headers=["Content-Disposition", "X-Total-Registros", "X-Registros-Exportados"],
 )
 
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni

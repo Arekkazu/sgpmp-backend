@@ -14,6 +14,21 @@ class DashboardLayoutRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_default_de_rol(self, id_usuario: int, id_rol: int) -> Optional[DashboardLayout]:
+        """Layout predeterminado del rol, o ``None`` si el rol no tiene uno definido."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def nombre_de_rol(self, id_rol: int) -> Optional[str]:
+        """Nombre legible del rol, para el mensaje de fallo de restauración."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def version_perfil(self, id_usuario: int) -> Optional[int]:
+        """Versión actual del perfil del usuario, para detectar edición concurrente."""
+        raise NotImplementedError
+
+    @abstractmethod
     def guardar(self, entidad: DashboardLayout) -> DashboardLayout:
         raise NotImplementedError
 

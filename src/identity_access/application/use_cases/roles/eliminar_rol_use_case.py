@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError
 
 TIPO_ELIMINACION_ROL = 13
 
@@ -37,7 +37,8 @@ class EliminarRolUseCase:
 
         Raises:
             NotFoundError: Si el rol no existe. HTTP 404.
-            BusinessRuleError: Si el rol es protegido o tiene usuarios asignados. HTTP 422.
+            AuthorizationError: Si el rol es protegido. HTTP 403.
+            BusinessRuleError: Si el rol tiene usuarios asignados. HTTP 422.
         """
         rol = self.roles_repo.obtener_por_id(id_rol)
         if rol is None:
@@ -47,11 +48,11 @@ class EliminarRolUseCase:
             )
 
         if rol.es_protegido:
-            raise BusinessRuleError(
+            raise AuthorizationError(
                 code="ROL_PROTEGIDO",
                 message=(
-                    "Acción denegada: El rol 'Administrador' es un objeto protegido por el sistema. "
-                    "No se permite su eliminación ni el cambio de su identificador base."
+                    "El rol 'Administrador' es un objeto protegido por el sistema. "
+                    "No se permite su eliminación ni cambio de identificador base."
                 ),
             )
 
@@ -60,8 +61,8 @@ class EliminarRolUseCase:
             raise BusinessRuleError(
                 code="ROL_EN_USO",
                 message=(
-                    f"No se puede eliminar el rol: Existen {n_usuarios} usuario(s) vinculado(s) a "
-                    f"'{rol.nombre_rol}'. Para proceder, debe reasignar estos usuarios a un rol diferente."
+                    f"No se puede eliminar el rol: existen {n_usuarios} usuarios vinculados a "
+                    f"'{rol.nombre_rol}'. Reasigne a estos usuarios primero."
                 ),
             )
 

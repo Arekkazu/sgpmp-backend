@@ -66,6 +66,7 @@ def _registro(**cambios) -> dict:
         "contrasena": "Segura1!",
         "confirmar_contrasena": "Segura1!",
         "direccion": "Dirección de prueba",
+        "captcha_token": "captcha-prueba-valido",
     }
     datos.update(cambios)
     return datos

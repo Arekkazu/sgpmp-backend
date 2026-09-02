@@ -25,7 +25,7 @@ TIPOS_POR_CATEGORIA = {
     # 25 = FALLO_ARCHIVADO_AUDITORIA (RF-10): el proceso de retención actúa sobre
     # el propio almacén de auditoría, así que se clasifica como MODIFICACION.
     EventoCategoria.MODIFICACION: (*range(9, 16), 25),
-    EventoCategoria.CONSULTA: tuple(range(16, 20)),
+    EventoCategoria.CONSULTA: (*range(16, 20), 26),
 }
 
 
@@ -97,7 +97,7 @@ def test_catalogo_cubre_todos_los_tipos_actuales_sin_duplicados() -> None:
         for tipo in tipos_categoria
     ]
 
-    assert sorted(tipos) == list(range(1, 26))
+    assert sorted(tipos) == list(range(1, 27))
     assert len(tipos) == len(set(tipos))
 
 

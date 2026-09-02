@@ -13,10 +13,10 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
-| RF-01 | Registro de usuarios | ⚠️ Cumple parcialmente | ~95% |
+| RF-01 | Registro de usuarios | ✅ Cumple | ~100% |
 | RF-02 | Autenticación de usuarios | ⚠️ Cumple parcialmente | ~85% |
 | RF-03 | Gestión de roles | ✅ Cumple | ~95% |
-| RF-04 | Gestión de permisos | ✅ Cumple (con salvedad) | ~90% |
+| RF-04 | Gestión de permisos | ✅ Cumple | ~100% |
 | RF-05 | Edición de datos de usuario | ⚠️ Cumple parcialmente | ~85% |
 | RF-06 | Gestión de cuentas de usuario | ⚠️ Cumple parcialmente | ~75% |
 | RF-07 | Cambio de contraseña | ✅ Cumple | ~100% |
@@ -34,7 +34,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-01 — Registro de usuarios
 
-**Veredicto: ⚠️ Cumple parcialmente (~95%)** — el flujo completo de registro y activación funciona; el gap restante es CAPTCHA.
+**Veredicto: ✅ Cumple (~100%)** — el flujo completo de registro y activación incluye la barrera CAPTCHA exigida por el RF.
 
 ### Qué SÍ cumple
 
@@ -51,10 +51,16 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Reenvío de token de activación** si el original expiró.
 - **Validación de mayoría de edad (18 años)**: si el usuario declara ser menor, el registro se rechaza con `403 Forbidden`, tal como pide el RF.
 - El formato del correo se valida tanto en el dominio como con un `CHECK` en la base de datos.
+- **CAPTCHA Google reCAPTCHA v2**: `captcha_token` es obligatorio y se verifica
+  contra `siteverify` antes de construir o persistir cualquier dato. Un desafío
+  rechazado responde `400 CAPTCHA_INVALIDO` con el mensaje del RF; una caída o
+  mala configuración del proveedor falla de forma cerrada con `503`, sin crear
+  usuario, cuenta, token ni evento.
 
 ### Qué NO cumple / gaps
 
-- **No hay CAPTCHA en absoluto.** El RF lo pide explícitamente como requisito no funcional de seguridad ("Implementar CAPTCHA — Google reCAPTCHA v2 o v3") y también como flujo alterno con `HTTP 400`. Hoy no existe ninguna referencia a CAPTCHA/reCAPTCHA en todo el código ni en las variables de entorno.
+- No quedan gaps identificados en el alcance actual de RF-01. El frontend debe
+  integrar el widget reCAPTCHA v2 y enviar su respuesta en `captcha_token`.
 
 ---
 
@@ -83,7 +89,9 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-03 — Gestión de roles
 
-**Veredicto: ✅ Cumple (~95%)** — implementación completa y más robusta de lo esperado.
+**Veredicto: ✅ Cumple (~95%)** — el incidente INC-M01-03-119, que impedía
+eliminar cualquier rol con permisos aun sin usuarios, fue corregido mediante
+la migración Alembic `c4a19e7d2b63` y cobertura de regresión.
 
 > **Corrección a `CLAUDE.md`:** el documento de arquitectura sugiere que los roles son un catálogo fijo (Administrador/Productor/Veterinario/Ingeniero/Contador, IDs 1-5) sin gestión dinámica. Esto **ya no es así**: existe un CRUD completo y en uso real — la tabla de roles en base de datos ya tiene 8 filas, 3 de ellas (Supervisor, Gestor de Granja, Revisor Fiscal) claramente creadas después del catálogo semilla original, lo que confirma que el endpoint de creación se usa en producción/desarrollo.
 
@@ -95,18 +103,20 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - **Todo rol debe tener al menos un permiso**: validado en tres capas distintas (al crear, al crear vía el stored procedure, y al intentar retirar el último permiso de un rol que ya existe — este último bloqueado por un trigger de base de datos).
 - **El rol Administrador está protegido**: no se puede eliminar ni cambiarle el nombre, reforzado tanto en la aplicación como con triggers de base de datos (doble capa de seguridad).
 - **No se puede eliminar un rol que tiene usuarios asignados**, también con doble capa (aplicación + trigger).
+- **La eliminación de un rol sin usuarios borra atómicamente sus permisos asociados** mediante `ON DELETE CASCADE`; la eliminación manual del último permiso continúa bloqueada.
 - Cada operación (crear, editar, eliminar rol) queda registrada en el historial de auditoría.
 
 ### Qué NO cumple / gaps
 
 - **No hay control de concurrencia optimista al editar un rol.** Si dos administradores editan el mismo rol al mismo tiempo, no hay ningún aviso — el último que guarda gana, sin el mecanismo de "412 Precondition Failed" que sí existe para editar usuarios.
-- **No hay invalidación explícita de sesión cuando se modifican los permisos de un rol.** En la práctica esto casi no importa porque cada request vuelve a consultar los permisos en vivo (ver RF-04), pero formalmente no hay un mecanismo de "forzar relogin" ante cambios de rol.
+- No se requiere invalidar sesiones al modificar permisos o reasignar un rol:
+  cada request consulta tanto el rol vigente del usuario como sus permisos activos.
 
 ---
 
 ## RF-04 — Gestión de permisos
 
-**Veredicto: ✅ Cumple, con una salvedad importante (~90%)**
+**Veredicto: ✅ Cumple (~100%)**
 
 > **Corrección a `CLAUDE.md`:** al igual que con los roles, sí existe una API administrativa completa para asignar y retirar permisos — no es solo edición manual en base de datos como sugiere el documento de arquitectura.
 
@@ -117,12 +127,13 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 - Se valida que el recurso y la acción existan antes de crear el permiso.
 - Los permisos `admin_*` están protegidos por triggers: solo pueden asignarse al rol Administrador y no pueden eliminarse.
 - **Validación en cada request sin caché**: `require_permission` (el mecanismo central de RBAC, en `src/shared/rbac.py`) consulta la tabla de permisos en cada petición HTTP, sin ningún tipo de caché — así que un cambio en los permisos de un rol se refleja de inmediato en el siguiente request de cualquier usuario con ese rol, tal como pide el RF ("sin requerir cierre de sesión").
+- **Reasignación de rol sin relogin**: `get_current_user` obtiene `usuarios.id_rol`
+  desde la base en cada request. El claim `rol` del JWT ya no decide la autorización,
+  por lo que el rol nuevo y la retirada de permisos anteriores se aplican de inmediato.
 
 ### Qué NO cumple / gaps
 
-- **Salvedad importante — reasignar el rol de un usuario específico SÍ requiere relogin, aunque cambiar los permisos de un rol NO.** El rol del usuario (`id_rol`) queda grabado dentro del JWT en el momento del login y nunca se vuelve a consultar contra la base de datos en peticiones posteriores. Esto significa:
-  - Si un admin agrega o quita un permiso a un rol → se aplica de inmediato a todos los usuarios de ese rol, sin relogin. **Esto sí cumple el RF.**
-  - Si un admin cambia el rol *de un usuario puntual* (por ejemplo, de Productor a Veterinario) → ese usuario sigue operando con los permisos de su rol anterior hasta que su token expire (hasta 24h, ver RF-02) o cierre sesión manualmente. **Esto no cumple la parte del RF que exige aplicar los cambios "sin requerir cierre de sesión" para este caso específico.**
+Ninguno detectado para la aplicación inmediata de roles y permisos.
 
 ---
 
@@ -365,14 +376,23 @@ Estos son problemas que no son exclusivos de un solo requerimiento — vale la p
 
 ---
 
-## Si se agrega la medida de seguridad de CAPTCHA
+## Implementación de la medida de seguridad CAPTCHA
 
 El CAPTCHA solo aparece mencionado explícitamente en **un** requerimiento: RF-01 (registro), tanto en su lista de requisitos no funcionales de seguridad como en su flujo alterno de "Fallo en la validación de seguridad (CAPTCHA)" con respuesta `400`. Ningún otro RF de los 14 (ni login, ni recuperación de contraseña, ni ningún otro flujo) lo menciona en el texto entregado.
 
-**Qué cambiaría si se implementa:**
+**Cambios implementados:**
 
-- **Nuevo campo en el formulario de registro**: el DTO de entrada (`UsuarioCreateDTO`) necesitaría un campo adicional, por ejemplo `captcha_token`, que el frontend obtendría del widget de Google reCAPTCHA y enviaría junto con el resto de los datos.
-- **Nueva validación en el use case de registro**: `CrearUsuarioUseCase` necesitaría verificar ese token contra la API de Google reCAPTCHA antes de continuar con el resto de las validaciones. Como es una llamada a un servicio externo, encajaría como un adaptador nuevo en `infrastructure/adapters/`, siguiendo el mismo patrón que ya usa el proyecto para dependencias externas (ver el patrón de "adaptador stub" documentado en `CLAUDE.md`).
-- **Nuevo error de dominio**: un `ValidationError` con código de negocio propio (por ejemplo `CAPTCHA_INVALIDO`), que se traduciría al `HTTP 400` que pide el RF.
-- **Nueva variable de entorno**: algo como `RECAPTCHA_SECRET_KEY`, que habría que sumar a `.env.example`.
-- **Alcance del cambio**: esto solo movería el estado de **RF-01** — no tocaría el login (RF-02), ni la recuperación/restablecimiento de contraseña (RF-08/RF-09), ni ningún otro requerimiento, porque el texto entregado no pide CAPTCHA en esos flujos. Es un cambio acotado y no afecta ninguna de las otras piezas evaluadas en este documento.
+- **Nuevo campo en el formulario de registro**: `UsuarioCreateDTO.captcha_token`,
+  obtenido por el frontend desde el widget Google reCAPTCHA v2.
+- **Validación en el caso de uso**: `CrearUsuarioUseCase` usa
+  `CaptchaVerifierPort` antes de cualquier operación de dominio o persistencia.
+- **Adaptador externo**: `GoogleRecaptchaAdapter` ejecuta `POST` contra
+  `https://www.google.com/recaptcha/api/siteverify`, con timeout y fallo cerrado.
+- **Errores diferenciados**: `400 CAPTCHA_INVALIDO` para un desafío rechazado y
+  `503 CAPTCHA_SERVICIO_NO_DISPONIBLE` para configuración, red o respuesta
+  inválida del proveedor.
+- **Configuración**: `RECAPTCHA_SECRET_KEY` está declarada en `.env.example` y
+  se propaga al contenedor del backend desde `docker-compose.yml`.
+- **Alcance del cambio**: solo modifica **RF-01** — no toca el login (RF-02),
+  la recuperación/restablecimiento de contraseña (RF-08/RF-09) ni ningún otro
+  requerimiento, porque el texto entregado no pide CAPTCHA en esos flujos.

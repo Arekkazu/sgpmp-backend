@@ -48,13 +48,15 @@ Remove-Item Env:TEST_DATABASE_URL
 ## Cobertura integrada
 
 - RF-01: confirmacion de contrasena, identificacion numerica, correo de
-  activacion asincrono, registro, reenvio, hash del token, auditoria y
-  activacion.
+  activacion asincrono, CAPTCHA obligatorio antes de persistir, registro,
+  reenvio, hash del token, auditoria y activacion.
 - RF-02: login, JWT y sesion persistida con vigencia de ocho horas.
 - RF-01/08/09: recuperacion de cuenta activa, redireccion de cuenta pendiente
   hacia activacion, hash del token y restablecimiento de contrasena.
 - RF-01: validacion de la migracion Alembic que protege nuevas identificaciones
   sin bloquear la edicion de otros campos en filas historicas incompatibles.
+- RF-04/06: cambio de rol aplicado con el JWT vigente, sin invalidar la sesion
+  ni exigir relogin.
 - RF-05/06: autorizacion RBAC en router, edicion del perfil propio y proteccion
   del ultimo usuario activo de un rol protegido.
 - RF-10: categoria canonica de eventos al consultar auditoria.
