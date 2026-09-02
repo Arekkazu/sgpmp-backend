@@ -680,42 +680,54 @@ sí solo.
 
 ## RF-28 — Personalización del dashboard
 
-**Veredicto: ⚠️ Cumple parcialmente (~65%)** — el guardado/consulta de layout funciona, pero
-no se encontró evidencia de que el backend valide las reglas de negocio específicas de la
-grilla que pide el RF (límite de 12 widgets, solapamiento de posiciones, span fuera de rango).
+**Veredicto: ✅ Cumple (~95%)** — actualizado el 2026-09-02 en
+`feature/rf28-validaciones-grilla-dashboard-mod9`.
+
+> **Corrección de esta auditoría.** La versión anterior de esta sección afirmaba que no había
+> validación del límite de 12 widgets, ni de solapamiento, ni de la regla del span en la columna 4,
+> y lo justificaba diciendo: *"El use case de guardado no fue leído línea por línea para confirmar
+> su ausencia total"*. **Las tres existían** desde el commit `d8980af` (2026-06-21), en
+> `src/configuration/domain/entities/dashboard_layout.py`. La conclusión se sacó de un `grep` que no
+> encontró los términos buscados, no de leer el código. Los gaps reales eran otros y están abajo.
 
 ### Qué SÍ cumple
 
-- `guardar_dashboard_use_case.py`, `obtener_dashboard_use_case.py`,
-  `restaurar_dashboard_use_case.py` cubren guardar, consultar y restaurar configuración por
-  defecto — los tres verbos que pide el RF.
-- Estructura de datos (`modulo9.dashboard_layouts.config` JSONB con clave `"grid"`,
-  `active_widget` como array) es compatible con el modelo de grilla 4×3 con posiciones que
-  describe el RF.
-- **RBAC exacto**: recurso `dashboard_layout` (id=25), todos los roles con `R`/`U` — coincide
-  con que los tres actores (Administrador, Ingeniero de Campo, Productor) puedan personalizar
-  su propio dashboard.
+- Los cinco endpoints del RF: obtener layout, guardar, restaurar predeterminado, catálogo de widgets
+  disponibles para el rol y datos de los widgets visibles.
+- **Los siete flujos alternos**, cada uno con el código HTTP y el mensaje literal que el RF define:
+  límite de 12 widgets (400), solapamiento incluyendo el rango de expansión de un span 2 (409),
+  desborde horizontal (400), widget fuera del alcance del rol (403), perfil modificado durante la
+  edición (409), restauración sin layout base del rol (500) y widget sin datos operativos.
+- **Catálogo en BD** (`modulo9.widgets`): cada widget declara el `id_recurso` cuyo permiso R lo
+  habilita, así que dos roles con el mismo permiso sobre el dashboard ven listas distintas. La
+  autorización sale de `modulo1.permisos` en cada request; ningún `id_rol` está escrito en el código.
+- **Layouts base por rol en BD** (`modulo9.dashboard_layouts_default`): una fila por cada uno de los
+  9 roles, conteniendo solo widgets que ese rol lee de verdad.
+- `UNIQUE(id_usuario)` en `dashboard_layouts` y la FK a `modulo1.usuarios` ya validada.
+- **RBAC exacto**: recurso `dashboard_layout` (id=25), todos los roles del seed con `R`/`U`.
 
-### Qué NO cumple / gaps
+### Qué gaps se cerraron (2026-09-02, migración `a7f3c92e4d18`)
 
-- **No se encontró evidencia de validación del límite de 12 widgets activos**, ni de
-  detección de solapamiento de posiciones en la grilla (`fila`/`columna` ya ocupada), ni de
-  la regla de "un widget con `span_columnas=2` no puede ir en la columna 4" — el RF describe
-  estas tres validaciones como flujos alternos explícitos con `400`/`409`. El use case de
-  guardado no fue leído línea por línea para confirmar su ausencia total, pero no apareció
-  ninguna referencia a estos términos (`span`, límite de 12, solapamiento de grilla) durante
-  la exploración del módulo — es la señal más fuerte de que esta validación vive del lado del
-  cliente, si es que existe en algún lugar.
-- **Sin `UNIQUE(id_usuario)`** en `modulo9.dashboard_layouts` — mismo patrón de gap que
-  RF-27/RF-29, la tabla permite múltiples filas por usuario sin constraint de DB.
-- El manejo de "widget sin datos disponibles → mostrar mensaje sin romper los demás" es,
-  otra vez, responsabilidad de renderizado en frontend; el backend solo necesita devolver el
-  layout guardado, lo cual sí hace.
-- La responsividad por tamaño de pantalla (escritorio/tableta/móvil) es 100% frontend y no
-  aplica a este módulo — se menciona aquí solo para dejar explícito que no es un gap de
-  backend.
+| Gap real | Estado anterior | Ahora |
+|---|---|---|
+| Código del límite de widgets | `BusinessRuleError` → **422** | `ValidationError` → **400**, como pide el FA |
+| Mensajes de los tres flujos | Redacción propia | Texto literal del RF |
+| `active_widget` | Sin ninguna validación: `layout_config: []` más 500 entradas pasaba | Tope de 12, sin duplicados, cruzado contra el catálogo |
+| `visible: false` | Seguía ocupando su celda → 409 espurio | Libera la celda, igual que para el límite |
+| Widget fuera del rol | No existía | 403 `WIDGET_NO_AUTORIZADO` |
+| Widget/indicador inexistente | No existía | 400 `WIDGET_INEXISTENTE` / `ACTIVE_WIDGET_INEXISTENTE` |
+| Perfil modificado al editar | No existía | 409 `CONFLICTO_PERFIL_MODIFICADO` vía `usuarios.version` |
+| `_DEFAULT_GRID_POR_ROL` | Diccionario vacío quemado en el dominio, llaves 1-5 | Tabla en BD, 9 roles; sin fila → 500 `RESTAURACION_SIN_DEFAULT` |
+| `UNIQUE(id_usuario)` | Ausente; el repo desempataba por fecha | Aplicado, con dedup previo |
+| `repositories/dashboard_layout_repository.actualizar` | `db.get()` sin guard → `AttributeError`/500 | 404 tipado |
+| Vistas `vw_rf28_widget_*` | Existían y nadie las consumía | Alimentan `GET /dashboard/datos` |
 
----
+### Qué queda pendiente
+
+- Telemetría real por sensor para los widgets ambientales e históricos (ids 1-5, 10-11): depende de
+  M03. Hoy responden `sin_datos: true`, que es exactamente el fallback que el RF prescribe.
+- La responsividad por tamaño de pantalla es 100% frontend; se resolvió en el repo del frontend, no
+  aplica a este módulo.
 
 ## RF-29 — Configuración de idioma
 

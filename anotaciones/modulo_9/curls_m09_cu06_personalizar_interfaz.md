@@ -227,9 +227,40 @@ Errores posibles:
 
 Todos los usuarios con permiso sobre `dashboard_layout` (`id_recurso=25`).
 
+El catálogo de widgets vive en `modulo9.widgets`. Cada widget declara el `id_recurso` cuyo permiso
+`R` lo habilita, así que dos roles con el mismo permiso sobre el dashboard ven catálogos distintos.
+
+### Catálogo de widgets disponibles para el rol
+
+```bash
+curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard/widgets \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+[
+  {"id_widget": 1, "clave": "temp_galpon", "nombre": "Temperatura Galpon",
+   "grupo": "Ambiental", "span_predeterminado": 1},
+  {"id_widget": 6, "clave": "estado_iot", "nombre": "Estado Dispositivos IoT",
+   "grupo": "IoT", "span_predeterminado": 2}
+]
+```
+
+Verificado en dev: el Productor (rol 2) recibe los ids `[1,2,3,4,5,6,7,8,9,10,11,14,15]` y el
+Veterinario (rol 3) `[1,2,3,4,5,6,8,9,10,11,12,13,14]` — el 12/13 (producción) solo para el
+veterinario, el 7/15 (dispositivos IoT) solo para el productor.
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `dashboard_layout`
+
+---
+
 ### Obtener layout actual (Flujo A)
 
-Si el usuario no tiene layout guardado, devuelve el predeterminado de su rol.
+Si el usuario no tiene layout guardado, devuelve el predeterminado de su rol
+(`modulo9.dashboard_layouts_default`); si su rol tampoco tiene uno, una grilla vacía.
 
 ```bash
 curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard \
@@ -248,13 +279,18 @@ Respuesta esperada `200`:
       "posicion_columna": 1,
       "span_columnas": 2,
       "visible": true,
-      "orden": 1
+      "orden": 0
     }
   ],
-  "active_widget": ["widget_produccion", "widget_alertas"],
-  "fecha_actualizacion": "2026-06-21T12:00:00Z"
+  "active_widget": ["temp_galpon", "alertas"],
+  "fecha_actualizacion": "2026-09-02T12:00:00Z",
+  "version_perfil": 3
 }
 ```
+
+`version_perfil` es la versión del perfil del usuario al momento de la lectura. Devolverla en el
+`PATCH` permite que el backend detecte que un administrador cambió el rol o la finca del usuario
+mientras editaba (FA-34).
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -264,7 +300,9 @@ Errores posibles:
 
 ### Guardar configuración del dashboard (Flujo B)
 
-Valida: máximo 12 widgets activos, sin solapamiento de celdas, sin desborde horizontal.
+Valida, en este orden y **antes de tocar la base**: perfil vigente, widget existente, widget
+permitido para el rol, indicador existente, máximo 12 widgets activos, coordenadas y span dentro de
+la grilla, y ausencia de solapamiento. Una configuración inválida no persiste nada parcial.
 
 ```bash
 curl -X PATCH http://localhost:8000/configuracion/personalizacion/dashboard \
@@ -273,36 +311,48 @@ curl -X PATCH http://localhost:8000/configuracion/personalizacion/dashboard \
   -d '{
     "layout_config": [
       {
-        "id_widget": 1,
+        "id_widget": 6,
         "posicion_fila": 1,
         "posicion_columna": 1,
         "span_columnas": 2,
         "visible": true,
-        "orden": 1
+        "orden": 0
       },
       {
-        "id_widget": 2,
+        "id_widget": 9,
         "posicion_fila": 1,
         "posicion_columna": 3,
         "span_columnas": 1,
         "visible": true,
-        "orden": 2
+        "orden": 1
       }
     ],
-    "active_widget": ["widget_produccion", "widget_alertas"]
+    "active_widget": ["estado_iot", "alertas_crit"],
+    "version_perfil": 3
   }'
 ```
 
 Respuesta esperada `200` con el layout guardado.
 
+`version_perfil` es opcional: si se omite, el chequeo de concurrencia no se aplica.
+Poner `visible: false` en un widget **libera su celda** — es la forma de "desactivar un widget antes
+de agregar uno nuevo" que sugiere el propio RF.
+
 Errores posibles:
 - `400` — `posicion_fila` fuera de rango 1–3 (FA-30)
 - `400` — `posicion_columna` fuera de rango 1–4 (FA-30)
 - `400` — `span_columnas` no es 1 o 2 (FA-30)
-- `400` — widget desborda la grilla horizontalmente (FA-30)
-- `403` — rol sin permiso U sobre `dashboard_layout`
-- `409` — dos widgets ocupan la misma celda (FA-31)
-- `422` — más de 12 widgets activos simultáneamente (FA-32)
+- `400` `DESBORDE_HORIZONTAL` — widget con span 2 en la columna 4 (FA-30)
+- `400` `LIMITE_WIDGETS_ALCANZADO` — más de 12 widgets activos, en `layout_config` o en
+  `active_widget` (FA-32)
+- `400` `ACTIVE_WIDGET_DUPLICADO` — `active_widget` repite un identificador
+- `400` `WIDGET_INEXISTENTE` — `id_widget` que no está en `modulo9.widgets`
+- `400` `ACTIVE_WIDGET_INEXISTENTE` — clave de `active_widget` fuera del catálogo
+- `403` `ACCESO_DENEGADO` — rol sin permiso U sobre `dashboard_layout`
+- `403` `WIDGET_NO_AUTORIZADO` — widget de un módulo que el rol no puede leer (FA-33)
+- `409` `SOLAPAMIENTO_WIDGETS` — dos widgets en la misma celda, o uno dentro del rango de
+  expansión de otro (FA-31)
+- `409` `CONFLICTO_PERFIL_MODIFICADO` — el perfil del usuario cambió durante la edición (FA-34)
 
 ---
 
@@ -313,10 +363,51 @@ curl -X POST http://localhost:8000/configuracion/personalizacion/dashboard/resta
   -H "Authorization: Bearer <TOKEN>"
 ```
 
-Respuesta esperada `200` con el layout predeterminado del rol del usuario.
+Respuesta esperada `200` con el layout base del rol. Verificado en dev para el rol 2:
+`grid` con los widgets `[1, 2, 8, 9, 14]` y `active_widget`
+`["temp_galpon","hum_galpon","alertas","alertas_crit","fincas_estado"]`.
 
 Errores posibles:
 - `403` — rol sin permiso U sobre `dashboard_layout`
+- `500` `RESTAURACION_SIN_DEFAULT` — el rol no tiene fila en
+  `modulo9.dashboard_layouts_default` (FA-35). Pasa con roles creados después de la migración
+  `a7f3c92e4d18`; se corrige insertando su layout base. **No se escribe nada**: la configuración
+  actual del usuario queda intacta.
+
+---
+
+### Datos de los widgets visibles
+
+```bash
+curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard/datos \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`, una entrada por widget visible, ordenada por `orden`:
+```json
+[
+  {
+    "id_widget": 6, "clave": "estado_iot", "nombre": "Estado Dispositivos IoT",
+    "posicion_fila": 1, "posicion_columna": 1, "span_columnas": 2, "orden": 0,
+    "sin_datos": false, "mensaje": null,
+    "datos": [{"serial": "IOT-001", "es_activo": true, "finca": "La Esperanza"}]
+  },
+  {
+    "id_widget": 1, "clave": "temp_galpon", "nombre": "Temperatura Galpon",
+    "posicion_fila": 2, "posicion_columna": 1, "span_columnas": 1, "orden": 1,
+    "sin_datos": true,
+    "mensaje": "Sin datos disponibles para el sensor o periodo seleccionado.",
+    "datos": []
+  }
+]
+```
+
+Un widget sin fuente configurada, o cuya fuente no devolvió filas, llega con `sin_datos: true` y
+**conserva su posición en la grilla** — no se omite ni afecta a los demás (FA-36).
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `dashboard_layout`
 
 ---
 
