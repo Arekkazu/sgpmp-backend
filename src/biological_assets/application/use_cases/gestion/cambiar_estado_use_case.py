@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -35,21 +36,21 @@ class CambiarEstadoUseCase:
             )
 
         id_estado_anterior = activo.id_estado
-        # cambiar_estado valida BAJA irreversible, estado redundante y matriz de transiciones
-        activo.cambiar_estado(dto.id_estado_nuevo)
-
         fecha = datetime.combine(dto.fecha_cambio_estado, datetime.min.time()).replace(tzinfo=timezone.utc)
 
         try:
-            # El INSERT dispara trg_sincronizar_estado_activo que actualiza activos_biologicos.id_estado
-            historico = self.historico_repo.registrar(
-                id_activo=id_activo,
-                id_estado_anterior=id_estado_anterior,
+            # aplicar_cambio_estado valida BAJA irreversible, estado redundante y matriz de
+            # transiciones, y registra el histórico (el INSERT dispara trg_sincronizar_estado_activo
+            # que actualiza activos_biologicos.id_estado). CambiarEstadoDTO ya excluye CERRADO/BAJA:
+            # esos estados solo se alcanzan vía CerrarCicloUseCase (RF-38) o RegistrarEventoBajaUseCase
+            # (RF-45), que aplican sus propias validaciones y efectos secundarios.
+            historico = aplicar_cambio_estado(
+                activo=activo,
                 id_estado_nuevo=dto.id_estado_nuevo,
                 fecha=fecha,
                 motivo=dto.motivo_cambio,
                 usuario_id=usuario.id_usuario,
-                modulo_origen='modulo2',
+                historico_repo=self.historico_repo,
             )
             self.db.commit()
         except Exception as exc:

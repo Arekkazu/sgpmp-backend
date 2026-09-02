@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoBaja, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -81,7 +82,6 @@ class RegistrarEventoBajaUseCase:
                     field='fecha_baja',
                 )
 
-        id_estado_anterior = activo.id_estado
         cantidad_evento: int
 
         if activo.tipo == 'INDIVIDUAL':
@@ -193,8 +193,6 @@ class RegistrarEventoBajaUseCase:
         motivo: str,
         usuario: UsuarioActual,
     ) -> None:
-        id_estado_anterior = activo.id_estado
-
         # Cerrar gestión de fase activa si existe (igual que cerrar_ciclo_use_case)
         fase_activa = self.activo_repo.obtener_fase_activa(id_activo)
         if fase_activa is not None:
@@ -203,12 +201,11 @@ class RegistrarEventoBajaUseCase:
             )
 
         # Registrar histórico de estado → trigger actualiza activos_biologicos.id_estado a BAJA
-        self.historico_repo.registrar(
-            id_activo=id_activo,
-            id_estado_anterior=id_estado_anterior,
+        aplicar_cambio_estado(
+            activo=activo,
             id_estado_nuevo=EstadoActivo.BAJA,
             fecha=fecha_dt,
             motivo=motivo,
             usuario_id=usuario.id_usuario,
-            modulo_origen='modulo2',
+            historico_repo=self.historico_repo,
         )
