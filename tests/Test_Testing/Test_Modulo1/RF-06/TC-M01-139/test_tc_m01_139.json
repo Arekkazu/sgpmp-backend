@@ -1,0 +1,379 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-139-eliminar-cuenta",
+    "name": "TC-M01-139 - Eliminar una cuenta y verificar su carácter irreversible",
+    "description": "Validar la transición ACTIVO → ELIMINADO y comprobar que una cuenta eliminada no puede ser reactivada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "idUsuario",
+      "value": "44"
+    },
+    {
+      "key": "correoObjetivo",
+      "value": "supervisor.dev@gmail.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Token de administrador obtenido\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Preparar cuenta en estado ACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Preparación TC-M01-139\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"La cuenta queda preparada para la prueba\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 422]);",
+              "});",
+              "",
+              "console.log(\"Respuesta preparación:\", pm.response.text());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Verificar estado ACTIVO antes de eliminar",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/detalle",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "detalle"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta del usuario exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Es la cuenta objetivo\", function () {",
+              "    pm.expect(response.id_usuario).to.eql(44);",
+              "    pm.expect(response.correo_electronico).to.eql(\"supervisor.dev@gmail.com\");",
+              "});",
+              "",
+              "pm.test(\"La cuenta está ACTIVA antes de eliminar\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Activo\");",
+              "});",
+              "",
+              "console.log(\"Estado anterior:\", response.estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Eliminar cuenta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"eliminar\",\n  \"motivo_accion\": \"Prueba TC-M01-139 - Eliminación irreversible\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta eliminación:\", response);",
+              "",
+              "pm.test(\"La cuenta fue eliminada correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta confirma la eliminación\", function () {",
+              "    pm.expect(response.message).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Verificar estado ELIMINADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/detalle",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "detalle"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta posterior exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La cuenta quedó ELIMINADA\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Eliminado\");",
+              "});",
+              "",
+              "console.log(\"Estado después de eliminar:\", response.estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Intentar reactivar cuenta eliminada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Intento de reactivación TC-M01-139\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta intento de reactivación:\", response);",
+              "",
+              "pm.test(\"La reactivación es rechazada\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});",
+              "",
+              "pm.test(\"El backend identifica una transición inválida\", function () {",
+              "    pm.expect(response.error_code).to.eql(\"TRANSICION_INVALIDA\");",
+              "});",
+              "",
+              "pm.test(\"El mensaje indica que ELIMINADO es irreversible\", function () {",
+              "    pm.expect(response.message).to.include(\"irreversible\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Confirmar que continúa ELIMINADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/detalle",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "detalle"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"La consulta final es exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La cuenta continúa ELIMINADA\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Eliminado\");",
+              "});",
+              "",
+              "console.log(\"Estado final:\", response.estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

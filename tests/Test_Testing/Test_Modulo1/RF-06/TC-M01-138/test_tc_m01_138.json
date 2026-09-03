@@ -1,0 +1,317 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-138-desbloquear-cuenta",
+    "name": "TC-M01-138 - Desbloquear una cuenta bloqueada",
+    "description": "Validar que un Administrador pueda activar una cuenta Bloqueada y comprobar la transición BLOQUEADO → ACTIVO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "idUsuario",
+      "value": "44"
+    },
+    {
+      "key": "correoObjetivo",
+      "value": "supervisor.dev@gmail.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del administrador\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Confirmar estado inicial BLOQUEADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/admin?correo={{correoObjetivo}}&pagina=1&tamano=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "admin"
+          ],
+          "query": [
+            {
+              "key": "correo",
+              "value": "{{correoObjetivo}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta administrativa exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Existe un único usuario objetivo\", function () {",
+              "    pm.expect(response.total).to.eql(1);",
+              "    pm.expect(response.items).to.have.lengthOf(1);",
+              "});",
+              "",
+              "pm.test(\"El correo corresponde al usuario objetivo\", function () {",
+              "    pm.expect(response.items[0].correo_electronico).to.eql(\"supervisor.dev@gmail.com\");",
+              "});",
+              "",
+              "pm.test(\"El estado inicial es Bloqueado\", function () {",
+              "    pm.expect(response.items[0].estado_cuenta).to.eql(\"Bloqueado\");",
+              "});",
+              "",
+              "console.log(\"Estado inicial:\", response.items[0].estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Consultar detalle del usuario objetivo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/detalle",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "detalle"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Detalle del usuario consultado correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El ID corresponde al usuario objetivo\", function () {",
+              "    pm.expect(response.id_usuario).to.eql(44);",
+              "});",
+              "",
+              "pm.test(\"El correo corresponde al usuario objetivo\", function () {",
+              "    pm.expect(response.correo_electronico).to.eql(\"supervisor.dev@gmail.com\");",
+              "});",
+              "",
+              "pm.test(\"El estado del detalle es Bloqueado\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Bloqueado\");",
+              "});",
+              "",
+              "console.log(\"Detalle objetivo:\", response);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Desbloquear cuenta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Prueba TC-M01-138\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta de activación:\", response);",
+              "",
+              "pm.test(\"La cuenta fue activada correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta confirma la activación\", function () {",
+              "    pm.expect(response.message).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Verificar transición BLOQUEADO → ACTIVO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/admin?correo={{correoObjetivo}}&pagina=1&tamano=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "admin"
+          ],
+          "query": [
+            {
+              "key": "correo",
+              "value": "{{correoObjetivo}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Estado final:\", response.items && response.items[0]);",
+              "",
+              "pm.test(\"Consulta posterior exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Existe un único usuario objetivo\", function () {",
+              "    pm.expect(response.total).to.eql(1);",
+              "    pm.expect(response.items).to.have.lengthOf(1);",
+              "});",
+              "",
+              "pm.test(\"La cuenta quedó Activa\", function () {",
+              "    pm.expect(response.items[0].estado_cuenta).to.eql(\"Activo\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,343 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-137-bloquear-cuenta",
+    "name": "TC-M01-137 - Bloquear una cuenta de usuario activa",
+    "description": "Validar que un Administrador pueda bloquear una cuenta activa y que la sesión asociada quede invalidada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenUsuario",
+      "value": ""
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "idUsuario",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como usuario objetivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"supervisor.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Usuario objetivo inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del usuario objetivo\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenUsuario\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar perfil y obtener ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta del perfil exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El correo corresponde al usuario objetivo\", function () {",
+              "    pm.expect(response.correo_electronico).to.eql(\"supervisor.dev@gmail.com\");",
+              "});",
+              "",
+              "pm.test(\"Se obtuvo el ID del usuario\", function () {",
+              "    pm.expect(response.id_usuario).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"idUsuario\", response.id_usuario);",
+              "",
+              "console.log(\"ID usuario objetivo:\", response.id_usuario);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del administrador\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Bloquear cuenta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"bloquear\",\n  \"motivo_accion\": \"Prueba TC-M01-137\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta bloqueo:\", response);",
+              "",
+              "pm.test(\"La cuenta fue bloqueada correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta confirma la operación\", function () {",
+              "    pm.expect(response.message).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Verificar estado BLOQUEADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/admin?correo=supervisor.dev@gmail.com&pagina=1&tamano=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "admin"
+          ],
+          "query": [
+            {
+              "key": "correo",
+              "value": "supervisor.dev@gmail.com"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta administrativa exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Existe exactamente un usuario objetivo\", function () {",
+              "    pm.expect(response.total).to.eql(1);",
+              "    pm.expect(response.items).to.have.lengthOf(1);",
+              "});",
+              "",
+              "pm.test(\"La cuenta quedó Bloqueada\", function () {",
+              "    pm.expect(response.items[0].estado_cuenta).to.eql(\"Bloqueado\");",
+              "});",
+              "",
+              "console.log(\"Estado final:\", response.items[0].estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Verificar invalidación de sesión",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"La sesión del usuario bloqueado no permite acceso\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "pm.test(\"La sesión queda invalidada\", function () {",
+              "    pm.expect(response.error_code).to.be.oneOf([\"CUENTA_BLOQUEADA\", \"TOKEN_INVALIDO\", \"TOKEN_REVOCADO\"]);",
+              "});",
+              "",
+              "console.log(\"Respuesta de sesión invalidada:\", response);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

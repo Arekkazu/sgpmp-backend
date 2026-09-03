@@ -10,6 +10,9 @@ on:
         required: false
         type: string
         default: "3.11"
+    secrets:
+      database_url:
+        required: true
 
 jobs:
   migrate:
@@ -33,10 +36,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # alembic heads no requiere conexión a la BD: solo lee el grafo de
-      # revisiones en alembic/versions/. Si hay más de un head, significa
-      # que dos ramas agregaron migraciones en paralelo sin pasar por
-      # 'alembic merge heads' antes del merge a dev/test.
       - name: Verificar que existe una única head
         run: |
           HEADS=$(alembic heads | wc -l)
@@ -48,26 +47,22 @@ jobs:
 
       - name: Estado actual de la base de datos
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.database_url }}
         run: |
           echo "Revisión actual en la base de datos:"
           alembic current
           echo "Head del repositorio:"
           alembic heads
 
-      # Aplica todas las revisiones pendientes. Si la BD ya está en head,
-      # no ejecuta nada (idempotente por diseño de Alembic vía alembic_version).
       - name: Ejecutar alembic upgrade head
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.database_url }}
         run: alembic upgrade head
 
-      # Se ejecuta siempre (incluso si el upgrade falló) para dejar en el
-      # log en qué revisión quedó la BD y facilitar el diagnóstico.
       - name: Confirmar versión final aplicada
         if: always()
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.database_url }}
         run: alembic current
 
       - name: Reportar fallo

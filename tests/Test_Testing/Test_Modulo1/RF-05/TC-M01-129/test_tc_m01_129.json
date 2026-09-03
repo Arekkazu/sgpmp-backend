@@ -1,0 +1,290 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-129-editar-perfil-propio",
+    "name": "SGPMP - TC-M01-129 - Editar perfil propio",
+    "description": "Caso de prueba para verificar que un usuario autenticado pueda editar su propio perfil.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "telefonoPrueba",
+      "value": "3001234567"
+    },
+    {
+      "key": "direccionPrueba",
+      "value": "Direccion temporal de prueba TC-M01-129"
+    },
+    {
+      "key": "versionAnterior",
+      "value": ""
+    },
+    {
+      "key": "versionPosterior",
+      "value": ""
+    },
+    {
+      "key": "nombreOriginal",
+      "value": ""
+    },
+    {
+      "key": "apellidosOriginal",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"correo_electronico\": \"admin@pecuaria.co\",\n    \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "pm.test(\"Token obtenido\", function () {",
+              "    pm.expect(json.token).to.exist;",
+              "    pm.expect(json.token).to.be.a(\"string\");",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"token\", json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar perfil actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Perfil consultado\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "console.log(\"Respuesta perfil:\", json);",
+              "",
+              "pm.test(\"Nombre disponible\", function () {",
+              "    pm.expect(json.nombre).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Apellidos disponibles\", function () {",
+              "    pm.expect(json.apellidos).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Version disponible\", function () {",
+              "    pm.expect(json.version).to.exist;",
+              "    pm.expect(json.version).to.be.a(\"number\");",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"versionAnterior\", json.version);",
+              "pm.collectionVariables.set(\"nombreOriginal\", json.nombre);",
+              "pm.collectionVariables.set(\"apellidosOriginal\", json.apellidos);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Editar telefono y direccion propios",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"nombre\": \"{{nombreOriginal}}\",\n    \"apellidos\": \"{{apellidosOriginal}}\",\n    \"telefono\": \"{{telefonoPrueba}}\",\n    \"direccion\": \"{{direccionPrueba}}\",\n    \"version\": {{versionAnterior}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let json = {};",
+              "",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (error) {",
+              "    console.log(\"La respuesta no contiene JSON valido\");",
+              "}",
+              "",
+              "console.log(\"Respuesta del backend:\", json);",
+              "",
+              "pm.test(\"Edicion exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "",
+              "    pm.test(\"Telefono actualizado correctamente\", function () {",
+              "        pm.expect(json.telefono).to.eql(",
+              "            pm.collectionVariables.get(\"telefonoPrueba\")",
+              "        );",
+              "    });",
+              "",
+              "    pm.test(\"Direccion actualizada correctamente\", function () {",
+              "        pm.expect(json.direccion).to.eql(",
+              "            pm.collectionVariables.get(\"direccionPrueba\")",
+              "        );",
+              "    });",
+              "",
+              "    pm.test(\"Version disponible despues de editar\", function () {",
+              "        pm.expect(json.version).to.exist;",
+              "        pm.expect(json.version).to.be.a(\"number\");",
+              "    });",
+              "",
+              "    pm.collectionVariables.set(\"versionPosterior\", json.version);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Verificar consulta posterior",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Consulta posterior exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "",
+              "console.log(\"Respuesta GET posterior:\", json);",
+              "",
+              "pm.test(\"Perfil conserva el nombre correcto\", function () {",
+              "    pm.expect(json.nombre).to.eql(",
+              "        pm.collectionVariables.get(\"nombreOriginal\")",
+              "    );",
+              "});",
+              "",
+              "pm.test(\"Perfil conserva los apellidos correctos\", function () {",
+              "    pm.expect(json.apellidos).to.eql(",
+              "        pm.collectionVariables.get(\"apellidosOriginal\")",
+              "    );",
+              "});",
+              "",
+              "pm.test(\"Version disponible en consulta posterior\", function () {",
+              "    pm.expect(json.version).to.exist;",
+              "    pm.expect(json.version).to.be.a(\"number\");",
+              "});",
+              "",
+              "const versionPosterior = pm.collectionVariables.get(\"versionPosterior\");",
+              "",
+              "pm.test(\"Version consistente con la respuesta de edicion\", function () {",
+              "    pm.expect(",
+              "        versionPosterior,",
+              "        \"La version posterior no fue guardada porque la edicion fallo\"",
+              "    ).to.exist;",
+              "",
+              "    pm.expect(json.version).to.eql(Number(versionPosterior));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
