@@ -1,8 +1,5 @@
 name: Deploy Migrations - test
 
-# Se dispara cuando el equipo mergea la promoción dev -> test. Si la rama
-# test tiene protección que impide push directo, este trigger equivale
-# exactamente a "se completó el PR de promoción hacia test".
 on:
   push:
     branches:
@@ -20,4 +17,5 @@ jobs:
     uses: ./.github/workflows/_migrate-template.yml
     with:
       environment_name: test
-    secrets: inherit
+    secrets:
+      database_url: ${{ secrets.TEST_DATABASE_URL }}
