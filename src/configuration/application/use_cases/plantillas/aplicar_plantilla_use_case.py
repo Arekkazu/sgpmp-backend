@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.aplicacion_plantilla import AplicacionPlantilla
+from src.configuration.domain.esquema_plantilla import es_compatible, versiones_compatibles
 from src.configuration.domain.repositories.aplicacion_plantilla_repository import AplicacionPlantillaRepository
 from src.configuration.domain.repositories.ciclo_biologico_repository import CicloBiologicoRepository
 from src.configuration.domain.repositories.especie_patologia_repository import EspeciePatologiaRepository
@@ -21,8 +22,6 @@ from src.configuration.domain.repositories.umbral_ambiental_repository import Um
 from src.configuration.infrastructure.dto.aplicar_plantilla_dto import AplicarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
-
-_SCHEMA_VERSION_ACTUAL = 1
 
 
 class AplicarPlantillaUseCase:
@@ -59,12 +58,14 @@ class AplicarPlantillaUseCase:
             )
 
         schema_version = plantilla.params_snapshot.get('schema_version', 0)
-        if schema_version != _SCHEMA_VERSION_ACTUAL:
+        if not es_compatible(schema_version):
             raise PreconditionFailedError(
                 code="VERSION_SNAPSHOT_INCOMPATIBLE",
                 message=(
-                    f"El snapshot de la plantilla usa schema_version={schema_version}, "
-                    f"pero el sistema requiere schema_version={_SCHEMA_VERSION_ACTUAL}."
+                    f"Incompatibilidad estructural: la plantilla '{plantilla.template_name}' "
+                    f"(versión {plantilla.version}) usa schema_version={schema_version} y el "
+                    f"sistema solo puede aplicar {list(versiones_compatibles())}. "
+                    "Es necesario recrear la plantilla con el formato actual."
                 ),
             )
 

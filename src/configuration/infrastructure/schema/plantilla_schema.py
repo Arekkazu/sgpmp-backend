@@ -47,3 +47,21 @@ class HistorialAplicacionesResponse(BaseModel):
 
     total: int
     items: list[AplicacionPlantillaResponse]
+
+
+class VersionEsquemaResponse(BaseModel):
+    """Una entrada del changelog del esquema de `params_snapshot` (RF-30)."""
+
+    version: int
+    fecha: str
+    compatible_con: list[int]
+    cambios: list[str]
+
+
+class EsquemaPlantillaResponse(BaseModel):
+    """Esquema vigente del `params_snapshot` y su changelog de versiones (RF-30)."""
+
+    schema_version_actual: int
+    categorias: list[str]
+    campos_requeridos: dict[str, list[str]]
+    changelog: list[VersionEsquemaResponse]

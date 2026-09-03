@@ -33,7 +33,7 @@ Respuesta esperada `200`:
         "ciclos_biologicos": [...],
         "metricas_produccion": [...],
         "umbrales_ambientales": [...],
-        "patologias": [5, 12]
+        "patologias": [{"nombre": "Estreptococosis"}]
       }
     }
   ]
@@ -97,6 +97,56 @@ Errores posibles:
 
 ---
 
+## RF-30 — Esquema vigente y changelog de versiones (Flujo F)
+
+### GET /configuracion/plantillas/esquema
+
+Publica el esquema al que debe ajustarse `params_snapshot` y el changelog de
+versiones que exige el RNF de mantenibilidad del RF-30. El frontend lo usa para
+saber qué categorías y campos enviar; RF-32 usa `compatible_con` para decidir si
+una plantilla antigua todavía se puede aplicar.
+
+```bash
+curl -X GET http://localhost:8000/configuracion/plantillas/esquema \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "schema_version_actual": 1,
+  "categorias": [
+    "ciclos_biologicos",
+    "patologias",
+    "metricas_produccion",
+    "umbrales_ambientales"
+  ],
+  "campos_requeridos": {
+    "ciclos_biologicos": ["nombre", "duracion_dias"],
+    "patologias": ["nombre"],
+    "metricas_produccion": ["nombre", "unidad_medida", "tipo_medicion", "aplica_a_tipo_activo"],
+    "umbrales_ambientales": ["id_variable_ambiental", "unidad_medida", "valor_min", "valor_max"]
+  },
+  "changelog": [
+    {
+      "version": 1,
+      "fecha": "2026-06-21",
+      "compatible_con": [1],
+      "cambios": [
+        "Versión inicial del esquema de params_snapshot.",
+        "..."
+      ]
+    }
+  ]
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre recurso 28 (FA-05)
+
+---
+
 ## RF-31 — Crear plantilla de configuración (Flujo B)
 
 ### POST /configuracion/plantillas
@@ -137,7 +187,10 @@ curl -X POST http://localhost:8000/configuracion/plantillas \
           ]
         }
       ],
-      "patologias": [5, 12]
+      "patologias": [
+        {"nombre": "Estreptococosis", "descripcion": "Infección bacteriana"},
+        {"nombre": "Saprolegniasis"}
+      ]
     }
   }'
 ```
@@ -156,7 +209,7 @@ Respuesta esperada `201`:
     "ciclos_biologicos": [...],
     "metricas_produccion": [...],
     "umbrales_ambientales": [...],
-    "patologias": [5, 12]
+    "patologias": [...]
   }
 }
 ```
@@ -164,7 +217,11 @@ Respuesta esperada `201`:
 Errores posibles:
 - `400` — template_name fuera del rango 3-50 chars (FA-07)
 - `400` — params_snapshot con claves fuera de alcance (FA-09)
-- `400` — params_snapshot sin ningún elemento en ninguna categoría (FA-10)
+- `400` — params_snapshot sin ningún elemento en ninguna categoría (FA-10),
+  mensaje `Plantilla vacía: debe seleccionar al menos un parámetro (...)`
+- `400` — un ítem sin sus campos obligatorios; el mensaje nombra la categoría,
+  la posición y los campos que faltan, p. ej.
+  `ciclos_biologicos[0]: faltan los campos ['duracion_dias'].` (FA-09 del RF-31)
 - `401` — token ausente o inválido
 - `403` — rol sin permiso C sobre recurso 28 (FA-05)
 - `404` — especie origen no existe
@@ -199,13 +256,13 @@ Respuesta esperada `200`:
     "ciclos_biologicos": [...],
     "metricas_produccion": [...],
     "umbrales_ambientales": [...],
-    "patologias": [7]
+    "patologias": [{"nombre": "Ictioftiriasis", "es_activo": true}]
   },
   "after_snapshot": {
     "ciclos_biologicos": [...],
     "metricas_produccion": [...],
     "umbrales_ambientales": [...],
-    "patologias": [5, 12]
+    "patologias": [{"nombre": "Estreptococosis", "es_activo": true}]
   },
   "fecha_aplicacion": "2026-06-21T11:30:00Z"
 }

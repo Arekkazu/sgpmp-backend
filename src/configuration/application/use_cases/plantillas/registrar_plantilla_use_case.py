@@ -10,14 +10,13 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.plantilla import Plantilla
+from src.configuration.domain.esquema_plantilla import SCHEMA_VERSION_ACTUAL
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, NotFoundError
-
-_SCHEMA_VERSION_ACTUAL = 1
 
 
 class RegistrarPlantillaUseCase:
@@ -50,7 +49,7 @@ class RegistrarPlantillaUseCase:
             )
 
         snapshot = dict(dto.params_snapshot)
-        snapshot['schema_version'] = _SCHEMA_VERSION_ACTUAL
+        snapshot['schema_version'] = SCHEMA_VERSION_ACTUAL
 
         version_max = self.plantilla_repo.obtener_version_maxima(dto.template_name)
         version = (version_max or 0) + 1

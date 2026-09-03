@@ -5,6 +5,7 @@
   C) GET  /configuracion/plantillas/{id}        — Detalle de plantilla (RF-30)
   D) POST /configuracion/plantillas/{id}/aplicar — Aplicar plantilla (RF-32)
   E) GET  /configuracion/plantillas/historial   — Historial de aplicaciones (RF-30)
+  F) GET  /configuracion/plantillas/esquema     — Esquema vigente + changelog (RF-30)
 
   Autorización RBAC: recurso = id_recurso 28
     C=1 (crear), R=2 (leer), E=5 (aplicar)
@@ -17,6 +18,12 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.plantillas.aplicar_plantilla_use_case import AplicarPlantillaUseCase
 from src.configuration.application.use_cases.plantillas.consultar_plantillas_use_case import ConsultarPlantillasUseCase
 from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import RegistrarPlantillaUseCase
+from src.configuration.domain.esquema_plantilla import (
+    CAMPOS_REQUERIDOS,
+    CATEGORIAS,
+    CHANGELOG,
+    SCHEMA_VERSION_ACTUAL,
+)
 from src.configuration.infrastructure.dto.aplicar_plantilla_dto import AplicarPlantillaDTO
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
 from src.configuration.infrastructure.repositories.aplicacion_plantilla_repository import SqlAlchemyAplicacionPlantillaRepository
@@ -29,6 +36,7 @@ from src.configuration.infrastructure.repositories.plantilla_repository import S
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
 from src.configuration.infrastructure.schema.plantilla_schema import (
     AplicacionPlantillaResponse,
+    EsquemaPlantillaResponse,
     HistorialAplicacionesResponse,
     PlantillaResponse,
     PlantillasListResponse,
@@ -63,6 +71,41 @@ def listar_historial(
     )
     items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial()]
     return HistorialAplicacionesResponse(total=len(items), items=items)
+
+
+@router.get(
+    "/esquema",
+    response_model=EsquemaPlantillaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Esquema vigente de params_snapshot y changelog de versiones (Flujo F — RF-30)",
+)
+def consultar_esquema() -> EsquemaPlantillaResponse:
+    """Expone el esquema del snapshot y su historial de versiones.
+
+    El RNF de mantenibilidad del RF-30 pide que cada actualización del esquema
+    quede documentada con su número de versión; este endpoint es el punto de
+    consulta de esa documentación, para que el cliente sepa qué forma debe
+    tener el snapshot que envía y qué versiones antiguas siguen siendo
+    aplicables.
+    """
+    return EsquemaPlantillaResponse(
+        schema_version_actual=SCHEMA_VERSION_ACTUAL,
+        categorias=list(CATEGORIAS),
+        campos_requeridos={k: list(v) for k, v in CAMPOS_REQUERIDOS.items()},
+        changelog=[
+            {
+                "version": e["version"],
+                "fecha": e["fecha"],
+                "compatible_con": list(e["compatible_con"]),
+                "cambios": list(e["cambios"]),
+            }
+            for e in CHANGELOG
+        ],
+    )
 
 
 @router.get(
