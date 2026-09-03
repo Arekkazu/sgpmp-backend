@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -65,6 +66,7 @@ from src.identity_access.infrastructure.routers.roles_routers import router as r
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
+from src.shared import almacen_logos
 from src.shared.error_handlers import register_error_handlers
 from src.shared.middlewares import RequestContextMiddleware
 
@@ -462,6 +464,17 @@ app.add_middleware(
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
+
+# RF-26: los logotipos institucionales se escriben en `uploads/logos` (ver
+# `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
+# devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
+# `check_dir=False` porque el directorio solo aparece con el primer logotipo
+# subido; exigirlo al arrancar tumbaría un despliegue limpio.
+app.mount(
+    almacen_logos.RUTA_PUBLICA_BASE,
+    StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+    name="uploads",
+)
 
 register_error_handlers(app)
 
