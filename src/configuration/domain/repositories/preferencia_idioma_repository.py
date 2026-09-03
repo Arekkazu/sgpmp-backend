@@ -18,6 +18,11 @@ class PreferenciaIdiomaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def version_perfil(self, id_usuario: int) -> Optional[int]:
+        """Versión actual del perfil del usuario, para la comprobación de concurrencia."""
+        raise NotImplementedError
+
+    @abstractmethod
     def guardar(self, entidad: PreferenciaIdioma) -> PreferenciaIdioma:
         raise NotImplementedError
 
