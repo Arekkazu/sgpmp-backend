@@ -40,7 +40,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
 | RF-28 | Personalización del dashboard | ⚠️ Cumple parcialmente | ~65% |
-| RF-29 | Configuración de idioma | ⚠️ Cumple parcialmente | ~50% |
+| RF-29 | Configuración de idioma | ✅ Cumple | ~90% |
 | RF-30 | Plantillas de configuración | ✅ Cumple | ~90% |
 | RF-31 | Creación de plantilla de configuración | ✅ Cumple | ~90% |
 | RF-32 | Aplicación de plantilla de configuración | ⚠️ Cumple parcialmente | ~80% |
@@ -52,7 +52,8 @@ en casi todos los agregados. Los gaps más serios no son de "código faltante" s
 **reglas de negocio que existen pero están gateadas por un adaptador stub que siempre
 responde "sin dependencias"** (afecta RF-15, RF-16, RF-19, RF-20), de **integraciones
 externas nunca conectadas** (MQTT real para RF-23 — resuelto 2026-08-20, ver su sección —,
-motor de traducción para RF-29), y de un **posible bug de concurrencia en RF-32** que compara
+motor de traducción para RF-29 — resuelto 2026-09-03, ver su sección), y de un **posible bug
+de concurrencia en RF-32** que compara
 el campo equivocado.
 
 ---
@@ -731,46 +732,58 @@ sí solo.
 
 ## RF-29 — Configuración de idioma
 
-**Veredicto: ⚠️ Cumple parcialmente (~50%)** — el almacenamiento y la resolución jerárquica
-de la preferencia de idioma están completos, pero el RF trata fundamentalmente de traducir la
-interfaz, y esa mitad — el motor de i18n en sí — no existe en ninguna parte del repositorio.
+**Veredicto: ✅ Cumple (~90%)** — actualizado el 2026-09-03. La auditoría original marcaba
+~50% por dos motivos, uno correcto y otro no. Ambos quedan resueltos.
+
+### Corrección a la auditoría original
+
+El bullet que afirmaba *"No hay validación de `locale_code` contra una lista blanca"* era
+**falso**: `domain/entities/preferencia_idioma.py:13,60-70` define `LOCALES_PERMITIDOS =
+{"es-CO", "en-US"}` y lanza `ValidationError` (400) `IDIOMA_NO_DISPONIBLE` desde
+`crear_personal`, `crear_global` y `actualizar` — los tres caminos de escritura. La frase
+*"un cliente podría enviar cualquier string como locale y quedaría persistido sin rechazo"*
+nunca fue cierta por la vía HTTP. Lo que sí faltaba de ese bullet era la mitad de base de
+datos, y el texto literal del mensaje que el RF define palabra por palabra.
+
+**El gap real, que la auditoría no vio, estaba en el frontend**: `IdiomaSection.tsx` enviaba
+`'es'` / `'en'` mientras el dominio solo acepta `'es-CO'` / `'en-US'`, así que **todo**
+guardado de idioma respondía 400 y ninguna tarjeta se marcaba como seleccionada al cargar.
+El selector de idioma estaba roto de punta a punta.
 
 ### Qué SÍ cumple
 
 - `guardar_idioma_personal_use_case.py`, `guardar_idioma_global_use_case.py`,
-  `obtener_idioma_resuelto_use_case.py` — misma estructura de tres niveles que RF-27
-  (personal → global → español por defecto), consistente con lo que pide el RF.
+  `obtener_idioma_resuelto_use_case.py`, `obtener_idioma_global_use_case.py` — resolución
+  de tres niveles (personal → global → `es-CO`), consistente con lo que pide el RF.
 - **RBAC de dos niveles, exacto**: recurso `preferencia_idioma` (id=26) todos los roles
   `R`/`U`; recurso `configuracion_ui_global` (id=27, compartido con RF-27) solo Administrador
-  `R`/`U` — coincide con "Solo el Administrador del sistema puede definir el idioma
-  predeterminado global".
-- Persistencia en base de datos (no en sesión), cumpliendo la misma restricción de
-  persistencia entre sesiones que RF-27.
+  `R`/`U`.
+- **Los cuatro flujos alternos de backend**, todos con el mensaje literal del RF:
+  400 `IDIOMA_NO_DISPONIBLE`, 403 propio del idioma global (vía el parámetro
+  `mensaje_denegado` de `require_permission`, sin quemar ningún `id_rol`),
+  409 `CONFLICTO_PERFIL_MODIFICADO` (reutiliza el mecanismo `version_perfil` de RF-28 sobre
+  `modulo1.usuarios.version`) y 500 `ERROR_PERSISTENCIA_IDIOMA`.
+- **Invariantes en base de datos** (migración `b5d1e0c93a77`): `CHECK` de lista blanca sobre
+  `locale_code`, índice único parcial de una preferencia personal por usuario, índice único
+  de una sola fila global, y la FK `id_usuario` validada (estaba `NOT VALID`).
+- **Motor de i18n real**, en el frontend: `i18next` + `react-i18next` con catálogos
+  `es-CO`/`en-US`, `fallbackLng: 'es-CO'` y aviso en consola de DEV por clave faltante — el
+  FA de "ausencia de traducción" del RF. El cambio se aplica sin recargar la sesión.
+- Persistencia en base de datos (no en sesión), y `localStorage` en el cliente para que el
+  idioma correcto ya esté aplicado antes de que resuelva la API (incluido el login).
+- 27 pruebas de backend (`tests/configuration/test_rf29_*.py`), antes cero.
 
 ### Qué NO cumple / gaps
 
-- **No existe ningún motor de traducción/i18n en todo el repositorio.** `src/shared/` no
-  tiene ningún archivo de catálogo de mensajes, cargador de traducciones, ni middleware
-  relacionado — se verificó explícitamente listando el contenido completo de `src/shared/`.
-  Todo lo que existe hoy es una tabla que guarda un `locale_code` (string tipo `"es"`/`"en"`)
-  por usuario. El RF, sin embargo, exige que "menús de navegación, etiquetas de formularios,
-  mensajes del sistema, paneles informativos, mensajes de error y confirmación, títulos de
-  módulos" se traduzcan — nada de eso ocurre a nivel de backend (los mensajes de error de
-  todo el proyecto, incluidos los de este mismo módulo, están hardcodeados en español). Este
-  es, en magnitud, un gap de alcance comparable al de CAPTCHA ausente en RF-01 de Módulo 1:
-  la parte de "guardar la preferencia" está resuelta, pero la funcionalidad central del RF
-  (que la interfaz efectivamente cambie de idioma) no.
-- **No hay validación de `locale_code` contra una lista blanca de idiomas soportados.** El RF
-  restringe explícitamente a español e inglés (`es-CO`/`en-US`) y pide rechazar cualquier
-  otro valor con `400`. No se encontró ningún `CHECK` constraint en
-  `modulo9.preferencias_idiomas.locale_code` ni validación de dominio cerrado en el value
-  object correspondiente — un cliente podría enviar cualquier string como locale y quedaría
-  persistido sin rechazo.
-- Mismo gap de `UNIQUE(id_usuario)` ausente que RF-27/RF-28.
-- Si se decide implementar el motor de i18n real, el cambio no se limita a este RF: impacta
-  transversalmente todos los mensajes de error/éxito de **todos** los módulos del backend
-  (hoy hardcodeados en español vía `src/shared/errors.py` y cada use case), lo cual excede
-  por mucho el alcance de "Módulo 9 — Configuración" tal como está delimitado hoy.
+- **La traducción del frontend no cubre aún todos los módulos.** El motor está montado y los
+  catálogos son la única pieza que hay que ampliar: agregar una pantalla es agregar claves,
+  no cambiar estructura, que es justamente el criterio de mantenibilidad que el RF exige.
+  Las claves sin traducir caen a español, comportamiento que el propio RF prescribe.
+- **El backend no traduce sus mensajes.** Es una decisión de diseño, no un descuido: cada
+  respuesta de error viaja con un `error_code` estable, y el frontend lo traduce contra su
+  catálogo cayendo al `message` en español del backend cuando el código no está catalogado.
+  Eso implementa la regla de fallback del RF sin duplicar los strings de los 9 módulos ni
+  añadir un middleware de locale al backend.
 
 ---
 
@@ -915,20 +928,21 @@ propósito real.
    en `src/configuration/` ni en ningún otro módulo del backend. *(Afecta RF-15, RF-16; en
    menor medida RF-21 vía su flujo alterno de "conflicto de sincronización offline".)*
 
-3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia.**
-   *(Resuelto para RF-23 el 2026-08-20 — ver su sección arriba. Sigue afectando a RF-29.)*
-   El motor de traducción/i18n (RF-29) es la pieza central del RF que representa, y no existe.
-   A diferencia de los stubs del punto 1 (donde el flujo alrededor sí está completo), este gap
-   deja el RF estructuralmente incompleto en su propósito principal.
+3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia —
+   RESUELTO.** MQTT real para RF-23 el 2026-08-20; motor de i18n para RF-29 el 2026-09-03
+   (`i18next` en el frontend, con los mensajes del backend traducidos por `error_code`). Ya
+   no queda ninguna integración externa pendiente en el módulo. *(Afectaba RF-23 y RF-29.)*
 
-4. **Sin constraint `UNIQUE` de "una fila por usuario/finca" en cuatro tablas.**
-   `modulo9.temas_visuales`, `modulo9.dashboard_layouts` y `modulo9.preferencias_idiomas` no
-   tienen `UNIQUE(id_usuario)` (para el caso personal); `modulo9.identidad_visuales` no tiene
-   `UNIQUE(id_finca)`. En los cuatro casos el sistema resuelve "cuál es la fila vigente" leyendo
+4. **Sin constraint `UNIQUE` de "una fila por usuario/finca" — parcialmente resuelto.**
+   `dashboard_layouts` se cerró con la migración `a7f3c92e4d18` (2026-09-02) y
+   `preferencias_idiomas` con `b5d1e0c93a77` (2026-09-03, índices únicos parciales para la
+   preferencia personal y para la fila global). **Siguen pendientes** `modulo9.temas_visuales`
+   (`UNIQUE(id_usuario)`) y `modulo9.identidad_visuales` (`UNIQUE(id_finca)`). En los cuatro casos el sistema resuelve "cuál es la fila vigente" leyendo
    la más reciente por timestamp/versión desde la aplicación (vistas SQL o lógica de use case),
    sin una segunda capa de defensa en la base de datos como sí existe en la mayoría de los
    demás agregados del módulo (especies, fincas, plantillas, etc. sí tienen sus invariantes
-   reforzadas por constraints o triggers). *(Afecta RF-26, RF-27, RF-28, RF-29.)*
+   reforzadas por constraints o triggers). *(Afecta RF-26 y RF-27; resuelto para RF-28 y
+   RF-29.)*
 
 5. **RBAC más permisivo que el texto de cada RF — RESUELTO (2026-08-22, issue #1634).** El
    patrón recurrente afectaba a RF-15 (Veterinario con `U` sobre especies), RF-19 y RF-20
@@ -969,22 +983,28 @@ propósito real.
 
 ---
 
-## Si se implementa el motor de i18n real (RF-29)
+## El motor de i18n de RF-29 — cómo se resolvió (2026-09-03)
 
-RF-29 es, de los 18 RFs auditados, el que tiene la brecha más grande entre "lo que el texto
-pide" y "lo que existe" — comparable en naturaleza al gap de CAPTCHA de RF-01 en Módulo 1,
-aunque de mayor alcance técnico. Vale la pena dimensionar qué cambiaría si se decide cerrarlo:
+La versión anterior de esta sección dimensionaba el trabajo asumiendo que el motor tenía que
+vivir en el backend, con un middleware en `src/shared/` que tradujera cada respuesta antes de
+enviarla y catálogos de mensajes duplicados en los 9 módulos. **No se hizo así, y el motivo
+vale la pena dejarlo escrito** porque aplica a cualquier RF futuro con la misma forma:
 
-- **No es un cambio local a `src/configuration/`.** Los mensajes de error de todo el backend
-  (`src/shared/errors.py`, y cada `raise ValidationError(...)`/`BusinessRuleError(...)` de
-  cada use case, en los 9 módulos del proyecto) están hardcodeados en español. Un motor de
-  i18n real requeriría externalizar esos strings a catálogos de mensajes (`es.json`/`en.json`
-  o equivalente) y resolverlos según el `locale_code` que ya guarda `preferencia_idioma`.
-- **El backend ya tiene la pieza de "saber qué idioma prefiere el usuario"** resuelta
-  (RF-29 actual) — lo que falta es el mecanismo de traducción en sí, que podría vivir como un
-  middleware en `src/shared/` que intercepte la respuesta de error/éxito y la traduzca antes
-  de enviarla, usando el `locale_code` resuelto vía `obtener_idioma_resuelto_use_case.py`.
-- **Alcance del cambio**: a diferencia del ejemplo de CAPTCHA en Módulo 1 (que solo afectaba
-  RF-01), aquí el cambio toca la totalidad de la superficie de mensajes del sistema — es un
-  proyecto transversal de infraestructura, no una función aislada de Módulo 9, aunque el
-  requerimiento que lo origina esté catalogado ahí.
+- **El backend no traduce nada, y no le hace falta.** Cada respuesta de error ya viaja con un
+  `error_code` estable (`src/shared/error_handlers.py`, clave `error_code` del cuerpo). El
+  frontend traduce por ese código contra su propio catálogo y, cuando el código no está
+  catalogado, renderiza el `message` en español que mandó el backend. Eso *es* la regla de
+  fallback que el RF pide, sin middleware, sin dependencia nueva en el backend y sin
+  externalizar los strings de los 9 módulos.
+- **El motor vive en el frontend**, que es donde está la superficie que el RF describe: menús
+  de navegación, etiquetas de formularios, paneles, títulos de módulos. `i18next` +
+  `react-i18next`, un namespace por módulo, `fallbackLng: 'es-CO'` y `missingKeyHandler` que
+  avisa en consola de DEV.
+- **Lo que quedó abierto es rellenar catálogos, no arquitectura.** Traducir una pantalla más
+  es agregar claves a dos JSON. El RF exige exactamente eso como criterio de mantenibilidad:
+  *"la incorporación de futuros idiomas no requiere cambios estructurales en el código base,
+  limitándose a la adición de nuevos archivos de traducción"*.
+
+El backend sí conserva su mitad del requerimiento: guardar y resolver la preferencia
+(personal → global → `es-CO`), la lista blanca `es-CO`/`en-US` con sus invariantes en base de
+datos, y los cuatro flujos alternos con el texto literal del RF.
