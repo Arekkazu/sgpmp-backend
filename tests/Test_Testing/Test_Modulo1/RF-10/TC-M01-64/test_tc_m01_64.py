@@ -5,319 +5,173 @@ TC-M01-064 - Detectar un registro de auditoría cuyo hash no coincida
 RF-10 / CU07 - Consultar Historial y Auditoría
 Nivel de prueba: Backend / Base de datos (Pytest, conexión directa a BD).
 
-Objetivo:
-1. Generar un evento real de auditoría mediante login de Administrador.
-2. Consultar directamente en la BD el evento generado.
-3. Guardar su hash_integridad original.
-4. Alterar temporalmente el hash_integridad por otro valor hexadecimal
-   de 64 caracteres diferente al original.
-5. Consultar el historial de auditoría mediante la API.
-6. Verificar que el registro:
-   - sigue existiendo;
-   - no fue eliminado ni ocultado;
-   - es marcado como comprometido mediante integridad_ok = false.
-7. Restaurar el hash original incluso si la prueba falla.
+CORREGIDO respecto a la version anterior de este archivo (dos problemas
+de fondo que le habrian impedido pasar):
 
-IMPORTANTE:
-Esta prueba modifica temporalmente información en la base de datos TEST.
-El hash original se restaura en un bloque finally.
+1. La version anterior hacia UPDATE sobre un evento YA EXISTENTE para
+   alterar su hash. Se confirmo que modulo1.eventos tiene un trigger
+   (trg_proteger_auditoria_update) que bloquea CUALQUIER UPDATE, sin
+   excepcion -- ni con privilegios de administrador, ni por SQL directo.
+   Es el mismo mecanismo que ya valida TC-M01-065/066 (auditoria
+   inmutable). Ese UPDATE simplemente fallaria con
+   "IMMUTABLE_RECORD: Los registros de auditoria no pueden ser
+   modificados ni eliminados".
+
+   La forma correcta -- y la que el propio codigo ya anticipa, ver el
+   docstring de crear_evento_db() en tests/integration/conftest.py -- es
+   INSERTAR un evento NUEVO con un hash_integridad que no corresponda a
+   su contenido. El trigger de inmutabilidad NO bloquea INSERT, solo
+   UPDATE/DELETE.
+
+2. La version anterior esperaba HTTP 200 con un campo `integridad_ok:
+   false` en el item afectado. Revisando consultar_auditoria_use_case.py
+   (lineas 126-140): si CUALQUIER item de la pagina resulta clasificado
+   "MANIPULADO", el use case lanza InfrastructureError ANTES de devolver
+   la respuesta -- es decir, toda la consulta responde HTTP 500 con
+   error_code INTEGRIDAD_AUDITORIA_VIOLADA, no un 200 con un item
+   marcado. Esto coincide exactamente con el flujo alterno de RF-10
+   ("Fallo de integridad del registro (Hash Mismatch)... HTTP 500").
+
+ADVERTENCIA: este script inserta un registro de auditoria PERMANENTE en
+la tabla compartida del entorno TEST (no se puede borrar despues, por el
+mismo trigger de inmutabilidad -- es intencional, la auditoria es
+append-only). El registro queda claramente etiquetado como prueba de QA
+en nombre_usuario/detalle para que cualquiera que lo vea despues sepa
+que fue intencional.
 
 Requisitos:
-pip install pytest psycopg2-binary requests --break-system-packages
+    pip install pytest psycopg2-binary requests
 
-Variables de entorno esperadas:
-DB_USER
-DB_PASSWORD
+Como correrlo:
+    pytest test_tc_m01_64.py -v \
+        --html=reporte-TC-M01-064.html --self-contained-html
 
-Opcionales:
-ADMIN_EMAIL
-ADMIN_PASSWORD
-DB_HOST
-DB_PORT
-DB_NAME
+Variables de entorno opcionales (si no se definen, usa las credenciales
+QA de solo consulta ya conocidas del entorno TEST):
+    BASE_URL, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME,
+    ADMIN_EMAIL, ADMIN_PASSWORD
 """
-
-import base64
-import json
 import os
-import time
+from datetime import datetime, timezone
 
 import psycopg2
 import psycopg2.extras
 import pytest
 import requests
 
-
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
-
-BASE_URL = (
-    "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io"
-    "/api-sgpmp-test"
+BASE_URL = os.environ.get(
+    "BASE_URL",
+    "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
 )
+DB_HOST = os.environ.get("DB_HOST", "158.69.200.27")
+DB_PORT = os.environ.get("DB_PORT", "5448")
+DB_NAME = os.environ.get("DB_NAME", "sgpmp_test")
+DB_USER = os.environ.get("DB_USER", "member_qa")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "qaSGP2026")
 
-ADMIN_EMAIL = os.environ.get(
-    "ADMIN_EMAIL",
-    "admin@pecuaria.co"
-)
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@pecuaria.co")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Test1234!")
 
-ADMIN_PASSWORD = os.environ.get(
-    "ADMIN_PASSWORD",
-    "Test1234!"
-)
-
-DB_HOST = os.environ.get(
-    "DB_HOST",
-    "158.69.200.27"
-)
-
-DB_PORT = os.environ.get(
-    "DB_PORT",
-    "5448"
-)
-
-DB_NAME = os.environ.get(
-    "DB_NAME",
-    "sgpmp_test"
-)
-
-DB_USER = os.environ["DB_USER"]
-DB_PASSWORD = os.environ["DB_PASSWORD"]
-
-
-# ============================================================
-# FUNCIONES AUXILIARES
-# ============================================================
-
-def _decode_jwt_sub(token):
-    """
-    Decodifica el payload de un JWT sin verificar la firma
-    y devuelve el claim 'sub'.
-    """
-
-    payload_b64 = token.split(".")[1]
-
-    padding = "=" * (-len(payload_b64) % 4)
-
-    payload_json = base64.urlsafe_b64decode(
-        payload_b64 + padding
-    )
-
-    payload = json.loads(payload_json)
-
-    return int(payload["sub"])
-
-
-def _generar_hash_alterado(hash_original):
-    """
-    Genera un hash hexadecimal válido de 64 caracteres
-    pero diferente al hash original.
-
-    Se modifica únicamente el primer carácter hexadecimal.
-    """
-
-    primer_caracter = hash_original[0].lower()
-
-    if primer_caracter != "0":
-        nuevo_primer_caracter = "0"
-    else:
-        nuevo_primer_caracter = "1"
-
-    return nuevo_primer_caracter + hash_original[1:]
-
-
-# ============================================================
-# FIXTURES
-# ============================================================
-
-@pytest.fixture(scope="module")
-def login_event():
-    """
-    Genera un login real mediante la API.
-
-    Devuelve:
-    - token
-    - id_usuario
-    - timestamp anterior al login
-    """
-
-    timestamp_antes = time.time()
-
-    response = requests.post(
-        f"{BASE_URL}/sesiones/",
-        json={
-            "correo_electronico": ADMIN_EMAIL,
-            "contrasena": ADMIN_PASSWORD
-        },
-        timeout=15,
-    )
-
-    assert response.status_code == 200, (
-        f"Precondición fallida: no se pudo iniciar sesión "
-        f"como Administrador ({response.status_code}): "
-        f"{response.text}"
-    )
-
-    respuesta = response.json()
-
-    assert "token" in respuesta, (
-        "La respuesta del login no contiene el token."
-    )
-
-    token = respuesta["token"]
-
-    id_usuario = _decode_jwt_sub(token)
-
-    return {
-        "token": token,
-        "id_usuario": id_usuario,
-        "timestamp_antes": timestamp_antes,
-    }
+# ingeniero@pecuaria.co -- cuenta de prueba conocida, para no asociar el
+# registro manipulado a la cuenta admin compartida.
+ID_USUARIO_PRUEBA = 4
+TIPO_EVENTO_LOGIN_EXITOSO = 3
+HASH_INVALIDO = "0" * 64
 
 
 @pytest.fixture(scope="module")
 def db_connection():
-    """
-    Crea una conexión directa a PostgreSQL.
-    """
-
     conn = psycopg2.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
+        host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER, password=DB_PASSWORD
     )
-
     yield conn
-
     conn.close()
 
 
-# ============================================================
-# CASO DE PRUEBA TC-M01-064
-# ============================================================
+@pytest.fixture(scope="module")
+def token_admin():
+    response = requests.post(
+        f"{BASE_URL}/sesiones/",
+        json={"correo_electronico": ADMIN_EMAIL, "contrasena": ADMIN_PASSWORD},
+        timeout=15,
+    )
+    assert response.status_code == 200, (
+        f"Precondición fallida: no se pudo iniciar sesión como Administrador "
+        f"({response.status_code}): {response.text}"
+    )
+    return response.json()["token"]
 
-def test_tc_m01_64_detectar_hash_alterado(
-    login_event,
-    db_connection
-):
 
-    token = login_event["token"]
-    id_usuario = login_event["id_usuario"]
-    timestamp_antes = login_event["timestamp_antes"]
+@pytest.fixture(scope="module")
+def evento_manipulado(db_connection):
+    """Inserta (NO modifica) un evento nuevo con hash_integridad invalido.
 
-    registro = None
-    hash_original = None
-    hash_alterado = None
-
-    try:
-
-        # ====================================================
-        # PASO 1 - Buscar el evento de auditoría generado
-        # ====================================================
-
-        with db_connection.cursor(
-            cursor_factory=psycopg2.extras.RealDictCursor
-        ) as cur:
-
-            cur.execute(
-                """
-                SELECT
-                    id_evento,
-                    id_usuario,
-                    hash_integridad,
-                    fecha_evento,
-                    descripcion,
-                    nombre_usuario
-                FROM modulo1.eventos
-                WHERE id_usuario = %s
-                  AND categoria = 'AUTENTICACION'
-                  AND descripcion = 'LOGIN_EXITOSO'
-                  AND fecha_evento >= to_timestamp(%s)
-                ORDER BY fecha_evento DESC
-                LIMIT 1;
-                """,
-                (
-                    id_usuario,
-                    timestamp_antes - 2,
-                ),
+    Es un INSERT deliberado, no un UPDATE sobre un registro existente: el
+    trigger de inmutabilidad de modulo1.eventos bloquea UPDATE/DELETE pero
+    no INSERT, y es la unica forma de producir el escenario que pide la
+    ficha sin depender de violar esa proteccion.
+    """
+    ahora = datetime.now(timezone.utc)
+    detalle = (
+        '{"motivo": "TC-M01-064: registro de prueba con hash invalido a '
+        'proposito, para verificar deteccion de manipulacion (RF-10)"}'
+    )
+    with db_connection.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO modulo1.eventos (
+                tipo_evento, fecha_evento, modulo, resultado, detalle,
+                id_usuario, categoria, estado, hash_integridad,
+                nombre_usuario, direccion_ip, user_agent
+            ) VALUES (
+                %s, %s, 'MODULO1',
+                CAST('exitoso' AS modulo1.enum_evento_resultado),
+                %s::jsonb, %s, 'AUTENTICACION', 'PROCESADO', %s, %s, %s, %s
             )
-
-            registro = cur.fetchone()
-
-        assert registro is not None, (
-            "No se encontró en modulo1.eventos el evento de "
-            "auditoría generado por el login de esta prueba."
+            RETURNING id_evento
+            """,
+            (
+                TIPO_EVENTO_LOGIN_EXITOSO,
+                ahora,
+                detalle,
+                ID_USUARIO_PRUEBA,
+                HASH_INVALIDO,
+                "QA - TC-M01-064 (registro de prueba, hash invalido intencional)",
+                "203.0.113.10",
+                "QA-TC-M01-064",
+            ),
         )
+        id_evento = cur.fetchone()[0]
+    db_connection.commit()
 
-        id_evento = registro["id_evento"]
+    print("\n==============================================")
+    print("TC-M01-064 - EVENTO DE PRUEBA INSERTADO")
+    print("==============================================")
+    print(f"id_evento: {id_evento}")
+    print(f"hash_integridad (invalido a proposito): {HASH_INVALIDO}")
 
-        hash_original = registro["hash_integridad"]
+    return {"id_evento": id_evento, "fecha": ahora}
 
-        assert hash_original is not None and hash_original != "", (
-            "El evento seleccionado no tiene hash_integridad."
-        )
 
-        print("\n==============================================")
-        print("TC-M01-064 - REGISTRO ORIGINAL")
-        print("==============================================")
-        print(f"id_evento: {id_evento}")
-        print(f"id_usuario: {registro['id_usuario']}")
-        print(f"usuario: {registro['nombre_usuario']}")
-        print(f"fecha_evento: {registro['fecha_evento']}")
-        print(f"descripcion: {registro['descripcion']}")
-        print(f"hash original: {hash_original}")
+class TestTCM01064HashManipulado:
+    """Suite de pruebas para TC-M01-064."""
 
-        # ====================================================
-        # PASO 2 - Alterar temporalmente el hash
-        # ====================================================
-
-        hash_alterado = _generar_hash_alterado(
-            hash_original
-        )
-
-        assert hash_alterado != hash_original, (
-            "No fue posible generar un hash diferente."
-        )
-
-        with db_connection.cursor() as cur:
-
-            cur.execute(
-                """
-                UPDATE modulo1.eventos
-                SET hash_integridad = %s
-                WHERE id_evento = %s;
-                """,
-                (
-                    hash_alterado,
-                    id_evento,
-                ),
-            )
-
-        db_connection.commit()
-
-        print("\n==============================================")
-        print("TC-M01-064 - HASH ALTERADO")
-        print("==============================================")
-        print(f"id_evento alterado: {id_evento}")
-        print(f"hash original: {hash_original}")
-        print(f"hash alterado: {hash_alterado}")
-
-        # ====================================================
-        # PASO 3 - Consultar auditoría mediante API
-        # ====================================================
+    def test_consulta_de_auditoria_detecta_el_registro_manipulado(
+        self, evento_manipulado, token_admin
+    ):
+        """RF-10: ante un registro con hash que no coincide, la consulta
+        debe responder HTTP 500 con el codigo y mensaje del flujo
+        alterno "Fallo de integridad del registro (Hash Mismatch)"."""
+        fecha_desde = evento_manipulado["fecha"].strftime("%Y-%m-%dT00:00:00")
 
         response = requests.get(
             f"{BASE_URL}/auditoria/",
-            headers={
-                "Authorization": f"Bearer {token}"
-            },
+            headers={"Authorization": f"Bearer {token_admin}"},
             params={
-                "categoria": "AUTENTICACION",
+                "id_usuario": ID_USUARIO_PRUEBA,
+                "fecha_desde": fecha_desde,
                 "pagina": 1,
-                "tamano": 100,
+                "tamano": 50,
             },
             timeout=15,
         )
@@ -328,139 +182,47 @@ def test_tc_m01_64_detectar_hash_alterado(
         print(f"HTTP Status: {response.status_code}")
         print(response.text)
 
-        # ====================================================
-        # PASO 4 - Verificar respuesta HTTP
-        # ====================================================
-
-        assert response.status_code == 200, (
-            "La consulta del historial de auditoría no respondió "
-            f"HTTP 200. Recibido: {response.status_code}. "
-            f"Respuesta: {response.text}"
+        assert response.status_code == 500, (
+            f"RF-10 exige HTTP 500 cuando se detecta un registro "
+            f"manipulado; se obtuvo {response.status_code}: {response.text}"
         )
 
-        respuesta_api = response.json()
-
-        # ====================================================
-        # PASO 5 - Verificar estructura
-        # ====================================================
-
-        assert "items" in respuesta_api, (
-            "La respuesta de auditoría no contiene 'items'."
+        cuerpo = response.json()
+        assert cuerpo.get("error_code") == "INTEGRIDAD_AUDITORIA_VIOLADA", (
+            f"error_code inesperado: {cuerpo.get('error_code')}"
         )
-
-        assert isinstance(
-            respuesta_api["items"],
-            list
-        ), (
-            "El campo 'items' no es una lista."
-        )
-
-        # ====================================================
-        # PASO 6 - Buscar el registro alterado
-        # ====================================================
-
-        registro_api = next(
-            (
-                item
-                for item in respuesta_api["items"]
-                if item.get("id_evento") == id_evento
-            ),
-            None,
-        )
-
-        # ====================================================
-        # VALIDACIÓN 1:
-        # El registro NO debe desaparecer
-        # ====================================================
-
-        assert registro_api is not None, (
-            "TC-M01-064 FALLÓ: el registro cuyo hash fue alterado "
-            "no aparece en el historial. El requisito establece "
-            "que un registro comprometido no debe ocultarse ni eliminarse."
+        assert str(evento_manipulado["id_evento"]) in cuerpo.get("message", ""), (
+            f"El mensaje deberia mencionar el id_evento manipulado "
+            f"({evento_manipulado['id_evento']}): {cuerpo.get('message')}"
         )
 
         print("\n==============================================")
-        print("TC-M01-064 - REGISTRO COMPROMETIDO ENCONTRADO")
+        print("RESULTADO TC-M01-064 (checkpoint 1)")
         print("==============================================")
-        print(f"id_evento encontrado: {id_evento}")
+        print("APROBADO: la consulta respondio 500 INTEGRIDAD_AUDITORIA_VIOLADA.")
 
-        # ====================================================
-        # VALIDACIÓN 2:
-        # Debe existir integridad_ok
-        # ====================================================
+    def test_el_registro_manipulado_no_se_oculta_ni_se_elimina(
+        self, evento_manipulado, db_connection
+    ):
+        """El sistema debe reportar el incidente, no ocultar ni borrar el
+        registro comprometido (RF-10: la auditoria es append-only)."""
+        with db_connection.cursor() as cur:
+            cur.execute(
+                "SELECT hash_integridad FROM modulo1.eventos WHERE id_evento = %s",
+                (evento_manipulado["id_evento"],),
+            )
+            fila = cur.fetchone()
 
-        assert "integridad_ok" in registro_api, (
-            "TC-M01-064: el registro de auditoría no contiene "
-            "el campo 'integridad_ok', por lo que el sistema no "
-            "está exponiendo el estado de integridad."
+        assert fila is not None, (
+            "El registro manipulado desaparecio de la tabla -- no deberia "
+            "ocultarse ni eliminarse."
         )
-
-        print(
-            f"integridad_ok: "
-            f"{registro_api['integridad_ok']}"
-        )
-
-        # ====================================================
-        # VALIDACIÓN 3:
-        # El hash alterado debe detectarse como comprometido
-        # ====================================================
-
-        assert registro_api["integridad_ok"] is False, (
-            "TC-M01-064 FALLÓ: el registro tiene un hash alterado "
-            "pero el sistema no lo marcó como comprometido. "
-            f"Valor recibido en integridad_ok: "
-            f"{registro_api['integridad_ok']}"
+        assert fila[0] == HASH_INVALIDO, (
+            "El hash_integridad del registro cambio -- deberia permanecer "
+            "exactamente como quedo (evidencia del incidente)."
         )
 
         print("\n==============================================")
-        print("RESULTADO TC-M01-064")
+        print("RESULTADO TC-M01-064 (checkpoint 2)")
         print("==============================================")
-        print(
-            "APROBADO: El registro comprometido permanece "
-            "visible y fue marcado con integridad_ok = false."
-        )
-
-    finally:
-
-        # ====================================================
-        # PASO FINAL - RESTAURAR HASH ORIGINAL
-        # ====================================================
-
-        if registro is not None and hash_original is not None:
-
-            try:
-
-                with db_connection.cursor() as cur:
-
-                    cur.execute(
-                        """
-                        UPDATE modulo1.eventos
-                        SET hash_integridad = %s
-                        WHERE id_evento = %s;
-                        """,
-                        (
-                            hash_original,
-                            registro["id_evento"],
-                        ),
-                    )
-
-                db_connection.commit()
-
-                print("\n==============================================")
-                print("RESTAURACIÓN DE BASE DE DATOS")
-                print("==============================================")
-                print(
-                    f"Hash original restaurado correctamente "
-                    f"para id_evento={registro['id_evento']}"
-                )
-
-            except Exception as error:
-
-                db_connection.rollback()
-
-                print(
-                    "\nERROR CRÍTICO: no fue posible restaurar "
-                    f"el hash original: {error}"
-                )
-
-                raise
+        print("APROBADO: el registro sigue existiendo, sin ocultarse ni eliminarse.")

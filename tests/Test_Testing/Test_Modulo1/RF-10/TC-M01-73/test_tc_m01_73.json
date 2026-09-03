@@ -1,30 +1,39 @@
 {
   "info": {
-    "_postman_id": "tc-m01-073-rf10",
-    "name": "TC-M01-073 - Exportar historial de auditoría con filtros",
-    "description": "Caso de prueba para verificar la exportación del historial de auditoría conservando los filtros aplicados. RF-10.",
+    "_postman_id": "tc-m01-073-exportar-auditoria-filtrada",
+    "name": "TC-M01-073 - Exportar historial de auditoría con filtros aplicados",
+    "description": "RF-10 (CU07). Verifica GET /auditoria/exportar filtrando por tipo_evento=CAMBIO_CONTRASENA (6) en el último mes: formato CSV, cabeceras de archivo, y que TODAS las filas exportadas correspondan al filtro solicitado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    }
+  ],
   "item": [
     {
-      "name": "TC-M01-073 - Consultar auditoría con filtro CAMBIO_CONTRASEÑA",
+      "name": "1. Iniciar sesión como Administrador",
       "request": {
-        "method": "GET",
-        "header": [],
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
         "url": {
-          "raw": "{{base_url}}/auditoria",
+          "raw": "{{baseUrl}}/sesiones/",
           "host": [
-            "{{base_url}}"
+            "{{baseUrl}}"
           ],
           "path": [
-            "auditoria"
-          ],
-          "query": [
-            {
-              "key": "tipo_evento",
-              "value": "CAMBIO_CONTRASEÑA",
-              "disabled": false
-            }
+            "sesiones",
+            ""
           ]
         }
       },
@@ -34,23 +43,140 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('La consulta de auditoría responde correctamente', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
-              "});"
+              "pm.test(\"Inicio de sesión exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "",
+              "pm.test(\"El token existe\", function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.environment.set(\"token\", respuesta.token);"
             ]
           }
         }
       ]
     },
     {
-      "name": "TC-M01-073 - Exportar historial de auditoría filtrado",
+      "name": "2. Exportar historial filtrado por CAMBIO_CONTRASENA (último mes)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// 'ultimo mes' calculado dinamicamente para que la prueba no quede obsoleta.",
+              "var ahora = new Date();",
+              "var haceUnMes = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);",
+              "pm.environment.set(\"fecha_desde\", haceUnMes.toISOString());",
+              "pm.environment.set(\"fecha_hasta\", ahora.toISOString());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"El endpoint de exportación existe (no 404)\", function () {",
+              "    pm.expect(pm.response.code).to.not.eql(404);",
+              "});",
+              "",
+              "pm.test(\"La exportación responde HTTP 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El Content-Type es CSV\", function () {",
+              "    var contentType = pm.response.headers.get(\"Content-Type\") || \"\";",
+              "    pm.expect(contentType.toLowerCase()).to.include(\"text/csv\");",
+              "});",
+              "",
+              "pm.test(\"El archivo se ofrece como adjunto descargable con nombre auditoria-YYYY-MM-DD.csv\", function () {",
+              "    var disposition = pm.response.headers.get(\"Content-Disposition\") || \"\";",
+              "    pm.expect(disposition).to.match(/^attachment; filename=\"auditoria-\\d{4}-\\d{2}-\\d{2}\\.csv\"$/);",
+              "});",
+              "",
+              "pm.test(\"Las cabeceras de conteo de la exportación existen y son numéricas\", function () {",
+              "    var totalDisponible = pm.response.headers.get(\"X-Total-Registros\");",
+              "    var totalExportado = pm.response.headers.get(\"X-Registros-Exportados\");",
+              "    pm.expect(totalDisponible).to.exist;",
+              "    pm.expect(totalExportado).to.exist;",
+              "    pm.expect(Number.isNaN(Number(totalDisponible))).to.be.false;",
+              "    pm.expect(Number.isNaN(Number(totalExportado))).to.be.false;",
+              "    pm.environment.set(\"total_exportado\", totalExportado);",
+              "});",
+              "",
+              "function parseCsvLine(line) {",
+              "    var values = []; var cur = ''; var inQuotes = false;",
+              "    for (var i = 0; i < line.length; i++) {",
+              "        var c = line[i];",
+              "        if (inQuotes) {",
+              "            if (c === '\"') {",
+              "                if (line[i + 1] === '\"') { cur += '\"'; i++; }",
+              "                else { inQuotes = false; }",
+              "            } else { cur += c; }",
+              "        } else {",
+              "            if (c === '\"') { inQuotes = true; }",
+              "            else if (c === ',') { values.push(cur); cur = ''; }",
+              "            else { cur += c; }",
+              "        }",
+              "    }",
+              "    values.push(cur);",
+              "    return values;",
+              "}",
+              "",
+              "var texto = pm.response.text().replace(/^\\uFEFF/, '');",
+              "var lineas = texto.split(/\\r\\n/).filter(function (l) { return l.length > 0; });",
+              "",
+              "pm.test(\"El CSV tiene la cabecera de columnas esperada\", function () {",
+              "    pm.expect(lineas.length).to.be.greaterThan(0);",
+              "    var cabecera = parseCsvLine(lineas[0]);",
+              "    pm.expect(cabecera).to.eql([",
+              "        \"ID\", \"Usuario\", \"Tipo evento\", \"Módulo\", \"Descripción\",",
+              "        \"Resultado\", \"IP\", \"Fecha/Hora\", \"Integridad\",",
+              "    ]);",
+              "});",
+              "",
+              "var filas = lineas.slice(1).map(parseCsvLine);",
+              "",
+              "pm.test(\"Hay al menos un registro CAMBIO_CONTRASENA exportado en el último mes\", function () {",
+              "    pm.expect(filas.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test(\"TODAS las filas exportadas son del tipo de evento filtrado (CAMBIO_CONTRASENA)\", function () {",
+              "    var idxTipoEvento = 2;",
+              "    var incorrectas = filas.filter(function (f) { return f[idxTipoEvento] !== \"CAMBIO_CONTRASENA\"; });",
+              "    pm.expect(incorrectas.length, \"filas con tipo de evento distinto al filtro: \" + JSON.stringify(incorrectas)).to.eql(0);",
+              "});",
+              "",
+              "pm.test(\"TODAS las filas exportadas están dentro del rango de fechas solicitado\", function () {",
+              "    var idxFecha = 7;",
+              "    var desde = new Date(pm.environment.get(\"fecha_desde\"));",
+              "    var hasta = new Date(pm.environment.get(\"fecha_hasta\"));",
+              "    var fueraDeRango = filas.filter(function (f) {",
+              "        var fecha = new Date(f[idxFecha]);",
+              "        return fecha < desde || fecha > hasta;",
+              "    });",
+              "    pm.expect(fueraDeRango.length, \"filas fuera de rango: \" + JSON.stringify(fueraDeRango)).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/auditoria/exportar?tipo_evento=CAMBIO_CONTRASEÑA",
+          "raw": "{{baseUrl}}/auditoria/exportar?tipo_evento=6&fecha_desde={{fecha_desde}}&fecha_hasta={{fecha_hasta}}",
           "host": [
-            "{{base_url}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "auditoria",
@@ -59,40 +185,20 @@
           "query": [
             {
               "key": "tipo_evento",
-              "value": "CAMBIO_CONTRASEÑA",
-              "disabled": false
+              "value": "6",
+              "description": "6 = CAMBIO_CONTRASENA (ver evento_categoria.py)"
+            },
+            {
+              "key": "fecha_desde",
+              "value": "{{fecha_desde}}"
+            },
+            {
+              "key": "fecha_hasta",
+              "value": "{{fecha_hasta}}"
             }
           ]
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Debe existir el endpoint de exportación del historial de auditoría', function () {",
-              "    pm.expect(pm.response.code).to.not.eql(404);",
-              "});",
-              "",
-              "pm.test('La exportación debe responder exitosamente', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-              "});",
-              "",
-              "pm.test('La respuesta debe generar un archivo exportable', function () {",
-              "    const contentType = pm.response.headers.get('Content-Type') || '';",
-              "    pm.expect(contentType).to.match(/csv|json|octet-stream|spreadsheet|pdf/i);",
-              "});"
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8000"
+      }
     }
   ]
 }
