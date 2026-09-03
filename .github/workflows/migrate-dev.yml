@@ -17,4 +17,5 @@ jobs:
     uses: ./.github/workflows/_migrate-template.yml
     with:
       environment_name: development
-    secrets: inherit
+    secrets:
+      database_url: ${{ secrets.DEV_DATABASE_URL }}
