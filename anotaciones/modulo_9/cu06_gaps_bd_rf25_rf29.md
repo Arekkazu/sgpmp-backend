@@ -64,6 +64,10 @@ Tabla de auditoría `modulo9.auditorias_visuales`:
 
 **Decisión**: Mismo patrón que temas_visuales. Global: `es_por_defecto=TRUE`, `id_usuario` = admin. Personal: `es_por_defecto=FALSE`. La vista `vw_rf29_idioma_usuario_global` implementa la jerarquía de resolución.
 
+**Gaps detectados después (cerrados el 2026-09-03, migración `b5d1e0c93a77`)**: este análisis
+no registró tres huecos que el audit de `estado_M09.md` encontró más tarde. Ver la sección
+"DDL RF-29 (2026-09-03)" al final de este documento.
+
 ---
 
 ### `modulo9.dashboard_layouts` (RF-28)
@@ -241,3 +245,42 @@ cada módulo (9, 11, 19, 32, 33, 34, 35), sin filas nuevas.
 **Verificación post-migración**: 15 filas en `widgets`, 9 en `dashboard_layouts_default`,
 `UNIQUE` presente, FK con `convalidated = true`, y 0 defaults referenciando un widget que su rol no
 pueda leer. `alembic downgrade -1` y `upgrade head` probados en dev.
+
+---
+
+## DDL RF-29 (2026-09-03) — lista blanca de locale y unicidad de preferencia
+
+Todo por **migración Alembic `b5d1e0c93a77`** (`down_revision` `a7f3c92e4d18`), por el mismo
+motivo que RF-28: solo lo que vive en `alembic/versions/` llega a `sgpmp` y a `pruebas` por CI.
+
+Tres gaps que el análisis original de 2026-06-21 no registró:
+
+```sql
+-- 1. La lista blanca del RF solo vivia en la entidad de dominio. La columna era un
+--    varchar(5) libre y su comentario mencionaba pt-BR como ejemplo valido.
+UPDATE modulo9.preferencias_idiomas          -- normaliza antes del CHECK
+   SET locale_code = 'es-CO'
+ WHERE locale_code NOT IN ('es-CO', 'en-US');
+ALTER TABLE modulo9.preferencias_idiomas
+  ADD CONSTRAINT chk_pref_idioma_locale_code CHECK (locale_code IN ('es-CO', 'en-US'));
+
+-- 2. Una preferencia personal por usuario (dedup previo, no-op en dev: 0 duplicados).
+--    Parcial: la fila global del admin no compite con su preferencia personal.
+CREATE UNIQUE INDEX uq_pref_idioma_personal
+    ON modulo9.preferencias_idiomas (id_usuario) WHERE es_por_defecto = false;
+
+-- 3. Una sola fila global en todo el sistema, que es lo que obtener_global() ya asumia.
+CREATE UNIQUE INDEX uq_pref_idioma_global
+    ON modulo9.preferencias_idiomas ((true)) WHERE es_por_defecto = true;
+
+-- 4. La FK nunca se habia comprobado (mismo caso que dashboard_layouts en RF-28).
+ALTER TABLE modulo9.preferencias_idiomas
+  VALIDATE CONSTRAINT preferencias_idiomas_id_usuario_fkey;
+```
+
+**RBAC**: sin DML. Los recursos 26 y 27 y sus permisos existen desde 2026-06-21.
+
+**Verificación post-migración** en dev (4 filas, 0 duplicados, todos los locale ya válidos):
+los cuatro invariantes rechazan lo que deben — `pt-BR` → `23514`, segunda preferencia personal
+del mismo usuario → `23505`, segunda fila global → `23505`, `id_usuario` inexistente → `23503`.
+`alembic downgrade -1` y `upgrade head` probados.
