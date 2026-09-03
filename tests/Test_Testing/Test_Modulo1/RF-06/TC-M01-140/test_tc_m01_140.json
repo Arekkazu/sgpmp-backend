@@ -1,0 +1,231 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-140-auto-gestion-admin",
+    "name": "TC-M01-140 - Intentar gestionar la propia cuenta desde el panel administrativo",
+    "description": "Validar que un Administrador no pueda gestionar el estado de su propia cuenta mediante el endpoint administrativo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "idAdmin",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del administrador\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar perfil propio del administrador",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta del perfil propio exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El perfil corresponde al administrador\", function () {",
+              "    pm.expect(response.id_usuario).to.eql(1);",
+              "    pm.expect(response.correo_electronico).to.eql(\"admin@pecuaria.co\");",
+              "});",
+              "",
+              "pm.test(\"La cuenta del administrador está activa\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Activo\");",
+              "});",
+              "",
+              "console.log(\"Administrador objetivo:\", response);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Intentar inactivar la propia cuenta",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"inactivar\",\n  \"motivo_accion\": \"Prueba TC-M01-140\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idAdmin}}/gestionar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idAdmin}}",
+            "gestionar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta auto-gestión:\", response);",
+              "",
+              "pm.test(\"La operación es rechazada\", function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test(\"El backend identifica la auto-gestión como prohibida\", function () {",
+              "    pm.expect(response.error_code).to.eql(\"AUTOEDICION_ESTADO_PROHIBIDA\");",
+              "});",
+              "",
+              "pm.test(\"El mensaje indica que no puede gestionar su propia cuenta\", function () {",
+              "    pm.expect(response.message).to.include(\"propia cuenta\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Verificar que la cuenta no fue modificada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"La consulta posterior es exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El administrador conserva su cuenta activa\", function () {",
+              "    pm.expect(response.estado_cuenta).to.eql(\"Activo\");",
+              "});",
+              "",
+              "pm.test(\"El administrador conserva su identidad\", function () {",
+              "    pm.expect(response.id_usuario).to.eql(1);",
+              "    pm.expect(response.correo_electronico).to.eql(\"admin@pecuaria.co\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
