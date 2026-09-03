@@ -122,10 +122,28 @@ Respuesta esperada `200`:
     "umbrales_ambientales"
   ],
   "campos_requeridos": {
-    "ciclos_biologicos": ["nombre", "duracion_dias"],
-    "patologias": ["nombre"],
-    "metricas_produccion": ["nombre", "unidad_medida", "tipo_medicion", "aplica_a_tipo_activo"],
-    "umbrales_ambientales": ["id_variable_ambiental", "unidad_medida", "valor_min", "valor_max"]
+    "ciclos_biologicos": {
+      "nombre": "texto no vacío",
+      "duracion_dias": "entero positivo"
+    },
+    "patologias": {"nombre": "texto no vacío"},
+    "metricas_produccion": {
+      "nombre": "texto no vacío",
+      "unidad_medida": "texto no vacío",
+      "tipo_medicion": "uno de ['PESO', 'VOLUMEN', 'LONGITUD', 'CONTEO', 'OTRO']",
+      "aplica_a_tipo_activo": "uno de ['INDIVIDUAL', 'LOTE', 'AMBOS']"
+    },
+    "umbrales_ambientales": {
+      "id_variable_ambiental": "entero positivo",
+      "unidad_medida": "texto no vacío",
+      "valor_min": "número",
+      "valor_max": "número"
+    }
+  },
+  "campos_nivel_alerta": {
+    "nivel": "uno de ['normal', 'precaucion', 'critico']",
+    "limite_inferior": "número",
+    "limite_superior": "número"
   },
   "changelog": [
     {
@@ -170,8 +188,8 @@ curl -X POST http://localhost:8000/configuracion/plantillas \
         {
           "nombre": "Peso promedio",
           "unidad_medida": "kg",
-          "tipo_medicion": "continua",
-          "aplica_a_tipo_activo": "pez"
+          "tipo_medicion": "PESO",
+          "aplica_a_tipo_activo": "INDIVIDUAL"
         }
       ],
       "umbrales_ambientales": [
@@ -222,6 +240,11 @@ Errores posibles:
 - `400` — un ítem sin sus campos obligatorios; el mensaje nombra la categoría,
   la posición y los campos que faltan, p. ej.
   `ciclos_biologicos[0]: faltan los campos ['duracion_dias'].` (FA-09 del RF-31)
+- `400` — un campo obligatorio con el tipo equivocado, p. ej.
+  `ciclos_biologicos[0].duracion_dias debe ser entero positivo; llegó 'muchos'.`
+  o `metricas_produccion[0].tipo_medicion debe ser uno de ['PESO', ...]; llegó 'continua'.`
+  Sin esta validación el dato quedaba guardado en una plantilla inmutable y
+  reventaba al aplicarla en RF-32 (`int()`/`Decimal()` → `500`)
 - `401` — token ausente o inválido
 - `403` — rol sin permiso C sobre recurso 28 (FA-05)
 - `404` — especie origen no existe

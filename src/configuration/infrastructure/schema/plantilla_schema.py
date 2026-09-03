@@ -63,5 +63,8 @@ class EsquemaPlantillaResponse(BaseModel):
 
     schema_version_actual: int
     categorias: list[str]
-    campos_requeridos: dict[str, list[str]]
+    #: {categoría: {campo: descripción del tipo esperado}}
+    campos_requeridos: dict[str, dict[str, str]]
+    #: Forma de cada `umbrales_ambientales[].niveles[]`.
+    campos_nivel_alerta: dict[str, str]
     changelog: list[VersionEsquemaResponse]

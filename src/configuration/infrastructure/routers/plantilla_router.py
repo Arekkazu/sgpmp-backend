@@ -19,6 +19,7 @@ from src.configuration.application.use_cases.plantillas.aplicar_plantilla_use_ca
 from src.configuration.application.use_cases.plantillas.consultar_plantillas_use_case import ConsultarPlantillasUseCase
 from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import RegistrarPlantillaUseCase
 from src.configuration.domain.esquema_plantilla import (
+    CAMPOS_NIVEL_ALERTA,
     CAMPOS_REQUERIDOS,
     CATEGORIAS,
     CHANGELOG,
@@ -95,7 +96,13 @@ def consultar_esquema() -> EsquemaPlantillaResponse:
     return EsquemaPlantillaResponse(
         schema_version_actual=SCHEMA_VERSION_ACTUAL,
         categorias=list(CATEGORIAS),
-        campos_requeridos={k: list(v) for k, v in CAMPOS_REQUERIDOS.items()},
+        campos_requeridos={
+            categoria: {campo: descripcion for campo, (descripcion, _) in reglas.items()}
+            for categoria, reglas in CAMPOS_REQUERIDOS.items()
+        },
+        campos_nivel_alerta={
+            campo: descripcion for campo, (descripcion, _) in CAMPOS_NIVEL_ALERTA.items()
+        },
         changelog=[
             {
                 "version": e["version"],

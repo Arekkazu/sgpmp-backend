@@ -30,6 +30,9 @@ from src.configuration.domain.esquema_plantilla import (
     validar_snapshot,
     versiones_compatibles,
 )
+from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
+from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
+from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
 from src.shared.error_handlers import register_error_handlers
 
@@ -166,3 +169,113 @@ def test_snapshot_valido_pasa_la_validacion_de_entrada(cliente: TestClient):
         },
     )
     assert respuesta.status_code == 200
+
+
+# ── RF-31 — tipos de los campos obligatorios ─────────────────────────────────
+# Cada uno de estos casos pasaba la creación (solo se comprobaba presencia),
+# quedaba guardado en una plantilla inmutable y reventaba después al aplicarla
+# en RF-32: `int('muchos')` y `Decimal('abc')` salen como 500, y los enums como
+# un 400 de la base de datos que no dice qué campo estaba mal.
+
+def test_duracion_dias_no_numerica_es_rechazada():
+    errores = validar_snapshot({"ciclos_biologicos": [{"nombre": "Alevín", "duracion_dias": "muchos"}]})
+    assert errores == [
+        "ciclos_biologicos[0].duracion_dias debe ser entero positivo; llegó 'muchos'."
+    ]
+
+
+@pytest.mark.parametrize("duracion", [0, -5, 12.5, True])
+def test_duracion_dias_debe_ser_entero_positivo(duracion):
+    """`True` entra aparte: en Python `bool` es subclase de `int`."""
+    errores = validar_snapshot({"ciclos_biologicos": [{"nombre": "Alevín", "duracion_dias": duracion}]})
+    assert any("duracion_dias debe ser entero positivo" in e for e in errores)
+
+
+def test_nombre_en_blanco_no_cuenta_como_nombre():
+    errores = validar_snapshot({"ciclos_biologicos": [{"nombre": "   ", "duracion_dias": 30}]})
+    assert any("nombre debe ser texto no vacío" in e for e in errores)
+
+
+def test_valor_no_decimal_del_umbral_es_rechazado():
+    errores = validar_snapshot({
+        "umbrales_ambientales": [{
+            "id_variable_ambiental": 1, "unidad_medida": "°C",
+            "valor_min": "abc", "valor_max": 30,
+        }],
+    })
+    assert errores == ["umbrales_ambientales[0].valor_min debe ser número; llegó 'abc'."]
+
+
+def test_valor_del_umbral_acepta_numero_y_string_numerico():
+    """El backend serializa los decimales como string; ambos deben pasar."""
+    assert validar_snapshot({
+        "umbrales_ambientales": [{
+            "id_variable_ambiental": 1, "unidad_medida": "°C",
+            "valor_min": "22.0", "valor_max": 30,
+        }],
+    }) == []
+
+
+def test_infinito_no_es_un_valor_valido():
+    errores = validar_snapshot({
+        "umbrales_ambientales": [{
+            "id_variable_ambiental": 1, "unidad_medida": "°C",
+            "valor_min": "-Infinity", "valor_max": "NaN",
+        }],
+    })
+    assert len(errores) == 2
+
+
+def test_enums_de_metrica_se_validan_contra_los_value_objects():
+    errores = validar_snapshot({
+        "metricas_produccion": [{
+            "nombre": "Peso promedio", "unidad_medida": "kg",
+            "tipo_medicion": "INVENTADO", "aplica_a_tipo_activo": "ANIMAL",
+        }],
+    })
+    assert len(errores) == 2
+    assert all(m.value in errores[0] for m in TipoMedicion)
+    assert all(a.value in errores[1] for a in AplicaTipoActivo)
+
+
+def test_niveles_del_umbral_se_validan_aunque_la_clave_sea_opcional():
+    base = {
+        "id_variable_ambiental": 1, "unidad_medida": "°C",
+        "valor_min": "22.0", "valor_max": "30.0",
+    }
+    assert validar_snapshot({"umbrales_ambientales": [base]}) == []
+
+    errores = validar_snapshot({
+        "umbrales_ambientales": [{**base, "niveles": [{"nivel": "azul", "limite_inferior": "x"}]}],
+    })
+    assert any("niveles[0]: faltan los campos ['limite_superior']" in e for e in errores)
+    assert any("niveles[0].nivel debe ser uno de" in e for e in errores)
+    assert any("niveles[0].limite_inferior debe ser número" in e for e in errores)
+
+
+def test_nivel_valido_pasa():
+    assert validar_snapshot({
+        "umbrales_ambientales": [{
+            "id_variable_ambiental": 1, "unidad_medida": "°C",
+            "valor_min": "22.0", "valor_max": "30.0",
+            "niveles": [
+                {"nivel": n.value, "limite_inferior": "20", "limite_superior": "32"}
+                for n in NivelAlerta
+            ],
+        }],
+    }) == []
+
+
+def test_tipo_invalido_responde_400_nombrando_el_campo(cliente: TestClient):
+    respuesta = cliente.post(
+        "/plantillas",
+        json={
+            "template_name": "Ciclo corrupto",
+            "id_especie": 1,
+            "params_snapshot": {"ciclos_biologicos": [{"nombre": "Alevín", "duracion_dias": "muchos"}]},
+        },
+    )
+
+    assert respuesta.status_code == 400
+    detalle = " ".join(f["message"] for f in respuesta.json()["fields"])
+    assert "duracion_dias" in detalle and "entero positivo" in detalle

@@ -22,7 +22,12 @@ aplicar, nunca migrando la fila.
 """
 from __future__ import annotations
 
-from typing import Any
+from decimal import Decimal, InvalidOperation
+from typing import Any, Callable
+
+from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
+from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
+from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 
 SCHEMA_VERSION_ACTUAL = 1
 
@@ -42,13 +47,76 @@ CLAVES_FUERA_DE_ALCANCE: frozenset[str] = frozenset({
     "fincas", "sensores", "configuraciones_globales",
 })
 
-#: Campos obligatorios de cada ítem. Son los que `*_desde_snapshot` de los
-#: repositorios lee sin `.get()`: si faltan, RF-32 reventaría al aplicar.
-CAMPOS_REQUERIDOS: dict[str, tuple[str, ...]] = {
-    "ciclos_biologicos": ("nombre", "duracion_dias"),
-    "patologias": ("nombre",),
-    "metricas_produccion": ("nombre", "unidad_medida", "tipo_medicion", "aplica_a_tipo_activo"),
-    "umbrales_ambientales": ("id_variable_ambiental", "unidad_medida", "valor_min", "valor_max"),
+# ── Reglas de tipo ───────────────────────────────────────────────────────────
+# Una regla es (descripción para el usuario, predicado). La descripción viaja en
+# el mensaje de error y en `GET /configuracion/plantillas/esquema`, así que el
+# cliente sabe qué se espera antes de enviar y por qué se le rechazó.
+
+Regla = tuple[str, Callable[[Any], bool]]
+
+
+def _es_texto(valor: Any) -> bool:
+    return isinstance(valor, str) and valor.strip() != ""
+
+
+def _es_entero_positivo(valor: Any) -> bool:
+    # bool es subclase de int en Python: `True` no es una duración válida.
+    return isinstance(valor, int) and not isinstance(valor, bool) and valor > 0
+
+
+def _es_numero(valor: Any) -> bool:
+    """Acepta lo que `Decimal(...)` del repositorio convierte sin reventar."""
+    if isinstance(valor, bool):
+        return False
+    if isinstance(valor, int):
+        return True
+    try:
+        return Decimal(str(valor)).is_finite()
+    except (InvalidOperation, ValueError, TypeError):
+        return False
+
+
+def _uno_de(*opciones: str) -> Regla:
+    return (f"uno de {list(opciones)}", lambda valor: valor in opciones)
+
+
+TEXTO: Regla = ("texto no vacío", _es_texto)
+ENTERO_POSITIVO: Regla = ("entero positivo", _es_entero_positivo)
+NUMERO: Regla = ("número", _es_numero)
+
+#: Campos obligatorios de cada ítem, con su tipo. Son los que
+#: `*_desde_snapshot` de los repositorios lee sin `.get()` y convierte con
+#: `int()`/`Decimal()`: si faltan o traen basura, RF-32 revienta al aplicar, y
+#: para entonces la plantilla ya está guardada y es inmutable.
+CAMPOS_REQUERIDOS: dict[str, dict[str, Regla]] = {
+    "ciclos_biologicos": {
+        "nombre": TEXTO,
+        "duracion_dias": ENTERO_POSITIVO,
+    },
+    "patologias": {
+        "nombre": TEXTO,
+    },
+    "metricas_produccion": {
+        "nombre": TEXTO,
+        "unidad_medida": TEXTO,
+        "tipo_medicion": _uno_de(*(m.value for m in TipoMedicion)),
+        "aplica_a_tipo_activo": _uno_de(*(a.value for a in AplicaTipoActivo)),
+    },
+    "umbrales_ambientales": {
+        "id_variable_ambiental": ENTERO_POSITIVO,
+        "unidad_medida": TEXTO,
+        "valor_min": NUMERO,
+        "valor_max": NUMERO,
+    },
+}
+
+#: Forma de cada elemento de `umbrales_ambientales[].niveles`. La clave
+#: `niveles` es opcional (el repositorio usa `.get('niveles', [])`), pero si
+#: viene, sus elementos se leen por índice y se convierten a `Decimal`.
+CAMPOS_NIVEL_ALERTA: dict[str, Regla] = {
+    "nivel": _uno_de(*(n.value for n in NivelAlerta)),
+    "limite_inferior": NUMERO,
+    "limite_superior": NUMERO,
 }
 
 #: Changelog consultable de versiones del esquema, de la más reciente a la más
@@ -70,6 +138,10 @@ CHANGELOG: tuple[dict[str, Any], ...] = (
             "umbrales_ambientales: id_variable_ambiental, unidad_medida, "
             "valor_min, valor_max y niveles[] con nivel, limite_inferior y "
             "limite_superior.",
+            "Cada campo obligatorio declara su tipo: los textos no pueden ir "
+            "vacíos, duracion_dias e id_variable_ambiental son enteros "
+            "positivos, los límites y valores son números, y tipo_medicion, "
+            "aplica_a_tipo_activo y nivel se validan contra sus enums.",
         ),
     },
 )
@@ -83,6 +155,40 @@ def versiones_compatibles() -> tuple[int, ...]:
 def es_compatible(schema_version: Any) -> bool:
     """Indica si un snapshot guardado bajo `schema_version` se puede aplicar."""
     return schema_version in versiones_compatibles()
+
+
+def _validar_item(item: dict[str, Any], reglas: dict[str, Regla], ubicacion: str) -> list[str]:
+    """Comprueba que el ítem traiga sus campos obligatorios y con el tipo debido."""
+    errores: list[str] = []
+
+    faltantes = [campo for campo in reglas if item.get(campo) is None]
+    if faltantes:
+        errores.append(f"{ubicacion}: faltan los campos {faltantes}.")
+
+    for campo, (descripcion, es_valido) in reglas.items():
+        valor = item.get(campo)
+        if valor is not None and not es_valido(valor):
+            errores.append(f"{ubicacion}.{campo} debe ser {descripcion}; llegó {valor!r}.")
+
+    return errores
+
+
+def _validar_niveles(umbral: dict[str, Any], ubicacion: str) -> list[str]:
+    """Valida `niveles` del umbral. La clave es opcional; su contenido no."""
+    niveles = umbral.get("niveles")
+    if niveles is None:
+        return []
+    if not isinstance(niveles, list):
+        return [f"{ubicacion}.niveles debe ser una lista de niveles de alerta."]
+
+    errores: list[str] = []
+    for posicion, nivel in enumerate(niveles):
+        sub_ubicacion = f"{ubicacion}.niveles[{posicion}]"
+        if not isinstance(nivel, dict):
+            errores.append(f"{sub_ubicacion} debe ser un objeto.")
+            continue
+        errores.extend(_validar_item(nivel, CAMPOS_NIVEL_ALERTA, sub_ubicacion))
+    return errores
 
 
 def validar_snapshot(snapshot: dict[str, Any]) -> list[str]:
@@ -118,12 +224,13 @@ def validar_snapshot(snapshot: dict[str, Any]) -> list[str]:
             continue
         total_items += len(items)
         for posicion, item in enumerate(items):
+            ubicacion = f"{categoria}[{posicion}]"
             if not isinstance(item, dict):
-                errores.append(f"{categoria}[{posicion}] debe ser un objeto.")
+                errores.append(f"{ubicacion} debe ser un objeto.")
                 continue
-            faltantes = [c for c in CAMPOS_REQUERIDOS[categoria] if item.get(c) is None]
-            if faltantes:
-                errores.append(f"{categoria}[{posicion}]: faltan los campos {faltantes}.")
+            errores.extend(_validar_item(item, CAMPOS_REQUERIDOS[categoria], ubicacion))
+            if categoria == "umbrales_ambientales":
+                errores.extend(_validar_niveles(item, ubicacion))
 
     if total_items == 0:
         errores.append(
