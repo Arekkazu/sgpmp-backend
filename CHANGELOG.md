@@ -1,3 +1,15 @@
+## [1.0.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-09-03)
+
+### Features
+
+* **configuration:** documentar changelog de versiones del esquema de plantillas (RF-30, RF-31) ([445113b](https://github.com/Arekkazu/sgpmp-backend/commit/445113b17686850d6207c2ec4ab9fb60e6e1e9c7))
+* **configuration:** separar creacion de versionado de plantillas (RF-30, RF-31) ([d10921d](https://github.com/Arekkazu/sgpmp-backend/commit/d10921d5c825e4262e49788c1011cbc368eb57ee))
+
+### Bug Fixes
+
+* **configuration:** responder 422 al snapshot con parametros fuera de alcance (RF-30) ([6ef67d1](https://github.com/Arekkazu/sgpmp-backend/commit/6ef67d1429c0bea85ec015a73b2aeb9c5ba72b19))
+* **configuration:** validar el tipo de los campos del snapshot de plantillas (RF-31) ([fc69f70](https://github.com/Arekkazu/sgpmp-backend/commit/fc69f70bb7dcf9f55aa467edc949e3c2e0fee5c8))
+
 ## 1.0.0-rc.1 (2026-09-03)
 
 ### Features
@@ -138,4 +150,3 @@
 * **rf29-mod9:** devolver 404 en vez de 500 al actualizar una preferencia inexistente ([6eb9e5f](https://github.com/Arekkazu/sgpmp-backend/commit/6eb9e5f1ed0bf7f8c02b88a8afa6ae22c076f514))
 * rf32 ([02d5eca](https://github.com/Arekkazu/sgpmp-backend/commit/02d5eca856bd3e2f4ab098e9d24ae9f83f8d9cda))
 * **sesiones:** [#1827](https://github.com/Arekkazu/sgpmp-backend/issues/1827) lock en refresco de tokens para evitar carrera ([a0c42bd](https://github.com/Arekkazu/sgpmp-backend/commit/a0c42bde686a7d7caf0040a3b37a2c0f2812ba91))
-
