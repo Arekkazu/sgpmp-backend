@@ -27,9 +27,45 @@ Respuesta esperada `200`:
   "finca_activa": "Finca El Paraíso",
   "departamento": "Cundinamarca",
   "especies_configuradas": ["Tilapia", "Trucha"],
-  "modulos_autorizados": ["especies", "ciclos_biologicos", "fincas"]
+  "modulos_autorizados": ["especies", "ciclos_biologicos", "fincas"],
+  "identidad_visual": {
+    "logo_path": "/uploads/logos/uuid-generado.png",
+    "primary_color": "#1A6B3C",
+    "secondary_color": "#A8D5B5",
+    "org_display_name": "Acuícola El Remanso"
+  },
+  "accesibilidad": {
+    "minimo_aa": 4.5,
+    "primary_color": {
+      "claro":  {"fondo": "#FFFFFF", "ratio": 6.54, "cumple_aa": true,  "color_ajustado": "#1A6B3C", "aviso": null},
+      "oscuro": {"fondo": "#171A15", "ratio": 2.69, "cumple_aa": false, "color_ajustado": "#249453",
+                 "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo oscuro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."}
+    },
+    "secondary_color": {
+      "claro":  {"fondo": "#FFFFFF", "ratio": 1.63, "cumple_aa": false, "color_ajustado": "#3F8252", "aviso": "Aviso de accesibilidad: …en el modo claro…"},
+      "oscuro": {"fondo": "#171A15", "ratio": 10.75, "cumple_aa": true, "color_ajustado": "#A8D5B5", "aviso": null}
+    }
+  }
 }
 ```
+
+`identidad_visual` y `accesibilidad` (RF-26 + RF-27) viajan aquí porque este es el único
+endpoint de CU06 que **todos** los roles pueden leer y el único que resuelve
+usuario → finca. El recurso 23 (`identidad_visual`) es exclusivo del Administrador, así que
+sin esto un Productor no tendría forma de conocer su propia marca institucional. La
+escritura no cambia: sigue siendo exclusiva del recurso 23.
+
+Ambos campos son `null` si el usuario no tiene finca asignada o la finca no tiene identidad
+configurada — el cliente cae a su marca por defecto sin ningún caso especial.
+
+`color_ajustado` es la variante que cumple WCAG 2.1 AA sobre el fondo de ese tema; cuando el
+color ya cumple, es idéntico al original, de modo que el cliente pueda usarlo siempre sin
+condicionales. `aviso` trae el texto del flujo alterno de RF-27 y es `null` cuando se cumple.
+
+**El aviso es por tema, no global.** Los dos fondos están en extremos opuestos de la escala
+(blanco tiene luminancia 1.0; la superficie oscura, 0.009), así que cumplir 4.5:1 contra el
+claro exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: ningún color cumple en los dos a
+la vez. El cliente muestra el aviso del tema activo.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -54,16 +90,25 @@ Respuesta esperada `200`:
   "id_identidad_visual": 1,
   "id_finca": 1,
   "id_usuario": 1,
-  "logo_path": "uploads/logos/abc123.png",
+  "logo_path": "/uploads/logos/abc123.png",
   "primary_color": "#1E90FF",
   "secondary_color": "#FF6347",
   "org_display_name": "AcuaColombia S.A.S.",
   "version": 2,
-  "fecha_creacion": "2026-06-01T10:00:00Z"
+  "fecha_creacion": "2026-06-01T10:00:00Z",
+  "accesibilidad": { "…": "misma forma que en RF-25" }
 }
 ```
 
 Sin identidad visual registrada devuelve `null` (200).
+
+`accesibilidad` tiene exactamente la misma forma que en el contexto de RF-25 (ver arriba) y
+está aquí para que el administrador vea el aviso en el momento de guardar. **Es informativo:
+un color de bajo contraste se guarda igual.** RF-27 pide advertir y aplicar una variante, no
+rechazar, y las restricciones de RF-26 no mencionan el contraste.
+
+`logo_path` es una ruta pública servida por la propia API (`GET <base>/uploads/logos/…`).
+Antes se devolvía la ruta del sistema de archivos y no era alcanzable por HTTP.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -92,7 +137,7 @@ Respuesta esperada `201`:
   "id_identidad_visual": 1,
   "id_finca": 1,
   "id_usuario": 1,
-  "logo_path": "uploads/logos/uuid-generado.png",
+  "logo_path": "/uploads/logos/uuid-generado.png",
   "primary_color": "#1E90FF",
   "secondary_color": "#FF6347",
   "org_display_name": "AcuaColombia S.A.S.",
