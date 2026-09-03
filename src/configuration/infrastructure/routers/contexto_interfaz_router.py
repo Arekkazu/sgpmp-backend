@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.personalizacion.obtener_contexto_use_case import ObtenerContextoUseCase
 from src.configuration.infrastructure.repositories.contexto_interfaz_repository import SqlAlchemyContextoInterfazRepository
+from src.configuration.infrastructure.repositories.identidad_visual_repository import SqlAlchemyIdentidadVisualRepository
 from src.configuration.infrastructure.schema.contexto_interfaz_schema import ContextoInterfazResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -39,6 +40,7 @@ def obtener_contexto(
 ) -> ContextoInterfazResponse:
     use_case = ObtenerContextoUseCase(
         contexto_repo=SqlAlchemyContextoInterfazRepository(db),
+        identidad_repo=SqlAlchemyIdentidadVisualRepository(db),
     )
     contexto = use_case.execute(usuario_actual)
     return ContextoInterfazResponse.from_entity(contexto)
