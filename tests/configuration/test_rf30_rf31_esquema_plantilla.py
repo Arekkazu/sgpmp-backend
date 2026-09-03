@@ -16,6 +16,7 @@ Trazabilidad de los gaps que corrigen estas pruebas (auditoría
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pytest
@@ -26,6 +27,10 @@ from pydantic import ValidationError
 from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import (
     RegistrarPlantillaUseCase,
 )
+from src.configuration.application.use_cases.plantillas.versionar_plantilla_use_case import (
+    VersionarPlantillaUseCase,
+)
+from src.configuration.domain.entities.plantilla import Plantilla
 from src.configuration.domain.esquema_plantilla import (
     CAMPOS_REQUERIDOS,
     CLAVES_FUERA_DE_ALCANCE,
@@ -41,9 +46,10 @@ from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipo
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
+from src.configuration.infrastructure.dto.versionar_plantilla_dto import VersionarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.error_handlers import register_error_handlers
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 SNAPSHOT_VALIDO = {
     "ciclos_biologicos": [
@@ -321,31 +327,47 @@ class _EspecieRepoFake:
 
     def __init__(self) -> None:
         self.consultada = False
+        self.activa = True
 
     def obtener_por_id(self, _id_especie):
         self.consultada = True
-        return SimpleNamespace(id_especie=1, es_activo=True)
+        return SimpleNamespace(id_especie=1, es_activo=self.activa)
 
 
 class _PlantillaRepoFake:
-    def __init__(self) -> None:
-        self.guardadas: list = []
+    """Emula el trigger `trg_fn_plantilla_version_incremental`: la BD, no la
+    app, fija el número de versión al insertar, comparando el nombre
+    normalizado."""
 
-    def obtener_version_maxima(self, _template_name):
-        return None
+    def __init__(self, existentes: list | None = None) -> None:
+        self.guardadas: list = list(existentes or [])
+
+    def _familia(self, template_name: str) -> list:
+        clave = template_name.strip().lower()
+        return [p for p in self.guardadas if p.template_name.strip().lower() == clave]
+
+    def existe_nombre(self, template_name: str) -> bool:
+        return bool(self._familia(template_name))
+
+    def obtener_por_id(self, id_plantilla):
+        return next((p for p in self.guardadas if p.id_plantilla == id_plantilla), None)
 
     def guardar(self, plantilla):
+        familia = self._familia(plantilla.template_name)
+        plantilla.version = max((p.version for p in familia), default=0) + 1
+        plantilla.id_plantilla = len(self.guardadas) + 1
         self.guardadas.append(plantilla)
-        plantilla.id_plantilla = 1
         return plantilla
 
 
 class _AuditoriaRepoFake:
     def __init__(self) -> None:
         self.registros = 0
+        self.ultimo: dict = {}
 
-    def registrar(self, **_kwargs) -> None:
+    def registrar(self, **kwargs) -> None:
         self.registros += 1
+        self.ultimo = kwargs
 
 
 def _use_case_registro():
@@ -403,3 +425,152 @@ def test_snapshot_dentro_del_alcance_no_dispara_el_422():
     assert plantilla.version == 1
     assert plantilla.params_snapshot["schema_version"] == SCHEMA_VERSION_ACTUAL
     assert use_case.db.commits == 1
+
+
+# ── RF-30 / RF-31 — nombre único al crear, versionado explícito ──────────────
+# Los dos RF piden como criterio de aceptación que el sistema "rechace la
+# creación de una plantilla con un nombre ya existente", y a la vez que "una
+# actualización genere una nueva versión". Antes el POST hacía lo segundo en
+# silencio, así que el primero no se cumplía: repetir un nombre devolvía 201
+# con v2 y el usuario creía haber creado una plantilla distinta.
+
+def _plantilla_existente(nombre: str = "Config estándar", version: int = 1) -> Plantilla:
+    p = Plantilla.crear(
+        id_especie=1, id_usuario=7, template_name=nombre,
+        params_snapshot={**SNAPSHOT_VALIDO, "schema_version": SCHEMA_VERSION_ACTUAL},
+        version=version, fecha_creacion=datetime(2026, 5, 1, tzinfo=timezone.utc),
+    )
+    p.id_plantilla = version
+    return p
+
+
+def test_crear_con_nombre_repetido_responde_409():
+    use_case = _use_case_registro()
+    use_case.plantilla_repo.guardadas.append(_plantilla_existente())
+
+    with pytest.raises(ConflictError) as exc_info:
+        use_case.execute(_dto_con(SNAPSHOT_VALIDO), USUARIO)
+
+    error = exc_info.value
+    assert error.status_code == 409
+    assert error.code == "NOMBRE_PLANTILLA_DUPLICADO"
+    assert "Config estándar" in error.message
+    assert error.field == "template_name"
+    assert use_case.db.commits == 0
+    assert len(use_case.plantilla_repo.guardadas) == 1  # no se creó una v2
+
+
+@pytest.mark.parametrize("variante", ["config estándar", "CONFIG ESTÁNDAR", "  Config estándar  "])
+def test_el_nombre_duplicado_se_detecta_como_lo_hace_la_base(variante):
+    """El trigger compara `LOWER(TRIM(...))`. Si la app comparara exacto, estas
+    variantes pasarían el 409 y la BD las uniría a la misma familia sin avisar."""
+    use_case = _use_case_registro()
+    use_case.plantilla_repo.guardadas.append(_plantilla_existente())
+    dto = RegistrarPlantillaDTO(
+        template_name=variante, id_especie=1, params_snapshot=SNAPSHOT_VALIDO
+    )
+
+    with pytest.raises(ConflictError):
+        use_case.execute(dto, USUARIO)
+
+
+def test_crear_con_nombre_libre_asigna_version_1():
+    use_case = _use_case_registro()
+
+    plantilla = use_case.execute(_dto_con(SNAPSHOT_VALIDO), USUARIO)
+
+    assert plantilla.version == 1
+    assert use_case.db.commits == 1
+
+
+def _use_case_versionado(existentes):
+    return VersionarPlantillaUseCase(
+        db=_DbFake(),
+        plantilla_repo=_PlantillaRepoFake(existentes),
+        especie_repo=_EspecieRepoFake(),
+        auditoria_repo=_AuditoriaRepoFake(),
+    )
+
+
+def _dto_version(snapshot: dict | None = None) -> VersionarPlantillaDTO:
+    return VersionarPlantillaDTO(params_snapshot=snapshot or SNAPSHOT_VALIDO)
+
+
+def test_versionar_crea_la_siguiente_version_conservando_nombre_y_especie():
+    base = _plantilla_existente()
+    use_case = _use_case_versionado([base])
+
+    nueva = use_case.execute(1, _dto_version(), USUARIO)
+
+    assert nueva.version == 2
+    assert nueva.template_name == base.template_name
+    assert nueva.id_especie == base.id_especie
+    assert nueva.id_usuario == USUARIO.id_usuario  # autoría de esta versión
+    assert use_case.db.commits == 1
+
+
+def test_versionar_no_sobreescribe_la_version_anterior():
+    """Criterio de aceptación: 'una actualización genera nueva versión, no
+    sobreescribe la original'."""
+    base = _plantilla_existente()
+    use_case = _use_case_versionado([base])
+
+    use_case.execute(1, _dto_version({"patologias": [{"nombre": "Otra"}]}), USUARIO)
+
+    guardadas = use_case.plantilla_repo.guardadas
+    assert [p.version for p in guardadas] == [1, 2]
+    assert guardadas[0].params_snapshot == base.params_snapshot
+
+
+def test_versionar_encadena_v2_v3():
+    use_case = _use_case_versionado([_plantilla_existente()])
+
+    use_case.execute(1, _dto_version(), USUARIO)
+    tercera = use_case.execute(1, _dto_version(), USUARIO)
+
+    assert tercera.version == 3
+
+
+def test_versionar_registra_auditoria_con_el_estado_anterior():
+    """El RF pide trazar la actualización; sin el before no hay con qué comparar."""
+    use_case = _use_case_versionado([_plantilla_existente()])
+
+    use_case.execute(1, _dto_version(), USUARIO)
+
+    assert use_case.auditoria_repo.registros == 1
+    registro = use_case.auditoria_repo.ultimo
+    assert registro["tipo_operacion"] == "CREATE"
+    assert registro["valores_anteriores"]["version"] == 1
+    assert registro["valores_nuevos"]["version"] == 2
+
+
+def test_versionar_una_plantilla_inexistente_responde_404():
+    use_case = _use_case_versionado([])
+
+    with pytest.raises(NotFoundError) as exc_info:
+        use_case.execute(99, _dto_version(), USUARIO)
+
+    assert exc_info.value.code == "PLANTILLA_NO_ENCONTRADA"
+    assert use_case.db.commits == 0
+
+
+def test_versionar_con_especie_desactivada_responde_422():
+    use_case = _use_case_versionado([_plantilla_existente()])
+    use_case.especie_repo.activa = False
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(1, _dto_version(), USUARIO)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == "ESPECIE_INACTIVA"
+    assert use_case.db.commits == 0
+
+
+def test_versionar_tambien_rechaza_el_scope_creep_con_422():
+    use_case = _use_case_versionado([_plantilla_existente()])
+    dto = _dto_version({**SNAPSHOT_VALIDO, "dashboard": [{"id": 1}]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(1, dto, USUARIO)
+
+    assert exc_info.value.code == "ALCANCE_NO_PERMITIDO"

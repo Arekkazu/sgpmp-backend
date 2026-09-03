@@ -169,8 +169,10 @@ Errores posibles:
 
 ### POST /configuracion/plantillas
 
-El `params_snapshot` debe tener al menos una categoría con elementos.
-La versión se incrementa automáticamente si ya existe un `template_name` igual.
+Crea una plantilla **nueva**. El `params_snapshot` debe tener al menos una
+categoría con elementos y el `template_name` debe estar libre: un nombre ya
+registrado se rechaza con `409`. Para actualizar una plantilla existente hay
+que generar una versión (Flujo G), no repetir el nombre aquí.
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/plantillas \
@@ -247,11 +249,73 @@ Errores posibles:
 - `401` — token ausente o inválido
 - `403` — rol sin permiso C sobre recurso 28 (FA-05)
 - `404` — especie origen no existe
+- `409` — `template_name` ya registrado (`NOMBRE_PLANTILLA_DUPLICADO`, FA
+  "Nombre de plantilla duplicado"). La comparación ignora mayúsculas y espacios,
+  igual que el trigger de la BD
 - `422` — params_snapshot con claves de dispositivos IoT, infraestructura,
   dashboard o identidad visual (`ALCANCE_NO_PERMITIDO`, FA "Scope Creep" del RF-30)
 - `422` — especie origen inactiva (FA-08)
 
-Segunda llamada con el mismo `template_name` → `201` con `version=2` (no hay error de duplicado en el nombre solo).
+Segunda llamada con el mismo `template_name` → `409`. Versionar es el Flujo G.
+
+---
+
+## RF-30 / RF-31 — Generar nueva versión de una plantilla (Flujo G)
+
+### POST /configuracion/plantillas/{id_plantilla}/versiones
+
+Las plantillas son inmutables: actualizar una es crear su versión siguiente.
+La versión nueva hereda `template_name` e `id_especie` de la anterior — solo
+cambian los parámetros. El número lo asigna el trigger
+`trg_fn_plantilla_version_incremental` dentro de la transacción, así dos
+versionados simultáneos no pueden reclamar el mismo.
+
+```bash
+curl -X POST http://localhost:8000/configuracion/plantillas/1/versiones \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "params_snapshot": {
+      "ciclos_biologicos": [
+        {"nombre": "Alevín", "duracion_dias": 35, "descripcion": "Fase inicial ajustada"}
+      ],
+      "patologias": [{"nombre": "Estreptococosis"}]
+    }
+  }'
+```
+
+Respuesta esperada `201`:
+```json
+{
+  "id_plantilla": 4,
+  "id_especie": 3,
+  "id_usuario": 1,
+  "template_name": "Tilapia Estándar",
+  "version": 2,
+  "fecha_creacion": "2026-09-03T10:00:00Z",
+  "params_snapshot": {"schema_version": 1, "ciclos_biologicos": [...], "patologias": [...]}
+}
+```
+
+La v1 sigue intacta en el listado: el criterio de aceptación pide que una
+actualización *genere* una versión, no que sobreescriba la original.
+
+Errores posibles:
+- `400` — params_snapshot vacío o que no cumple el esquema
+- `401` — token ausente o inválido
+- `403` — rol sin permiso C sobre recurso 28
+- `404` — la plantilla base no existe
+- `422` — params_snapshot con claves fuera de alcance (`ALCANCE_NO_PERMITIDO`)
+- `422` — la especie asociada fue desactivada entre una versión y la siguiente
+
+### Verificación en DB
+
+```sql
+SELECT id_plantilla, template_name, version, fecha_creacion
+FROM modulo9.plantillas
+WHERE LOWER(TRIM(template_name)) = 'tilapia estándar'
+ORDER BY version;
+```
 
 ---
 

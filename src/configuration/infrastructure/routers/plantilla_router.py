@@ -6,6 +6,7 @@
   D) POST /configuracion/plantillas/{id}/aplicar — Aplicar plantilla (RF-32)
   E) GET  /configuracion/plantillas/historial   — Historial de aplicaciones (RF-30)
   F) GET  /configuracion/plantillas/esquema     — Esquema vigente + changelog (RF-30)
+  G) POST /configuracion/plantillas/{id}/versiones — Nueva versión (RF-30, RF-31)
 
   Autorización RBAC: recurso = id_recurso 28
     C=1 (crear), R=2 (leer), E=5 (aplicar)
@@ -18,6 +19,7 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.plantillas.aplicar_plantilla_use_case import AplicarPlantillaUseCase
 from src.configuration.application.use_cases.plantillas.consultar_plantillas_use_case import ConsultarPlantillasUseCase
 from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import RegistrarPlantillaUseCase
+from src.configuration.application.use_cases.plantillas.versionar_plantilla_use_case import VersionarPlantillaUseCase
 from src.configuration.domain.esquema_plantilla import (
     CAMPOS_NIVEL_ALERTA,
     CAMPOS_REQUERIDOS,
@@ -27,6 +29,7 @@ from src.configuration.domain.esquema_plantilla import (
 )
 from src.configuration.infrastructure.dto.aplicar_plantilla_dto import AplicarPlantillaDTO
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
+from src.configuration.infrastructure.dto.versionar_plantilla_dto import VersionarPlantillaDTO
 from src.configuration.infrastructure.repositories.aplicacion_plantilla_repository import SqlAlchemyAplicacionPlantillaRepository
 from src.configuration.infrastructure.repositories.auditoria_plantilla_repository import SqlAlchemyAuditoriaPlantillaRepository
 from src.configuration.infrastructure.repositories.ciclo_biologico_repository import SqlAlchemyCicloBiologicoRepository
@@ -151,6 +154,11 @@ def listar_plantillas(
         422: {"model": ErrorResponse},
     },
     summary="Crear plantilla de configuración (Flujo B — RF-31)",
+    description=(
+        "Crea una plantilla **nueva**. Un `template_name` ya registrado se rechaza "
+        "con `409`: para actualizar una plantilla existente hay que generar una "
+        "versión con `POST /configuracion/plantillas/{id_plantilla}/versiones`."
+    ),
 )
 def registrar_plantilla(
     dto: RegistrarPlantillaDTO,
@@ -230,3 +238,38 @@ def aplicar_plantilla(
     )
     aplicacion = use_case.execute(id_plantilla, dto, usuario_actual)
     return AplicacionPlantillaResponse.model_validate(aplicacion)
+
+
+@router.post(
+    "/{id_plantilla}/versiones",
+    response_model=PlantillaResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Generar nueva versión de una plantilla (Flujo G — RF-30, RF-31)",
+    description=(
+        "Las plantillas son inmutables: actualizar una es crear su versión "
+        "siguiente. La versión nueva hereda nombre y especie de la anterior; el "
+        "número lo asigna la base de datos de forma incremental."
+    ),
+)
+def versionar_plantilla(
+    id_plantilla: int,
+    dto: VersionarPlantillaDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> PlantillaResponse:
+    use_case = VersionarPlantillaUseCase(
+        db=db,
+        plantilla_repo=SqlAlchemyPlantillaRepository(db),
+        especie_repo=SqlAlchemyEspecieRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+    )
+    plantilla = use_case.execute(id_plantilla, dto, usuario_actual)
+    return PlantillaResponse.model_validate(plantilla)

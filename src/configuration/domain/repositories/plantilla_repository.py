@@ -19,8 +19,14 @@ class PlantillaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def obtener_version_maxima(self, template_name: str) -> Optional[int]:
-        """Retorna la versión más alta para un nombre dado. ``None`` si no existe."""
+    def existe_nombre(self, template_name: str) -> bool:
+        """Indica si ya hay alguna plantilla registrada con ese nombre.
+
+        Compara normalizando mayúsculas y espacios, igual que el trigger
+        ``trg_fn_plantilla_version_incremental``: si la app comparara exacto y
+        la BD normalizada, "Tilapia" y "tilapia" pasarían el chequeo de unicidad
+        y la BD las uniría en la misma familia de versiones sin avisar.
+        """
         raise NotImplementedError
 
     @abstractmethod
