@@ -828,7 +828,7 @@
 |--------|------|---------|-------------------|----------|
 | `GET` | `/` | `(26, R)` | Admin, Prod, Vet, Ing, Cont | `ObtenerIdiomaResueltoUseCase` |
 | `PATCH` | `/` | `(26, U)` | Admin, Prod, Vet, Ing, Cont | `GuardarIdiomaPersonalUseCase` |
-| `GET` | `/global` | `(27, R)` | Admin | — (consulta directa al repo) |
+| `GET` | `/global` | `(27, R)` | Admin | `ObtenerIdiomaGlobalUseCase` |
 | `PATCH` | `/global` | `(27, U)` | Admin | `GuardarIdiomaGlobalUseCase` |
 
 #### `PATCH /configuracion/personalizacion/idioma/` — Guardar idioma personal
@@ -837,7 +837,18 @@
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
-| `locale_code` | `str` | Ej: `"es"`, `"en"` |
+| `locale_code` | `str` | **Solo `"es-CO"` o `"en-US"`.** Cualquier otro valor → `400 IDIOMA_NO_DISPONIBLE`. Reforzado en BD por `chk_pref_idioma_locale_code` |
+| `version_perfil` | `int \| None` | Versión de perfil que devolvió el `GET`. Si se envía y no coincide con `modulo1.usuarios.version` → `409 CONFLICTO_PERFIL_MODIFICADO`. Omitirla salta la comprobación |
+
+**Errores:**
+
+| HTTP | `error_code` | Cuándo |
+|------|--------------|--------|
+| 400 | `IDIOMA_NO_DISPONIBLE` | `locale_code` fuera de la lista blanca |
+| 403 | `ACCESO_DENEGADO` | Sin el permiso RBAC. En `/global` el mensaje es el específico del RF-29 |
+| 404 | `PREFERENCIA_IDIOMA_NO_ENCONTRADA` | La fila desapareció entre la lectura y la escritura |
+| 409 | `CONFLICTO_PERFIL_MODIFICADO` | `version_perfil` desfasada |
+| 500 | `ERROR_PERSISTENCIA_IDIOMA` | Fallo de infraestructura al guardar |
 
 **Response `IdiomaResueltoResponse`** (para GET) / **`PreferenciaIdiomaResponse`** (para PATCH):
 
@@ -845,9 +856,10 @@
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
-| `locale_code` | `str` | Idioma resuelto (personal > global > default) |
-| `fuente` | `str` | `"personal"`, `"global"`, `"default"` |
+| `locale_code` | `str` | Idioma resuelto (personal > global > `es-CO`) |
+| `fuente` | `str` | `"personal"`, `"global"`, `"defecto"` — ojo, es `"defecto"`, no `"default"` |
 | `id_preferencia_idioma` | `int \| None` | — |
+| `version_perfil` | `int \| None` | El cliente la devuelve en el siguiente `PATCH` |
 
 **`PreferenciaIdiomaResponse`:**
 
@@ -858,6 +870,7 @@
 | `locale_code` | `str` |
 | `es_por_defecto` | `bool` |
 | `fecha_actualizacion` | `datetime \| None` |
+| `version_perfil` | `int \| None` |
 
 ---
 

@@ -15,12 +15,15 @@ class ObtenerIdiomaResueltoUseCase:
         self.idioma_repo = idioma_repo
 
     def execute(self, usuario_actual: UsuarioActual) -> dict:
+        version = self.idioma_repo.version_perfil(usuario_actual.id_usuario)
+
         personal = self.idioma_repo.obtener_por_usuario(usuario_actual.id_usuario)
         if personal is not None:
             return {
                 "locale_code": personal.locale_code,
                 "fuente": "personal",
                 "id_preferencia_idioma": personal.id_preferencia_idioma,
+                "version_perfil": version,
             }
 
         global_ = self.idioma_repo.obtener_global()
@@ -29,10 +32,12 @@ class ObtenerIdiomaResueltoUseCase:
                 "locale_code": global_.locale_code,
                 "fuente": "global",
                 "id_preferencia_idioma": global_.id_preferencia_idioma,
+                "version_perfil": version,
             }
 
         return {
             "locale_code": LOCALE_DEFAULT,
             "fuente": "defecto",
             "id_preferencia_idioma": None,
+            "version_perfil": version,
         }

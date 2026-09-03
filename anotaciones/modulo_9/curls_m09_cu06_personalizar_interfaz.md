@@ -432,11 +432,16 @@ Respuesta esperada `200`:
 {
   "locale_code": "en-US",
   "fuente": "personal",
-  "id_preferencia_idioma": 7
+  "id_preferencia_idioma": 7,
+  "version_perfil": 5
 }
 ```
 
 `fuente` puede ser `"personal"`, `"global"` o `"defecto"`.
+
+`version_perfil` es la versión del perfil del usuario en el momento de la lectura. El
+cliente la reenvía en el `PATCH` para que el backend detecte que su perfil cambió mientras
+editaba; ver el `409` de abajo.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -450,8 +455,10 @@ Errores posibles:
 curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"locale_code": "en-US"}'
+  -d '{"locale_code": "en-US", "version_perfil": 5}'
 ```
+
+`version_perfil` es opcional: si se omite, no se comprueba la concurrencia.
 
 Respuesta esperada `200`:
 ```json
@@ -460,13 +467,35 @@ Respuesta esperada `200`:
   "id_usuario": 3,
   "locale_code": "en-US",
   "es_por_defecto": false,
-  "fecha_actualizacion": "2026-06-21T13:00:00Z"
+  "fecha_actualizacion": "2026-06-21T13:00:00Z",
+  "version_perfil": 5
 }
 ```
 
 Errores posibles:
-- `400` — `locale_code` no está entre `es-CO` / `en-US` (FA-33)
-- `403` — rol sin permiso U sobre `preferencia_idioma`
+- `400 IDIOMA_NO_DISPONIBLE` — `locale_code` no está entre `es-CO` / `en-US`
+  (FA "Código de idioma no soportado"). Ojo: `"es"` y `"en"` **no** son válidos.
+- `403 ACCESO_DENEGADO` — rol sin permiso U sobre `preferencia_idioma`
+- `404 PREFERENCIA_IDIOMA_NO_ENCONTRADA` — la fila desapareció entre la lectura y la escritura
+- `409 CONFLICTO_PERFIL_MODIFICADO` — la `version_perfil` enviada no coincide con la vigente
+  (FA "Conflicto de actualización de perfil")
+- `500 ERROR_PERSISTENCIA_IDIOMA` — fallo de infraestructura al guardar
+  (FA "Fallo en la persistencia de la preferencia")
+
+Ejemplo del `400`:
+```bash
+curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"locale_code": "fr-FR"}'
+```
+```json
+{
+  "error_code": "IDIOMA_NO_DISPONIBLE",
+  "message": "Idioma no disponible: El código de cultura 'fr-FR' no está soportado actualmente. Los idiomas disponibles son Español (es-CO) e Inglés (en-US).",
+  "fields": [{"field": "locale_code", "message": "Idioma no disponible: ..."}]
+}
+```
 
 ---
 
@@ -480,7 +509,9 @@ curl -X GET http://localhost:8000/configuracion/personalizacion/idioma/global \
 Respuesta `200` con objeto `PreferenciaIdioma` donde `es_por_defecto=true`, o `null` si no configurado.
 
 Errores posibles:
-- `403` — rol sin permiso R sobre `configuracion_ui_global`
+- `403 ACCESO_DENEGADO` — rol sin permiso R sobre `configuracion_ui_global`. El mensaje es el
+  específico del RF-29, no el genérico:
+  `"Acceso denegado: Solo el Administrador del sistema puede definir el idioma predeterminado global de la plataforma."`
 
 ---
 
@@ -496,5 +527,12 @@ curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma/global 
 Respuesta esperada `200` con `es_por_defecto=true` y el nuevo `locale_code`.
 
 Errores posibles:
-- `400` — `locale_code` no válido (FA-33)
-- `403` — rol sin permiso U sobre `configuracion_ui_global`
+- `400 IDIOMA_NO_DISPONIBLE` — `locale_code` no válido
+- `403 ACCESO_DENEGADO` — rol sin permiso U sobre `configuracion_ui_global`
+  (FA "Privilegios insuficientes"), con el mensaje específico del RF-29
+- `409 CONFLICTO_PERFIL_MODIFICADO` — `version_perfil` desfasada
+- `500 ERROR_PERSISTENCIA_IDIOMA` — fallo de infraestructura al guardar
+
+> Los invariantes de `es-CO`/`en-US`, "una preferencia personal por usuario" y "una sola fila
+> global" están además reforzados en base de datos por la migración `b5d1e0c93a77`, así que
+> una escritura fuera de la aplicación también los respeta.
