@@ -16,13 +16,20 @@ Trazabilidad de los gaps que corrigen estas pruebas (auditoría
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from src.configuration.application.use_cases.plantillas.registrar_plantilla_use_case import (
+    RegistrarPlantillaUseCase,
+)
 from src.configuration.domain.esquema_plantilla import (
     CAMPOS_REQUERIDOS,
+    CLAVES_FUERA_DE_ALCANCE,
+    claves_fuera_de_alcance,
     CATEGORIAS,
     CHANGELOG,
     SCHEMA_VERSION_ACTUAL,
@@ -34,7 +41,9 @@ from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipo
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
+from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.error_handlers import register_error_handlers
+from src.shared.errors import BusinessRuleError
 
 SNAPSHOT_VALIDO = {
     "ciclos_biologicos": [
@@ -91,9 +100,18 @@ def test_snapshot_con_un_solo_parametro_es_valido():
     assert validar_snapshot(SNAPSHOT_VALIDO) == []
 
 
-def test_snapshot_fuera_de_alcance_nombra_las_claves_invalidas():
-    errores = validar_snapshot({**SNAPSHOT_VALIDO, "dispositivos_iot": [{"id": 1}]})
-    assert any("dispositivos_iot" in e and "fuera de alcance" in e for e in errores)
+def test_claves_fuera_de_alcance_se_detectan_y_se_nombran():
+    """FA 'Scope Creep' del RF-30. Va aparte de validar_snapshot porque el RF
+    le asigna 422, y el DTO solo puede producir 400."""
+    assert claves_fuera_de_alcance({**SNAPSHOT_VALIDO, "dispositivos_iot": [{"id": 1}]}) == [
+        "dispositivos_iot"
+    ]
+    assert claves_fuera_de_alcance(SNAPSHOT_VALIDO) == []
+
+
+def test_validar_snapshot_calla_si_el_fallo_es_de_alcance():
+    """Si callara a medias, el 400 de 'plantilla vacía' se adelantaría al 422."""
+    assert validar_snapshot({"dispositivos_iot": [{"id": 1}]}) == []
 
 
 def test_snapshot_con_clave_desconocida_la_nombra():
@@ -279,3 +297,109 @@ def test_tipo_invalido_responde_400_nombrando_el_campo(cliente: TestClient):
     assert respuesta.status_code == 400
     detalle = " ".join(f["message"] for f in respuesta.json()["fields"])
     assert "duracion_dias" in detalle and "entero positivo" in detalle
+
+
+# ── RF-30 — FA "Scope Creep": 422, no 400 ────────────────────────────────────
+# El RF le da a este caso su propio código, distinto del 400 con que se rechaza
+# un fallo de esquema. El chequeo vive en el use case porque un validador de
+# Pydantic solo puede terminar en el 400 del handler global.
+
+class _DbFake:
+    def __init__(self) -> None:
+        self.commits = 0
+        self.rollbacks = 0
+
+    def commit(self) -> None:
+        self.commits += 1
+
+    def rollback(self) -> None:
+        self.rollbacks += 1
+
+
+class _EspecieRepoFake:
+    """Si el 422 no se adelanta, la ejecución llega hasta aquí y se nota."""
+
+    def __init__(self) -> None:
+        self.consultada = False
+
+    def obtener_por_id(self, _id_especie):
+        self.consultada = True
+        return SimpleNamespace(id_especie=1, es_activo=True)
+
+
+class _PlantillaRepoFake:
+    def __init__(self) -> None:
+        self.guardadas: list = []
+
+    def obtener_version_maxima(self, _template_name):
+        return None
+
+    def guardar(self, plantilla):
+        self.guardadas.append(plantilla)
+        plantilla.id_plantilla = 1
+        return plantilla
+
+
+class _AuditoriaRepoFake:
+    def __init__(self) -> None:
+        self.registros = 0
+
+    def registrar(self, **_kwargs) -> None:
+        self.registros += 1
+
+
+def _use_case_registro():
+    return RegistrarPlantillaUseCase(
+        db=_DbFake(),
+        plantilla_repo=_PlantillaRepoFake(),
+        especie_repo=_EspecieRepoFake(),
+        auditoria_repo=_AuditoriaRepoFake(),
+    )
+
+
+def _dto_con(snapshot: dict) -> RegistrarPlantillaDTO:
+    return RegistrarPlantillaDTO(
+        template_name="Config estándar", id_especie=1, params_snapshot=snapshot
+    )
+
+
+USUARIO = UsuarioActual(id_usuario=7, id_token=1, id_rol=1)
+
+
+def test_scope_creep_lanza_422_y_no_toca_la_base():
+    use_case = _use_case_registro()
+    dto = _dto_con({**SNAPSHOT_VALIDO, "dispositivos_iot": [{"id": 1}]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(dto, USUARIO)
+
+    error = exc_info.value
+    assert error.status_code == 422
+    assert error.code == "ALCANCE_NO_PERMITIDO"
+    assert "dispositivos_iot" in error.message
+    assert error.field == "params_snapshot"
+    # Se corta antes de consultar la especie, guardar o auditar.
+    assert use_case.especie_repo.consultada is False
+    assert use_case.plantilla_repo.guardadas == []
+    assert use_case.auditoria_repo.registros == 0
+    assert use_case.db.commits == 0
+
+
+@pytest.mark.parametrize("clave", sorted(CLAVES_FUERA_DE_ALCANCE))
+def test_todas_las_categorias_excluidas_por_el_rf_dan_422(clave):
+    """Dispositivos IoT, infraestructura, dashboard e identidad visual, más las
+    que el RF-30 excluye por depender del contexto de cada unidad productiva."""
+    use_case = _use_case_registro()
+
+    with pytest.raises(BusinessRuleError):
+        use_case.execute(_dto_con({**SNAPSHOT_VALIDO, clave: [{"id": 1}]}), USUARIO)
+
+
+def test_snapshot_dentro_del_alcance_no_dispara_el_422():
+    use_case = _use_case_registro()
+
+    plantilla = use_case.execute(_dto_con(SNAPSHOT_VALIDO), USUARIO)
+
+    assert plantilla.version == 1
+    assert plantilla.params_snapshot["schema_version"] == SCHEMA_VERSION_ACTUAL
+    assert use_case.db.commits == 1

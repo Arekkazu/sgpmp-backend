@@ -234,7 +234,6 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `400` — template_name fuera del rango 3-50 chars (FA-07)
-- `400` — params_snapshot con claves fuera de alcance (FA-09)
 - `400` — params_snapshot sin ningún elemento en ninguna categoría (FA-10),
   mensaje `Plantilla vacía: debe seleccionar al menos un parámetro (...)`
 - `400` — un ítem sin sus campos obligatorios; el mensaje nombra la categoría,
@@ -248,6 +247,8 @@ Errores posibles:
 - `401` — token ausente o inválido
 - `403` — rol sin permiso C sobre recurso 28 (FA-05)
 - `404` — especie origen no existe
+- `422` — params_snapshot con claves de dispositivos IoT, infraestructura,
+  dashboard o identidad visual (`ALCANCE_NO_PERMITIDO`, FA "Scope Creep" del RF-30)
 - `422` — especie origen inactiva (FA-08)
 
 Segunda llamada con el mismo `template_name` → `201` con `version=2` (no hay error de duplicado en el nombre solo).

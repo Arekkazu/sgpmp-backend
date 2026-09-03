@@ -191,24 +191,43 @@ def _validar_niveles(umbral: dict[str, Any], ubicacion: str) -> list[str]:
     return errores
 
 
+def claves_fuera_de_alcance(snapshot: dict[str, Any]) -> list[str]:
+    """Devuelve las claves de otros módulos que el RF-30 excluye del alcance.
+
+    Va aparte de `validar_snapshot` porque el RF le asigna a este caso su
+    propio código: el FA "Intento de inclusión de parámetros fuera de alcance"
+    responde `422`, mientras que un fallo de esquema responde `400`. El use
+    case lo consulta antes de nada para poder lanzar el 422.
+
+    Args:
+        snapshot: Contenido de `params_snapshot` tal como llega del cliente.
+
+    Returns:
+        Claves fuera de alcance encontradas, ordenadas. Vacía si no hay.
+    """
+    return sorted(set(snapshot) & CLAVES_FUERA_DE_ALCANCE)
+
+
 def validar_snapshot(snapshot: dict[str, Any]) -> list[str]:
     """Valida la estructura de un `params_snapshot` contra el esquema vigente.
+
+    No reporta las claves fuera de alcance: el RF-30 las castiga con `422` y
+    esta función alimenta al DTO, que solo puede producir `400`. Si el snapshot
+    trae alguna, esta función calla del todo para que el 422 del use case sea
+    el que llegue al cliente, y no un 400 de "plantilla vacía" disparado por
+    unas categorías que además no correspondían.
 
     Args:
         snapshot: Contenido de `params_snapshot` tal como llega del cliente.
 
     Returns:
         Lista de problemas encontrados, en lenguaje de usuario. Vacía si el
-        snapshot cumple el esquema.
+        snapshot cumple el esquema, o si su fallo es de alcance.
     """
-    errores: list[str] = []
+    if claves_fuera_de_alcance(snapshot):
+        return []
 
-    fuera_de_alcance = sorted(set(snapshot) & CLAVES_FUERA_DE_ALCANCE)
-    if fuera_de_alcance:
-        errores.append(
-            f"Parámetros fuera de alcance: {fuera_de_alcance}. Las plantillas solo "
-            "pueden contener parámetros productivos y umbrales ambientales."
-        )
+    errores: list[str] = []
 
     desconocidas = sorted(set(snapshot) - CLAVES_PERMITIDAS - CLAVES_FUERA_DE_ALCANCE)
     if desconocidas:

@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.plantilla import Plantilla
-from src.configuration.domain.esquema_plantilla import SCHEMA_VERSION_ACTUAL
+from src.configuration.domain.esquema_plantilla import SCHEMA_VERSION_ACTUAL, claves_fuera_de_alcance
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
@@ -35,6 +35,21 @@ class RegistrarPlantillaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarPlantillaDTO, usuario_actual: UsuarioActual) -> Plantilla:
+        # Alcance antes que nada: el RF-30 le da a este caso su propio código
+        # (422), distinto del 400 con que se rechaza un fallo de esquema. Por
+        # eso no vive en el DTO, que solo puede producir 400.
+        fuera_de_alcance = claves_fuera_de_alcance(dto.params_snapshot)
+        if fuera_de_alcance:
+            raise BusinessRuleError(
+                code="ALCANCE_NO_PERMITIDO",
+                message=(
+                    "Alcance no permitido: las plantillas solo pueden contener parámetros "
+                    "productivos y umbrales ambientales. Se han detectado configuraciones "
+                    f"de {fuera_de_alcance} que deben ser removidas."
+                ),
+                field="params_snapshot",
+            )
+
         especie = self.especie_repo.obtener_por_id(dto.id_especie)
         if especie is None:
             raise NotFoundError(
