@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "TC-M01-053",
+    "description": "Prueba de la frontera exacta de expiracion del token de recuperacion: un token usado a los 14:59 minutos debe ACEPTARSE (200), y otro usado a los 15:01 minutos debe RECHAZARSE (401 TOKEN_INVALIDO). Como los tokens no viven en una base de datos accesible (ver TC-M01-48), no se puede adelantar el reloj -- hay que usar 2 tokens reales SEPARADOS y esperar el tiempo real para cada uno. Usar el script tc-m01-053-ejecutar.ps1, que ya integra ambas esperas y las pausas para pegar cada token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_cuenta", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "token_a", "value": "SX-9yNCQPaVExJSo7UzxhZk-j_e0nbHsYysuiHIt-tY" },
+    { "key": "token_b", "value": "b61XGfixmPj60VnyvmW-UV6pmhRf_IDJZTOU86ZgnlY" },
+    { "key": "contrasena_nueva_a", "value": "Frontera14#59" },
+    { "key": "contrasena_nueva_b", "value": "Frontera15#01" }
+  ],
+  "item": [
+    {
+      "name": "0A. Disparar recuperacion - Token A (se probara a los 14:59)",
+      "item": [
+        {
+          "name": "0A.1 Solicitar recuperacion",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 202 Accepted (si sale 422, espera y reintenta - limite de 3/hora por conexion)', function () {",
+            "    pm.response.to.have.status(202);",
+            "});",
+            "console.log('Token A solicitado a las: ' + new Date().toISOString());"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_cuenta}}\"\n}" },
+            "url": "{{base_url}}/contrasena/recuperar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1A. Usar token A a los 14:59 (debe ACEPTAR)",
+      "item": [
+        {
+          "name": "1A.1 Restablecer con token A (dentro del limite)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Recordatorio: token_a debe ser el token real, no el placeholder', function () {",
+            "    pm.expect(pm.collectionVariables.get('token_a')).to.not.include('PEGAR');",
+            "});",
+            "pm.test('TC-M01-053: a los 14:59 el token TODAVIA debe ser valido (200 OK)', function () {",
+            "    pm.response.to.have.status(200);",
+            "});"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_a}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva_a}}\",\n  \"confirmar_contrasena\": \"{{contrasena_nueva_a}}\"\n}" },
+            "url": "{{base_url}}/contrasena/restablecer"
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Disparar recuperacion - Token B (se probara a los 15:01)",
+      "item": [
+        {
+          "name": "0B.1 Solicitar recuperacion",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 202 Accepted (si sale 422, espera y reintenta - limite de 3/hora por conexion)', function () {",
+            "    pm.response.to.have.status(202);",
+            "});",
+            "console.log('Token B solicitado a las: ' + new Date().toISOString());"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_cuenta}}\"\n}" },
+            "url": "{{base_url}}/contrasena/recuperar"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1B. Usar token B a los 15:01 (debe RECHAZAR)",
+      "item": [
+        {
+          "name": "1B.1 Restablecer con token B (fuera del limite)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Recordatorio: token_b debe ser el token real, no el placeholder', function () {",
+            "    pm.expect(pm.collectionVariables.get('token_b')).to.not.include('PEGAR');",
+            "});",
+            "pm.test('TC-M01-053: a los 15:01 el token YA debe estar vencido (401 TOKEN_INVALIDO)', function () {",
+            "    pm.response.to.have.status(401);",
+            "    pm.expect(pm.response.json().error_code).to.eql('TOKEN_INVALIDO');",
+            "});"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_b}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva_b}}\",\n  \"confirmar_contrasena\": \"{{contrasena_nueva_b}}\"\n}" },
+            "url": "{{base_url}}/contrasena/restablecer"
+          }
+        }
+      ]
+    }
+  ]
+}

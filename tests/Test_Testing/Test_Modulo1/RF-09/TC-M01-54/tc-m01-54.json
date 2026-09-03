@@ -7,28 +7,15 @@
   "variable": [
     { "key": "correo", "value": "danielacastillovargas09@gmail.com" },
     { "key": "contrasena_nueva", "value": "UsoUnico#46" },
-    { "key": "token_recuperacion", "value": "PEGAR_AQUI_EL_TOKEN_DEL_CORREO" }
+    { "key": "token_recuperacion", "value": "HWnvs14kZBPgVyLe4pie3T_TPyaNf9t9EinCUWiKtFo" }
   ],
   "item": [
-    {
-      "name": "0. Solicitar recuperacion de contrasena (revisa tu correo despues de este paso)",
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test('Responde 202 Accepted (si sale 422, espera y reintenta - limite de 3/hora por conexion)', function () {",
-        "    pm.response.to.have.status(202);",
-        "});"
-      ] } }],
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
-        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
-      }
-    },
+
     {
       "name": "1. Primer uso del token - debe restablecer exitosamente",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "pm.test('token_recuperacion fue reemplazado por un valor real', function () {",
-        "    pm.expect(pm.collectionVariables.get('token_recuperacion')).to.not.eql('PEGAR_AQUI_EL_TOKEN_DEL_CORREO');",
+        "    pm.expect(pm.collectionVariables.get('token_recuperacion')).to.not.eql('HWnvs14kZBPgVyLe4pie3T_TPyaNf9t9EinCUWiKtFo');",
         "});",
         "pm.test('Responde 200 OK', function () { pm.response.to.have.status(200); });"
       ] } }],
@@ -36,7 +23,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva}}\",\n  \"confirmar_contrasena\": \"{{contrasena_nueva}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
       }
     },
     {
@@ -53,7 +40,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"OtraValida#99\",\n  \"confirmar_contrasena\": \"OtraValida#99\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
       }
     }
   ]
