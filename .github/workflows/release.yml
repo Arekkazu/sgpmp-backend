@@ -30,22 +30,17 @@ jobs:
           # persist-credentials debe quedar en true (default): semantic-
           # release/git hace un "git push" real, no una llamada API —
           # necesita que checkout deje el token configurado como
-          # credencial de git. Con persist-credentials: false (como
-          # estaba antes), el push falla con "Invalid username or token"
-          # aunque GITHUB_TOKEN esté seteado como env var más abajo (eso
-          # solo lo usa el plugin @semantic-release/github para la API,
-          # no el git push).
+          # credencial de git.
           #
-          # Token: el automático de Actions (github.token, ver "with:
-          # token" default de actions/checkout) alcanza — ya tiene
-          # contents:write por el bloque "permissions" de este workflow.
-          # OJO: se había cambiado a secrets.GH_TOKEN más abajo, pero ese
-          # secret NO existe en este repo (gh secret list solo muestra
-          # DOCS_SGPMP_TOKEN) — quedaba vacío en runtime. Revertido al
-          # token automático; si en el futuro hace falta un PAT real
-          # (para saltar branch protection o encadenar otros workflows),
-          # crearlo como secret y pasarlo tanto acá como en GITHUB_TOKEN
-          # de abajo.
+          # Token: dev tiene un ruleset que exige PR obligatorio
+          # ("Changes must be made through a pull request", GH013) — el
+          # token automático de Actions (github.token) actúa como el bot
+          # github-actions[bot], que no está en el bypass del ruleset, así
+          # que su push siempre se rechaza sin importar los permisos del
+          # workflow. Se necesita un PAT real de una cuenta que SÍ esté en
+          # el bypass del ruleset (Settings → Rules → editar la regla de
+          # dev → bypass list), guardado como el secret GH_TOKEN.
+          token: ${{ secrets.GH_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -65,7 +60,7 @@ jobs:
 
       - name: Ejecutar semantic-release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npx semantic-release
 
       - name: Confirmar publicación
