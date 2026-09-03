@@ -162,6 +162,101 @@ def test_identidad_solo_con_logotipo_no_rompe_el_contexto() -> None:
     assert contexto.accesibilidad.primary_color is None
 
 
+# ---- La consulta contra la vista ---- #
+
+class _Resultado:
+    def __init__(self, fila: Optional[dict]) -> None:
+        self._fila = fila
+
+    def mappings(self):
+        return self
+
+    def first(self):
+        return self._fila
+
+    def all(self):
+        return []
+
+
+class SesionFake:
+    """Captura el SQL emitido, para fijar las dos roturas que tenia esta consulta."""
+
+    def __init__(self, fila: Optional[dict]) -> None:
+        self.fila = fila
+        self.sentencias: list[str] = []
+
+    def execute(self, sentencia, parametros=None):
+        texto = str(sentencia)
+        self.sentencias.append(texto)
+        # La primera consulta es la de la vista; la segunda, la de modulos autorizados.
+        return _Resultado(self.fila if "vw_rf25_contexto_usuario" in texto else None)
+
+
+FILA_VISTA = {
+    "id_usuario": 2,
+    "nombre_completo": "Laura Gomez Torres",
+    "id_rol": 2,
+    "nombre_rol": "Productor",
+    "id_finca": 1,
+    "finca_activa": "Finca Acuicola El Remanso",
+    "departamento": "Huila",
+    "especies_configuradas": ["Cachama Blanca", "Trucha Arcoiris"],
+}
+
+
+def _sql_de_la_vista(sesion: SesionFake) -> str:
+    return next(s for s in sesion.sentencias if "vw_rf25_contexto_usuario" in s)
+
+
+def test_la_consulta_usa_el_nombre_real_de_la_columna_de_especies() -> None:
+    """El endpoint respondia 500: la vista expone `especies_en_finca`, no el alias.
+
+    `modulo9.vw_rf25_contexto_usuario` nunca tuvo una columna `especies_configuradas`,
+    asi que la consulta fallaba con ProgrammingError contra la base real. Los fakes de
+    las demas pruebas no lo detectaban porque nadie ejecutaba el SQL de verdad.
+    """
+    from src.configuration.infrastructure.repositories.contexto_interfaz_repository import (
+        SqlAlchemyContextoInterfazRepository,
+    )
+
+    sesion = SesionFake(FILA_VISTA)
+    SqlAlchemyContextoInterfazRepository(sesion).obtener_por_usuario(id_usuario=2, id_rol=2)
+
+    sql = _sql_de_la_vista(sesion)
+    assert "especies_en_finca AS especies_configuradas" in sql
+
+
+def test_la_consulta_fija_un_orden_deterministico() -> None:
+    """La vista emite una fila por finca activa del usuario.
+
+    Sin ORDER BY, `.first()` devolvia la que Postgres quisiera: la "finca activa" podia
+    cambiar entre dos peticiones seguidas y con ella la marca institucional de RF-26.
+    """
+    from src.configuration.infrastructure.repositories.contexto_interfaz_repository import (
+        SqlAlchemyContextoInterfazRepository,
+    )
+
+    sesion = SesionFake(FILA_VISTA)
+    SqlAlchemyContextoInterfazRepository(sesion).obtener_por_usuario(id_usuario=2, id_rol=2)
+
+    assert "ORDER BY id_finca" in _sql_de_la_vista(sesion)
+
+
+def test_la_fila_de_la_vista_se_mapea_al_read_model() -> None:
+    from src.configuration.infrastructure.repositories.contexto_interfaz_repository import (
+        SqlAlchemyContextoInterfazRepository,
+    )
+
+    sesion = SesionFake(FILA_VISTA)
+    contexto = SqlAlchemyContextoInterfazRepository(sesion).obtener_por_usuario(
+        id_usuario=2, id_rol=2
+    )
+
+    assert contexto.id_finca == 1
+    assert contexto.finca_activa == "Finca Acuicola El Remanso"
+    assert contexto.especies_configuradas == ["Cachama Blanca", "Trucha Arcoiris"]
+
+
 # ---- El endpoint, con la compuerta RBAC real ---- #
 
 class _Query:

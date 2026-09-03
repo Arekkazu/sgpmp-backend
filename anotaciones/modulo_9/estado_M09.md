@@ -582,6 +582,43 @@ sí solo.
   - "Forzar recarga de interfaz cuando cambian los permisos en sesión activa" — el backend no
     empuja ningún evento; el cliente tendría que re-consultar por su cuenta.
 
+  **Hallazgo 2026-09-03 — el endpoint respondía `500` contra la base real.** El repositorio
+  seleccionaba `especies_configuradas` de `modulo9.vw_rf25_contexto_usuario`, y la columna
+  de la vista se llama `especies_en_finca`: `ProgrammingError` en cada petición. Este audit
+  dio el endpoint por funcional porque lo verificó leyendo código, no ejecutándolo — explica
+  también por qué `contextoApi` quedó como código muerto en el frontend. Corregido.
+
+  **Hallazgo 2026-09-03 — la "finca activa" no era determinista.** La vista emite una fila
+  por finca activa del usuario (el Productor de dev tiene cuatro) y el repositorio hacía
+  `.first()` sin `ORDER BY`: la finca —y con ella la identidad visual de RF-26— podía cambiar
+  entre dos peticiones seguidas. Se fija `ORDER BY id_finca NULLS LAST`. Es un parche
+  determinista, no un selector: **RF-25 asume una finca activa por usuario y el modelo de
+  datos permite varias.** Elegir cuál es la activa es una decisión de producto pendiente
+  (¿la última usada? ¿un selector explícito en la interfaz?).
+
+  **Gap abierto 2026-09-03 — `especies_configuradas` no es "de la finca".** La subconsulta
+  lateral de la vista **no está correlacionada con `f.id_finca`**: devuelve las especies con
+  umbrales ambientales activos de todo el sistema, idénticas para cualquier usuario y
+  cualquier finca. RF-25 pide "indicadores según las especies productivas configuradas en la
+  finca", así que el dato existe pero no significa lo que el RF dice. El vínculo real está en
+  `modulo9.infraestructuras`, que tiene `id_finca` e `id_especie`:
+
+  ```sql
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(array_agg(DISTINCT e.nombre ORDER BY e.nombre), ARRAY[]::text[])
+      FROM modulo9.infraestructuras i
+      JOIN modulo9.especies e ON e.id_especie = i.id_especie AND e.es_activo IS TRUE
+     WHERE i.id_finca = f.id_finca AND i.es_activo IS TRUE
+  ) especies ON true
+  ```
+
+  **No se aplica en este cambio y es deliberado:** `infraestructuras.id_especie` está en
+  `NULL` en las 12 áreas productivas de dev, así que corregir la vista dejaría la lista vacía
+  para las seis fincas y todo usuario vería "Finca sin configuración". El prerrequisito es
+  poblar `id_especie` (RF-20), no la migración. Mientras tanto el filtrado por especie del
+  frontend está escrito contra el contrato correcto pero no discrimina, porque recibe el
+  catálogo completo.
+
   **Actualización 2026-09-03:** el endpoint dejó de ser solo rol + finca + especies. Ahora
   entrega también la identidad visual de la finca activa (RF-26) y su evaluación de contraste
   WCAG (RF-27), de modo que el cliente construye la interfaz con una sola petición al iniciar

@@ -18,13 +18,20 @@ class SqlAlchemyContextoInterfazRepository(ContextoInterfazRepository):
         self.db = db
 
     def obtener_por_usuario(self, id_usuario: int, id_rol: int) -> ContextoInterfaz:
+        # La vista emite una fila por finca activa del usuario, así que sin ORDER BY la
+        # "finca activa" era la que Postgres devolviera primero: podía cambiar entre dos
+        # peticiones seguidas y con ella la marca institucional de RF-26. Se fija la de
+        # menor id — determinista y estable mientras no exista un selector de finca.
+        # `especies_en_finca` es el nombre real de la columna en la vista; el alias que se
+        # usaba antes no existe y hacía que este endpoint respondiera 500 contra la BD.
         fila = self.db.execute(
             text(
                 "SELECT id_usuario, nombre_completo, id_rol, nombre_rol, "
-                "id_finca, finca_activa, departamento, finca_activa_estado, "
-                "especies_configuradas "
+                "id_finca, finca_activa, departamento, "
+                "especies_en_finca AS especies_configuradas "
                 "FROM modulo9.vw_rf25_contexto_usuario "
-                "WHERE id_usuario = :id_usuario"
+                "WHERE id_usuario = :id_usuario "
+                "ORDER BY id_finca NULLS LAST"
             ),
             {"id_usuario": id_usuario},
         ).mappings().first()
