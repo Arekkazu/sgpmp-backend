@@ -1,7 +1,10 @@
 """Caso de uso: Asociar sensor a área productiva (POST /{id}/asociar RF-22).
 
 Si el sensor ya tiene una asociación activa en la misma área → 409 duplicado.
-Si la asociación activa es en otra área → termina la anterior y crea la nueva (reasignación).
+Si la asociación activa es en otra área y el cliente no confirmó todavía →
+409 pidiendo confirmación (FA "Conflicto de reasignación" del RF). Si ya
+confirmó (`dto.confirmar=True`) → termina la asociación anterior y crea la
+nueva.
 """
 from __future__ import annotations
 
@@ -59,24 +62,34 @@ class AsociarSensorAreaUseCase:
                 message="No se pueden asociar sensores a áreas productivas inactivas.",
             )
 
-        # Verificar historial de asociaciones para respetar la regla de infraestructura fija
-        historial = self.sensor_area_repo.listar_por_sensor(id_sensor)
-        if historial:
-            area_historica = historial[0].id_infraestructura
-            if area_historica != dto.id_infraestructura:
-                raise BusinessRuleError(
-                    code="SENSOR_INFRAESTRUCTURA_FIJA",
-                    message=(
-                        f"El sensor ID {id_sensor} está vinculado de por vida al área ID {area_historica}. "
-                        f"Los sensores no pueden reasignarse a una infraestructura diferente."
-                    ),
-                )
-
         asociacion_activa = self.sensor_area_repo.obtener_asociacion_activa(id_sensor)
         if asociacion_activa is not None:
-            raise ConflictError(
-                code="ASOCIACION_DUPLICADA",
-                message=f"El sensor ya está activo en el punto '{asociacion_activa.punto_instalacion.valor}' de esta área.",
+            if asociacion_activa.id_infraestructura == dto.id_infraestructura:
+                raise ConflictError(
+                    code="ASOCIACION_DUPLICADA",
+                    message=f"El sensor ya está activo en el punto '{asociacion_activa.punto_instalacion.valor}' de esta área.",
+                )
+
+            if not dto.confirmar:
+                area_actual = self.infra_repo.obtener_por_id(asociacion_activa.id_infraestructura)
+                nombre_area_actual = area_actual.nombre if area_actual else f"ID {asociacion_activa.id_infraestructura}"
+                raise ConflictError(
+                    code="REASIGNACION_REQUIERE_CONFIRMACION",
+                    message=(
+                        f"Conflicto de asignación: El sensor {id_sensor} ya está monitoreando el área "
+                        f"'{nombre_area_actual}'. ¿Desea reasignarlo? Esta acción finalizará la asociación "
+                        f"anterior automáticamente."
+                    ),
+                    field="confirmar",
+                )
+
+            asociacion_activa.terminar()
+            anterior_actualizada = self.sensor_area_repo.actualizar(asociacion_activa)
+            self.auditoria_repo.registrar(
+                id_sensores_area_asociada=anterior_actualizada.id_sensores_area_asociada,
+                id_usuario=usuario_actual.id_usuario,
+                tipo_operacion="UPDATE",
+                valores_nuevos=anterior_actualizada._snapshot(),
             )
 
         punto = PuntoInstalacion(dto.punto_instalacion)

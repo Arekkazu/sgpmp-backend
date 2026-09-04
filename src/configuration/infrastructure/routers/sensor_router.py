@@ -59,7 +59,9 @@ _RECURSO = 12  # modulo1.recursos: 'sensores'
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
-    summary="Asociar sensor a área productiva (RF-22 Flujo B)",
+    summary="Asociar sensor a área productiva (RF-22 Flujo B). 409 distingue por error_code: "
+            "ASOCIACION_DUPLICADA (misma área) vs. REASIGNACION_REQUIERE_CONFIRMACION "
+            "(área distinta; reenviar con confirmar=true para completar la reasignación).",
 )
 def asociar_sensor_area(
     id_sensor: int,
