@@ -1,3 +1,9 @@
+## [1.0.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.5...v1.0.0-rc.6) (2026-09-04)
+
+### Bug Fixes
+
+* **configuration:** [#1671](https://github.com/Arekkazu/sgpmp-backend/issues/1671) permitir reasignar un sensor finalizando la asociacion anterior (RF-22) ([a85f844](https://github.com/Arekkazu/sgpmp-backend/commit/a85f84478581ec606571a5a996c761edc1d9ee12))
+
 ## [1.0.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.4...v1.0.0-rc.5) (2026-09-04)
 
 ### Features
