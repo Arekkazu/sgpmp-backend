@@ -1,3 +1,9 @@
+## [1.0.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.3...v1.0.0-rc.4) (2026-09-04)
+
+### Features
+
+* **configuration:** [#1667](https://github.com/Arekkazu/sgpmp-backend/issues/1667) exponer catalogo de variables ambientales (RF-17) ([2068ef1](https://github.com/Arekkazu/sgpmp-backend/commit/2068ef1b34d55a6028180fd367d7545602392f5b))
+
 ## [1.0.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.2...v1.0.0-rc.3) (2026-09-04)
 
 ### Features
