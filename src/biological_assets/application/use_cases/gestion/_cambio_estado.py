@@ -13,15 +13,18 @@ def aplicar_cambio_estado(
     motivo: str,
     usuario_id: int,
     historico_repo: HistoricoEstadoRepository,
-    modulo_origen: str = 'modulo2',
+    modulo_origen: str,
 ) -> HistoricoEstado:
     """Punto único de cambio de estado (RF-44).
 
     Muta la entidad (que valida BAJA irreversible, redundancia y la matriz de
     transiciones) y registra el histórico correspondiente. Invocado por los
     tres flujos que pueden cambiar el estado de un activo biológico — manual
-    (RF-44), cierre de ciclo (RF-38) y baja (RF-45) — para que ninguno
-    reimplemente la regla por su cuenta.
+    (RF-44, ``MANUAL``), cierre de ciclo (RF-38, ``RF-38``) y baja (RF-45,
+    ``RF-45``) — para que ninguno reimplemente la regla por su cuenta.
+
+    ``modulo_origen`` es obligatorio para que el histórico distinga el origen
+    real del cambio (RF-44), en lugar de un ``modulo2`` genérico.
     """
     id_estado_anterior = activo.id_estado
     activo.cambiar_estado(id_estado_nuevo)

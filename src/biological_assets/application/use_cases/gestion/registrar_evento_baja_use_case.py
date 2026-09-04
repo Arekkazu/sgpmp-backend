@@ -208,4 +208,5 @@ class RegistrarEventoBajaUseCase:
             motivo=motivo,
             usuario_id=usuario.id_usuario,
             historico_repo=self.historico_repo,
+            modulo_origen='RF-45',
         )

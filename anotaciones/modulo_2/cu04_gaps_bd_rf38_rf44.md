@@ -20,11 +20,14 @@ Columnas confirmadas:
 
 CHECKs relevantes:
 - `chk_historico_estado_cambio_real`: id_estado_nuevo != id_estado_anterior
-- `chk_historico_modulo_origen_valido`: modulo_origen IN ('modulo1'..'modulo9')
+- `chk_historico_modulo_origen_valido`: modulo_origen IN ('MANUAL', 'RF-38', 'RF-45', 'modulo1'..'modulo9')
 
-**Decisión de diseño**: se usa `'modulo2'` como valor de modulo_origen para todos los cambios
-de estado generados desde este módulo, tanto por RF-44 (manual) como por RF-38 (cierre).
-El RF especificaba 'MANUAL'/'RF-38'/'RF-45' pero el CHECK de la DB usa nombres de módulo.
+**Decisión de diseño (actualizada — RF-44 centralización + hallazgo transversal #2)**: el
+cambio de estado se centraliza en `aplicar_cambio_estado`, y cada flujo graba su origen real:
+`MANUAL` (RF-44), `RF-38` (cierre de ciclo) y `RF-45` (baja). Para ello la migración
+`f19e0ca62445` amplía el CHECK `chk_historico_modulo_origen_valido` para aceptar esos tres
+literales; se conservan `modulo1`..`modulo9` porque otros módulos (p. ej. supplies/modulo5,
+RF-76) escriben su identificador en la misma tabla y por compatibilidad con filas históricas.
 
 ### modulo2.asociaciones_activos_sensores
 Estado: **EXISTE** — no se requieren DDL adicionales.

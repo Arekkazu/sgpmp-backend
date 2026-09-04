@@ -51,6 +51,7 @@ class CambiarEstadoUseCase:
                 motivo=dto.motivo_cambio,
                 usuario_id=usuario.id_usuario,
                 historico_repo=self.historico_repo,
+                modulo_origen='MANUAL',
             )
             self.db.commit()
         except Exception as exc:

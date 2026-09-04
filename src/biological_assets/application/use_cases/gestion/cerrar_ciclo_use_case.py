@@ -105,6 +105,7 @@ class CerrarCicloUseCase:
                 motivo=motivo_completo,
                 usuario_id=usuario.id_usuario,
                 historico_repo=self.historico_repo,
+                modulo_origen='RF-38',
             )
             self.db.commit()
         except Exception as exc:
