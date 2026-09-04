@@ -469,10 +469,10 @@ body.theme-light code {
                 <a class="nav-link text-white" id="pills-summary-tab" data-toggle="pill" href="#pills-summary" role="tab" aria-controls="pills-summary" aria-selected="true">Summary</a>
             </li>
             <li class="nav-item bg-success" data-toggle="tooltip" title="Click to view the Requests">
-                <a class="nav-link text-white" id="pills-requests-tab" data-toggle="pill" href="#pills-requests" role="tab" aria-controls="pills-requests" aria-selected="false">Total Requests <span class="badge badge-light">2</span></a>
+                <a class="nav-link text-white" id="pills-requests-tab" data-toggle="pill" href="#pills-requests" role="tab" aria-controls="pills-requests" aria-selected="false">Total Requests <span class="badge badge-light">4</span></a>
             </li>
             <li class="nav-item bg-danger" data-toggle="tooltip" title="Click to view the Failed Tests">
-                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">1</span></a>
+                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">0</span></a>
             </li>
             <li class="nav-item bg-warning" data-toggle="tooltip" title="Click to view the Skipped Tests">
                 <a class="nav-link text-white" id="pills-skipped-tab" data-toggle="pill" href="#pills-skipped" role="tab" aria-controls="pills-skipped" aria-selected="false">Skipped Tests <span class="badge badge-light">0</span></a>
@@ -483,11 +483,11 @@ body.theme-light code {
 <div class="row">
   <div class="col-md-9 col-lg-12 main">
    <h1 class="display-2 text-center">Newman Run Dashboard</h1>
-   <h5 class="text-center">Thursday, 03 September 2026 07:29:03</h5>
+   <h5 class="text-center">Thursday, 03 September 2026 23:26:55</h5>
    <div class="row">
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-success">
-      <div class="card-body bg-danger">
+      <div class="card-body bg-success">
        <div class="rotate">
         <i class="fa fa-retweet fa-5x"></i>
        </div>
@@ -503,18 +503,18 @@ body.theme-light code {
         <i class="fa fa-list fa-4x"></i>
        </div>
        <h6 class="text-uppercase">Total Assertions</h6>
-       <h1 class="display-1">5</h1>
+       <h1 class="display-1">2</h1>
       </div>
      </div>
     </div>
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-info">
-      <div class="card-body bg-danger">
+      <div class="card-body bg-success">
        <div class="rotate">
         <i class="fa fa-plus-circle fa-5x"></i>
        </div>
        <h6 class="text-uppercase">Total Failed Tests</h6>
-       <h1 class="display-1">1</h1>
+       <h1 class="display-1">0</h1>
       </div>
      </div>
     </div>
@@ -538,7 +538,7 @@ body.theme-light code {
             <div class="card border-info">
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">File Information</h5>
-                <span><i class="fas fa-file-code"></i></span><strong> Collection:</strong> TC-M01-041<br>
+                <span><i class="fas fa-file-code"></i></span><strong> Collection:</strong> TC-M09-G119 (TC-231/243) - Verificacion rapida: sigue caido el aplicar?<br>
                 
                 
                 </div>
@@ -551,7 +551,7 @@ body.theme-light code {
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Collection Description</h5>
                 <div class="dyn-height">
-                    <code class="renderMarkdown">Anti-enumeracion en /contrasena/recuperar: la respuesta debe ser indistinguible entre un correo EXISTENTE y uno INEXISTENTE (mismo codigo HTTP, mismo cuerpo, tiempo de respuesta comparable). Consume 2 de las 3 solicitudes de recuperacion por hora (una por cada correo). Ejecutar con newman run tc-m01-041.json --reporters &quot;cli,htmlextra&quot; --reporter-htmlextra-export resultado-041.html</code>
+                    <code class="renderMarkdown">Antes de construir la prueba completa de TC-231/243 (que necesita que &#x27;aplicar plantilla&#x27; funcione para poder comparar el estado final), se hace un intento unico para confirmar si el defecto 500 encontrado en TC-M09-G118 sigue presente. Si da 500, esta ficha queda bloqueada por ese defecto. Si da 2xx, se continua construyendo la prueba completa (comparacion de parametros aplicados + verificacion de inmutabilidad de la plantilla origen). Ejecutar con: newman run tc-m09-119.json --reporters &quot;cli,htmlextra&quot; --reporter-htmlextra-export resultado-119.html</code>
                 </div>
                 </div>
             </div>
@@ -562,9 +562,9 @@ body.theme-light code {
             <div class="card border-info">
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Timings and Data</h5>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 4.2s<br>
-                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 232B<br>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 2s<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 3.7s<br>
+                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 2.44KB<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 885ms<br>
                 </div>
             </div>
         </div>
@@ -583,7 +583,7 @@ body.theme-light code {
                 <tbody>
                     <tr>
                         <td>Requests</td>
-                        <td class="text-center">2</td>
+                        <td class="text-center">4</td>
                         <td class="text-center">0</td>
                     </tr>
                     <tr>
@@ -593,13 +593,13 @@ body.theme-light code {
                     </tr>
                     <tr>
                         <td>Test Scripts</td>
-                        <td class="text-center">2</td>
+                        <td class="text-center">4</td>
                         <td class="text-center">0</td>
                     </tr>
-                    <tr class="table-danger">
+                    <tr class="">
                         <td>Assertions</td>
-                        <td class="text-center">5</td>
-                        <td class="text-center">1</td>
+                        <td class="text-center">2</td>
+                        <td class="text-center">0</td>
                     </tr>
                     <tr class="">
                         <td>Skipped Tests</td>
@@ -620,36 +620,9 @@ body.theme-light code {
             <div class="tab-pane fade" id="pills-failed" role="tabcard" aria-labelledby="pills-failed-tab">
                 <button id="topOfFailuresScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
-                    <div class="btn-group float-right" role="group" aria-label="Button Group">
-                        <button id="openAllFailed" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 185px;">Expand All Failed Tests</button>
-                    </div>
-                    <br>
-                    <br>
-
-                    <div class="alert alert-danger text-uppercase text-center">
-                        <h4>Showing 1 Failure</h4>
-                    </div>
-                    <div class="col-sm-12 mb-3">
-                    <div class="card-deck">
-                        <div class="card border-danger">
-                            <div class="card-header bg-danger">
-                                <a data-toggle="collapse" href="#" data-target="#fails-collapse-c074e985-4bc5-44e0-a72e-7f2004498136" aria-expanded="false" aria-controls="collapse" id="fails-c074e985-4bc5-44e0-a72e-7f2004498136" class="collapsed text-white z-block">
-                                    Iteration 1 - AssertionError - TC-M01-041 - 2. Solicitar recuperacion - correo INEXISTENTE <i class="float-lg-right fa fa-chevron-down" style="padding-top:5px;"></i>
-                                </a>
-                            </div>
-                            <div id="fails-collapse-c074e985-4bc5-44e0-a72e-7f2004498136" class="collapse" aria-labelledby="fails-c074e985-4bc5-44e0-a72e-7f2004498136">
-                            <div class="card-body">
-                                <h5 ><strong>Failed Test:</strong> TC-M01-041: el tiempo de respuesta no debe delatar si el correo existe (diferencia &lt; 300ms)</h5>
-                            <hr>
-                            <h5 class="card-title text-uppercase text-white text-center bg-danger">Assertion Error Message</h5>
-                            <div>
-                                <pre><code >Diferencia de 3786ms entre existente (3930ms) e inexistente (144ms). Una diferencia grande y consistente es un canal lateral de tiempo: revisando el codigo, solicitar_recuperacion_use_case.py SOLO llama a send_email() cuando el correo SI existe (el envio es sincronico, dentro del mismo request) -- para un correo inexistente el flujo retorna casi de inmediato tras el chequeo en BD, sin enviar nada. Eso podria permitir a un atacante inferir si un correo esta registrado midiendo cuanto tarda la respuesta, aunque el cuerpo y el codigo HTTP sean iguales.: expected 3786 to be below 300</code></pre>
-                            </div>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
+                <div class="alert alert-success text-uppercase text-center">
+                     <br><br><h1 class="text-center">There are no failed tests <span><i class="far fa-thumbs-up"></i></span></h1><br><br>
+                </div>
             </div>
 
             <div class="tab-pane fade" id="pills-skipped" role="tabcard" aria-labelledby="pills-skipped-tab">
@@ -664,7 +637,6 @@ body.theme-light code {
             <button id="topOfRequestsScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
             <div class="btn-group float-right" role="group" aria-label="Button Group">
-                <button id="showOnlyFailures" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width:160px;">Show Failed Iterations</button>
                 <button id="openAll" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Folders</button>
                 <button id="openAllRequests" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Requests</button>
             </div>
@@ -679,16 +651,16 @@ body.theme-light code {
     </div>
     <h6 class="text-uppercase text-muted" id="iterationSelected" style="padding-top: 10px;"></h6>
 	<div class="tab-content" id="execution-data">
-            <div id="folder-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7" class="card-deck iteration-0">
+            <div id="folder-29d324f6-c76b-4252-b79a-9dafdfa700f1" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7" aria-expanded="false" aria-controls="collapse" id="requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7" class="collapsed text-white z-block">
-                    Iteration: 1 - 1. Solicitar recuperacion - correo EXISTENTE <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                        <a data-toggle="collapse" href="#" data-target="#collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1" aria-expanded="false" aria-controls="collapse" id="requests-29d324f6-c76b-4252-b79a-9dafdfa700f1" class="collapsed text-white z-block">
+                    Iteration: 1 - 0A. Login admin.test <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7" class="collapse" aria-labelledby="requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7">
+                    <div id="collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1" class="collapse" aria-labelledby="requests-29d324f6-c76b-4252-b79a-9dafdfa700f1">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -697,15 +669,15 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 202 - Accepted</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 3.9s</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 116B</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 3s</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 405B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
@@ -748,7 +720,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">8de36834-3f8b-4dc5-a46a-54c412eff823</td>
+                                                        <td class="text-wrap">fb66fb16-f484-430f-a782-50645871975f</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -764,7 +736,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Content-Length</td>
-                                                        <td class="text-wrap">63</td>
+                                                        <td class="text-wrap">90</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -782,7 +754,8 @@ body.theme-light code {
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Body</h5>
                                         <div class="dyn-height">
                                             <pre><code id="copyReqText-0" class="prettyPrint">{
-          &quot;correo_electronico&quot;: &quot;danielacastillovargas09@gmail.com&quot;
+          &quot;correo_electronico&quot;: &quot;admin.test@sgpmp.com.co&quot;,
+          &quot;contrasena&quot;: &quot;Administrador123#&quot;
         }</code></pre>
                                         </div>
                                         <div class="card-footer">
@@ -809,7 +782,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">116</td>
+                                                    <td class="text-wrap">405</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Type</td>
@@ -817,15 +790,19 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Thu, 03 Sep 2026 12:29:00 GMT</td>
+                                                    <td class="text-wrap">Fri, 04 Sep 2026 04:26:52 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
                                                     <td class="text-wrap">uvicorn</td>
                                                 </tr>
                                                 <tr>
+                                                    <td class="text-nowrap">Set-Cookie</td>
+                                                    <td class="text-wrap">refresh_token&#x3D;oDpvmniFqOQyR2HFQY0UGHpgwDMntmAhSxTfMAI_PgI; HttpOnly; Max-Age&#x3D;604797; Path&#x3D;/; SameSite&#x3D;none; Secure</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">f47badf6-03db-441a-9cd9-9cd5ae244905</td>
+                                                    <td class="text-wrap">e8c61528-8db0-44f2-95d6-48143e38866e</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -842,10 +819,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-9398fddc-745c-49dd-b64c-9749ba4b776b" class="prettyPrint">{&quot;message&quot;:&quot;Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña en unos minutos.&quot;}</code></pre>
+                                                <pre><code id="copyText-db8e98e3-a1e0-4f04-9a68-02ef494a3795" class="prettyPrint">{&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjEyNDIyIiwicm9sIjoxLCJleHAiOjE3ODg1MjQ4MTMsImlhdCI6MTc4ODQ5NjAxM30.b6qAcitsVloqJIbfIS2lwNO6BZF6OFndJlbpf4ygRCU&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28797,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-9398fddc-745c-49dd-b64c-9749ba4b776b">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-db8e98e3-a1e0-4f04-9a68-02ef494a3795">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -861,7 +838,7 @@ body.theme-light code {
                                         <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
                                             <tbody>
                                                 <tr >
-                                                    <td >Responde 202 Accepted (si sale 422, ya se agoto el cupo de 3/hora por conexion)</td>
+                                                    <td >Login exitoso (200)</td>
                                                     <td class="text-center bg-success">1</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
@@ -904,16 +881,184 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-726963f0-1ed1-4c65-a8ed-42dddd09ed98" class="card-deck iteration-0">
+            <div id="folder-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
-                    <div class="card-header  bg-danger iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98" aria-expanded="false" aria-controls="collapse" id="requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98" class="collapsed text-white z-block">
-                    Iteration: 1 - 2. Solicitar recuperacion - correo INEXISTENTE <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3" aria-expanded="false" aria-controls="collapse" id="requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3" class="collapsed text-white z-block">
+                    Iteration: 1 - 0B. Obtener fecha_actualizacion real de la especie activa <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98" class="collapse" aria-labelledby="requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98">
+                    <div id="collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3" class="collapse" aria-labelledby="requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/especies?solo_activas&#x3D;false" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/especies?solo_activas&#x3D;false</a><br>
+                                    </div>
+                                </div>
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 161ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 1.61KB</span><br>
+                                    <hr>
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
+                                    <div>
+                                        <div class="progress" style="height: 40px;">
+                                            <div class="progress-bar bg-success" style="width: 100%" role="progressbar">
+                                            <h5 class="text-uppercase text-white text-center" style="padding-top:5px;"><strong>No Tests for this request</strong></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjEyNDIyIiwicm9sIjoxLCJleHAiOjE3ODg1MjQ4MTMsImlhdCI6MTc4ODQ5NjAxM30.b6qAcitsVloqJIbfIS2lwNO6BZF6OFndJlbpf4ygRCU</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">User-Agent</td>
+                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept</td>
+                                                        <td class="text-wrap">*/*</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cache-Control</td>
+                                                        <td class="text-wrap">no-cache</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Postman-Token</td>
+                                                        <td class="text-wrap">d1179664-d984-4c1c-8940-6edd11f61016</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Host</td>
+                                                        <td class="text-wrap">sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept-Encoding</td>
+                                                        <td class="text-wrap">gzip, deflate, br</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Connection</td>
+                                                        <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;oDpvmniFqOQyR2HFQY0UGHpgwDMntmAhSxTfMAI_PgI</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Length</td>
+                                                    <td class="text-wrap">1647</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Type</td>
+                                                    <td class="text-wrap">application/json</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Date</td>
+                                                    <td class="text-wrap">Fri, 04 Sep 2026 04:26:55 GMT</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Server</td>
+                                                    <td class="text-wrap">uvicorn</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Request-Id</td>
+                                                    <td class="text-wrap">7cc3fc53-668a-4861-a996-a17a336b5356</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
+                                        <div class="dyn-height">
+                                                <pre><code id="copyText-93b92a46-1fb2-424a-b722-ef47eabcc27b" class="prettyPrint">{&quot;total&quot;:7,&quot;items&quot;:[{&quot;id_especie&quot;:4,&quot;nombre&quot;:&quot;Cachama Blanca&quot;,&quot;descripcion&quot;:&quot;Pez de agua dulce tropical con alta adaptabilidad a sistemas extensivos e intensivos.&quot;,&quot;es_activo&quot;:true,&quot;fecha_creacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;},{&quot;id_especie&quot;:3,&quot;nombre&quot;:&quot;Camarón Blanco&quot;,&quot;descripcion&quot;:&quot;Crustáceo marino de alto valor comercial cultivado en estanques costeros.&quot;,&quot;es_activo&quot;:true,&quot;fecha_creacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;},{&quot;id_especie&quot;:11,&quot;nombre&quot;:&quot;Miguel&quot;,&quot;descripcion&quot;:&quot;Ganado vacuno para producción de leche y carne&quot;,&quot;es_activo&quot;:false,&quot;fecha_creacion&quot;:&quot;2026-04-28T22:39:45.990576Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T22:39:45.990576Z&quot;},{&quot;id_especie&quot;:5,&quot;nombre&quot;:&quot;Mojarra Plateada&quot;,&quot;descripcion&quot;:&quot;Especie de ciclo corto utilizada en policultivos y sistemas de pequeña escala.&quot;,&quot;es_activo&quot;:true,&quot;fecha_creacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;},{&quot;id_especie&quot;:10,&quot;nombre&quot;:&quot;Tilapia&quot;,&quot;descripcion&quot;:&quot;Especie de agua dulce ampliamente cultivada&quot;,&quot;es_activo&quot;:true,&quot;fecha_creacion&quot;:&quot;2026-04-28T15:15:29.439925Z&quot;,&quot;fecha_actualizacion&quot;:null},{&quot;id_especie&quot;:1,&quot;nombre&quot;:&quot;Tilapia Roja&quot;,&quot;descripcion&quot;:&quot;Especie modificada&quot;,&quot;es_activo&quot;:false,&quot;fecha_creacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T15:19:43.460409Z&quot;},{&quot;id_especie&quot;:2,&quot;nombre&quot;:&quot;Trucha Arcoíris&quot;,&quot;descripcion&quot;:&quot;Especie de agua fría cultivada en estanques de alta montaña y ríos oxigenados.&quot;,&quot;es_activo&quot;:true,&quot;fecha_creacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;,&quot;fecha_actualizacion&quot;:&quot;2026-04-28T14:42:28.213141Z&quot;}]}</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-93b92a46-1fb2-424a-b722-ef47eabcc27b">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
+                                    <h5 class="alert alert-success text-uppercase text-center">No Tests for this request</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+            <div id="folder-3fa6f94a-b648-476f-81d1-6efab23224c2" class="card-deck iteration-0">
+            <div class="row iteration-0">
+                <div class="col-sm-12 mb-3 iteration-0">
+                <div class="card iteration-0">
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-3fa6f94a-b648-476f-81d1-6efab23224c2" aria-expanded="false" aria-controls="collapse" id="requests-3fa6f94a-b648-476f-81d1-6efab23224c2" class="collapsed text-white z-block">
+                    Iteration: 1 - 0C. Crear plantilla con parametros productivos Y ambientales (P-001 style) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                </a>
+                    </div>
+                    <div id="collapse-3fa6f94a-b648-476f-81d1-6efab23224c2" class="collapse" aria-labelledby="requests-3fa6f94a-b648-476f-81d1-6efab23224c2">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -922,21 +1067,21 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/plantillas" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/plantillas</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 202 - Accepted</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 144ms</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 116B</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 201 - Created</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 220ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 314B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
                                         <div class="progress" style="height: 40px;">
-                                            <div class="progress-bar  bg-danger" style="width: 100%" role="progressbar">
-                                            <h5 style="padding-top:5px;"><strong>75 %</strong></h5>
+                                            <div class="progress-bar  bg-success" style="width: 100%" role="progressbar">
+                                            <h5 style="padding-top:5px;"><strong>100 %</strong></h5>
                                             </div>
                                         </div>
                                     </div>
@@ -960,6 +1105,10 @@ body.theme-light code {
                                                         <td class="text-wrap">application/json</td>
                                                     </tr>
                                                     <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjEyNDIyIiwicm9sIjoxLCJleHAiOjE3ODg1MjQ4MTMsImlhdCI6MTc4ODQ5NjAxM30.b6qAcitsVloqJIbfIS2lwNO6BZF6OFndJlbpf4ygRCU</td>
+                                                    </tr>
+                                                    <tr>
                                                         <td class="text-nowrap">User-Agent</td>
                                                         <td class="text-wrap">PostmanRuntime/7.39.1</td>
                                                     </tr>
@@ -973,7 +1122,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">15125613-975e-4451-add7-7621c149116a</td>
+                                                        <td class="text-wrap">82ca9bd7-01fc-41c3-a15d-7232ec76fd36</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -989,7 +1138,11 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Content-Length</td>
-                                                        <td class="text-wrap">59</td>
+                                                        <td class="text-wrap">269</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;oDpvmniFqOQyR2HFQY0UGHpgwDMntmAhSxTfMAI_PgI</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1006,12 +1159,18 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Body</h5>
                                         <div class="dyn-height">
-                                            <pre><code id="copyReqText-1" class="prettyPrint">{
-          &quot;correo_electronico&quot;: &quot;inexistente.qa@sgpmp-test.com&quot;
+                                            <pre><code id="copyReqText-2" class="prettyPrint">{
+          &quot;template_name&quot;: &quot;QA-P119-1788496015&quot;,
+          &quot;id_especie&quot;: 4,
+          &quot;params_snapshot&quot;: {
+            &quot;schema_version&quot;: 1,
+            &quot;metricas_produccion&quot;: [ { &quot;nombre&quot;: &quot;peso_promedio_kg&quot;, &quot;valor&quot;: 1.8 } ],
+            &quot;umbrales_ambientales&quot;: [ { &quot;nombre&quot;: &quot;temperatura&quot;, &quot;valor&quot;: 26.0 } ]
+          }
         }</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyReqText-1">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyReqText-2">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1034,7 +1193,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">116</td>
+                                                    <td class="text-wrap">314</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Type</td>
@@ -1042,7 +1201,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Thu, 03 Sep 2026 12:29:04 GMT</td>
+                                                    <td class="text-wrap">Fri, 04 Sep 2026 04:26:55 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1050,7 +1209,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">09477a00-4a1c-4a2e-9a3a-5416c6774a83</td>
+                                                    <td class="text-wrap">8d94fa29-ba1f-4805-860c-6234c9d92e20</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1067,10 +1226,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-82ce12ce-4dcc-4c54-a9a3-7ae2d5ea7212" class="prettyPrint">{&quot;message&quot;:&quot;Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña en unos minutos.&quot;}</code></pre>
+                                                <pre><code id="copyText-fb2ee49c-4b38-4814-b322-0e1e6d63424d" class="prettyPrint">{&quot;id_plantilla&quot;:39,&quot;id_especie&quot;:4,&quot;id_usuario&quot;:47,&quot;template_name&quot;:&quot;QA-P119-1788496015&quot;,&quot;params_snapshot&quot;:{&quot;schema_version&quot;:1,&quot;metricas_produccion&quot;:[{&quot;valor&quot;:1.8,&quot;nombre&quot;:&quot;peso_promedio_kg&quot;}],&quot;umbrales_ambientales&quot;:[{&quot;valor&quot;:26.0,&quot;nombre&quot;:&quot;temperatura&quot;}]},&quot;version&quot;:1,&quot;fecha_creacion&quot;:&quot;2026-09-04T04:26:56.414660Z&quot;}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-82ce12ce-4dcc-4c54-a9a3-7ae2d5ea7212">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-fb2ee49c-4b38-4814-b322-0e1e6d63424d">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1086,41 +1245,23 @@ body.theme-light code {
                                         <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
                                             <tbody>
                                                 <tr >
-                                                    <td >Responde 202 Accepted (correo inexistente no debe revelar nada distinto)</td>
+                                                    <td >Se crea con 201</td>
                                                     <td class="text-center bg-success">1</td>
                                                     <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                                <tr >
-                                                    <td >TC-M01-041: el codigo HTTP debe ser IGUAL para correo existente e inexistente</td>
-                                                    <td class="text-center bg-success">1</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                                <tr >
-                                                    <td >TC-M01-041: el cuerpo de la respuesta debe ser IDENTICO (mensaje generico) para ambos correos</td>
-                                                    <td class="text-center bg-success">1</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center ">0</td>
-                                                </tr>
-                                                <tr >
-                                                    <td >TC-M01-041: el tiempo de respuesta no debe delatar si el correo existe (diferencia &lt; 300ms)</td>
-                                                    <td class="text-center ">0</td>
-                                                    <td class="text-center bg-danger">1</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
                                             </tbody>
                                             <tfoot>
                                                 <tr class="bg-light">
                                                     <td><strong>Total</strong></td>
-                                                    <td class="text-center">3</td>
                                                     <td class="text-center">1</td>
+                                                    <td class="text-center">0</td>
                                                     <td class="text-center">0</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
-                                    <div class="row ">
+                                    <div class="row d-none">
                                     <div class="col-sm-12 mb-3">
                                         <div class="card-deck">
                                         <div class="card border-danger" style="width: 50rem;">
@@ -1130,10 +1271,6 @@ body.theme-light code {
                                                     <table class="table table-hover">
                                                     <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
                                                         <tbody>
-                                                            <tr>
-                                                                <td class="w-45 text-nowrap ">TC-M01-041: el tiempo de respuesta no debe delatar si el correo existe (diferencia &lt; 300ms)</td>
-                                                                <td class="w-55"><pre><code >Diferencia de 3786ms entre existente (3930ms) e inexistente (144ms). Una diferencia grande y consistente es un canal lateral de tiempo: revisando el codigo, solicitar_recuperacion_use_case.py SOLO llama a send_email() cuando el correo SI existe (el envio es sincronico, dentro del mismo request) -- para un correo inexistente el flujo retorna casi de inmediato tras el chequeo en BD, sin enviar nada. Eso podria permitir a un atacante inferir si un correo esta registrado midiendo cuanto tarda la respuesta, aunque el cuerpo y el codigo HTTP sean iguales.: expected 3786 to be below 300</code></pre></td>
-                                                            </tr>
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -1142,6 +1279,202 @@ body.theme-light code {
                                         </div>
                                     </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            </div>
+            <div id="folder-da93921f-f399-438f-b6ef-6caca9a0af7c" class="card-deck iteration-0">
+            <div class="row iteration-0">
+                <div class="col-sm-12 mb-3 iteration-0">
+                <div class="card iteration-0">
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-da93921f-f399-438f-b6ef-6caca9a0af7c" aria-expanded="false" aria-controls="collapse" id="requests-da93921f-f399-438f-b6ef-6caca9a0af7c" class="collapsed text-white z-block">
+                    Iteration: 1 - 1. Intento unico de aplicar (verificar si el 500 de TC-M09-G118 sigue presente) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                </a>
+                    </div>
+                    <div id="collapse-da93921f-f399-438f-b6ef-6caca9a0af7c" class="collapse" aria-labelledby="requests-da93921f-f399-438f-b6ef-6caca9a0af7c">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/plantillas/39/aplicar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/plantillas/39/aplicar</a><br>
+                                    </div>
+                                </div>
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 500 - Internal Server Error</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 156ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 135B</span><br>
+                                    <hr>
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
+                                    <div>
+                                        <div class="progress" style="height: 40px;">
+                                            <div class="progress-bar bg-success" style="width: 100%" role="progressbar">
+                                            <h5 class="text-uppercase text-white text-center" style="padding-top:5px;"><strong>No Tests for this request</strong></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-12 mb-3">
+                                <div class="card-deck">
+                                <div class="card border-info" style="width: 50rem;">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-uppercase text-white text-center bg-info">Request Headers</h5>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered">
+                                            <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td class="text-nowrap">Content-Type</td>
+                                                        <td class="text-wrap">application/json</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Authorization</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjEyNDIyIiwicm9sIjoxLCJleHAiOjE3ODg1MjQ4MTMsImlhdCI6MTc4ODQ5NjAxM30.b6qAcitsVloqJIbfIS2lwNO6BZF6OFndJlbpf4ygRCU</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">User-Agent</td>
+                                                        <td class="text-wrap">PostmanRuntime/7.39.1</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept</td>
+                                                        <td class="text-wrap">*/*</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cache-Control</td>
+                                                        <td class="text-wrap">no-cache</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Postman-Token</td>
+                                                        <td class="text-wrap">51cec0ab-b23a-4c6d-9488-0b92d65207ab</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Host</td>
+                                                        <td class="text-wrap">sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Accept-Encoding</td>
+                                                        <td class="text-wrap">gzip, deflate, br</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Connection</td>
+                                                        <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Content-Length</td>
+                                                        <td class="text-wrap">101</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;oDpvmniFqOQyR2HFQY0UGHpgwDMntmAhSxTfMAI_PgI</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Request Body</h5>
+                                        <div class="dyn-height">
+                                            <pre><code id="copyReqText-3" class="prettyPrint">{
+          &quot;id_especie_destino&quot;: 4,
+          &quot;fecha_actualizacion_especie_destino&quot;: &quot;2026-04-28T14:42:28.213141Z&quot;
+        }</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyReqText-3">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Headers</h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                        <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Length</td>
+                                                    <td class="text-wrap">135</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Content-Type</td>
+                                                    <td class="text-wrap">application/json</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Date</td>
+                                                    <td class="text-wrap">Fri, 04 Sep 2026 04:26:55 GMT</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">Server</td>
+                                                    <td class="text-wrap">uvicorn</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="text-nowrap">X-Request-Id</td>
+                                                    <td class="text-wrap">784cd8ca-8dcc-4960-86f9-60680b3aa587</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row">
+                        <div class="col-sm-12 mb-3">
+                            <div class="card-deck">
+                            <div class="card border-info" style="width: 50rem;">
+                                <div class="card-body">
+                                    <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
+                                        <div class="dyn-height">
+                                                <pre><code id="copyText-f5981b2e-12a8-4b9c-871c-adfa1b30707a" class="prettyPrint">{&quot;error_code&quot;:&quot;ERROR_INTERNO&quot;,&quot;message&quot;:&quot;Error inesperado en base de datos&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-09-04T04:26:56.684982+00:00&quot;}</code></pre>
+                                        </div>
+                                        <div class="card-footer">
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-f5981b2e-12a8-4b9c-871c-adfa1b30707a">Copy to Clipboard</button>
+                                        </div>
+                                </div>
+                            </div>
+                            </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                <h5 class="card-title text-uppercase text-white text-center bg-info">Test Information</h5>
+                                    <h5 class="alert alert-success text-uppercase text-center">No Tests for this request</h5>
                                 </div>
                             </div>
                         </div>
@@ -1217,13 +1550,13 @@ $('#openAll').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#folder-18a14731-050f-412a-b307-a33e6922fbf3-iteration-0').removeClass('collapsed')
-            $('#folder-collapse-18a14731-050f-412a-b307-a33e6922fbf3-iteration-0').addClass('show')
+            $('#folder-1272e0de-6cf9-491d-9e30-867d2e0ec79a-iteration-0').removeClass('collapsed')
+            $('#folder-collapse-1272e0de-6cf9-491d-9e30-867d2e0ec79a-iteration-0').addClass('show')
         $('#openAll').html("Collapse Folders");
         break;
     case 2:
-            $('#folder-18a14731-050f-412a-b307-a33e6922fbf3-iteration-0').addClass('collapsed')
-            $('#folder-collapse-18a14731-050f-412a-b307-a33e6922fbf3-iteration-0').removeClass('show')
+            $('#folder-1272e0de-6cf9-491d-9e30-867d2e0ec79a-iteration-0').addClass('collapsed')
+            $('#folder-collapse-1272e0de-6cf9-491d-9e30-867d2e0ec79a-iteration-0').removeClass('show')
         $('#openAll').html("Expand Folders");
         break;
 }
@@ -1239,25 +1572,41 @@ $('#openAllRequests').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('collapsed')
-            $('#collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('collapsed')
-            $('#requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('show')
-            $('#collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('show')
-            $('#requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('collapsed')
-            $('#collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('collapsed')
-            $('#requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('show')
-            $('#collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('show')
+            $('#requests-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('collapsed')
+            $('#collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('collapsed')
+            $('#requests-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('show')
+            $('#collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('show')
+            $('#requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('collapsed')
+            $('#collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('collapsed')
+            $('#requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('show')
+            $('#collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('show')
+            $('#requests-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('collapsed')
+            $('#collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('collapsed')
+            $('#requests-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('show')
+            $('#collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('show')
+            $('#requests-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('collapsed')
+            $('#collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('collapsed')
+            $('#requests-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('show')
+            $('#collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('show')
         $('#openAllRequests').html("Collapse Requests");
         break;
     case 2:
-            $('#requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('collapsed')
-            $('#collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('collapsed')
-            $('#requests-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('show')
-            $('#collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('show')
-            $('#requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('collapsed')
-            $('#collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('collapsed')
-            $('#requests-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('show')
-            $('#collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('show')
+            $('#requests-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('collapsed')
+            $('#collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('collapsed')
+            $('#requests-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('show')
+            $('#collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('show')
+            $('#requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('collapsed')
+            $('#collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('collapsed')
+            $('#requests-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('show')
+            $('#collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('show')
+            $('#requests-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('collapsed')
+            $('#collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('collapsed')
+            $('#requests-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('show')
+            $('#collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('show')
+            $('#requests-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('collapsed')
+            $('#collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('collapsed')
+            $('#requests-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('show')
+            $('#collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('show')
         $('#openAllRequests').html("Expand Requests");
         break;
 }
@@ -1273,25 +1622,41 @@ $('#openAllSkipped').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#skipped-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('collapsed')
-            $('#skipped-collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('collapsed')
-            $('#skipped-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('show')
-            $('#skipped-collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('show')
-            $('#skipped-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('collapsed')
-            $('#skipped-collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('collapsed')
-            $('#skipped-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('show')
-            $('#skipped-collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('show')
+            $('#skipped-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('collapsed')
+            $('#skipped-collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('collapsed')
+            $('#skipped-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('show')
+            $('#skipped-collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('show')
+            $('#skipped-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('collapsed')
+            $('#skipped-collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('collapsed')
+            $('#skipped-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('show')
+            $('#skipped-collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('show')
+            $('#skipped-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('collapsed')
+            $('#skipped-collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('collapsed')
+            $('#skipped-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('show')
+            $('#skipped-collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('show')
+            $('#skipped-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('collapsed')
+            $('#skipped-collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('collapsed')
+            $('#skipped-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('show')
+            $('#skipped-collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('show')
         $('#openAllSkipped').html("Collapse All Skipped Tests");
         break;
     case 2:
-            $('#skipped-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('collapsed')
-            $('#skipped-collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').addClass('collapsed')
-            $('#skipped-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('show')
-            $('#skipped-collapse-b4db3f4c-fc0e-451b-b56d-0c4b06411ad7').removeClass('show')
-            $('#skipped-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('collapsed')
-            $('#skipped-collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').addClass('collapsed')
-            $('#skipped-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('show')
-            $('#skipped-collapse-726963f0-1ed1-4c65-a8ed-42dddd09ed98').removeClass('show')
+            $('#skipped-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('collapsed')
+            $('#skipped-collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').addClass('collapsed')
+            $('#skipped-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('show')
+            $('#skipped-collapse-29d324f6-c76b-4252-b79a-9dafdfa700f1').removeClass('show')
+            $('#skipped-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('collapsed')
+            $('#skipped-collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').addClass('collapsed')
+            $('#skipped-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('show')
+            $('#skipped-collapse-46cd81d7-b7c8-46fe-ba7c-21debdf1d5a3').removeClass('show')
+            $('#skipped-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('collapsed')
+            $('#skipped-collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').addClass('collapsed')
+            $('#skipped-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('show')
+            $('#skipped-collapse-3fa6f94a-b648-476f-81d1-6efab23224c2').removeClass('show')
+            $('#skipped-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('collapsed')
+            $('#skipped-collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').addClass('collapsed')
+            $('#skipped-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('show')
+            $('#skipped-collapse-da93921f-f399-438f-b6ef-6caca9a0af7c').removeClass('show')
         $('#openAllSkipped').html("Expand All Skipped Tests");
         break;
 }
@@ -1309,21 +1674,9 @@ let failedItemContent
 let failedItemHeading
 switch (clickCount){
     case 1:
-            failedItemHeading = $('#fails-c074e985-4bc5-44e0-a72e-7f2004498136');
-            failedItemContent = $("#fails-collapse-c074e985-4bc5-44e0-a72e-7f2004498136");
-            failedItemHeading.removeClass('collapsed')
-            failedItemContent.removeClass('collapsed')
-            failedItemHeading.addClass('show')
-            failedItemContent.addClass('show')
         $('#openAllFailed').html("Collapse All Failed Tests");
         break;
     case 2:
-            failedItemHeading = $('#fails-c074e985-4bc5-44e0-a72e-7f2004498136');
-            failedItemContent = $("#fails-collapse-c074e985-4bc5-44e0-a72e-7f2004498136");
-            failedItemHeading.removeClass('show')
-            failedItemContent.removeClass('show')
-            failedItemHeading.addClass('collapsed')
-            failedItemContent.addClass('collapsed')
         $('#openAllFailed').html("Expand All Failed Tests");
         break;
 }
@@ -1448,8 +1801,6 @@ function scrollFunction() {
     document.getElementById("openAllRequests").style.display = "none";
 
 
-    document.getElementById("showOnlyFailures").style.display = "none";
-    document.getElementById("openAllFailed").style.display = "none";
   } else {
     document.getElementById("topOfRequestsScreen").style.display = "none";
     document.getElementById("topOfFailuresScreen").style.display = "none";
@@ -1457,8 +1808,6 @@ function scrollFunction() {
     document.getElementById("openAll").style.display = "block";
     document.getElementById("openAllRequests").style.display = "block";
 
-    document.getElementById("showOnlyFailures").style.display = "block";
-    document.getElementById("openAllFailed").style.display = "block";
   }
 }
 
@@ -1521,7 +1870,6 @@ window.onload = function () {
   document.getElementById('iteration-0').click();
   document.getElementById('iterationSelected').innerHTML = `Iteration ${document.getElementById('iteration-0').innerHTML} selected`
 
-    $("#iteration-0").removeClass('itPassed').addClass('itFailed')
 }
 </script>
 
