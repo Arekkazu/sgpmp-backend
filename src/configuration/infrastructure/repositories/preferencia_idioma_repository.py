@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.preferencia_idioma import PreferenciaIdioma
 from src.configuration.domain.repositories.preferencia_idioma_repository import PreferenciaIdiomaRepository
 from src.configuration.infrastructure.models.preferencia_idioma_model import PreferenciaIdiomaModel
+from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import NotFoundError
 
 
 class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
@@ -53,6 +55,13 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
         )
         return self._a_entidad(orm) if orm else None
 
+    def version_perfil(self, id_usuario: int) -> Optional[int]:
+        return (
+            self.db.query(Usuarios.version)
+            .filter(Usuarios.id_usuario == id_usuario)
+            .scalar()
+        )
+
     def guardar(self, entidad: PreferenciaIdioma) -> PreferenciaIdioma:
         orm = PreferenciaIdiomaModel(
             id_usuario=entidad.id_usuario,
@@ -70,6 +79,12 @@ class SqlAlchemyPreferenciaIdiomaRepository(PreferenciaIdiomaRepository):
 
     def actualizar(self, entidad: PreferenciaIdioma) -> PreferenciaIdioma:
         orm = self.db.get(PreferenciaIdiomaModel, entidad.id_preferencia_idioma)
+        if orm is None:
+            raise NotFoundError(
+                code="PREFERENCIA_IDIOMA_NO_ENCONTRADA",
+                message="La preferencia de idioma que intenta actualizar ya no existe.",
+                field="id_preferencia_idioma",
+            )
         orm.locale_code = entidad.locale_code
         orm.fecha_actualizacion = entidad.fecha_actualizacion
         try:

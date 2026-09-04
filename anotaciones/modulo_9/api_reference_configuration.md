@@ -828,7 +828,7 @@
 |--------|------|---------|-------------------|----------|
 | `GET` | `/` | `(26, R)` | Admin, Prod, Vet, Ing, Cont | `ObtenerIdiomaResueltoUseCase` |
 | `PATCH` | `/` | `(26, U)` | Admin, Prod, Vet, Ing, Cont | `GuardarIdiomaPersonalUseCase` |
-| `GET` | `/global` | `(27, R)` | Admin | — (consulta directa al repo) |
+| `GET` | `/global` | `(27, R)` | Admin | `ObtenerIdiomaGlobalUseCase` |
 | `PATCH` | `/global` | `(27, U)` | Admin | `GuardarIdiomaGlobalUseCase` |
 
 #### `PATCH /configuracion/personalizacion/idioma/` — Guardar idioma personal
@@ -837,7 +837,18 @@
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
-| `locale_code` | `str` | Ej: `"es"`, `"en"` |
+| `locale_code` | `str` | **Solo `"es-CO"` o `"en-US"`.** Cualquier otro valor → `400 IDIOMA_NO_DISPONIBLE`. Reforzado en BD por `chk_pref_idioma_locale_code` |
+| `version_perfil` | `int \| None` | Versión de perfil que devolvió el `GET`. Si se envía y no coincide con `modulo1.usuarios.version` → `409 CONFLICTO_PERFIL_MODIFICADO`. Omitirla salta la comprobación |
+
+**Errores:**
+
+| HTTP | `error_code` | Cuándo |
+|------|--------------|--------|
+| 400 | `IDIOMA_NO_DISPONIBLE` | `locale_code` fuera de la lista blanca |
+| 403 | `ACCESO_DENEGADO` | Sin el permiso RBAC. En `/global` el mensaje es el específico del RF-29 |
+| 404 | `PREFERENCIA_IDIOMA_NO_ENCONTRADA` | La fila desapareció entre la lectura y la escritura |
+| 409 | `CONFLICTO_PERFIL_MODIFICADO` | `version_perfil` desfasada |
+| 500 | `ERROR_PERSISTENCIA_IDIOMA` | Fallo de infraestructura al guardar |
 
 **Response `IdiomaResueltoResponse`** (para GET) / **`PreferenciaIdiomaResponse`** (para PATCH):
 
@@ -845,9 +856,10 @@
 
 | Campo | Tipo | Notas |
 |-------|------|-------|
-| `locale_code` | `str` | Idioma resuelto (personal > global > default) |
-| `fuente` | `str` | `"personal"`, `"global"`, `"default"` |
+| `locale_code` | `str` | Idioma resuelto (personal > global > `es-CO`) |
+| `fuente` | `str` | `"personal"`, `"global"`, `"defecto"` — ojo, es `"defecto"`, no `"default"` |
 | `id_preferencia_idioma` | `int \| None` | — |
+| `version_perfil` | `int \| None` | El cliente la devuelve en el siguiente `PATCH` |
 
 **`PreferenciaIdiomaResponse`:**
 
@@ -858,16 +870,22 @@
 | `locale_code` | `str` |
 | `es_por_defecto` | `bool` |
 | `fecha_actualizacion` | `datetime \| None` |
+| `version_perfil` | `int \| None` |
 
 ---
 
 ### Dashboard — `/configuracion/personalizacion/dashboard`
 
 > **Recurso RBAC:** `id_recurso = 25` — **Todos los roles autenticados.**
+> Además, cada widget se filtra por el permiso `R` de **su propio recurso**
+> (`modulo9.widgets.id_recurso`), así que dos roles con el mismo permiso sobre el dashboard ven
+> catálogos distintos.
 
 | Método | Ruta | Permiso | Roles autorizados | Use Case |
 |--------|------|---------|-------------------|----------|
 | `GET` | `/` | `(25, R)` | Admin, Prod, Vet, Ing, Cont | `ObtenerDashboardUseCase` |
+| `GET` | `/widgets` | `(25, R)` | Admin, Prod, Vet, Ing, Cont | `ObtenerCatalogoWidgetsUseCase` |
+| `GET` | `/datos` | `(25, R)` | Admin, Prod, Vet, Ing, Cont | `ObtenerDatosDashboardUseCase` |
 | `PATCH` | `/` | `(25, U)` | Admin, Prod, Vet, Ing, Cont | `GuardarDashboardUseCase` |
 | `POST` | `/restaurar` | `(25, U)` | Admin, Prod, Vet, Ing, Cont | `RestaurarDashboardUseCase` |
 
@@ -877,18 +895,19 @@
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
-| `layout_config` | `list[WidgetConfigDTO]` | Ver abajo |
-| `active_widget` | `list[str]` | IDs de widgets activos |
+| `layout_config` | `list[WidgetConfigDTO]` | Ver abajo. Máx. 12 con `visible: true` |
+| `active_widget` | `list[str]` | Claves de `modulo9.widgets`. Máx. 12, sin repetir |
+| `version_perfil` | `int \| None` | Opcional. La del último `GET`; si no coincide → 409 |
 
 **`WidgetConfigDTO`:**
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
-| `id_widget` | `int` | — |
+| `id_widget` | `int` | Debe existir en `modulo9.widgets` y ser legible por el rol |
 | `posicion_fila` | `int` | 1–3 |
 | `posicion_columna` | `int` | 1–4 |
-| `span_columnas` | `int` | 1–2 |
-| `visible` | `bool` | — |
+| `span_columnas` | `int` | 1–2. `posicion_columna + span - 1` no puede pasar de 4 |
+| `visible` | `bool` | `false` libera la celda y no cuenta para el límite |
 | `orden` | `int` | ≥ 0 |
 
 **Response `DashboardLayoutResponse`:**
@@ -900,6 +919,41 @@
 | `grid` | `list[WidgetConfigResponse]` |
 | `active_widget` | `list[str]` |
 | `fecha_actualizacion` | `datetime \| None` |
+| `version_perfil` | `int \| None` |
+
+**Errores del `PATCH`** (todos los flujos alternos del RF-28):
+
+| HTTP | `error_code` | Cuándo |
+|------|--------------|--------|
+| 400 | `VAL_ENTRADA` | Fila, columna, span u orden fuera de rango (Pydantic) |
+| 400 | `DESBORDE_HORIZONTAL` | Span 2 en la columna 4 |
+| 400 | `LIMITE_WIDGETS_ALCANZADO` | Más de 12 activos en `layout_config` o `active_widget` |
+| 400 | `ACTIVE_WIDGET_DUPLICADO` | `active_widget` repite una clave |
+| 400 | `WIDGET_INEXISTENTE` | `id_widget` fuera del catálogo |
+| 400 | `ACTIVE_WIDGET_INEXISTENTE` | Clave fuera del catálogo |
+| 403 | `ACCESO_DENEGADO` | Rol sin permiso `U` sobre `dashboard_layout` |
+| 403 | `WIDGET_NO_AUTORIZADO` | Widget de un módulo que el rol no lee |
+| 409 | `SOLAPAMIENTO_WIDGETS` | Celda ocupada, o dentro del rango de expansión de otro |
+| 409 | `CONFLICTO_PERFIL_MODIFICADO` | `version_perfil` desfasada |
+
+#### `GET /configuracion/personalizacion/dashboard/widgets` — Catálogo por rol
+
+**Response `list[WidgetCatalogoResponse]`:** `id_widget`, `clave`, `nombre`, `grupo`,
+`span_predeterminado`.
+
+#### `GET /configuracion/personalizacion/dashboard/datos` — Datos de los widgets visibles
+
+**Response `list[WidgetDatosResponse]`:** `id_widget`, `clave`, `nombre`, `posicion_fila`,
+`posicion_columna`, `span_columnas`, `orden`, `sin_datos`, `mensaje`, `datos`.
+
+Un widget sin fuente configurada, o cuya fuente no devolvió filas, llega con `sin_datos: true` y
+`mensaje` con el texto del RF; conserva su posición en la grilla.
+
+#### `POST /configuracion/personalizacion/dashboard/restaurar` — Restaurar
+
+Aplica la fila de `modulo9.dashboard_layouts_default` del rol del usuario. Si el rol no tiene una
+(rol creado después de la migración `a7f3c92e4d18`) responde `500 RESTAURACION_SIN_DEFAULT` sin
+escribir nada.
 
 ---
 

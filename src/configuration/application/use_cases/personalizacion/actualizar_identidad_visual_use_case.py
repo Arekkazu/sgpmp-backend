@@ -5,8 +5,6 @@ Registra auditoría antes/después de la mutación.
 """
 from __future__ import annotations
 
-import os
-import uuid
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -18,12 +16,8 @@ from src.configuration.domain.value_objects.color_hex import ColorHex
 from src.configuration.domain.value_objects.nombre_organizacion import NombreOrganizacion
 from src.configuration.infrastructure.dto.actualizar_identidad_visual_dto import ActualizarIdentidadVisualDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError, PreconditionFailedError, ValidationError
-
-_FORMATOS_PERMITIDOS = {"image/png", "image/jpeg", "image/svg+xml"}
-_TAMANO_MAX = 2 * 1024 * 1024
-_UPLOADS_DIR = "uploads/logos"
-_EXT_MAP = {"image/png": ".png", "image/jpeg": ".jpg", "image/svg+xml": ".svg"}
+from src.shared.almacen_logos import guardar_logo
+from src.shared.errors import NotFoundError, PreconditionFailedError
 
 
 class ActualizarIdentidadVisualUseCase:
@@ -61,7 +55,7 @@ class ActualizarIdentidadVisualUseCase:
 
         logo_path = None
         if logo_bytes:
-            logo_path = self._guardar_logo(logo_bytes, logo_content_type)
+            logo_path = guardar_logo(logo_bytes, logo_content_type)
 
         snapshot_anterior = entidad._snapshot()
 
@@ -86,28 +80,3 @@ class ActualizarIdentidadVisualUseCase:
             raise
 
         return actualizada
-
-    @staticmethod
-    def _guardar_logo(logo_bytes: bytes, content_type: Optional[str]) -> str:
-        if content_type not in _FORMATOS_PERMITIDOS:
-            raise ValidationError(
-                code="FORMATO_IMAGEN_NO_PERMITIDO",
-                message=(
-                    f"El logotipo debe estar en formato PNG, JPEG o SVG. "
-                    f"Tipo recibido: '{content_type}'."
-                ),
-                field="logo",
-            )
-        if len(logo_bytes) > _TAMANO_MAX:
-            raise ValidationError(
-                code="TAMANO_IMAGEN_EXCEDIDO",
-                message=f"El archivo supera el límite de 2 MB ({len(logo_bytes)/(1024*1024):.1f} MB recibidos).",
-                field="logo",
-            )
-        os.makedirs(_UPLOADS_DIR, exist_ok=True)
-        ext = _EXT_MAP.get(content_type, ".png")
-        filename = f"{uuid.uuid4()}{ext}"
-        path = os.path.join(_UPLOADS_DIR, filename)
-        with open(path, "wb") as f:
-            f.write(logo_bytes)
-        return path

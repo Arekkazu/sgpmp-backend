@@ -27,9 +27,45 @@ Respuesta esperada `200`:
   "finca_activa": "Finca El Paraíso",
   "departamento": "Cundinamarca",
   "especies_configuradas": ["Tilapia", "Trucha"],
-  "modulos_autorizados": ["especies", "ciclos_biologicos", "fincas"]
+  "modulos_autorizados": ["especies", "ciclos_biologicos", "fincas"],
+  "identidad_visual": {
+    "logo_path": "/uploads/logos/uuid-generado.png",
+    "primary_color": "#1A6B3C",
+    "secondary_color": "#A8D5B5",
+    "org_display_name": "Acuícola El Remanso"
+  },
+  "accesibilidad": {
+    "minimo_aa": 4.5,
+    "primary_color": {
+      "claro":  {"fondo": "#FFFFFF", "ratio": 6.54, "cumple_aa": true,  "color_ajustado": "#1A6B3C", "aviso": null},
+      "oscuro": {"fondo": "#171A15", "ratio": 2.69, "cumple_aa": false, "color_ajustado": "#249453",
+                 "aviso": "Aviso de accesibilidad: El color institucional configurado tiene bajo contraste en el modo oscuro. Se aplicará una variante aclarada/oscurecida automáticamente para garantizar la legibilidad."}
+    },
+    "secondary_color": {
+      "claro":  {"fondo": "#FFFFFF", "ratio": 1.63, "cumple_aa": false, "color_ajustado": "#3F8252", "aviso": "Aviso de accesibilidad: …en el modo claro…"},
+      "oscuro": {"fondo": "#171A15", "ratio": 10.75, "cumple_aa": true, "color_ajustado": "#A8D5B5", "aviso": null}
+    }
+  }
 }
 ```
+
+`identidad_visual` y `accesibilidad` (RF-26 + RF-27) viajan aquí porque este es el único
+endpoint de CU06 que **todos** los roles pueden leer y el único que resuelve
+usuario → finca. El recurso 23 (`identidad_visual`) es exclusivo del Administrador, así que
+sin esto un Productor no tendría forma de conocer su propia marca institucional. La
+escritura no cambia: sigue siendo exclusiva del recurso 23.
+
+Ambos campos son `null` si el usuario no tiene finca asignada o la finca no tiene identidad
+configurada — el cliente cae a su marca por defecto sin ningún caso especial.
+
+`color_ajustado` es la variante que cumple WCAG 2.1 AA sobre el fondo de ese tema; cuando el
+color ya cumple, es idéntico al original, de modo que el cliente pueda usarlo siempre sin
+condicionales. `aviso` trae el texto del flujo alterno de RF-27 y es `null` cuando se cumple.
+
+**El aviso es por tema, no global.** Los dos fondos están en extremos opuestos de la escala
+(blanco tiene luminancia 1.0; la superficie oscura, 0.009), así que cumplir 4.5:1 contra el
+claro exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: ningún color cumple en los dos a
+la vez. El cliente muestra el aviso del tema activo.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -54,16 +90,25 @@ Respuesta esperada `200`:
   "id_identidad_visual": 1,
   "id_finca": 1,
   "id_usuario": 1,
-  "logo_path": "uploads/logos/abc123.png",
+  "logo_path": "/uploads/logos/abc123.png",
   "primary_color": "#1E90FF",
   "secondary_color": "#FF6347",
   "org_display_name": "AcuaColombia S.A.S.",
   "version": 2,
-  "fecha_creacion": "2026-06-01T10:00:00Z"
+  "fecha_creacion": "2026-06-01T10:00:00Z",
+  "accesibilidad": { "…": "misma forma que en RF-25" }
 }
 ```
 
 Sin identidad visual registrada devuelve `null` (200).
+
+`accesibilidad` tiene exactamente la misma forma que en el contexto de RF-25 (ver arriba) y
+está aquí para que el administrador vea el aviso en el momento de guardar. **Es informativo:
+un color de bajo contraste se guarda igual.** RF-27 pide advertir y aplicar una variante, no
+rechazar, y las restricciones de RF-26 no mencionan el contraste.
+
+`logo_path` es una ruta pública servida por la propia API (`GET <base>/uploads/logos/…`).
+Antes se devolvía la ruta del sistema de archivos y no era alcanzable por HTTP.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -92,7 +137,7 @@ Respuesta esperada `201`:
   "id_identidad_visual": 1,
   "id_finca": 1,
   "id_usuario": 1,
-  "logo_path": "uploads/logos/uuid-generado.png",
+  "logo_path": "/uploads/logos/uuid-generado.png",
   "primary_color": "#1E90FF",
   "secondary_color": "#FF6347",
   "org_display_name": "AcuaColombia S.A.S.",
@@ -227,9 +272,40 @@ Errores posibles:
 
 Todos los usuarios con permiso sobre `dashboard_layout` (`id_recurso=25`).
 
+El catálogo de widgets vive en `modulo9.widgets`. Cada widget declara el `id_recurso` cuyo permiso
+`R` lo habilita, así que dos roles con el mismo permiso sobre el dashboard ven catálogos distintos.
+
+### Catálogo de widgets disponibles para el rol
+
+```bash
+curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard/widgets \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+[
+  {"id_widget": 1, "clave": "temp_galpon", "nombre": "Temperatura Galpon",
+   "grupo": "Ambiental", "span_predeterminado": 1},
+  {"id_widget": 6, "clave": "estado_iot", "nombre": "Estado Dispositivos IoT",
+   "grupo": "IoT", "span_predeterminado": 2}
+]
+```
+
+Verificado en dev: el Productor (rol 2) recibe los ids `[1,2,3,4,5,6,7,8,9,10,11,14,15]` y el
+Veterinario (rol 3) `[1,2,3,4,5,6,8,9,10,11,12,13,14]` — el 12/13 (producción) solo para el
+veterinario, el 7/15 (dispositivos IoT) solo para el productor.
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `dashboard_layout`
+
+---
+
 ### Obtener layout actual (Flujo A)
 
-Si el usuario no tiene layout guardado, devuelve el predeterminado de su rol.
+Si el usuario no tiene layout guardado, devuelve el predeterminado de su rol
+(`modulo9.dashboard_layouts_default`); si su rol tampoco tiene uno, una grilla vacía.
 
 ```bash
 curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard \
@@ -248,13 +324,18 @@ Respuesta esperada `200`:
       "posicion_columna": 1,
       "span_columnas": 2,
       "visible": true,
-      "orden": 1
+      "orden": 0
     }
   ],
-  "active_widget": ["widget_produccion", "widget_alertas"],
-  "fecha_actualizacion": "2026-06-21T12:00:00Z"
+  "active_widget": ["temp_galpon", "alertas"],
+  "fecha_actualizacion": "2026-09-02T12:00:00Z",
+  "version_perfil": 3
 }
 ```
+
+`version_perfil` es la versión del perfil del usuario al momento de la lectura. Devolverla en el
+`PATCH` permite que el backend detecte que un administrador cambió el rol o la finca del usuario
+mientras editaba (FA-34).
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -264,7 +345,9 @@ Errores posibles:
 
 ### Guardar configuración del dashboard (Flujo B)
 
-Valida: máximo 12 widgets activos, sin solapamiento de celdas, sin desborde horizontal.
+Valida, en este orden y **antes de tocar la base**: perfil vigente, widget existente, widget
+permitido para el rol, indicador existente, máximo 12 widgets activos, coordenadas y span dentro de
+la grilla, y ausencia de solapamiento. Una configuración inválida no persiste nada parcial.
 
 ```bash
 curl -X PATCH http://localhost:8000/configuracion/personalizacion/dashboard \
@@ -273,36 +356,48 @@ curl -X PATCH http://localhost:8000/configuracion/personalizacion/dashboard \
   -d '{
     "layout_config": [
       {
-        "id_widget": 1,
+        "id_widget": 6,
         "posicion_fila": 1,
         "posicion_columna": 1,
         "span_columnas": 2,
         "visible": true,
-        "orden": 1
+        "orden": 0
       },
       {
-        "id_widget": 2,
+        "id_widget": 9,
         "posicion_fila": 1,
         "posicion_columna": 3,
         "span_columnas": 1,
         "visible": true,
-        "orden": 2
+        "orden": 1
       }
     ],
-    "active_widget": ["widget_produccion", "widget_alertas"]
+    "active_widget": ["estado_iot", "alertas_crit"],
+    "version_perfil": 3
   }'
 ```
 
 Respuesta esperada `200` con el layout guardado.
 
+`version_perfil` es opcional: si se omite, el chequeo de concurrencia no se aplica.
+Poner `visible: false` en un widget **libera su celda** — es la forma de "desactivar un widget antes
+de agregar uno nuevo" que sugiere el propio RF.
+
 Errores posibles:
 - `400` — `posicion_fila` fuera de rango 1–3 (FA-30)
 - `400` — `posicion_columna` fuera de rango 1–4 (FA-30)
 - `400` — `span_columnas` no es 1 o 2 (FA-30)
-- `400` — widget desborda la grilla horizontalmente (FA-30)
-- `403` — rol sin permiso U sobre `dashboard_layout`
-- `409` — dos widgets ocupan la misma celda (FA-31)
-- `422` — más de 12 widgets activos simultáneamente (FA-32)
+- `400` `DESBORDE_HORIZONTAL` — widget con span 2 en la columna 4 (FA-30)
+- `400` `LIMITE_WIDGETS_ALCANZADO` — más de 12 widgets activos, en `layout_config` o en
+  `active_widget` (FA-32)
+- `400` `ACTIVE_WIDGET_DUPLICADO` — `active_widget` repite un identificador
+- `400` `WIDGET_INEXISTENTE` — `id_widget` que no está en `modulo9.widgets`
+- `400` `ACTIVE_WIDGET_INEXISTENTE` — clave de `active_widget` fuera del catálogo
+- `403` `ACCESO_DENEGADO` — rol sin permiso U sobre `dashboard_layout`
+- `403` `WIDGET_NO_AUTORIZADO` — widget de un módulo que el rol no puede leer (FA-33)
+- `409` `SOLAPAMIENTO_WIDGETS` — dos widgets en la misma celda, o uno dentro del rango de
+  expansión de otro (FA-31)
+- `409` `CONFLICTO_PERFIL_MODIFICADO` — el perfil del usuario cambió durante la edición (FA-34)
 
 ---
 
@@ -313,10 +408,51 @@ curl -X POST http://localhost:8000/configuracion/personalizacion/dashboard/resta
   -H "Authorization: Bearer <TOKEN>"
 ```
 
-Respuesta esperada `200` con el layout predeterminado del rol del usuario.
+Respuesta esperada `200` con el layout base del rol. Verificado en dev para el rol 2:
+`grid` con los widgets `[1, 2, 8, 9, 14]` y `active_widget`
+`["temp_galpon","hum_galpon","alertas","alertas_crit","fincas_estado"]`.
 
 Errores posibles:
 - `403` — rol sin permiso U sobre `dashboard_layout`
+- `500` `RESTAURACION_SIN_DEFAULT` — el rol no tiene fila en
+  `modulo9.dashboard_layouts_default` (FA-35). Pasa con roles creados después de la migración
+  `a7f3c92e4d18`; se corrige insertando su layout base. **No se escribe nada**: la configuración
+  actual del usuario queda intacta.
+
+---
+
+### Datos de los widgets visibles
+
+```bash
+curl -X GET http://localhost:8000/configuracion/personalizacion/dashboard/datos \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`, una entrada por widget visible, ordenada por `orden`:
+```json
+[
+  {
+    "id_widget": 6, "clave": "estado_iot", "nombre": "Estado Dispositivos IoT",
+    "posicion_fila": 1, "posicion_columna": 1, "span_columnas": 2, "orden": 0,
+    "sin_datos": false, "mensaje": null,
+    "datos": [{"serial": "IOT-001", "es_activo": true, "finca": "La Esperanza"}]
+  },
+  {
+    "id_widget": 1, "clave": "temp_galpon", "nombre": "Temperatura Galpon",
+    "posicion_fila": 2, "posicion_columna": 1, "span_columnas": 1, "orden": 1,
+    "sin_datos": true,
+    "mensaje": "Sin datos disponibles para el sensor o periodo seleccionado.",
+    "datos": []
+  }
+]
+```
+
+Un widget sin fuente configurada, o cuya fuente no devolvió filas, llega con `sin_datos: true` y
+**conserva su posición en la grilla** — no se omite ni afecta a los demás (FA-36).
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `dashboard_layout`
 
 ---
 
@@ -341,11 +477,16 @@ Respuesta esperada `200`:
 {
   "locale_code": "en-US",
   "fuente": "personal",
-  "id_preferencia_idioma": 7
+  "id_preferencia_idioma": 7,
+  "version_perfil": 5
 }
 ```
 
 `fuente` puede ser `"personal"`, `"global"` o `"defecto"`.
+
+`version_perfil` es la versión del perfil del usuario en el momento de la lectura. El
+cliente la reenvía en el `PATCH` para que el backend detecte que su perfil cambió mientras
+editaba; ver el `409` de abajo.
 
 Errores posibles:
 - `401` — token ausente o inválido
@@ -359,8 +500,10 @@ Errores posibles:
 curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
-  -d '{"locale_code": "en-US"}'
+  -d '{"locale_code": "en-US", "version_perfil": 5}'
 ```
+
+`version_perfil` es opcional: si se omite, no se comprueba la concurrencia.
 
 Respuesta esperada `200`:
 ```json
@@ -369,13 +512,35 @@ Respuesta esperada `200`:
   "id_usuario": 3,
   "locale_code": "en-US",
   "es_por_defecto": false,
-  "fecha_actualizacion": "2026-06-21T13:00:00Z"
+  "fecha_actualizacion": "2026-06-21T13:00:00Z",
+  "version_perfil": 5
 }
 ```
 
 Errores posibles:
-- `400` — `locale_code` no está entre `es-CO` / `en-US` (FA-33)
-- `403` — rol sin permiso U sobre `preferencia_idioma`
+- `400 IDIOMA_NO_DISPONIBLE` — `locale_code` no está entre `es-CO` / `en-US`
+  (FA "Código de idioma no soportado"). Ojo: `"es"` y `"en"` **no** son válidos.
+- `403 ACCESO_DENEGADO` — rol sin permiso U sobre `preferencia_idioma`
+- `404 PREFERENCIA_IDIOMA_NO_ENCONTRADA` — la fila desapareció entre la lectura y la escritura
+- `409 CONFLICTO_PERFIL_MODIFICADO` — la `version_perfil` enviada no coincide con la vigente
+  (FA "Conflicto de actualización de perfil")
+- `500 ERROR_PERSISTENCIA_IDIOMA` — fallo de infraestructura al guardar
+  (FA "Fallo en la persistencia de la preferencia")
+
+Ejemplo del `400`:
+```bash
+curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"locale_code": "fr-FR"}'
+```
+```json
+{
+  "error_code": "IDIOMA_NO_DISPONIBLE",
+  "message": "Idioma no disponible: El código de cultura 'fr-FR' no está soportado actualmente. Los idiomas disponibles son Español (es-CO) e Inglés (en-US).",
+  "fields": [{"field": "locale_code", "message": "Idioma no disponible: ..."}]
+}
+```
 
 ---
 
@@ -389,7 +554,9 @@ curl -X GET http://localhost:8000/configuracion/personalizacion/idioma/global \
 Respuesta `200` con objeto `PreferenciaIdioma` donde `es_por_defecto=true`, o `null` si no configurado.
 
 Errores posibles:
-- `403` — rol sin permiso R sobre `configuracion_ui_global`
+- `403 ACCESO_DENEGADO` — rol sin permiso R sobre `configuracion_ui_global`. El mensaje es el
+  específico del RF-29, no el genérico:
+  `"Acceso denegado: Solo el Administrador del sistema puede definir el idioma predeterminado global de la plataforma."`
 
 ---
 
@@ -405,5 +572,12 @@ curl -X PATCH http://localhost:8000/configuracion/personalizacion/idioma/global 
 Respuesta esperada `200` con `es_por_defecto=true` y el nuevo `locale_code`.
 
 Errores posibles:
-- `400` — `locale_code` no válido (FA-33)
-- `403` — rol sin permiso U sobre `configuracion_ui_global`
+- `400 IDIOMA_NO_DISPONIBLE` — `locale_code` no válido
+- `403 ACCESO_DENEGADO` — rol sin permiso U sobre `configuracion_ui_global`
+  (FA "Privilegios insuficientes"), con el mensaje específico del RF-29
+- `409 CONFLICTO_PERFIL_MODIFICADO` — `version_perfil` desfasada
+- `500 ERROR_PERSISTENCIA_IDIOMA` — fallo de infraestructura al guardar
+
+> Los invariantes de `es-CO`/`en-US`, "una preferencia personal por usuario" y "una sola fila
+> global" están además reforzados en base de datos por la migración `b5d1e0c93a77`, así que
+> una escritura fuera de la aplicación también los respeta.
