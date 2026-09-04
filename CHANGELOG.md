@@ -1,3 +1,9 @@
+## [1.0.0-rc.5](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.4...v1.0.0-rc.5) (2026-09-04)
+
+### Features
+
+* **configuration:** [#1668](https://github.com/Arekkazu/sgpmp-backend/issues/1668) catálogo administrable de tipos de área (RF-20) ([a74001d](https://github.com/Arekkazu/sgpmp-backend/commit/a74001dc0186406b81bf57357ec873a2b5b4aaec))
+
 ## [1.0.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.3...v1.0.0-rc.4) (2026-09-04)
 
 ### Features
