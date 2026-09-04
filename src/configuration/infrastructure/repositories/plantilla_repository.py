@@ -33,12 +33,13 @@ class SqlAlchemyPlantillaRepository(PlantillaRepository):
         orm = self.db.get(PlantillaModel, id_plantilla)
         return self._a_entidad(orm) if orm else None
 
-    def obtener_version_maxima(self, template_name: str) -> Optional[int]:
+    def existe_nombre(self, template_name: str) -> bool:
         return self.db.scalar(
-            select(func.max(PlantillaModel.version)).where(
-                PlantillaModel.template_name == template_name
+            select(func.count(PlantillaModel.id_plantilla)).where(
+                func.lower(func.trim(PlantillaModel.template_name))
+                == func.lower(func.trim(template_name))
             )
-        )
+        ) > 0
 
     def listar_todas(self) -> list[Plantilla]:
         rows = (

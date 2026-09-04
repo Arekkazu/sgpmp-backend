@@ -10,6 +10,10 @@ class AsociarSensorAreaDTO(BaseDTO):
     id_dispositivo_iot: int
     id_infraestructura: int
     punto_instalacion: str
+    # RF-22 FA "Conflicto de reasignación": el primer intento de reasignar a otra
+    # área responde 409 pidiendo confirmación; el cliente reenvía con confirmar=true
+    # para completar la reasignación (finaliza la asociación anterior).
+    confirmar: bool = False
 
     @field_validator("punto_instalacion")
     @classmethod

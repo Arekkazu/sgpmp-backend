@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.personalizacion.guardar_idioma_global_use_case import GuardarIdiomaGlobalUseCase
+from src.configuration.application.use_cases.personalizacion.obtener_idioma_global_use_case import ObtenerIdiomaGlobalUseCase
 from src.configuration.application.use_cases.personalizacion.guardar_idioma_personal_use_case import GuardarIdiomaPersonalUseCase
 from src.configuration.application.use_cases.personalizacion.obtener_idioma_resuelto_use_case import ObtenerIdiomaResueltoUseCase
 from src.configuration.infrastructure.dto.guardar_idioma_dto import GuardarIdiomaDTO
@@ -33,6 +34,13 @@ router = APIRouter(
 
 _RECURSO_IDIOMA = 26      # modulo1.recursos: 'preferencia_idioma'
 _RECURSO_GLOBAL = 27      # modulo1.recursos: 'configuracion_ui_global'
+
+# Texto del 403 que pide el FA "Privilegios insuficientes" del RF-29. La
+# compuerta sigue siendo modulo1.permisos; esto solo reemplaza el mensaje.
+_DENEGADO_GLOBAL = (
+    "Acceso denegado: Solo el Administrador del sistema puede definir el idioma "
+    "predeterminado global de la plataforma."
+)
 
 
 @router.get(
@@ -62,6 +70,8 @@ def obtener_idioma(
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
     },
     summary="Guardar preferencia de idioma personal (Flujo B)",
 )
@@ -70,15 +80,21 @@ def guardar_idioma_personal(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PreferenciaIdiomaResponse:
-    use_case = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=SqlAlchemyPreferenciaIdiomaRepository(db))
+    repo = SqlAlchemyPreferenciaIdiomaRepository(db)
+    use_case = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo)
     entidad = use_case.execute(dto, usuario_actual)
-    return PreferenciaIdiomaResponse.from_entity(entidad)
+    return PreferenciaIdiomaResponse.from_entity(
+        entidad,
+        version_perfil=repo.version_perfil(usuario_actual.id_usuario),
+    )
 
 
 @router.get(
     "/global",
     response_model=Optional[PreferenciaIdiomaResponse],
-    dependencies=[Depends(require_permission(_RECURSO_GLOBAL, 2))],
+    dependencies=[
+        Depends(require_permission(_RECURSO_GLOBAL, 2, mensaje_denegado=_DENEGADO_GLOBAL))
+    ],
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
@@ -88,8 +104,8 @@ def guardar_idioma_personal(
 def obtener_idioma_global(
     db: Session = Depends(get_db),
 ) -> Optional[PreferenciaIdiomaResponse]:
-    repo = SqlAlchemyPreferenciaIdiomaRepository(db)
-    entidad = repo.obtener_global()
+    use_case = ObtenerIdiomaGlobalUseCase(idioma_repo=SqlAlchemyPreferenciaIdiomaRepository(db))
+    entidad = use_case.execute()
     if entidad is None:
         return None
     return PreferenciaIdiomaResponse.from_entity(entidad)
@@ -98,11 +114,15 @@ def obtener_idioma_global(
 @router.patch(
     "/global",
     response_model=PreferenciaIdiomaResponse,
-    dependencies=[Depends(require_permission(_RECURSO_GLOBAL, 3))],
+    dependencies=[
+        Depends(require_permission(_RECURSO_GLOBAL, 3, mensaje_denegado=_DENEGADO_GLOBAL))
+    ],
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
     },
     summary="Actualizar idioma global del sistema (Flujo D — Admin)",
 )
@@ -111,6 +131,10 @@ def guardar_idioma_global(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PreferenciaIdiomaResponse:
-    use_case = GuardarIdiomaGlobalUseCase(db=db, idioma_repo=SqlAlchemyPreferenciaIdiomaRepository(db))
+    repo = SqlAlchemyPreferenciaIdiomaRepository(db)
+    use_case = GuardarIdiomaGlobalUseCase(db=db, idioma_repo=repo)
     entidad = use_case.execute(dto, usuario_actual)
-    return PreferenciaIdiomaResponse.from_entity(entidad)
+    return PreferenciaIdiomaResponse.from_entity(
+        entidad,
+        version_perfil=repo.version_perfil(usuario_actual.id_usuario),
+    )

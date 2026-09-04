@@ -2,6 +2,14 @@
 
 Toma los parámetros productivos de una especie origen (proporcionados en el
 dto.params_snapshot) y los guarda como un snapshot versionado inmutable.
+
+Esta operación crea plantillas **nuevas**: un nombre ya registrado se rechaza
+con `409`, como exigen el FA "Nombre de plantilla duplicado" y el criterio de
+aceptación "el sistema rechaza la creación de una plantilla con un nombre ya
+existente" de RF-30 y RF-31. Generar la versión siguiente de una plantilla que
+ya existe es otra intención y tiene su propio caso de uso
+(`VersionarPlantillaUseCase`), para que nadie versione sin querer por repetir
+un nombre.
 """
 from __future__ import annotations
 
@@ -10,14 +18,13 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.plantilla import Plantilla
+from src.configuration.domain.esquema_plantilla import SCHEMA_VERSION_ACTUAL, claves_fuera_de_alcance
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
 from src.configuration.infrastructure.dto.registrar_plantilla_dto import RegistrarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
-
-_SCHEMA_VERSION_ACTUAL = 1
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class RegistrarPlantillaUseCase:
@@ -36,6 +43,32 @@ class RegistrarPlantillaUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarPlantillaDTO, usuario_actual: UsuarioActual) -> Plantilla:
+        # Alcance antes que nada: el RF-30 le da a este caso su propio código
+        # (422), distinto del 400 con que se rechaza un fallo de esquema. Por
+        # eso no vive en el DTO, que solo puede producir 400.
+        fuera_de_alcance = claves_fuera_de_alcance(dto.params_snapshot)
+        if fuera_de_alcance:
+            raise BusinessRuleError(
+                code="ALCANCE_NO_PERMITIDO",
+                message=(
+                    "Alcance no permitido: las plantillas solo pueden contener parámetros "
+                    "productivos y umbrales ambientales. Se han detectado configuraciones "
+                    f"de {fuera_de_alcance} que deben ser removidas."
+                ),
+                field="params_snapshot",
+            )
+
+        if self.plantilla_repo.existe_nombre(dto.template_name):
+            raise ConflictError(
+                code="NOMBRE_PLANTILLA_DUPLICADO",
+                message=(
+                    f"Nombre no disponible: ya existe una plantilla denominada "
+                    f"'{dto.template_name}'. Asigne un nombre único, o genere una nueva "
+                    "versión de la plantilla existente."
+                ),
+                field="template_name",
+            )
+
         especie = self.especie_repo.obtener_por_id(dto.id_especie)
         if especie is None:
             raise NotFoundError(
@@ -50,17 +83,18 @@ class RegistrarPlantillaUseCase:
             )
 
         snapshot = dict(dto.params_snapshot)
-        snapshot['schema_version'] = _SCHEMA_VERSION_ACTUAL
-
-        version_max = self.plantilla_repo.obtener_version_maxima(dto.template_name)
-        version = (version_max or 0) + 1
+        snapshot['schema_version'] = SCHEMA_VERSION_ACTUAL
 
         plantilla = Plantilla.crear(
             id_especie=dto.id_especie,
             id_usuario=usuario_actual.id_usuario,
             template_name=dto.template_name,
             params_snapshot=snapshot,
-            version=version,
+            # Versión inicial que exige el RF-31. El número definitivo lo fija
+            # el trigger `trg_fn_plantilla_version_incremental` dentro de la
+            # transacción, y `guardar()` lo devuelve tras el refresh: así dos
+            # inserts simultáneos no pueden reclamar la misma versión.
+            version=1,
             fecha_creacion=datetime.now(timezone.utc),
         )
 

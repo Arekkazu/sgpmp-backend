@@ -5,8 +5,11 @@ uniendo datos de usuarios, roles, fincas, especies y permisos.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
+
+from src.configuration.domain.entities.accesibilidad_visual import AccesibilidadVisual
+from src.configuration.domain.entities.identidad_visual import IdentidadVisual
 
 
 @dataclass
@@ -20,3 +23,9 @@ class ContextoInterfaz:
     departamento: Optional[str]
     especies_configuradas: list[str]
     modulos_autorizados: list[str]
+    # Identidad visual de la finca activa (RF-26) y su contraste WCAG (RF-27).
+    # Viajan aquí porque este es el único endpoint que todos los roles pueden leer
+    # y el único que resuelve usuario -> finca: el recurso 23 es solo de
+    # Administrador, así que ningún otro rol podría conocer su propia marca.
+    identidad_visual: Optional[IdentidadVisual] = None
+    accesibilidad: Optional[AccesibilidadVisual] = None

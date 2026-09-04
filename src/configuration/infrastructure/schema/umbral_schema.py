@@ -40,3 +40,20 @@ class UmbralAmbientalResponse(BaseModel):
 class UmbralesPorEspecieResponse(BaseModel):
     total: int
     items: List[UmbralAmbientalResponse]
+
+
+class VariableAmbientalResponse(BaseModel):
+    """Catálogo de variables ambientales (`modulo9.variables_ambientales`)."""
+
+    id_variable_ambiental: int
+    nombre: str
+    unidad: str
+    valor_fisico_min: Decimal
+    valor_fisico_max: Decimal
+
+    model_config = {'from_attributes': True}
+
+
+class VariablesAmbientalesResponse(BaseModel):
+    total: int
+    items: List[VariableAmbientalResponse]

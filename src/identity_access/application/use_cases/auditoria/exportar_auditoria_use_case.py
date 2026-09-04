@@ -173,10 +173,18 @@ class ExportarAuditoriaUseCase:
     ) -> Iterator[str]:
         """Emite el CSV línea a línea (pasada 2), sin armarlo entero en memoria.
 
-        El corte en ``total_exportado`` no es decorativo: entre el conteo y esta
-        pasada pueden entrar eventos nuevos —empezando por el de esta misma
-        exportación— y el archivo tendría más filas de las que anuncia la
-        cabecera ``X-Registros-Exportados``.
+        Entre el conteo y esta pasada entran eventos nuevos —empezando por el de
+        esta misma exportación, que se registra justo antes—. Como la consulta
+        ordena por fecha descendente, esos recién llegados se cuelan al principio
+        y empujan fuera a registros reales: con un solo evento en el conjunto, el
+        CSV salía conteniendo únicamente el ``EXPORTACION_AUDITORIA`` de la propia
+        descarga y perdía el registro que el usuario venía a exportar.
+
+        Cortar en ``total_exportado`` limita cuántas filas salen pero no cuáles,
+        así que no basta. Se emiten solo los eventos presentes en
+        ``clasificacion``, que es el conjunto exacto que se contó y cuya
+        integridad se verificó en la pasada 1. Así el archivo coincide siempre
+        con lo que anuncian las cabeceras y con lo que se validó.
         """
         # El BOM hace que Excel abra el archivo como UTF-8; sin él, "Módulo" y
         # "Descripción" salen con los acentos rotos.
@@ -186,6 +194,8 @@ class ExportarAuditoriaUseCase:
         for evento in self.eventos_repo.iterar_eventos(
             limite=LIMITE_EXPORTACION, **filtros
         ):
+            if evento.id_evento not in clasificacion:
+                continue  # entró después del conteo; no se contó ni se verificó
             if emitidas >= total_exportado:
                 break
             emitidas += 1
@@ -198,7 +208,7 @@ class ExportarAuditoriaUseCase:
                 evento.resultado,
                 evento.direccion_ip or "",
                 evento.fecha_evento.isoformat() if evento.fecha_evento else "",
-                clasificacion.get(evento.id_evento, ""),
+                clasificacion[evento.id_evento],
             ])
 
     @staticmethod

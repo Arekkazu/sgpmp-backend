@@ -47,3 +47,24 @@ class HistorialAplicacionesResponse(BaseModel):
 
     total: int
     items: list[AplicacionPlantillaResponse]
+
+
+class VersionEsquemaResponse(BaseModel):
+    """Una entrada del changelog del esquema de `params_snapshot` (RF-30)."""
+
+    version: int
+    fecha: str
+    compatible_con: list[int]
+    cambios: list[str]
+
+
+class EsquemaPlantillaResponse(BaseModel):
+    """Esquema vigente del `params_snapshot` y su changelog de versiones (RF-30)."""
+
+    schema_version_actual: int
+    categorias: list[str]
+    #: {categoría: {campo: descripción del tipo esperado}}
+    campos_requeridos: dict[str, dict[str, str]]
+    #: Forma de cada `umbrales_ambientales[].niveles[]`.
+    campos_nivel_alerta: dict[str, str]
+    changelog: list[VersionEsquemaResponse]

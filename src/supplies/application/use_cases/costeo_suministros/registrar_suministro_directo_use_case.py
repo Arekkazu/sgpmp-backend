@@ -30,7 +30,14 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, InfrastructureError, ValidationError
+from src.shared.errors import (
+    AppError,
+    BusinessRuleError,
+    ConflictError,
+    InfrastructureError,
+    ServiceUnavailableError,
+    ValidationError,
+)
 from src.supplies.domain.entities.registro_suministro_directo import RegistroSuministroDirecto
 from src.supplies.domain.repositories.auditoria_suministro_port import (
     AuditoriaSuministroPort,
@@ -50,6 +57,10 @@ _MAX_REINTENTOS = 3
 _BACKOFF_SEGUNDOS = (1, 3, 5)
 _ESCALA_CANTIDAD = Decimal("0.0001")
 _ESCALA_PRECIO = Decimal("0.01")
+# Errores transitorios de infraestructura que justifican reintentar. Desde
+# INC-M01-06-024 un fallo de conectividad sale como ServiceUnavailableError en
+# vez de InfrastructureError, así que el reintento tiene que cubrir ambos.
+_ERRORES_REINTENTABLES = (InfrastructureError, ServiceUnavailableError)
 
 
 @dataclass(frozen=True)
@@ -158,7 +169,7 @@ class RegistrarSuministroDirectoUseCase:
     def _persistir_con_reintentos(
         self, entidad: RegistroSuministroDirecto, usuario_actual: UsuarioActual
     ) -> ResultadoRegistroDirecto:
-        ultimo_error: Optional[InfrastructureError] = None
+        ultimo_error: Optional[AppError] = None
         for intento in range(1, _MAX_REINTENTOS + 1):
             try:
                 guardado = self.registro_repo.guardar(entidad)
@@ -189,7 +200,7 @@ class RegistrarSuministroDirectoUseCase:
                 )
                 self.db.commit()
                 return ResultadoRegistroDirecto(registro=guardado, ya_procesado=False)
-            except InfrastructureError as exc:
+            except _ERRORES_REINTENTABLES as exc:
                 self.db.rollback()
                 ultimo_error = exc
                 if intento < _MAX_REINTENTOS:
