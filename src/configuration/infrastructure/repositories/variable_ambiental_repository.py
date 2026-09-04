@@ -20,6 +20,15 @@ class SqlAlchemyVariableAmbientalRepository(VariableAmbientalRepository):
             return None
         return self._a_entidad(orm)
 
+    def listar_activas(self) -> list[VariableAmbiental]:
+        orms = (
+            self._db.query(VariableAmbientalModel)
+            .filter(VariableAmbientalModel.es_activo.is_(True))
+            .order_by(VariableAmbientalModel.nombre)
+            .all()
+        )
+        return [self._a_entidad(orm) for orm in orms]
+
     @staticmethod
     def _a_entidad(orm: VariableAmbientalModel) -> VariableAmbiental:
         return VariableAmbiental(

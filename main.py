@@ -31,6 +31,7 @@ from src.configuration.infrastructure.routers.metrica_router import router as me
 from src.configuration.infrastructure.routers.patologia_router import router as patologia_router
 from src.configuration.infrastructure.routers.plantilla_router import router as plantilla_router
 from src.configuration.infrastructure.routers.umbral_router import router as umbral_router
+from src.configuration.infrastructure.routers.variable_ambiental_router import router as variable_ambiental_router
 from src.identity_access.infrastructure.routers.auditoria_routers import router as auditoria_router
 from src.telemetry.infrastructure.routers.telemetria_router import router as telemetria_router
 from src.telemetry.infrastructure.routers.evento_edge_router import router as evento_edge_router
@@ -494,6 +495,7 @@ app.include_router(ciclo_router)
 app.include_router(patologia_router)
 app.include_router(metrica_router)
 app.include_router(umbral_router)
+app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
 app.include_router(finca_router)
