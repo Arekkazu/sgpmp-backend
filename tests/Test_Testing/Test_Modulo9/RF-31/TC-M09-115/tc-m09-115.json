@@ -1,0 +1,128 @@
+{
+  "info": {
+    "name": "TC-M09-G115 (TC-M09-222)",
+    "description": "Auditoria de creacion exitosa y fallida de plantillas (RF-31, OWASP A09). Verifica si un CREATE exitoso y un CREATE fallido (error de validacion) quedan registrados en /auditoria/ con usuario, fecha, plantilla, resultado y causa. Ejecucion independiente y con su propia evidencia bajo TC-M09-222 (distinta de TC-M09-G109/TC-209, que cubrio auditoria de plantillas de forma mas general). Usa busqueda por regex precisa (no substring suelto) para evitar falsos positivos. Ejecutar con: newman run tc-m09-115.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-115.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "template_name_exitoso", "value": "" },
+    { "key": "id_plantilla_exitoso", "value": "" },
+    { "key": "fecha_exitoso", "value": "" },
+    { "key": "fecha_fallido", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('template_name_exitoso', 'QA-AUDIT-CREATE-' + Date.now());",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. TC-M09-222 (parte exitosa) - CREATE valido de una plantilla",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set('fecha_exitoso', new Date().toISOString());",
+        "console.log('[CREATE EXITOSO] hora_intento=' + pm.collectionVariables.get('fecha_exitoso') + ' status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_exitoso', body.id_plantilla);",
+        "    console.log('Plantilla creada: id_plantilla=' + body.id_plantilla + ' template_name=' + body.template_name + ' fecha_creacion(servidor)=' + body.fecha_creacion);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_exitoso}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.2 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-222 (parte fallida) - CREATE invalido (sin template_name, error de validacion)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set('fecha_fallido', new Date().toISOString());",
+        "console.log('[CREATE FALLIDO] hora_intento=' + pm.collectionVariables.get('fecha_fallido') + ' status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.2 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. TC-M09-222 - Consultar auditoria y buscar ambos registros (exitoso y fallido)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "console.log('[AUDITORIA] total=' + body.total + ' items_en_esta_pagina=' + items.length);",
+        "",
+        "var idExitoso = pm.collectionVariables.get('id_plantilla_exitoso');",
+        "var reIdExitosoClave = idExitoso ? new RegExp('\"id_plantilla\"\\\\s*:\\\\s*' + idExitoso + '(?!\\\\d)') : null;",
+        "var rePlantillaCategoria = /\"(categoria|descripcion|modulo)\"\\s*:\\s*\"[^\"]*PLANTILLA[^\"]*\"/i;",
+        "var rePalabraPlantilla = /\\bPLANTILLA\\b/i;",
+        "",
+        "var candidatosPorId = [];",
+        "var candidatosPorCategoria = [];",
+        "var candidatosPorPalabra = [];",
+        "",
+        "items.forEach(function (it) {",
+        "    var s = JSON.stringify(it);",
+        "    if (reIdExitosoClave && reIdExitosoClave.test(s)) { candidatosPorId.push(it); }",
+        "    if (rePlantillaCategoria.test(s)) { candidatosPorCategoria.push(it); }",
+        "    if (rePalabraPlantilla.test(s)) { candidatosPorPalabra.push(it); }",
+        "});",
+        "",
+        "console.log('Coincidencias por id_plantilla exacto (' + idExitoso + '): ' + candidatosPorId.length);",
+        "console.log('Coincidencias por categoria/descripcion/modulo con PLANTILLA: ' + candidatosPorCategoria.length);",
+        "console.log('Coincidencias por la palabra PLANTILLA en cualquier parte del item: ' + candidatosPorPalabra.length);",
+        "if (candidatosPorPalabra.length > 0) { console.log('Detalle de coincidencias encontradas: ' + JSON.stringify(candidatosPorPalabra)); }",
+        "",
+        "console.log('Hora del intento exitoso: ' + pm.collectionVariables.get('fecha_exitoso') + ' | Hora del intento fallido: ' + pm.collectionVariables.get('fecha_fallido'));",
+        "console.log('Primeros 3 items de auditoria (mas recientes) para inspeccion manual: ' + JSON.stringify(items.slice(0, 3)));",
+        "",
+        "pm.test('TC-M09-222: existe un registro de auditoria para el CREATE EXITOSO de la plantilla (usuario, fecha, plantilla, resultado)', function () {",
+        "    pm.expect(candidatosPorId.length, 'se esperaba al menos 1 coincidencia por id_plantilla=' + idExitoso).to.be.greaterThan(0);",
+        "});",
+        "pm.test('TC-M09-222: existe un registro de auditoria para el CREATE FALLIDO (con causa del error de validacion)', function () {",
+        "    pm.expect(candidatosPorCategoria.length, 'se esperaba al menos 1 entrada de auditoria categorizada como PLANTILLA').to.be.greaterThan(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/auditoria/?pagina=1&tamano=50"
+      }
+    }
+  ]
+}

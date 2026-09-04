@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "TC-M09-G112 (TC-M09-213/214/215/216/219/220)",
+    "description": "Validacion de datos y del snapshot JSON al crear una plantilla (RF-31, OWASP A03). Cubre: 213 nombre duplicado (409 esperado), 214 snapshot vacio/incompleto (400 esperado), 215 estructura invalida en el snapshot (400 esperado), 216 parametro fuera de rango (422 esperado), 219 campos obligatorios ausentes -- tres variantes: sin template_name, sin id_especie, sin params_snapshot (400 esperado en cada una), 220 propiedad no permitida dentro del snapshot (400 esperado). OJO: TC-M09-213 (nombre duplicado -> 409) puede entrar en conflicto con el comportamiento ya confirmado en TC-M09-106/204, donde reenviar el mismo template_name genera automaticamente una nueva VERSION (201), no un rechazo. Este script prueba el caso mas estricto posible (payload identico en todo, no solo el nombre) para ver si existe alguna distincion, y deja el resultado real impreso en consola para decidir si es un defecto, una discrepancia de especificacion entre fichas, o el comportamiento esperado. Ejecutar con: newman run tc-m09-112.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "template_name_dup", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('template_name_dup', 'QA-Duplicado-' + Date.now());",
+        "    console.log('id_especie elegido: ' + body.items[0].id_especie + ' | template_name_dup: ' + pm.collectionVariables.get('template_name_dup'));",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1a. TC-M09-213 - Crear plantilla baseline (para probar duplicado despues)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[BASELINE] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea con 201 (baseline)', function () { pm.response.to.have.status(201); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "1b. TC-M09-213 - Reenviar EXACTAMENTE el mismo payload (nombre + especie + snapshot identicos)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[DUPLICADO EXACTO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 409) {",
+        "    console.log('Resultado: el sistema SI rechaza un duplicado exacto con 409, coincide con la ficha.');",
+        "} else if (pm.response.code === 201) {",
+        "    console.log('Resultado: el sistema genera una NUEVA VERSION (201) en vez de rechazar con 409 -- mismo comportamiento que TC-M09-204/106. Esto contradice literalmente lo que pide esta ficha (409), pero coincide con el comportamiento de versionado ya confirmado como correcto en otro grupo de casos (RF-30). Se documentara como discrepancia de especificacion, no necesariamente como defecto nuevo.');",
+        "} else {",
+        "    console.log('Resultado inesperado, distinto tanto de 409 como de 201: revisar manualmente.');",
+        "}",
+        "pm.test('TC-M09-213: un payload identico a uno ya existente deberia rechazarse con 409 (segun la ficha)', function () {",
+        "    pm.response.to.have.status(409);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-214 - Crear con params_snapshot vacio ({})",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SNAPSHOT VACIO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-214: snapshot vacio debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-214: el error debe identificar el campo faltante (fields no vacio)', function () {",
+        "    pm.expect(body.fields && body.fields.length).to.be.above(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SnapshotVacio-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. TC-M09-215 - Snapshot con estructura invalida (tipo de dato incorrecto)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[ESTRUCTURA INVALIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-215: estructura invalida debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-215: el error debe identificar el campo problematico (fields no vacio)', function () {",
+        "    pm.expect(body.fields && body.fields.length).to.be.above(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-EstructuraInvalida-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": \"esto-deberia-ser-un-arreglo-no-un-texto\"\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "4. TC-M09-216 - Parametro (temperatura) fuera del rango permitido",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[FUERA DE RANGO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-216: un valor fuera de rango debe rechazarse con 422', function () { pm.response.to.have.status(422); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    console.log('ADVERTENCIA: el sistema ACEPTO un valor de temperatura fuera de rango (id_plantilla=' + b.id_plantilla + '). No parece existir validacion de rango para esta metrica -- posible defecto, ver nota en la evidencia.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"temperatura\", \"valor\": 999 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5a. TC-M09-219 - Campo obligatorio ausente: sin template_name",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN TEMPLATE_NAME] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219a: sin template_name debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219a: el error debe identificar el campo (template_name)', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('template_name');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5b. TC-M09-219 - Campo obligatorio ausente: sin id_especie",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN ID_ESPECIE] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219b: sin id_especie debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219b: el error debe identificar el campo (id_especie)', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('id_especie');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinEspecie-{{$timestamp}}\",\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5c. TC-M09-219 - Campo obligatorio ausente: sin params_snapshot",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[SIN PARAMS_SNAPSHOT] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-219c: sin params_snapshot debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "var body = pm.response.json();",
+        "pm.test('TC-M09-219c: el error debe identificar el campo (params_snapshot)', function () {",
+        "    pm.expect(JSON.stringify(body)).to.include('params_snapshot');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinSnapshot-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}}\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "6. TC-M09-220 - Snapshot con propiedad no permitida (manipulacion del esquema)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[PROPIEDAD NO PERMITIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-220: una propiedad no permitida en el snapshot debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    console.log('ADVERTENCIA: el sistema ACEPTO una propiedad no declarada en el esquema (id_plantilla=' + b.id_plantilla + '). Revisar si el snapshot persistido conserva esa propiedad -- posible defecto de validacion estricta de esquema.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-PropiedadNoPermitida-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ],\n    \"campo_no_declarado_en_el_esquema\": \"intento_de_manipulacion\"\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

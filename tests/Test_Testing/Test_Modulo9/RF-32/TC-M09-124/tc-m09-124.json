@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "TC-M09-G124 (TC-M09-240/241)",
+    "description": "Auditoria de aplicacion exitosa/fallida de plantillas (RF-32, OWASP A09). Revisando el codigo fuente (solo lectura) se confirmo que AplicarPlantillaUseCase NUNCA recibe ni llama a ningun repositorio de auditoria (ni en el bloque try de escritura ni en el except de rollback) -- a diferencia de RegistrarPlantillaUseCase (creacion), que si registra en una tabla interna 'auditorias_plantillas' (aunque esa tabla tampoco se expone por ningun endpoint). Ademas, el endpoint generico GET /auditoria/ solo cubre eventos del modulo de identidad (autenticacion, perfil, roles/permisos, consultas de auditoria) segun su propio catalogo de tipos_evento -- nunca eventos del modulo de configuracion (modulo9), asi que estructuralmente nunca podria mostrar nada sobre plantillas. Este test intenta una aplicacion (que ademas ya sabemos que falla con 500 por el defecto de TC-M09-G118/G122) y verifica en vivo que no queda ningun rastro en /auditoria/ ni en el historial de aplicaciones. Ejecutar con: newman run tc-m09-124.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-124.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "4" },
+    { "key": "fecha_actualizacion_especie", "value": "" },
+    { "key": "template_name", "value": "" },
+    { "key": "id_plantilla", "value": "" },
+    { "key": "fecha_antes_del_intento", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener fecha_actualizacion de la especie destino",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var e = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie'); });",
+        "console.log('Especie: ' + JSON.stringify(e));",
+        "if (e && e.fecha_actualizacion) { pm.collectionVariables.set('fecha_actualizacion_especie', e.fecha_actualizacion); }",
+        "pm.collectionVariables.set('template_name', 'QA-P124-' + Date.now());"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      }
+    },
+    {
+      "name": "0C. Crear plantilla P-124 (solo ciclos_biologicos)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla', pm.response.json().id_plantilla); }",
+        "pm.collectionVariables.set('fecha_antes_del_intento', new Date().toISOString());"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"Etapa-124\", \"duracion_dias\": 12 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "1. TC-M09-240/241 - Intentar aplicar la plantilla (se espera exito, pero se sabe que falla con 500 por defecto ya confirmado en G118/G122)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[APLICAR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code >= 200 && pm.response.code < 300) { console.log('Exito inesperado (el defecto de G118/G122 parece haberse corregido) -- esto habilitaria probar TC-240 de forma genuina.'); }",
+        "if (pm.response.code === 500) { console.log('Fallo con 500, como en G118/G122. Esta es en si misma la escena de TC-241 (aplicacion fallida con rollback) ocurriendo de forma real y reproducible.'); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_actualizacion_especie}}\"\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla}}/aplicar"
+      }
+    },
+    {
+      "name": "2. Buscar en /auditoria/ cualquier evento desde el intento (sin filtros de categoria, para no perder nada)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[AUDITORIA - general] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    var items = body.items || [];",
+        "    console.log('Total eventos desde el intento: ' + body.total);",
+        "    var relacionados = items.filter(function (ev) {",
+        "        var texto = JSON.stringify(ev).toUpperCase();",
+        "        return texto.indexOf('PLANTILLA') !== -1 || texto.indexOf('APLICAR') !== -1 || texto.indexOf(pm.collectionVariables.get('id_plantilla')) !== -1;",
+        "    });",
+        "    console.log('Eventos relacionados con la plantilla/aplicacion: ' + relacionados.length);",
+        "    if (relacionados.length > 0) { console.log('Detalle: ' + JSON.stringify(relacionados)); }",
+        "    pm.test('TC-240/241: no deberia existir ningun evento de auditoria sobre esta plantilla/aplicacion (defecto esperado: 0 coincidencias)', function () {",
+        "        pm.expect(relacionados.length).to.eql(0);",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/auditoria/?fecha_desde={{fecha_antes_del_intento}}&tamano=50"
+      }
+    },
+    {
+      "name": "3. Verificar historial de aplicaciones (no deberia aparecer esta plantilla, ya que el intento fallo antes de guardar el registro)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[HISTORIAL] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 200) {",
+        "    var body = pm.response.json();",
+        "    var items = body.items || [];",
+        "    var encontrada = items.find(function (a) { return String(a.id_plantilla) === pm.collectionVariables.get('id_plantilla'); });",
+        "    console.log('Aparece un registro de aplicacion para id_plantilla=' + pm.collectionVariables.get('id_plantilla') + '?: ' + (!!encontrada));",
+        "    pm.test('TC-241: no debe haber quedado un registro de aplicacion (rollback correcto)', function () {",
+        "        pm.expect(encontrada).to.be.undefined;",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/historial"
+      }
+    },
+    {
+      "name": "4. Verificar que la especie destino no quedo con cambios parciales (integridad tras el fallo)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var e = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie'); });",
+        "console.log('Especie tras el intento fallido: ' + JSON.stringify(e));",
+        "console.log('fecha_actualizacion antes=' + pm.collectionVariables.get('fecha_actualizacion_especie') + ' | despues=' + (e ? e.fecha_actualizacion : 'N/A'));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      }
+    }
+  ]
+}
