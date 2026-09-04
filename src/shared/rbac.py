@@ -4,7 +4,7 @@ Provee la dependencia ``require_permission`` que verifica en tiempo de
 request si el rol del usuario autenticado tiene el permiso requerido sobre
 un recurso y acción específicos, consultando la tabla ``modulo1.permisos``.
 """
-from typing import Callable
+from typing import Callable, Optional
 
 from fastapi import Depends
 from sqlalchemy.orm import Session
@@ -16,7 +16,12 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 
 
-def require_permission(id_recurso: int, id_accion: int) -> Callable:
+def require_permission(
+    id_recurso: int,
+    id_accion: int,
+    *,
+    mensaje_denegado: Optional[str] = None,
+) -> Callable:
     """Fábrica de dependencias FastAPI para verificación RBAC por endpoint.
 
     Genera una dependencia que, al ejecutarse en cada request, consulta si el
@@ -32,6 +37,11 @@ def require_permission(id_recurso: int, id_accion: int) -> Callable:
     Args:
         id_recurso: ID del recurso protegido (tabla ``modulo1.recursos``).
         id_accion: ID de la acción requerida (tabla ``modulo1.acciones``).
+        mensaje_denegado: Texto del 403 cuando el RF exige uno propio para ese
+            endpoint (ej. RF-29: "Solo el Administrador del sistema puede definir
+            el idioma predeterminado global"). Solo cambia el mensaje; la
+            compuerta sigue siendo la tabla ``modulo1.permisos``, nunca un rol
+            quemado en código. Si se omite, se usa el texto genérico.
 
     Returns:
         Función de dependencia compatible con ``fastapi.Depends``.
@@ -73,7 +83,10 @@ def require_permission(id_recurso: int, id_accion: int) -> Callable:
         if tiene_permiso is None:
             raise AuthorizationError(
                 code="ACCESO_DENEGADO",
-                message="Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+                message=(
+                    mensaje_denegado
+                    or "Acceso denegado. Su rol no tiene permisos para realizar esta operación."
+                ),
             )
 
     return dependency

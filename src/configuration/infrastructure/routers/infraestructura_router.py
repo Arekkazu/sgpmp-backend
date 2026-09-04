@@ -25,6 +25,7 @@ from src.configuration.infrastructure.dto.registrar_infraestructura_dto import R
 from src.configuration.infrastructure.repositories.auditoria_infraestructura_repository import SqlAlchemyAuditoriaInfraestructuraRepository
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
+from src.configuration.infrastructure.repositories.tipo_area_repository import SqlAlchemyTipoAreaRepository
 from src.configuration.infrastructure.schema.infraestructura_schema import InfraestructuraResponse, ListaInfraestructurasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
@@ -59,6 +60,7 @@ def registrar_infraestructura(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         finca_repo=SqlAlchemyFincaRepository(db),
+        tipo_area_repo=SqlAlchemyTipoAreaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
     )
     infra = use_case.execute(dto, usuario_actual)
@@ -140,6 +142,7 @@ def editar_infraestructura(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         finca_repo=SqlAlchemyFincaRepository(db),
+        tipo_area_repo=SqlAlchemyTipoAreaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
     )
     infra = use_case.execute(id_infraestructura, dto, usuario_actual)

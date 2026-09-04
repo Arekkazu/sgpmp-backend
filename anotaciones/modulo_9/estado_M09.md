@@ -40,7 +40,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
 | RF-28 | Personalización del dashboard | ⚠️ Cumple parcialmente | ~65% |
-| RF-29 | Configuración de idioma | ⚠️ Cumple parcialmente | ~50% |
+| RF-29 | Configuración de idioma | ✅ Cumple | ~90% |
 | RF-30 | Plantillas de configuración | ✅ Cumple | ~90% |
 | RF-31 | Creación de plantilla de configuración | ✅ Cumple | ~90% |
 | RF-32 | Aplicación de plantilla de configuración | ⚠️ Cumple parcialmente | ~80% |
@@ -52,7 +52,8 @@ en casi todos los agregados. Los gaps más serios no son de "código faltante" s
 **reglas de negocio que existen pero están gateadas por un adaptador stub que siempre
 responde "sin dependencias"** (afecta RF-15, RF-16, RF-19, RF-20), de **integraciones
 externas nunca conectadas** (MQTT real para RF-23 — resuelto 2026-08-20, ver su sección —,
-motor de traducción para RF-29), y de un **posible bug de concurrencia en RF-32** que compara
+motor de traducción para RF-29 — resuelto 2026-09-03, ver su sección), y de un **posible bug
+de concurrencia en RF-32** que compara
 el campo equivocado.
 
 ---
@@ -580,6 +581,52 @@ sí solo.
   `src/configuration/`:
   - "Forzar recarga de interfaz cuando cambian los permisos en sesión activa" — el backend no
     empuja ningún evento; el cliente tendría que re-consultar por su cuenta.
+
+  **Hallazgo 2026-09-03 — el endpoint respondía `500` contra la base real.** El repositorio
+  seleccionaba `especies_configuradas` de `modulo9.vw_rf25_contexto_usuario`, y la columna
+  de la vista se llama `especies_en_finca`: `ProgrammingError` en cada petición. Este audit
+  dio el endpoint por funcional porque lo verificó leyendo código, no ejecutándolo — explica
+  también por qué `contextoApi` quedó como código muerto en el frontend. Corregido.
+
+  **Hallazgo 2026-09-03 — la "finca activa" no era determinista.** La vista emite una fila
+  por finca activa del usuario (el Productor de dev tiene cuatro) y el repositorio hacía
+  `.first()` sin `ORDER BY`: la finca —y con ella la identidad visual de RF-26— podía cambiar
+  entre dos peticiones seguidas. Se fija `ORDER BY id_finca NULLS LAST`. Es un parche
+  determinista, no un selector: **RF-25 asume una finca activa por usuario y el modelo de
+  datos permite varias.** Elegir cuál es la activa es una decisión de producto pendiente
+  (¿la última usada? ¿un selector explícito en la interfaz?).
+
+  **Gap abierto 2026-09-03 — `especies_configuradas` no es "de la finca".** La subconsulta
+  lateral de la vista **no está correlacionada con `f.id_finca`**: devuelve las especies con
+  umbrales ambientales activos de todo el sistema, idénticas para cualquier usuario y
+  cualquier finca. RF-25 pide "indicadores según las especies productivas configuradas en la
+  finca", así que el dato existe pero no significa lo que el RF dice. El vínculo real está en
+  `modulo9.infraestructuras`, que tiene `id_finca` e `id_especie`:
+
+  ```sql
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(array_agg(DISTINCT e.nombre ORDER BY e.nombre), ARRAY[]::text[])
+      FROM modulo9.infraestructuras i
+      JOIN modulo9.especies e ON e.id_especie = i.id_especie AND e.es_activo IS TRUE
+     WHERE i.id_finca = f.id_finca AND i.es_activo IS TRUE
+  ) especies ON true
+  ```
+
+  **No se aplica en este cambio y es deliberado:** `infraestructuras.id_especie` está en
+  `NULL` en las 12 áreas productivas de dev, así que corregir la vista dejaría la lista vacía
+  para las seis fincas y todo usuario vería "Finca sin configuración". El prerrequisito es
+  poblar `id_especie` (RF-20), no la migración. Mientras tanto el filtrado por especie del
+  frontend está escrito contra el contrato correcto pero no discrimina, porque recibe el
+  catálogo completo.
+
+  **Actualización 2026-09-03:** el endpoint dejó de ser solo rol + finca + especies. Ahora
+  entrega también la identidad visual de la finca activa (RF-26) y su evaluación de contraste
+  WCAG (RF-27), de modo que el cliente construye la interfaz con una sola petición al iniciar
+  sesión — que es literalmente lo que describe el proceso del RF-25. Fue la solución a un
+  problema que este audit no había registrado: el recurso 23 es exclusivo del Administrador,
+  así que ningún otro rol podía leer su propia marca, pese a que RF-26 exige que "los usuarios
+  visualizarán la identidad visual actualizada en sus sesiones". No hizo falta ningún permiso
+  nuevo.
   - "Intento de acceso a módulo no autorizado (URL bypass) → 403 + redirección al dashboard"
     — la parte de redirección es inherentemente de frontend; el 403 en sí ya lo cubre RBAC de
     forma transversal en cada router, no como parte de este endpoint específico.
@@ -624,17 +671,30 @@ sí solo.
 
 ### Qué NO cumple / gaps
 
-- El logo se guarda en disco local (`uploads/logos/{uuid}.ext`) mediante lógica escrita a
-  mano dentro del use case — no existe ningún utilitario reusable de subida de archivos en
-  `src/shared/`. No es un incumplimiento del RF (que no exige un backend de almacenamiento en
-  particular), pero si el despliegue es multi-instancia o efímero (contenedores sin volumen
-  persistente), el logo se perdería — vale la pena señalarlo como riesgo operativo, no como
-  gap funcional.
-- No se verificó si existe el flujo de "vista previa antes de confirmar" que pide el RF como
-  paso obligatorio del proceso (pasos 6-8) — es plausible que esto sea enteramente responsabilidad
-  de frontend (aplicar los cambios de forma temporal en el cliente antes de hacer `POST`/`PATCH`),
-  en cuyo caso no hay nada que el backend deba exponer adicionalmente; no se encontró evidencia
-  de un endpoint de "preview" separado, lo cual es consistente con esa lectura.
+- ~~El logo se guarda en disco local mediante lógica escrita a mano dentro del use case~~
+  **RESUELTO PARCIALMENTE (2026-09-03).** La lógica estaba duplicada palabra por palabra en
+  los use cases de crear y actualizar, con mensajes distintos para la misma condición; ahora
+  vive en `src/shared/almacen_logos.py`, el utilitario reusable que esta misma nota echaba en
+  falta. Se descubrió además un fallo silencioso: **`main.py` nunca montó `StaticFiles`**, así
+  que el `logo_path` que la API devolvía (`uploads/logos/<uuid>.ext`, ruta del sistema de
+  archivos) no era alcanzable por HTTP y ningún cliente podía pintar la marca. Hoy se devuelve
+  la ruta pública `/uploads/logos/<uuid>.ext` y `main.py` la sirve.
+  **Sigue en pie el riesgo operativo**: en un despliegue multi-instancia o efímero
+  (contenedores sin volumen persistente) el archivo se perdería. Es almacenamiento local, no
+  un servicio de objetos.
+- ~~No se verificó si existe el flujo de "vista previa antes de confirmar"~~ **VERIFICADO Y
+  CERRADO COMO NO-GAP DE BACKEND (2026-09-03).** Confirmado que no existe ningún endpoint de
+  preview (`grep -rniE "preview|vista.previa" src/` → 0 resultados) **y que no debe existir**.
+  Lo dice el propio RF en su flujo alterno *Cancelación en Vista Previa*: el descarte "limpia
+  los estados temporales de la interfaz y restaura los valores […] **sin realizar ninguna
+  petición de actualización**", y el paso 6 pide aplicar los cambios "de forma temporal en la
+  interfaz". Es estado de cliente por definición: un endpoint de preview sería el servidor
+  guardando exactamente lo que el RF pide no guardar. La única obligación del backend —que las
+  reglas de validación sean conocibles antes de persistir— ya se cumple: el `POST`/`PATCH`
+  aplica el mismo DTO y los mismos value objects, documentados en los curls.
+  El gap real está en el frontend, donde la "vista previa" es una maqueta de ~140px
+  (`LivePreview` en `IdentidadVisualSection.tsx`) que no toca la interfaz real, así que no hay
+  nada que revertir ni un paso de confirmar/descartar.
 - **Sin `UNIQUE(id_finca)` en `modulo9.identidad_visuales`** (ver hallazgos transversales) —
   nada en la base de datos impide, por sí sola, que una condición de carrera cree dos filas
   "vigentes" para la misma finca; la integridad depende de que el use case siempre lea la
@@ -667,98 +727,146 @@ sí solo.
   técnicamente, más de una fila personal por usuario; la resolución "toma la más reciente por
   `fecha_actualizacion`" depende de que el use case siempre haga upsert correctamente, sin
   respaldo de un constraint de DB.
-- No se verificó si existe verificación de contraste WCAG 2.1 AA que pide el RF como NFR de
-  accesibilidad (comparar el color institucional de RF-26 contra el tema oscuro) — no se
-  encontró evidencia de esta lógica en el código explorado; es plausible que no esté
-  implementada, dado que requeriría cálculo de luminancia relativa, algo que no apareció en
-  ninguna búsqueda de los value objects de color.
+- ~~No se verificó si existe verificación de contraste WCAG 2.1 AA~~ **VERIFICADO E
+  IMPLEMENTADO (2026-09-03).** La sospecha era correcta: no existía nada
+  (`grep -rniE "contrast|wcag|luminan" src/` → solo prosa en docstrings ajenos), y `ColorHex`
+  era una expresión regular de formato y nada más — un administrador podía fijar `#FFFFFF`
+  como color primario y el sistema lo aceptaba sin objeción. Hoy `color_hex.py` calcula
+  luminancia relativa y relación de contraste WCAG 2.1, y `ajustar_para_contraste()` produce
+  la "variante aclarada/oscurecida" que el flujo alterno de RF-27 promete, moviendo la
+  luminosidad HLS y conservando matiz y saturación para no desdibujar la marca.
+  El read-model `domain/entities/accesibilidad_visual.py` evalúa los dos colores contra los
+  dos temas y se expone en las respuestas de RF-26 y de RF-25.
+
+  **Hallazgo del que conviene dejar constancia:** el aviso es **por tema**, no una lista
+  global, porque los dos fondos están en extremos opuestos de la escala (blanco tiene
+  luminancia 1.0; la superficie oscura del frontend, 0.009). Cumplir 4.5:1 contra el claro
+  exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: **ningún color cumple en los dos a la
+  vez.** Un aviso global estaría encendido para cualquier color elegible y la interfaz
+  aprendería a ignorarlo. El RF ya lo dice así ("en el modo seleccionado"). Hay una prueba
+  que fija esta imposibilidad, para que si algún día cambia la superficie del tema oscuro y
+  la franja se abre, la decisión se revise en vez de quedar fosilizada.
 - El flujo alterno de "modo automático sin soporte del dispositivo → fallback a claro" es
   inherentemente de frontend (depende de `prefers-color-scheme` del navegador); el backend
   solo necesita aceptar `theme_mode=3` como valor válido, lo cual sí ocurre.
+
+- **El contrato de `theme_mode` está roto del lado del cliente (hallazgo 2026-09-03).** El
+  backend y el RF usan `1=Claro, 2=Oscuro, 3=Sistema` (`tema_visual.py`, `guardar_tema_dto.py`),
+  pero `TemaVisualSection.tsx` del frontend declara `0=Light, 1=Dark, 2=Auto`. Guardar "Claro"
+  envía `0` y el DTO responde 422; "Oscuro" envía `1` y se persiste *Claro*; "Automático" envía
+  `2` y se persiste *Oscuro*. Al leer, el mapeo inverso pinta oscuro sobre el valor que el
+  backend llama Claro. **El selector de tema está invertido de punta a punta**, así que el
+  veredicto de ~90% describe el backend, no el requisito cumplido de cara al usuario. Es el
+  mismo modo de fallo que RF-29 tuvo con `'es'` vs `'es-CO'`. El backend no requiere cambios:
+  su contrato es el del RF. Se corrige en el repositorio del frontend.
 
 ---
 
 ## RF-28 — Personalización del dashboard
 
-**Veredicto: ⚠️ Cumple parcialmente (~65%)** — el guardado/consulta de layout funciona, pero
-no se encontró evidencia de que el backend valide las reglas de negocio específicas de la
-grilla que pide el RF (límite de 12 widgets, solapamiento de posiciones, span fuera de rango).
+**Veredicto: ✅ Cumple (~95%)** — actualizado el 2026-09-02 en
+`feature/rf28-validaciones-grilla-dashboard-mod9`.
+
+> **Corrección de esta auditoría.** La versión anterior de esta sección afirmaba que no había
+> validación del límite de 12 widgets, ni de solapamiento, ni de la regla del span en la columna 4,
+> y lo justificaba diciendo: *"El use case de guardado no fue leído línea por línea para confirmar
+> su ausencia total"*. **Las tres existían** desde el commit `d8980af` (2026-06-21), en
+> `src/configuration/domain/entities/dashboard_layout.py`. La conclusión se sacó de un `grep` que no
+> encontró los términos buscados, no de leer el código. Los gaps reales eran otros y están abajo.
 
 ### Qué SÍ cumple
 
-- `guardar_dashboard_use_case.py`, `obtener_dashboard_use_case.py`,
-  `restaurar_dashboard_use_case.py` cubren guardar, consultar y restaurar configuración por
-  defecto — los tres verbos que pide el RF.
-- Estructura de datos (`modulo9.dashboard_layouts.config` JSONB con clave `"grid"`,
-  `active_widget` como array) es compatible con el modelo de grilla 4×3 con posiciones que
-  describe el RF.
-- **RBAC exacto**: recurso `dashboard_layout` (id=25), todos los roles con `R`/`U` — coincide
-  con que los tres actores (Administrador, Ingeniero de Campo, Productor) puedan personalizar
-  su propio dashboard.
+- Los cinco endpoints del RF: obtener layout, guardar, restaurar predeterminado, catálogo de widgets
+  disponibles para el rol y datos de los widgets visibles.
+- **Los siete flujos alternos**, cada uno con el código HTTP y el mensaje literal que el RF define:
+  límite de 12 widgets (400), solapamiento incluyendo el rango de expansión de un span 2 (409),
+  desborde horizontal (400), widget fuera del alcance del rol (403), perfil modificado durante la
+  edición (409), restauración sin layout base del rol (500) y widget sin datos operativos.
+- **Catálogo en BD** (`modulo9.widgets`): cada widget declara el `id_recurso` cuyo permiso R lo
+  habilita, así que dos roles con el mismo permiso sobre el dashboard ven listas distintas. La
+  autorización sale de `modulo1.permisos` en cada request; ningún `id_rol` está escrito en el código.
+- **Layouts base por rol en BD** (`modulo9.dashboard_layouts_default`): una fila por cada uno de los
+  9 roles, conteniendo solo widgets que ese rol lee de verdad.
+- `UNIQUE(id_usuario)` en `dashboard_layouts` y la FK a `modulo1.usuarios` ya validada.
+- **RBAC exacto**: recurso `dashboard_layout` (id=25), todos los roles del seed con `R`/`U`.
 
-### Qué NO cumple / gaps
+### Qué gaps se cerraron (2026-09-02, migración `a7f3c92e4d18`)
 
-- **No se encontró evidencia de validación del límite de 12 widgets activos**, ni de
-  detección de solapamiento de posiciones en la grilla (`fila`/`columna` ya ocupada), ni de
-  la regla de "un widget con `span_columnas=2` no puede ir en la columna 4" — el RF describe
-  estas tres validaciones como flujos alternos explícitos con `400`/`409`. El use case de
-  guardado no fue leído línea por línea para confirmar su ausencia total, pero no apareció
-  ninguna referencia a estos términos (`span`, límite de 12, solapamiento de grilla) durante
-  la exploración del módulo — es la señal más fuerte de que esta validación vive del lado del
-  cliente, si es que existe en algún lugar.
-- **Sin `UNIQUE(id_usuario)`** en `modulo9.dashboard_layouts` — mismo patrón de gap que
-  RF-27/RF-29, la tabla permite múltiples filas por usuario sin constraint de DB.
-- El manejo de "widget sin datos disponibles → mostrar mensaje sin romper los demás" es,
-  otra vez, responsabilidad de renderizado en frontend; el backend solo necesita devolver el
-  layout guardado, lo cual sí hace.
-- La responsividad por tamaño de pantalla (escritorio/tableta/móvil) es 100% frontend y no
-  aplica a este módulo — se menciona aquí solo para dejar explícito que no es un gap de
-  backend.
+| Gap real | Estado anterior | Ahora |
+|---|---|---|
+| Código del límite de widgets | `BusinessRuleError` → **422** | `ValidationError` → **400**, como pide el FA |
+| Mensajes de los tres flujos | Redacción propia | Texto literal del RF |
+| `active_widget` | Sin ninguna validación: `layout_config: []` más 500 entradas pasaba | Tope de 12, sin duplicados, cruzado contra el catálogo |
+| `visible: false` | Seguía ocupando su celda → 409 espurio | Libera la celda, igual que para el límite |
+| Widget fuera del rol | No existía | 403 `WIDGET_NO_AUTORIZADO` |
+| Widget/indicador inexistente | No existía | 400 `WIDGET_INEXISTENTE` / `ACTIVE_WIDGET_INEXISTENTE` |
+| Perfil modificado al editar | No existía | 409 `CONFLICTO_PERFIL_MODIFICADO` vía `usuarios.version` |
+| `_DEFAULT_GRID_POR_ROL` | Diccionario vacío quemado en el dominio, llaves 1-5 | Tabla en BD, 9 roles; sin fila → 500 `RESTAURACION_SIN_DEFAULT` |
+| `UNIQUE(id_usuario)` | Ausente; el repo desempataba por fecha | Aplicado, con dedup previo |
+| `repositories/dashboard_layout_repository.actualizar` | `db.get()` sin guard → `AttributeError`/500 | 404 tipado |
+| Vistas `vw_rf28_widget_*` | Existían y nadie las consumía | Alimentan `GET /dashboard/datos` |
 
----
+### Qué queda pendiente
+
+- Telemetría real por sensor para los widgets ambientales e históricos (ids 1-5, 10-11): depende de
+  M03. Hoy responden `sin_datos: true`, que es exactamente el fallback que el RF prescribe.
+- La responsividad por tamaño de pantalla es 100% frontend; se resolvió en el repo del frontend, no
+  aplica a este módulo.
 
 ## RF-29 — Configuración de idioma
 
-**Veredicto: ⚠️ Cumple parcialmente (~50%)** — el almacenamiento y la resolución jerárquica
-de la preferencia de idioma están completos, pero el RF trata fundamentalmente de traducir la
-interfaz, y esa mitad — el motor de i18n en sí — no existe en ninguna parte del repositorio.
+**Veredicto: ✅ Cumple (~90%)** — actualizado el 2026-09-03. La auditoría original marcaba
+~50% por dos motivos, uno correcto y otro no. Ambos quedan resueltos.
+
+### Corrección a la auditoría original
+
+El bullet que afirmaba *"No hay validación de `locale_code` contra una lista blanca"* era
+**falso**: `domain/entities/preferencia_idioma.py:13,60-70` define `LOCALES_PERMITIDOS =
+{"es-CO", "en-US"}` y lanza `ValidationError` (400) `IDIOMA_NO_DISPONIBLE` desde
+`crear_personal`, `crear_global` y `actualizar` — los tres caminos de escritura. La frase
+*"un cliente podría enviar cualquier string como locale y quedaría persistido sin rechazo"*
+nunca fue cierta por la vía HTTP. Lo que sí faltaba de ese bullet era la mitad de base de
+datos, y el texto literal del mensaje que el RF define palabra por palabra.
+
+**El gap real, que la auditoría no vio, estaba en el frontend**: `IdiomaSection.tsx` enviaba
+`'es'` / `'en'` mientras el dominio solo acepta `'es-CO'` / `'en-US'`, así que **todo**
+guardado de idioma respondía 400 y ninguna tarjeta se marcaba como seleccionada al cargar.
+El selector de idioma estaba roto de punta a punta.
 
 ### Qué SÍ cumple
 
 - `guardar_idioma_personal_use_case.py`, `guardar_idioma_global_use_case.py`,
-  `obtener_idioma_resuelto_use_case.py` — misma estructura de tres niveles que RF-27
-  (personal → global → español por defecto), consistente con lo que pide el RF.
+  `obtener_idioma_resuelto_use_case.py`, `obtener_idioma_global_use_case.py` — resolución
+  de tres niveles (personal → global → `es-CO`), consistente con lo que pide el RF.
 - **RBAC de dos niveles, exacto**: recurso `preferencia_idioma` (id=26) todos los roles
   `R`/`U`; recurso `configuracion_ui_global` (id=27, compartido con RF-27) solo Administrador
-  `R`/`U` — coincide con "Solo el Administrador del sistema puede definir el idioma
-  predeterminado global".
-- Persistencia en base de datos (no en sesión), cumpliendo la misma restricción de
-  persistencia entre sesiones que RF-27.
+  `R`/`U`.
+- **Los cuatro flujos alternos de backend**, todos con el mensaje literal del RF:
+  400 `IDIOMA_NO_DISPONIBLE`, 403 propio del idioma global (vía el parámetro
+  `mensaje_denegado` de `require_permission`, sin quemar ningún `id_rol`),
+  409 `CONFLICTO_PERFIL_MODIFICADO` (reutiliza el mecanismo `version_perfil` de RF-28 sobre
+  `modulo1.usuarios.version`) y 500 `ERROR_PERSISTENCIA_IDIOMA`.
+- **Invariantes en base de datos** (migración `b5d1e0c93a77`): `CHECK` de lista blanca sobre
+  `locale_code`, índice único parcial de una preferencia personal por usuario, índice único
+  de una sola fila global, y la FK `id_usuario` validada (estaba `NOT VALID`).
+- **Motor de i18n real**, en el frontend: `i18next` + `react-i18next` con catálogos
+  `es-CO`/`en-US`, `fallbackLng: 'es-CO'` y aviso en consola de DEV por clave faltante — el
+  FA de "ausencia de traducción" del RF. El cambio se aplica sin recargar la sesión.
+- Persistencia en base de datos (no en sesión), y `localStorage` en el cliente para que el
+  idioma correcto ya esté aplicado antes de que resuelva la API (incluido el login).
+- 27 pruebas de backend (`tests/configuration/test_rf29_*.py`), antes cero.
 
 ### Qué NO cumple / gaps
 
-- **No existe ningún motor de traducción/i18n en todo el repositorio.** `src/shared/` no
-  tiene ningún archivo de catálogo de mensajes, cargador de traducciones, ni middleware
-  relacionado — se verificó explícitamente listando el contenido completo de `src/shared/`.
-  Todo lo que existe hoy es una tabla que guarda un `locale_code` (string tipo `"es"`/`"en"`)
-  por usuario. El RF, sin embargo, exige que "menús de navegación, etiquetas de formularios,
-  mensajes del sistema, paneles informativos, mensajes de error y confirmación, títulos de
-  módulos" se traduzcan — nada de eso ocurre a nivel de backend (los mensajes de error de
-  todo el proyecto, incluidos los de este mismo módulo, están hardcodeados en español). Este
-  es, en magnitud, un gap de alcance comparable al de CAPTCHA ausente en RF-01 de Módulo 1:
-  la parte de "guardar la preferencia" está resuelta, pero la funcionalidad central del RF
-  (que la interfaz efectivamente cambie de idioma) no.
-- **No hay validación de `locale_code` contra una lista blanca de idiomas soportados.** El RF
-  restringe explícitamente a español e inglés (`es-CO`/`en-US`) y pide rechazar cualquier
-  otro valor con `400`. No se encontró ningún `CHECK` constraint en
-  `modulo9.preferencias_idiomas.locale_code` ni validación de dominio cerrado en el value
-  object correspondiente — un cliente podría enviar cualquier string como locale y quedaría
-  persistido sin rechazo.
-- Mismo gap de `UNIQUE(id_usuario)` ausente que RF-27/RF-28.
-- Si se decide implementar el motor de i18n real, el cambio no se limita a este RF: impacta
-  transversalmente todos los mensajes de error/éxito de **todos** los módulos del backend
-  (hoy hardcodeados en español vía `src/shared/errors.py` y cada use case), lo cual excede
-  por mucho el alcance de "Módulo 9 — Configuración" tal como está delimitado hoy.
+- **La traducción del frontend no cubre aún todos los módulos.** El motor está montado y los
+  catálogos son la única pieza que hay que ampliar: agregar una pantalla es agregar claves,
+  no cambiar estructura, que es justamente el criterio de mantenibilidad que el RF exige.
+  Las claves sin traducir caen a español, comportamiento que el propio RF prescribe.
+- **El backend no traduce sus mensajes.** Es una decisión de diseño, no un descuido: cada
+  respuesta de error viaja con un `error_code` estable, y el frontend lo traduce contra su
+  catálogo cayendo al `message` en español del backend cuando el código no está catalogado.
+  Eso implementa la regla de fallback del RF sin duplicar los strings de los 9 módulos ni
+  añadir un middleware de locale al backend.
 
 ---
 
@@ -903,20 +1011,21 @@ propósito real.
    en `src/configuration/` ni en ningún otro módulo del backend. *(Afecta RF-15, RF-16; en
    menor medida RF-21 vía su flujo alterno de "conflicto de sincronización offline".)*
 
-3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia.**
-   *(Resuelto para RF-23 el 2026-08-20 — ver su sección arriba. Sigue afectando a RF-29.)*
-   El motor de traducción/i18n (RF-29) es la pieza central del RF que representa, y no existe.
-   A diferencia de los stubs del punto 1 (donde el flujo alrededor sí está completo), este gap
-   deja el RF estructuralmente incompleto en su propósito principal.
+3. **Integraciones externas nunca conectadas más allá de los stubs de dependencia —
+   RESUELTO.** MQTT real para RF-23 el 2026-08-20; motor de i18n para RF-29 el 2026-09-03
+   (`i18next` en el frontend, con los mensajes del backend traducidos por `error_code`). Ya
+   no queda ninguna integración externa pendiente en el módulo. *(Afectaba RF-23 y RF-29.)*
 
-4. **Sin constraint `UNIQUE` de "una fila por usuario/finca" en cuatro tablas.**
-   `modulo9.temas_visuales`, `modulo9.dashboard_layouts` y `modulo9.preferencias_idiomas` no
-   tienen `UNIQUE(id_usuario)` (para el caso personal); `modulo9.identidad_visuales` no tiene
-   `UNIQUE(id_finca)`. En los cuatro casos el sistema resuelve "cuál es la fila vigente" leyendo
+4. **Sin constraint `UNIQUE` de "una fila por usuario/finca" — parcialmente resuelto.**
+   `dashboard_layouts` se cerró con la migración `a7f3c92e4d18` (2026-09-02) y
+   `preferencias_idiomas` con `b5d1e0c93a77` (2026-09-03, índices únicos parciales para la
+   preferencia personal y para la fila global). **Siguen pendientes** `modulo9.temas_visuales`
+   (`UNIQUE(id_usuario)`) y `modulo9.identidad_visuales` (`UNIQUE(id_finca)`). En los cuatro casos el sistema resuelve "cuál es la fila vigente" leyendo
    la más reciente por timestamp/versión desde la aplicación (vistas SQL o lógica de use case),
    sin una segunda capa de defensa en la base de datos como sí existe en la mayoría de los
    demás agregados del módulo (especies, fincas, plantillas, etc. sí tienen sus invariantes
-   reforzadas por constraints o triggers). *(Afecta RF-26, RF-27, RF-28, RF-29.)*
+   reforzadas por constraints o triggers). *(Afecta RF-26 y RF-27; resuelto para RF-28 y
+   RF-29.)*
 
 5. **RBAC más permisivo que el texto de cada RF — RESUELTO (2026-08-22, issue #1634).** El
    patrón recurrente afectaba a RF-15 (Veterinario con `U` sobre especies), RF-19 y RF-20
@@ -957,22 +1066,28 @@ propósito real.
 
 ---
 
-## Si se implementa el motor de i18n real (RF-29)
+## El motor de i18n de RF-29 — cómo se resolvió (2026-09-03)
 
-RF-29 es, de los 18 RFs auditados, el que tiene la brecha más grande entre "lo que el texto
-pide" y "lo que existe" — comparable en naturaleza al gap de CAPTCHA de RF-01 en Módulo 1,
-aunque de mayor alcance técnico. Vale la pena dimensionar qué cambiaría si se decide cerrarlo:
+La versión anterior de esta sección dimensionaba el trabajo asumiendo que el motor tenía que
+vivir en el backend, con un middleware en `src/shared/` que tradujera cada respuesta antes de
+enviarla y catálogos de mensajes duplicados en los 9 módulos. **No se hizo así, y el motivo
+vale la pena dejarlo escrito** porque aplica a cualquier RF futuro con la misma forma:
 
-- **No es un cambio local a `src/configuration/`.** Los mensajes de error de todo el backend
-  (`src/shared/errors.py`, y cada `raise ValidationError(...)`/`BusinessRuleError(...)` de
-  cada use case, en los 9 módulos del proyecto) están hardcodeados en español. Un motor de
-  i18n real requeriría externalizar esos strings a catálogos de mensajes (`es.json`/`en.json`
-  o equivalente) y resolverlos según el `locale_code` que ya guarda `preferencia_idioma`.
-- **El backend ya tiene la pieza de "saber qué idioma prefiere el usuario"** resuelta
-  (RF-29 actual) — lo que falta es el mecanismo de traducción en sí, que podría vivir como un
-  middleware en `src/shared/` que intercepte la respuesta de error/éxito y la traduzca antes
-  de enviarla, usando el `locale_code` resuelto vía `obtener_idioma_resuelto_use_case.py`.
-- **Alcance del cambio**: a diferencia del ejemplo de CAPTCHA en Módulo 1 (que solo afectaba
-  RF-01), aquí el cambio toca la totalidad de la superficie de mensajes del sistema — es un
-  proyecto transversal de infraestructura, no una función aislada de Módulo 9, aunque el
-  requerimiento que lo origina esté catalogado ahí.
+- **El backend no traduce nada, y no le hace falta.** Cada respuesta de error ya viaja con un
+  `error_code` estable (`src/shared/error_handlers.py`, clave `error_code` del cuerpo). El
+  frontend traduce por ese código contra su propio catálogo y, cuando el código no está
+  catalogado, renderiza el `message` en español que mandó el backend. Eso *es* la regla de
+  fallback que el RF pide, sin middleware, sin dependencia nueva en el backend y sin
+  externalizar los strings de los 9 módulos.
+- **El motor vive en el frontend**, que es donde está la superficie que el RF describe: menús
+  de navegación, etiquetas de formularios, paneles, títulos de módulos. `i18next` +
+  `react-i18next`, un namespace por módulo, `fallbackLng: 'es-CO'` y `missingKeyHandler` que
+  avisa en consola de DEV.
+- **Lo que quedó abierto es rellenar catálogos, no arquitectura.** Traducir una pantalla más
+  es agregar claves a dos JSON. El RF exige exactamente eso como criterio de mantenibilidad:
+  *"la incorporación de futuros idiomas no requiere cambios estructurales en el código base,
+  limitándose a la adición de nuevos archivos de traducción"*.
+
+El backend sí conserva su mitad del requerimiento: guardar y resolver la preferencia
+(personal → global → `es-CO`), la lista blanca `es-CO`/`en-US` con sus invariantes en base de
+datos, y los cuatro flujos alternos con el texto literal del RF.

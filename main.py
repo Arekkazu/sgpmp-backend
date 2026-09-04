@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from audit_sdk.context_fastapi import AuditContextMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,6 +21,7 @@ from src.configuration.infrastructure.routers.finca_router import router as finc
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
 from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import router as tipo_dispositivo_iot_router
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
+from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
@@ -30,6 +32,7 @@ from src.configuration.infrastructure.routers.metrica_router import router as me
 from src.configuration.infrastructure.routers.patologia_router import router as patologia_router
 from src.configuration.infrastructure.routers.plantilla_router import router as plantilla_router
 from src.configuration.infrastructure.routers.umbral_router import router as umbral_router
+from src.configuration.infrastructure.routers.variable_ambiental_router import router as variable_ambiental_router
 from src.identity_access.infrastructure.routers.auditoria_routers import router as auditoria_router
 from src.telemetry.infrastructure.routers.telemetria_router import router as telemetria_router
 from src.telemetry.infrastructure.routers.evento_edge_router import router as evento_edge_router
@@ -65,6 +68,7 @@ from src.identity_access.infrastructure.routers.roles_routers import router as r
 from src.identity_access.infrastructure.routers.sesiones_routers import router as sesiones_router
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
+from src.shared import almacen_logos
 from src.shared.error_handlers import register_error_handlers
 from src.shared.middlewares import RequestContextMiddleware
 
@@ -463,6 +467,17 @@ app.add_middleware(
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
 
+# RF-26: los logotipos institucionales se escriben en `uploads/logos` (ver
+# `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
+# devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
+# `check_dir=False` porque el directorio solo aparece con el primer logotipo
+# subido; exigirlo al arrancar tumbaría un despliegue limpio.
+app.mount(
+    almacen_logos.RUTA_PUBLICA_BASE,
+    StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+    name="uploads",
+)
+
 register_error_handlers(app)
 
 app.include_router(usuarios_router)
@@ -481,10 +496,12 @@ app.include_router(ciclo_router)
 app.include_router(patologia_router)
 app.include_router(metrica_router)
 app.include_router(umbral_router)
+app.include_router(variable_ambiental_router)
 app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
+app.include_router(tipo_area_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)

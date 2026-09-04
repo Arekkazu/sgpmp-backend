@@ -6,13 +6,12 @@ from typing import Optional
 
 from pydantic import field_validator
 
-from src.configuration.infrastructure.models.enums_models import EnumTipoInfraestructura
 from src.shared.base_dto import BaseDTO
 
 
 class RegistrarInfraestructuraDTO(BaseDTO):
     nombre_infraestructura: str
-    tipo_area: EnumTipoInfraestructura
+    tipo_area: str
     superficie: Decimal
     finca_id: int
     descripcion_infraestructura: Optional[str] = None
@@ -24,6 +23,13 @@ class RegistrarInfraestructuraDTO(BaseDTO):
             raise ValueError("El nombre del área productiva es obligatorio.")
         if len(v.strip()) > 50:
             raise ValueError("El nombre no puede superar los 50 caracteres.")
+        return v
+
+    @field_validator("tipo_area")
+    @classmethod
+    def validar_tipo_area(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("El tipo de área es obligatorio.")
         return v
 
     @field_validator("superficie")

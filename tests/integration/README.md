@@ -1,13 +1,30 @@
-# Pruebas de integracion del modulo 1
+# Pruebas de integracion
 
 Estas pruebas ejercitan los routers, casos de uso, repositorios SQLAlchemy y el
 esquema real de PostgreSQL. Cada prueba abre una transaccion exterior y convierte
 los `commit()` de la aplicacion en savepoints. Al finalizar hace rollback, por lo
 que no conserva usuarios, sesiones, eventos, permisos ni cambios DDL de pytest.
 
+## Crear la base de pruebas
+
+```bash
+createdb pruebas
+DATABASE_URL=postgresql://USUARIO:CLAVE@localhost:5432/pruebas alembic upgrade head
+```
+
+Eso es todo: la cadena de migraciones construye el esquema completo desde una
+base vacia, incluidos los catalogos de referencia. No hace falta copiar nada de
+la base de desarrollo.
+
+No siempre fue asi. El baseline `f7fe43537842` era un `pass`, porque el esquema
+hasta ese punto se habia construido a mano; el efecto era que `alembic upgrade
+head` no podia levantar una base desde cero y fallaba en la primera migracion
+que hacia `ALTER` sobre una tabla inexistente. Por eso esta base vivio mucho
+tiempo con solo `modulo1` y la integracion de modulo 9 nunca corrio.
+
 ## Requisitos
 
-- Una base PostgreSQL exclusiva para pruebas con el esquema `modulo1` cargado.
+- Una base PostgreSQL exclusiva para pruebas, creada como arriba.
 - El nombre debe contener `test` o ser una base local permitida explícitamente:
   `pruebas` o `pruebas-integrador`.
 - La variable `TEST_DATABASE_URL` debe definirse solo en la terminal. No se debe

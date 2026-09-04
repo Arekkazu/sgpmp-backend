@@ -63,8 +63,9 @@ class PreferenciaIdioma:
             raise ValidationError(
                 code="IDIOMA_NO_DISPONIBLE",
                 message=(
-                    f"El código de cultura '{locale_code}' no está soportado. "
-                    f"Los idiomas disponibles son: {', '.join(sorted(LOCALES_PERMITIDOS))}."
+                    f"Idioma no disponible: El código de cultura '{locale_code}' no está "
+                    "soportado actualmente. Los idiomas disponibles son Español (es-CO) "
+                    "e Inglés (en-US)."
                 ),
                 field="locale_code",
             )
