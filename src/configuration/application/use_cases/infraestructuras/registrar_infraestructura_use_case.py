@@ -7,6 +7,7 @@ from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
 from src.configuration.domain.repositories.finca_repository import FincaRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
+from src.configuration.domain.repositories.tipo_area_repository import TipoAreaRepository
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
@@ -21,11 +22,13 @@ class RegistrarInfraestructuraUseCase:
         db: Session,
         infra_repo: InfraestructuraRepository,
         finca_repo: FincaRepository,
+        tipo_area_repo: TipoAreaRepository,
         auditoria_repo: AuditoriaInfraestructuraRepository,
     ) -> None:
         self.db = db
         self.infra_repo = infra_repo
         self.finca_repo = finca_repo
+        self.tipo_area_repo = tipo_area_repo
         self.auditoria_repo = auditoria_repo
 
     def execute(self, dto: RegistrarInfraestructuraDTO, usuario_actual: UsuarioActual) -> Infraestructura:
@@ -41,12 +44,23 @@ class RegistrarInfraestructuraUseCase:
                 message="No se puede registrar infraestructura en una finca inactiva.",
             )
 
+        tipo_area = self.tipo_area_repo.obtener_por_nombre(dto.tipo_area)
+        if tipo_area is None or not tipo_area.es_activo:
+            raise BusinessRuleError(
+                code="TIPO_AREA_NO_RECONOCIDO",
+                message=(
+                    f"El tipo de área '{dto.tipo_area}' no corresponde a ningún tipo activo "
+                    "en el catálogo de infraestructura productiva."
+                ),
+                field="tipo_area",
+            )
+
         nombre = NombreInfraestructura(dto.nombre_infraestructura)
         superficie = Superficie(dto.superficie)
 
         infra = Infraestructura.crear(
             nombre=nombre,
-            tipo=dto.tipo_area.value,
+            tipo=tipo_area.nombre,
             superficie=superficie,
             id_finca=dto.finca_id,
             descripcion=dto.descripcion_infraestructura,
