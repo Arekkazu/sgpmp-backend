@@ -1,3 +1,15 @@
+## [1.0.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.2...v1.0.0-rc.3) (2026-09-04)
+
+### Features
+
+* **configuration:** entregar identidad visual y accesibilidad en el contexto de interfaz (RF-25) ([4561b7c](https://github.com/Arekkazu/sgpmp-backend/commit/4561b7c86516a76cf3cbb5b93bdb6dd6fff96421))
+* **configuration:** verificar contraste WCAG 2.1 AA del color institucional (RF-26, RF-27) ([10b6a2a](https://github.com/Arekkazu/sgpmp-backend/commit/10b6a2a9ee29da561e812c522d58e0ee1c7ef84d)), closes [#FFFFFF](https://github.com/Arekkazu/sgpmp-backend/issues/FFFFFF)
+
+### Bug Fixes
+
+* **configuration:** corregir la consulta del contexto de interfaz (RF-25) ([2349ef1](https://github.com/Arekkazu/sgpmp-backend/commit/2349ef1cef64f20070ac9ec85da9ba0df7017b73))
+* **configuration:** servir los logotipos subidos bajo /uploads (RF-26) ([43c2758](https://github.com/Arekkazu/sgpmp-backend/commit/43c2758d5f126defa432590f4cec70a0626cdc2d))
+
 ## [1.0.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.1...v1.0.0-rc.2) (2026-09-03)
 
 ### Features
