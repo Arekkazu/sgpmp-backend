@@ -10,3 +10,6 @@ from src.configuration.domain.entities.variable_ambiental import VariableAmbient
 class VariableAmbientalRepository(ABC):
     @abstractmethod
     def obtener_por_id(self, id_variable_ambiental: int) -> Optional[VariableAmbiental]: ...
+
+    @abstractmethod
+    def listar_activas(self) -> list[VariableAmbiental]: ...
