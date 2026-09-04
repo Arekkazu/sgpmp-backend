@@ -14,15 +14,6 @@ class EnumNivelAlerta(str, enum.Enum):
     CRITICO = 'critico'
 
 
-class EnumTipoInfraestructura(str, enum.Enum):
-    """Tipos de infraestructura productiva (enum_tipo_infraestructura en modulo9)."""
-    CORRAL = 'corral'
-    GALPON = 'galpon'
-    POTRERO = 'potrero'
-    ESTANQUE = 'estanque'
-    INVERNADERO = 'invernadero'
-
-
 class EnumPatologiaCategoria(str, enum.Enum):
     """Categorías de patologías del catálogo (enum_patologia_categoria en modulo9)."""
     METABOLICA = 'metabolica'

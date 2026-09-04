@@ -1,7 +1,8 @@
 """Modelo ORM para `modulo9.infraestructuras` (RF-20).
 
-El tipo de área (`tipo`) es un enum de PostgreSQL mapeado como String
-para evitar conflicto con el tipo existente en DB (patrón del proyecto).
+El tipo de área (`tipo`) referencia por nombre el catálogo administrable
+`modulo9.tipos_area` (ver migración `2dbb6d44046f`); antes de esa migración
+era un enum fijo de Postgres.
 """
 from __future__ import annotations
 
@@ -42,7 +43,7 @@ class InfraestructuraModel(Base):
     id_finca: Mapped[int] = mapped_column(Integer, nullable=False)
     superficie: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     es_activo: Mapped[bool] = mapped_column(Boolean, nullable=False)
-    tipo: Mapped[str] = mapped_column(String(20), nullable=False)
+    tipo: Mapped[str] = mapped_column(String(30), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
     capacidad_maxima: Mapped[Optional[int]] = mapped_column(Integer)
     id_especie: Mapped[Optional[int]] = mapped_column(Integer)

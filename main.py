@@ -21,6 +21,7 @@ from src.configuration.infrastructure.routers.finca_router import router as finc
 from src.configuration.infrastructure.routers.dispositivo_iot_router import router as dispositivo_iot_router
 from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import router as tipo_dispositivo_iot_router
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
+from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
@@ -500,6 +501,7 @@ app.include_router(plantilla_router)
 app.include_router(configuracion_global_router)
 app.include_router(finca_router)
 app.include_router(infraestructura_router)
+app.include_router(tipo_area_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)
