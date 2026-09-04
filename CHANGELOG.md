@@ -1,3 +1,9 @@
+## [1.0.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-09-04)
+
+### Bug Fixes
+
+* **rf42:** corregir restriccion de LOTE en evento reproductivo ([cb43add](https://github.com/Arekkazu/sgpmp-backend/commit/cb43add315bb645256a9233a2b4e8dfd1da41ad0))
+
 ## [1.0.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.6...v1.0.0-rc.7) (2026-09-04)
 
 ### Features
