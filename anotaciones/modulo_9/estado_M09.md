@@ -581,6 +581,52 @@ sí solo.
   `src/configuration/`:
   - "Forzar recarga de interfaz cuando cambian los permisos en sesión activa" — el backend no
     empuja ningún evento; el cliente tendría que re-consultar por su cuenta.
+
+  **Hallazgo 2026-09-03 — el endpoint respondía `500` contra la base real.** El repositorio
+  seleccionaba `especies_configuradas` de `modulo9.vw_rf25_contexto_usuario`, y la columna
+  de la vista se llama `especies_en_finca`: `ProgrammingError` en cada petición. Este audit
+  dio el endpoint por funcional porque lo verificó leyendo código, no ejecutándolo — explica
+  también por qué `contextoApi` quedó como código muerto en el frontend. Corregido.
+
+  **Hallazgo 2026-09-03 — la "finca activa" no era determinista.** La vista emite una fila
+  por finca activa del usuario (el Productor de dev tiene cuatro) y el repositorio hacía
+  `.first()` sin `ORDER BY`: la finca —y con ella la identidad visual de RF-26— podía cambiar
+  entre dos peticiones seguidas. Se fija `ORDER BY id_finca NULLS LAST`. Es un parche
+  determinista, no un selector: **RF-25 asume una finca activa por usuario y el modelo de
+  datos permite varias.** Elegir cuál es la activa es una decisión de producto pendiente
+  (¿la última usada? ¿un selector explícito en la interfaz?).
+
+  **Gap abierto 2026-09-03 — `especies_configuradas` no es "de la finca".** La subconsulta
+  lateral de la vista **no está correlacionada con `f.id_finca`**: devuelve las especies con
+  umbrales ambientales activos de todo el sistema, idénticas para cualquier usuario y
+  cualquier finca. RF-25 pide "indicadores según las especies productivas configuradas en la
+  finca", así que el dato existe pero no significa lo que el RF dice. El vínculo real está en
+  `modulo9.infraestructuras`, que tiene `id_finca` e `id_especie`:
+
+  ```sql
+  LEFT JOIN LATERAL (
+    SELECT COALESCE(array_agg(DISTINCT e.nombre ORDER BY e.nombre), ARRAY[]::text[])
+      FROM modulo9.infraestructuras i
+      JOIN modulo9.especies e ON e.id_especie = i.id_especie AND e.es_activo IS TRUE
+     WHERE i.id_finca = f.id_finca AND i.es_activo IS TRUE
+  ) especies ON true
+  ```
+
+  **No se aplica en este cambio y es deliberado:** `infraestructuras.id_especie` está en
+  `NULL` en las 12 áreas productivas de dev, así que corregir la vista dejaría la lista vacía
+  para las seis fincas y todo usuario vería "Finca sin configuración". El prerrequisito es
+  poblar `id_especie` (RF-20), no la migración. Mientras tanto el filtrado por especie del
+  frontend está escrito contra el contrato correcto pero no discrimina, porque recibe el
+  catálogo completo.
+
+  **Actualización 2026-09-03:** el endpoint dejó de ser solo rol + finca + especies. Ahora
+  entrega también la identidad visual de la finca activa (RF-26) y su evaluación de contraste
+  WCAG (RF-27), de modo que el cliente construye la interfaz con una sola petición al iniciar
+  sesión — que es literalmente lo que describe el proceso del RF-25. Fue la solución a un
+  problema que este audit no había registrado: el recurso 23 es exclusivo del Administrador,
+  así que ningún otro rol podía leer su propia marca, pese a que RF-26 exige que "los usuarios
+  visualizarán la identidad visual actualizada en sus sesiones". No hizo falta ningún permiso
+  nuevo.
   - "Intento de acceso a módulo no autorizado (URL bypass) → 403 + redirección al dashboard"
     — la parte de redirección es inherentemente de frontend; el 403 en sí ya lo cubre RBAC de
     forma transversal en cada router, no como parte de este endpoint específico.
@@ -625,17 +671,30 @@ sí solo.
 
 ### Qué NO cumple / gaps
 
-- El logo se guarda en disco local (`uploads/logos/{uuid}.ext`) mediante lógica escrita a
-  mano dentro del use case — no existe ningún utilitario reusable de subida de archivos en
-  `src/shared/`. No es un incumplimiento del RF (que no exige un backend de almacenamiento en
-  particular), pero si el despliegue es multi-instancia o efímero (contenedores sin volumen
-  persistente), el logo se perdería — vale la pena señalarlo como riesgo operativo, no como
-  gap funcional.
-- No se verificó si existe el flujo de "vista previa antes de confirmar" que pide el RF como
-  paso obligatorio del proceso (pasos 6-8) — es plausible que esto sea enteramente responsabilidad
-  de frontend (aplicar los cambios de forma temporal en el cliente antes de hacer `POST`/`PATCH`),
-  en cuyo caso no hay nada que el backend deba exponer adicionalmente; no se encontró evidencia
-  de un endpoint de "preview" separado, lo cual es consistente con esa lectura.
+- ~~El logo se guarda en disco local mediante lógica escrita a mano dentro del use case~~
+  **RESUELTO PARCIALMENTE (2026-09-03).** La lógica estaba duplicada palabra por palabra en
+  los use cases de crear y actualizar, con mensajes distintos para la misma condición; ahora
+  vive en `src/shared/almacen_logos.py`, el utilitario reusable que esta misma nota echaba en
+  falta. Se descubrió además un fallo silencioso: **`main.py` nunca montó `StaticFiles`**, así
+  que el `logo_path` que la API devolvía (`uploads/logos/<uuid>.ext`, ruta del sistema de
+  archivos) no era alcanzable por HTTP y ningún cliente podía pintar la marca. Hoy se devuelve
+  la ruta pública `/uploads/logos/<uuid>.ext` y `main.py` la sirve.
+  **Sigue en pie el riesgo operativo**: en un despliegue multi-instancia o efímero
+  (contenedores sin volumen persistente) el archivo se perdería. Es almacenamiento local, no
+  un servicio de objetos.
+- ~~No se verificó si existe el flujo de "vista previa antes de confirmar"~~ **VERIFICADO Y
+  CERRADO COMO NO-GAP DE BACKEND (2026-09-03).** Confirmado que no existe ningún endpoint de
+  preview (`grep -rniE "preview|vista.previa" src/` → 0 resultados) **y que no debe existir**.
+  Lo dice el propio RF en su flujo alterno *Cancelación en Vista Previa*: el descarte "limpia
+  los estados temporales de la interfaz y restaura los valores […] **sin realizar ninguna
+  petición de actualización**", y el paso 6 pide aplicar los cambios "de forma temporal en la
+  interfaz". Es estado de cliente por definición: un endpoint de preview sería el servidor
+  guardando exactamente lo que el RF pide no guardar. La única obligación del backend —que las
+  reglas de validación sean conocibles antes de persistir— ya se cumple: el `POST`/`PATCH`
+  aplica el mismo DTO y los mismos value objects, documentados en los curls.
+  El gap real está en el frontend, donde la "vista previa" es una maqueta de ~140px
+  (`LivePreview` en `IdentidadVisualSection.tsx`) que no toca la interfaz real, así que no hay
+  nada que revertir ni un paso de confirmar/descartar.
 - **Sin `UNIQUE(id_finca)` en `modulo9.identidad_visuales`** (ver hallazgos transversales) —
   nada en la base de datos impide, por sí sola, que una condición de carrera cree dos filas
   "vigentes" para la misma finca; la integridad depende de que el use case siempre lea la
@@ -668,14 +727,38 @@ sí solo.
   técnicamente, más de una fila personal por usuario; la resolución "toma la más reciente por
   `fecha_actualizacion`" depende de que el use case siempre haga upsert correctamente, sin
   respaldo de un constraint de DB.
-- No se verificó si existe verificación de contraste WCAG 2.1 AA que pide el RF como NFR de
-  accesibilidad (comparar el color institucional de RF-26 contra el tema oscuro) — no se
-  encontró evidencia de esta lógica en el código explorado; es plausible que no esté
-  implementada, dado que requeriría cálculo de luminancia relativa, algo que no apareció en
-  ninguna búsqueda de los value objects de color.
+- ~~No se verificó si existe verificación de contraste WCAG 2.1 AA~~ **VERIFICADO E
+  IMPLEMENTADO (2026-09-03).** La sospecha era correcta: no existía nada
+  (`grep -rniE "contrast|wcag|luminan" src/` → solo prosa en docstrings ajenos), y `ColorHex`
+  era una expresión regular de formato y nada más — un administrador podía fijar `#FFFFFF`
+  como color primario y el sistema lo aceptaba sin objeción. Hoy `color_hex.py` calcula
+  luminancia relativa y relación de contraste WCAG 2.1, y `ajustar_para_contraste()` produce
+  la "variante aclarada/oscurecida" que el flujo alterno de RF-27 promete, moviendo la
+  luminosidad HLS y conservando matiz y saturación para no desdibujar la marca.
+  El read-model `domain/entities/accesibilidad_visual.py` evalúa los dos colores contra los
+  dos temas y se expone en las respuestas de RF-26 y de RF-25.
+
+  **Hallazgo del que conviene dejar constancia:** el aviso es **por tema**, no una lista
+  global, porque los dos fondos están en extremos opuestos de la escala (blanco tiene
+  luminancia 1.0; la superficie oscura del frontend, 0.009). Cumplir 4.5:1 contra el claro
+  exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: **ningún color cumple en los dos a la
+  vez.** Un aviso global estaría encendido para cualquier color elegible y la interfaz
+  aprendería a ignorarlo. El RF ya lo dice así ("en el modo seleccionado"). Hay una prueba
+  que fija esta imposibilidad, para que si algún día cambia la superficie del tema oscuro y
+  la franja se abre, la decisión se revise en vez de quedar fosilizada.
 - El flujo alterno de "modo automático sin soporte del dispositivo → fallback a claro" es
   inherentemente de frontend (depende de `prefers-color-scheme` del navegador); el backend
   solo necesita aceptar `theme_mode=3` como valor válido, lo cual sí ocurre.
+
+- **El contrato de `theme_mode` está roto del lado del cliente (hallazgo 2026-09-03).** El
+  backend y el RF usan `1=Claro, 2=Oscuro, 3=Sistema` (`tema_visual.py`, `guardar_tema_dto.py`),
+  pero `TemaVisualSection.tsx` del frontend declara `0=Light, 1=Dark, 2=Auto`. Guardar "Claro"
+  envía `0` y el DTO responde 422; "Oscuro" envía `1` y se persiste *Claro*; "Automático" envía
+  `2` y se persiste *Oscuro*. Al leer, el mapeo inverso pinta oscuro sobre el valor que el
+  backend llama Claro. **El selector de tema está invertido de punta a punta**, así que el
+  veredicto de ~90% describe el backend, no el requisito cumplido de cara al usuario. Es el
+  mismo modo de fallo que RF-29 tuvo con `'es'` vs `'es-CO'`. El backend no requiere cambios:
+  su contrato es el del RF. Se corrige en el repositorio del frontend.
 
 ---
 
