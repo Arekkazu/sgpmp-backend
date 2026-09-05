@@ -69,8 +69,8 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"Etapa-Mojarra-v2\", \"duracion_dias\": 25 } ]\n  }\n}" },
-        "url": "{{base_url}}/configuracion/plantillas"
+        "body": { "mode": "raw", "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"Etapa-Mojarra-v2\", \"duracion_dias\": 25 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/versiones"
       }
     },
     {
