@@ -31,6 +31,11 @@ INC-M01-15-054 (#100) y INC-M01-17-058 (#102) — POST /contrasena/restablecer.
 Nomenclatura (docs/Nomenclatura.xlsx): PK `id_<tabla_singular>`, booleano con
 prefijo `es_`/`tiene_`, fecha con descriptor (`fecha_<algo>`, nunca `fecha` a
 secas), indice regular con prefijo `idx_`.
+
+Equivalente formal de la Migración de Paso 0 ya aplicada a mano en sgpmp y
+pruebas (columna y tabla renombradas a estos mismos nombres en el fix de
+nomenclatura); usa IF NOT EXISTS para que "upgrade head" sea un no-op seguro
+en esos entornos y cree los objetos de cero en cualquier otro.
 """
 from typing import Sequence, Union
 
@@ -45,36 +50,34 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "cuentas_usuarios",
-        sa.Column(
-            "es_token_usado",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.text("false"),
-            comment=(
-                'Marca si token_activacion_actual (de RECUPERACION) ya fue consumido '
-                'en un restablecimiento exitoso. Se mantiene el hash al usarlo (no se '
-                'limpia) para poder distinguir "token ya utilizado" (409) de "token '
-                'nunca existio" (401) en un reintento.'
-            ),
-        ),
-        schema="modulo1",
+    op.execute(
+        """
+        ALTER TABLE modulo1.cuentas_usuarios
+        ADD COLUMN IF NOT EXISTS es_token_usado boolean NOT NULL DEFAULT false
+        """
+    )
+    op.execute(
+        """
+        COMMENT ON COLUMN modulo1.cuentas_usuarios.es_token_usado IS
+        'Marca si token_activacion_actual (de RECUPERACION) ya fue consumido en un restablecimiento exitoso. Se mantiene el hash al usarlo (no se limpia) para poder distinguir "token ya utilizado" (409) de "token nunca existio" (401) en un reintento.'
+        """
     )
 
-    op.create_table(
-        "intentos_anonimos_ip",
-        sa.Column("id_intento_anonimo_ip", sa.Integer, primary_key=True),
-        sa.Column("tipo", sa.String(40), nullable=False),
-        sa.Column("ip", sa.String(45), nullable=False),
-        sa.Column("fecha_intento", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
-        schema="modulo1",
+    op.execute(
+        """
+        CREATE TABLE IF NOT EXISTS modulo1.intentos_anonimos_ip (
+            id_intento_anonimo_ip serial PRIMARY KEY,
+            tipo varchar(40) NOT NULL,
+            ip varchar(45) NOT NULL,
+            fecha_intento timestamptz NOT NULL DEFAULT now()
+        )
+        """
     )
-    op.create_index(
-        "idx_intentos_anonimos_ip_tipo_ip_fecha",
-        "intentos_anonimos_ip",
-        ["tipo", "ip", "fecha_intento"],
-        schema="modulo1",
+    op.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_intentos_anonimos_ip_tipo_ip_fecha
+        ON modulo1.intentos_anonimos_ip (tipo, ip, fecha_intento)
+        """
     )
 
 
