@@ -21,6 +21,13 @@ from src.shared.errors import (
 
 _PREFIJOS_CONSTRAINT = ("uq_", "uk_", "fk_", "ck_", "chk_", "pk_", "idx_", "ix_")
 
+#: SQLSTATE de duplicados de nombre que triggers de `modulo9` señalan con
+#: `RAISE EXCEPTION ... USING ERRCODE`. Postgres los clasifica como clase
+#: `P0` (PL/pgSQL), que psycopg2/SQLAlchemy no mapea a `IntegrityError`
+#: (cae a `InternalError` genérico) — sin este mapeo explícito, un choque de
+#: nombre entre dos filas activas sale como 500 en vez de 409.
+_ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
+
 
 def _campo(diag) -> str | None:
     """Deriva el nombre de columna a partir del diagnóstico de psycopg2.
@@ -101,6 +108,11 @@ def raise_from_db_error(
         ServiceUnavailableError: Por fallo de conectividad con la base de datos.
         InfrastructureError: Por cualquier otro error de base de datos no mapeado.
     """
+    diag_generico = getattr(getattr(exc, "orig", None), "diag", None)
+    if diag_generico is not None and getattr(diag_generico, "sqlstate", None) in _ERRCODES_NOMBRE_DUPLICADO:
+        mensaje = diag_generico.message_primary or "Ya existe un registro con ese nombre."
+        raise ConflictError(code="RECURSO_DUPLICADO", message=mensaje.split(": ", 1)[-1])
+
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)
         constraint = getattr(diag, "constraint_name", None)
