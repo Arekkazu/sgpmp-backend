@@ -18,7 +18,7 @@ from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_
 from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
 from src.identity_access.infrastructure.email_templates import activation_email, recovery_email
 from src.shared.email import send_email
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import TooManyRequestsError
 
 MAX_SOLICITUDES_POR_HORA = 3
 TIPO_SOLICITUD_RECUPERACION = 7
@@ -67,16 +67,23 @@ class SolicitarRecuperacionUseCase:
             Mensaje genérico que no revela si el correo está registrado.
 
         Raises:
-            BusinessRuleError: Si se supera el límite de 3 solicitudes por hora
-                desde la misma IP. HTTP 422.
+            TooManyRequestsError: Si se supera el límite de 3 solicitudes por
+                hora desde la misma IP. HTTP 429.
         """
         # 1. Rate limit por IP: máx 3 solicitudes por hora
         ahora = datetime.now(timezone.utc)
         hace_una_hora = ahora - timedelta(hours=1)
         solicitudes = self.eventos_repo.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
         if solicitudes >= MAX_SOLICITUDES_POR_HORA:
-            proxima_vez = hace_una_hora + timedelta(hours=1)
-            raise BusinessRuleError(
+            # La ventana libera cupo cuando la solicitud MÁS ANTIGUA de las que
+            # cuentan actualmente cumple una hora — no "ahora + 1h" (eso da
+            # siempre la hora actual, ver INC-M01-20-112) ni "hace_una_hora + 1h"
+            # (eso da siempre "ahora", el mismo bug con otro nombre).
+            mas_antigua = self.eventos_repo.obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
+                ip, hace_una_hora
+            )
+            proxima_vez = (mas_antigua or ahora) + timedelta(hours=1)
+            raise TooManyRequestsError(
                 code="LIMITE_SOLICITUDES_EXCEDIDO",
                 message=(
                     f"Límite de solicitudes excedido para su conexión. Por seguridad, solo se "

@@ -1,6 +1,10 @@
 """Flujo HTTP/BD de recuperación y restablecimiento de contraseña."""
 from __future__ import annotations
 
+import json
+import re
+from datetime import datetime, timedelta, timezone
+
 import bcrypt
 import pytest
 from sqlalchemy import text
@@ -202,3 +206,56 @@ def test_reenvio_de_activacion_guarda_hash_y_envia_token_crudo(
     assert token_guardado == calcular_hash_token(token_crudo)
     assert token_guardado != token_crudo
     assert correos and token_crudo in correos[0]["html_body"]
+
+
+def _insertar_solicitud_recuperacion(db_session, id_usuario: int, ip: str, hace: timedelta) -> None:
+    """Inserta un evento tipo 7 (SOLICITUD_RECUPERACION) con fecha pasada, para
+    simular solicitudes previas dentro de la ventana de una hora sin depender
+    de tiempo real de ejecución del test."""
+    db_session.execute(
+        text(
+            """
+            INSERT INTO modulo1.eventos
+                (tipo_evento, fecha_evento, modulo, resultado, detalle, id_usuario, categoria, estado)
+            VALUES
+                (7, now() - :hace, 'MODULO1', 'exitoso', :detalle, :id_usuario, 'AUTENTICACION', 'PROCESADO')
+            """
+        ),
+        {"hace": hace, "detalle": json.dumps({"ip": ip}), "id_usuario": id_usuario},
+    )
+    db_session.commit()
+
+
+def test_recuperacion_excede_limite_responde_429_con_hora_real_de_reintento(
+    client,
+    db_session: Session,
+    crear_usuario_db,
+) -> None:
+    """INC-M01-07-43 / INC-M01-19-112 / INC-M01-20-112 (RF-08): el límite de 3
+    solicitudes/hora por IP debe responder 429 (no 422) y anunciar la hora en
+    que la solicitud más antigua de la ventana cumple una hora (no la hora
+    actual de la respuesta)."""
+    usuario = crear_usuario_db()
+    ip = "sgpmp-integration-tests"  # host simulado por el fixture `client` (conftest)
+    mas_antigua = timedelta(minutes=50)
+    for hace in (mas_antigua, timedelta(minutes=40), timedelta(minutes=30)):
+        _insertar_solicitud_recuperacion(db_session, usuario["id_usuario"], ip, hace)
+
+    respuesta = client.post(
+        "/contrasena/recuperar",
+        json={"correo_electronico": usuario["correo"]},
+    )
+
+    assert respuesta.status_code == 429, respuesta.text
+    cuerpo = respuesta.json()
+    assert cuerpo["error_code"] == "LIMITE_SOLICITUDES_EXCEDIDO"
+
+    esperado = datetime.now(timezone.utc) - mas_antigua + timedelta(hours=1)
+    hora_reportada = re.search(r"(\d{2}:\d{2}):\d{2}", cuerpo["message"]).group(1)
+    # Tolerancia de 1 minuto por el tiempo real transcurrido en el test.
+    assert hora_reportada in {
+        (esperado + timedelta(minutes=d)).strftime("%H:%M") for d in (-1, 0, 1)
+    }
+    # La hora de reintento NO puede ser "ahora": ese era exactamente el bug.
+    ahora = datetime.now(timezone.utc).strftime("%H:%M")
+    assert hora_reportada != ahora

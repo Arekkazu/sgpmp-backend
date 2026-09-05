@@ -144,6 +144,19 @@ class EventoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
+        self, ip: str, desde: datetime
+    ) -> Optional[datetime]:
+        """Retorna la fecha de la solicitud (tipo 7) más antigua de la IP dentro de la ventana.
+
+        Es la solicitud que, al salir de la ventana de una hora, libera el
+        cupo de nuevo. Se usa para informar la hora real de reintento cuando
+        se excede el límite (``LIMITE_SOLICITUDES_EXCEDIDO``), en vez de una
+        hora fija que nunca coincide con el desbloqueo real.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
         """Cuenta las consultas de detalle (tipo 18) exitosas de un actor desde ``desde``.
 
