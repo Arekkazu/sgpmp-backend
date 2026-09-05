@@ -1,0 +1,329 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-117-modificar-rol",
+    "name": "TC-M01-117 - Modificar correctamente un rol existente",
+    "description": "Validar que se pueda agregar correctamente el permiso de actualizar activos biológicos al rol Auxiliar de Campo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.expect(response.token).to.be.a('string');",
+              "",
+              "    pm.collectionVariables.set('tokenAdmin', response.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Buscar el rol Auxiliar de Campo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente los roles', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const roles = pm.response.json();",
+              "const rol = roles.find(function (item) {",
+              "    return item.nombre_rol === 'Auxiliar de Campo';",
+              "});",
+              "",
+              "pm.test('Debe existir el rol Auxiliar de Campo', function () {",
+              "    pm.expect(rol).to.exist;",
+              "});",
+              "",
+              "if (rol) {",
+              "    pm.collectionVariables.set('idRol', rol.id_rol);",
+              "    pm.collectionVariables.set('nombreRol', rol.nombre_rol);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consultar permisos actuales del rol",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/{{idRol}}/permisos",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente los permisos actuales', function () {",
+              "    pm.response.to.have.status(200);",
+              "",
+              "    const permisos = pm.response.json();",
+              "    pm.expect(permisos).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Agregar permiso actualizar activos biológicos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_recurso\": 29,\n  \"id_accion\": 3\n}"
+        },
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/{{idRol}}/permisos",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe agregar correctamente el permiso de actualización', function () {",
+              "    pm.response.to.have.status(201);",
+              "",
+              "    const permiso = pm.response.json();",
+              "",
+              "    pm.expect(permiso).to.have.property('id_permiso');",
+              "    pm.expect(permiso.id_recurso).to.eql(29);",
+              "    pm.expect(permiso.id_accion).to.eql(3);",
+              "    pm.expect(permiso.es_activo).to.eql(true);",
+              "",
+              "    pm.collectionVariables.set('idPermisoNuevo', permiso.id_permiso);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Verificar el permiso agregado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/{{idRol}}/permisos",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const permisos = pm.response.json();",
+              "",
+              "pm.test('Debe listar correctamente los permisos del rol', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(permisos).to.be.an('array');",
+              "});",
+              "",
+              "const permisoNuevo = permisos.find(function (permiso) {",
+              "    return permiso.id_recurso === 29 && permiso.id_accion === 3;",
+              "});",
+              "",
+              "pm.test('Debe existir el permiso actualizar activos biológicos', function () {",
+              "    pm.expect(permisoNuevo).to.exist;",
+              "    pm.expect(permisoNuevo.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificar configuración final del rol",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/{{idRol}}",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            "{{idRol}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe conservar una configuración válida del rol', function () {",
+              "    pm.response.to.have.status(200);",
+              "",
+              "    const rol = pm.response.json();",
+              "",
+              "    pm.expect(rol.nombre_rol).to.eql('Auxiliar de Campo');",
+              "    pm.expect(rol.permisos).to.be.an('array');",
+              "    pm.expect(rol.permisos.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('El rol debe conservar el permiso original de lectura', function () {",
+              "    const rol = pm.response.json();",
+              "",
+              "    const permisoLectura = rol.permisos.find(function (permiso) {",
+              "        return permiso.id_recurso === 29 && permiso.id_accion === 2;",
+              "    });",
+              "",
+              "    pm.expect(permisoLectura).to.exist;",
+              "});",
+              "",
+              "pm.test('El rol debe tener el nuevo permiso de actualización', function () {",
+              "    const rol = pm.response.json();",
+              "",
+              "    const permisoActualizar = rol.permisos.find(function (permiso) {",
+              "        return permiso.id_recurso === 29 && permiso.id_accion === 3;",
+              "    });",
+              "",
+              "    pm.expect(permisoActualizar).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

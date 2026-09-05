@@ -1,0 +1,249 @@
+"""Router FastAPI para el módulo de sesiones (`/sesiones`).
+
+Expone los endpoints de inicio y cierre de sesión con JWT.
+"""
+import os
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Cookie, Depends, Request, Response
+from sqlalchemy.orm import Session
+
+from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
+from src.identity_access.application.use_cases.sesiones.logout_use_case import LogoutUseCase
+from src.identity_access.application.use_cases.sesiones.refresh_token_use_case import RefreshTokenUseCase
+from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
+from src.identity_access.infrastructure.adapters.agrofusion_sso_adapter import AgroFusionSsoAdapter
+from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
+from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
+from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
+from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
+from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
+from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
+from src.identity_access.infrastructure.schema.permisos_schema import PermisoResumen, PermisosUsuarioResponse
+from src.identity_access.infrastructure.schema.user_schema import LoginResponse
+from src.shared.database import get_db
+from src.shared.errors import AuthenticationError, ServiceUnavailableError
+from src.shared.notificacion_service import NotificacionService
+from src.shared.schemas import ErrorResponse, MessageResponse
+
+router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
+
+NOMBRE_COOKIE_REFRESH = "refresh_token"
+
+
+def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datetime) -> None:
+    """Setea la cookie HttpOnly del refresh token. ``path="/"``: ver nota en
+    ``anotaciones/modulo_1/gaps_bd_refresh_tokens.md`` sobre por qué no se usa
+    ``path="/sesiones"`` (el prefijo ``/api`` de producción es cosmético en la
+    app — lo agrega el proxy inverso, no root_path).
+
+    ``samesite``: en producción front y backend viven en dominios distintos
+    (deploy actual), así que la cookie debe viajar cross-site — requiere
+    ``SameSite=None``, que a su vez exige ``Secure`` (ya activo en prod). Fuera
+    de producción se mantiene ``Strict`` (front y backend comparten site en local)."""
+    es_produccion = os.getenv("ENV") == "production"
+    max_age = int((fecha_expiracion - datetime.now(timezone.utc)).total_seconds())
+    response.set_cookie(
+        key=NOMBRE_COOKIE_REFRESH,
+        value=valor,
+        max_age=max_age,
+        httponly=True,
+        secure=es_produccion,
+        samesite="none" if es_produccion else "strict",
+        path="/",
+    )
+
+
+@router.post(
+    "/",
+    response_model=LoginResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        423: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+)
+def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+    ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    use_case = LoginUseCase(
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+    )
+    jwt_str, fecha_expiracion, sesion_previa_cerrada, _, refresh_raw, fecha_expiracion_refresco = use_case.execute(
+        dto, ip, user_agent
+    )
+    _set_cookie_refresco(response, refresh_raw, fecha_expiracion_refresco)
+
+    ahora = datetime.now(timezone.utc)
+    expira_en = int((fecha_expiracion - ahora).total_seconds())
+
+    if sesion_previa_cerrada:
+        message = "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    else:
+        message = "Sesión iniciada exitosamente."
+
+    return LoginResponse(token=jwt_str, expira_en=expira_en, message=message)
+
+
+@router.post(
+    "/sso",
+    response_model=LoginResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        423: {"model": ErrorResponse},
+        503: {"model": ErrorResponse},
+    },
+)
+def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+    """Login SSO vía handoff RS256 de AgroFusion (Mecanismo A).
+
+    Sin `require_permission`: la confianza la da la firma RS256 verificada
+    dentro del use case, no un rol de sgpmp (el usuario todavía no tiene
+    sesión propia en este punto).
+    """
+    if not (os.getenv("AGROFUSION_SSO_PUBLIC_KEY_PATH") and os.getenv("AGROFUSION_PROJECT_CODE")):
+        raise ServiceUnavailableError(
+            code="SSO_NO_CONFIGURADO",
+            message="La integración SSO con AgroFusion no está disponible en este despliegue.",
+        )
+
+    ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    use_case = SsoLoginUseCase(
+        sso_provider=AgroFusionSsoAdapter(),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+    )
+    (
+        jwt_str,
+        fecha_expiracion,
+        sesion_previa_cerrada,
+        _,
+        perfil_incompleto,
+        refresh_raw,
+        fecha_expiracion_refresco,
+    ) = use_case.execute(dto, ip, user_agent)
+    _set_cookie_refresco(response, refresh_raw, fecha_expiracion_refresco)
+
+    ahora = datetime.now(timezone.utc)
+    expira_en = int((fecha_expiracion - ahora).total_seconds())
+
+    if sesion_previa_cerrada:
+        message = "Sesión SSO iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única."
+    else:
+        message = "Sesión SSO iniciada exitosamente."
+
+    return LoginResponse(
+        token=jwt_str,
+        expira_en=expira_en,
+        message=message,
+        perfil_incompleto=perfil_incompleto,
+    )
+
+
+@router.get(
+    "/me/permisos",
+    response_model=PermisosUsuarioResponse,
+    responses={
+        401: {"model": ErrorResponse},
+    },
+)
+def obtener_mis_permisos(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> PermisosUsuarioResponse:
+    permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(usuario_actual.id_rol)
+    return PermisosUsuarioResponse(
+        permisos=[
+            PermisoResumen(id_recurso=p.id_recurso, id_accion=p.id_accion)
+            for p in permisos
+            if p.es_activo
+        ]
+    )
+
+
+@router.delete(
+    "/",
+    response_model=MessageResponse,
+    responses={
+        401: {"model": ErrorResponse},
+    },
+)
+def cerrar_sesion(
+    response: Response,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    use_case = LogoutUseCase(
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+    )
+    use_case.execute(id_token=usuario_actual.id_token, id_usuario=usuario_actual.id_usuario)
+    response.delete_cookie(NOMBRE_COOKIE_REFRESH, path="/")
+    return {"message": "Sesión cerrada exitosamente."}
+
+
+@router.post(
+    "/refresh",
+    response_model=LoginResponse,
+    responses={
+        401: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
+    },
+)
+def refrescar_sesion(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: Optional[str] = Cookie(None),
+):
+    """Canjea el refresh token de la cookie por un access token nuevo.
+
+    Sin RBAC, sin `get_current_user`: la confianza la da la cookie
+    `HttpOnly`, no un JWT — este endpoint reemplaza justamente la necesidad
+    de credenciales cuando el access token en memoria se perdió (recarga de
+    página) o expiró.
+    """
+    if not refresh_token:
+        raise AuthenticationError(
+            code="REFRESH_TOKEN_REQUERIDO",
+            message="No se encontró una sesión para renovar. Inicia sesión nuevamente.",
+        )
+
+    ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+
+    use_case = RefreshTokenUseCase(
+        sesiones_repo=SqlAlchemySesionRepository(db),
+        cuentas_repo=SqlAlchemyCuentaRepository(db),
+        usuarios_repo=SqlAlchemyUsuarioRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
+        db=db,
+    )
+    jwt_str, fecha_expiracion, refresh_raw_nuevo, fecha_expiracion_refresco = use_case.execute(
+        refresh_token, ip, user_agent
+    )
+    _set_cookie_refresco(response, refresh_raw_nuevo, fecha_expiracion_refresco)
+
+    ahora = datetime.now(timezone.utc)
+    expira_en = int((fecha_expiracion - ahora).total_seconds())
+
+    return LoginResponse(token=jwt_str, expira_en=expira_en, message="Sesión renovada exitosamente.")

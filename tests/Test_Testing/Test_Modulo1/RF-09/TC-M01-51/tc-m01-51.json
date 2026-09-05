@@ -1,0 +1,28 @@
+{
+  "info": {
+    "name": "TC-M01-051",
+    "description": "Verifica que un token con formato invalido/alterado manualmente sea rechazado con 401 al intentar restablecer la contrasena.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Restablecer con token invalido/corrupto (formato alterado)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 Unauthorized', function () { pm.response.to.have.status(401); });",
+        "pm.test('error_code es TOKEN_INVALIDO', function () {",
+        "    pm.expect(pm.response.json().error_code).to.eql('TOKEN_INVALIDO');",
+        "});",
+        "pm.test('El mensaje no revela detalles internos sobre por que fallo', function () {",
+        "    const msg = pm.response.json().message;",
+        "    pm.expect(msg).to.include('inválido');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    }
+  ]
+}

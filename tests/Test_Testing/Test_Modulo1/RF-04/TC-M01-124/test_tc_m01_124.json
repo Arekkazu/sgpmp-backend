@@ -1,0 +1,319 @@
+{
+  "info": {
+    "name": "TC-M01-124 - Intentar retirar el último permiso asignado a un rol",
+    "_postman_id": "tc-m01-124",
+    "description": "Caso negativo para verificar que un rol no quede sin permisos al intentar retirar su único permiso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_rol",
+      "value": ""
+    },
+    {
+      "key": "id_permiso",
+      "value": ""
+    },
+    {
+      "key": "nombre_rol",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta login:', pm.response.text());",
+              "",
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "let jsonData = {};",
+              "try {",
+              "    jsonData = pm.response.json();",
+              "} catch (e) {",
+              "    console.log('La respuesta no es JSON');",
+              "}",
+              "",
+              "console.log('Respuesta JSON login:', jsonData);",
+              "",
+              "pm.test('La respuesta debe contener un token de autenticación', function () {",
+              "    pm.expect(jsonData.token).to.exist;",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('token', jsonData.token);",
+              "    console.log('Token guardado correctamente');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear rol temporal con un único permiso",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const timestamp = Date.now();",
+              "const nombreRol = `Auxiliar de Campo TC124 ${timestamp}`;",
+              "",
+              "pm.collectionVariables.set('nombre_rol', nombreRol);",
+              "",
+              "console.log('Nombre del rol temporal:', nombreRol);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta creación rol:', pm.response.text());",
+              "",
+              "pm.test('Debe crear correctamente el rol temporal', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "let jsonData = {};",
+              "try {",
+              "    jsonData = pm.response.json();",
+              "} catch (e) {",
+              "    console.log('La respuesta no es JSON');",
+              "}",
+              "",
+              "console.log('Respuesta JSON creación rol:', jsonData);",
+              "",
+              "pm.test('La respuesta debe contener el identificador del rol creado', function () {",
+              "    pm.expect(jsonData.id_rol).to.exist;",
+              "});",
+              "",
+              "if (jsonData.id_rol) {",
+              "    pm.collectionVariables.set('id_rol', jsonData.id_rol);",
+              "    console.log('ID del rol creado:', jsonData.id_rol);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"{{nombre_rol}}\",\n  \"descripcion\": \"Rol temporal creado automáticamente para la ejecución del caso de prueba TC-M01-124\",\n  \"permisos\": [\n    {\n      \"id_recurso\": 29,\n      \"id_accion\": 2\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/roles/"
+      }
+    },
+    {
+      "name": "3. Consultar el único permiso del rol",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/roles/{{id_rol}}/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta permisos iniciales:', pm.response.text());",
+              "",
+              "pm.test('Debe consultar correctamente los permisos del rol', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "let permisos = [];",
+              "try {",
+              "    permisos = pm.response.json();",
+              "} catch (e) {",
+              "    console.log('La respuesta no es JSON válido');",
+              "}",
+              "",
+              "console.log('Permisos iniciales:', permisos);",
+              "",
+              "pm.test('El rol debe tener una lista de permisos', function () {",
+              "    pm.expect(permisos).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('El rol debe tener exactamente un permiso', function () {",
+              "    pm.expect(permisos.length).to.equal(1);",
+              "});",
+              "",
+              "if (Array.isArray(permisos) && permisos.length === 1) {",
+              "    const permiso = permisos[0];",
+              "",
+              "    pm.test('El permiso debe contener un identificador válido', function () {",
+              "        pm.expect(permiso.id_permiso).to.exist;",
+              "    });",
+              "",
+              "    if (permiso.id_permiso) {",
+              "        pm.collectionVariables.set('id_permiso', permiso.id_permiso);",
+              "        console.log('ID del único permiso:', permiso.id_permiso);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Intentar retirar el último permiso asignado",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/roles/{{id_rol}}/permisos/{{id_permiso}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta intento de retirar último permiso:', pm.response.text());",
+              "",
+              "pm.test('Debe rechazar o impedir retirar el último permiso', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(200);",
+              "});",
+              "",
+              "pm.test('El intento de retiro no debe ser exitoso', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 404, 409, 422, 500]);",
+              "});",
+              "",
+              "let respuesta = null;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "    console.log('Respuesta JSON:', respuesta);",
+              "} catch (e) {",
+              "    respuesta = pm.response.text();",
+              "    console.log('Respuesta no JSON:', respuesta);",
+              "}",
+              "",
+              "pm.test('La respuesta debe indicar un error o rechazo', function () {",
+              "    pm.expect(pm.response.code).to.be.at.least(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Verificar que el rol no quedó sin permisos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{base_url}}/roles/{{id_rol}}/permisos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta permisos finales:', pm.response.text());",
+              "",
+              "pm.test('Debe consultar correctamente los permisos después del intento de retiro', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "let permisos = [];",
+              "try {",
+              "    permisos = pm.response.json();",
+              "} catch (e) {",
+              "    console.log('La respuesta no es JSON válido');",
+              "}",
+              "",
+              "console.log('Permisos finales:', permisos);",
+              "",
+              "pm.test('La respuesta debe contener una lista de permisos', function () {",
+              "    pm.expect(permisos).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('El rol no debe quedar sin permisos', function () {",
+              "    pm.expect(permisos.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "const idPermisoOriginal = Number(pm.collectionVariables.get('id_permiso'));",
+              "",
+              "pm.test('El último permiso original debe conservarse', function () {",
+              "    const permisoEncontrado = permisos.find(function (permiso) {",
+              "        return Number(permiso.id_permiso) === idPermisoOriginal;",
+              "    });",
+              "",
+              "    pm.expect(permisoEncontrado).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

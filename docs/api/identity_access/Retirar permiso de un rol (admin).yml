@@ -1,0 +1,18 @@
+info:
+  name: " Retirar permiso de un rol (admin)"
+  type: http
+  seq: 25
+
+http:
+  method: delete
+  url: http://localhost:8000/roles/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

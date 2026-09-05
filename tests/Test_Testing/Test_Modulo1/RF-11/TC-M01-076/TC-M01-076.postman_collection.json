@@ -1,0 +1,73 @@
+{
+  "info": {
+    "name": "RF-11 - TC-M01-076 Bloqueo sin permiso ver_usuarios",
+    "description": "Coleccion para TC-M01-076: intentar consultar el listado de usuarios (GET /usuarios/admin) con una cuenta que NO tiene el permiso ver_usuarios/admin_leer_usuario. Se espera HTTP 403 (ACCESO_DENEGADO). Usa la cuenta real de Productor (m2m.nuevo@ejemplo.com), que no deberia tener ese permiso en el entorno TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login con cuenta SIN permiso ver_usuarios",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_sin_permiso', json.token);",
+              "console.log('Login OK, token guardado.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"gestor.granja.test@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - TC-M01-076 - GET /usuarios/admin SIN permiso (debe rechazar, 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-076: HTTP 403 por falta de permiso ver_usuarios', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('TC-M01-076: el codigo de error es ACCESO_DENEGADO', function () {",
+              "    pm.expect(json.error_code).to.eql('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "pm.test('TC-M01-076: el mensaje menciona la falta de permisos', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('permiso') || b.includes('denegad') || b.includes('rol');",
+              "    });",
+              "});",
+              "",
+              "console.log('Resultado obtenido: ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_sin_permiso}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/admin", "host": ["{{base_url}}"], "path": ["usuarios", "admin"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_sin_permiso", "value": "" }
+  ]
+}

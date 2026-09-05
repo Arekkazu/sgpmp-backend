@@ -1,0 +1,52 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-021 Login rechazado en cuenta INACTIVA",
+    "description": "Precondicion: correr el UPDATE que fuerza id_estado_cuenta=3 (Inactivo) para id_cuenta_usuario=54 (jmanuelgomen+tcm017@gmail.com) antes de correr esto. Se espera HTTP 403 al intentar login con credenciales validas mientras la cuenta esta inactiva.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-021 - Login con cuenta INACTIVA (debe rechazar, 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-021: HTTP 403 por cuenta inactiva', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('TC-M01-021: el mensaje menciona inactiva/suspendida/deshabilitada', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('inactiv') || b.includes('suspend') || b.includes('deshabilit') || b.includes('desactiv');",
+              "    });",
+              "});",
+              "",
+              "console.log('Resultado obtenido: ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

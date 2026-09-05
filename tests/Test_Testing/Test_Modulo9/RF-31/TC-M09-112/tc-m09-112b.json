@@ -1,0 +1,60 @@
+{
+  "info": {
+    "name": "TC-M09-216 (retest v2) - Rango fisico real via id_variable_ambiental",
+    "description": "Version corregida de TC-M09-216. Los intentos anteriores (metricas_produccion en tc-m09-112.json, y ambas formas de este archivo) usaban formas de JSON que no correspondian al esquema real de umbrales_ambientales (esquema_plantilla.py: CAMPOS_REQUERIDOS.umbrales_ambientales exige id_variable_ambiental, unidad_medida, valor_min, valor_max -- no 'nombre'/'valor' ni un objeto '_min'/'_max'). Confirmado en modulo9.variables_ambientales que id_variable_ambiental=1 es 'Temperatura del agua' con rango fisico real 0-45 C. Este script envia esa forma correcta con valor_min=-999/valor_max=999 para confirmar si existe validacion de rango fisico. Ejecutar con: newman run tc-m09-112b.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112b.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "if (body.items && body.items.length > 0) { pm.collectionVariables.set('id_especie', body.items[0].id_especie); }"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Retest C - id_variable_ambiental=1 (Temperatura del agua, rango fisico real 0-45 C) con valor_min/valor_max absurdos",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[UMBRALES - FORMA REAL DEL ESQUEMA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-216: un umbral fuera del rango fisico de su variable debe rechazarse con 422', function () { pm.response.to.have.status(422); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    console.log('DEFECTO CONFIRMADO: aceptado y persistido tal cual (id_plantilla=' + b.id_plantilla + '). esquema_plantilla.py (CAMPOS_REQUERIDOS.umbrales_ambientales) solo exige que valor_min/valor_max sean NUMERO (numericamente validos), sin comparar contra valor_fisico_min/valor_fisico_max de modulo9.variables_ambientales.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RangoUmbralReal-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": 1, \"unidad_medida\": \"°C\", \"valor_min\": -999, \"valor_max\": 999 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

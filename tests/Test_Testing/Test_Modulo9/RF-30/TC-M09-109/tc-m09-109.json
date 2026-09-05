@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "TC-M09-G109 (TC-M09-209)",
+    "description": "Auditoria de operaciones de consulta y gestion de plantillas (RF-30, CU-07, OWASP A09). Se ejecutan operaciones exitosas (creacion, consulta, 'modificacion' = nueva version) y operaciones fallidas (creacion con datos invalidos, consulta de una plantilla inexistente), y luego se consulta GET /auditoria/ para verificar que quedo trazabilidad de todas ellas. Como no se conoce de antemano el esquema exacto que usa el backend para nombrar estos eventos en auditoria, el paso final imprime la respuesta completa en consola para poder inspeccionar los campos reales (usuario, fecha, operacion, plantilla) ademas de la asercion minima automatizada. Ejecutar con: newman run tc-m09-109.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-109.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "template_name", "value": "" },
+    { "key": "id_plantilla_creada", "value": "" },
+    { "key": "fecha_desde", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) {",
+        "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('template_name', 'QA-Auditoria-' + Date.now());",
+        "    console.log('id_especie elegido: ' + body.items[0].id_especie + ' | template_name: ' + pm.collectionVariables.get('template_name'));",
+        "}",
+        "// Se captura ANTES de las operaciones para filtrar /auditoria/ por fecha en el paso 6.",
+        "// Sin esto, bajo actividad concurrente del equipo (mismo problema que en TC-M01-107),",
+        "// las entradas de esta corrida pueden quedar fuera de las ultimas 50 de todo el sistema.",
+        "pm.collectionVariables.set('fecha_desde', new Date(Date.now() - 5000).toISOString());"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. TC-M09-209 - Operacion EXITOSA: creacion de plantilla",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR OK] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_creada', body.id_plantilla);",
+        "    console.log('Plantilla creada: id_plantilla=' + body.id_plantilla + ' version=' + body.version);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.3 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-209 - Operacion EXITOSA: consulta de la plantilla creada",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONSULTAR OK] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Consulta responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_creada}}"
+      }
+    },
+    {
+      "name": "3. TC-M09-209 - Operacion EXITOSA: 'modificacion' (nueva version, mismo template_name)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[MODIFICAR OK] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea la nueva version con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.test('La nueva version debe ser 2', function () { pm.expect(body.version).to.eql(2); });",
+        "    console.log('Nueva version creada: id_plantilla=' + body.id_plantilla + ' version=' + body.version);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.6 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "4. TC-M09-209 - Operacion FALLIDA: crear plantilla con id_especie inexistente",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR FALLIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "// RF-30 exige explicitamente 404 para 'Referencia de especie inexistente o inactiva'.",
+        "// Se exige el codigo exacto (no un rango permisivo) para no enmascarar el mismo tipo",
+        "// de defecto de codigo HTTP no estandar que ya se encontro en otros RF de este proyecto.",
+        "pm.test('Debe rechazarse con 404 Not Found por especie inexistente (RF-30)', function () {",
+        "    pm.response.to.have.status(404);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name}}-intento-fallido\",\n  \"id_especie\": 999999,\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.0 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5. TC-M09-209 - Operacion FALLIDA: consultar una plantilla inexistente",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONSULTAR FALLIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Debe responder 404 (plantilla inexistente)', function () { pm.response.to.have.status(404); });"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/999999999"
+      }
+    },
+    {
+      "name": "6. TC-M09-209 - Verificar trazabilidad en GET /auditoria/",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Auditoria responde 200', function () { pm.response.to.have.status(200); });",
+        "console.log('=== RESPUESTA COMPLETA DE /auditoria/ (para inspeccionar el esquema real) ===');",
+        "console.log(pm.response.text());",
+        "var body = pm.response.json();",
+        "var items = Array.isArray(body) ? body : (body.items || body.resultados || body.data || []);",
+        "var tn = pm.collectionVariables.get('template_name');",
+        "var idPlantilla = pm.collectionVariables.get('id_plantilla_creada');",
+        "var reIdPlantillaClave = idPlantilla ? new RegExp('\"id_plantilla\"\\\\s*:\\\\s*' + idPlantilla + '(?!\\\\d)') : null;",
+        "var reCategoriaPlantilla = /\"(categoria|descripcion)\"\\s*:\\s*\"[^\"]*PLANTILLA[^\"]*\"/i;",
+        "var relacionados = items.filter(function (it) {",
+        "    var s = JSON.stringify(it);",
+        "    var matchNombre = s.indexOf(tn) !== -1;",
+        "    var matchIdExacto = reIdPlantillaClave ? reIdPlantillaClave.test(s) : false;",
+        "    var matchCategoria = reCategoriaPlantilla.test(s);",
+        "    return matchNombre || matchIdExacto || matchCategoria;",
+        "});",
+        "console.log('Total de entradas devueltas por /auditoria/: ' + items.length);",
+        "console.log('Entradas relacionadas con la plantilla de esta corrida (nombre exacto \"' + tn + '\", clave id_plantilla=' + idPlantilla + ' exacta, o categoria/descripcion que contenga PLANTILLA): ' + relacionados.length);",
+        "relacionados.forEach(function (r, i) { console.log('  [' + i + '] ' + JSON.stringify(r)); });",
+        "var hayCategoriaPlantillaEnTodo = items.some(function (it) { return reCategoriaPlantilla.test(JSON.stringify(it)); });",
+        "console.log('¿Existe ALGUNA entrada en estas 50 (de cualquier corrida) con categoria/descripcion que mencione PLANTILLA?: ' + hayCategoriaPlantillaEnTodo);",
+        "pm.test('TC-M09-209: existe al menos una entrada de auditoria relacionada con la plantilla de esta corrida', function () {",
+        "    pm.expect(relacionados.length).to.be.above(0);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/auditoria/?pagina=1&tamano=50&fecha_desde={{fecha_desde}}"
+      }
+    }
+  ]
+}
