@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from sqlalchemy.orm import Session
 
+from src.configuration.domain.entities.auditoria_plantilla import AuditoriaPlantilla
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.infrastructure.models.auditoria_plantilla_model import AuditoriaPlantillaModel
 from src.shared.db_error_translator import raise_from_db_error
@@ -17,6 +18,26 @@ class SqlAlchemyAuditoriaPlantillaRepository(AuditoriaPlantillaRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    @staticmethod
+    def _a_entidad(orm: AuditoriaPlantillaModel) -> AuditoriaPlantilla:
+        return AuditoriaPlantilla(
+            id_auditoria_plantilla=orm.id_auditoria_plantilla,
+            id_plantilla=orm.id_plantilla,
+            id_usuario=orm.id_usuario,
+            tipo_operacion=orm.tipo_operacion,
+            valores_anteriores=orm.valores_anteriores,
+            valores_nuevos=orm.valores_nuevos,
+            fecha_gestion=orm.fecha_gestion,
+        )
+
+    def listar_todas(self) -> list[AuditoriaPlantilla]:
+        registros = (
+            self.db.query(AuditoriaPlantillaModel)
+            .order_by(AuditoriaPlantillaModel.fecha_gestion.desc())
+            .all()
+        )
+        return [self._a_entidad(r) for r in registros]
 
     def registrar(
         self,

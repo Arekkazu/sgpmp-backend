@@ -7,6 +7,7 @@
   E) GET  /configuracion/plantillas/historial   — Historial de aplicaciones (RF-30)
   F) GET  /configuracion/plantillas/esquema     — Esquema vigente + changelog (RF-30)
   G) POST /configuracion/plantillas/{id}/versiones — Nueva versión (RF-30, RF-31)
+  H) GET  /configuracion/plantillas/auditoria   — Auditoría de creación/versionado (RF-30, CU-07 Flujo D)
 
   Autorización RBAC: recurso = id_recurso 28
     C=1 (crear), R=2 (leer), E=5 (aplicar)
@@ -40,8 +41,10 @@ from src.configuration.infrastructure.repositories.plantilla_repository import S
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
 from src.configuration.infrastructure.schema.plantilla_schema import (
     AplicacionPlantillaResponse,
+    AuditoriaPlantillaResponse,
     EsquemaPlantillaResponse,
     HistorialAplicacionesResponse,
+    HistorialAuditoriaPlantillasResponse,
     PlantillaResponse,
     PlantillasListResponse,
 )
@@ -72,9 +75,40 @@ def listar_historial(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
     items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial()]
     return HistorialAplicacionesResponse(total=len(items), items=items)
+
+
+@router.get(
+    "/auditoria",
+    response_model=HistorialAuditoriaPlantillasResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+    },
+    summary="Auditoría de creación y versionado de plantillas (Flujo H — RF-30, CU-07)",
+    description=(
+        "Historial completo de creación (`POST /configuracion/plantillas`) y "
+        "versionado (`POST /configuracion/plantillas/{id}/versiones`) de "
+        "plantillas. Antes de este endpoint, esas dos operaciones quedaban "
+        "auditadas en base de datos pero sin forma de consultarlas: "
+        "`/historial` cubre solo las aplicaciones (RF-32)."
+    ),
+)
+def listar_auditoria(
+    db: Session = Depends(get_db),
+) -> HistorialAuditoriaPlantillasResponse:
+    use_case = ConsultarPlantillasUseCase(
+        db=db,
+        plantilla_repo=SqlAlchemyPlantillaRepository(db),
+        aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+    )
+    items = [AuditoriaPlantillaResponse.model_validate(a) for a in use_case.listar_auditoria()]
+    return HistorialAuditoriaPlantillasResponse(total=len(items), items=items)
 
 
 @router.get(
@@ -135,6 +169,7 @@ def listar_plantillas(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
     items = [PlantillaResponse.model_validate(p) for p in use_case.listar_plantillas()]
     return PlantillasListResponse(total=len(items), items=items)
@@ -194,6 +229,7 @@ def detalle_plantilla(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
     from src.shared.errors import NotFoundError
     plantilla = use_case.obtener_plantilla(id_plantilla)
