@@ -5,10 +5,12 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "admin_correo", "value": "danielacastillovargas09@gmail.com" },
-    { "key": "admin_contrasena", "value": "Confirmada#44" },
-    { "key": "objetivo_correo", "value": "daniiella.vargass@gmail.com" },
-    { "key": "objetivo_id", "value": "68" },
+    { "key": "_nota_admin", "value": "danielacastillovargas09@gmail.com devuelve 500 ERROR_INTERNO al loguear (ver INC-M01-23-045). Se usa admin@pecuaria.co mientras tanto; el paso 0 solo necesita CUALQUIER token de Administrador." },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "_nota_objetivo", "value": "daniiella.vargass@gmail.com (id 68) ya no esta en Pendiente -- alguien la activo desde que se diseno este test. Se usa tc020.qa@sgpmp-test.com (id 73), fixture reservada como 'Prueba Cuenta Pendiente'." },
+    { "key": "objetivo_correo", "value": "tc020.qa@sgpmp-test.com" },
+    { "key": "objetivo_id", "value": "73" },
     { "key": "access_token", "value": "" }
   ],
   "item": [
@@ -22,7 +24,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
       }
     },
     {
@@ -36,7 +38,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
       }
     },
     {
@@ -51,7 +53,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
       }
     },
     {
@@ -71,7 +73,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=5"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=5"
       }
     },
     {
@@ -84,7 +86,7 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
       }
     }
   ]
