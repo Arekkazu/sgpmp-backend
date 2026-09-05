@@ -1,8 +1,15 @@
 """rf09 columna token_usado y tabla de intentos anonimos por ip
 
 Revision ID: b7d2a4f8e1c6
-Revises: a1c3f6e0b2d4
+Revises: f19e0ca62445
 Create Date: 2026-09-05 00:00:00.000000
+
+NOTA: encadena sobre f19e0ca62445 (head real de dev al momento de crear esta
+migracion), NO sobre a1c3f6e0b2d4 (migracion de la PR #123, rama distinta).
+Ambas ramas se crearon en paralelo desde el mismo head y son independientes
+entre si (tablas distintas, sin relacion). Si las dos se mergean a dev, va a
+quedar mas de un head y hay que resolverlo con `alembic merge heads` en ese
+momento — no antes, mientras siguen siendo PRs separadas sin mergear.
 
 INC-M01-15-054 (#100) y INC-M01-17-058 (#102) — POST /contrasena/restablecer.
 
@@ -28,7 +35,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'b7d2a4f8e1c6'
-down_revision: Union[str, Sequence[str], None] = 'a1c3f6e0b2d4'
+down_revision: Union[str, Sequence[str], None] = 'f19e0ca62445'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
