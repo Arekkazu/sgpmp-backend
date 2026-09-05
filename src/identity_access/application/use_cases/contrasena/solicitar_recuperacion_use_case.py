@@ -75,7 +75,16 @@ class SolicitarRecuperacionUseCase:
         hace_una_hora = ahora - timedelta(hours=1)
         solicitudes = self.eventos_repo.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
         if solicitudes >= MAX_SOLICITUDES_POR_HORA:
-            proxima_vez = hace_una_hora + timedelta(hours=1)
+            primera_solicitud = (
+                self.eventos_repo.obtener_primera_solicitud_recuperacion_por_ip(
+                    ip,
+                    hace_una_hora,
+                )
+            )
+            # El conteo y el mínimo usan exactamente la misma ventana. El fallback
+            # defensivo evita informar una hora ya vencida si un adaptador externo
+            # entrega datos inconsistentes entre ambas consultas.
+            proxima_vez = (primera_solicitud or ahora) + timedelta(hours=1)
             raise BusinessRuleError(
                 code="LIMITE_SOLICITUDES_EXCEDIDO",
                 message=(

@@ -144,6 +144,19 @@ class EventoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_primera_solicitud_recuperacion_por_ip(
+        self,
+        ip: str,
+        desde: datetime,
+    ) -> Optional[datetime]:
+        """Obtiene en UTC la solicitud tipo 7 más antigua de una IP en la ventana.
+
+        Permite informar cuándo vence realmente el rate limit: una hora después
+        de la primera solicitud que todavía se está contabilizando.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
         """Cuenta las consultas de detalle (tipo 18) exitosas de un actor desde ``desde``.
 
