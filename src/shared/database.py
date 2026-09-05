@@ -34,7 +34,18 @@ if not DATABASE_URL:
 # conexión muerta antes de entregarla, y `pool_recycle` la renueva antes de que
 # el proxy o el servidor la corten por inactividad. Esta es la reconexión
 # automática — no hace falta un bucle de reintentos propio a nivel de engine.
-engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=1800)
+#
+# `use_insertmanyvalues=False` (INC descubierto en #128/#129): el modo
+# "insertmanyvalues" de SQLAlchemy 2.0 agrupa varios INSERT del mismo modelo en
+# una sola sentencia y castea cada parámetro a `::VARCHAR` explícito. Cualquier
+# columna ORM `String` que mapea a un ENUM nativo de Postgres (patrón que este
+# proyecto usa a propósito, ver CLAUDE.md) rompe con `DatatypeMismatch` en
+# cuanto se insertan 2+ filas del mismo modelo en el mismo flush — con una sola
+# fila no falla, por eso pasó desapercibido. Desactivarlo vuelve al INSERT
+# fila-por-fila (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
+engine = create_engine(
+    DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Mismo idiom que src/shared/email.py, pero con pausa corta: el frontend aborta

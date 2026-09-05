@@ -64,7 +64,10 @@ def integration_engine() -> Generator[Engine, None, None]:
         pytest.skip("Define TEST_DATABASE_URL para ejecutar las pruebas de integración.")
 
     _validar_url_pruebas(url)
-    engine = create_engine(url, pool_pre_ping=True)
+    # use_insertmanyvalues=False: igual que src/shared/database.py — evita el
+    # DatatypeMismatch de SQLAlchemy 2.0 al insertar 2+ filas del mismo modelo
+    # con una columna String que mapea a un ENUM nativo de Postgres (#128/#129).
+    engine = create_engine(url, pool_pre_ping=True, use_insertmanyvalues=False)
     try:
         with engine.connect() as connection:
             nombre_real = connection.execute(text("select current_database()")).scalar_one()
