@@ -68,12 +68,14 @@ def cambiar_contrasena(
 )
 def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
+    notificaciones_repo = SqlAlchemyNotificacionRepository(db)
     use_case = SolicitarRecuperacionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionService(port=notificaciones_repo, db=db),
+        notificaciones_repo=notificaciones_repo,
     )
     message = use_case.execute(dto, ip)
     return {"message": message}
