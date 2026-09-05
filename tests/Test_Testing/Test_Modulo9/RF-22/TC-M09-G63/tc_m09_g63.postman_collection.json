@@ -1,0 +1,408 @@
+{
+  "info": {
+    "name": "TC-M09-G63 - Validacion del campo punto de instalacion al asociar un sensor",
+    "description": "TC-M09-G63 (RF-22, CU-05 Gestionar Dispositivos IoT) agrupa 2 escenarios de validacion sobre el campo 'punto_instalacion' de POST /configuracion/sensores/{id_sensor}/asociar, equivalentes a TC-M09-125 y TC-M09-126:\n\n1. punto_instalacion vacio -> debe rechazarse (obligatorio).\n2. punto_instalacion que excede el limite -> debe rechazarse; incluye el control positivo con el valor exactamente en el limite de 100 caracteres.\n\nContrato real verificado en el codigo (AsociarSensorAreaDTO.validar_punto, src/configuration/infrastructure/dto/asociar_sensor_area_dto.py): ambas reglas son validaciones de Pydantic a nivel de DTO, que src/shared/error_handlers.py::request_validation_error_handler traduce a HTTP 400 (no 422) con error_code VAL_ENTRADA y el detalle en 'fields' - mismo patron ya visto en TC-M09-G56 (validaciones de dispositivo IoT). Al ser validaciones de DTO, el rechazo ocurre ANTES de que el endpoint evalue reglas de negocio (sensor/area/asociacion activa), asi que un mismo sensor puede reutilizarse en los 3 intentos de esta coleccion sin que el estado de asociaciones previas interfiera.\n\nLa coleccion es autocontenida: registra su propio dispositivo IoT y un sensor sobre el, y reutiliza un area productiva activa ya existente en TEST (finca_id=1).\n\nResponsable: Juan Pablo. Prioridad: Media. Tipo: Pruebas de validacion - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: validacion de un mismo campo de texto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    const runId = Date.now().toString();",
+              "    pm.collectionVariables.set('run_id', runId);",
+              "    pm.collectionVariables.set('punto_100', 'x'.repeat(100));",
+              "    pm.collectionVariables.set('punto_101', 'x'.repeat(101));",
+              "    console.log('Token de autenticacion almacenado correctamente. run_id=' + runId);",
+              "    console.log('punto_100 longitud: ' + pm.collectionVariables.get('punto_100').length);",
+              "    console.log('punto_101 longitud: ' + pm.collectionVariables.get('punto_101').length);",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa', respuesta.items[0].id_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar un dispositivo IoT de prueba",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo IoT responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_iot', respuesta.id_dispositivo_iot);",
+              "    console.log('id_dispositivo_iot: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G63-{{run_id}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G63\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar el sensor de prueba sobre ese dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del sensor responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor', respuesta.id_sensores);",
+              "    console.log('id_sensor: ' + respuesta.id_sensores);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor TC-M09-G63 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_iot}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo_iot}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-125) - Rechazar asociacion con punto_instalacion vacio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 1: punto_instalacion vacio ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 1: la asociacion con punto_instalacion vacio responde HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 1: el error indica VAL_ENTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    const errorPunto = (respuesta.fields || []).find(function (f) { return f.field === 'punto_instalacion'; });",
+              "    pm.test('Escenario 1: el error de validacion senala el campo punto_instalacion como obligatorio', function () {",
+              "        pm.expect(errorPunto, 'fields recibidos: ' + JSON.stringify(respuesta.fields)).to.not.equal(undefined);",
+              "        pm.expect(errorPunto.message.toLowerCase()).to.include('obligatorio');",
+              "    });",
+              "    console.log('CONCLUSION escenario 1: ' + (errorPunto ? errorPunto.message : 'sin detalle'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_iot}},\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"punto_instalacion\": \"\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2a (control positivo) - punto_instalacion en el limite de 100 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2a (control positivo): punto_instalacion de exactamente 100 caracteres ---');",
+              "console.log('longitud enviada: ' + pm.collectionVariables.get('punto_100').length);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2a: un punto_instalacion de exactamente 100 caracteres SI se acepta (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta) {",
+              "    pm.test('Escenario 2a: el punto_instalacion se guarda completo, sin truncar', function () {",
+              "        pm.expect(respuesta.punto_instalacion.length).to.equal(100);",
+              "    });",
+              "    console.log('CONCLUSION escenario 2a: punto_instalacion de 100 caracteres aceptado (id_sensores_area_asociada=' + respuesta.id_sensores_area_asociada + ').');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_iot}},\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"punto_instalacion\": \"{{punto_100}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2b (TC-M09-126) - Rechazar punto_instalacion de 101 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2b: punto_instalacion de 101 caracteres (excede el limite) ---');",
+              "console.log('longitud enviada: ' + pm.collectionVariables.get('punto_101').length);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2b: un punto_instalacion de 101 caracteres responde HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 2b: el error indica VAL_ENTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    const errorPunto = (respuesta.fields || []).find(function (f) { return f.field === 'punto_instalacion'; });",
+              "    pm.test('Escenario 2b: el error de validacion senala el campo punto_instalacion y su limite de 100 caracteres', function () {",
+              "        pm.expect(errorPunto, 'fields recibidos: ' + JSON.stringify(respuesta.fields)).to.not.equal(undefined);",
+              "        pm.expect(errorPunto.message).to.include('100');",
+              "    });",
+              "    console.log('CONCLUSION escenario 2b: ' + (errorPunto ? errorPunto.message : 'sin detalle'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_iot}},\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"punto_instalacion\": \"{{punto_101}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "punto_100", "value": "" },
+    { "key": "punto_101", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_iot", "value": "" },
+    { "key": "id_sensor", "value": "" }
+  ]
+}
