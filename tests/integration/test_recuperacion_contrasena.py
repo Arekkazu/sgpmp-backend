@@ -75,7 +75,7 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
     resultado = db_session.execute(
         text(
             """
-            SELECT u.contrasena_cifrada, c.token_activacion_actual, c.token_usado
+            SELECT u.contrasena_cifrada, c.token_activacion_actual, c.es_token_usado AS token_usado
             FROM modulo1.usuarios u
             JOIN modulo1.cuentas_usuarios c USING (id_usuario)
             WHERE u.id_usuario = :usuario
@@ -283,7 +283,7 @@ def _insertar_intento_anonimo(db_session, tipo: str, ip: str, hace: timedelta) -
     tiempo real de ejecución del test."""
     db_session.execute(
         text(
-            "INSERT INTO modulo1.intentos_anonimos_ip (tipo, ip, fecha) VALUES (:tipo, :ip, now() - :hace)"
+            "INSERT INTO modulo1.intentos_anonimos_ip (tipo, ip, fecha_intento) VALUES (:tipo, :ip, now() - :hace)"
         ),
         {"tipo": tipo, "ip": ip, "hace": hace},
     )

@@ -27,11 +27,11 @@ class SqlAlchemyIntentoAnonimoRepository(IntentoAnonimoRepository):
 
     def contar_por_ip(self, tipo: str, ip: str, desde: datetime) -> int:
         return (
-            self.db.query(func.count(IntentosAnonimosIp.id_intento))
+            self.db.query(func.count(IntentosAnonimosIp.id_intento_anonimo_ip))
             .filter(
                 IntentosAnonimosIp.tipo == tipo,
                 IntentosAnonimosIp.ip == ip,
-                IntentosAnonimosIp.fecha >= desde,
+                IntentosAnonimosIp.fecha_intento >= desde,
             )
             .scalar()
         )
@@ -40,11 +40,11 @@ class SqlAlchemyIntentoAnonimoRepository(IntentoAnonimoRepository):
         self, tipo: str, ip: str, desde: datetime
     ) -> Optional[datetime]:
         return (
-            self.db.query(func.min(IntentosAnonimosIp.fecha))
+            self.db.query(func.min(IntentosAnonimosIp.fecha_intento))
             .filter(
                 IntentosAnonimosIp.tipo == tipo,
                 IntentosAnonimosIp.ip == ip,
-                IntentosAnonimosIp.fecha >= desde,
+                IntentosAnonimosIp.fecha_intento >= desde,
             )
             .scalar()
         )
