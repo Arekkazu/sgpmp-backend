@@ -42,6 +42,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
             bloqueado_hasta=orm.bloqueado_hasta,
             ultimo_intento_fallido=orm.ultimo_intento_fallido,
             token_activacion_actual=orm.token_activacion_actual,
+            token_usado=orm.token_usado,
             fecha_cambio_estado=orm.fecha_cambio_estado,
             motivo_ultimo_cambio=orm.motivo_ultimo_cambio,
         )
@@ -57,6 +58,7 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         orm.bloqueado_hasta = cuenta.bloqueado_hasta
         orm.ultimo_intento_fallido = cuenta.ultimo_intento_fallido
         orm.token_activacion_actual = cuenta.token_activacion_actual
+        orm.token_usado = cuenta.token_usado
         orm.fecha_cambio_estado = cuenta.fecha_cambio_estado
         orm.motivo_ultimo_cambio = cuenta.motivo_ultimo_cambio
 

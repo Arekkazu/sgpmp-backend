@@ -72,7 +72,7 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
     resultado = db_session.execute(
         text(
             """
-            SELECT u.contrasena_cifrada, c.token_activacion_actual
+            SELECT u.contrasena_cifrada, c.token_activacion_actual, c.token_usado
             FROM modulo1.usuarios u
             JOIN modulo1.cuentas_usuarios c USING (id_usuario)
             WHERE u.id_usuario = :usuario
@@ -80,7 +80,11 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
         ),
         {"usuario": usuario["id_usuario"]},
     ).mappings().one()
-    assert resultado["token_activacion_actual"] is None
+    # El hash se conserva (no se limpia) tras un uso exitoso: es lo que permite
+    # distinguir "token ya utilizado" (409) de "token nunca existió" (401) en
+    # un reintento — ver INC-M01-15-054 (#100).
+    assert resultado["token_activacion_actual"] == calcular_hash_token(token_crudo)
+    assert resultado["token_usado"] is True
     assert bcrypt.checkpw(
         nueva.encode("utf-8"),
         resultado["contrasena_cifrada"].encode("utf-8"),
@@ -202,3 +206,69 @@ def test_reenvio_de_activacion_guarda_hash_y_envia_token_crudo(
     assert token_guardado == calcular_hash_token(token_crudo)
     assert token_guardado != token_crudo
     assert correos and token_crudo in correos[0]["html_body"]
+
+
+def test_restablecer_con_token_ya_usado_responde_409(
+    client,
+    db_session: Session,
+    crear_usuario_db,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """INC-M01-15-054 (#100): reutilizar un token que YA se consumió con éxito
+    debe responder 409 (no 401, que es para tokens que nunca existieron)."""
+    from src.identity_access.application.use_cases.contrasena import (
+        solicitar_recuperacion_use_case,
+    )
+    from src.shared import notificacion_service
+
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    token_crudo = "token-reutilizado-tc054"
+    monkeypatch.setattr(
+        solicitar_recuperacion_use_case.secrets, "token_urlsafe", lambda _bytes: token_crudo
+    )
+    monkeypatch.setattr(solicitar_recuperacion_use_case, "send_email", lambda **_k: None)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_k: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_k: True)
+
+    solicitar = client.post(
+        "/contrasena/recuperar", json={"correo_electronico": usuario["correo"]}
+    )
+    assert solicitar.status_code == 202, solicitar.text
+
+    cuerpo_restablecer = {
+        "token": token_crudo,
+        "nueva_contrasena": "PrimerUso1!",
+        "confirmar_contrasena": "PrimerUso1!",
+    }
+    primer_uso = client.post("/contrasena/restablecer", json=cuerpo_restablecer)
+    assert primer_uso.status_code == 200, primer_uso.text
+
+    segundo_uso = client.post(
+        "/contrasena/restablecer",
+        json={**cuerpo_restablecer, "nueva_contrasena": "SegundoUso1!", "confirmar_contrasena": "SegundoUso1!"},
+    )
+
+    assert segundo_uso.status_code == 409, segundo_uso.text
+    assert segundo_uso.json()["error_code"] == "TOKEN_YA_UTILIZADO"
+
+
+def test_restablecer_con_tokens_invalidos_repetidos_bloquea_por_ip(client) -> None:
+    """INC-M01-17-058 (#102): 5 intentos consecutivos con token inválido desde
+    la misma IP deben bloquear con 423 (antes: intentos ilimitados)."""
+    cuerpo = {
+        "nueva_contrasena": "Valida#123",
+        "confirmar_contrasena": "Valida#123",
+    }
+    for numero in range(1, 5):
+        respuesta = client.post(
+            "/contrasena/restablecer",
+            json={**cuerpo, "token": f"token-invalido-tc058-{numero}"},
+        )
+        assert respuesta.status_code == 401, f"intento {numero}: {respuesta.text}"
+
+    quinto = client.post(
+        "/contrasena/restablecer",
+        json={**cuerpo, "token": "token-invalido-tc058-5"},
+    )
+    assert quinto.status_code == 423, quinto.text
+    assert quinto.json()["error_code"] == "RESTABLECIMIENTO_BLOQUEADO"
