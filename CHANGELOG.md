@@ -1,3 +1,9 @@
+## [1.0.0-rc.11](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.10...v1.0.0-rc.11) (2026-09-05)
+
+### Bug Fixes
+
+* **rf15:** eliminar trigger de auditoria de especies huerfano que rompia POST/PATCH ([0ff9711](https://github.com/Arekkazu/sgpmp-backend/commit/0ff971111060b0f11eb2ba8c2073cfec5b3321fa)), closes [#111](https://github.com/Arekkazu/sgpmp-backend/issues/111)
+
 ## [1.0.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.9...v1.0.0-rc.10) (2026-09-05)
 
 ### Bug Fixes
