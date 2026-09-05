@@ -6,7 +6,7 @@ import pytest
 from src.identity_access.application.use_cases.contrasena.cambiar_contrasena_use_case import CambiarContrasenaUseCase
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.contrasena_dto import CambiarContrasenaDTO
-from src.shared.errors import InfrastructureError
+from src.shared.errors import ConflictError, InfrastructureError
 
 MENSAJE = (
     "Contraseña actualizada, pero ocurrió un error al cerrar las sesiones "
@@ -20,7 +20,9 @@ def escenario():
     deps = [MagicMock() for _ in range(6)]
     usuarios, cuentas, sesiones, eventos, db, notificacion = deps
     cuentas.obtener_por_usuario.return_value.bloqueado_hasta = None
-    usuarios.obtener_por_id.return_value.contrasena.verificar.return_value = True
+    usuarios.obtener_por_id.return_value.contrasena.verificar.side_effect = (
+        lambda texto: texto == "Actual123!"
+    )
     uc = CambiarContrasenaUseCase(*deps)
     dto = CambiarContrasenaDTO(contrasena_actual="Actual123!", nueva_contrasena="Nueva123!", confirmar_nueva_contrasena="Nueva123!")
     actor = UsuarioActual(id_usuario=74, id_token=1, id_rol=2)
@@ -71,3 +73,47 @@ def test_exito_confirma_ambas_transacciones_antes_de_notificar(escenario):
 
 def assert_dos_commits(db):
     assert db.commit.call_count == 2
+
+
+def test_reutilizacion_se_rechaza_antes_de_cifrar_y_persistir(escenario):
+    uc, _, actor, (usuarios, _, sesiones, eventos, db, notificacion) = escenario
+    dto = CambiarContrasenaDTO(
+        contrasena_actual="Actual123!",
+        nueva_contrasena="Actual123!",
+        confirmar_nueva_contrasena="Actual123!",
+    )
+    with patch(
+        "src.identity_access.application.use_cases.contrasena.cambiar_contrasena_use_case.Contrasena.cifrar"
+    ) as cifrar, pytest.raises(ConflictError) as error:
+        uc.execute(74, dto, actor)
+    assert error.value.status_code == 409
+    assert error.value.code == "CONTRASENA_REUTILIZADA"
+    cifrar.assert_not_called()
+    usuarios.cambiar_contrasena.assert_not_called()
+    sesiones.invalidar_todas_sesiones.assert_not_called()
+    eventos.registrar.assert_not_called()
+    db.commit.assert_not_called()
+    db.rollback.assert_not_called()
+    notificacion.notificar.assert_not_called()
+
+
+def test_fallo_de_cifrado_es_controlado_y_no_persiste(escenario):
+    uc, dto, actor, (usuarios, _, sesiones, eventos, db, notificacion) = escenario
+    causa = RuntimeError("detalle criptográfico privado")
+    with patch(
+        "src.identity_access.application.use_cases.contrasena.cambiar_contrasena_use_case.Contrasena.cifrar",
+        side_effect=causa,
+    ), pytest.raises(InfrastructureError) as error:
+        uc.execute(74, dto, actor)
+    assert error.value.status_code == 500
+    assert error.value.code == "ERROR_CIFRADO_CONTRASENA"
+    assert error.value.message == (
+        "Error interno de seguridad al cifrar la nueva credencial. "
+        "La contraseña anterior sigue vigente."
+    )
+    assert error.value.original_error is causa
+    db.rollback.assert_called_once()
+    usuarios.cambiar_contrasena.assert_not_called()
+    sesiones.invalidar_todas_sesiones.assert_not_called()
+    eventos.registrar.assert_not_called()
+    notificacion.notificar.assert_not_called()

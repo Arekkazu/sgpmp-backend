@@ -15,7 +15,7 @@ from src.identity_access.domain.repositories.usuario_repository import UsuarioRe
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.contrasena_dto import CambiarContrasenaDTO
-from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, InfrastructureError, LockedError
+from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, ConflictError, InfrastructureError, LockedError
 
 logger = logging.getLogger(__name__)
 
@@ -157,8 +157,31 @@ class CambiarContrasenaUseCase:
                 ),
             )
 
-        # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
-        usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
+        # 5. Comparar contra el hash actual antes de generar uno nuevo. Dos hashes
+        # bcrypt de la misma clave son distintos por el salt y no pueden compararse.
+        if usuario.contrasena.verificar(dto.nueva_contrasena):
+            raise ConflictError(
+                code="CONTRASENA_REUTILIZADA",
+                message=(
+                    "No se permite reutilizar la contraseña actual. "
+                    "Defina una clave completamente nueva."
+                ),
+            )
+
+        # 6. Aplicar nueva contraseña.
+        try:
+            nueva_contrasena = Contrasena.cifrar(dto.nueva_contrasena)
+        except Exception as exc:
+            self.db.rollback()
+            raise InfrastructureError(
+                code="ERROR_CIFRADO_CONTRASENA",
+                message=(
+                    "Error interno de seguridad al cifrar la nueva credencial. "
+                    "La contraseña anterior sigue vigente."
+                ),
+                original_error=exc,
+            ) from exc
+        usuario.cambiar_contrasena(nueva_contrasena)
 
         try:
             self.usuarios_repo.cambiar_contrasena(usuario)

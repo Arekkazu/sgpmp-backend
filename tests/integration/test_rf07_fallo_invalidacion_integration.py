@@ -95,10 +95,7 @@ def test_rf09_conserva_rollback_de_contrasena_y_token(client, db_session, crear_
 
 @pytest.mark.parametrize("caso,status", [
     ("actual_incorrecta", 401),
-    pytest.param("reuso", 409, marks=pytest.mark.xfail(
-        strict=True, raises=AssertionError,
-        reason="Brecha previa reproducida en dev 9a57da7: el trigger compara hashes bcrypt con salt distinto; ver anotación INC-M01-08-38",
-    )),
+    ("reuso", 409),
     ("confirmacion", 400), ("politica", 400), ("otro_usuario", 403),
 ])
 def test_validaciones_no_modifican_la_contrasena(client, db_session, crear_usuario_db, crear_auth_headers, monkeypatch, caso, status):
@@ -121,3 +118,131 @@ def test_validaciones_no_modifican_la_contrasena(client, db_session, crear_usuar
     assert response.status_code == status, response.text
     hash_actual = db_session.execute(text("SELECT contrasena_cifrada FROM modulo1.usuarios WHERE id_usuario=:id"), {"id": usuario["id_usuario"]}).scalar_one()
     assert bcrypt.checkpw(b"Inicial1!", hash_actual.encode())
+
+
+def test_rf09_rechaza_reutilizacion_sin_consumir_token(client, db_session, crear_usuario_db):
+    from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
+
+    usuario = crear_usuario_db()
+    token = "token-rf09-reuso"
+    token_hash = calcular_hash_token(token)
+    db_session.execute(text(
+        "UPDATE modulo1.cuentas_usuarios SET token_activacion_actual=:token, "
+        "fecha_cambio_estado=now() WHERE id_usuario=:id"
+    ), {"token": token_hash, "id": usuario["id_usuario"]})
+    db_session.flush()
+
+    response = client.post("/contrasena/restablecer", json={
+        "token": token,
+        "nueva_contrasena": "Inicial1!",
+        "confirmar_contrasena": "Inicial1!",
+    })
+    assert response.status_code == 409, response.text
+    assert response.json()["error_code"] == "CONTRASENA_REUTILIZADA"
+    assert response.json()["message"] == "La nueva contraseña no puede ser igual a la anterior."
+
+    fila = db_session.execute(text(
+        "SELECT contrasena_cifrada, token_activacion_actual "
+        "FROM modulo1.usuarios JOIN modulo1.cuentas_usuarios USING (id_usuario) "
+        "WHERE id_usuario=:id"
+    ), {"id": usuario["id_usuario"]}).one()
+    assert bcrypt.checkpw(b"Inicial1!", fila.contrasena_cifrada.encode())
+    assert fila.token_activacion_actual == token_hash
+
+
+def test_cinco_fallos_bloquean_el_cambio_por_treinta_minutos(
+    client, db_session, crear_usuario_db, crear_auth_headers
+):
+    usuario = crear_usuario_db()
+    headers = crear_auth_headers(usuario)
+    dto = {
+        "contrasena_actual": "Incorrecta1!",
+        "nueva_contrasena": "Nueva5678#",
+        "confirmar_nueva_contrasena": "Nueva5678#",
+    }
+
+    for intento in range(1, 5):
+        response = client.put(
+            f"/contrasena/usuarios/{usuario['id_usuario']}",
+            headers=headers,
+            json=dto,
+        )
+        assert response.status_code == 401, response.text
+        assert f"Intento {intento} de 5" in response.json()["message"]
+
+    quinto = client.put(
+        f"/contrasena/usuarios/{usuario['id_usuario']}",
+        headers=headers,
+        json=dto,
+    )
+    assert quinto.status_code == 423, quinto.text
+    assert quinto.json()["error_code"] == "CAMBIO_CONTRASENA_BLOQUEADO"
+
+    fila = db_session.execute(text(
+        "SELECT intentos_fallidos, bloqueado_hasta, contrasena_cifrada "
+        "FROM modulo1.cuentas_usuarios JOIN modulo1.usuarios USING (id_usuario) "
+        "WHERE id_usuario=:id"
+    ), {"id": usuario["id_usuario"]}).one()
+    assert fila.intentos_fallidos == 5
+    assert fila.bloqueado_hasta is not None
+    assert bcrypt.checkpw(b"Inicial1!", fila.contrasena_cifrada.encode())
+    assert db_session.execute(text(
+        "SELECT count(*) FROM modulo1.eventos WHERE id_usuario=:id "
+        "AND tipo_evento=6 AND resultado::text='fallido'"
+    ), {"id": usuario["id_usuario"]}).scalar_one() == 5
+
+    dto["contrasena_actual"] = "Inicial1!"
+    aun_bloqueado = client.put(
+        f"/contrasena/usuarios/{usuario['id_usuario']}",
+        headers=headers,
+        json=dto,
+    )
+    assert aun_bloqueado.status_code == 423, aun_bloqueado.text
+
+
+def test_fallo_cifrado_responde_500_y_conserva_estado(
+    client, db_session, crear_usuario_db, crear_auth_headers, monkeypatch
+):
+    from src.identity_access.application.use_cases.contrasena import cambiar_contrasena_use_case
+
+    usuario = crear_usuario_db()
+    headers = crear_auth_headers(usuario)
+    notificaciones = []
+    monkeypatch.setattr(
+        NotificacionService,
+        "notificar",
+        lambda *args, **kwargs: notificaciones.append(kwargs),
+    )
+
+    def fallar_cifrado(_texto):
+        raise RuntimeError("detalle criptográfico privado")
+
+    monkeypatch.setattr(
+        cambiar_contrasena_use_case.Contrasena,
+        "cifrar",
+        staticmethod(fallar_cifrado),
+    )
+    response = client.put(
+        f"/contrasena/usuarios/{usuario['id_usuario']}",
+        headers=headers,
+        json={
+            "contrasena_actual": "Inicial1!",
+            "nueva_contrasena": "Nueva5678#",
+            "confirmar_nueva_contrasena": "Nueva5678#",
+        },
+    )
+    assert response.status_code == 500, response.text
+    assert response.json()["error_code"] == "ERROR_CIFRADO_CONTRASENA"
+    assert response.json()["message"] == (
+        "Error interno de seguridad al cifrar la nueva credencial. "
+        "La contraseña anterior sigue vigente."
+    )
+
+    fila = db_session.execute(text(
+        "SELECT contrasena_cifrada FROM modulo1.usuarios WHERE id_usuario=:id"
+    ), {"id": usuario["id_usuario"]}).scalar_one()
+    assert bcrypt.checkpw(b"Inicial1!", fila.encode())
+    assert db_session.execute(text(
+        "SELECT count(*) FROM modulo1.eventos WHERE id_usuario=:id AND tipo_evento=6"
+    ), {"id": usuario["id_usuario"]}).scalar_one() == 0
+    assert notificaciones == []

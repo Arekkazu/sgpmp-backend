@@ -195,14 +195,17 @@ Ninguno detectado para la aplicación inmediata de roles y permisos.
 
 - Requiere contraseña actual + nueva + confirmación, y valida que las tres condiciones se cumplan.
 - Solo el propio usuario puede cambiar su contraseña (no se puede cambiar la de un tercero por esta vía).
-- **No se puede reutilizar la contraseña actual** (validado por un trigger de base de datos).
+- **No se puede reutilizar la contraseña actual**: el caso de uso compara el
+  texto transitorio mediante bcrypt contra el hash vigente antes de generar el
+  nuevo hash, tanto en RF-07 como en RF-09.
 - Invalida todas las sesiones activas tras el cambio, obligando a re-loguearse en todos los dispositivos.
 - Bloqueo tras 5 intentos fallidos, por 30 minutos, con respuesta `423 Locked`.
 - Auditoría del evento y notificación al usuario tras el cambio.
 
 ### Qué NO cumple / gaps
 
-Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en un trigger de base de datos, no en código Python — funciona, pero su alcance exacto (cuántas contraseñas históricas compara) no es visible solo leyendo el repositorio de código.
+No mantiene historial de contraseñas: la restricción definida por RF-07/RF-09
+cubre la contraseña actual o inmediatamente anterior, no claves más antiguas.
 
 ---
 
@@ -233,7 +236,8 @@ Ninguno de fondo. Único matiz: la regla de "no reutilizar contraseña" vive en 
 - Valida correctamente que el token exista, no haya expirado (ventana de 15 minutos) y no se haya usado antes.
 - **Uso único garantizado**: una vez usado el token, queda invalidado y no puede reutilizarse.
 - Invalida todas las sesiones activas del usuario tras restablecer la contraseña.
-- No permite establecer la misma contraseña anterior (mismo trigger de base de datos que RF-07).
+- No permite establecer la misma contraseña anterior mediante la misma
+  comparación bcrypt usada por RF-07, antes de consumir el token.
 - Auditoría del evento.
 
 ### Qué NO cumple / gaps

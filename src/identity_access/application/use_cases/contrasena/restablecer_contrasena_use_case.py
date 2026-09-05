@@ -15,7 +15,7 @@ from src.identity_access.domain.repositories.usuario_repository import UsuarioRe
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import RestablecerContrasenaDTO
-from src.shared.errors import AuthenticationError, GoneError, LockedError
+from src.shared.errors import AuthenticationError, ConflictError, GoneError, LockedError
 
 MINUTOS_EXPIRACION_TOKEN = 15
 TIPO_RESTABLECIMIENTO = 8
@@ -108,13 +108,20 @@ class RestablecerContrasenaUseCase:
         # 4. Obtener usuario asociado
         usuario = self.usuarios_repo.obtener_por_id(cuenta.id_usuario)
 
-        # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
+        # 5. Comparar el texto transitorio con el hash actual antes de cifrar.
+        if usuario.contrasena.verificar(dto.nueva_contrasena):
+            raise ConflictError(
+                code="CONTRASENA_REUTILIZADA",
+                message="La nueva contraseña no puede ser igual a la anterior.",
+            )
+
+        # 6. Aplicar nueva contraseña.
         usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
 
         try:
             self.usuarios_repo.cambiar_contrasena(usuario)
 
-            # 6. Consumir token de recuperación, resetear intentos e invalidar sesiones
+            # 7. Consumir token de recuperación, resetear intentos e invalidar sesiones
             cuenta.limpiar_token()
             cuenta.resetear_cambio_contrasena()
             self.cuentas_repo.guardar(cuenta)

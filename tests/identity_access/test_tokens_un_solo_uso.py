@@ -98,6 +98,7 @@ class UsuarioFake:
 
     def __init__(self) -> None:
         self.nueva_contrasena = None
+        self.contrasena = SimpleNamespace(verificar=lambda _texto: False)
 
     def cambiar_contrasena(self, contrasena) -> None:
         self.nueva_contrasena = contrasena
