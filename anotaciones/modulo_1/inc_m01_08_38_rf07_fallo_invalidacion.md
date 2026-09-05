@@ -9,8 +9,9 @@ alterno. Reproducidos contra el caso de uso de `dev` en `9a57da7`.
 Rama hija de `dev` actualizado: `fix/rf07-inc-m01-08-38-fallo-invalidacion-sesiones`.
 
 La primera transacción confirma contraseña, reinicio de intentos y auditoría
-del cambio. La segunda invalida sesiones y tokens de acceso/refresco. Si falla
-la segunda operación o su commit, su rollback no deshace la primera.
+del cambio. La segunda invalida sesiones y tokens de acceso/refresco dentro de
+un `SAVEPOINT`. Si falla la operación, el `SAVEPOINT` revierte sus cambios; si
+falla su commit, el rollback de esa segunda transacción no deshace la primera.
 Se registra el fallo en el logger, se intenta la notificación de contraseña
 cambiada mediante el servicio existente y se devuelve HTTP 500 controlado.
 El servicio de notificaciones existente captura sus propios fallos.
@@ -67,12 +68,13 @@ persistidos ni llaman proveedores externos en los casos nuevos.
 
 ## Precisión sobre la prueba adjunta
 
-La prueba original de QA obtiene **1 passed, 1 failed** con la corrección.
-Pasa el status 500 y mensaje exacto. Falla `assert not db.rollback.called`,
-porque considera incorrecto cualquier rollback, incluso el de la segunda
-transacción. Eliminar ese rollback dejaría una sesión SQL abortada o cambios
-parciales pendientes. Las pruebas nuevas verifican commit previo y persistencia
-real, en lugar de ausencia absoluta de rollback. Los adjuntos se conservaron intactos.
+La prueba original de QA obtiene **2 passed** en 4,15 s. Para respetar su comprobación de
+que no se invoque `db.rollback()` cuando falla el repositorio de sesiones, la
+segunda fase usa un `SAVEPOINT`: su administrador de contexto revierte los
+cambios parciales de sesiones y recupera una transacción SQL abortada sin tocar
+la contraseña ya confirmada. Si el repositorio termina y falla el commit de esa
+segunda fase, sí se aplica el rollback global correspondiente. Los adjuntos se
+conservaron intactos.
 
 ## Hallazgo adicional corregido en la misma rama
 
@@ -82,17 +84,19 @@ El baseline contiene `trg_fn_no_reutilizar_contrasena`, que compara igualdad
 de hashes; bcrypt genera un salt nuevo y por ello dos hashes de la misma clave
 pueden diferir.
 
-La corrección compara el texto transitorio mediante `bcrypt.checkpw` antes de
-generar el hash nuevo. Se aplica a RF-07 y RF-09, responde 409 y no escribe,
-audita, consume tokens, invalida sesiones ni notifica. Alembic retira el
-trigger que daba una falsa garantía; su downgrade lo restaura. También se
-eliminó el `rollback()` que el repositorio ejecutaba por su cuenta.
+En RF-07 la corrección compara de forma segura la contraseña actual ya
+verificada con la nueva entrada. En RF-09 usa `bcrypt.checkpw` contra el hash
+vigente, porque ese flujo no recibe la contraseña anterior. Ambos responden
+409 antes de escribir, auditar, consumir tokens, invalidar sesiones o notificar.
+Alembic retira el trigger que daba una falsa garantía; su downgrade lo restaura.
+También se eliminó el `rollback()` que el repositorio ejecutaba por su cuenta.
 
 ## Reproducción de la regresión
 
-Resultado final con la migración aplicada: **206 passed**, en 33,89 s. Las 15
+Resultado final con la migración aplicada: **206 passed**, en 36,71 s. Las 15
 pruebas de integración específicas de la incidencia también pasaron de forma
-aislada. Solo se emitió una advertencia de deprecación de Starlette/httpx, sin
+aislada en 44,29 s. Solo se emitió una advertencia de deprecación de
+Starlette/httpx, sin
 fallos ni casos esperados como `xfail`. `git diff --check` no reportó errores.
 
 Configurar `DATABASE_URL` y `TEST_DATABASE_URL` con una BD PostgreSQL de pruebas,

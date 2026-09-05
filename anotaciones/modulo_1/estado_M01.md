@@ -195,9 +195,9 @@ Ninguno detectado para la aplicación inmediata de roles y permisos.
 
 - Requiere contraseña actual + nueva + confirmación, y valida que las tres condiciones se cumplan.
 - Solo el propio usuario puede cambiar su contraseña (no se puede cambiar la de un tercero por esta vía).
-- **No se puede reutilizar la contraseña actual**: el caso de uso compara el
-  texto transitorio mediante bcrypt contra el hash vigente antes de generar el
-  nuevo hash, tanto en RF-07 como en RF-09.
+- **No se puede reutilizar la contraseña actual**: RF-07 compara de forma
+  segura la clave actual ya verificada con la nueva entrada; RF-09 usa bcrypt
+  para comparar la nueva entrada contra el hash vigente.
 - Invalida todas las sesiones activas tras el cambio, obligando a re-loguearse en todos los dispositivos.
 - Bloqueo tras 5 intentos fallidos, por 30 minutos, con respuesta `423 Locked`.
 - Auditoría del evento y notificación al usuario tras el cambio.

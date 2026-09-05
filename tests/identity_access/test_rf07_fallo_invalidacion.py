@@ -47,7 +47,11 @@ def test_fallo_sesiones_ocurre_despues_del_commit_y_notifica(escenario, fallo):
     assert error.value.status_code == 500
     assert error.value.message == MENSAJE
     assert error.value.original_error is causa
-    db.rollback.assert_called_once()
+    db.begin_nested.assert_called_once()
+    if fallo == "invalidar":
+        db.rollback.assert_not_called()
+    else:
+        db.rollback.assert_called_once()
     notificacion.notificar.assert_called_once()
 
 

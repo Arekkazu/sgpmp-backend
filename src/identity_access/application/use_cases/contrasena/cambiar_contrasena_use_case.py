@@ -3,6 +3,7 @@
 Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
 tras 5 fallos), aplica el nuevo hash e invalida todas las sesiones activas.
 """
+import hmac
 import logging
 from datetime import datetime, timezone
 
@@ -157,9 +158,9 @@ class CambiarContrasenaUseCase:
                 ),
             )
 
-        # 5. Comparar contra el hash actual antes de generar uno nuevo. Dos hashes
-        # bcrypt de la misma clave son distintos por el salt y no pueden compararse.
-        if usuario.contrasena.verificar(dto.nueva_contrasena):
+        # 5. La clave actual ya fue verificada contra el hash. Comparar las dos
+        # entradas evita generar y comparar hashes bcrypt con salts distintos.
+        if hmac.compare_digest(dto.contrasena_actual, dto.nueva_contrasena):
             raise ConflictError(
                 code="CONTRASENA_REUTILIZADA",
                 message=(
@@ -202,10 +203,11 @@ class CambiarContrasenaUseCase:
         # RF-09 tiene una política distinta: no compartir esta separación allí.
         error_invalidacion = None
         try:
-            self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
-            self.db.commit()
+            # El SAVEPOINT revierte únicamente los cambios parciales de sesiones
+            # si el repositorio falla y mantiene utilizable la sesión SQL.
+            with self.db.begin_nested():
+                self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
         except Exception as exc:
-            self.db.rollback()  # Solo revierte la transacción de sesiones.
             logger.exception("Fallo al invalidar sesiones tras cambio de contraseña: usuario=%s", id_usuario)
             error_invalidacion = InfrastructureError(
                 code="CAMBIO_CONTRASENA_INVALIDACION_FALLIDA",
@@ -216,6 +218,24 @@ class CambiarContrasenaUseCase:
                 ),
                 original_error=exc,
             )
+        else:
+            try:
+                self.db.commit()
+            except Exception as exc:
+                self.db.rollback()
+                logger.exception(
+                    "Fallo al confirmar invalidación de sesiones: usuario=%s",
+                    id_usuario,
+                )
+                error_invalidacion = InfrastructureError(
+                    code="CAMBIO_CONTRASENA_INVALIDACION_FALLIDA",
+                    message=(
+                        "Contraseña actualizada, pero ocurrió un error al cerrar las sesiones "
+                        "en otros dispositivos. Se recomienda cerrar sesión manualmente en "
+                        "todos sus equipos para garantizar la seguridad."
+                    ),
+                    original_error=exc,
+                )
 
         if self.notificacion_service:
             self.notificacion_service.notificar(
