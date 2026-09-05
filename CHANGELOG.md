@@ -1,3 +1,9 @@
+## [1.0.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-09-05)
+
+### Features
+
+* **rf30:** endpoint para consultar auditoria de creacion/versionado de plantillas ([7fc1038](https://github.com/Arekkazu/sgpmp-backend/commit/7fc1038f4138d91e1ab20b58c9210b46d37ee8f4)), closes [#118](https://github.com/Arekkazu/sgpmp-backend/issues/118) [#118](https://github.com/Arekkazu/sgpmp-backend/issues/118)
+
 ## [1.0.0-rc.11](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.10...v1.0.0-rc.11) (2026-09-05)
 
 ### Bug Fixes
