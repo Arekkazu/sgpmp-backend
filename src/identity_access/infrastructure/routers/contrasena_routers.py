@@ -37,6 +37,7 @@ router = APIRouter(prefix="/contrasena", tags=["Contraseña"])
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         423: {"model": ErrorResponse},
+        500: {"model": ErrorResponse, "description": "La contraseña puede quedar actualizada aunque falle el cierre de sesiones (RF-07)."},
     },
 )
 def cambiar_contrasena(
@@ -68,13 +69,15 @@ def cambiar_contrasena(
 )
 def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: Session = Depends(get_db)):
     ip = request.client.host if request.client else "unknown"
+    notificaciones_repo = SqlAlchemyNotificacionRepository(db)
     use_case = SolicitarRecuperacionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionService(port=notificaciones_repo, db=db),
+        notificaciones_repo=notificaciones_repo,
     )
     message = use_case.execute(dto, ip)
     return {"message": message}

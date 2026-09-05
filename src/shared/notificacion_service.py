@@ -134,10 +134,11 @@ class NotificacionService:
 
         id_estado = self.port.buscar_estado_cuenta(id_usuario)
 
-        if id_estado == ESTADO_INACTIVO:
-            return
-
-        if id_estado == ESTADO_BLOQUEADO and tipo_evento not in TIPOS_EVENTO_SEGURIDAD:
+        # Cuentas INACTIVAS/BLOQUEADAS solo reciben eventos de seguridad. Sin esta
+        # excepción, la notificación que informa AL USUARIO que su cuenta acaba de
+        # pasar a INACTIVO se autosuprime: para cuando notificar() corre (después
+        # del commit del cambio de estado), la cuenta ya está inactiva.
+        if id_estado in (ESTADO_INACTIVO, ESTADO_BLOQUEADO) and tipo_evento not in TIPOS_EVENTO_SEGURIDAD:
             return
 
         id_evento = self.port.buscar_ultimo_evento_id(id_usuario, tipo_evento)

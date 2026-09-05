@@ -138,13 +138,20 @@ class RestablecerContrasenaUseCase:
         # 4. Obtener usuario asociado
         usuario = self.usuarios_repo.obtener_por_id(cuenta.id_usuario)
 
-        # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
+        # 5. Comparar el texto transitorio con el hash actual antes de cifrar.
+        if usuario.contrasena.verificar(dto.nueva_contrasena):
+            raise ConflictError(
+                code="CONTRASENA_REUTILIZADA",
+                message="La nueva contraseña no puede ser igual a la anterior.",
+            )
+
+        # 6. Aplicar nueva contraseña.
         usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
 
         try:
             self.usuarios_repo.cambiar_contrasena(usuario)
 
-            # 6. Consumir token de recuperación, resetear intentos e invalidar sesiones
+            # 7. Consumir token de recuperación, resetear intentos e invalidar sesiones
             cuenta.marcar_token_usado()
             cuenta.resetear_cambio_contrasena()
             self.cuentas_repo.guardar(cuenta)

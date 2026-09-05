@@ -54,6 +54,7 @@ class UsuariosPaginadosResponse(BaseModel):
 class UsuarioListadoResponse(BaseModel):
     """Fila simplificada del listado administrativo de usuarios."""
 
+    id_usuario: int
     nombre_usuario: str
     correo_electronico: str
     nombre_rol: str
