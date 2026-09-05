@@ -411,6 +411,19 @@ class SqlAlchemyEventoRepository(EventoRepository):
             .scalar()
         )
 
+    def obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
+        self, ip: str, desde: datetime
+    ) -> Optional[datetime]:
+        return (
+            self.db.query(func.min(Eventos.fecha_evento))
+            .filter(
+                Eventos.tipo_evento == 7,
+                Eventos.fecha_evento >= desde,
+                Eventos.detalle["ip"].astext == ip,
+            )
+            .scalar()
+        )
+
     def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
         # Solo las exitosas: los eventos de bloqueo (RF-12, 429) se registran con
         # resultado FALLIDO justamente para no realimentar su propia ventana.
