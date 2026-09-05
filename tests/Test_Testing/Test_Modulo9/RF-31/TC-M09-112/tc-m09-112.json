@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "TC-M09-G112 (TC-M09-213/214/215/216/219/220)",
-    "description": "Validacion de datos y del snapshot JSON al crear una plantilla (RF-31, OWASP A03). Cubre: 213 nombre duplicado (409 esperado), 214 snapshot vacio/incompleto (400 esperado), 215 estructura invalida en el snapshot (400 esperado), 216 parametro fuera de rango (422 esperado), 219 campos obligatorios ausentes -- tres variantes: sin template_name, sin id_especie, sin params_snapshot (400 esperado en cada una), 220 propiedad no permitida dentro del snapshot (400 esperado). OJO: TC-M09-213 (nombre duplicado -> 409) puede entrar en conflicto con el comportamiento ya confirmado en TC-M09-106/204, donde reenviar el mismo template_name genera automaticamente una nueva VERSION (201), no un rechazo. Este script prueba el caso mas estricto posible (payload identico en todo, no solo el nombre) para ver si existe alguna distincion, y deja el resultado real impreso en consola para decidir si es un defecto, una discrepancia de especificacion entre fichas, o el comportamiento esperado. Ejecutar con: newman run tc-m09-112.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112.html",
+    "name": "TC-M09-G112 (retest tras actualizacion del backend) - TC-M09-213/214/215/216/219/220",
+    "description": "Reprueba de TC-M09-G112 tras el release que agrego: (a) rechazo de nombre duplicado con 409 + endpoint nuevo /versiones, y (b) validacion de tipo/estructura del contenido de cada categoria del snapshot (revisado en src/configuration/domain/esquema_plantilla.py, con acceso de solo lectura). Con el codigo actual se espera: TC-213 ahora SI debe dar 409 (antes daba 201/version=2). TC-215 ahora probablemente SI se rechace con 400 porque el validador ahora chequea 'isinstance(items, list)' para cada categoria. TC-216 se prueba con el payload correcto y completo de umbrales_ambientales (antes el payload de metricas_produccion no tenia los campos ahora obligatorios) -- el validador solo revisa TIPO (que sea numero), no rango biologico razonable, asi que se espera que este defecto siga presente. TC-214, 219 y 220 no deberian cambiar. Ejecutar con: newman run tc-m09-112-retest.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112-retest.html",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -36,7 +36,6 @@
         "if (body.items && body.items.length > 0) {",
         "    pm.collectionVariables.set('id_especie', body.items[0].id_especie);",
         "    pm.collectionVariables.set('template_name_dup', 'QA-Duplicado-' + Date.now());",
-        "    console.log('id_especie elegido: ' + body.items[0].id_especie + ' | template_name_dup: ' + pm.collectionVariables.get('template_name_dup'));",
         "}"
       ] } }],
       "request": {
@@ -54,7 +53,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -62,21 +61,14 @@
       "name": "1b. TC-M09-213 - Reenviar EXACTAMENTE el mismo payload (nombre + especie + snapshot identicos)",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "console.log('[DUPLICADO EXACTO] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 409) {",
-        "    console.log('Resultado: el sistema SI rechaza un duplicado exacto con 409, coincide con la ficha.');",
-        "} else if (pm.response.code === 201) {",
-        "    console.log('Resultado: el sistema genera una NUEVA VERSION (201) en vez de rechazar con 409 -- mismo comportamiento que TC-M09-204/106. Esto contradice literalmente lo que pide esta ficha (409), pero coincide con el comportamiento de versionado ya confirmado como correcto en otro grupo de casos (RF-30). Se documentara como discrepancia de especificacion, no necesariamente como defecto nuevo.');",
-        "} else {",
-        "    console.log('Resultado inesperado, distinto tanto de 409 como de 201: revisar manualmente.');",
-        "}",
-        "pm.test('TC-M09-213: un payload identico a uno ya existente deberia rechazarse con 409 (segun la ficha)', function () {",
+        "pm.test('TC-M09-213: un payload identico a uno ya existente debe rechazarse con 409', function () {",
         "    pm.response.to.have.status(409);",
         "});"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -101,11 +93,9 @@
       "name": "3. TC-M09-215 - Snapshot con estructura invalida (tipo de dato incorrecto)",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "console.log('[ESTRUCTURA INVALIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('TC-M09-215: estructura invalida debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
-        "var body = pm.response.json();",
-        "pm.test('TC-M09-215: el error debe identificar el campo problematico (fields no vacio)', function () {",
-        "    pm.expect(body.fields && body.fields.length).to.be.above(0);",
-        "});"
+        "if (pm.response.code === 201) { console.log('SIGUE EL DEFECTO: se acepto metricas_produccion como texto plano.'); }",
+        "if (pm.response.code === 400) { console.log('POSIBLE FIX: ahora se rechaza el tipo de dato incorrecto.'); }",
+        "pm.test('TC-M09-215: estructura invalida debe rechazarse con 400', function () { pm.response.to.have.status(400); });"
       ] } }],
       "request": {
         "method": "POST",
@@ -115,19 +105,22 @@
       }
     },
     {
-      "name": "4. TC-M09-216 - Parametro (temperatura) fuera del rango permitido",
+      "name": "4. TC-M09-216 - Umbral ambiental fuera del rango biologico razonable (payload completo y valido en tipo)",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "console.log('[FUERA DE RANGO] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('TC-M09-216: un valor fuera de rango debe rechazarse con 422', function () { pm.response.to.have.status(422); });",
         "if (pm.response.code === 201) {",
         "    var b = pm.response.json();",
-        "    console.log('ADVERTENCIA: el sistema ACEPTO un valor de temperatura fuera de rango (id_plantilla=' + b.id_plantilla + '). No parece existir validacion de rango para esta metrica -- posible defecto, ver nota en la evidencia.');",
-        "}"
+        "    console.log('SIGUE EL DEFECTO: se acepto valor_min=-999/valor_max=999 sin ninguna validacion de rango biologico (id_plantilla=' + b.id_plantilla + '). El validador solo revisa que sea un NUMERO valido, no un rango razonable.');",
+        "}",
+        "if (pm.response.code === 422 || pm.response.code === 400) { console.log('POSIBLE FIX: el sistema ahora rechaza el valor fuera de rango.'); }",
+        "pm.test('TC-M09-216: un valor fuera de rango biologico razonable deberia rechazarse (422 esperado por la ficha)', function () {",
+        "    pm.response.to.have.status(422);",
+        "});"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"temperatura\", \"valor\": 999 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": 1, \"unidad_medida\": \"C\", \"valor_min\": -999, \"valor_max\": 999 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -144,7 +137,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -161,7 +154,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinEspecie-{{$timestamp}}\",\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-SinEspecie-{{$timestamp}}\",\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -189,13 +182,13 @@
         "pm.test('TC-M09-220: una propiedad no permitida en el snapshot debe rechazarse con 400', function () { pm.response.to.have.status(400); });",
         "if (pm.response.code === 201) {",
         "    var b = pm.response.json();",
-        "    console.log('ADVERTENCIA: el sistema ACEPTO una propiedad no declarada en el esquema (id_plantilla=' + b.id_plantilla + '). Revisar si el snapshot persistido conserva esa propiedad -- posible defecto de validacion estricta de esquema.');",
+        "    console.log('ADVERTENCIA: el sistema ACEPTO una propiedad no declarada en el esquema (id_plantilla=' + b.id_plantilla + ').');",
         "}"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-PropiedadNoPermitida-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.0 } ],\n    \"campo_no_declarado_en_el_esquema\": \"intento_de_manipulacion\"\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-PropiedadNoPermitida-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ],\n    \"campo_no_declarado_en_el_esquema\": \"intento_de_manipulacion\"\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     }

@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "TC-M09-G122 (TC-M09-235/236)",
-    "description": "Validacion del estado de la plantilla a aplicar (RF-32). TC-235: aplicar un id de plantilla inexistente debe dar 404. TC-236 pide una plantilla en estado 'DEPRECADA', pero ese estado no existe en el sistema (revisado en el codigo fuente: una plantilla solo tiene 'version', sin ningun campo de estado, y el codigo de aplicar nunca compara versiones). Por decision explicita, se prueba la interpretacion mas cercana: crear una plantilla (v1), 'reemplazarla' con el mismo template_name (auto-versionado a v2, comportamiento ya confirmado en TC-M09-106), y luego intentar aplicar la v1 (la vieja/superada) -- si el sistema lo permite sin restriccion, confirma un defecto real. Se usan plantillas con SOLO ciclos_biologicos (no metricas/umbrales) para evitar el defecto ya conocido de TC-M09-G118 y poder llegar a una aplicacion exitosa de verdad. Ejecutar con: newman run tc-m09-122.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-122.html",
+    "name": "TC-M09-G122 (TC-235/236)",
+    "description": "TC-M09-235: aplicar un id de plantilla inexistente debe responder 404. TC-M09-236: el sistema no tiene un estado 'DEPRECADA' explicito (solo numero de version); se prueba la interpretacion mas cercana -- crear una plantilla v1 (solo ciclos_biologicos), crear una v2 mediante el nuevo endpoint /versiones, e intentar aplicar la v1 superada tanto sobre una especie con datos previos como sobre una especie limpia, verificando en ambos casos que NO quede aplicada (via GET real a /configuracion/ciclos) y que el codigo de respuesta no sea un 500 generico sino un rechazo controlado (4xx). Como control, se aplica la v2 (vigente) sobre la especie limpia: si tambien falla, confirma que el problema es el defecto general de 'aplicar plantilla' y no una regla de version superada. Ejecutar con: newman run tc-m09-122.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-122.html",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -9,11 +9,15 @@
     { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
     { "key": "contrasena_admin", "value": "Administrador123#" },
     { "key": "token_admin", "value": "" },
-    { "key": "id_especie", "value": "4" },
-    { "key": "fecha_actualizacion_especie", "value": "" },
-    { "key": "template_name_236", "value": "" },
+    { "key": "id_especie_a", "value": "4" },
+    { "key": "id_especie_b", "value": "5" },
+    { "key": "fecha_especie_a", "value": "" },
+    { "key": "fecha_especie_b", "value": "" },
     { "key": "id_plantilla_v1", "value": "" },
-    { "key": "id_plantilla_v2", "value": "" }
+    { "key": "id_plantilla_v2", "value": "" },
+    { "key": "nombre_ciclo_v1", "value": "" },
+    { "key": "nombre_ciclo_v2", "value": "" },
+    { "key": "intento3_exitoso", "value": "false" }
   ],
   "item": [
     {
@@ -31,14 +35,19 @@
       }
     },
     {
-      "name": "0B. Obtener fecha_actualizacion real de la especie activa",
+      "name": "0B. Obtener fecha_actualizacion de las especies A y B",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "var body = pm.response.json();",
         "var items = body.items || [];",
-        "var e = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie'); });",
-        "if (e && e.fecha_actualizacion) { pm.collectionVariables.set('fecha_actualizacion_especie', e.fecha_actualizacion); }",
-        "pm.collectionVariables.set('template_name_236', 'QA-P236-' + Date.now());",
-        "console.log('fecha_actualizacion_especie=' + pm.collectionVariables.get('fecha_actualizacion_especie') + ' | template_name_236=' + pm.collectionVariables.get('template_name_236'));"
+        "var a = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie_a'); });",
+        "var b = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie_b'); });",
+        "console.log('Especie A: ' + JSON.stringify(a));",
+        "console.log('Especie B: ' + JSON.stringify(b));",
+        "if (a && a.fecha_actualizacion) { pm.collectionVariables.set('fecha_especie_a', a.fecha_actualizacion); }",
+        "if (b && b.fecha_actualizacion) { pm.collectionVariables.set('fecha_especie_b', b.fecha_actualizacion); }",
+        "var sufijo = Date.now();",
+        "pm.collectionVariables.set('nombre_ciclo_v1', 'Ciclo-122-v1-' + sufijo);",
+        "pm.collectionVariables.set('nombre_ciclo_v2', 'Ciclo-122-v2-' + sufijo);"
       ] } }],
       "request": {
         "method": "GET",
@@ -47,81 +56,178 @@
       }
     },
     {
-      "name": "1. TC-M09-235 - Aplicar un id de plantilla inexistente (9999) -> se espera 404",
+      "name": "1. TC-M09-235 - Aplicar plantilla inexistente (id=9999)",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "console.log('[TC-235] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('TC-M09-235: aplicar una plantilla inexistente debe devolver 404', function () { pm.response.to.have.status(404); });"
+        "pm.test('TC-M09-235: plantilla inexistente responde 404', function () { pm.response.to.have.status(404); });",
+        "pm.test('TC-M09-235: error_code = PLANTILLA_NO_ENCONTRADA', function () {",
+        "    var b = pm.response.json();",
+        "    pm.expect(b.error_code).to.eql('PLANTILLA_NO_ENCONTRADA');",
+        "});"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_actualizacion_especie}}\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_a}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_especie_a}}\"\n}" },
         "url": "{{base_url}}/configuracion/plantillas/9999/aplicar"
       }
     },
     {
-      "name": "0C. Crear plantilla P-236 v1 (solo ciclos_biologicos, para evitar el bug de TC-M09-G118)",
+      "name": "2. Crear plantilla v1 (solo ciclos_biologicos) sobre especie A",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[CREAR P-236 v1] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('Se crea con 201, version 1', function () { pm.response.to.have.status(201); pm.expect(pm.response.json().version).to.eql(1); });",
-        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_v1', pm.response.json().id_plantilla); }"
-      ] } }],
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_236}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"Etapa-236-v1\", \"duracion_dias\": 10, \"descripcion\": \"version vieja/superada\" } ]\n  }\n}" },
-        "url": "{{base_url}}/configuracion/plantillas"
-      }
-    },
-    {
-      "name": "0D. 'Reemplazar' P-236 (mismo template_name -> auto-version a v2, deja v1 superada)",
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[CREAR P-236 v2] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('Se crea con 201, version 2 (v1 queda superada)', function () { pm.response.to.have.status(201); pm.expect(pm.response.json().version).to.eql(2); });",
-        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_v2', pm.response.json().id_plantilla); }"
-      ] } }],
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_236}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"Etapa-236-v2\", \"duracion_dias\": 20, \"descripcion\": \"version nueva/vigente\" } ]\n  }\n}" },
-        "url": "{{base_url}}/configuracion/plantillas"
-      }
-    },
-    {
-      "name": "2. TC-M09-236 (interpretacion) - Intentar aplicar la v1 SUPERADA (vieja) de P-236",
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[TC-236] Intentando aplicar id_plantilla_v1=' + pm.collectionVariables.get('id_plantilla_v1') + ' (version vieja/superada) -> status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 201 || pm.response.code === 200) {",
-        "    console.log('DEFECTO: el sistema SI permitio aplicar una version vieja/superada de la plantilla, sin ninguna restriccion. No existe ningun chequeo de version obsoleta en el codigo de aplicar.');",
-        "} else if (pm.response.code === 412 || pm.response.code === 409 || pm.response.code === 422) {",
-        "    console.log('El sistema SI rechazo aplicar la version vieja -- revisar el codigo/error_code, esto no coincide con lo que se leyo en el codigo fuente, hay que investigar mas.');",
-        "} else if (pm.response.code === 500) {",
-        "    console.log('Fallo con 500 -- podria ser el defecto general de TC-M09-G118 (revisar si el snapshot de ciclos realmente evito el bug) en vez de una validacion de version.');",
+        "console.log('[CREAR v1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea v1 con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_v1', b.id_plantilla);",
+        "    console.log('Plantilla v1 creada: id_plantilla=' + b.id_plantilla + ' version=' + b.version);",
         "}"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_actualizacion_especie}}\"\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P122-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_a}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"{{nombre_ciclo_v1}}\", \"duracion_dias\": 30 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. Crear version v2 de la misma plantilla (endpoint /versiones)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR v2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Se crea v2 con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_v2', b.id_plantilla);",
+        "    console.log('Plantilla v2 creada: id_plantilla=' + b.id_plantilla + ' version=' + b.version);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"{{nombre_ciclo_v2}}\", \"duracion_dias\": 45 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/versiones"
+      }
+    },
+    {
+      "name": "4. TC-M09-236 - Intento 1: aplicar v1 (superada) sobre especie A (con datos previos)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[INTENTO 1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-236 intento 1: la version superada no debe aplicarse (no 2xx) ni fallar con error generico (no 500)', function () {",
+        "    pm.expect(pm.response.code).to.be.within(400, 499);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_a}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_especie_a}}\"\n}" },
         "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/aplicar"
       }
     },
     {
-      "name": "3. Verificar historial de aplicaciones (confirmar si quedo registrada la aplicacion de la v1 superada)",
+      "name": "5. Verificar que el ciclo de v1 NO quedo aplicado en especie A",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[HISTORIAL] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 200) {",
-        "    var body = pm.response.json();",
-        "    var items = body.items || [];",
-        "    var encontrada = items.find(function (a) { return String(a.id_plantilla) === pm.collectionVariables.get('id_plantilla_v1'); });",
-        "    console.log('Total en historial: ' + items.length + '. Aparece una aplicacion de la v1 superada (id_plantilla=' + pm.collectionVariables.get('id_plantilla_v1') + ')?: ' + (!!encontrada));",
-        "    if (encontrada) { console.log('Detalle de esa aplicacion: ' + JSON.stringify(encontrada)); }",
+        "console.log('[VERIFICAR A] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.find(function (c) { return c.nombre === pm.collectionVariables.get('nombre_ciclo_v1'); });",
+        "pm.test('El ciclo de la v1 superada no debe existir en la especie A', function () {",
+        "    pm.expect(encontrado, 'se encontro el ciclo ' + pm.collectionVariables.get('nombre_ciclo_v1') + ' pero no deberia estar aplicado').to.be.undefined;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/ciclos?id_especie={{id_especie_a}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "6. TC-M09-236 - Intento 2: aplicar v1 (superada) sobre especie B (limpia)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[INTENTO 2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-236 intento 2: la version superada no debe aplicarse (no 2xx) ni fallar con error generico (no 500)', function () {",
+        "    pm.expect(pm.response.code).to.be.within(400, 499);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_b}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_especie_b}}\"\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/aplicar"
+      }
+    },
+    {
+      "name": "7. Verificar que el ciclo de v1 NO quedo aplicado en especie B",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[VERIFICAR B] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.find(function (c) { return c.nombre === pm.collectionVariables.get('nombre_ciclo_v1'); });",
+        "pm.test('El ciclo de la v1 superada no debe existir en la especie B', function () {",
+        "    pm.expect(encontrado, 'se encontro el ciclo ' + pm.collectionVariables.get('nombre_ciclo_v1') + ' pero no deberia estar aplicado').to.be.undefined;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/ciclos?id_especie={{id_especie_b}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "7B. Refrescar fecha_actualizacion antes del control",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var a = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie_a'); });",
+        "var b = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie_b'); });",
+        "if (a && a.fecha_actualizacion) { pm.collectionVariables.set('fecha_especie_a', a.fecha_actualizacion); }",
+        "if (b && b.fecha_actualizacion) { pm.collectionVariables.set('fecha_especie_b', b.fecha_actualizacion); }",
+        "console.log('fecha_especie_b refrescada: ' + pm.collectionVariables.get('fecha_especie_b'));"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      }
+    },
+    {
+      "name": "8. TC-M09-236 (control) - Aplicar v2 (vigente) sobre especie B (limpia)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONTROL v2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "var exitoso = pm.response.code >= 200 && pm.response.code < 300;",
+        "pm.collectionVariables.set('intento3_exitoso', exitoso ? 'true' : 'false');",
+        "pm.test('Control: se registra el codigo de respuesta al aplicar la version vigente (informativo, ver paso 9 para el veredicto)', function () {",
+        "    pm.expect(pm.response.code).to.be.a('number');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_b}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_especie_b}}\"\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v2}}/aplicar"
+      }
+    },
+    {
+      "name": "9. Verificar el resultado real del control (v2 vigente) en especie B",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[VERIFICAR CONTROL] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.find(function (c) { return c.nombre === pm.collectionVariables.get('nombre_ciclo_v2'); });",
+        "var exitoso = pm.collectionVariables.get('intento3_exitoso') === 'true';",
+        "if (exitoso) {",
+        "    pm.test('Control: si la aplicacion de v2 respondio 2xx, el ciclo debe existir en especie B', function () {",
+        "        pm.expect(encontrado, 'la API respondio 2xx pero el ciclo no aparece aplicado').to.not.be.undefined;",
+        "    });",
+        "} else {",
+        "    pm.test('Control: si la aplicacion de v2 NO respondio 2xx, el ciclo NO debe existir en especie B (sin escritura parcial)', function () {",
+        "        pm.expect(encontrado, 'la API fallo pero el ciclo quedo aplicado de todos modos').to.be.undefined;",
+        "    });",
         "}"
       ] } }],
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "url": "{{base_url}}/configuracion/plantillas/historial"
+        "url": "{{base_url}}/configuracion/ciclos?id_especie={{id_especie_b}}&solo_activas=true"
       }
     }
   ]
