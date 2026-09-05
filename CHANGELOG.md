@@ -1,3 +1,19 @@
+## [1.0.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-09-04)
+
+### Bug Fixes
+
+* **rf42:** corregir restriccion de LOTE en evento reproductivo ([cb43add](https://github.com/Arekkazu/sgpmp-backend/commit/cb43add315bb645256a9233a2b4e8dfd1da41ad0))
+
+## [1.0.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.6...v1.0.0-rc.7) (2026-09-04)
+
+### Features
+
+* **biological-assets:** registrar origen del cambio de estado MANUAL/RF-38/RF-45 (RF-44) ([8bcf847](https://github.com/Arekkazu/sgpmp-backend/commit/8bcf8472c0d66b15fcec261a89d56492a85bedbb)), closes [#2](https://github.com/Arekkazu/sgpmp-backend/issues/2)
+
+### Bug Fixes
+
+* **m02:** centralizar cambio de estado y cerrar segundo camino en PATCH /{id}/estado ([c11bc6f](https://github.com/Arekkazu/sgpmp-backend/commit/c11bc6f643dfbfef1fda7df2e1229df229cb475f)), closes [#1](https://github.com/Arekkazu/sgpmp-backend/issues/1)
+
 ## [1.0.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.5...v1.0.0-rc.6) (2026-09-04)
 
 ### Bug Fixes
