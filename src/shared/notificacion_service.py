@@ -71,6 +71,7 @@ class NotificacionService:
         asunto_email: Optional[str] = None,
         contenido_html_email: Optional[str] = None,
         resolver_correo_destino: bool = False,
+        aplicar_anti_spam_email: bool = True,
     ) -> None:
         """Punto de entrada único para enviar notificaciones.
 
@@ -92,6 +93,8 @@ class NotificacionService:
                 sensibles en la bandeja.
             resolver_correo_destino: Si es ``True`` y no se recibió correo,
                 el servicio lo consulta mediante su puerto.
+            aplicar_anti_spam_email: Permite omitir la ventana anti-spam para
+                correos con tokens que invalidan al token anterior.
         """
         try:
             self._procesar(
@@ -101,6 +104,7 @@ class NotificacionService:
                 asunto_email,
                 contenido_html_email,
                 resolver_correo_destino,
+                aplicar_anti_spam_email,
             )
         except Exception as exc:
             logger.error(
@@ -116,6 +120,7 @@ class NotificacionService:
         asunto_email: Optional[str],
         contenido_html_email: Optional[str],
         resolver_correo_destino: bool,
+        aplicar_anti_spam_email: bool,
     ) -> None:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
@@ -161,6 +166,7 @@ class NotificacionService:
             fcm_tokens=[],
             asunto_email=asunto_email,
             contenido_html_email=contenido_html_email,
+            aplicar_anti_spam=aplicar_anti_spam_email,
         )
 
         self._enviar_canal(
@@ -174,6 +180,7 @@ class NotificacionService:
             fcm_tokens=fcm_tokens,
             asunto_email=None,
             contenido_html_email=None,
+            aplicar_anti_spam=True,
         )
 
     def _enviar_canal(
@@ -188,6 +195,7 @@ class NotificacionService:
         fcm_tokens: list[str],
         asunto_email: Optional[str],
         contenido_html_email: Optional[str],
+        aplicar_anti_spam: bool,
     ) -> None:
         """Persiste y despacha la notificación para un canal específico.
 
@@ -214,8 +222,14 @@ class NotificacionService:
             fcm_tokens: Lista de tokens FCM para INTERNO. Lista vacía omite el envío push.
             asunto_email: Asunto exclusivo del canal EMAIL, si aplica.
             contenido_html_email: HTML exclusivo del canal EMAIL, si aplica.
+            aplicar_anti_spam: Si se valida la ventana anti-spam para el canal.
         """
-        if self.port.verificar_anti_spam(id_usuario, tipo_evento, canal, VENTANA_ANTI_SPAM_MINUTOS):
+        if aplicar_anti_spam and self.port.verificar_anti_spam(
+            id_usuario,
+            tipo_evento,
+            canal,
+            VENTANA_ANTI_SPAM_MINUTOS,
+        ):
             return
 
         try:

@@ -3,12 +3,15 @@
 Expone los endpoints de cambio de contraseña (usuario autenticado),
 solicitud de recuperación por correo y restablecimiento por token.
 """
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.contrasena.cambiar_contrasena_use_case import CambiarContrasenaUseCase
 from src.identity_access.application.use_cases.contrasena.restablecer_contrasena_use_case import RestablecerContrasenaUseCase
 from src.identity_access.application.use_cases.contrasena.solicitar_recuperacion_use_case import SolicitarRecuperacionUseCase
+from src.identity_access.infrastructure.adapters.correo_recuperacion_background_adapter import (
+    CorreoRecuperacionBackgroundAdapter,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.contrasena_dto import (
     CambiarContrasenaDTO,
@@ -66,14 +69,19 @@ def cambiar_contrasena(
         429: {"model": ErrorResponse},
     },
 )
-def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: Session = Depends(get_db)):
+def solicitar_recuperacion(
+    dto: SolicitarRecuperacionDTO,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     ip = request.client.host if request.client else "unknown"
     use_case = SolicitarRecuperacionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        correo_recuperacion_port=CorreoRecuperacionBackgroundAdapter(background_tasks),
     )
     message = use_case.execute(dto, ip)
     return {"message": message}

@@ -10,14 +10,15 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.cuenta import Cuenta
+from src.identity_access.domain.repositories.correo_recuperacion_port import (
+    CorreoRecuperacionPort,
+)
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
-from src.identity_access.infrastructure.email_templates import activation_email, recovery_email
-from src.shared.email import send_email
 from src.shared.errors import BusinessRuleError
 
 MAX_SOLICITUDES_POR_HORA = 3
@@ -35,7 +36,7 @@ class SolicitarRecuperacionUseCase:
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
         db: Session,
-        notificacion_service=None,
+        correo_recuperacion_port: CorreoRecuperacionPort,
     ):
         """Inicializa el use case.
 
@@ -44,13 +45,14 @@ class SolicitarRecuperacionUseCase:
             cuentas_repo: Repositorio de dominio del agregado Cuenta (token de recuperación).
             eventos_repo: Repositorio de dominio de eventos (rate limiting y auditoría).
             db: Sesión SQLAlchemy activa del request.
-            notificacion_service: Servicio de notificaciones opcional.
+            correo_recuperacion_port: Puerto que agenda los correos después
+                de confirmar el token y el evento.
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
         self.db = db
-        self.notificacion_service = notificacion_service
+        self.correo_recuperacion_port = correo_recuperacion_port
 
     def execute(self, dto: SolicitarRecuperacionDTO, ip: str) -> str:
         """Inicia el proceso de recuperación de contraseña para el correo indicado.
@@ -112,10 +114,11 @@ class SolicitarRecuperacionUseCase:
             except Exception:
                 self.db.rollback()
                 raise
-            send_email(
-                to=correo,
-                subject="Activa tu cuenta en SGPMP",
-                html_body=activation_email(usuario.nombre, token_activacion),
+            self.correo_recuperacion_port.programar_activacion(
+                correo=correo,
+                nombre=usuario.nombre,
+                token=token_activacion,
+                id_usuario=usuario.id_usuario,
             )
             return _MENSAJE_GENERICO
 
@@ -135,18 +138,12 @@ class SolicitarRecuperacionUseCase:
             self.db.rollback()
             raise
 
-        # 5. Enviar email de recuperación (post-commit)
-        send_email(
-            to=correo,
-            subject="Restablece tu contraseña en SGPMP",
-            html_body=recovery_email(usuario.nombre, token),
+        # 5. Programar el correo después del commit, sin bloquear el request.
+        self.correo_recuperacion_port.programar_recuperacion(
+            correo=correo,
+            nombre=usuario.nombre,
+            token=token,
+            id_usuario=usuario.id_usuario,
         )
-
-        if self.notificacion_service:
-            self.notificacion_service.notificar(
-                tipo_evento=TIPO_SOLICITUD_RECUPERACION,
-                id_usuario=usuario.id_usuario,
-                correo_destino=correo,
-            )
 
         return _MENSAJE_GENERICO
