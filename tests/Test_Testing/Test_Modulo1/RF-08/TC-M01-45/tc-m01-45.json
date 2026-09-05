@@ -5,8 +5,9 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "admin_correo", "value": "danielacastillovargas09@gmail.com" },
-    { "key": "admin_contrasena", "value": "Confirmada#44" },
+    { "key": "_nota_admin", "value": "danielacastillovargas09@gmail.com devuelve 500 ERROR_INTERNO al loguear (05/09/26), pese a estar Activo -- ver INC pendiente. Se usa admin@pecuaria.co mientras tanto; el paso 0 solo necesita CUALQUIER token de Administrador." },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
     { "key": "objetivo_correo", "value": "u20222208793@usco.edu.co" },
     { "key": "objetivo_id", "value": "67" },
     { "key": "access_token", "value": "" },
@@ -23,13 +24,23 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
       }
     },
     {
       "name": "1. Admin: marcar cuenta objetivo como ELIMINADO",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+        "// 'Eliminado' es un estado terminal (no hay transicion de salida, ver",
+        "// TRANSICIONES_VALIDAS en gestionar_cuenta_use_case.py): si esta coleccion",
+        "// ya se corrio antes contra este mismo objetivo_id, la cuenta ya quedo",
+        "// eliminada de forma permanente y un segundo intento de 'eliminar' responde",
+        "// 400 ESTADO_SIN_CAMBIO. Eso es correcto por diseno, no un fallo del backend:",
+        "// se acepta como precondicion ya satisfecha para que la coleccion sea",
+        "// re-ejecutable sin necesitar una cuenta objetivo nueva cada vez.",
+        "const yaEliminada = pm.response.code === 400 && (pm.response.json().error_code === 'ESTADO_SIN_CAMBIO');",
+        "pm.test('Responde 200, o ya estaba Eliminada de una corrida anterior (400 ESTADO_SIN_CAMBIO)', function () {",
+        "    pm.expect(pm.response.code === 200 || yaEliminada).to.be.true;",
+        "});"
       ] } }],
       "request": {
         "method": "POST",
@@ -38,7 +49,7 @@
           { "key": "Authorization", "value": "Bearer {{access_token}}" }
         ],
         "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"eliminar\",\n  \"motivo_accion\": \"TC-M01-045 - no debe generarse token de recuperacion\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/gestionar"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/gestionar"
       }
     },
     {
@@ -52,7 +63,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{objetivo_id}}/detalle"
       }
     },
     {
@@ -67,7 +78,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
       }
     },
     {
@@ -82,7 +93,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
       }
     },
     {
@@ -100,7 +111,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina=1&tamano=20"
       }
     },
     {
@@ -113,7 +124,7 @@
       "request": {
         "method": "GET",
         "header": [],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+        "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
       }
     }
   ]

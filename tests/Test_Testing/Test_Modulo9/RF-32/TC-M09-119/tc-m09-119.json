@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "TC-M09-G119 (TC-231/243) - Verificacion rapida: sigue caido el aplicar?",
-    "description": "Antes de construir la prueba completa de TC-231/243 (que necesita que 'aplicar plantilla' funcione para poder comparar el estado final), se hace un intento unico para confirmar si el defecto 500 encontrado en TC-M09-G118 sigue presente. Si da 500, esta ficha queda bloqueada por ese defecto. Si da 2xx, se continua construyendo la prueba completa (comparacion de parametros aplicados + verificacion de inmutabilidad de la plantilla origen). Ejecutar con: newman run tc-m09-119.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-119.html",
+    "name": "TC-M09-G119 (TC-231/243) - Aplicacion completa (4 categorias) + inmutabilidad de origen",
+    "description": "Version completa de TC-231/243 (RF-32), reemplaza el chequeo rapido preliminar. Crea una plantilla con las 4 categorias del esquema a la vez (ciclos_biologicos, metricas_produccion, umbrales_ambientales, patologias), todas con forma y datos validos, sobre la especie activa Cachama Blanca (id_especie=4). TC-231: intenta aplicarla y verifica en los 4 endpoints reales de la especie si los parametros quedaron aplicados. TC-243: vuelve a consultar la plantilla origen despues del intento de aplicacion y verifica que template_name, version y params_snapshot sigan identicos (inmutabilidad). Ejecutar con: newman run tc-m09-119.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-119-v2.html",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,7 +11,13 @@
     { "key": "token_admin", "value": "" },
     { "key": "id_especie", "value": "4" },
     { "key": "fecha_actualizacion_especie", "value": "" },
-    { "key": "id_plantilla", "value": "" }
+    { "key": "id_plantilla", "value": "" },
+    { "key": "nombre_ciclo", "value": "" },
+    { "key": "nombre_metrica", "value": "" },
+    { "key": "nombre_patologia", "value": "" },
+    { "key": "template_name_origen", "value": "" },
+    { "key": "version_origen", "value": "" },
+    { "key": "snapshot_origen_json", "value": "" }
   ],
   "item": [
     {
@@ -35,7 +41,11 @@
         "var items = body.items || [];",
         "var e = items.find(function (x) { return String(x.id_especie) === pm.collectionVariables.get('id_especie'); });",
         "console.log('Especie: ' + JSON.stringify(e));",
-        "if (e && e.fecha_actualizacion) { pm.collectionVariables.set('fecha_actualizacion_especie', e.fecha_actualizacion); }"
+        "if (e && e.fecha_actualizacion) { pm.collectionVariables.set('fecha_actualizacion_especie', e.fecha_actualizacion); }",
+        "var ts = Date.now();",
+        "pm.collectionVariables.set('nombre_ciclo', 'QA-Ciclo-' + ts);",
+        "pm.collectionVariables.set('nombre_metrica', 'QA-Peso-' + ts);",
+        "pm.collectionVariables.set('nombre_patologia', 'QA-Patologia-' + ts);"
       ] } }],
       "request": {
         "method": "GET",
@@ -44,36 +54,129 @@
       }
     },
     {
-      "name": "0C. Crear plantilla con parametros productivos Y ambientales (P-001 style)",
+      "name": "0C. Crear plantilla con las 4 categorias del esquema, todas validas",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[CREAR PLANTILLA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "console.log('[CREAR PLANTILLA 4 CATEGORIAS] status=' + pm.response.code + ' body=' + pm.response.text());",
         "pm.test('Se crea con 201', function () { pm.response.to.have.status(201); });",
-        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla', pm.response.json().id_plantilla); }"
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla', b.id_plantilla);",
+        "    pm.collectionVariables.set('template_name_origen', b.template_name);",
+        "    pm.collectionVariables.set('version_origen', b.version);",
+        "    pm.collectionVariables.set('snapshot_origen_json', JSON.stringify(b.params_snapshot));",
+        "    console.log('id_plantilla=' + b.id_plantilla + ' template_name=' + b.template_name + ' version=' + b.version);",
+        "}"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P119-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.8 } ],\n    \"umbrales_ambientales\": [ { \"nombre\": \"temperatura\", \"valor\": 26.0 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P119-Completa-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [ { \"nombre\": \"{{nombre_ciclo}}\", \"duracion_dias\": 90 } ],\n    \"metricas_produccion\": [ { \"nombre\": \"{{nombre_metrica}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ],\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": 1, \"unidad_medida\": \"°C\", \"valor_min\": 10, \"valor_max\": 30 } ],\n    \"patologias\": [ { \"nombre\": \"{{nombre_patologia}}\" } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
     {
-      "name": "1. Intento unico de aplicar (verificar si el 500 de TC-M09-G118 sigue presente)",
+      "name": "1. TC-M09-231 - Aplicar la plantilla completa sobre la especie destino",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[INTENTO DE APLICAR] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 500) {",
-        "    console.log('El defecto de TC-M09-G118 SIGUE presente -- esta ficha (TC-M09-G119) queda bloqueada por la misma causa. No tiene sentido seguir con mas pasos todavia.');",
-        "} else if (pm.response.code >= 200 && pm.response.code < 300) {",
-        "    console.log('SORPRESA: esta vez funciono. Hay que construir la prueba completa de TC-231/243 (comparar parametros aplicados + revisar que la plantilla origen no cambio).');",
-        "} else {",
-        "    console.log('Resultado distinto a 500 y a 2xx (' + pm.response.code + ') -- revisar el body con detalle antes de decidir el siguiente paso.');",
-        "}"
+        "console.log('[APLICAR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-231: aplicar una plantilla completa y valida debe ser exitoso (2xx)', function () {",
+        "    pm.expect(pm.response.code).to.be.within(200, 299);",
+        "});"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
         "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie}},\n  \"fecha_actualizacion_especie_destino\": \"{{fecha_actualizacion_especie}}\"\n}" },
         "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla}}/aplicar"
+      }
+    },
+    {
+      "name": "2a. TC-M09-231 - Verificar ciclos_biologicos de la especie destino",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.some(function (c) { return c.nombre === pm.collectionVariables.get('nombre_ciclo'); });",
+        "console.log('[VERIFICAR CICLO] encontrado=' + encontrado + ' total_items=' + items.length);",
+        "pm.test('TC-M09-231: el ciclo biologico de la plantilla debe quedar aplicado en la especie', function () {",
+        "    pm.expect(encontrado, 'se esperaba encontrar ' + pm.collectionVariables.get('nombre_ciclo')).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/ciclos?id_especie={{id_especie}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "2b. TC-M09-231 - Verificar metricas_produccion de la especie destino",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.some(function (m) { return m.nombre === pm.collectionVariables.get('nombre_metrica'); });",
+        "console.log('[VERIFICAR METRICA] encontrado=' + encontrado + ' total_items=' + items.length);",
+        "pm.test('TC-M09-231: la metrica de produccion de la plantilla debe quedar aplicada en la especie', function () {",
+        "    pm.expect(encontrado, 'se esperaba encontrar ' + pm.collectionVariables.get('nombre_metrica')).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie={{id_especie}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "2c. TC-M09-231 - Verificar umbrales_ambientales de la especie destino",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.some(function (u) { return u.id_variable_ambiental === 1 && String(u.valor_min) === '10' && String(u.valor_max) === '30'; });",
+        "console.log('[VERIFICAR UMBRAL] encontrado=' + encontrado + ' total_items=' + items.length + ' items=' + JSON.stringify(items));",
+        "pm.test('TC-M09-231: el umbral ambiental de la plantilla debe quedar aplicado en la especie', function () {",
+        "    pm.expect(encontrado, 'se esperaba un umbral id_variable_ambiental=1 con valor_min=10/valor_max=30').to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "2d. TC-M09-231 - Verificar patologias de la especie destino",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var encontrado = items.some(function (p) { return p.nombre === pm.collectionVariables.get('nombre_patologia'); });",
+        "console.log('[VERIFICAR PATOLOGIA] encontrado=' + encontrado + ' total_items=' + items.length);",
+        "pm.test('TC-M09-231: la patologia de la plantilla debe quedar aplicada en la especie', function () {",
+        "    pm.expect(encontrado, 'se esperaba encontrar ' + pm.collectionVariables.get('nombre_patologia')).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/patologias?id_especie={{id_especie}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "3. TC-M09-243 - Verificar que la plantilla origen siga inmutable tras el intento de aplicacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[INMUTABILIDAD] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var b = pm.response.json();",
+        "pm.test('TC-M09-243: template_name no cambio', function () {",
+        "    pm.expect(b.template_name).to.eql(pm.collectionVariables.get('template_name_origen'));",
+        "});",
+        "pm.test('TC-M09-243: version no cambio', function () {",
+        "    pm.expect(String(b.version)).to.eql(String(pm.collectionVariables.get('version_origen')));",
+        "});",
+        "pm.test('TC-M09-243: params_snapshot no cambio', function () {",
+        "    pm.expect(JSON.stringify(b.params_snapshot)).to.eql(pm.collectionVariables.get('snapshot_origen_json'));",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla}}"
       }
     }
   ]

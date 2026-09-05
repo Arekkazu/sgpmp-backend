@@ -54,7 +54,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.4 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -76,7 +76,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.4 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_dup}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.4 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -115,19 +115,19 @@
       }
     },
     {
-      "name": "4. TC-M09-216 - Parametro (temperatura) fuera del rango permitido",
+      "name": "4. TC-M09-216 - Umbral ambiental (temperatura del agua, id_variable_ambiental=1) fuera del rango fisico [0,45] C",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
         "console.log('[FUERA DE RANGO] status=' + pm.response.code + ' body=' + pm.response.text());",
         "pm.test('TC-M09-216: un valor fuera de rango debe rechazarse con 422', function () { pm.response.to.have.status(422); });",
         "if (pm.response.code === 201) {",
         "    var b = pm.response.json();",
-        "    console.log('ADVERTENCIA: el sistema ACEPTO un valor de temperatura fuera de rango (id_plantilla=' + b.id_plantilla + '). No parece existir validacion de rango para esta metrica -- posible defecto, ver nota en la evidencia.');",
+        "    console.log('DEFECTO CONFIRMADO: el sistema ACEPTO valor_min=-999/valor_max=999 para id_variable_ambiental=1 (Temperatura del agua, rango fisico real 0-45 C) (id_plantilla=' + b.id_plantilla + '). No existe validacion de rango en esquema_plantilla.py: la regla NUMERO solo valida que el dato sea numerico, no que este dentro de valor_fisico_min/max de la variable.');",
         "}"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"temperatura\", \"valor\": 999 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-FueraDeRango-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": 1, \"unidad_medida\": \"°C\", \"valor_min\": -999, \"valor_max\": 999 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },

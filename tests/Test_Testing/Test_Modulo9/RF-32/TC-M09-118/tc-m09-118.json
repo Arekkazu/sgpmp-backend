@@ -95,7 +95,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P118-Vigente-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.5 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P118-Vigente-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"QA-Peso-{{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.5 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
@@ -109,7 +109,7 @@
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P118-Obsoleta-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 0,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.5 } ]\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-P118-Obsoleta-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 0,\n    \"metricas_produccion\": [ { \"nombre\": \"QA-PesoObs-{{$timestamp}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\", \"valor\": 1.5 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     },
