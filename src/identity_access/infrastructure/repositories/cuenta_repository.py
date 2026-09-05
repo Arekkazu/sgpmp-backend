@@ -101,9 +101,12 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
     def guardar(self, cuenta: Cuenta) -> Cuenta:
         orm = self.db.get(CuentasUsuarios, cuenta.id_cuenta_usuario)
         self._aplicar_a_orm(cuenta, orm)
-        self.db.flush()
-        self.db.refresh(orm)
-        return self._a_entidad(orm)
+        try:
+            self.db.flush()
+            self.db.refresh(orm)
+            return self._a_entidad(orm)
+        except Exception as e:
+            raise_from_db_error(e)
 
     def registrar_gestion(
         self,
