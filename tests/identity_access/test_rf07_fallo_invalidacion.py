@@ -92,6 +92,11 @@ def test_reutilizacion_se_rechaza_antes_de_cifrar_y_persistir(escenario):
         uc.execute(74, dto, actor)
     assert error.value.status_code == 409
     assert error.value.code == "CONTRASENA_REUTILIZADA"
+    assert error.value.message == (
+        "No se permite reutilizar la contraseña actual. "
+        "Defina una clave completamente nueva."
+    )
+    assert usuarios.obtener_por_id.return_value.contrasena.verificar.call_count == 2
     cifrar.assert_not_called()
     usuarios.cambiar_contrasena.assert_not_called()
     sesiones.invalidar_todas_sesiones.assert_not_called()

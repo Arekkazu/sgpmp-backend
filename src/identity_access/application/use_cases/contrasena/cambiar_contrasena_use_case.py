@@ -3,7 +3,6 @@
 Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
 tras 5 fallos), aplica el nuevo hash e invalida todas las sesiones activas.
 """
-import hmac
 import logging
 from datetime import datetime, timezone
 
@@ -72,8 +71,8 @@ class CambiarContrasenaUseCase:
             BusinessRuleError: Si la cuenta no está activa. HTTP 422.
             LockedError: Si la funcionalidad está bloqueada por intentos fallidos. HTTP 423.
             AuthenticationError: Si la contraseña actual es incorrecta. HTTP 401.
-            ConflictError: Si la nueva contraseña fue usada recientemente
-                (validado por trigger de DB). HTTP 409.
+            ConflictError: Si la nueva contraseña coincide con la vigente.
+                HTTP 409.
             InfrastructureError: Si falla la invalidación tras confirmar
                 la contraseña y su auditoría. HTTP 500.
         """
@@ -158,9 +157,11 @@ class CambiarContrasenaUseCase:
                 ),
             )
 
-        # 5. La clave actual ya fue verificada contra el hash. Comparar las dos
-        # entradas evita generar y comparar hashes bcrypt con salts distintos.
-        if hmac.compare_digest(dto.contrasena_actual, dto.nueva_contrasena):
+        # 5. BCrypt incorpora un salt distinto en cada cifrado, por lo que no
+        # sirve comparar hashes. Verificar la nueva entrada contra el hash
+        # vigente aplica la regla aunque cambie el valor enviado como clave
+        # actual o la credencial provenga de otro flujo compatible.
+        if usuario.contrasena.verificar(dto.nueva_contrasena):
             raise ConflictError(
                 code="CONTRASENA_REUTILIZADA",
                 message=(

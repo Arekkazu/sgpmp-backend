@@ -84,10 +84,10 @@ El baseline contiene `trg_fn_no_reutilizar_contrasena`, que compara igualdad
 de hashes; bcrypt genera un salt nuevo y por ello dos hashes de la misma clave
 pueden diferir.
 
-En RF-07 la corrección compara de forma segura la contraseña actual ya
-verificada con la nueva entrada. En RF-09 usa `bcrypt.checkpw` contra el hash
-vigente, porque ese flujo no recibe la contraseña anterior. Ambos responden
-409 antes de escribir, auditar, consumir tokens, invalidar sesiones o notificar.
+En RF-07 y RF-09 la corrección verifica la nueva entrada contra el hash BCrypt
+vigente. Ambos responden 409 antes de escribir, auditar, consumir tokens,
+invalidar sesiones o notificar. La incidencia específica de RF-07 quedó
+documentada como `INC-M01-05-035`, caso `TC-M01-035`, issue `#84`.
 Alembic retira el trigger que daba una falsa garantía; su downgrade lo restaura.
 También se eliminó el `rollback()` que el repositorio ejecutaba por su cuenta.
 
