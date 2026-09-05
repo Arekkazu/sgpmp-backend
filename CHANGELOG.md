@@ -1,3 +1,15 @@
+## [1.0.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.8...v1.0.0-rc.9) (2026-09-05)
+
+### Bug Fixes
+
+* **rf07-rf09:** rechazar reutilización de contraseña actual ([993c32a](https://github.com/Arekkazu/sgpmp-backend/commit/993c32ac2a489aa43ded60a4474df1cd7836dd5b))
+* **rf07:** aislar invalidación de sesiones con savepoint ([e892e8b](https://github.com/Arekkazu/sgpmp-backend/commit/e892e8b45e13782698000ae117b6076cf4a07877))
+* **rf07:** conservar contraseña ante fallo de sesiones inc-m01-08-38 ([39c8a87](https://github.com/Arekkazu/sgpmp-backend/commit/39c8a8787f72a7171b5d1d53046d06343220cb87))
+* **rf07:** rechazar reutilización de contraseña [#84](https://github.com/Arekkazu/sgpmp-backend/issues/84) ([9f462bf](https://github.com/Arekkazu/sgpmp-backend/commit/9f462bf9d5a7692f1e41f9f5973da83377d3abde))
+* **rf13:** incluir id_usuario en el listado administrativo de usuarios ([bf0370d](https://github.com/Arekkazu/sgpmp-backend/commit/bf0370d71edc12d29c111e2878e9c8c6aa99c579)), closes [#91](https://github.com/Arekkazu/sgpmp-backend/issues/91)
+* **rf40:** apuntar la migracion al head real de dev y alinear el DDL con la definicion original ([93e61ac](https://github.com/Arekkazu/sgpmp-backend/commit/93e61ac9177558c9432d3d4b9e088c41e061b92a))
+* **rf40:** corregir unidad gr vs g en trigger de evento de crecimiento ([90b916d](https://github.com/Arekkazu/sgpmp-backend/commit/90b916d4766df11b1c346635ef93b8e4bdcdc029))
+
 ## [1.0.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-09-04)
 
 ### Bug Fixes
