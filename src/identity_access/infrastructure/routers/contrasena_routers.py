@@ -36,6 +36,7 @@ router = APIRouter(prefix="/contrasena", tags=["Contraseña"])
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         423: {"model": ErrorResponse},
+        500: {"model": ErrorResponse, "description": "La contraseña puede quedar actualizada aunque falle el cierre de sesiones (RF-07)."},
     },
 )
 def cambiar_contrasena(
