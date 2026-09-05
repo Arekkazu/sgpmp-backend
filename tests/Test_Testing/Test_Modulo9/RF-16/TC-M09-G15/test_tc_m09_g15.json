@@ -1,0 +1,119 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g15-integridad-desactivacion",
+    "name": "TC-M09-G15 - Integridad de desactivación de parámetros en uso",
+    "description": "Suite E2E para TC-M09-G15 (TC-M09-36): Impedir desactivación de Etapas productivas con activos biológicos asociados (HTTP 422 ETAPA_CON_ACTIVOS).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Paso 1: Autenticación Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 1: Autenticación exitosa - HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+              "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 2: TC-M09-36 - Impedir desactivación de ETAPA en uso (id=10)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": ""
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/10/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "ciclos",
+            "10",
+            "desactivar"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Validando pre-request: Solicitando desactivacion de id_ciclo_biologico=10 (Fase juvenil cachama) con referencias_productivas > 0');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-36: Bloquear desactivación de ETAPA en uso - HTTP 422 BusinessRuleError', function () {",
+              "    pm.response.to.have.status(422);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('ETAPA_CON_ACTIVOS');",
+              "    pm.expect(jsonData.message).to.include('No es posible desactivar la etapa');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

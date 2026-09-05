@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g14-metricas-validaciones",
+    "name": "TC-M09-G14 - Validacion de campos de Metrica productiva",
+    "description": "Suite E2E para TC-M09-G14 (sub-casos TC-M09-32 a TC-M09-35): Validaciones de unidad, tipo de medicion, coherencia y tipo de activo en POST /configuracion/metricas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "jwt_token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Paso 1: Autenticación Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 1: Autenticación exitosa - HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+              "    pm.collectionVariables.set('jwt_token', jsonData.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 2: TC-M09-32a - Rechazar unidad_medida vacia",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Vacia QA\",\n  \"unidad_medida\": \"\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var payload = JSON.parse(pm.request.body.raw);",
+              "pm.expect(payload.unidad_medida.length).to.eql(0);",
+              "console.log('Validando pre-request: unidad_medida es string vacio de longitud 0');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-32a: Rechazar unidad_medida vacia - HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+              "    pm.expect(fieldMatch).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 3: TC-M09-32b - Rechazar unidad_medida ausente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Ausente QA\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var payload = JSON.parse(pm.request.body.raw);",
+              "pm.expect(payload.unidad_medida).to.be.undefined;",
+              "console.log('Validando pre-request: unidad_medida es undefined (ausente)');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-32b: Rechazar unidad_medida ausente - HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+              "    pm.expect(fieldMatch).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 4: TC-M09-33 - Rechazar tipo_medicion invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Tipo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"INVALIDO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-33: Rechazar tipo_medicion invalido - HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'tipo_medicion'; });",
+              "    pm.expect(fieldMatch).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 5: TC-M09-34 - Rechazar coherencia incoherente (PESO vs litros)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Incoherente QA\",\n  \"unidad_medida\": \"litros\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-34: Rechazar coherencia incoherente - HTTP 422 BusinessRuleError', function () {",
+              "    pm.response.to.have.status(422);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('UNIDAD_MEDIDA_INCOHERENTE');",
+              "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'unidad_medida'; });",
+              "    pm.expect(fieldMatch).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Paso 6: TC-M09-35 - Rechazar aplica_a_tipo_activo invalido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica Activo Invalido QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"GRUPO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/metricas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M09-35: Rechazar aplica_a_tipo_activo invalido - HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "    var fieldMatch = jsonData.fields.some(function(f) { return f.field === 'aplica_a_tipo_activo'; });",
+              "    pm.expect(fieldMatch).to.be.true;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

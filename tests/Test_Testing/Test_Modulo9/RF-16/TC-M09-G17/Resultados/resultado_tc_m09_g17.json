@@ -1,0 +1,3980 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m09-g17-referential-integrity-especie-id"
+    },
+    "item": [
+      {
+        "id": "4afca4f9-e4d7-4e08-ac3b-af3deba34dbb",
+        "name": "Paso 0: Auth Admin",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "3dbafb52-293d-4481-9595-386baa152bee",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Auth Admin exitosa - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Token JWT recibido', function () {",
+                "    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+                "});",
+                "pm.collectionVariables.set('jwt_token', resData.token);"
+              ],
+              "_lastExecutionId": "3b9ca851-6ccf-4a35-bb6a-16210749bcb6"
+            }
+          }
+        ]
+      },
+      {
+        "id": "6bb18747-cebb-44e7-8d89-70d2964c2c93",
+        "name": "Paso 1: TC-M09-40-A1 - Crear Etapa con id_especie Inexistente (999)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Etapa Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "88185e73-c329-44db-a779-9b166ffb4c28",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inexistente - HTTP 404', function () {",
+                "    pm.response.to.have.status(404);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                "});"
+              ],
+              "_lastExecutionId": "dd0eb094-607a-4f3b-9226-99e257165c8d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e26b5633-6f5e-4de1-8b05-f5362a8413a3",
+        "name": "Paso 2: TC-M09-40-A2 - Crear Patología con id_especie Inexistente (999)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Patologia Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A2\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "73ebb1d9-9861-4b0e-8f27-eebc32ff2d17",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inexistente - HTTP 404', function () {",
+                "    pm.response.to.have.status(404);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                "});"
+              ],
+              "_lastExecutionId": "905c3047-7501-4034-9807-9a4ffc96cd85"
+            }
+          }
+        ]
+      },
+      {
+        "id": "16498d5d-4fe1-4547-ad90-f6c3b41b15ae",
+        "name": "Paso 3: TC-M09-40-A3 - Crear Métrica con id_especie Inexistente (999)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Metrica Especie Inexistente\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "daa7b010-2f95-4d5b-9630-d65649e030d8",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inexistente - HTTP 404', function () {",
+                "    pm.response.to.have.status(404);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                "});"
+              ],
+              "_lastExecutionId": "5eb65226-dc8d-4bd1-b359-1107c77dd660"
+            }
+          }
+        ]
+      },
+      {
+        "id": "551eb60e-c157-4607-8270-ebdbba77897c",
+        "name": "Paso 4: TC-M09-40-B1 - Crear Etapa con id_especie Inactiva (1)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Etapa Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "59f5fc66-d958-4874-8376-d904f272c651",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inactiva - HTTP 422', function () {",
+                "    pm.response.to.have.status(422);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                "});"
+              ],
+              "_lastExecutionId": "dfc43305-24d5-465a-8e39-252c6c3be8de"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fb9d8262-e556-4334-ab44-1b206a28b103",
+        "name": "Paso 5: TC-M09-40-B2 - Crear Patología con id_especie Inactiva (1)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Patologia Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B2\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "c60356bc-06aa-4160-bc86-b7e78c03dc96",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inactiva - HTTP 422', function () {",
+                "    pm.response.to.have.status(422);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                "});"
+              ],
+              "_lastExecutionId": "c1c9c1a8-817d-4778-b873-07b7732d7e8d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "1927df78-f680-4693-888f-4ad38ef72fcb",
+        "name": "Paso 6: TC-M09-40-B3 - Crear Métrica con id_especie Inactiva (1)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Metrica Especie Inactiva\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "db139822-9226-4139-913a-1125f2fadaa6",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie inactiva - HTTP 422', function () {",
+                "    pm.response.to.have.status(422);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                "});"
+              ],
+              "_lastExecutionId": "f82649e7-3e92-4aa1-8848-883763f0c482"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ef3a4f83-890d-48d4-afaf-affda73887ac",
+        "name": "Paso 7: TC-M09-40-C1 - Crear Etapa con id_especie Negativo (-1)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": -1,\n  \"nombre\": \"Etapa ID Negativo\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "53516649-8d57-4c4e-b89f-fc1b792eaadb",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Especie no encontrada - HTTP 404', function () {",
+                "    pm.response.to.have.status(404);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                "});"
+              ],
+              "_lastExecutionId": "d40fa04a-2092-463b-ae7e-3b75d109c8ae"
+            }
+          }
+        ]
+      },
+      {
+        "id": "bd4f2537-782b-4512-9f9e-1a101599ee31",
+        "name": "Paso 8: TC-M09-40-C2 - Crear Etapa con id_especie No Entero ('abc')",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": \"abc\",\n  \"nombre\": \"Etapa ID No Entero\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C2\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "5574c6ef-31d6-4ce7-a79e-3c845144c47e",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Validación de entrada - HTTP 400', function () {",
+                "    pm.response.to.have.status(400);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error VAL_ENTRADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('VAL_ENTRADA');",
+                "});"
+              ],
+              "_lastExecutionId": "50420ac0-c0d7-49df-b25b-c20f7f2fb3fc"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "admin@pecuaria.co",
+        "key": "admin_email"
+      },
+      {
+        "type": "string",
+        "value": "Test1234!",
+        "key": "admin_password"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "jwt_token"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m09-g17-referential-integrity-especie-id",
+      "name": "TC-M09-G17 — Integridad referencial: id_especie inexistente o inactivo",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Verifica que el backend rechace la creación de parámetros (Etapas, Patologías, Métricas) cuando el id_especie referenciado no existe (id_especie=999, id_especie=-1), está inactivo (id_especie=1), o no es válido (id_especie='abc').",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "ffcfc63c-7f1d-4519-acab-a2b6995ad1c3",
+    "values": []
+  },
+  "globals": {
+    "id": "e5de1a69-7d31-4efe-82b7-9b94c3d88fe5",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 18,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 9,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 412.8888888888889,
+      "responseMin": 115,
+      "responseMax": 2365,
+      "responseSd": 691.568498165092,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1788599766651,
+      "completed": 1788599771132
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 9,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "2f0f617d-8721-4c39-b88a-ee40c3cc1d0b",
+          "httpRequestId": "e9511d91-22b2-46d8-add1-7b93a8a70d98"
+        },
+        "item": {
+          "id": "4afca4f9-e4d7-4e08-ac3b-af3deba34dbb",
+          "name": "Paso 0: Auth Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "3dbafb52-293d-4481-9595-386baa152bee",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth Admin exitosa - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Token JWT recibido', function () {",
+                  "    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('jwt_token', resData.token);"
+                ],
+                "_lastExecutionId": "3b9ca851-6ccf-4a35-bb6a-16210749bcb6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d6e5dd8e-5f89-44f9-88e9-a78cb95e1c3d",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "3e66755c-b88a-43b7-95f0-dd05a4e77d95",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:04 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk; HttpOnly; Max-Age=604798; Path=/; SameSite=none; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "41a89848-e51a-4056-b3b8-93aa00e78c93"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              77,
+              120,
+              79,
+              84,
+              81,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              69,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              68,
+              89,
+              121,
+              79,
+              68,
+              85,
+              50,
+              78,
+              83,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              52,
+              78,
+              84,
+              107,
+              53,
+              78,
+              122,
+              89,
+              49,
+              102,
+              81,
+              46,
+              120,
+              110,
+              89,
+              90,
+              79,
+              111,
+              70,
+              79,
+              115,
+              89,
+              51,
+              68,
+              49,
+              119,
+              102,
+              75,
+              86,
+              117,
+              106,
+              86,
+              88,
+              120,
+              50,
+              86,
+              66,
+              117,
+              89,
+              75,
+              52,
+              100,
+              71,
+              105,
+              104,
+              85,
+              109,
+              118,
+              82,
+              85,
+              119,
+              48,
+              83,
+              72,
+              107,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              56,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 2365,
+          "responseSize": 404
+        },
+        "id": "4afca4f9-e4d7-4e08-ac3b-af3deba34dbb",
+        "assertions": [
+          {
+            "assertion": "Auth Admin exitosa - HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Token JWT recibido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "31ea2cd4-7b6d-4189-bba4-3b287b34e753",
+          "length": 9,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "81625904-5bb5-494c-a69a-946675aac174"
+        },
+        "item": {
+          "id": "6bb18747-cebb-44e7-8d89-70d2964c2c93",
+          "name": "Paso 1: TC-M09-40-A1 - Crear Etapa con id_especie Inexistente (999)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Etapa Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A1\",\n  \"duracion_dias\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "88185e73-c329-44db-a779-9b166ffb4c28",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inexistente - HTTP 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "dd0eb094-607a-4f3b-9226-99e257165c8d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "d4064047-4b0e-4532-a73f-3ac527704912",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "153",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Etapa Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": {
+          "id": "afedba24-2ccd-4706-8008-8652b5414bbd",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "143"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:07 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4d313b18-3bae-47ef-ae6a-9f4fee8ec446"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              78,
+              79,
+              95,
+              69,
+              78,
+              67,
+              79,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              57,
+              57,
+              57,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              55,
+              46,
+              54,
+              49,
+              56,
+              56,
+              53,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 191,
+          "responseSize": 143
+        },
+        "id": "6bb18747-cebb-44e7-8d89-70d2964c2c93",
+        "assertions": [
+          {
+            "assertion": "Especie inexistente - HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_NO_ENCONTRADA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "e416dee7-a082-4ce7-8b62-14d55fbecb46",
+          "length": 9,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "ee538f8a-63be-41da-ac42-40873752a7f0"
+        },
+        "item": {
+          "id": "e26b5633-6f5e-4de1-8b05-f5362a8413a3",
+          "name": "Paso 2: TC-M09-40-A2 - Crear Patología con id_especie Inexistente (999)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Patologia Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A2\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "73ebb1d9-9861-4b0e-8f27-eebc32ff2d17",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inexistente - HTTP 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "905c3047-7501-4034-9807-9a4ffc96cd85"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "9a3affc3-2d16-4fd6-89b8-e2d156b40a51",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "134",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Patologia Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A2\"\n}"
+          }
+        },
+        "response": {
+          "id": "84913986-fb91-4b59-b7c3-8dd6288af989",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "143"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:07 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "6294e1de-697a-414e-af33-bec735f089d1"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              78,
+              79,
+              95,
+              69,
+              78,
+              67,
+              79,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              57,
+              57,
+              57,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              55,
+              46,
+              56,
+              57,
+              57,
+              50,
+              52,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 122,
+          "responseSize": 143
+        },
+        "id": "e26b5633-6f5e-4de1-8b05-f5362a8413a3",
+        "assertions": [
+          {
+            "assertion": "Especie inexistente - HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_NO_ENCONTRADA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "453c3796-16ed-4d9f-a39f-e30eb41929f0",
+          "length": 9,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "2f3597fe-a1f9-470b-97d9-2a0a0c919f2d"
+        },
+        "item": {
+          "id": "16498d5d-4fe1-4547-ad90-f6c3b41b15ae",
+          "name": "Paso 3: TC-M09-40-A3 - Crear Métrica con id_especie Inexistente (999)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Metrica Especie Inexistente\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "daa7b010-2f95-4d5b-9630-d65649e030d8",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inexistente - HTTP 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "5eb65226-dc8d-4bd1-b359-1107c77dd660"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "51e32c7a-35b0-4ce8-808d-a4a3a15e5a49",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "152",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Metrica Especie Inexistente\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+          }
+        },
+        "response": {
+          "id": "1643c832-79e4-41a2-8809-49136244891f",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "143"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:07 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "ad5deaf7-7025-4841-8905-b6ce47a0c3f8"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              78,
+              79,
+              95,
+              69,
+              78,
+              67,
+              79,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              57,
+              57,
+              57,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              56,
+              46,
+              49,
+              48,
+              51,
+              48,
+              54,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 223,
+          "responseSize": 143
+        },
+        "id": "16498d5d-4fe1-4547-ad90-f6c3b41b15ae",
+        "assertions": [
+          {
+            "assertion": "Especie inexistente - HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_NO_ENCONTRADA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "9fe4692c-4faf-410c-92c4-11a2e31e6b2d",
+          "length": 9,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "2d5d8127-d952-406b-8c13-efeb79e8c4c1"
+        },
+        "item": {
+          "id": "551eb60e-c157-4607-8270-ebdbba77897c",
+          "name": "Paso 4: TC-M09-40-B1 - Crear Etapa con id_especie Inactiva (1)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Etapa Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B1\",\n  \"duracion_dias\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "59f5fc66-d958-4874-8376-d904f272c651",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inactiva - HTTP 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                  "});"
+                ],
+                "_lastExecutionId": "dfc43305-24d5-465a-8e39-252c6c3be8de"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "680aba65-82c1-493c-a597-dbae490f50f0",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "148",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Etapa Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": {
+          "id": "c9022984-4d0d-4e59-a3b6-a3dce4b5dd63",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "169"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:07 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "59a5f2b6-f1fe-4ade-a7bd-00b6858c20c1"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              73,
+              78,
+              65,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              49,
+              32,
+              101,
+              115,
+              116,
+              195,
+              161,
+              32,
+              105,
+              110,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              46,
+              32,
+              78,
+              111,
+              32,
+              115,
+              101,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              110,
+              32,
+              97,
+              103,
+              114,
+              101,
+              103,
+              97,
+              114,
+              32,
+              101,
+              116,
+              97,
+              112,
+              97,
+              115,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              56,
+              46,
+              52,
+              49,
+              57,
+              57,
+              48,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 205,
+          "responseSize": 169
+        },
+        "id": "551eb60e-c157-4607-8270-ebdbba77897c",
+        "assertions": [
+          {
+            "assertion": "Especie inactiva - HTTP 422",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_INACTIVA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "7e91f9eb-cb08-41fe-9a58-46211329d9fe",
+          "length": 9,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "4c265e2e-3945-4c00-ba5c-5f4dc2603ceb"
+        },
+        "item": {
+          "id": "fb9d8262-e556-4334-ab44-1b206a28b103",
+          "name": "Paso 5: TC-M09-40-B2 - Crear Patología con id_especie Inactiva (1)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Patologia Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B2\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "c60356bc-06aa-4160-bc86-b7e78c03dc96",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inactiva - HTTP 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                  "});"
+                ],
+                "_lastExecutionId": "c1c9c1a8-817d-4778-b873-07b7732d7e8d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8470a87f-ac88-4346-9887-b3ed4079e145",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "129",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Patologia Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B2\"\n}"
+          }
+        },
+        "response": {
+          "id": "d9ec0cb3-d86e-4b43-9a4e-f2111f0d0725",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "140"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:08 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b2c35475-fff8-4036-b49a-46ab175ed123"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              73,
+              78,
+              65,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              49,
+              32,
+              101,
+              115,
+              116,
+              195,
+              161,
+              32,
+              105,
+              110,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              56,
+              46,
+              54,
+              57,
+              51,
+              50,
+              51,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 118,
+          "responseSize": 140
+        },
+        "id": "fb9d8262-e556-4334-ab44-1b206a28b103",
+        "assertions": [
+          {
+            "assertion": "Especie inactiva - HTTP 422",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_INACTIVA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "df37ba27-8741-46c7-ab68-33153e47a10d",
+          "length": 9,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "2e6d24cb-8cc0-4c5d-bf18-13712092b312"
+        },
+        "item": {
+          "id": "1927df78-f680-4693-888f-4ad38ef72fcb",
+          "name": "Paso 6: TC-M09-40-B3 - Crear Métrica con id_especie Inactiva (1)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Metrica Especie Inactiva\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "db139822-9226-4139-913a-1125f2fadaa6",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie inactiva - HTTP 422', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_INACTIVA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+                  "});"
+                ],
+                "_lastExecutionId": "f82649e7-3e92-4aa1-8848-883763f0c482"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "650b226d-9413-4a8a-81a9-3d40adccd6a8",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "147",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Metrica Especie Inactiva\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+          }
+        },
+        "response": {
+          "id": "a20bd281-ce1c-449e-ae7a-0bbbde93c548",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "172"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:08 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1e868e98-abea-44cb-ab2e-d2601d748f8c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              73,
+              78,
+              65,
+              67,
+              84,
+              73,
+              86,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              49,
+              32,
+              101,
+              115,
+              116,
+              195,
+              161,
+              32,
+              105,
+              110,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              46,
+              32,
+              78,
+              111,
+              32,
+              115,
+              101,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              110,
+              32,
+              97,
+              103,
+              114,
+              101,
+              103,
+              97,
+              114,
+              32,
+              109,
+              195,
+              169,
+              116,
+              114,
+              105,
+              99,
+              97,
+              115,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              56,
+              46,
+              56,
+              57,
+              51,
+              52,
+              56,
+              48,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 143,
+          "responseSize": 172
+        },
+        "id": "1927df78-f680-4693-888f-4ad38ef72fcb",
+        "assertions": [
+          {
+            "assertion": "Especie inactiva - HTTP 422",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_INACTIVA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "6d28b52a-ca5a-4ee0-9744-97b5c1111805",
+          "length": 9,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "99c7d5a8-110c-4f92-adbb-ca7f2fdbff53"
+        },
+        "item": {
+          "id": "ef3a4f83-890d-48d4-afaf-affda73887ac",
+          "name": "Paso 7: TC-M09-40-C1 - Crear Etapa con id_especie Negativo (-1)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": -1,\n  \"nombre\": \"Etapa ID Negativo\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C1\",\n  \"duracion_dias\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "53516649-8d57-4c4e-b89f-fc1b792eaadb",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Especie no encontrada - HTTP 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "d40fa04a-2092-463b-ae7e-3b75d109c8ae"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "5584ef8f-35d2-44cc-8084-5cdc31a6ca32",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "144",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": -1,\n  \"nombre\": \"Etapa ID Negativo\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C1\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": {
+          "id": "c85e498e-a625-476f-af25-c3c3a27631dc",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "142"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:08 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4d0bbeda-cd78-49e2-8ad9-c93f6777909f"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              80,
+              69,
+              67,
+              73,
+              69,
+              95,
+              78,
+              79,
+              95,
+              69,
+              78,
+              67,
+              79,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              45,
+              49,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              57,
+              46,
+              49,
+              48,
+              57,
+              52,
+              57,
+              55,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 234,
+          "responseSize": 142
+        },
+        "id": "ef3a4f83-890d-48d4-afaf-affda73887ac",
+        "assertions": [
+          {
+            "assertion": "Especie no encontrada - HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ESPECIE_NO_ENCONTRADA",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "214968f9-ddfe-4c3c-9b4f-ffd790bc8547",
+          "length": 9,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "c00e8769-e506-474a-9625-4ec42c940c81"
+        },
+        "item": {
+          "id": "bd4f2537-782b-4512-9f9e-1a101599ee31",
+          "name": "Paso 8: TC-M09-40-C2 - Crear Etapa con id_especie No Entero ('abc')",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": \"abc\",\n  \"nombre\": \"Etapa ID No Entero\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C2\",\n  \"duracion_dias\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5574c6ef-31d6-4ce7-a79e-3c845144c47e",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validación de entrada - HTTP 400', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error VAL_ENTRADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('VAL_ENTRADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "50420ac0-c0d7-49df-b25b-c20f7f2fb3fc"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMxOTQiLCJyb2wiOjEsImV4cCI6MTc4ODYyODU2NSwiaWF0IjoxNzg4NTk5NzY1fQ.xnYZOoFOsY3D1wfKVujVXx2VBuYK4dGihUmvRUw0SHk"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "20465e31-9f69-41cd-a3d1-aaa4936f44e7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "148",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=3gxmxWUc3i0kGollm7zaISRfIw0pLRwCcWLoABQdxRk",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": \"abc\",\n  \"nombre\": \"Etapa ID No Entero\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C2\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": {
+          "id": "1c3125dd-715e-4113-a1af-ba44a5063074",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "241"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:16:08 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "68868e52-d5a6-40c2-a5c0-4bf569493ab9"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              73,
+              110,
+              112,
+              117,
+              116,
+              32,
+              115,
+              104,
+              111,
+              117,
+              108,
+              100,
+              32,
+              98,
+              101,
+              32,
+              97,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              32,
+              105,
+              110,
+              116,
+              101,
+              103,
+              101,
+              114,
+              44,
+              32,
+              117,
+              110,
+              97,
+              98,
+              108,
+              101,
+              32,
+              116,
+              111,
+              32,
+              112,
+              97,
+              114,
+              115,
+              101,
+              32,
+              115,
+              116,
+              114,
+              105,
+              110,
+              103,
+              32,
+              97,
+              115,
+              32,
+              97,
+              110,
+              32,
+              105,
+              110,
+              116,
+              101,
+              103,
+              101,
+              114,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              49,
+              54,
+              58,
+              48,
+              57,
+              46,
+              52,
+              51,
+              53,
+              56,
+              51,
+              48,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 115,
+          "responseSize": 241
+        },
+        "id": "bd4f2537-782b-4512-9f9e-1a101599ee31",
+        "assertions": [
+          {
+            "assertion": "Validación de entrada - HTTP 400",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error VAL_ENTRADA",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1697
+    },
+    "failures": [],
+    "error": null
+  }
+}
