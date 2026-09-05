@@ -1,7 +1,6 @@
 """Flujo HTTP/BD de recuperación y restablecimiento de contraseña."""
 from __future__ import annotations
 
-import json
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -278,20 +277,15 @@ def test_restablecer_con_tokens_invalidos_repetidos_bloquea_por_ip(client) -> No
     assert quinto.json()["error_code"] == "RESTABLECIMIENTO_BLOQUEADO"
 
 
-def _insertar_solicitud_recuperacion(db_session, id_usuario: int, ip: str, hace: timedelta) -> None:
-    """Inserta un evento tipo 7 (SOLICITUD_RECUPERACION) con fecha pasada, para
-    simular solicitudes previas dentro de la ventana de una hora sin depender
-    de tiempo real de ejecución del test."""
+def _insertar_intento_anonimo(db_session, tipo: str, ip: str, hace: timedelta) -> None:
+    """Inserta un intento con fecha pasada en la tabla de rate limiting por IP,
+    para simular solicitudes previas dentro de la ventana sin depender de
+    tiempo real de ejecución del test."""
     db_session.execute(
         text(
-            """
-            INSERT INTO modulo1.eventos
-                (tipo_evento, fecha_evento, modulo, resultado, detalle, id_usuario, categoria, estado)
-            VALUES
-                (7, now() - :hace, 'MODULO1', 'exitoso', :detalle, :id_usuario, 'AUTENTICACION', 'PROCESADO')
-            """
+            "INSERT INTO modulo1.intentos_anonimos_ip (tipo, ip, fecha) VALUES (:tipo, :ip, now() - :hace)"
         ),
-        {"hace": hace, "detalle": json.dumps({"ip": ip}), "id_usuario": id_usuario},
+        {"tipo": tipo, "ip": ip, "hace": hace},
     )
     db_session.commit()
 
@@ -309,7 +303,7 @@ def test_recuperacion_excede_limite_responde_429_con_hora_real_de_reintento(
     ip = "sgpmp-integration-tests"  # host simulado por el fixture `client` (conftest)
     mas_antigua = timedelta(minutes=50)
     for hace in (mas_antigua, timedelta(minutes=40), timedelta(minutes=30)):
-        _insertar_solicitud_recuperacion(db_session, usuario["id_usuario"], ip, hace)
+        _insertar_intento_anonimo(db_session, "SOLICITUD_RECUPERACION", ip, hace)
 
     respuesta = client.post(
         "/contrasena/recuperar",
@@ -329,3 +323,25 @@ def test_recuperacion_excede_limite_responde_429_con_hora_real_de_reintento(
     # La hora de reintento NO puede ser "ahora": ese era exactamente el bug.
     ahora = datetime.now(timezone.utc).strftime("%H:%M")
     assert hora_reportada != ahora
+
+
+def test_recuperacion_aplica_limite_a_correo_inexistente(client) -> None:
+    """INC-M01-09-043 (#86): el límite de 3/hora por IP debe aplicarse también
+    cuando el correo no está registrado — antes, ese caso retornaba el mensaje
+    genérico sin registrar ningún evento, así que el contador nunca subía y
+    permitía solicitudes ilimitadas contra correos inexistentes."""
+    correo_inexistente = "no-existe-tc043@example.com"
+    for numero in range(1, 4):
+        respuesta = client.post(
+            "/contrasena/recuperar",
+            json={"correo_electronico": correo_inexistente},
+        )
+        assert respuesta.status_code == 202, f"solicitud {numero}: {respuesta.text}"
+
+    cuarta = client.post(
+        "/contrasena/recuperar",
+        json={"correo_electronico": correo_inexistente},
+    )
+
+    assert cuarta.status_code == 429, cuarta.text
+    assert cuarta.json()["error_code"] == "LIMITE_SOLICITUDES_EXCEDIDO"

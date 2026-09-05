@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
+from src.identity_access.domain.repositories.intento_anonimo_repository import IntentoAnonimoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
@@ -22,6 +23,7 @@ from src.shared.errors import TooManyRequestsError
 
 MAX_SOLICITUDES_POR_HORA = 3
 TIPO_SOLICITUD_RECUPERACION = 7
+TIPO_INTENTO_SOLICITUD_RECUPERACION = "SOLICITUD_RECUPERACION"
 
 _MENSAJE_GENERICO = "Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña en unos minutos."
 
@@ -34,6 +36,7 @@ class SolicitarRecuperacionUseCase:
         usuarios_repo: UsuarioRepository,
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
+        intentos_anonimos_repo: IntentoAnonimoRepository,
         db: Session,
         notificacion_service=None,
     ):
@@ -42,13 +45,16 @@ class SolicitarRecuperacionUseCase:
         Args:
             usuarios_repo: Repositorio de dominio del agregado Usuario.
             cuentas_repo: Repositorio de dominio del agregado Cuenta (token de recuperación).
-            eventos_repo: Repositorio de dominio de eventos (rate limiting y auditoría).
+            eventos_repo: Repositorio de dominio de eventos (auditoría de solicitudes de usuarios reales).
+            intentos_anonimos_repo: Repositorio de intentos por IP para el rate
+                limit, independiente de si el correo corresponde a un usuario real.
             db: Sesión SQLAlchemy activa del request.
             notificacion_service: Servicio de notificaciones opcional.
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
+        self.intentos_anonimos_repo = intentos_anonimos_repo
         self.db = db
         self.notificacion_service = notificacion_service
 
@@ -70,17 +76,32 @@ class SolicitarRecuperacionUseCase:
             TooManyRequestsError: Si se supera el límite de 3 solicitudes por
                 hora desde la misma IP. HTTP 429.
         """
-        # 1. Rate limit por IP: máx 3 solicitudes por hora
+        # 1. Rate limit por IP: máx 3 solicitudes por hora.
+        # Se cuenta TODO intento (exista o no el correo) en una tabla propia sin
+        # actor identificado: modulo1.eventos no sirve porque id_usuario es
+        # NOT NULL con FK a usuarios, y contar solo cuando el correo existe es
+        # justamente el bug INC-M01-09-043 (el límite nunca se aplicaba a
+        # correos inexistentes, porque ese caso retornaba antes de registrar
+        # ningún evento).
         ahora = datetime.now(timezone.utc)
         hace_una_hora = ahora - timedelta(hours=1)
-        solicitudes = self.eventos_repo.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
-        if solicitudes >= MAX_SOLICITUDES_POR_HORA:
+        try:
+            self.intentos_anonimos_repo.registrar(TIPO_INTENTO_SOLICITUD_RECUPERACION, ip)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        solicitudes = self.intentos_anonimos_repo.contar_por_ip(
+            TIPO_INTENTO_SOLICITUD_RECUPERACION, ip, hace_una_hora
+        )
+        if solicitudes > MAX_SOLICITUDES_POR_HORA:
             # La ventana libera cupo cuando la solicitud MÁS ANTIGUA de las que
             # cuentan actualmente cumple una hora — no "ahora + 1h" (eso da
             # siempre la hora actual, ver INC-M01-20-112) ni "hace_una_hora + 1h"
             # (eso da siempre "ahora", el mismo bug con otro nombre).
-            mas_antigua = self.eventos_repo.obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
-                ip, hace_una_hora
+            mas_antigua = self.intentos_anonimos_repo.obtener_fecha_mas_antigua_por_ip(
+                TIPO_INTENTO_SOLICITUD_RECUPERACION, ip, hace_una_hora
             )
             proxima_vez = (mas_antigua or ahora) + timedelta(hours=1)
             raise TooManyRequestsError(

@@ -72,6 +72,7 @@ def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: 
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )

@@ -68,6 +68,22 @@ class EventoRepoFake:
         self.eventos.append(evento)
 
 
+class IntentoAnonimoRepoFake:
+    """Nunca alcanza el límite: existe solo para satisfacer la firma."""
+
+    def __init__(self) -> None:
+        self.registros: list[str] = []
+
+    def registrar(self, tipo, ip) -> None:
+        self.registros.append(tipo)
+
+    def contar_por_ip(self, _tipo, _ip, _desde) -> int:
+        return 1
+
+    def obtener_fecha_mas_antigua_por_ip(self, _tipo, _ip, _desde):
+        return None
+
+
 class UsuarioRepoFake:
     def __init__(self, usuario) -> None:
         self.usuario = usuario
@@ -268,6 +284,7 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -308,6 +325,7 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
