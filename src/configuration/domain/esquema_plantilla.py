@@ -25,9 +25,11 @@ from __future__ import annotations
 from decimal import Decimal, InvalidOperation
 from typing import Any, Callable
 
+from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
+from src.shared.errors import BusinessRuleError
 
 SCHEMA_VERSION_ACTUAL = 1
 
@@ -145,6 +147,32 @@ CHANGELOG: tuple[dict[str, Any], ...] = (
         ),
     },
 )
+
+
+def validar_rangos_fisicos_umbrales(snapshot: dict[str, Any], variable_repo: VariableAmbientalRepository) -> None:
+    """FA-04 de RF-31: cada umbral de la plantilla debe caer dentro del rango
+    físico real de su variable ambiental (mismo criterio que
+    `RegistrarUmbralUseCase._validar_rangos`, pero como violación de negocio de
+    esta operación — 422 — y no como error de formato del DTO, que no conoce
+    la BD y solo valida tipo). La usan tanto `RegistrarPlantillaUseCase` como
+    `VersionarPlantillaUseCase`: ambos persisten un snapshot inmutable nuevo.
+    """
+    for item in snapshot.get("umbrales_ambientales", []):
+        variable = variable_repo.obtener_por_id(item["id_variable_ambiental"])
+        if variable is None:
+            continue
+        valor_min = Decimal(str(item["valor_min"]))
+        valor_max = Decimal(str(item["valor_max"]))
+        if valor_min < variable.valor_fisico_min or valor_max > variable.valor_fisico_max:
+            raise BusinessRuleError(
+                code="RANGO_FISICO_INVALIDO",
+                message=(
+                    f"Los valores del umbral para '{variable.nombre}' deben estar dentro del "
+                    f"rango físico permitido: [{variable.valor_fisico_min}, {variable.valor_fisico_max}] "
+                    f"{variable.unidad}."
+                ),
+                field="params_snapshot",
+            )
 
 
 def versiones_compatibles() -> tuple[int, ...]:
