@@ -1,3 +1,9 @@
+## [1.0.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.12...v1.0.0-rc.13) (2026-09-05)
+
+### Bug Fixes
+
+* **rf08:** mantener 202 y alertar fallo smtp inc-m01-14-044 ([2fe2d66](https://github.com/Arekkazu/sgpmp-backend/commit/2fe2d66020251075a54f209fa7d6d39129e18c78))
+
 ## [1.0.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-09-05)
 
 ### Features
