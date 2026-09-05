@@ -22,7 +22,6 @@ def test_bloqueo_por_intentos_fallidos_revoca_la_sesion_ya_abierta(
     db_session: Session,
     crear_usuario_db,
 ) -> None:
-    # Rol no protegido: trg_proteger_estado_cuenta_admin impide bloquear al Administrador.
     victima = crear_usuario_db(id_rol=2, estado=2)
     correo = db_session.execute(
         text("SELECT correo_electronico FROM modulo1.usuarios WHERE id_usuario = :i"),
