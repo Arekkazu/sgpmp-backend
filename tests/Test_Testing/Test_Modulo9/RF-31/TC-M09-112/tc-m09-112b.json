@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "TC-M09-216 (retest) - Rango en la categoria correcta del snapshot",
-    "description": "Re-intento de TC-M09-216 (parametro fuera de rango) tras descubrir en TC-M09-214 que el snapshot real tiene 4 categorias posibles: ciclos_biologicos, patologias, metricas_produccion, umbrales_ambientales. El primer intento puso 'temperatura' dentro de metricas_produccion (categoria de metricas de PRODUCCION, no ambientales) y el sistema la acepto sin validar rango -- pero puede que la validacion de rango solo aplique a la categoria correcta (umbrales_ambientales). Este script prueba 'temperatura' fuera de rango en umbrales_ambientales, con dos formas de estructura posibles (arreglo nombre/valor igual que metricas_produccion, y objeto min/max), para no fallar por adivinar mal la forma del JSON. Ejecutar con: newman run tc-m09-112b.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112b.html",
+    "name": "TC-M09-216 (retest v2) - Rango fisico real via id_variable_ambiental",
+    "description": "Version corregida de TC-M09-216. Los intentos anteriores (metricas_produccion en tc-m09-112.json, y ambas formas de este archivo) usaban formas de JSON que no correspondian al esquema real de umbrales_ambientales (esquema_plantilla.py: CAMPOS_REQUERIDOS.umbrales_ambientales exige id_variable_ambiental, unidad_medida, valor_min, valor_max -- no 'nombre'/'valor' ni un objeto '_min'/'_max'). Confirmado en modulo9.variables_ambientales que id_variable_ambiental=1 es 'Temperatura del agua' con rango fisico real 0-45 C. Este script envia esa forma correcta con valor_min=-999/valor_max=999 para confirmar si existe validacion de rango fisico. Ejecutar con: newman run tc-m09-112b.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-112b.html",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -40,32 +40,19 @@
       }
     },
     {
-      "name": "1. Retest A - temperatura fuera de rango en umbrales_ambientales (forma arreglo nombre/valor)",
+      "name": "1. Retest C - id_variable_ambiental=1 (Temperatura del agua, rango fisico real 0-45 C) con valor_min/valor_max absurdos",
       "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[UMBRALES - FORMA ARREGLO] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 400) { console.log('Rechazado por VALIDACION DE ESTRUCTURA (no necesariamente de rango) -- revisar el mensaje para ver si es por forma del JSON o por el valor fuera de rango.'); }",
-        "if (pm.response.code === 422) { console.log('Rechazado con 422 -- esto SI coincide con lo que pide la ficha (validacion de rango).'); }",
-        "if (pm.response.code === 201) { console.log('ACEPTADO (201) -- si esta es la categoria/forma correcta, confirma que no hay validacion de rango para temperatura en absoluto.'); }"
+        "console.log('[UMBRALES - FORMA REAL DEL ESQUEMA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-216: un umbral fuera del rango fisico de su variable debe rechazarse con 422', function () { pm.response.to.have.status(422); });",
+        "if (pm.response.code === 201) {",
+        "    var b = pm.response.json();",
+        "    console.log('DEFECTO CONFIRMADO: aceptado y persistido tal cual (id_plantilla=' + b.id_plantilla + '). esquema_plantilla.py (CAMPOS_REQUERIDOS.umbrales_ambientales) solo exige que valor_min/valor_max sean NUMERO (numericamente validos), sin comparar contra valor_fisico_min/valor_fisico_max de modulo9.variables_ambientales.');",
+        "}"
       ] } }],
       "request": {
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RangoUmbralesArreglo-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"nombre\": \"temperatura\", \"valor\": 999 } ]\n  }\n}" },
-        "url": "{{base_url}}/configuracion/plantillas"
-      }
-    },
-    {
-      "name": "2. Retest B - temperatura fuera de rango en umbrales_ambientales (forma objeto min/max)",
-      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
-        "console.log('[UMBRALES - FORMA MIN/MAX] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "if (pm.response.code === 400) { console.log('Rechazado por VALIDACION DE ESTRUCTURA (no necesariamente de rango) -- revisar el mensaje.'); }",
-        "if (pm.response.code === 422) { console.log('Rechazado con 422 -- esto SI coincide con lo que pide la ficha (validacion de rango).'); }",
-        "if (pm.response.code === 201) { console.log('ACEPTADO (201) -- si esta es la forma correcta, confirma que no hay validacion de rango para temperatura en absoluto.'); }"
-      ] } }],
-      "request": {
-        "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RangoUmbralesMinMax-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": { \"temperatura_min\": -999, \"temperatura_max\": 999 }\n  }\n}" },
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-RangoUmbralReal-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"umbrales_ambientales\": [ { \"id_variable_ambiental\": 1, \"unidad_medida\": \"°C\", \"valor_min\": -999, \"valor_max\": 999 } ]\n  }\n}" },
         "url": "{{base_url}}/configuracion/plantillas"
       }
     }
