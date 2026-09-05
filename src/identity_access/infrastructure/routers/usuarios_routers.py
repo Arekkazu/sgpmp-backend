@@ -146,6 +146,7 @@ def listar_usuarios_admin(
     )
     items = [
         UsuarioListadoResponse(
+            id_usuario=u.id_usuario,
             nombre_usuario=f"{u.nombre} {u.apellidos}",
             correo_electronico=u.correo_electronico,
             nombre_rol=u.nombre_rol,
