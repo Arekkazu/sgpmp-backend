@@ -1,3 +1,10 @@
+## [1.0.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.9...v1.0.0-rc.10) (2026-09-05)
+
+### Bug Fixes
+
+* permitir bloqueo automatico por fuerza bruta en cuentas protegidas (INC-M01-23-045) ([7fc0696](https://github.com/Arekkazu/sgpmp-backend/commit/7fc069671680cfc1a37f3b4fab975072bdf62d35))
+* **rf14:** notificar al usuario afectado en bloqueo e inactivacion de cuenta ([15c6c35](https://github.com/Arekkazu/sgpmp-backend/commit/15c6c3594b71b14957b9b476c09821ea315c6b40)), closes [#103](https://github.com/Arekkazu/sgpmp-backend/issues/103)
+
 ## [1.0.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.8...v1.0.0-rc.9) (2026-09-05)
 
 ### Bug Fixes
