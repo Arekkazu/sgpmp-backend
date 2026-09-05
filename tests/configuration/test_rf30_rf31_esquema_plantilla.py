@@ -17,6 +17,7 @@ Trazabilidad de los gaps que corrigen estas pruebas (auditoría
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -370,12 +371,29 @@ class _AuditoriaRepoFake:
         self.ultimo = kwargs
 
 
+class _VariableRepoFake:
+    """Variable de rango físico [15.0, 30.0], igual que 'Temperatura del agua'."""
+
+    def obtener_por_id(self, id_variable_ambiental):
+        if id_variable_ambiental is None:
+            return None
+        return SimpleNamespace(
+            id_variable_ambiental=id_variable_ambiental,
+            nombre="Temperatura del agua",
+            unidad="°C",
+            valor_fisico_min=Decimal("15.0"),
+            valor_fisico_max=Decimal("30.0"),
+            es_activo=True,
+        )
+
+
 def _use_case_registro():
     return RegistrarPlantillaUseCase(
         db=_DbFake(),
         plantilla_repo=_PlantillaRepoFake(),
         especie_repo=_EspecieRepoFake(),
         auditoria_repo=_AuditoriaRepoFake(),
+        variable_repo=_VariableRepoFake(),
     )
 
 
@@ -425,6 +443,46 @@ def test_snapshot_dentro_del_alcance_no_dispara_el_422():
     assert plantilla.version == 1
     assert plantilla.params_snapshot["schema_version"] == SCHEMA_VERSION_ACTUAL
     assert use_case.db.commits == 1
+
+
+# ── RF-31 (#126) — rango físico de umbrales ambientales ──────────────────────
+# `_VariableRepoFake` simula una variable con rango físico real [15.0, 30.0].
+# Antes de este fix, un umbral fuera de ese rango pasaba sin ningún control: el
+# DTO solo valida tipo (número), no rango, porque no conoce la BD.
+
+_UMBRAL_FUERA_DE_RANGO = {
+    "id_variable_ambiental": 1, "unidad_medida": "°C",
+    "valor_min": "-999", "valor_max": "999",
+}
+_UMBRAL_DENTRO_DE_RANGO = {
+    "id_variable_ambiental": 1, "unidad_medida": "°C",
+    "valor_min": "18.0", "valor_max": "25.0",
+}
+
+
+def test_crear_con_umbral_fuera_de_rango_fisico_responde_422():
+    use_case = _use_case_registro()
+    dto = _dto_con({"umbrales_ambientales": [_UMBRAL_FUERA_DE_RANGO]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(dto, USUARIO)
+
+    error = exc_info.value
+    assert error.status_code == 422
+    assert error.code == "RANGO_FISICO_INVALIDO"
+    assert error.field == "params_snapshot"
+    assert use_case.plantilla_repo.guardadas == []
+    assert use_case.db.commits == 0
+
+
+def test_crear_con_umbral_dentro_de_rango_fisico_no_dispara_422():
+    use_case = _use_case_registro()
+    dto = _dto_con({"umbrales_ambientales": [_UMBRAL_DENTRO_DE_RANGO]})
+
+    plantilla = use_case.execute(dto, USUARIO)
+
+    assert use_case.db.commits == 1
+    assert plantilla.params_snapshot["umbrales_ambientales"] == [_UMBRAL_DENTRO_DE_RANGO]
 
 
 # ── RF-30 / RF-31 — nombre único al crear, versionado explícito ──────────────
@@ -489,6 +547,7 @@ def _use_case_versionado(existentes):
         plantilla_repo=_PlantillaRepoFake(existentes),
         especie_repo=_EspecieRepoFake(),
         auditoria_repo=_AuditoriaRepoFake(),
+        variable_repo=_VariableRepoFake(),
     )
 
 
@@ -574,3 +633,16 @@ def test_versionar_tambien_rechaza_el_scope_creep_con_422():
         use_case.execute(1, dto, USUARIO)
 
     assert exc_info.value.code == "ALCANCE_NO_PERMITIDO"
+
+
+def test_versionar_tambien_rechaza_umbral_fuera_de_rango_fisico():
+    """Mismo gap que en creación: versionar persiste un snapshot nuevo e
+    inmutable, así que también debe validar el rango físico (#126)."""
+    use_case = _use_case_versionado([_plantilla_existente()])
+    dto = _dto_version({"umbrales_ambientales": [_UMBRAL_FUERA_DE_RANGO]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(1, dto, USUARIO)
+
+    assert exc_info.value.code == "RANGO_FISICO_INVALIDO"
+    assert use_case.db.commits == 0
