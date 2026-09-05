@@ -68,6 +68,22 @@ class EventoRepoFake:
         self.eventos.append(evento)
 
 
+class IntentoAnonimoRepoFake:
+    """Nunca alcanza el límite: existe solo para satisfacer la firma."""
+
+    def __init__(self) -> None:
+        self.registros: list[str] = []
+
+    def registrar(self, tipo, ip) -> None:
+        self.registros.append(tipo)
+
+    def contar_por_ip(self, _tipo, _ip, _desde) -> int:
+        return 1
+
+    def obtener_fecha_mas_antigua_por_ip(self, _tipo, _ip, _desde):
+        return None
+
+
 class UsuarioRepoFake:
     def __init__(self, usuario) -> None:
         self.usuario = usuario
@@ -269,6 +285,7 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -309,6 +326,7 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -325,7 +343,7 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
     assert TOKEN_HASH not in correos[0]["html_body"]
 
 
-def test_restablecimiento_consulta_hash_y_lo_invalida(
+def test_restablecimiento_consulta_hash_y_marca_token_usado(
     monkeypatch,
 ) -> None:
     cuenta = nueva_cuenta(Cuenta.ESTADO_ACTIVO)
@@ -345,6 +363,7 @@ def test_restablecimiento_consulta_hash_y_lo_invalida(
         cuentas_repo=cuentas_repo,
         sesiones_repo=sesiones_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=SimpleNamespace(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -357,7 +376,10 @@ def test_restablecimiento_consulta_hash_y_lo_invalida(
     assert cuentas_repo.hash_consultado == TOKEN_HASH
 
     assert cuentas_repo.guardada is not None
-    assert cuentas_repo.guardada.token_activacion_actual is None
+    # El hash se conserva (no se limpia) tras un uso exitoso: permite distinguir
+    # "token ya utilizado" (409) de "token nunca existió" (401) en un reintento.
+    assert cuentas_repo.guardada.token_activacion_actual == "hash-anterior"
+    assert cuentas_repo.guardada.token_usado is True
 
     assert usuario.nueva_contrasena is nueva_contrasena
     assert sesiones_repo.cuenta_invalidada == cuenta.id_cuenta_usuario

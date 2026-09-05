@@ -17,6 +17,7 @@ from src.identity_access.infrastructure.dto.contrasena_dto import (
 )
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
+from src.identity_access.infrastructure.repositories.intento_anonimo_repository import SqlAlchemyIntentoAnonimoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
@@ -73,6 +74,7 @@ def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: 
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=notificaciones_repo, db=db),
         notificaciones_repo=notificaciones_repo,
@@ -100,6 +102,7 @@ def restablecer_contrasena(dto: RestablecerContrasenaDTO, request: Request, db: 
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )

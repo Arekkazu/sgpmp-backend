@@ -72,6 +72,20 @@ class EventosRepoFake:
         self.registrados.append((tipo_evento, exitoso, id_usuario, detalle))
 
 
+class IntentosAnonimosRepoFake:
+    def __init__(self) -> None:
+        self.registrados = []
+
+    def registrar(self, tipo, ip):
+        self.registrados.append((tipo, ip))
+
+    def contar_por_ip(self, tipo, ip, desde):
+        return 1
+
+    def obtener_fecha_mas_antigua_por_ip(self, tipo, ip, desde):
+        return None
+
+
 class NotificacionesRepoFake:
     def __init__(self, id_evento=77, fallar=False) -> None:
         self.id_evento = id_evento
@@ -102,6 +116,7 @@ def _construir_caso(*, pendiente=False, destinatarios=None, fallar_alerta=False,
     usuarios = UsuariosRepoFake(usuario, destinatarios)
     cuentas = CuentasRepoFake(cuenta, fallar_guardado=fallar_guardado)
     eventos = EventosRepoFake()
+    intentos_anonimos = IntentosAnonimosRepoFake()
     notificaciones = NotificacionesRepoFake(fallar=fallar_alerta)
     servicio_usuario = MagicMock()
     db = DbFake()
@@ -109,6 +124,7 @@ def _construir_caso(*, pendiente=False, destinatarios=None, fallar_alerta=False,
         usuarios_repo=usuarios,
         cuentas_repo=cuentas,
         eventos_repo=eventos,
+        intentos_anonimos_repo=intentos_anonimos,
         db=db,
         notificacion_service=servicio_usuario,
         notificaciones_repo=notificaciones,
@@ -140,7 +156,7 @@ def test_fallo_smtp_conserva_202_logico_y_alerta_a_destinatarios_rbac(mock_email
     assert {n["estado"] for n in notificaciones.registradas} == {"enviado"}
     assert all("EMAIL_NO_DISPONIBLE" in n["mensaje"] for n in notificaciones.registradas)
     assert all(CORREO not in n["mensaje"] for n in notificaciones.registradas)
-    assert db.commits == 2
+    assert db.commits == 3
     assert db.rollbacks == 0
     servicio_usuario.notificar.assert_not_called()
     mock_email.assert_called_once()
@@ -163,7 +179,7 @@ def test_fallo_smtp_en_cuenta_pendiente_tambien_responde_generico_y_alerta(mock_
     assert cuentas.guardadas == 1
     assert eventos.registrados[0][3]["motivo"] == "cuenta_pendiente_token_activacion_rotado"
     assert all("ACTIVACION_CUENTA_PENDIENTE" in n["mensaje"] for n in notificaciones.registradas)
-    assert db.commits == 2
+    assert db.commits == 3
     mock_email.assert_called_once()
 
 
@@ -183,7 +199,7 @@ def test_fallo_de_la_alerta_no_restaura_el_503_ni_revierte_el_token(mock_email) 
     assert resultado == MENSAJE_GENERICO
     assert cuentas.guardadas == 1
     assert len(eventos.registrados) == 1
-    assert db.commits == 1
+    assert db.commits == 2
     assert db.rollbacks == 1
 
 
@@ -202,7 +218,7 @@ def test_sin_destinatarios_registra_el_fallo_en_log_y_mantiene_respuesta(mock_em
 
     assert resultado == MENSAJE_GENERICO
     assert notificaciones.registradas == []
-    assert db.commits == 1
+    assert db.commits == 2
     assert "sin destinatarios RBAC" in caplog.text
 
 
@@ -221,7 +237,7 @@ def test_smtp_exitoso_conserva_la_notificacion_normal_del_usuario(mock_email) ->
     assert resultado == MENSAJE_GENERICO
     assert usuarios.consultas_permiso == []
     assert notificaciones.registradas == []
-    assert db.commits == 1
+    assert db.commits == 2
     servicio_usuario.notificar.assert_called_once()
     mock_email.assert_called_once()
 
@@ -239,7 +255,7 @@ def test_fallo_de_persistencia_se_propaga_y_no_envia_correo(mock_email) -> None:
             ip="203.0.113.15",
         )
 
-    assert db.commits == 0
+    assert db.commits == 1
     assert db.rollbacks == 1
     assert notificaciones.registradas == []
     mock_email.assert_not_called()
