@@ -9,12 +9,15 @@ Create Date: 2026-09-06 15:45:11.754734
 
 from alembic import op
 
-
 # revision identifiers, used by Alembic.
-revision = 'xxxx'
-down_revision = '<pon aqui el head actual de dev>'
+revision = '73d4c93a0961'
+down_revision = '56cd2038ff06'
 branch_labels = None
 depends_on = None
+
+
+def upgrade():
+    ...
 
 
 def upgrade():
@@ -23,7 +26,7 @@ def upgrade():
     # apertura de la nueva). La unica regla vigente que debe permanecer es
     # trg_sensor_asociacion_unica_activa (una sola asociacion activa a la vez),
     # que no se toca en esta migracion.
-    
+
     op.execute("""
         DROP TRIGGER IF EXISTS trg_sensor_asociacion_infraestructura_fija
         ON modulo9.sensores_areas_asociadas;
