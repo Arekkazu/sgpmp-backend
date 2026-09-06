@@ -1,3 +1,11 @@
+## [1.0.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.18...v1.0.0-rc.19) (2026-09-06)
+
+### Bug Fixes
+
+* **rf02:** permitir bloqueo automatico de cuenta administrador tras intentos fallidos ([2eee014](https://github.com/Arekkazu/sgpmp-backend/commit/2eee014941df17809656c8b6a5709a2cc49d3bdf))
+* **rf02:** traducir errores de guardado de cuenta antes de salir del repository ([35ea796](https://github.com/Arekkazu/sgpmp-backend/commit/35ea796694bce0c6f3cae088a37c0337f3505ee7))
+* **rf08:** evitar enumeración temporal inc-m01-21-041 ([2c35518](https://github.com/Arekkazu/sgpmp-backend/commit/2c355182125010db417730e74c263f1158ac731a))
+
 ## [1.0.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.17...v1.0.0-rc.18) (2026-09-06)
 
 ### Bug Fixes
