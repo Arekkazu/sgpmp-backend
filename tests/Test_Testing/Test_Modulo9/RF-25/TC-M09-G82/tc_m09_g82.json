@@ -1,0 +1,178 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g82-rf25",
+    "name": "TC-M09-G82 - Restricción de acceso a módulos y fincas no autorizados",
+    "description": "Caso consolidado G82. Incluye TC-M09-156 y TC-M09-157 como validaciones internas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo",
+      "value": "ingeniero@pecuaria.co"
+    },
+    {
+      "key": "contrasena",
+      "value": "Pruebas12#"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "fincaNoAsignada",
+      "value": "999"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticación para TC-M09-G82",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('========== TC-M09-G82 - LOGIN ==========');",
+              "console.log('Usuario:', pm.variables.get('correo'));",
+              "console.log('Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('La autenticación debe responder correctamente', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "",
+              "var token =",
+              "    json.token ||",
+              "    json.access_token ||",
+              "    json.accessToken;",
+              "",
+              "pm.test('La respuesta debe contener un token de autenticación', function () {",
+              "    pm.expect(token).to.exist;",
+              "});",
+              "",
+              "if (token) {",
+              "    pm.collectionVariables.set('token', token);",
+              "    console.log('Token almacenado correctamente.');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M09-156 - Acceso directo a módulo no autorizado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/parametros",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('========== TC-M09-156 ==========');",
+              "console.log('Recurso protegido: /configuracion/parametros');",
+              "console.log('Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('El recurso no debe permitir acceso no autorizado', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "pm.test('No debe existir respuesta exitosa 200 para el acceso no autorizado', function () {",
+              "    pm.expect(pm.response.code).not.to.equal(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - TC-M09-157 - Acceso a finca no asignada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/fincas/{{fincaNoAsignada}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas",
+            "{{fincaNoAsignada}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('========== TC-M09-157 ==========');",
+              "console.log('Finca no asignada:', pm.variables.get('fincaNoAsignada'));",
+              "console.log('Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('La finca no asignada debe ser rechazada por el servidor', function () {",
+              "    pm.expect(pm.response.code).to.equal(403);",
+              "});",
+              "",
+              "pm.test('No deben entregarse datos de la finca no autorizada', function () {",
+              "    pm.expect(pm.response.code).not.to.equal(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

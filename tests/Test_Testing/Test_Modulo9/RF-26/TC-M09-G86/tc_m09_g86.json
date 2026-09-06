@@ -1,0 +1,739 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g86-rf26-consolidado",
+    "name": "TC-M09-G86 - Validación consolidada RF-26",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_finca_actual",
+      "value": ""
+    },
+    {
+      "key": "version_patch",
+      "value": ""
+    },
+    {
+      "key": "patch_finca",
+      "value": "10"
+    },
+    {
+      "key": "patch_primary",
+      "value": "#3A7BD5"
+    },
+    {
+      "key": "patch_secondary",
+      "value": "#FFFFFF"
+    },
+    {
+      "key": "patch_name",
+      "value": "Organizacion G86"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Login exitoso', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const j = pm.response.json();",
+              "pm.test('Token recibido', function () {",
+              "  pm.expect(j.token).to.be.a('string').and.not.empty;",
+              "});",
+              "pm.environment.set('token', j.token);",
+              "pm.variables.set('token', j.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseUrl}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"correo_electronico\": \"admin@pecuaria.co\", \"contrasena\": \"Test1234!\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC161 - Aceptar logotipo PNG válido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "const farms = await new Promise((resolve, reject) => {",
+              "  pm.sendRequest({",
+              "    url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/fincas',",
+              "    method: 'GET',",
+              "    header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "  }, (err, res) => err ? reject(err) : resolve(res));",
+              "});",
+              "if (farms.code !== 200) throw new Error('No se pudo consultar fincas. HTTP ' + farms.code);",
+              "const data = farms.json();",
+              "const ids = (data.items || data.fincas || data.data || []).map(x => String(x.id_finca ?? x.id ?? '')).filter(Boolean);",
+              "",
+              "let chosen = null;",
+              "for (const id of ids) {",
+              "  const r = await new Promise((resolve, reject) => {",
+              "    pm.sendRequest({",
+              "      url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/identidad-visual/' + id,",
+              "      method: 'GET',",
+              "      header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "    }, (err, res) => err ? reject(err) : resolve(res));",
+              "  });",
+              "  if (r.code === 200 && (r.text().trim() === 'null' || r.text().trim() === '')) {",
+              "    chosen = id;",
+              "    break;",
+              "  }",
+              "}",
+              "if (!chosen) throw new Error('No se encontró una finca sin identidad visual disponible.');",
+              "pm.variables.set('id_finca_actual', chosen);",
+              "console.log('Finca seleccionada: ' + chosen);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('PNG válido aceptado', () => pm.expect([200,201]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca_actual}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id_finca",
+              "value": "{{id_finca_actual}}",
+              "type": "text"
+            },
+            {
+              "key": "primary_color",
+              "value": "#3A7BD5",
+              "type": "text"
+            },
+            {
+              "key": "secondary_color",
+              "value": "#FFFFFF",
+              "type": "text"
+            },
+            {
+              "key": "org_display_name",
+              "value": "Organizacion G86 PNG",
+              "type": "text"
+            },
+            {
+              "key": "logo",
+              "type": "file",
+              "src": "C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G86/logo.png"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC162 - Aceptar logotipo SVG válido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "const farms = await new Promise((resolve, reject) => {",
+              "  pm.sendRequest({",
+              "    url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/fincas',",
+              "    method: 'GET',",
+              "    header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "  }, (err, res) => err ? reject(err) : resolve(res));",
+              "});",
+              "if (farms.code !== 200) throw new Error('No se pudo consultar fincas. HTTP ' + farms.code);",
+              "const data = farms.json();",
+              "const ids = (data.items || data.fincas || data.data || []).map(x => String(x.id_finca ?? x.id ?? '')).filter(Boolean);",
+              "",
+              "let chosen = null;",
+              "for (const id of ids) {",
+              "  const r = await new Promise((resolve, reject) => {",
+              "    pm.sendRequest({",
+              "      url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/identidad-visual/' + id,",
+              "      method: 'GET',",
+              "      header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "    }, (err, res) => err ? reject(err) : resolve(res));",
+              "  });",
+              "  if (r.code === 200 && (r.text().trim() === 'null' || r.text().trim() === '')) {",
+              "    chosen = id;",
+              "    break;",
+              "  }",
+              "}",
+              "if (!chosen) throw new Error('No se encontró una finca sin identidad visual disponible.');",
+              "pm.variables.set('id_finca_actual', chosen);",
+              "console.log('Finca seleccionada: ' + chosen);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('SVG válido aceptado', () => pm.expect([200,201]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca_actual}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id_finca",
+              "value": "{{id_finca_actual}}",
+              "type": "text"
+            },
+            {
+              "key": "primary_color",
+              "value": "#3A7BD5",
+              "type": "text"
+            },
+            {
+              "key": "secondary_color",
+              "value": "#FFFFFF",
+              "type": "text"
+            },
+            {
+              "key": "org_display_name",
+              "value": "Organizacion G86 SVG",
+              "type": "text"
+            },
+            {
+              "key": "logo",
+              "type": "file",
+              "src": "C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G86/logo.svg"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC163 - Rechazar logotipo con formato no permitido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "const farms = await new Promise((resolve, reject) => {",
+              "  pm.sendRequest({",
+              "    url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/fincas',",
+              "    method: 'GET',",
+              "    header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "  }, (err, res) => err ? reject(err) : resolve(res));",
+              "});",
+              "if (farms.code !== 200) throw new Error('No se pudo consultar fincas. HTTP ' + farms.code);",
+              "const data = farms.json();",
+              "const ids = (data.items || data.fincas || data.data || []).map(x => String(x.id_finca ?? x.id ?? '')).filter(Boolean);",
+              "",
+              "let chosen = null;",
+              "for (const id of ids) {",
+              "  const r = await new Promise((resolve, reject) => {",
+              "    pm.sendRequest({",
+              "      url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/identidad-visual/' + id,",
+              "      method: 'GET',",
+              "      header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "    }, (err, res) => err ? reject(err) : resolve(res));",
+              "  });",
+              "  if (r.code === 200 && (r.text().trim() === 'null' || r.text().trim() === '')) {",
+              "    chosen = id;",
+              "    break;",
+              "  }",
+              "}",
+              "if (!chosen) throw new Error('No se encontró una finca sin identidad visual disponible.');",
+              "pm.variables.set('id_finca_actual', chosen);",
+              "console.log('Finca seleccionada: ' + chosen);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Formato no permitido rechazado', () => pm.expect([400,415,422]).to.include(pm.response.code));",
+              "const t = pm.response.text();",
+              "pm.test('Respuesta indica formato inválido', () => pm.expect(t).to.match(/FORMATO_IMAGEN_NO_PERMITIDO|formato|imagen/i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca_actual}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id_finca",
+              "value": "{{id_finca_actual}}",
+              "type": "text"
+            },
+            {
+              "key": "primary_color",
+              "value": "#3A7BD5",
+              "type": "text"
+            },
+            {
+              "key": "secondary_color",
+              "value": "#FFFFFF",
+              "type": "text"
+            },
+            {
+              "key": "org_display_name",
+              "value": "Organizacion G86 WEBP",
+              "type": "text"
+            },
+            {
+              "key": "logo",
+              "type": "file",
+              "src": "C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G86/logo.webp"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC164 - Rechazar archivo superior a 2 MB",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "const farms = await new Promise((resolve, reject) => {",
+              "  pm.sendRequest({",
+              "    url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/fincas',",
+              "    method: 'GET',",
+              "    header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "  }, (err, res) => err ? reject(err) : resolve(res));",
+              "});",
+              "if (farms.code !== 200) throw new Error('No se pudo consultar fincas. HTTP ' + farms.code);",
+              "const data = farms.json();",
+              "const ids = (data.items || data.fincas || data.data || []).map(x => String(x.id_finca ?? x.id ?? '')).filter(Boolean);",
+              "",
+              "let chosen = null;",
+              "for (const id of ids) {",
+              "  const r = await new Promise((resolve, reject) => {",
+              "    pm.sendRequest({",
+              "      url: pm.variables.replaceIn('{{baseUrl}}') + '/configuracion/identidad-visual/' + id,",
+              "      method: 'GET',",
+              "      header: { Authorization: 'Bearer ' + pm.variables.get('token') }",
+              "    }, (err, res) => err ? reject(err) : resolve(res));",
+              "  });",
+              "  if (r.code === 200 && (r.text().trim() === 'null' || r.text().trim() === '')) {",
+              "    chosen = id;",
+              "    break;",
+              "  }",
+              "}",
+              "if (!chosen) throw new Error('No se encontró una finca sin identidad visual disponible.');",
+              "pm.variables.set('id_finca_actual', chosen);",
+              "console.log('Finca seleccionada: ' + chosen);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Archivo >2 MB rechazado', () => pm.expect([400,413,415,422]).to.include(pm.response.code));",
+              "const t = pm.response.text();",
+              "pm.test('Respuesta indica tamaño excedido', () => pm.expect(t).to.match(/TAMANO_IMAGEN_EXCEDIDO|tamañ|size|2.?MB/i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca_actual}}",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id_finca",
+              "value": "{{id_finca_actual}}",
+              "type": "text"
+            },
+            {
+              "key": "primary_color",
+              "value": "#3A7BD5",
+              "type": "text"
+            },
+            {
+              "key": "secondary_color",
+              "value": "#FFFFFF",
+              "type": "text"
+            },
+            {
+              "key": "org_display_name",
+              "value": "Organizacion G86 LARGE",
+              "type": "text"
+            },
+            {
+              "key": "logo",
+              "type": "file",
+              "src": "C:/Users/ll529/OneDrive/Documentos/integrador/sgpmp-backend/tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G86/logo-2.1mb.png"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "TC165-A - Obtener versión actual",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Identidad visual consultada', () => pm.expect(pm.response.code).to.equal(200));",
+              "const j = pm.response.json();",
+              "if (!j || !j.id_identidad_visual) throw new Error('La finca 10 no tiene identidad visual para actualizar.');",
+              "pm.variables.set('version_patch', String(j.version));",
+              "pm.variables.set('patch_finca', '10');",
+              "pm.variables.set('patch_primary', j.primary_color || '#3A7BD5');",
+              "pm.variables.set('patch_secondary', j.secondary_color || '#FFFFFF');",
+              "pm.variables.set('patch_name', j.org_display_name || 'Organizacion G86');",
+              "console.log('Versión actual: ' + j.version);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10"
+      }
+    },
+    {
+      "name": "TC165-B - Aceptar color hexadecimal válido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código HTTP esperado', () => pm.expect(pm.response.code).to.equal(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"primary_color\": \"{{patch_primary}}\", \"secondary_color\": \"{{patch_secondary}}\", \"org_display_name\": \"{{patch_name}}\", \"version\": \"{{version_patch}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC165-C - Obtener versión para color inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Identidad visual consultada', () => pm.expect(pm.response.code).to.equal(200));",
+              "const j = pm.response.json();",
+              "if (!j || !j.id_identidad_visual) throw new Error('La finca 10 no tiene identidad visual para actualizar.');",
+              "pm.variables.set('version_patch', String(j.version));",
+              "pm.variables.set('patch_finca', '10');",
+              "pm.variables.set('patch_primary', j.primary_color || '#3A7BD5');",
+              "pm.variables.set('patch_secondary', j.secondary_color || '#FFFFFF');",
+              "pm.variables.set('patch_name', j.org_display_name || 'Organizacion G86');",
+              "console.log('Versión actual: ' + j.version);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10"
+      }
+    },
+    {
+      "name": "TC165-D - Rechazar color hexadecimal inválido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código HTTP esperado', () => pm.expect(pm.response.code).to.equal(400));",
+              "pm.test('Validación específica', () => pm.expect(pm.response.text()).to.match(/\\^#\\[0-9A-Fa-f\\]\\{6\\}\\$|primary_color|hexadecimal/i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"primary_color\": \"#ZZZ123\", \"secondary_color\": \"{{patch_secondary}}\", \"org_display_name\": \"{{patch_name}}\", \"version\": \"{{version_patch}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC166-A - Obtener versión para nombre de 50 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Identidad visual consultada', () => pm.expect(pm.response.code).to.equal(200));",
+              "const j = pm.response.json();",
+              "if (!j || !j.id_identidad_visual) throw new Error('La finca 10 no tiene identidad visual para actualizar.');",
+              "pm.variables.set('version_patch', String(j.version));",
+              "pm.variables.set('patch_finca', '10');",
+              "pm.variables.set('patch_primary', j.primary_color || '#3A7BD5');",
+              "pm.variables.set('patch_secondary', j.secondary_color || '#FFFFFF');",
+              "pm.variables.set('patch_name', j.org_display_name || 'Organizacion G86');",
+              "console.log('Versión actual: ' + j.version);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10"
+      }
+    },
+    {
+      "name": "TC166-B - Aceptar nombre de 50 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código HTTP esperado', () => pm.expect(pm.response.code).to.equal(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"primary_color\": \"{{patch_primary}}\", \"secondary_color\": \"{{patch_secondary}}\", \"org_display_name\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"version\": \"{{version_patch}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC166-C - Obtener versión para nombre de 51 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('Identidad visual consultada', () => pm.expect(pm.response.code).to.equal(200));",
+              "const j = pm.response.json();",
+              "if (!j || !j.id_identidad_visual) throw new Error('La finca 10 no tiene identidad visual para actualizar.');",
+              "pm.variables.set('version_patch', String(j.version));",
+              "pm.variables.set('patch_finca', '10');",
+              "pm.variables.set('patch_primary', j.primary_color || '#3A7BD5');",
+              "pm.variables.set('patch_secondary', j.secondary_color || '#FFFFFF');",
+              "pm.variables.set('patch_name', j.org_display_name || 'Organizacion G86');",
+              "console.log('Versión actual: ' + j.version);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10"
+      }
+    },
+    {
+      "name": "TC166-D - Rechazar nombre de 51 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código HTTP esperado', () => pm.expect(pm.response.code).to.equal(400));",
+              "pm.test('Validación específica', () => pm.expect(pm.response.text()).to.match(/50|longitud|at\\s+most|org_display_name/i));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": "{{baseUrl}}/configuracion/identidad-visual/10",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"primary_color\": \"{{patch_primary}}\", \"secondary_color\": \"{{patch_secondary}}\", \"org_display_name\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\", \"version\": \"{{version_patch}}\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    }
+  ]
+}
