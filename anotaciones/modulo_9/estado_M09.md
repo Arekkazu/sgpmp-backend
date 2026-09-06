@@ -352,6 +352,11 @@ más amplio del que el RF autoriza explícitamente.
   restricción `UNIQUE` de `modulo9.fincas.nombre` es global (lo más probable, dado que no se
   encontró columna compuesta con `id_usuario`) o si además hay una unicidad específica por
   productor como pide el RF de forma redundante ("de manera global y por productor").
+- **Mismo gap de auditoría no consultable de RF-18 (TC-M09-G47/TC-M09-95, 2026-09-06):**
+  `modulo9.auditorias_fincas` se escribe correctamente en cada `CREATE`/`UPDATE`/`DEACTIVATE`
+  (verificado con `SELECT` directo: 3 filas exactas para una finca de prueba, con
+  `id_usuario` y snapshots correctos), pero no tiene endpoint REST — mismo `/auditoria/` que
+  solo lee `modulo1.eventos`. Ver `tests/Test_Testing/Test_Modulo9/RF-19/TC-M09-G47/`.
 
 ---
 
@@ -373,14 +378,18 @@ el RF describe.
 
 ### Qué NO cumple / gaps
 
-- **`tipos_area` no es el catálogo administrable que describe el RF.** El RF dice
-  explícitamente: *"el catálogo incluye por defecto: galpón, corral, potrero, estanque,
-  invernadero, pero el Administrador puede agregar nuevos tipos o desactivar los existentes
-  desde el módulo de Configuración"*. La implementación real es un **enum cerrado de
-  Postgres** (`enum_tipo_infraestructura`, exactamente esos 5 valores fijos) en la columna
-  `modulo9.infraestructuras.tipo` — no existe una tabla `tipos_area` gestionable. Ampliar el
-  catálogo hoy requiere una migración de esquema, no una operación de Administrador desde la
-  interfaz, contradiciendo directamente esa restricción del RF.
+- ~~`tipos_area` no es el catálogo administrable que describe el RF (enum cerrado de
+  Postgres, sin tabla gestionable)~~ — **desactualizado: el catálogo administrable ya existe
+  en el código** (`tipo_area_router.py`, `registrar_tipo_area_use_case.py`,
+  `modulo9.tipos_area` vía migración `2dbb6d44046f`; ver `tests/integration/test_rf20_tipos_area.py`).
+  `registrar_infraestructura_use_case.py` ya valida `tipo_area` contra ese catálogo, no
+  contra el enum fijo. **Gap nuevo y más urgente (TC-M09-G48/TC-M09-96, 2026-09-06,
+  BLOQUEADO):** en el servidor de test compartido (`sgpmp_test`) la migración `2dbb6d44046f`
+  nunca se aplicó — `modulo9.tipos_area` no existe ahí — por lo que `POST
+  /configuracion/infraestructuras` con datos válidos crashea con `500 ERROR_INTERNO` en vez
+  de `201` (el `ProgrammingError` de tabla inexistente no está capturado en el use case).
+  Bloquea el camino feliz de RF-20 en ese entorno hasta que se corra `alembic upgrade head`
+  ahí — detalle y evidencia en `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md`.
 - **Mismo patrón de stub que RF-19**: `infraestructura_stub_adapter.py` siempre retorna
   `False` para el chequeo de "no desactivar área con dispositivos/activos asociados", con el
   mismo comentario desactualizado sobre módulos "aún no implementados" que de hecho ya
