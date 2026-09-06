@@ -1,3 +1,11 @@
+## [1.0.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.19...v1.0.0-rc.20) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([#144](https://github.com/Arekkazu/sgpmp-backend/issues/144)) ([588c873](https://github.com/Arekkazu/sgpmp-backend/commit/588c873e166d498ac9aeb4b0947a228b0d52ba01))
+* **rf32:** traducir errores de duplicado de ciclo y metrica a 409 ([0bafb6f](https://github.com/Arekkazu/sgpmp-backend/commit/0bafb6fa1c93d129f560cecbaae09c7c97cd04cd))
+* **rf32:** unicidad de nombre/variable en plantillas debe ignorar filas desactivadas ([941d199](https://github.com/Arekkazu/sgpmp-backend/commit/941d199c74cb911b4155403417994b008b81991c))
+
 ## [1.0.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.18...v1.0.0-rc.19) (2026-09-06)
 
 ### Bug Fixes
