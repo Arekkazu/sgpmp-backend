@@ -20,10 +20,10 @@ from src.configuration.application.use_cases.metricas.consultar_metricas_use_cas
 from src.configuration.application.use_cases.metricas.desactivar_metrica_use_case import DesactivarMetricaUseCase
 from src.configuration.application.use_cases.metricas.editar_metrica_use_case import EditarMetricaUseCase
 from src.configuration.application.use_cases.metricas.registrar_metrica_use_case import RegistrarMetricaUseCase
-from src.configuration.infrastructure.adapters.dependencia_metrica_stub import StubDependenciaMetricaAdapter
 from src.configuration.infrastructure.dto.editar_metrica_dto import EditarMetricaDTO
 from src.configuration.infrastructure.dto.registrar_metrica_dto import RegistrarMetricaDTO
 from src.configuration.infrastructure.repositories.auditoria_metrica_repository import SqlAlchemyAuditoriaMetricaRepository
+from src.configuration.infrastructure.repositories.dependencia_metrica_repository import SqlAlchemyDependenciaMetricaRepository
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.metrica_produccion_repository import SqlAlchemyMetricaProduccionRepository
 from src.configuration.infrastructure.schema.metrica_schema import MetricaProduccionResponse, MetricasPorEspecieResponse
@@ -137,7 +137,7 @@ def desactivar_metrica(
         db=db,
         metricas_repo=SqlAlchemyMetricaProduccionRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaMetricaRepository(db),
-        dependencia_port=StubDependenciaMetricaAdapter(),
+        dependencia_port=SqlAlchemyDependenciaMetricaRepository(db),
     )
     metrica = use_case.execute(id_metrica_produccion, usuario_actual)
     return MetricaProduccionResponse.model_validate(metrica)
