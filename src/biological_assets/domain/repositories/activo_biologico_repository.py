@@ -7,6 +7,7 @@ from typing import Optional
 from src.biological_assets.domain.entities.activo_biologico import (
     ActivoBiologico,
     GestionFase,
+    HistorialActivo,
     HistorialInfraestructura,
 )
 
@@ -75,3 +76,7 @@ class ActivoBiologicoRepository(ABC):
     @abstractmethod
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
         """Retorna la gestión de fase activa del activo, o None si no tiene."""
+
+    @abstractmethod
+    def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        """Inserta un snapshot versionado en historial_activos (RF-33: Evento 0 en el registro)."""
