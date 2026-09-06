@@ -6,6 +6,7 @@ RF-19 — CU04:
   C) GET   /configuracion/fincas/{id}    — Detalle
   D) PATCH /configuracion/fincas/{id}    — Editar (Admin; 412 concurrencia)
   E) PATCH /configuracion/fincas/{id}/desactivar — Desactivar (Admin; FA-04)
+  F) PATCH /configuracion/fincas/{id}/reactivar  — Reactivar (Admin)
 
 RBAC: id_recurso=9 (fincas).
   Admin: C=1, R=2, U=3, D=4
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.fincas.consultar_fincas_use_case import ConsultarFincasUseCase
 from src.configuration.application.use_cases.fincas.desactivar_finca_use_case import DesactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.editar_finca_use_case import EditarFincaUseCase
+from src.configuration.application.use_cases.fincas.reactivar_finca_use_case import ReactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.registrar_finca_use_case import RegistrarFincaUseCase
 from src.configuration.infrastructure.adapters.finca_dependency_adapter import FincaDependencyAdapter
 from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
@@ -164,6 +166,32 @@ def desactivar_finca(
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
         dependency_port=FincaDependencyAdapter(db),
+    )
+    finca = use_case.execute(id_finca, usuario_actual)
+    return FincaResponse.from_entity(finca)
+
+
+@router.patch(
+    "/{id_finca}/reactivar",
+    response_model=FincaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Reactivar finca (Flujo F)",
+)
+def reactivar_finca(
+    id_finca: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FincaResponse:
+    use_case = ReactivarFincaUseCase(
+        db=db,
+        finca_repo=SqlAlchemyFincaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
     return FincaResponse.from_entity(finca)
