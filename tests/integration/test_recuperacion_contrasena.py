@@ -233,7 +233,6 @@ def test_restablecer_con_token_ya_usado_responde_409(
     monkeypatch.setattr(
         solicitar_recuperacion_use_case.secrets, "token_urlsafe", lambda _bytes: token_crudo
     )
-    monkeypatch.setattr(solicitar_recuperacion_use_case, "send_email", lambda **_k: None)
     monkeypatch.setattr(notificacion_service, "send_email", lambda **_k: None)
     monkeypatch.setattr(notificacion_service, "send_push", lambda **_k: True)
 
