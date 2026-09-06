@@ -1,29 +1,29 @@
-"""Pruebas de resiliencia SMTP para la recuperación de contraseña RF-08."""
-from unittest.mock import MagicMock, patch
+"""Pruebas de resiliencia SMTP para la recuperación de contraseña RF-08.
+
+El envío de correo y la alerta administrativa por fallo SMTP (INC-M01-14-044)
+viven en ``correo_recuperacion_background_adapter`` desde INC-M01-21-041 (el
+correo se despacha en segundo plano para evitar el canal lateral de tiempo,
+ver ``test_rf08_tiempo_recuperacion.py``). Antes vivían dentro de
+``SolicitarRecuperacionUseCase``; se movieron aquí sin perder cobertura.
+"""
+from unittest.mock import MagicMock
 
 import pytest
 
-from src.identity_access.application.use_cases.contrasena.solicitar_recuperacion_use_case import (
-    ACCION_LEER,
-    ID_CANAL_INTERNO,
-    RECURSO_AUDITORIA,
-    SolicitarRecuperacionUseCase,
+from src.identity_access.infrastructure.adapters import (
+    correo_recuperacion_background_adapter as correo_adapter,
 )
-from src.identity_access.infrastructure.dto.contrasena_dto import SolicitarRecuperacionDTO
-from src.shared.errors import ServiceUnavailableError
-
+from src.shared import notificacion_service as notificacion_module
+from src.shared.notificacion_service import NotificacionService
 
 CORREO = "persona@ejemplo.com"
-MENSAJE_GENERICO = (
-    "Si el correo está registrado, recibirás instrucciones para recuperar "
-    "tu contraseña en unos minutos."
-)
 
 
 class DbFake:
     def __init__(self) -> None:
         self.commits = 0
         self.rollbacks = 0
+        self.cerrada = False
 
     def commit(self) -> None:
         self.commits += 1
@@ -31,231 +31,217 @@ class DbFake:
     def rollback(self) -> None:
         self.rollbacks += 1
 
+    def close(self) -> None:
+        self.cerrada = True
+
+
+class NotificacionRepoFake:
+    def __init__(self, id_evento=77) -> None:
+        self.id_evento = id_evento
+        self.registradas = []
+        self.fallar_para: set[int] = set()
+
+    def buscar_estado_cuenta(self, _id_usuario):
+        return 2  # ACTIVO
+
+    def buscar_ultimo_evento_id(self, id_usuario, tipo_evento):
+        return self.id_evento
+
+    def buscar_correo_usuario(self, _id_usuario):
+        return CORREO
+
+    def buscar_fcm_tokens(self, _id_usuario):
+        return []
+
+    def verificar_anti_spam(self, _id_usuario, _tipo_evento, _id_canal, _ventana):
+        return False
+
+    def registrar(self, id_evento, id_usuario, id_canal, mensaje, estado):
+        if id_usuario in self.fallar_para:
+            raise RuntimeError("bandeja interna no disponible")
+        self.registradas.append(
+            {
+                "id_evento": id_evento,
+                "id_usuario": id_usuario,
+                "id_canal": id_canal,
+                "mensaje": mensaje,
+                "estado": estado,
+            }
+        )
+        return len(self.registradas)
+
+    def actualizar_estado(self, _id_notificacion, _estado):
+        pass
+
 
 class UsuariosRepoFake:
-    def __init__(self, usuario, destinatarios=None) -> None:
-        self.usuario = usuario
-        self.destinatarios = [10, 20] if destinatarios is None else destinatarios
+    def __init__(self, destinatarios=(10, 20)) -> None:
+        self.destinatarios = list(destinatarios)
         self.consultas_permiso = []
-
-    def obtener_por_correo(self, correo):
-        return self.usuario
 
     def listar_ids_con_permiso(self, id_recurso, id_accion):
         self.consultas_permiso.append((id_recurso, id_accion))
         return self.destinatarios
 
 
-class CuentasRepoFake:
-    def __init__(self, cuenta, fallar_guardado: bool = False) -> None:
-        self.cuenta = cuenta
-        self.fallar_guardado = fallar_guardado
-        self.guardadas = 0
-
-    def obtener_por_usuario(self, id_usuario):
-        return self.cuenta
-
-    def guardar(self, cuenta):
-        if self.fallar_guardado:
-            raise RuntimeError("base no disponible")
-        self.guardadas += 1
-
-
-class EventosRepoFake:
-    def __init__(self) -> None:
-        self.registrados = []
-
-    def contar_solicitudes_recuperacion_por_ip(self, ip, desde):
-        return 0
-
-    def registrar(self, tipo_evento, exitoso, id_usuario, detalle, **kwargs):
-        self.registrados.append((tipo_evento, exitoso, id_usuario, detalle))
-
-
-class IntentosAnonimosRepoFake:
-    def __init__(self) -> None:
-        self.registrados = []
-
-    def registrar(self, tipo, ip):
-        self.registrados.append((tipo, ip))
-
-    def contar_por_ip(self, tipo, ip, desde):
-        return 1
-
-    def obtener_fecha_mas_antigua_por_ip(self, tipo, ip, desde):
-        return None
-
-
-class NotificacionesRepoFake:
-    def __init__(self, id_evento=77, fallar=False) -> None:
-        self.id_evento = id_evento
-        self.fallar = fallar
-        self.registradas = []
-
-    def buscar_ultimo_evento_id(self, id_usuario, tipo_evento):
-        return self.id_evento
-
-    def registrar(self, **datos):
-        if self.fallar:
-            raise RuntimeError("bandeja interna no disponible")
-        self.registradas.append(datos)
-        return len(self.registradas)
-
-
-def _error_smtp():
-    return ServiceUnavailableError(
-        code="EMAIL_NO_DISPONIBLE",
-        message="El servicio SMTP no está disponible.",
-    )
-
-
-def _construir_caso(*, pendiente=False, destinatarios=None, fallar_alerta=False, fallar_guardado=False):
-    usuario = MagicMock(id_usuario=74, nombre="Ana")
-    cuenta = MagicMock(id_estado_cuenta=2)
-    cuenta.esta_pendiente.return_value = pendiente
-    usuarios = UsuariosRepoFake(usuario, destinatarios)
-    cuentas = CuentasRepoFake(cuenta, fallar_guardado=fallar_guardado)
-    eventos = EventosRepoFake()
-    intentos_anonimos = IntentosAnonimosRepoFake()
-    notificaciones = NotificacionesRepoFake(fallar=fallar_alerta)
-    servicio_usuario = MagicMock()
+def _preparar(monkeypatch, *, destinatarios=(10, 20), fallar_registro=False):
     db = DbFake()
-    caso = SolicitarRecuperacionUseCase(
-        usuarios_repo=usuarios,
-        cuentas_repo=cuentas,
-        eventos_repo=eventos,
-        intentos_anonimos_repo=intentos_anonimos,
-        db=db,
-        notificacion_service=servicio_usuario,
-        notificaciones_repo=notificaciones,
+    notificaciones = NotificacionRepoFake()
+    if fallar_registro:
+        notificaciones.fallar_para = set(destinatarios)
+    usuarios = UsuariosRepoFake(destinatarios)
+    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(
+        correo_adapter, "SqlAlchemyNotificacionRepository", lambda _db: notificaciones
     )
-    return caso, usuarios, cuentas, eventos, notificaciones, servicio_usuario, db
+    monkeypatch.setattr(
+        correo_adapter, "SqlAlchemyUsuarioRepository", lambda _db: usuarios
+    )
+    return db, notificaciones, usuarios
 
 
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-    side_effect=_error_smtp(),
-)
-def test_fallo_smtp_conserva_202_logico_y_alerta_a_destinatarios_rbac(mock_email) -> None:
-    caso, usuarios, cuentas, eventos, notificaciones, servicio_usuario, db = _construir_caso()
-
-    resultado = caso.execute(
-        SolicitarRecuperacionDTO(correo_electronico=CORREO),
-        ip="203.0.113.10",
+def test_fallo_smtp_alerta_a_destinatarios_rbac(monkeypatch, caplog) -> None:
+    db, notificaciones, usuarios = _preparar(monkeypatch)
+    monkeypatch.setattr(
+        notificacion_module,
+        "send_email",
+        MagicMock(side_effect=RuntimeError("EMAIL_NO_DISPONIBLE")),
     )
 
-    assert resultado == MENSAJE_GENERICO
-    assert cuentas.guardadas == 1
-    assert len(eventos.registrados) == 1
-    assert eventos.registrados[0][1] is True
-    assert usuarios.consultas_permiso == [(RECURSO_AUDITORIA, ACCION_LEER)]
-    assert [n["id_usuario"] for n in notificaciones.registradas] == [10, 20]
-    assert {n["id_evento"] for n in notificaciones.registradas} == {77}
-    assert {n["id_canal"] for n in notificaciones.registradas} == {ID_CANAL_INTERNO}
-    assert {n["estado"] for n in notificaciones.registradas} == {"enviado"}
-    assert all("EMAIL_NO_DISPONIBLE" in n["mensaje"] for n in notificaciones.registradas)
-    assert all(CORREO not in n["mensaje"] for n in notificaciones.registradas)
-    assert db.commits == 3
-    assert db.rollbacks == 0
-    servicio_usuario.notificar.assert_not_called()
-    mock_email.assert_called_once()
-
-
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-    side_effect=_error_smtp(),
-)
-def test_fallo_smtp_en_cuenta_pendiente_tambien_responde_generico_y_alerta(mock_email) -> None:
-    caso, _, cuentas, eventos, notificaciones, _, db = _construir_caso(pendiente=True)
-
-    resultado = caso.execute(
-        SolicitarRecuperacionDTO(correo_electronico=CORREO),
-        ip="203.0.113.11",
+    correo_adapter.procesar_correo_recuperacion_background(
+        correo=CORREO,
+        nombre="Ana",
+        token="token-crudo",
+        id_usuario=74,
+        flujo="recuperacion",
     )
 
-    assert resultado == MENSAJE_GENERICO
-    assert cuentas.guardadas == 1
-    assert eventos.registrados[0][3]["motivo"] == "cuenta_pendiente_token_activacion_rotado"
-    assert all("ACTIVACION_CUENTA_PENDIENTE" in n["mensaje"] for n in notificaciones.registradas)
-    assert db.commits == 3
-    mock_email.assert_called_once()
+    # notificar() también registra las filas EMAIL/INTERNO propias del usuario
+    # que pidió la recuperación (id_usuario=74); la alerta administrativa se
+    # distingue por ir dirigida a los destinatarios RBAC (10, 20).
+    alertas = [n for n in notificaciones.registradas if n["id_usuario"] in (10, 20)]
+
+    assert usuarios.consultas_permiso == [
+        (correo_adapter.RECURSO_AUDITORIA, correo_adapter.ACCION_LEER)
+    ]
+    assert [n["id_usuario"] for n in alertas] == [10, 20]
+    assert {n["id_evento"] for n in alertas} == {77}
+    assert {n["id_canal"] for n in alertas} == {correo_adapter.ID_CANAL_INTERNO}
+    assert {n["estado"] for n in alertas} == {"enviado"}
+    assert all("Usuario relacionado: 74" in n["mensaje"] for n in alertas)
+    assert db.commits >= 1
+    assert db.cerrada is True
 
 
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-    side_effect=_error_smtp(),
-)
-def test_fallo_de_la_alerta_no_restaura_el_503_ni_revierte_el_token(mock_email) -> None:
-    caso, _, cuentas, eventos, _, _, db = _construir_caso(fallar_alerta=True)
-
-    resultado = caso.execute(
-        SolicitarRecuperacionDTO(correo_electronico=CORREO),
-        ip="203.0.113.12",
+def test_fallo_smtp_en_activacion_tambien_alerta(monkeypatch) -> None:
+    _, notificaciones, _ = _preparar(monkeypatch)
+    monkeypatch.setattr(
+        notificacion_module,
+        "send_email",
+        MagicMock(side_effect=RuntimeError("EMAIL_NO_DISPONIBLE")),
     )
 
-    assert resultado == MENSAJE_GENERICO
-    assert cuentas.guardadas == 1
-    assert len(eventos.registrados) == 1
-    assert db.commits == 2
-    assert db.rollbacks == 1
-
-
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-    side_effect=_error_smtp(),
-)
-def test_sin_destinatarios_registra_el_fallo_en_log_y_mantiene_respuesta(mock_email, caplog) -> None:
-    caso, _, _, _, notificaciones, _, db = _construir_caso(destinatarios=[])
-
-    resultado = caso.execute(
-        SolicitarRecuperacionDTO(correo_electronico=CORREO),
-        ip="203.0.113.13",
+    correo_adapter.procesar_correo_recuperacion_background(
+        correo=CORREO,
+        nombre="Ana",
+        token="token-crudo",
+        id_usuario=74,
+        flujo="activacion",
     )
 
-    assert resultado == MENSAJE_GENERICO
-    assert notificaciones.registradas == []
-    assert db.commits == 2
+    alertas = [n for n in notificaciones.registradas if n["id_usuario"] in (10, 20)]
+    assert alertas
+    assert all("Flujo: activacion" in n["mensaje"] for n in alertas)
+
+
+def test_fallo_de_la_alerta_no_interrumpe_el_procesamiento(monkeypatch, caplog) -> None:
+    db, _, _ = _preparar(monkeypatch, fallar_registro=True)
+    monkeypatch.setattr(
+        notificacion_module,
+        "send_email",
+        MagicMock(side_effect=RuntimeError("EMAIL_NO_DISPONIBLE")),
+    )
+
+    correo_adapter.procesar_correo_recuperacion_background(
+        correo=CORREO,
+        nombre="Ana",
+        token="token-crudo",
+        id_usuario=74,
+        flujo="recuperacion",
+    )
+
+    assert "No se pudo persistir la alerta interna" in caplog.text
+    assert db.cerrada is True
+
+
+def test_sin_destinatarios_registra_el_fallo_en_log(monkeypatch, caplog) -> None:
+    _, notificaciones, _ = _preparar(monkeypatch, destinatarios=())
+    monkeypatch.setattr(
+        notificacion_module,
+        "send_email",
+        MagicMock(side_effect=RuntimeError("EMAIL_NO_DISPONIBLE")),
+    )
+
+    correo_adapter.procesar_correo_recuperacion_background(
+        correo=CORREO,
+        nombre="Ana",
+        token="token-crudo",
+        id_usuario=74,
+        flujo="recuperacion",
+    )
+
+    assert [n for n in notificaciones.registradas if n["id_usuario"] != 74] == []
     assert "sin destinatarios RBAC" in caplog.text
 
 
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-)
-def test_smtp_exitoso_conserva_la_notificacion_normal_del_usuario(mock_email) -> None:
-    caso, usuarios, _, _, notificaciones, servicio_usuario, db = _construir_caso()
+def test_smtp_exitoso_no_dispara_alerta(monkeypatch) -> None:
+    _, notificaciones, usuarios = _preparar(monkeypatch)
+    monkeypatch.setattr(notificacion_module, "send_email", MagicMock())
 
-    resultado = caso.execute(
-        SolicitarRecuperacionDTO(correo_electronico=CORREO),
-        ip="203.0.113.14",
+    correo_adapter.procesar_correo_recuperacion_background(
+        correo=CORREO,
+        nombre="Ana",
+        token="token-crudo",
+        id_usuario=74,
+        flujo="recuperacion",
     )
 
-    assert resultado == MENSAJE_GENERICO
     assert usuarios.consultas_permiso == []
-    assert notificaciones.registradas == []
-    assert db.commits == 2
-    servicio_usuario.notificar.assert_called_once()
-    mock_email.assert_called_once()
+    assert [n for n in notificaciones.registradas if n["id_usuario"] != 74] == []
 
 
-@patch(
-    "src.identity_access.application.use_cases.contrasena."
-    "solicitar_recuperacion_use_case.send_email",
-)
-def test_fallo_de_persistencia_se_propaga_y_no_envia_correo(mock_email) -> None:
-    caso, _, _, _, notificaciones, _, db = _construir_caso(fallar_guardado=True)
+def test_notificacion_service_reporta_fallo_de_email_al_llamador(monkeypatch) -> None:
+    """La pieza que permite alertar: notificar() debe exponer si EMAIL falló."""
+    port = NotificacionRepoFake()
+    monkeypatch.setattr(
+        notificacion_module,
+        "send_email",
+        MagicMock(side_effect=RuntimeError("EMAIL_NO_DISPONIBLE")),
+    )
 
-    with pytest.raises(RuntimeError, match="base no disponible"):
-        caso.execute(
-            SolicitarRecuperacionDTO(correo_electronico=CORREO),
-            ip="203.0.113.15",
-        )
+    resultado = NotificacionService(port=port, db=DbFake()).notificar(
+        tipo_evento=7,
+        id_usuario=74,
+        correo_destino=CORREO,
+        asunto_email="Restablece tu contraseña en SGPMP",
+        contenido_html_email="<p>token</p>",
+        aplicar_anti_spam_email=False,
+    )
 
-    assert db.commits == 1
-    assert db.rollbacks == 1
-    assert notificaciones.registradas == []
-    mock_email.assert_not_called()
+    assert resultado is False
+
+
+def test_notificacion_service_reporta_exito_de_email_al_llamador(monkeypatch) -> None:
+    port = NotificacionRepoFake()
+    monkeypatch.setattr(notificacion_module, "send_email", MagicMock())
+
+    resultado = NotificacionService(port=port, db=DbFake()).notificar(
+        tipo_evento=7,
+        id_usuario=74,
+        correo_destino=CORREO,
+        asunto_email="Restablece tu contraseña en SGPMP",
+        contenido_html_email="<p>token</p>",
+        aplicar_anti_spam_email=False,
+    )
+
+    assert resultado is True

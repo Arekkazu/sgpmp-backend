@@ -1,3 +1,35 @@
+## [1.0.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.18...v1.0.0-rc.19) (2026-09-06)
+
+### Bug Fixes
+
+* **rf02:** permitir bloqueo automatico de cuenta administrador tras intentos fallidos ([2eee014](https://github.com/Arekkazu/sgpmp-backend/commit/2eee014941df17809656c8b6a5709a2cc49d3bdf))
+* **rf02:** traducir errores de guardado de cuenta antes de salir del repository ([35ea796](https://github.com/Arekkazu/sgpmp-backend/commit/35ea796694bce0c6f3cae088a37c0337f3505ee7))
+* **rf08:** evitar enumeración temporal inc-m01-21-041 ([2c35518](https://github.com/Arekkazu/sgpmp-backend/commit/2c355182125010db417730e74c263f1158ac731a))
+
+## [1.0.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.17...v1.0.0-rc.18) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([d0c1286](https://github.com/Arekkazu/sgpmp-backend/commit/d0c1286ac7fba724a9c48d51f4889f84fea4f29e))
+
+## [1.0.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.16...v1.0.0-rc.17) (2026-09-06)
+
+### Bug Fixes
+
+* **rf31:** validar rango fisico de umbrales al crear o versionar plantilla ([ae6efd2](https://github.com/Arekkazu/sgpmp-backend/commit/ae6efd207a270e12b76d5c492872e3496eae6d31))
+
+## [1.0.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.15...v1.0.0-rc.16) (2026-09-06)
+
+### Bug Fixes
+
+* **rf16:** consultar dependencias reales al desactivar patologia y metrica ([a2dd2ed](https://github.com/Arekkazu/sgpmp-backend/commit/a2dd2ed35376cda5550a0370deacaebebff97ff1))
+
+## [1.0.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.14...v1.0.0-rc.15) (2026-09-06)
+
+### Bug Fixes
+
+* **rf08:** calcular hora real de reintento ([726cc34](https://github.com/Arekkazu/sgpmp-backend/commit/726cc347fb85b93ba1e41bd16f102c79d219c66f))
+
 ## [1.0.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.13...v1.0.0-rc.14) (2026-09-05)
 
 ### Bug Fixes

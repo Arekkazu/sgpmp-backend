@@ -23,7 +23,9 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
     from src.identity_access.application.use_cases.contrasena import (
         solicitar_recuperacion_use_case,
     )
-    from src.shared import notificacion_service
+    from src.identity_access.infrastructure.adapters import (
+        correo_recuperacion_background_adapter,
+    )
 
     usuario = crear_usuario_db(id_rol=2, estado=2)
     token_crudo = "token-integracion-recuperacion"
@@ -34,12 +36,10 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
         lambda _bytes: token_crudo,
     )
     monkeypatch.setattr(
-        solicitar_recuperacion_use_case,
-        "send_email",
+        correo_recuperacion_background_adapter,
+        "procesar_correo_recuperacion_background",
         lambda **kwargs: correos.append(kwargs),
     )
-    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
-    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
 
     respuesta = client.post(
         "/contrasena/recuperar",
@@ -59,7 +59,8 @@ def test_recuperacion_guarda_hash_y_restablecimiento_consume_token(
     ).scalar_one()
     assert hash_guardado == calcular_hash_token(token_crudo)
     assert hash_guardado != token_crudo
-    assert correos and token_crudo in correos[0]["html_body"]
+    assert correos and correos[0]["token"] == token_crudo
+    assert correos[0]["flujo"] == "recuperacion"
 
     nueva = "NuevaSegura2!"
     restablecer = client.post(
@@ -115,6 +116,9 @@ def test_recuperacion_de_cuenta_pendiente_rota_token_y_envia_activacion(
     from src.identity_access.application.use_cases.contrasena import (
         solicitar_recuperacion_use_case,
     )
+    from src.identity_access.infrastructure.adapters import (
+        correo_recuperacion_background_adapter,
+    )
 
     usuario = crear_usuario_db(id_rol=2, estado=1)
     token_anterior = "token-activacion-anterior"
@@ -140,8 +144,8 @@ def test_recuperacion_de_cuenta_pendiente_rota_token_y_envia_activacion(
         lambda _bytes: token_nuevo,
     )
     monkeypatch.setattr(
-        solicitar_recuperacion_use_case,
-        "send_email",
+        correo_recuperacion_background_adapter,
+        "procesar_correo_recuperacion_background",
         lambda **kwargs: correos.append(kwargs),
     )
 
@@ -163,9 +167,9 @@ def test_recuperacion_de_cuenta_pendiente_rota_token_y_envia_activacion(
     ).scalar_one()
     assert token_guardado == calcular_hash_token(token_nuevo)
     assert token_guardado not in {token_nuevo, calcular_hash_token(token_anterior)}
-    assert correos and correos[0]["subject"] == "Activa tu cuenta en SGPMP"
-    assert token_nuevo in correos[0]["html_body"]
-    assert token_anterior not in correos[0]["html_body"]
+    assert correos and correos[0]["flujo"] == "activacion"
+    assert correos[0]["token"] == token_nuevo
+    assert correos[0]["token"] != token_anterior
 
 
 def test_reenvio_de_activacion_guarda_hash_y_envia_token_crudo(
@@ -229,7 +233,6 @@ def test_restablecer_con_token_ya_usado_responde_409(
     monkeypatch.setattr(
         solicitar_recuperacion_use_case.secrets, "token_urlsafe", lambda _bytes: token_crudo
     )
-    monkeypatch.setattr(solicitar_recuperacion_use_case, "send_email", lambda **_k: None)
     monkeypatch.setattr(notificacion_service, "send_email", lambda **_k: None)
     monkeypatch.setattr(notificacion_service, "send_push", lambda **_k: True)
 

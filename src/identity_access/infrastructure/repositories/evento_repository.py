@@ -411,10 +411,13 @@ class SqlAlchemyEventoRepository(EventoRepository):
             .scalar()
         )
 
-    def obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
-        self, ip: str, desde: datetime
+    def obtener_primera_solicitud_recuperacion_por_ip(
+        self,
+        ip: str,
+        desde: datetime,
     ) -> Optional[datetime]:
-        return (
+        """Retorna en UTC el inicio real de la ventana vigente para una IP."""
+        primera_solicitud = (
             self.db.query(func.min(Eventos.fecha_evento))
             .filter(
                 Eventos.tipo_evento == 7,
@@ -423,6 +426,11 @@ class SqlAlchemyEventoRepository(EventoRepository):
             )
             .scalar()
         )
+        if primera_solicitud is None:
+            return None
+        if primera_solicitud.tzinfo is None:
+            return primera_solicitud.replace(tzinfo=timezone.utc)
+        return primera_solicitud.astimezone(timezone.utc)
 
     def contar_consultas_detalle_usuario(self, id_usuario: int, desde: datetime) -> int:
         # Solo las exitosas: los eventos de bloqueo (RF-12, 429) se registran con

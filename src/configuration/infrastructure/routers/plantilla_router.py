@@ -39,6 +39,7 @@ from src.configuration.infrastructure.repositories.especie_repository import Sql
 from src.configuration.infrastructure.repositories.metrica_produccion_repository import SqlAlchemyMetricaProduccionRepository
 from src.configuration.infrastructure.repositories.plantilla_repository import SqlAlchemyPlantillaRepository
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
+from src.configuration.infrastructure.repositories.variable_ambiental_repository import SqlAlchemyVariableAmbientalRepository
 from src.configuration.infrastructure.schema.plantilla_schema import (
     AplicacionPlantillaResponse,
     AuditoriaPlantillaResponse,
@@ -205,6 +206,7 @@ def registrar_plantilla(
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         especie_repo=SqlAlchemyEspecieRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+        variable_repo=SqlAlchemyVariableAmbientalRepository(db),
     )
     plantilla = use_case.execute(dto, usuario_actual)
     return PlantillaResponse.model_validate(plantilla)
@@ -306,6 +308,7 @@ def versionar_plantilla(
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         especie_repo=SqlAlchemyEspecieRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+        variable_repo=SqlAlchemyVariableAmbientalRepository(db),
     )
     plantilla = use_case.execute(id_plantilla, dto, usuario_actual)
     return PlantillaResponse.model_validate(plantilla)

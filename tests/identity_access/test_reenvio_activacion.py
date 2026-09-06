@@ -3,6 +3,8 @@
 Cubren el rate limiting por IP y la respuesta uniforme que evita enumerar
 qué correos están registrados.
 """
+from datetime import datetime, timezone
+
 import pytest
 
 from src.identity_access.application.use_cases.registro import reenviar_token_use_case as modulo
@@ -15,6 +17,14 @@ from src.shared.errors import BusinessRuleError
 
 CORREO = "pendiente@ejemplo.com"
 IP = "203.0.113.7"
+AHORA = datetime(2026, 9, 5, 15, 0, 0, tzinfo=timezone.utc)
+PRIMERA_SOLICITUD = datetime(2026, 9, 5, 14, 20, 0, tzinfo=timezone.utc)
+
+
+class FechaHoraFija(datetime):
+    @classmethod
+    def now(cls, tz=None):
+        return AHORA if tz is not None else AHORA.replace(tzinfo=None)
 
 
 class DbFake:
@@ -36,6 +46,9 @@ class EventoRepoFake:
 
     def contar_solicitudes_recuperacion_por_ip(self, ip, desde) -> int:
         return self.previos
+
+    def obtener_primera_solicitud_recuperacion_por_ip(self, ip, desde):
+        return PRIMERA_SOLICITUD
 
     def registrar(self, tipo_evento, exitoso, id_usuario, detalle, id_sesion=None) -> None:
         self.registrados.append((tipo_evento, exitoso, id_usuario, detalle))
@@ -137,11 +150,14 @@ def test_no_revela_si_el_correo_existe(correos, usuario, cuenta):
     assert db.commits == 0
 
 
-def test_rate_limit_por_ip(correos):
+def test_rate_limit_por_ip(correos, monkeypatch):
+    monkeypatch.setattr(modulo, "datetime", FechaHoraFija)
     use_case, _, _, _ = _caso(UsuarioFake(), CuentaFake(True), previos=MAX_REENVIOS_POR_HORA)
 
     with pytest.raises(BusinessRuleError) as exc:
         use_case.execute(DtoFake(), IP)
 
     assert exc.value.code == "LIMITE_SOLICITUDES_EXCEDIDO"
+    assert "15:20:00" in exc.value.message
+    assert "16:00:00" not in exc.value.message
     assert correos == []

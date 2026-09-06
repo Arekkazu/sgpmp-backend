@@ -68,6 +68,18 @@ class EventoRepoFake:
         self.eventos.append(evento)
 
 
+class CorreoRecuperacionFake:
+    def __init__(self) -> None:
+        self.recuperaciones = []
+        self.activaciones = []
+
+    def programar_recuperacion(self, **datos) -> None:
+        self.recuperaciones.append(datos)
+
+    def programar_activacion(self, **datos) -> None:
+        self.activaciones.append(datos)
+
+
 class IntentoAnonimoRepoFake:
     """Nunca alcanza el límite: existe solo para satisfacer la firma."""
 
@@ -267,18 +279,12 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
     cuenta = nueva_cuenta(Cuenta.ESTADO_ACTIVO)
     cuentas_repo = CuentaRepoFake(cuenta)
     usuario = UsuarioFake()
-    correos = []
+    correos = CorreoRecuperacionFake()
 
     monkeypatch.setattr(
         recuperar_module.secrets,
         "token_urlsafe",
         lambda _bytes: TOKEN_CRUDO,
-    )
-
-    monkeypatch.setattr(
-        recuperar_module,
-        "send_email",
-        lambda **correo: correos.append(correo),
     )
 
     recuperar_module.SolicitarRecuperacionUseCase(
@@ -287,6 +293,7 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
         eventos_repo=EventoRepoFake(),
         intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
+        correo_recuperacion_port=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -297,9 +304,9 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
     assert cuentas_repo.guardada is not None
     assert cuentas_repo.guardada.token_activacion_actual == TOKEN_HASH
 
-    assert correos
-    assert TOKEN_CRUDO in correos[0]["html_body"]
-    assert TOKEN_HASH not in correos[0]["html_body"]
+    assert correos.recuperaciones
+    assert correos.recuperaciones[0]["token"] == TOKEN_CRUDO
+    assert correos.recuperaciones[0]["token"] != TOKEN_HASH
 
 
 def test_recuperacion_de_cuenta_pendiente_rota_el_token(
@@ -308,18 +315,12 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
     cuenta = nueva_cuenta(Cuenta.ESTADO_PENDIENTE)
     cuentas_repo = CuentaRepoFake(cuenta)
     usuario = UsuarioFake()
-    correos = []
+    correos = CorreoRecuperacionFake()
 
     monkeypatch.setattr(
         recuperar_module.secrets,
         "token_urlsafe",
         lambda _bytes: TOKEN_CRUDO,
-    )
-
-    monkeypatch.setattr(
-        recuperar_module,
-        "send_email",
-        lambda **correo: correos.append(correo),
     )
 
     recuperar_module.SolicitarRecuperacionUseCase(
@@ -328,6 +329,7 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
         eventos_repo=EventoRepoFake(),
         intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
+        correo_recuperacion_port=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -338,9 +340,9 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
     assert cuentas_repo.guardada is not None
     assert cuentas_repo.guardada.token_activacion_actual == TOKEN_HASH
 
-    assert correos
-    assert TOKEN_CRUDO in correos[0]["html_body"]
-    assert TOKEN_HASH not in correos[0]["html_body"]
+    assert correos.activaciones
+    assert correos.activaciones[0]["token"] == TOKEN_CRUDO
+    assert correos.activaciones[0]["token"] != TOKEN_HASH
 
 
 def test_restablecimiento_consulta_hash_y_marca_token_usado(
