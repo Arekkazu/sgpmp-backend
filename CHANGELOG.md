@@ -1,3 +1,13 @@
+## [1.0.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.24...v1.0.0-rc.25) (2026-09-06)
+
+### Features
+
+* **m02:** agregar snapshot inicial y CHECK de soporte documental en RF-33 ([c7ae501](https://github.com/Arekkazu/sgpmp-backend/commit/c7ae501c51e977a21b4710b08b950b82006d1a9d)), closes [#28](https://github.com/Arekkazu/sgpmp-backend/issues/28)
+
+### Bug Fixes
+
+* **rf33:** corregir head duplicado de alembic y nombre de constraint ([cc04a0d](https://github.com/Arekkazu/sgpmp-backend/commit/cc04a0d8bd784ec4f93e8014fcf056ef278c7f04))
+
 ## [1.0.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.23...v1.0.0-rc.24) (2026-09-06)
 
 ### Bug Fixes
