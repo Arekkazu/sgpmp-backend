@@ -24,6 +24,7 @@ from src.configuration.infrastructure.repositories.auditoria_calibracion_reposit
 from src.configuration.infrastructure.repositories.auditoria_sensor_area_repository import SqlAlchemyAuditoriaSensorAreaRepository
 from src.configuration.infrastructure.repositories.calibracion_repository import SqlAlchemyCalibracionRepository
 from src.configuration.infrastructure.repositories.dispositivo_iot_repository import SqlAlchemyDispositivoIotRepository
+from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
 from src.configuration.infrastructure.repositories.rango_calibracion_repository import SqlAlchemyRangoCalibracionRepository
 from src.configuration.infrastructure.repositories.sensor_area_repository import SqlAlchemySensorAreaRepository
@@ -43,6 +44,7 @@ from src.shared.schemas import ErrorResponse
 router = APIRouter(prefix="/configuracion/sensores", tags=["Configuración - Sensores"])
 
 _RECURSO = 12  # modulo1.recursos: 'sensores'
+_ROL_PROD = 2  # modulo1.roles: mismo criterio que finca_router (Prod solo ve lo suyo)
 
 
 # ── RF-22: Asociar sensor a área productiva ───────────────────────────────────
@@ -90,6 +92,7 @@ def asociar_sensor_area(
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
     },
     summary="Historial de asociaciones sensor-área (RF-22)",
 )
@@ -98,11 +101,16 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
+    id_filtro = usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
     use_case = ConsultarAsociacionesUseCase(
         db=db,
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
+        sensor_repo=SqlAlchemySensorRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        infra_repo=SqlAlchemyInfraestructuraRepository(db),
+        finca_repo=SqlAlchemyFincaRepository(db),
     )
-    asociaciones = use_case.listar_por_sensor(id_sensor)
+    asociaciones = use_case.listar_por_sensor(id_sensor, id_usuario_filtro=id_filtro)
     items = [SensorAreaResponse.from_entity(a) for a in asociaciones]
     return ListaSensorAreasResponse(total=len(items), items=items)
 
