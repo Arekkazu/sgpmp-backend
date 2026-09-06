@@ -390,10 +390,24 @@ el RF describe.
   de `201` (el `ProgrammingError` de tabla inexistente no está capturado en el use case).
   Bloquea el camino feliz de RF-20 en ese entorno hasta que se corra `alembic upgrade head`
   ahí — detalle y evidencia en `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md`.
-- **Mismo patrón de stub que RF-19**: `infraestructura_stub_adapter.py` siempre retorna
-  `False` para el chequeo de "no desactivar área con dispositivos/activos asociados", con el
-  mismo comentario desactualizado sobre módulos "aún no implementados" que de hecho ya
-  existen.
+- ~~Mismo patrón de stub que RF-19: `infraestructura_stub_adapter.py` siempre retorna
+  `False`~~ — **ya no aplica: ese stub no existe en el repo actual.** El router usa
+  `InfraestructuraDependencyAdapter` (real), que consulta
+  `modulo9.vw_rf20_dependencias_infraestructuras` (dispositivos IoT activos) y
+  `modulo2.activos_biologicos`. **Confirmado con datos reales (TC-M09-G52/TC-M09-103/104,
+  2026-09-06):** desactivar un área sin dependencias funciona (200); con dependencias se
+  rechaza con `422 INFRAESTRUCTURA_CON_DEPENDENCIAS`.
+- **Bug nuevo encontrado en el camino (TC-M09-G52, 2026-09-06):** el chequeo de aplicación
+  y el trigger de BD que protege la misma regla usan criterios distintos. La app
+  (`InfraestructuraDependencyAdapter`) solo cuenta dispositivos IoT con `es_activo = TRUE`;
+  el trigger `trg_fn_infraestructura_no_desactivar_en_uso` cuenta filas vigentes
+  (`tiene_estado = TRUE`) en `modulo9.sensores_areas_asociadas` **sin mirar si el
+  dispositivo enlazado está activo**. Un área con sensores asociados a dispositivos
+  inactivos pasa el chequeo de la app (cree que no hay dependencias) pero el trigger la
+  rechaza igual — y como esa excepción (`AREA_IN_USE`) no está mapeada en
+  `db_error_translator.py`, sale como `500 ERROR_INTERNO` genérico en vez del `422
+  INFRAESTRUCTURA_CON_DEPENDENCIAS` que la app usa para los demás casos de dependencia.
+  Reproducido y detallado en `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G52/Resultados/TC-M09-G52-resultados.md`.
 - Mismo acceso de lectura más amplio que el texto del RF (Productor/Vet/Ing con `R`, cuando
   el RF solo lista "Administrador del sistema, Productor (consulta)") — **DECISIÓN DE DISEÑO
   APROBADA (2026-08-22, issue #1634)**: se mantiene como RBAC dinámico, igual que en RF-19.
@@ -403,6 +417,13 @@ el RF describe.
   (`infraestructuras.capacidad_maxima int`) aunque no aparece en la lista de "Entradas" del
   RF-20 tal como se entregó; no es un gap, es un campo adicional útil para módulos aguas
   abajo.
+- **Mismo gap de auditoría no consultable de RF-18/RF-19 (TC-M09-G53/TC-M09-105, 2026-09-06):**
+  `modulo9.auditorias_infraestructuras` se escribe correctamente para `GET` (solo al listar,
+  no en el detalle individual — así lo exige el DFD) y `DEACTIVATE` (verificado en vivo);
+  `CREATE` solo se pudo confirmar con 2 filas históricas (estructura correcta) y `UPDATE` no
+  tiene ninguna fila porque ambos flujos están bloqueados por el gap de `modulo9.tipos_area`
+  (`TC-M09-G48/NOTA_BLOQUEO.md`). Sin endpoint REST para consultar esta tabla, mismo patrón
+  que RF-18/RF-19. Ver `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G53/`.
 
 ---
 

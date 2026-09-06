@@ -75,3 +75,7 @@ se aplique — vale la pena confirmarlo antes de invertir tiempo en más colecci
 - TC-M09-G50 (TC-M09-101) — bloqueado por completo (editar): `EditarInfraestructuraUseCase`
   también revalida `tipo_area` contra el catálogo en toda edición. Ver
   `TC-M09-G50/Resultados/TC-M09-G50-resultados.md`.
+- TC-M09-G54 (TC-M09-106) — bloqueado por completo (concurrencia al editar): como ninguna
+  edición llega a persistir, el control de concurrencia optimista de RF-20 no se puede
+  ejercitar (ambas "solicitudes" concurrentes revientan igual, ninguna llega a devolver 412).
+  Ver `TC-M09-G54/Resultados/TC-M09-G54-resultados.md`.

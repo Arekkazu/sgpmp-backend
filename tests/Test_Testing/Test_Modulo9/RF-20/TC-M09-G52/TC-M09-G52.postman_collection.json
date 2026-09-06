@@ -1,0 +1,210 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G52 Reglas de desactivacion de area productiva (con y sin dependencias)",
+    "description": "Automatiza TC-M09-103 (area sin dependencias se desactiva correctamente) y TC-M09-104 (area con dependencias operativas activas -dispositivos IoT y/o activos biologicos- se rechaza con 422). DesactivarInfraestructuraUseCase no depende de modulo9.tipos_area (a diferencia de registrar/editar, ver TC-M09-G48/NOTA_BLOQUEO.md), asi que este caso NO esta bloqueado por ese gap. Usa infraestructuras reales del entorno de test: id=10 (Invernadero Norte, sin ninguna asociacion sensor-area vigente ni activos biologicos) e id=1 (Estanque-01, con dispositivos IoT y activos biologicos activos), en vez de construir la cadena completa desde cero -registrar un area nueva esta bloqueado por el gap de tipos_area-. NOTA (bug encontrado durante la seleccion de datos, ver TC-M09-G52-resultados.md): el primer candidato para 'sin dependencias' (id=6) parecia libre segun el chequeo de la aplicacion (InfraestructuraDependencyAdapter, que solo cuenta dispositivos con es_activo=true) pero SI tenia 3 asociaciones sensor-area vigentes a dispositivos inactivos; el trigger de BD trg_fn_infraestructura_no_desactivar_en_uso usa un criterio mas estricto (cualquier asociacion vigente, sin mirar si el dispositivo esta activo) y bloqueo la operacion con una excepcion no controlada -> 500 generico en vez del 422 INFRAESTRUCTURA_CON_DEPENDENCIAS que la app da para los otros casos de dependencia.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_area_sin_dependencias", "value": "10" },
+    { "key": "id_area_con_dependencias", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Confirmar estado 'antes' del area sin dependencias",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado ANTES: ' + JSON.stringify(json));",
+              "pm.test('Esta activa antes del intento', function () { pm.expect(json.es_activo).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-103 - Desactiva correctamente un area sin dependencias activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado DESPUES: ' + JSON.stringify(json));",
+              "pm.test('Cambio a estado inactivo', function () { pm.expect(json.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Confirmar con relectura independiente que quedo inactiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('es_activo=false persiste tras una relectura independiente', function () {",
+              "    pm.expect(json.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_sin_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_sin_dependencias}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - Confirmar que el area de control SI tiene dependencias activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Area de control (con dependencias): ' + JSON.stringify(json));",
+              "pm.test('Esta activa antes del intento de desactivacion', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-104 - Rechaza desactivar un area con dependencias operativas activas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo INFRAESTRUCTURA_CON_DEPENDENCIAS', function () {",
+              "    pm.expect(json.error_code).to.eql('INFRAESTRUCTURA_CON_DEPENDENCIAS');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 7 - Confirmar que el area de control sigue activa (la operacion rechazada no la altero)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Sigue activa: el intento rechazado no cambio nada', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_con_dependencias}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_area_con_dependencias}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
