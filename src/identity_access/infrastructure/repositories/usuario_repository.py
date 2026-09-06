@@ -228,15 +228,22 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
                 joinedload(Usuarios.cuentas_usuarios).joinedload(CuentasUsuarios.estados_cuentas),
             )
         )
-        if nombre:
+        if nombre and nombre.strip():
+            # RF-11 / QA TC-DIS-34: buscar el nombre completo ("Juan Pérez") debe
+            # devolver el usuario aunque nombre y apellidos vivan en columnas
+            # separadas. Sin el concat, el patrón "%Juan Pérez%" no matchea ni
+            # a nombre ni a apellidos y el listado devuelve 0 resultados.
+            patron = f"%{nombre.strip()}%"
+            nombre_completo = func.concat(Usuarios.nombre, " ", Usuarios.apellidos)
             query = query.filter(
                 or_(
-                    Usuarios.nombre.ilike(f"%{nombre}%"),
-                    Usuarios.apellidos.ilike(f"%{nombre}%"),
+                    Usuarios.nombre.ilike(patron),
+                    Usuarios.apellidos.ilike(patron),
+                    nombre_completo.ilike(patron),
                 )
             )
-        if correo:
-            query = query.filter(Usuarios.correo_electronico.ilike(f"%{correo}%"))
+        if correo and correo.strip():
+            query = query.filter(Usuarios.correo_electronico.ilike(f"%{correo.strip()}%"))
         if id_estado is not None:
             query = query.filter(CuentasUsuarios.id_estado_cuenta == id_estado)
         if id_rol is not None:

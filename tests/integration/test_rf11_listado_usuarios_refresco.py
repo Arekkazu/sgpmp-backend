@@ -5,12 +5,21 @@ en resultado vacío.
 """
 from __future__ import annotations
 
+import random
+import string
 import uuid
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 pytestmark = pytest.mark.integration
+
+
+def _sufijo_letras() -> str:
+    """Sufijo único de solo letras: las columnas nombre/apellidos tienen
+    constraints CHECK que solo admiten `[A-Za-zÁÉÍÓÚáéíóúÑñ ]` (sin dígitos
+    ni guiones)."""
+    return "".join(random.choices(string.ascii_letters, k=8))
 
 
 def test_listado_admin_ordena_por_fecha_registro_descendente(
@@ -154,3 +163,93 @@ def test_listado_admin_incluye_id_usuario_por_fila(
     items = respuesta.json()["items"]
     assert len(items) == 1
     assert items[0]["id_usuario"] == objetivo["id_usuario"]
+
+
+def test_listado_admin_busca_por_nombre_completo(
+    client,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    """QA TC-DIS-34: buscar el nombre completo ("Juan X Pérez X") devuelve al
+    usuario aunque nombre y apellidos vivan en columnas separadas — el patrón
+    con espacio no matchea ninguna columna por sí sola."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    sufijo = _sufijo_letras()
+    objetivo = crear_usuario_db(
+        nombre=f"Juan{sufijo}",
+        apellidos=f"Pérez{sufijo}",
+        correo=f"nombre-{sufijo}@example.com",
+    )
+    crear_usuario_db(
+        nombre=f"Otro{sufijo}",
+        apellidos=f"López{sufijo}",
+        correo=f"nombre-{sufijo}-otro@example.com",
+    )
+
+    respuesta = client.get(
+        "/usuarios/admin",
+        params={"nombre": f"Juan{sufijo} Pérez{sufijo}"},
+        headers=crear_auth_headers(admin),
+    )
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["total"] == 1
+    assert cuerpo["items"][0]["id_usuario"] == objetivo["id_usuario"]
+
+
+def test_listado_admin_busca_por_apellido_solo(
+    client,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    """Regresión: un término sin espacio sigue matcheando la columna apellidos."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    sufijo = _sufijo_letras()
+    objetivo = crear_usuario_db(
+        nombre=f"Ana{sufijo}",
+        apellidos=f"García{sufijo}",
+        correo=f"apellido-{sufijo}@example.com",
+    )
+    crear_usuario_db(
+        nombre=f"Luis{sufijo}",
+        apellidos=f"Ramírez{sufijo}",
+        correo=f"apellido-{sufijo}-otro@example.com",
+    )
+
+    respuesta = client.get(
+        "/usuarios/admin",
+        params={"nombre": f"García{sufijo}"},
+        headers=crear_auth_headers(admin),
+    )
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["total"] == 1
+    assert cuerpo["items"][0]["id_usuario"] == objetivo["id_usuario"]
+
+
+def test_listado_admin_ignora_espacios_sobrantes_en_busqueda(
+    client,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    """Un espacio al inicio/final del término no debe romper el match (trim)."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    sufijo = _sufijo_letras()
+    objetivo = crear_usuario_db(
+        nombre=f"Marta{sufijo}",
+        apellidos=f"Hernández{sufijo}",
+        correo=f"trim-{sufijo}@example.com",
+    )
+
+    respuesta = client.get(
+        "/usuarios/admin",
+        params={"nombre": f"  Marta{sufijo}  "},
+        headers=crear_auth_headers(admin),
+    )
+
+    assert respuesta.status_code == 200
+    cuerpo = respuesta.json()
+    assert cuerpo["total"] == 1
+    assert cuerpo["items"][0]["id_usuario"] == objetivo["id_usuario"]
