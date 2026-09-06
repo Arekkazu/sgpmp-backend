@@ -74,12 +74,26 @@ class EventosRepoFake:
         self.eventos.append(datos)
 
 
+class IntentoAnonimoRepoFake:
+    """Nunca alcanza el límite: existe solo para satisfacer la firma."""
+
+    def registrar(self, _tipo, _ip) -> None:
+        pass
+
+    def contar_por_ip(self, _tipo, _ip, _desde) -> int:
+        return 1
+
+    def obtener_fecha_mas_antigua_por_ip(self, _tipo, _ip, _desde):
+        return None
+
+
 def _ejecutar(usuario, cuenta, tareas: BackgroundTasks):
     db = DbFake()
     caso = SolicitarRecuperacionUseCase(
         usuarios_repo=UsuariosRepoFake(usuario),
         cuentas_repo=CuentasRepoFake(cuenta),
         eventos_repo=EventosRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=db,
         correo_recuperacion_port=CorreoRecuperacionBackgroundAdapter(tareas),
     )
@@ -126,7 +140,8 @@ def test_smtp_lento_no_diferencia_el_request_de_correo_existente(
     assert abs(tiempo_existente - tiempo_inexistente) < 300
     assert tiempo_existente < 300
     assert despachos == []
-    assert db.commits == 1
+    # 1 commit del registro de intento anonimo (rate limit) + 1 del token/evento.
+    assert db.commits == 2
     assert len(tareas_existente.tasks) == 1
     assert len(tareas_inexistente.tasks) == 0
 
@@ -152,7 +167,8 @@ def test_cuenta_pendiente_programa_activacion_despues_del_commit(
     _, mensaje, db = _ejecutar(usuario, cuenta, tareas)
 
     assert mensaje == MENSAJE_GENERICO
-    assert db.commits == 1
+    # 1 commit del registro de intento anonimo (rate limit) + 1 del token/evento.
+    assert db.commits == 2
     assert despachos == []
     asyncio.run(tareas())
     assert despachos[0]["flujo"] == "activacion"
@@ -168,6 +184,7 @@ def test_fallo_de_persistencia_no_programa_correo() -> None:
         usuarios_repo=UsuariosRepoFake(usuario),
         cuentas_repo=CuentasRepoFake(cuenta, fallar_guardado=True),
         eventos_repo=EventosRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=db,
         correo_recuperacion_port=CorreoRecuperacionBackgroundAdapter(tareas),
     )
@@ -178,7 +195,9 @@ def test_fallo_de_persistencia_no_programa_correo() -> None:
             "198.51.100.43",
         )
 
-    assert db.commits == 0
+    # El registro del intento anonimo (rate limit) ya se confirmo antes de
+    # que fallara la persistencia de la cuenta.
+    assert db.commits == 1
     assert db.rollbacks == 1
     assert tareas.tasks == []
 

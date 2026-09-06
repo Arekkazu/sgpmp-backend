@@ -1,3 +1,44 @@
+## [1.0.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.17...v1.0.0-rc.18) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([d0c1286](https://github.com/Arekkazu/sgpmp-backend/commit/d0c1286ac7fba724a9c48d51f4889f84fea4f29e))
+
+## [1.0.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.16...v1.0.0-rc.17) (2026-09-06)
+
+### Bug Fixes
+
+* **rf31:** validar rango fisico de umbrales al crear o versionar plantilla ([ae6efd2](https://github.com/Arekkazu/sgpmp-backend/commit/ae6efd207a270e12b76d5c492872e3496eae6d31))
+
+## [1.0.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.15...v1.0.0-rc.16) (2026-09-06)
+
+### Bug Fixes
+
+* **rf16:** consultar dependencias reales al desactivar patologia y metrica ([a2dd2ed](https://github.com/Arekkazu/sgpmp-backend/commit/a2dd2ed35376cda5550a0370deacaebebff97ff1))
+
+## [1.0.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.14...v1.0.0-rc.15) (2026-09-06)
+
+### Bug Fixes
+
+* **rf08:** calcular hora real de reintento ([726cc34](https://github.com/Arekkazu/sgpmp-backend/commit/726cc347fb85b93ba1e41bd16f102c79d219c66f))
+
+## [1.0.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.13...v1.0.0-rc.14) (2026-09-05)
+
+### Bug Fixes
+
+* **rf08:** aplicar el limite de recuperacion tambien a correos inexistentes ([38ac799](https://github.com/Arekkazu/sgpmp-backend/commit/38ac79933a56e216ffee9b6febfc6ed246b7d520)), closes [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86) [100/#102](https://github.com/100/sgpmp-backend/issues/102) [104/#105](https://github.com/104/sgpmp-backend/issues/105) [#122](https://github.com/Arekkazu/sgpmp-backend/issues/122) [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86)
+* **rf08:** recuperacion de contrasena responde 429 y anuncia la hora real de reintento ([34b5fcf](https://github.com/Arekkazu/sgpmp-backend/commit/34b5fcf0d56cd67b0ed335d6147cb42dfff78938)), closes [#85](https://github.com/Arekkazu/sgpmp-backend/issues/85) [#104](https://github.com/Arekkazu/sgpmp-backend/issues/104) [#105](https://github.com/Arekkazu/sgpmp-backend/issues/105)
+* **rf09:** alinear nombres de columnas nuevas con la convencion de nomenclatura ([cf4567f](https://github.com/Arekkazu/sgpmp-backend/commit/cf4567f532a234f395669752f79bbda879238627))
+* **rf09:** corregir down_revision de la migracion, rompia el CI de Alembic ([d5f9df0](https://github.com/Arekkazu/sgpmp-backend/commit/d5f9df060293dc76b295025fc476880d18e2ac3f)), closes [#123](https://github.com/Arekkazu/sgpmp-backend/issues/123)
+* **rf09:** migracion idempotente, ya aplicada a mano en sgpmp y pruebas ([5265f27](https://github.com/Arekkazu/sgpmp-backend/commit/5265f277b69c16c7a5b9bdc733b997d822c2cf3c))
+* **rf09:** token de recuperacion ya usado responde 409 y bloquea tras 5 tokens invalidos ([893aa08](https://github.com/Arekkazu/sgpmp-backend/commit/893aa08865726b4540245b1f8fcb0b85329d5513)), closes [#100](https://github.com/Arekkazu/sgpmp-backend/issues/100) [#102](https://github.com/Arekkazu/sgpmp-backend/issues/102) [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86) [#105](https://github.com/Arekkazu/sgpmp-backend/issues/105) [#100](https://github.com/Arekkazu/sgpmp-backend/issues/100) [#102](https://github.com/Arekkazu/sgpmp-backend/issues/102)
+
+## [1.0.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.12...v1.0.0-rc.13) (2026-09-05)
+
+### Bug Fixes
+
+* **rf08:** mantener 202 y alertar fallo smtp inc-m01-14-044 ([2fe2d66](https://github.com/Arekkazu/sgpmp-backend/commit/2fe2d66020251075a54f209fa7d6d39129e18c78))
+
 ## [1.0.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-09-05)
 
 ### Features

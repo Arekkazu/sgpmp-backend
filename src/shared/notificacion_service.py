@@ -72,7 +72,7 @@ class NotificacionService:
         contenido_html_email: Optional[str] = None,
         resolver_correo_destino: bool = False,
         aplicar_anti_spam_email: bool = True,
-    ) -> None:
+    ) -> Optional[bool]:
         """Punto de entrada único para enviar notificaciones.
 
         Debe llamarse después del commit del use case principal. Captura
@@ -95,9 +95,16 @@ class NotificacionService:
                 el servicio lo consulta mediante su puerto.
             aplicar_anti_spam_email: Permite omitir la ventana anti-spam para
                 correos con tokens que invalidan al token anterior.
+
+        Returns:
+            ``True`` si el canal EMAIL se entregó, ``False`` si se intentó y
+            el SMTP falló, o ``None`` si no se intentó envío por email (sin
+            destinatario, cuenta filtrada, anti-spam o error interno antes de
+            llegar al envío). Los llamadores que no necesitan reaccionar al
+            resultado pueden ignorar el valor de retorno.
         """
         try:
-            self._procesar(
+            return self._procesar(
                 tipo_evento,
                 id_usuario,
                 correo_destino,
@@ -111,6 +118,7 @@ class NotificacionService:
                 "Error al procesar notificación tipo=%s usuario=%s: %s",
                 tipo_evento, id_usuario, exc,
             )
+            return None
 
     def _procesar(
         self,
@@ -121,7 +129,7 @@ class NotificacionService:
         contenido_html_email: Optional[str],
         resolver_correo_destino: bool,
         aplicar_anti_spam_email: bool,
-    ) -> None:
+    ) -> Optional[bool]:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
         Aplica las siguientes reglas antes de enviar:
@@ -134,6 +142,9 @@ class NotificacionService:
             tipo_evento: ID del tipo de evento.
             id_usuario: ID del usuario destinatario.
             correo_destino: Dirección de correo o ``None``.
+
+        Returns:
+            El resultado de :meth:`_enviar_canal` para el canal EMAIL.
         """
         titulo, cuerpo = _MENSAJES.get(tipo_evento, ("Notificación", "Se ha registrado una actividad en tu cuenta."))
 
@@ -144,18 +155,18 @@ class NotificacionService:
         # pasar a INACTIVO se autosuprime: para cuando notificar() corre (después
         # del commit del cambio de estado), la cuenta ya está inactiva.
         if id_estado in (ESTADO_INACTIVO, ESTADO_BLOQUEADO) and tipo_evento not in TIPOS_EVENTO_SEGURIDAD:
-            return
+            return None
 
         id_evento = self.port.buscar_ultimo_evento_id(id_usuario, tipo_evento)
         if id_evento is None:
-            return
+            return None
 
         if resolver_correo_destino and correo_destino is None:
             correo_destino = self.port.buscar_correo_usuario(id_usuario)
 
         fcm_tokens = self.port.buscar_fcm_tokens(id_usuario)
 
-        self._enviar_canal(
+        resultado_email = self._enviar_canal(
             canal=ID_CANAL_EMAIL,
             tipo_evento=tipo_evento,
             id_evento=id_evento,
@@ -183,6 +194,8 @@ class NotificacionService:
             aplicar_anti_spam=True,
         )
 
+        return resultado_email
+
     def _enviar_canal(
         self,
         canal: int,
@@ -196,7 +209,7 @@ class NotificacionService:
         asunto_email: Optional[str],
         contenido_html_email: Optional[str],
         aplicar_anti_spam: bool,
-    ) -> None:
+    ) -> Optional[bool]:
         """Persiste y despacha la notificación para un canal específico.
 
         Flujo interno:
@@ -223,6 +236,12 @@ class NotificacionService:
             asunto_email: Asunto exclusivo del canal EMAIL, si aplica.
             contenido_html_email: HTML exclusivo del canal EMAIL, si aplica.
             aplicar_anti_spam: Si se valida la ventana anti-spam para el canal.
+
+        Returns:
+            Para el canal EMAIL: ``True`` si ``send_email`` no lanzó excepción,
+            ``False`` si falló, o ``None`` si no había destinatario o no se
+            llegó a intentar el envío (anti-spam, error registrando la fila).
+            Para el canal INTERNO siempre retorna ``None`` — nadie lo consume.
         """
         if aplicar_anti_spam and self.port.verificar_anti_spam(
             id_usuario,
@@ -230,7 +249,7 @@ class NotificacionService:
             canal,
             VENTANA_ANTI_SPAM_MINUTOS,
         ):
-            return
+            return None
 
         try:
             id_notificacion = self.port.registrar(
@@ -244,7 +263,7 @@ class NotificacionService:
         except Exception as exc:
             self.db.rollback()
             logger.error("Error guardando notificación (canal=%s): %s", canal, exc)
-            return
+            return None
 
         enviado = canal == ID_CANAL_INTERNO
         try:
@@ -268,3 +287,5 @@ class NotificacionService:
         except Exception as exc:
             self.db.rollback()
             logger.error("Error actualizando estado notificación: %s", exc)
+
+        return enviado if canal == ID_CANAL_EMAIL and correo else None

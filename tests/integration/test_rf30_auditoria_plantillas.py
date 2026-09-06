@@ -50,6 +50,24 @@ def especie_activa(db_session: Session, requiere_modulo9: None) -> int:
 
 
 @pytest.fixture
+def variable_ambiental_activa(db_session: Session, requiere_modulo9: None) -> dict:
+    """Inserta una variable con rango físico [15.0, 30.0], propia de esta prueba."""
+    id_variable = db_session.execute(
+        text(
+            """
+            INSERT INTO modulo9.variables_ambientales
+                (nombre, unidad, valor_fisico_min, valor_fisico_max, es_activo)
+            VALUES (:nombre, '°C', 15.0, 30.0, TRUE)
+            RETURNING id_variable_ambiental
+            """
+        ),
+        {"nombre": f"Temperatura RF31 {_sufijo_letras()}"},
+    ).scalar_one()
+    db_session.flush()
+    return {"id_variable_ambiental": id_variable, "min": 15.0, "max": 30.0}
+
+
+@pytest.fixture
 def config_client(
     db_session: Session, monkeypatch: pytest.MonkeyPatch, requiere_modulo9: None
 ) -> Generator[TestClient, None, None]:
@@ -110,3 +128,59 @@ def test_auditoria_lista_creacion_y_versionado(
     assert {id_plantilla, id_plantilla_v2} <= ids_auditados
     tipos = {item["tipo_operacion"] for item in cuerpo["items"] if item["id_plantilla"] in (id_plantilla, id_plantilla_v2)}
     assert tipos == {"CREATE"}
+
+
+# ── RF-31 (#126) — rango físico de umbrales, contra BD real ──────────────────
+
+
+def test_crear_plantilla_con_umbral_fuera_de_rango_fisico_responde_422(
+    config_client, crear_usuario_db, crear_auth_headers, especie_activa: int, variable_ambiental_activa: dict
+) -> None:
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+
+    resp = config_client.post(
+        "/configuracion/plantillas",
+        json={
+            "template_name": f"Plantilla Rango {_sufijo_letras()}",
+            "id_especie": especie_activa,
+            "params_snapshot": {
+                "umbrales_ambientales": [{
+                    "id_variable_ambiental": variable_ambiental_activa["id_variable_ambiental"],
+                    "unidad_medida": "°C",
+                    "valor_min": -999,
+                    "valor_max": 999,
+                }],
+            },
+        },
+        headers=headers,
+    )
+
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["error_code"] == "RANGO_FISICO_INVALIDO"
+
+
+def test_crear_plantilla_con_umbral_dentro_de_rango_fisico_permite_201(
+    config_client, crear_usuario_db, crear_auth_headers, especie_activa: int, variable_ambiental_activa: dict
+) -> None:
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+
+    resp = config_client.post(
+        "/configuracion/plantillas",
+        json={
+            "template_name": f"Plantilla Rango {_sufijo_letras()}",
+            "id_especie": especie_activa,
+            "params_snapshot": {
+                "umbrales_ambientales": [{
+                    "id_variable_ambiental": variable_ambiental_activa["id_variable_ambiental"],
+                    "unidad_medida": "°C",
+                    "valor_min": 18.0,
+                    "valor_max": 25.0,
+                }],
+            },
+        },
+        headers=headers,
+    )
+
+    assert resp.status_code == 201, resp.text
