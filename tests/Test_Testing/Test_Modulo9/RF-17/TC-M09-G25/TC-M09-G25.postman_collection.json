@@ -1,0 +1,180 @@
+{
+  "info": {
+    "name": "TC-M09-G25 - limites fisicos de la variable ambiental (RF-17 FA-04)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-55",
+      "item": [
+        {
+          "name": "TC-M09-55 POST umbral fuera de rango fisico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Variable descubierta corresponde a Humedad y esta activa en catalogo',()=>{pm.expect(c.variable.nombre).to.match(/humedad/i);pm.expect(c.variable.catalogoActivo).to.eql(true);pm.expect(c.variable.id).to.eql(p.id_variable_ambiental);});",
+                  "pm.test('Especie valida y activa',()=>{pm.expect(c.especie.es_activo).to.eql(true);pm.expect(c.especie.id).to.eql(p.id_especie);});",
+                  "pm.test('Combinacion especie-variable libre antes del POST',()=>{pm.expect(c.combinacionLibre).to.eql(true);pm.expect(c.umbralesPrevios.filter(u=>u.id_variable_ambiental===c.variable.id)).to.have.lengthOf(0);});",
+                  "pm.test('Rango matematicamente valido: valor_min < valor_max',()=>pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max)));",
+                  "pm.test('Unica invalidez intencional: el maximo excede el limite fisico',()=>{pm.expect(num(p.valor_min),'minimo dentro del limite fisico').to.be.at.least(num(c.variable.fisicoMin));pm.expect(num(p.valor_min)).to.be.at.most(num(c.variable.fisicoMax));pm.expect(num(p.valor_max),'maximo por encima del limite fisico').to.be.above(num(c.variable.fisicoMax));});",
+                  "pm.test('Niveles estructuralmente correctos: sin huecos, sin solapamiento y cubriendo el padre',()=>{pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(p.niveles.map(n=>n.nivel).sort()).to.eql(['critico','normal','precaucion']);const o=ord(p.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel).to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[0].limite_superior)).to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior)).to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Respuesta corresponde al limite fisico de la variable',()=>{pm.expect(b.error_code).to.eql('RANGO_FISICO_INVALIDO');pm.expect(b.message).to.include('rango');pm.expect(b.message).to.include(c.variable.nombre);pm.expect(b.message).to.include(String(c.variable.fisicoMax));pm.expect(b.message).to.include(String(c.variable.fisicoMin));});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-17',()=>{pm.expect(b.error_code).to.not.be.oneOf(['VAL_ENTRADA','NIVEL_FUERA_DE_RANGO','SOLAPAMIENTO_NIVELES','UMBRAL_DUPLICADO','ESPECIE_INACTIVA','VARIABLE_AMBIENTAL_NO_ENCONTRADA','ERROR_INTERNO']);pm.expect(pm.response.code).to.not.be.oneOf([409,422,500]);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-55 GET verificacion de ausencia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Configuracion invalida ausente: la combinacion no persistio',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===c.variable.id),'umbrales de la variable probada').to.have.lengthOf(0);});",
+                  "pm.test('Umbrales previos de la especie intactos',()=>{const ids=b.items.map(u=>u.id_umbral_ambiental).sort((x,y)=>x-y);pm.expect(ids).to.eql(c.umbralesPrevios.map(u=>u.id).sort((x,y)=>x-y));});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-56",
+      "item": [
+        {
+          "name": "TC-M09-56 POST umbral fuera de rango fisico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('Variable descubierta corresponde a pH y esta activa en catalogo',()=>{pm.expect(c.variable.nombre).to.match(/\\bph\\b/i);pm.expect(c.variable.catalogoActivo).to.eql(true);pm.expect(c.variable.id).to.eql(p.id_variable_ambiental);});",
+                  "pm.test('Especie valida y activa',()=>{pm.expect(c.especie.es_activo).to.eql(true);pm.expect(c.especie.id).to.eql(p.id_especie);});",
+                  "pm.test('Combinacion especie-variable libre antes del POST',()=>{pm.expect(c.combinacionLibre).to.eql(true);pm.expect(c.umbralesPrevios.filter(u=>u.id_variable_ambiental===c.variable.id)).to.have.lengthOf(0);});",
+                  "pm.test('Rango matematicamente valido: valor_min < valor_max',()=>pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max)));",
+                  "pm.test('Unica invalidez intencional: el maximo excede el limite fisico',()=>{pm.expect(num(p.valor_min),'minimo dentro del limite fisico').to.be.at.least(num(c.variable.fisicoMin));pm.expect(num(p.valor_min)).to.be.at.most(num(c.variable.fisicoMax));pm.expect(num(p.valor_max),'maximo por encima del limite fisico').to.be.above(num(c.variable.fisicoMax));});",
+                  "pm.test('Niveles estructuralmente correctos: sin huecos, sin solapamiento y cubriendo el padre',()=>{pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(p.niveles.map(n=>n.nivel).sort()).to.eql(['critico','normal','precaucion']);const o=ord(p.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel).to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[0].limite_superior)).to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior)).to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Respuesta corresponde al limite fisico de la variable',()=>{pm.expect(b.error_code).to.eql('RANGO_FISICO_INVALIDO');pm.expect(b.message).to.include('rango');pm.expect(b.message).to.include(c.variable.nombre);pm.expect(b.message).to.include(String(c.variable.fisicoMax));pm.expect(b.message).to.include(String(c.variable.fisicoMin));});",
+                  "pm.test('El rechazo no proviene de otra regla de RF-17',()=>{pm.expect(b.error_code).to.not.be.oneOf(['VAL_ENTRADA','NIVEL_FUERA_DE_RANGO','SOLAPAMIENTO_NIVELES','UMBRAL_DUPLICADO','ESPECIE_INACTIVA','VARIABLE_AMBIENTAL_NO_ENCONTRADA','ERROR_INTERNO']);pm.expect(pm.response.code).to.not.be.oneOf([409,422,500]);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-56 GET verificacion de ausencia",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const c=JSON.parse(pm.environment.get('contexto'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Configuracion invalida ausente: la combinacion no persistio',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===c.variable.id),'umbrales de la variable probada').to.have.lengthOf(0);});",
+                  "pm.test('Umbrales previos de la especie intactos',()=>{const ids=b.items.map(u=>u.id_umbral_ambiental).sort((x,y)=>x-y);pm.expect(ids).to.eql(c.umbralesPrevios.map(u=>u.id).sort((x,y)=>x-y));});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
