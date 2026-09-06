@@ -262,6 +262,10 @@ detectaron gaps de fondo.
   archivo completo para confirmar el mecanismo exacto. **Corrección (TC-M09-G37/TC-M09-79):**
   confirmado, `actualizar_configuracion_use_case.py` sí valida `fecha_actualizacion` contra la
   DB y lanza `PreconditionFailedError` (412) en desalineación — mecanismo completo.
+  **Verificado end-to-end con dos escrituras concurrentes reales (TC-M09-G39/TC-M09-81,
+  2026-09-06):** `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G39/` — dos administradores
+  parten del mismo `fecha_actualizacion`; el primero en escribir gana y el segundo se
+  rechaza con 412 sin alterar el resultado del primero. PASA.
 - **Gap de auditoría consultable (encontrado al ejecutar TC-M09-G37/TC-M09-79):** la tabla
   `modulo9.auditorias_configuraciones_globales` sí se escribe correctamente en cada
   `CREATE`/`UPDATE` (confirmado leyendo `actualizar_configuracion_use_case.py` y
