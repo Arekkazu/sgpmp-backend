@@ -259,8 +259,39 @@ detectaron gaps de fondo.
   recurso — el RF lo pide como flujo alterno ("dos administradores cambian la frecuencia al
   mismo tiempo"). `actualizar_configuracion_use_case.py` apareció en la búsqueda de
   `PreconditionFailedError`, lo que sugiere que sí está implementado, pero no se leyó el
-  archivo completo para confirmar el mecanismo exacto.
-- Ningún hallazgo adicional de peso — es el RF con menos superficie de gaps de todo el bloque.
+  archivo completo para confirmar el mecanismo exacto. **Corrección (TC-M09-G37/TC-M09-79):**
+  confirmado, `actualizar_configuracion_use_case.py` sí valida `fecha_actualizacion` contra la
+  DB y lanza `PreconditionFailedError` (412) en desalineación — mecanismo completo.
+- **Gap de auditoría consultable (encontrado al ejecutar TC-M09-G37/TC-M09-79):** la tabla
+  `modulo9.auditorias_configuraciones_globales` sí se escribe correctamente en cada
+  `CREATE`/`UPDATE` (confirmado leyendo `actualizar_configuracion_use_case.py` y
+  `SqlAlchemyAuditoriaConfigRepository`, y **verificado con `SELECT` directo contra la BD de
+  test el 2026-09-06**: fila `id_auditoria_config=4` con `valores_anteriores`/`valores_nuevos`
+  coincidiendo exactamente con la modificación hecha por la colección), pero **no existe
+  ningún endpoint REST que la exponga**. El único router de auditoría del sistema
+  (`/auditoria/`, en `identity_access`) lee `modulo1.eventos`, una tabla distinta que este
+  flujo nunca toca — la frase de esta sección ("solo lectura de auditoría") asumía
+  erróneamente que ese endpoint cubría también esta tabla. Efecto práctico: un cliente HTTP
+  (frontend, Postman/Newman, QA) no tiene forma de comprobar por API que la modificación
+  quedó en auditoría; requiere acceso directo a BD (como se hizo aquí) o agregar un endpoint.
+  Ver `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G37/` — la colección automatiza todo lo
+  verificable por API (200, valores reflejados, rotación de `fecha_actualizacion`, atribución
+  al `id_usuario` correcto). **TC-M09-79 queda funcionalmente PASA** (la trazabilidad sí
+  ocurre); el gap pendiente es de superficie de API, no de comportamiento: evaluar agregar
+  `GET /configuracion/parametros/auditoria` (o similar) para que quede consultable sin acceso
+  directo a BD.
+- **Rollback ante fallo de auditoría — verificado (TC-M09-G38/TC-M09-80, 2026-09-06):**
+  `actualizar_configuracion_use_case.py` envuelve `config_repo.actualizar()` +
+  `auditoria_repo.registrar()` en el mismo bloque try/`commit()`/`except: rollback()`. Se
+  probó forzando un fallo real del subsistema de auditoría (adaptador roto) contra
+  PostgreSQL real (no fakes en memoria) en
+  `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G38/test_rf18_rollback_auditoria_parametros.py`
+  (usa los fixtures reales de `tests/integration/conftest.py` vía un `conftest.py` local):
+  ni la modificación de
+  `frecuencia_muestreo`/`heartbeat` ni una fila parcial de auditoría sobreviven al rollback
+  — confirmado con `SELECT` fresco tras la excepción, no con el objeto de dominio en
+  memoria. Un control positivo confirma que el mismo arnés sí persiste y sí audita en el
+  camino feliz (no está sesgado a fallar siempre). **TC-M09-80 PASA.**
 
 ---
 
