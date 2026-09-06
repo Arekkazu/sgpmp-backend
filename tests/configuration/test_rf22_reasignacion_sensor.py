@@ -19,15 +19,17 @@ from __future__ import annotations
 import pytest
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase
+from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.entities.sensor import Sensor
 from src.configuration.domain.entities.sensor_area import SensorArea
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
 from src.configuration.domain.value_objects.punto_instalacion import PuntoInstalacion
+from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError
+from src.shared.errors import BusinessRuleError, ConflictError
 
 USUARIO = UsuarioActual(id_usuario=1, id_token=1, id_rol=1)
 
@@ -88,6 +90,14 @@ class SensorAreaRepoFake:
         return self.guardadas + self.actualizadas
 
 
+class DispositivoRepoFake:
+    def __init__(self, dispositivo: DispositivoIot) -> None:
+        self._d = dispositivo
+
+    def obtener_por_id(self, _id):
+        return self._d
+
+
 class AuditoriaRepoFake:
     def __init__(self) -> None:
         self.registros: list[dict] = []
@@ -114,6 +124,17 @@ def _area(id_infraestructura: int, nombre: str, activo: bool = True) -> Infraest
     return a
 
 
+def _dispositivo(id_infraestructura: int) -> DispositivoIot:
+    d = DispositivoIot.crear(
+        serial=SerialDispositivo("SN-TEST-1"),
+        descripcion="Dispositivo de prueba",
+        id_infraestructura=id_infraestructura,
+        id_tipo_dispositivo=1,
+    )
+    d.id_dispositivo_iot = ID_DISPOSITIVO
+    return d
+
+
 def _asociacion_activa(id_infraestructura: int) -> SensorArea:
     a = SensorArea.crear(
         id_sensor=1,
@@ -126,13 +147,18 @@ def _asociacion_activa(id_infraestructura: int) -> SensorArea:
     return a
 
 
-def _use_case(sensor_area_repo: SensorAreaRepoFake, *areas: Infraestructura) -> tuple[AsociarSensorAreaUseCase, DbFake]:
+def _use_case(
+    sensor_area_repo: SensorAreaRepoFake,
+    *areas: Infraestructura,
+    id_infraestructura_dispositivo: int = ID_AREA_1,
+) -> tuple[AsociarSensorAreaUseCase, DbFake]:
     db = DbFake()
     uc = AsociarSensorAreaUseCase(
         db=db,
         sensor_repo=SensorRepoFake(_sensor()),
         sensor_area_repo=sensor_area_repo,
         infra_repo=InfraRepoFake(*areas),
+        dispositivo_repo=DispositivoRepoFake(_dispositivo(id_infraestructura_dispositivo)),
         auditoria_repo=AuditoriaRepoFake(),
     )
     return uc, db
@@ -204,8 +230,6 @@ def test_area_distinta_confirmada_termina_la_anterior_y_crea_la_nueva():
 
 
 def test_area_inactiva_no_permite_asociar():
-    from src.shared.errors import BusinessRuleError
-
     area_inactiva = _area(ID_AREA_1, "Estanque Norte", activo=False)
     uc, _db = _use_case(SensorAreaRepoFake(activa=None), area_inactiva)
     dto = AsociarSensorAreaDTO(id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_1, punto_instalacion="Punto")
@@ -214,3 +238,27 @@ def test_area_inactiva_no_permite_asociar():
         uc.execute(1, dto, USUARIO)
 
     assert exc.value.code == "AREA_NO_DISPONIBLE"
+
+
+def test_area_de_finca_distinta_a_la_del_dispositivo_es_rechazada():
+    """INC-M09-22-G126-01: el área destino existe y está activa, pero pertenece
+    a una finca distinta a la del dispositivo del sensor — debe rechazarse."""
+    area_finca_1 = _area(ID_AREA_1, "Estanque Norte")  # id_finca=1 (helper _area)
+    area_finca_2 = _area(ID_AREA_2, "Estanque Finca B")
+    area_finca_2.id_finca = 2
+
+    uc, db = _use_case(
+        SensorAreaRepoFake(activa=None),
+        area_finca_1,
+        area_finca_2,
+        id_infraestructura_dispositivo=ID_AREA_1,  # dispositivo instalado en la finca 1
+    )
+    dto = AsociarSensorAreaDTO(
+        id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_2, punto_instalacion="Punto"
+    )
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(1, dto, USUARIO)
+
+    assert exc.value.code == "SENSOR_FINCA_DISTINTA"
+    assert db.commits == 0
