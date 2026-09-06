@@ -570,3 +570,6 @@ El RF-05 no lista `direccion` como campo editable, pero el diagrama del paso 03 
 
 **Esquemas de DB**
 Los modelos ORM pueden declarar `schema="nombre_schema"` en el `__table_args__`. Verificar en `base_model.py` o en el modelo específico del módulo.
+
+**Convención de nomenclatura de BD**
+Todo objeto nuevo o modificado en la base de datos (tablas, columnas, índices, constraints, ENUMs, stored procedures, funciones, triggers) sigue la convención documentada en `anotaciones/convencion_nomenclatura_bd.md`. No implica renombrar retroactivamente lo que ya existe sin seguirla.

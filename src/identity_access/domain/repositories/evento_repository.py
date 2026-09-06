@@ -152,7 +152,9 @@ class EventoRepository(ABC):
         """Obtiene en UTC la solicitud tipo 7 más antigua de una IP en la ventana.
 
         Permite informar cuándo vence realmente el rate limit: una hora después
-        de la primera solicitud que todavía se está contabilizando.
+        de la primera solicitud que todavía se está contabilizando. Hoy solo la
+        usa el reenvío de activación (``ReenviarTokenUseCase``) — la recuperación
+        de contraseña migró su rate limiting a ``IntentoAnonimoRepository``.
         """
         raise NotImplementedError
 

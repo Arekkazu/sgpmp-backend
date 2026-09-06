@@ -133,3 +133,24 @@ def test_listado_admin_mensaje_informativo_en_resultado_vacio(
     assert cuerpo["total"] == 0
     assert cuerpo["items"] == []
     assert cuerpo["mensaje"]
+
+
+def test_listado_admin_incluye_id_usuario_por_fila(
+    client,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    """INC-M01-11-87/89: sin id_usuario el frontend no puede construir el link
+    de detalle y termina llamando GET /usuarios/undefined/detalle."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    objetivo = crear_usuario_db(correo=f"con-id-{uuid.uuid4().hex[:8]}@example.com")
+
+    respuesta = client.get(
+        f"/usuarios/admin?correo={objetivo['correo']}",
+        headers=crear_auth_headers(admin),
+    )
+
+    assert respuesta.status_code == 200
+    items = respuesta.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id_usuario"] == objetivo["id_usuario"]

@@ -2,57 +2,52 @@
 
 ## Incidente
 
-`POST /contrasena/recuperar` informaba como próxima hora de intento el mismo
-instante en que rechazaba la solicitud. El cálculo sumaba una hora al inicio de
-la ventana (`ahora - 1 hora`), por lo que el resultado siempre volvía a ser
-`ahora` y no indicaba cuándo se liberaba realmente el cupo.
+`POST /contrasena/recuperar` y `POST /usuarios/reenviar-token` informaban
+como próxima hora de intento un cálculo que siempre volvía a coincidir con
+`ahora`, en vez de la hora real en que se libera el cupo.
 
-El flujo de reenvío de activación compartía el tipo de evento y la ventana de
-rate limiting, pero informaba `ahora + 1 hora`; ese valor también podía exceder
-la espera real. Se corrigieron ambos para mantener un único criterio de negocio.
+## Qué ya estaba resuelto en `dev`
 
-## Paso 0 — base de datos y RBAC
+El flujo de **recuperación de contraseña** (`SolicitarRecuperacionUseCase`) ya
+fue corregido de forma independiente y más completa en `dev`
+(`34b5fcf`, `38ac799`, `2fe2d66`, mergeados vía PR #132) antes de que este
+fix llegara: el rate limiting migró de `EventoRepository` a
+`IntentoAnonimoRepository` (tabla propia sin `id_usuario`, para poder
+contabilizar también correos inexistentes — INC-M01-09-043), el error pasó de
+`BusinessRuleError` (422) a `TooManyRequestsError` (429), y se agregó alerta
+por fallo SMTP (INC-M01-14-044). Esa versión ya calcula la hora real de
+reintento con `intentos_anonimos_repo.obtener_fecha_mas_antigua_por_ip`.
 
-No se requiere DDL, DML ni un permiso nuevo. La tabla `modulo1.eventos` ya
-contiene las tres fuentes necesarias:
+Este PR se había creado desde un punto de `dev` anterior a esos commits, así
+que su versión de `SolicitarRecuperacionUseCase` quedó descartada al resolver
+el conflicto — mergearla habría revertido el fix de correos inexistentes y el
+código 429.
 
-- `fecha_evento`, para encontrar el inicio de la ventana vigente;
-- `tipo_evento = 7`, que identifica las solicitudes contabilizadas;
-- `detalle->>'ip'`, usado por el contador existente para aislar la conexión.
+## Qué seguía roto y sí se corrige aquí
 
-La base remota `sgpmp_dev` se considera de consulta y no recibió cambios ni
-ejecuciones destructivas. La validación con escritura se realizó sobre una base
-local temporal cuyo nombre contiene `test`.
+El **reenvío de activación** (`ReenviarTokenUseCase`) nunca fue tocado por el
+fix paralelo y seguía calculando `ahora + 1 hora` (siempre una hora en el
+futuro, nunca la hora real de desbloqueo). Se aplicó la misma regla que ya
+usa `intentos_anonimos_repo`, pero sobre `EventoRepository` porque este flujo
+sigue contando sobre `modulo1.eventos` (tipo 7):
 
-## Corrección
+- El puerto `EventoRepository` expone
+  `obtener_primera_solicitud_recuperacion_por_ip`, que retorna en UTC la
+  solicitud tipo 7 más antigua de la IP dentro de la ventana vigente.
+- `ReenviarTokenUseCase` suma una hora a esa fecha en vez de a `ahora`.
 
-- El puerto `EventoRepository` expone la fecha de la primera solicitud vigente.
-- `SqlAlchemyEventoRepository` obtiene `MIN(eventos.fecha_evento)` usando los
-  mismos filtros que el contador y normaliza el timestamp a UTC al cruzar la
-  frontera ORM hacia el dominio.
-- Los casos de uso suman una hora a esa solicitud. Si un adaptador devolviera
-  un conteo limitado sin una fecha asociada, se usa `ahora + 1 hora` como
-  fallback futuro para evitar volver a informar una hora vencida.
-- Una IP distinta y un evento anterior al inicio de la ventana no participan en
-  el cálculo.
+No se requirió DDL, DML ni permisos nuevos — se reutilizan las mismas
+columnas de `modulo1.eventos` que ya usaba el contador existente.
 
-## Evidencia de QA recibida
+## Cobertura
 
-Los artefactos `TC-M01-049` corresponden a rendimiento, no al defecto de la
-hora. La prueba aislada de QA continúa pasando después de esta corrección: 10
-repeticiones, promedio de 1.33 ms, mínimo de 1.06 ms y máximo de 1.81 ms.
-
-El reporte Newman recibido medía el endpoint completo y registró 3518 ms por el
-envío síncrono de correo. Ese hallazgo corresponde al defecto de correo
-documentado por QA y no es causado por el cálculo del rate limit.
-
-## Cobertura agregada
-
-- Reproducción determinista del mensaje anterior (`ahora`) y comprobación de la
-  nueva expiración (`primera solicitud + 1 hora`).
-- Prueba HTTP/BD con tres eventos reales, otra IP y un evento fuera de ventana.
-- Normalización de la zona horaria devuelta por PostgreSQL.
-- Mismo cálculo para el reenvío de activación.
-- Confirmación de que al bloquear no se consulta al usuario, no se genera token,
-  no se envía correo y no se confirma ninguna transacción.
-
+- `tests/identity_access/test_reenvio_activacion.py::test_rate_limit_por_ip`
+  cubre el cálculo para el reenvío de activación.
+- El caso de recuperación de contraseña ya está cubierto en `dev` por
+  `tests/integration/test_recuperacion_contrasena.py::test_recuperacion_excede_limite_responde_429_con_hora_real_de_reintento`
+  y `test_recuperacion_aplica_limite_a_correo_inexistente`.
+- Se eliminaron los tests que este PR agregaba para `SolicitarRecuperacionUseCase`
+  (`test_rf08_hora_reintento_recuperacion_unit.py` y
+  `tests/integration/test_rf08_hora_reintento_recuperacion.py`): asumían el
+  mecanismo viejo (422 vía `eventos_repo`) y ya no aplican sobre el código
+  actual de `dev`.

@@ -49,6 +49,27 @@ class HistorialAplicacionesResponse(BaseModel):
     items: list[AplicacionPlantillaResponse]
 
 
+class AuditoriaPlantillaResponse(BaseModel):
+    """Registro de auditoría de creación/versionado de una plantilla (RF-30)."""
+
+    id_auditoria_plantilla: int
+    id_plantilla: int
+    id_usuario: Optional[int]
+    tipo_operacion: str
+    valores_anteriores: Optional[dict[str, Any]]
+    valores_nuevos: dict[str, Any]
+    fecha_gestion: datetime.datetime
+
+    model_config = {"from_attributes": True}
+
+
+class HistorialAuditoriaPlantillasResponse(BaseModel):
+    """Resultado del historial de auditoría de plantillas (CU-07 Flujo D)."""
+
+    total: int
+    items: list[AuditoriaPlantillaResponse]
+
+
 class VersionEsquemaResponse(BaseModel):
     """Una entrada del changelog del esquema de `params_snapshot` (RF-30)."""
 
