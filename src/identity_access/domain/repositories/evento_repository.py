@@ -144,15 +144,17 @@ class EventoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def obtener_fecha_solicitud_recuperacion_mas_antigua_por_ip(
-        self, ip: str, desde: datetime
+    def obtener_primera_solicitud_recuperacion_por_ip(
+        self,
+        ip: str,
+        desde: datetime,
     ) -> Optional[datetime]:
-        """Retorna la fecha de la solicitud (tipo 7) más antigua de la IP dentro de la ventana.
+        """Obtiene en UTC la solicitud tipo 7 más antigua de una IP en la ventana.
 
-        Es la solicitud que, al salir de la ventana de una hora, libera el
-        cupo de nuevo. Se usa para informar la hora real de reintento cuando
-        se excede el límite (``LIMITE_SOLICITUDES_EXCEDIDO``), en vez de una
-        hora fija que nunca coincide con el desbloqueo real.
+        Permite informar cuándo vence realmente el rate limit: una hora después
+        de la primera solicitud que todavía se está contabilizando. Hoy solo la
+        usa el reenvío de activación (``ReenviarTokenUseCase``) — la recuperación
+        de contraseña migró su rate limiting a ``IntentoAnonimoRepository``.
         """
         raise NotImplementedError
 
