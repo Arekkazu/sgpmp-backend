@@ -72,3 +72,44 @@ Permisos en `modulo1.permisos`:
 ## Nota sobre `app.usuario_id`
 
 El trigger `trg_auditar_activo_biologico` exige `SET LOCAL app.usuario_id = ?` antes de cualquier INSERT/UPDATE. El repositorio SQLAlchemy ejecuta esta sentencia al inicio del bloque `guardar()`.
+
+---
+
+## Gaps adicionales — issue #28 (auditoría de cumplimiento RF-33)
+
+Una auditoría posterior (`anotaciones/modulo_2/estado_M02.md`, RF-33) encontró tres gaps reales sobre el código ya implementado en este CU. Se corrigen aquí siguiendo el mismo Paso 0.
+
+**Nota sobre el Paso 0 de esta corrección:** el servidor MCP de Postgres estuvo caído (`CONNECTION_CLOSED`) durante esta tarea, así que no se pudo re-verificar en vivo el estado exacto de los datos. Se usó como evidencia la fila `BOV-003` ya confirmada por la auditoría previa (`origen_financiero='compra'`, `costo_adquisicion=8000000.0000`, `soporte_documental=NULL`). No se aplicó ningún DDL/DML contra la base compartida — solo se crearon los archivos de migración; quedan pendientes de `alembic upgrade head` por quien tenga acceso a MCP o a la base.
+
+### Gap 1 — No existe snapshot inicial (Evento 0)
+
+El RF-33 exige que el registro de un activo deje un snapshot en `historial_activos` con `version=1`, `tipo_evento=CREACION`. La tabla no existía y `ActivoBiologico._snapshot()` nunca se invocaba desde el registro.
+
+Solución:
+- Migración `3d0b4cbfb11c_rf33_historial_activos_snapshot.py`: crea `modulo2.historial_activos` (`id_historial_activo` PK, `id_activo_biologico` FK a `activos_biologicos` con `ON DELETE CASCADE`, `version`, `tipo_evento`, `json_snapshot` JSONB, `fecha_evento`, `id_usuario` FK a `modulo1.usuarios`), con `uq_historial_activo_activo_biologico_version (id_activo_biologico, version)` y `ck_historial_activo_version_positiva (version > 0)`.
+- Nueva entidad `HistorialActivo` en `domain/entities/activo_biologico.py`, método de puerto `registrar_historial()` en `ActivoBiologicoRepository` (dominio) e implementación en `SqlAlchemyActivoBiologicoRepository`.
+- `RegistrarActivoBiologicoUseCase.execute()` invoca `activo._snapshot()` e inserta el Evento 0 (`version=1`, `tipo_evento='CREACION'`) dentro de la misma transacción que `repo.guardar()`, antes del único `commit()`.
+- Columna `json_snapshot` (no `snapshot`) para seguir el prefijo `json_` de `anotaciones/convencion_nomenclatura_bd.md` en columnas JSON/JSONB.
+
+### Gap 2 — Sin CHECK a nivel de DB para soporte documental
+
+El RF exige `soporte_documental` obligatorio si `costo_adquisicion` no es nulo; solo se validaba en el DTO. La fila `BOV-003` ya viola la regla en dev, así que un CHECK validado normalmente fallaría al aplicarse.
+
+Solución — migración `2898e45d9813_rf33_check_soporte_documental_costo.py`:
+```sql
+ALTER TABLE modulo2.activos_biologicos
+ADD CONSTRAINT ck_activo_biologico_soporte_documental_requerido
+CHECK (costo_adquisicion IS NULL OR soporte_documental IS NOT NULL)
+NOT VALID;
+```
+`NOT VALID` aplica la regla a todo INSERT/UPDATE nuevo de inmediato, pero no escanea las filas existentes al crearse — la migración no falla por `BOV-003`. Queda pendiente, como seguimiento separado: limpiar los datos inconsistentes (backfill de `soporte_documental` o anular `costo_adquisicion` según corresponda a cada fila) y luego correr `VALIDATE CONSTRAINT ck_activo_biologico_soporte_documental_requerido` en una migración posterior (toma `SHARE UPDATE EXCLUSIVE`, no bloquea lecturas/escrituras concurrentes).
+
+### Gap 3 — Código HTTP incorrecto en "costo de adquisición inválido para el origen"
+
+La regla FA-08 (coherencia `costo_adquisicion`/`soporte_documental` según `origen_financiero`) vivía en un `@model_validator` de Pydantic en `RegistrarActivoBiologicoDTO`, que al fallar produce `RequestValidationError` → 400, no el 422 que exige el RF.
+
+Solución: se movió la validación de coherencia a `RegistrarActivoBiologicoUseCase._validar_origen_financiero()`, que lanza `BusinessRuleError` (422) con código `COSTO_ADQUISICION_INVALIDO` / `SOPORTE_DOCUMENTAL_REQUERIDO` / `SOPORTE_DOCUMENTAL_INVALIDO` según el caso. El DTO conserva solo la validación de formato (que `origen_financiero` sea uno de los 4 valores del catálogo), que sigue siendo un 400 legítimo por ser un error de forma, no de regla de negocio.
+
+### RBAC
+
+Sin cambios — estos tres gaps son de esquema y de código HTTP, no tocan permisos. El recurso 29 y sus permisos ya documentados arriba siguen aplicando.

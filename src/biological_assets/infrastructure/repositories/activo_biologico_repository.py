@@ -14,6 +14,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     DetalleIndividual,
     DetallePoblacional,
     GestionFase,
+    HistorialActivo,
     HistorialInfraestructura,
 )
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -21,6 +22,7 @@ from src.biological_assets.infrastructure.models.activo_biologico_model import A
 from src.biological_assets.infrastructure.models.detalle_individual_model import DetalleActivoIndividualModel
 from src.biological_assets.infrastructure.models.detalle_poblacional_model import DetalleActivoPoblacionalModel
 from src.biological_assets.infrastructure.models.gestion_fase_model import GestionFaseModel
+from src.biological_assets.infrastructure.models.historial_activo_model import HistorialActivoModel
 from src.biological_assets.infrastructure.models.historial_infraestructura_activo_model import (
     HistorialInfraestructuraActivoModel,
 )
@@ -359,6 +361,23 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             {'id': id_activo, 'ahora': ahora},
         ).scalar()
         return bool(row)
+
+    def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        try:
+            orm = HistorialActivoModel(
+                id_activo_biologico=historial.id_activo_biologico,
+                version=historial.version,
+                tipo_evento=historial.tipo_evento,
+                json_snapshot=historial.snapshot,
+                fecha_evento=historial.fecha_evento,
+                id_usuario=historial.id_usuario,
+            )
+            self.db.add(orm)
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        historial.id_historial_activo = orm.id_historial_activo
+        return historial
 
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
         orm = (
