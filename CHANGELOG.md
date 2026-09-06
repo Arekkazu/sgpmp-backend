@@ -1,3 +1,9 @@
+## [1.0.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.17...v1.0.0-rc.18) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([d0c1286](https://github.com/Arekkazu/sgpmp-backend/commit/d0c1286ac7fba724a9c48d51f4889f84fea4f29e))
+
 ## [1.0.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.16...v1.0.0-rc.17) (2026-09-06)
 
 ### Bug Fixes
