@@ -72,3 +72,56 @@ Permisos en `modulo1.permisos`:
 ## Nota sobre `app.usuario_id`
 
 El trigger `trg_auditar_activo_biologico` exige `SET LOCAL app.usuario_id = ?` antes de cualquier INSERT/UPDATE. El repositorio SQLAlchemy ejecuta esta sentencia al inicio del bloque `guardar()`.
+
+---
+
+## Actualización — cierre de gaps de RF-34 (issue #29)
+
+Retomando los 4 gaps documentados en `anotaciones/modulo_2/estado_M02.md` (RF-34, ~55%):
+falta `fecha_referencia`, 200 en vez de 404 en el flujo E2, falta `sensores_en_infraestructura`
+(RF-22) y falta `advertencia_integridad`.
+
+### Paso 0 — verificación contra el esquema real (MCP postgres)
+
+```sql
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'modulo2' AND table_name = 'historial_infraestructura_activo';
+```
+
+`historial_infraestructura_activo` ya tenía todo lo necesario desde la creación original
+de CU01: `fecha_inicio`/`fecha_fin` en `TIMESTAMPTZ`, `fecha_fin IS NULL` para la
+asociación activa, índice único parcial `uq_activo_asociacion_activa`. **Ningún DDL nuevo
+requerido** — el gap era puramente de aplicación (parámetro faltante en el endpoint, rama
+de error faltante en el use case), no de base de datos.
+
+Para `sensores_en_infraestructura` (enriquecimiento vía RF-22) se verificó
+`modulo9.sensores_areas_asociadas` (`id_sensor`, `id_infraestructura`, `tiene_estado`,
+`punto_instalacion`) y `modulo9.sensores` (`id_sensores`, `nombre`, `categoria`,
+`es_activo`) — ambas tablas ya existen y están pobladas por el flujo real de RF-22
+(`asociar_sensor_area_use_case.py` en `src/configuration`), así que se implementó un
+adaptador real (`InfraestructuraM09Adapter.listar_sensores_activos`), **no un stub** —
+el patrón de "Adaptador stub" del CLAUDE.md aplica solo cuando el módulo real todavía no
+existe, y aquí RF-22 ya está implementado (~90%, ver `anotaciones/modulo_9/estado_M09.md`).
+
+### RBAC
+
+Sin cambios. El endpoint sigue usando `require_permission(29, 2)` (R sobre
+`activos_biologicos`), y ese permiso ya está sembrado para Administrador, Productor,
+Ingeniero y Veterinario desde el CU01 original — no se agregó ningún recurso ni permiso
+nuevo para esta corrección.
+
+### Decisiones de diseño
+
+- `fecha_referencia` (query param opcional) solo es válido junto a `tipo_consulta=ACTIVA`
+  (rechazado con `400 FECHA_REFERENCIA_INVALIDA` si se envía junto a `HISTORIAL`, para no
+  mezclar dos semánticas de consulta en el mismo parámetro). Cuando se envía, hace una
+  búsqueda puntual (`fecha_inicio <= fecha_referencia AND (fecha_fin IS NULL OR fecha_fin > fecha_referencia)`)
+  en vez de la asociación vigente hoy — nuevo método de repositorio
+  `obtener_asociacion_en_fecha`.
+- El flujo E2 (sin asociación activa) ahora lanza `404 ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA`
+  con mensaje de alerta técnica, tanto para la consulta de "hoy" como para una consulta con
+  `fecha_referencia` sin cobertura en esa fecha — mismo código, mismo tipo de inconsistencia.
+- `advertencia_integridad` se calcula siempre (para `ACTIVA` e `HISTORIAL` por igual)
+  comparando pares de períodos del historial completo del activo por solapamiento de
+  rango; es una advertencia informativa en el response, nunca bloquea la consulta.

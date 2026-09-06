@@ -195,6 +195,25 @@ class HistorialInfraestructura:
 
 
 @dataclass
+class SensorEnInfraestructura:
+    id_sensor: int
+    nombre: str
+    id_dispositivo_iot: int
+    punto_instalacion: str
+    categoria: Optional[str] = None
+
+
+@dataclass
+class ResultadoConsultaAsociacion:
+    tipo_consulta: str
+    id_activo_biologico: int
+    asociacion_activa: Optional[HistorialInfraestructura] = None
+    historial: Optional[list[HistorialInfraestructura]] = None
+    sensores_en_infraestructura: list[SensorEnInfraestructura] = field(default_factory=list)
+    advertencia_integridad: Optional[str] = None
+
+
+@dataclass
 class IndicadorZootecnico:
     tipo: str
     unidad: str
