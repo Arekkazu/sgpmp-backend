@@ -74,6 +74,7 @@ def asociar_sensor_area(
         sensor_repo=SqlAlchemySensorRepository(db),
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaSensorAreaRepository(db),
     )
     asociacion = use_case.execute(id_sensor, dto, usuario_actual)
