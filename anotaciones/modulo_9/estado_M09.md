@@ -323,13 +323,14 @@ más amplio del que el RF autoriza explícitamente.
 
 ### Qué NO cumple / gaps
 
-- **El chequeo de "no desactivar finca con infraestructura/activos asociados" está
-  stubbeado.** `finca_stub_adapter.py` siempre retorna `False`. El comentario del propio
-  adaptador dice "hasta que RF-21 (IoT) y RF-33 (Activos Biológicos) estén implementados" —
-  pero **ambos módulos ya existen** en el repo (`src/configuration` tiene dispositivos IoT
-  completos desde RF-21, y `src/biological_assets` ya está implementado). El comentario está
-  desactualizado y el stub nunca fue reemplazado por la consulta real, pese a que las tablas
-  necesarias para hacerla ya están disponibles.
+- ~~El chequeo de "no desactivar finca con infraestructura/activos asociados" está
+  stubbeado (`finca_stub_adapter.py` siempre retorna `False`)~~ — **ya no aplica: el stub no
+  existe en el repo actual.** El router usa `FincaDependencyAdapter` (real), que consulta
+  `modulo9.vw_rf19_dependencias_fincas` (dispositivos IoT activos) y `modulo2.activos_biologicos`
+  (activos con estado distinto de CERRADO/BAJA). **Confirmado con datos reales
+  (TC-M09-G45/TC-M09-93, 2026-09-06):** intentar desactivar una finca con dependencias activas
+  se rechaza con `422 FINCA_CON_DEPENDENCIAS` sin alterar su estado; una finca sin dependencias
+  se desactiva correctamente (TC-M09-92). Gap cerrado.
 - **El acceso de solo-lectura es más amplio que el texto literal del RF — DECISIÓN DE DISEÑO
   APROBADA (2026-08-22, issue #1634).** El RF dice: *"Los usuarios con rol Productor solo
   pueden consultar la información de las fincas a las que están asignados"* — listando a
@@ -339,10 +340,14 @@ más amplio del que el RF autoriza explícitamente.
   dinámico: es solo lectura y es operativamente defendible (un veterinario/ingeniero necesita
   saber en qué finca está un activo). Ya no es una desviación silenciosa. Ver
   `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
-- No se verificó si el `R` de Productor está filtrado a "las fincas a las que está asignado"
-  (via `fincas.id_usuario`) o si un Productor puede ver el listado completo de todas las
-  fincas del sistema — este es un punto de aislamiento de datos entre productores que vale la
-  pena confirmar directamente en `consultar_fincas_use_case.py` antes de darlo por cumplido.
+- **Confirmado (TC-M09-G44/TC-M09-91, 2026-09-06):** el `R` de Productor sí está filtrado a
+  "las fincas a las que está asignado" — un Productor autenticado solo recibe en el listado
+  las fincas con `id_usuario` propio y obtiene `404 FINCA_NO_ENCONTRADA` (no `403`, evitando
+  filtrar existencia) al pedir el detalle de una finca ajena; Admin sí ve todas. Aislamiento
+  entre productores cumplido. Nota menor: `finca_router.py` decide el filtro comparando
+  `usuario_actual.id_rol == _ROL_PROD` con `_ROL_PROD = 2` hardcodeado en el router — no es
+  una decisión de acceso (RBAC sigue en `modulo1.permisos`), pero si el `id_rol` de Productor
+  cambiara alguna vez, el alcance de datos se rompería en silencio, sin error visible.
 - Mismo gap de unicidad "global y por productor" del nombre — no se confirmó si la
   restricción `UNIQUE` de `modulo9.fincas.nombre` es global (lo más probable, dado que no se
   encontró columna compuesta con `id_usuario`) o si además hay una unicidad específica por
