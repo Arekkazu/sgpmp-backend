@@ -1,3 +1,10 @@
+## [1.0.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.23...v1.0.0-rc.24) (2026-09-06)
+
+### Bug Fixes
+
+* **rf19:** agregar endpoint PATCH /fincas/{id}/reactivar ([35f969f](https://github.com/Arekkazu/sgpmp-backend/commit/35f969fe0563f654c79fa00a99bb905b5d97c154))
+* Un sensor puede estar asociado a una area, en tanto este disponible y no tenga otra asosiacion ([4072c9a](https://github.com/Arekkazu/sgpmp-backend/commit/4072c9adcbc41f47044eb4fa4298fa3eaf70544d))
+
 ## [1.0.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.22...v1.0.0-rc.23) (2026-09-06)
 
 ### Bug Fixes
