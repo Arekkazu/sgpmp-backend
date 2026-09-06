@@ -1,3 +1,9 @@
+## [1.0.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.22...v1.0.0-rc.23) (2026-09-06)
+
+### Bug Fixes
+
+* **rf22-mod9:** filtrar por finca el historial de asociaciones de un sensor ([28fcab6](https://github.com/Arekkazu/sgpmp-backend/commit/28fcab6347b01f994ec7daa69b5467995d331a4f))
+
 ## [1.0.0-rc.22](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.21...v1.0.0-rc.22) (2026-09-06)
 
 ### Bug Fixes
