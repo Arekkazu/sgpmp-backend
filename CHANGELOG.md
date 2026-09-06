@@ -1,3 +1,11 @@
+## [1.0.0-rc.21](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.20...v1.0.0-rc.21) (2026-09-06)
+
+### Bug Fixes
+
+* **rf21-mod9:** aplicar limite de tasa al registro de dispositivos IoT ([89126d7](https://github.com/Arekkazu/sgpmp-backend/commit/89126d7cad7008a138310f5ad3b6bc49c4964513))
+* **rf21-mod9:** rechazar sintaxis de inyeccion SQL y script tags en dispositivos IoT ([e8bdc84](https://github.com/Arekkazu/sgpmp-backend/commit/e8bdc84e21cccde8f746caee6d81a7dd54f06eaa))
+* **rf22-mod9:** rechazar asociacion de sensor a area de otra finca ([302a658](https://github.com/Arekkazu/sgpmp-backend/commit/302a6583f184883cbc6e69cf00c9bc11cfe45350))
+
 ## [1.0.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.19...v1.0.0-rc.20) (2026-09-06)
 
 ### Bug Fixes
