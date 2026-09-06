@@ -15,8 +15,8 @@ class AuditoriaSensorAreaModel(Base):
     __tablename__ = 'auditorias_sensores_areas'
     __table_args__ = (
         CheckConstraint(
-            "tipo_operacion IN ('CREATE','GET')",
-            name='chk_tipo_operacion_sensor_area',
+            "tipo_operacion IN ('CREATE','UPDATE','GET')",
+            name='ck_auditoria_sensor_area_tipo_operacion',
         ),
         ForeignKeyConstraint(
             ['id_sensores_area_asociada'],
