@@ -1,8 +1,12 @@
 """RF-33: tabla historial_activos para el snapshot inicial (Evento 0)
 
 Revision ID: 3d0b4cbfb11c
-Revises: 56cd2038ff06
+Revises: 73d4c93a0961
 Create Date: 2026-09-06 10:00:00.000000
+
+Rebasada sobre 73d4c93a0961 (mergeada a dev en paralelo a esta rama; ambas
+migraciones partían de 56cd2038ff06, lo que dejaba dos heads de Alembic tras
+el merge).
 
 Issue #28 — el RF-33 exige explícitamente que el registro de un activo
 biológico deje un "snapshot inicial (Evento 0)" en una tabla `historial_activos`
@@ -25,7 +29,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision: str = '3d0b4cbfb11c'
-down_revision: Union[str, Sequence[str], None] = '56cd2038ff06'
+down_revision: Union[str, Sequence[str], None] = '73d4c93a0961'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -51,7 +55,7 @@ def upgrade() -> None:
         sa.CheckConstraint('version > 0', name='ck_historial_activo_version_positiva'),
         sa.UniqueConstraint(
             'id_activo_biologico', 'version',
-            name='uq_historial_activo_version',
+            name='uq_historial_activo_activo_biologico_version',
         ),
         sa.ForeignKeyConstraint(
             ['id_activo_biologico'], ['modulo2.activos_biologicos.id_activo_biologico'],

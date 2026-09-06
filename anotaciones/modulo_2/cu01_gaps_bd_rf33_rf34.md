@@ -86,7 +86,7 @@ Una auditoría posterior (`anotaciones/modulo_2/estado_M02.md`, RF-33) encontró
 El RF-33 exige que el registro de un activo deje un snapshot en `historial_activos` con `version=1`, `tipo_evento=CREACION`. La tabla no existía y `ActivoBiologico._snapshot()` nunca se invocaba desde el registro.
 
 Solución:
-- Migración `3d0b4cbfb11c_rf33_historial_activos_snapshot.py`: crea `modulo2.historial_activos` (`id_historial_activo` PK, `id_activo_biologico` FK a `activos_biologicos` con `ON DELETE CASCADE`, `version`, `tipo_evento`, `json_snapshot` JSONB, `fecha_evento`, `id_usuario` FK a `modulo1.usuarios`), con `uq_historial_activo_version (id_activo_biologico, version)` y `ck_historial_activo_version_positiva (version > 0)`.
+- Migración `3d0b4cbfb11c_rf33_historial_activos_snapshot.py`: crea `modulo2.historial_activos` (`id_historial_activo` PK, `id_activo_biologico` FK a `activos_biologicos` con `ON DELETE CASCADE`, `version`, `tipo_evento`, `json_snapshot` JSONB, `fecha_evento`, `id_usuario` FK a `modulo1.usuarios`), con `uq_historial_activo_activo_biologico_version (id_activo_biologico, version)` y `ck_historial_activo_version_positiva (version > 0)`.
 - Nueva entidad `HistorialActivo` en `domain/entities/activo_biologico.py`, método de puerto `registrar_historial()` en `ActivoBiologicoRepository` (dominio) e implementación en `SqlAlchemyActivoBiologicoRepository`.
 - `RegistrarActivoBiologicoUseCase.execute()` invoca `activo._snapshot()` e inserta el Evento 0 (`version=1`, `tipo_evento='CREACION'`) dentro de la misma transacción que `repo.guardar()`, antes del único `commit()`.
 - Columna `json_snapshot` (no `snapshot`) para seguir el prefijo `json_` de `anotaciones/convencion_nomenclatura_bd.md` en columnas JSON/JSONB.

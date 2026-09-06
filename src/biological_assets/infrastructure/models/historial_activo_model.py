@@ -13,7 +13,7 @@ class HistorialActivoModel(Base):
     __tablename__ = 'historial_activos'
     __table_args__ = (
         PrimaryKeyConstraint('id_historial_activo', name='historial_activos_pkey'),
-        UniqueConstraint('id_activo_biologico', 'version', name='uq_historial_activo_version'),
+        UniqueConstraint('id_activo_biologico', 'version', name='uq_historial_activo_activo_biologico_version'),
         CheckConstraint('version > 0', name='ck_historial_activo_version_positiva'),
         {'schema': 'modulo2'},
     )
