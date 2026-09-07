@@ -5,7 +5,7 @@ from typing import Optional
 
 from src.configuration.domain.entities.finca import Finca
 from src.configuration.domain.repositories.finca_repository import FincaRepository
-from src.shared.errors import NotFoundError
+from src.shared.errors import AuthorizationError, NotFoundError
 
 
 class ConsultarFincasUseCase:
@@ -24,8 +24,8 @@ class ConsultarFincasUseCase:
                 message=f"No existe una finca con ID {id_finca}.",
             )
         if id_usuario_filtro is not None and finca.id_usuario != id_usuario_filtro:
-            raise NotFoundError(
-                code="FINCA_NO_ENCONTRADA",
-                message=f"No existe una finca con ID {id_finca}.",
+            raise AuthorizationError(
+                code="FINCA_NO_AUTORIZADA",
+                message="No tiene autorización para consultar la finca solicitada.",
             )
         return finca

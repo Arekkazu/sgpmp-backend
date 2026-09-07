@@ -304,10 +304,11 @@ más amplio del que el RF autoriza explícitamente.
   dinámico: es solo lectura y es operativamente defendible (un veterinario/ingeniero necesita
   saber en qué finca está un activo). Ya no es una desviación silenciosa. Ver
   `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
-- No se verificó si el `R` de Productor está filtrado a "las fincas a las que está asignado"
-  (via `fincas.id_usuario`) o si un Productor puede ver el listado completo de todas las
-  fincas del sistema — este es un punto de aislamiento de datos entre productores que vale la
-  pena confirmar directamente en `consultar_fincas_use_case.py` antes de darlo por cumplido.
+- **Aislamiento de lectura — RESUELTO (2026-09-07, issue #176).** Los roles con permiso `R`
+  y sin permiso administrativo `U` consultan exclusivamente las fincas vinculadas a su
+  usuario mediante `fincas.id_usuario`; el detalle de una finca ajena responde `403` sin
+  exponer datos y el listado omite recursos fuera del contexto. El alcance global se resuelve
+  por permisos activos, sin IDs de rol fijos. Ver `inc_m09_g82_acceso_finca.md`.
 - Mismo gap de unicidad "global y por productor" del nombre — no se confirmó si la
   restricción `UNIQUE` de `modulo9.fincas.nombre` es global (lo más probable, dado que no se
   encontró columna compuesta con `id_usuario`) o si además hay una unicidad específica por
