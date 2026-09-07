@@ -56,13 +56,16 @@ Respuesta esperada `201`:
 }
 ```
 
+Junto con el activo, el registro deja un snapshot inicial (Evento 0) en `modulo2.historial_activos`: `version=1`, `tipo_evento='CREACION'`, `json_snapshot` con el estado del activo en el momento del registro. No es parte de la respuesta HTTP — se verifica consultando esa tabla directamente.
+
 Errores posibles:
 - `400 ESPECIE_INVALIDA` — `id_especie` no existe o está inactiva (FA-05)
 - `400 INFRAESTRUCTURA_INVALIDA` — `id_infraestructura` no existe o está inactiva (FA-06)
 - `400 ATRIBUTO_INVALIDO` — clave en `atributos_dinamicos` no corresponde a métrica de la especie (FA-07)
 - `400` (validación Pydantic) — `fecha_inicio_ciclo` futura o anterior a 1970 (FA-04)
 - `400` (validación Pydantic) — INDIVIDUAL sin `identificador` / con `cantidad_inicial` (FA-02)
-- `400` (validación Pydantic) — `compra`/`donacion` sin `costo_adquisicion` o `soporte_documental` (FA-08)
+- `400` (validación Pydantic) — `origen_financiero` fuera del catálogo (`compra`/`nacimiento`/`donacion`/`transferencia_interna`)
+- `422 COSTO_ADQUISICION_INVALIDO` / `422 SOPORTE_DOCUMENTAL_REQUERIDO` / `422 SOPORTE_DOCUMENTAL_INVALIDO` — `costo_adquisicion`/`soporte_documental` incoherentes con `origen_financiero` (FA-08; corregido de 400 a 422 por issue #28, ver `cu01_gaps_bd_rf33_rf34.md`)
 - `403 ACCESO_DENEGADO` — rol sin permiso C sobre `activos_biologicos` (Contador, Veterinario)
 - `409 IDENTIFICADOR_DUPLICADO` — `identificador` ya registrado (FA-03)
 
@@ -325,7 +328,7 @@ curl -X POST http://localhost:8000/activos-biologicos \
 ```
 Respuesta esperada `409 IDENTIFICADOR_DUPLICADO`.
 
-### FA-08: origen=compra sin soporte_documental → 400
+### FA-08: origen=compra sin costo_adquisicion → 422
 
 ```bash
 curl -X POST http://localhost:8000/activos-biologicos \
@@ -343,4 +346,6 @@ curl -X POST http://localhost:8000/activos-biologicos \
     "fecha_nacimiento": "2025-01-01T00:00:00Z"
   }'
 ```
-Respuesta esperada `400`: `costo_adquisicion mayor a 0 es requerido cuando origen_financiero es 'compra'.`
+Respuesta esperada `422 COSTO_ADQUISICION_INVALIDO`: `costo_adquisicion mayor a 0 es requerido cuando origen_financiero es 'compra'.`
+
+(Antes del issue #28 esta validación vivía en un `@model_validator` de Pydantic y respondía `400`; ahora vive en `RegistrarActivoBiologicoUseCase` y responde el `422` que exige el RF.)

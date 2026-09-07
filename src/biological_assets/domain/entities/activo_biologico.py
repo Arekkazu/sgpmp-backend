@@ -170,6 +170,17 @@ class GestionFase:
 
 
 @dataclass
+class HistorialActivo:
+    id_activo_biologico: int
+    version: int
+    tipo_evento: str
+    snapshot: dict
+    fecha_evento: datetime
+    id_usuario: int
+    id_historial_activo: Optional[int] = None
+
+
+@dataclass
 class HistoricoEstado:
     id_activo_biologico: int
     id_estado_anterior: int

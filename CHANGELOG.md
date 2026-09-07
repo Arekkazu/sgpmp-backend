@@ -1,3 +1,40 @@
+## [1.0.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.26...v1.0.0-rc.27) (2026-09-07)
+
+### Features
+
+* **rf17:** endpoint para consultar la auditoría de umbrales ambientales ([693fd57](https://github.com/Arekkazu/sgpmp-backend/commit/693fd57a18717cb979060bac6687cd62490125b2))
+
+### Bug Fixes
+
+* **rf26:** traducir fallo de escritura del logotipo a error tipado ([4d318fa](https://github.com/Arekkazu/sgpmp-backend/commit/4d318facc0ba1cc44be173e9dae1e9b0551a18c2)), closes [#173](https://github.com/Arekkazu/sgpmp-backend/issues/173)
+
+## [1.0.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.25...v1.0.0-rc.26) (2026-09-07)
+
+### Bug Fixes
+
+* **config:** forward cookie and JWT env variables ([a6a546b](https://github.com/Arekkazu/sgpmp-backend/commit/a6a546b0353f09011fc0e4da74f7eac0bdc8aff0))
+* **config:** validar variables de entorno al arranque, cookie obligatoria en produccion ([f0e6bab](https://github.com/Arekkazu/sgpmp-backend/commit/f0e6bab6e2444a35df5f2a20991cdffd97c86202))
+* **rf11:** busqueda por nombre completo y trim en listado admin ([a54ad09](https://github.com/Arekkazu/sgpmp-backend/commit/a54ad09cec157955dead21db3baa7b36f9a9f035))
+* **sesiones:** flags explicitos de cookie refresh + leeway en JWT ([0f3f2ca](https://github.com/Arekkazu/sgpmp-backend/commit/0f3f2ca80f68dfcfc77dd304ef599977dd7b82ca))
+* **sesiones:** forzar secure=true cuando SameSite=none en la cookie refresh ([cfa64a0](https://github.com/Arekkazu/sgpmp-backend/commit/cfa64a02878a130851b79128f651e22d5bf67b7c))
+
+## [1.0.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.24...v1.0.0-rc.25) (2026-09-06)
+
+### Features
+
+* **m02:** agregar snapshot inicial y CHECK de soporte documental en RF-33 ([c7ae501](https://github.com/Arekkazu/sgpmp-backend/commit/c7ae501c51e977a21b4710b08b950b82006d1a9d)), closes [#28](https://github.com/Arekkazu/sgpmp-backend/issues/28)
+
+### Bug Fixes
+
+* **rf33:** corregir head duplicado de alembic y nombre de constraint ([cc04a0d](https://github.com/Arekkazu/sgpmp-backend/commit/cc04a0d8bd784ec4f93e8014fcf056ef278c7f04))
+
+## [1.0.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.23...v1.0.0-rc.24) (2026-09-06)
+
+### Bug Fixes
+
+* **rf19:** agregar endpoint PATCH /fincas/{id}/reactivar ([35f969f](https://github.com/Arekkazu/sgpmp-backend/commit/35f969fe0563f654c79fa00a99bb905b5d97c154))
+* Un sensor puede estar asociado a una area, en tanto este disponible y no tenga otra asosiacion ([4072c9a](https://github.com/Arekkazu/sgpmp-backend/commit/4072c9adcbc41f47044eb4fa4298fa3eaf70544d))
+
 ## [1.0.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.22...v1.0.0-rc.23) (2026-09-06)
 
 ### Bug Fixes

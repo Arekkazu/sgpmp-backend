@@ -34,6 +34,30 @@ router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
 NOMBRE_COOKIE_REFRESH = "refresh_token"
 
 
+def _leer_politica_cookie() -> tuple[bool, str]:
+    """Flags de la cookie refresh, controlados por variables explícitas.
+
+    ``COOKIE_SECURE`` / ``COOKIE_SAMESITE`` reemplazan al gate por
+    ``ENV == "production"`` (patrón poco confiable en el deploy actual: si
+    ``ENV`` no vale literalmente "production", la cookie sale ``Strict`` sin
+    ``Secure`` y, con front y backend en sitios distintos, el navegador nunca
+    la envía — el refresh falla y la sesión muere al navegar). Sin variables
+    explícitas se conserva el comportamiento previo para no romper
+    despliegues existentes.
+    """
+    valor_secure = os.getenv("COOKIE_SECURE")
+    if valor_secure is None:
+        es_produccion = os.getenv("ENV") == "production"
+    else:
+        es_produccion = valor_secure.strip().lower() in {"1", "true", "yes", "si", "sí"}
+    samesite = (os.getenv("COOKIE_SAMESITE") or ("none" if es_produccion else "strict")).strip().lower()
+    if samesite == "none" and not es_produccion:
+        # Los navegadores descartan SameSite=None sin Secure (salvo localhost):
+        # una combinación mal configurada equivaldría a no emitir la cookie.
+        es_produccion = True
+    return es_produccion, samesite
+
+
 def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datetime) -> None:
     """Setea la cookie HttpOnly del refresh token. ``path="/"``: ver nota en
     ``anotaciones/modulo_1/gaps_bd_refresh_tokens.md`` sobre por qué no se usa
@@ -42,9 +66,11 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
 
     ``samesite``: en producción front y backend viven en dominios distintos
     (deploy actual), así que la cookie debe viajar cross-site — requiere
-    ``SameSite=None``, que a su vez exige ``Secure`` (ya activo en prod). Fuera
-    de producción se mantiene ``Strict`` (front y backend comparten site en local)."""
-    es_produccion = os.getenv("ENV") == "production"
+    ``SameSite=None``, que a su vez exige ``Secure``. Fuera de producción se
+    mantiene ``Strict`` (front y backend comparten site en local). Los flags
+    se controlan con ``COOKIE_SECURE``/``COOKIE_SAMESITE`` (ver
+    ``_leer_politica_cookie``)."""
+    es_produccion, samesite = _leer_politica_cookie()
     max_age = int((fecha_expiracion - datetime.now(timezone.utc)).total_seconds())
     response.set_cookie(
         key=NOMBRE_COOKIE_REFRESH,
@@ -52,7 +78,7 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
         max_age=max_age,
         httponly=True,
         secure=es_produccion,
-        samesite="none" if es_produccion else "strict",
+        samesite=samesite,
         path="/",
     )
 
