@@ -1,3 +1,10 @@
+## [1.0.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.28...v1.0.0-rc.29) (2026-09-07)
+
+### Bug Fixes
+
+* **docker:** se agregan volumenes al compose ([736272f](https://github.com/Arekkazu/sgpmp-backend/commit/736272fbbf1813c747391a48246da37042fccada))
+* **rf25:** restringir acceso a fincas ajenas ([cb6c817](https://github.com/Arekkazu/sgpmp-backend/commit/cb6c817dc808479e58169020c68042ca47f0b4f8)), closes [#176](https://github.com/Arekkazu/sgpmp-backend/issues/176)
+
 ## [1.0.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.27...v1.0.0-rc.28) (2026-09-07)
 
 ### Bug Fixes
