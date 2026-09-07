@@ -72,12 +72,16 @@ services:
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
+    volumes:
+      - sgpmp_modelos:/app/storage/modelos
     expose:
       - "8000"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    
 
 volumes:
   sgpmp_pgdata:
+  sgpmp_modelos:
