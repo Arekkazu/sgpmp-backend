@@ -1,3 +1,9 @@
+## [1.0.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.30...v1.0.0-rc.31) (2026-09-07)
+
+### Bug Fixes
+
+* remove temporary storage permissions command ([dff7c70](https://github.com/Arekkazu/sgpmp-backend/commit/dff7c70b61b1dbc8d9a717880cf02c60157c6738))
+
 ## [1.0.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.29...v1.0.0-rc.30) (2026-09-07)
 
 ### Bug Fixes
