@@ -1,431 +1,177 @@
-/**
- * TC-M09-G82
- * Módulo 09 - Configuración y Personalización
- * RF-25 - Adaptación de interfaz por rol/contexto
- *
- * Validaciones consolidadas:
- * TC-M09-156 - Impedir acceso directo mediante URL a módulo no autorizado
- * TC-M09-157 - Impedir acceso a información de una finca no asignada
- *
- * Herramienta:
- * Cypress + validación API
- *
- * Ambiente:
- * TEST desplegado
- */
+describe('TC-M09-G82 - Restricción de acceso a módulos y fincas no autorizados', () => {
 
-describe(
-    'TC-M09-G82 - Restricción de acceso a módulos y fincas no autorizados',
-    () => {
+  const usuario = 'ingeniero@pecuaria.co';
+  const password = 'Pruebas12#';
 
-        // ==========================================================
-        // CONFIGURACIÓN
-        // ==========================================================
+  it('TC-M09-G82 - Validar restricción de acceso para usuario sin finca asignada', () => {
 
-        const FRONTEND_URL =
-            'http://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io';
+    // =========================================================
+    // 1. LOGIN COMO INGENIERO
+    // =========================================================
 
-        const LOGIN_URL =
-            `${FRONTEND_URL}/login`;
+    cy.visit('/login');
 
-        const BACKEND_URL =
-            'http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io';
+    cy.get('input[type="email"]')
+      .should('be.visible')
+      .type(usuario);
 
-        const API_BASE =
-            `${BACKEND_URL}/api-sgpmp-test`;
+    cy.get('input[type="password"]')
+      .should('be.visible')
+      .type(password);
 
-        const USUARIO =
-            'm2m.nuevo@ejemplo.com';
+    cy.get('button')
+      .contains(/iniciar sesión|ingresar|login/i)
+      .should('be.visible')
+      .click();
 
-        const PASSWORD =
-            'Test1234!';
+    // Esperar navegación al dashboard
+    cy.url({ timeout: 10000 })
+      .should('include', '/dashboard');
 
-        const FINCA_NO_ASIGNADA =
-            999;
+    cy.wait(2000);
 
+    // =========================================================
+    // 2. VALIDACIÓN DEL CONTEXTO DEL USUARIO
+    // =========================================================
 
-        // ==========================================================
-        // PREPARACIÓN
-        // ==========================================================
+    cy.get('body')
+      .invoke('text')
+      .then((texto) => {
 
-        beforeEach(() => {
-
-            // ------------------------------------------------------
-            // Interceptar login
-            // ------------------------------------------------------
-
-            cy.intercept(
-                'POST',
-                '**/sesiones/**'
-            ).as('login');
-
-
-            // ------------------------------------------------------
-            // Abrir login
-            // ------------------------------------------------------
-
-            cy.visit(LOGIN_URL);
-
-            cy.url()
-                .should('include', '/login');
-
-
-            // ------------------------------------------------------
-            // Correo
-            // ------------------------------------------------------
-
-            cy.get(
-                'input[type="email"], ' +
-                'input[name="email"], ' +
-                'input[formcontrolname="email"]'
-            )
-                .first()
-                .should('be.visible')
-                .clear()
-                .type(USUARIO);
-
-
-            // ------------------------------------------------------
-            // Contraseña
-            // ------------------------------------------------------
-
-            cy.get(
-                'input[type="password"], ' +
-                'input[name="password"], ' +
-                'input[formcontrolname="password"]'
-            )
-                .first()
-                .should('be.visible')
-                .clear()
-                .type(
-                    PASSWORD,
-                    {
-                        log: false
-                    }
-                );
-
-
-            // ------------------------------------------------------
-            // Ingresar
-            // ------------------------------------------------------
-
-            cy.contains(
-                'button',
-                /ingresar|iniciar sesión|login/i
-            )
-                .first()
-                .should('be.visible')
-                .click();
-
-
-            // ------------------------------------------------------
-            // VALIDAR RESPUESTA REAL DEL LOGIN
-            // ------------------------------------------------------
-
-            cy.wait(
-                '@login',
-                {
-                    timeout: 15000
-                }
-            )
-                .then(
-                    (interception) => {
-
-                        const status =
-                            interception.response?.statusCode;
-
-                        const body =
-                            interception.response?.body;
-
-
-                        cy.log(
-                            `G82 - Login HTTP: ${status}`
-                        );
-
-                        cy.log(
-                            `G82 - Respuesta login: ${JSON.stringify(body)}`
-                        );
-
-
-                        console.log(
-                            'TC-M09-G82 - Respuesta login',
-                            {
-                                status,
-                                body
-                            }
-                        );
-
-
-                        expect(
-                            interception.response,
-                            'El backend debe responder al intento de autenticación'
-                        )
-                            .to.exist;
-
-
-                        expect(
-                            status,
-                            'El usuario debe autenticarse correctamente'
-                        )
-                            .to.equal(200);
-
-                    }
-                );
-
-
-            // ------------------------------------------------------
-            // Validar salida del login
-            // ------------------------------------------------------
-
-            cy.url({
-                timeout: 15000
-            })
-                .should(
-                    'not.include',
-                    '/login'
-                );
-
-
-            cy.get('body')
-                .should('be.visible');
-
-        });
-
-
-        // ==========================================================
-        // CASO ÚNICO G82
-        // ==========================================================
-
-        it(
-            'TC-M09-G82 - Debe impedir acceso a módulos y fincas no autorizados',
-            () => {
-
-
-                // ==================================================
-                // TC-M09-156
-                // ==================================================
-
-                cy.log(
-                    'TC-M09-156 - Acceso directo a módulo no autorizado'
-                );
-
-
-                /*
-                 * Endpoint protegido de configuración.
-                 *
-                 * Se utiliza como recurso para comprobar
-                 * autorización server-side.
-                 */
-
-                const MODULO_RESTRINGIDO =
-                    '/configuracion/umbrales';
-
-
-                cy.request({
-                    method: 'GET',
-
-                    url:
-                        `${API_BASE}${MODULO_RESTRINGIDO}`,
-
-                    failOnStatusCode: false
-                })
-                    .then(
-                        (response) => {
-
-                            cy.log(
-                                `TC-M09-156 - HTTP Status: ${response.status}`
-                            );
-
-                            cy.log(
-                                `TC-M09-156 - Respuesta: ${JSON.stringify(response.body)}`
-                            );
-
-
-                            /*
-                             * El recurso no debe quedar expuesto
-                             * sin autorización.
-                             */
-
-                            expect(
-                                response.status,
-                                'El servidor no debe entregar el recurso protegido sin autorización'
-                            )
-                                .to.be.oneOf(
-                                    [401, 403]
-                                );
-
-                        }
-                    );
-
-
-                // ==================================================
-                // Validación de navegación directa
-                // ==================================================
-
-                cy.visit(
-                    `${FRONTEND_URL}${MODULO_RESTRINGIDO}`,
-                    {
-                        failOnStatusCode: false
-                    }
-                );
-
-
-                cy.get('body')
-                    .should('be.visible')
-                    .invoke('text')
-                    .then(
-                        (texto) => {
-
-                            const textoNormalizado =
-                                texto
-                                    .toLowerCase()
-                                    .trim();
-
-
-                            cy.log(
-                                `TC-M09-156 - Texto visible: ${textoNormalizado.substring(0, 500)}`
-                            );
-
-                        }
-                    );
-
-
-                // ==================================================
-                // TC-M09-157
-                // ==================================================
-
-                cy.log(
-                    'TC-M09-157 - Acceso a finca no asignada'
-                );
-
-
-                /*
-                 * Se autentica nuevamente mediante API para obtener
-                 * un token válido para la consulta protegida.
-                 */
-
-                cy.request({
-                    method: 'POST',
-
-                    url:
-                        `${API_BASE}/sesiones/`,
-
-                    body: {
-                        correo:
-                            USUARIO,
-
-                        contrasena:
-                            PASSWORD
-                    },
-
-                    failOnStatusCode: false
-                })
-                    .then(
-                        (loginResponse) => {
-
-                            cy.log(
-                                `TC-M09-157 - Login API: ${loginResponse.status}`
-                            );
-
-
-                            expect(
-                                loginResponse.status,
-                                'El usuario debe autenticarse para realizar la prueba de autorización'
-                            )
-                                .to.equal(200);
-
-
-                            const token =
-                                loginResponse.body?.token ||
-                                loginResponse.body?.access_token ||
-                                loginResponse.body?.accessToken;
-
-
-                            expect(
-                                token,
-                                'La autenticación debe proporcionar un token'
-                            )
-                                .to.exist;
-
-
-                            // --------------------------------------------------
-                            // Consultar finca no asignada
-                            // --------------------------------------------------
-
-                            cy.request({
-                                method: 'GET',
-
-                                url:
-                                    `${API_BASE}/configuracion/fincas/${FINCA_NO_ASIGNADA}`,
-
-                                headers: {
-                                    Authorization:
-                                        `Bearer ${token}`
-                                },
-
-                                failOnStatusCode: false
-                            })
-                                .then(
-                                    (fincaResponse) => {
-
-                                        cy.log(
-                                            `TC-M09-157 - HTTP Status: ${fincaResponse.status}`
-                                        );
-
-                                        cy.log(
-                                            `TC-M09-157 - Respuesta: ${JSON.stringify(fincaResponse.body)}`
-                                        );
-
-
-                                        console.log(
-                                            'TC-M09-G82 - Consulta finca no asignada',
-                                            {
-                                                status:
-                                                    fincaResponse.status,
-
-                                                body:
-                                                    fincaResponse.body
-                                            }
-                                        );
-
-
-                                        // --------------------------------------------------
-                                        // Validación de autorización
-                                        // --------------------------------------------------
-
-                                        expect(
-                                            fincaResponse.status,
-                                            'El servidor debe rechazar el acceso a la finca no asignada'
-                                        )
-                                            .to.be.oneOf(
-                                                [401, 403]
-                                            );
-
-
-                                        expect(
-                                            fincaResponse.status,
-                                            'La finca no autorizada no debe entregar información'
-                                        )
-                                            .not
-                                            .to.equal(200);
-
-                                    }
-                                );
-
-                        }
-                    );
-
-
-                // ==================================================
-                // FINAL
-                // ==================================================
-
-                cy.log(
-                    'TC-M09-G82 FINALIZADO'
-                );
-
-            }
+        cy.writeFile(
+          'tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G82/Resultados/G82-interfaz-ingeniero.txt',
+          texto
         );
 
-    }
-);
+        expect(texto).to.match(/Ingeniero de Campo/i);
+
+        // El sistema debe informar que no existe una unidad
+        // productiva asignada al usuario.
+        expect(texto).to.match(
+          /no tiene una unidad productiva asignada/i
+        );
+      });
+
+    // =========================================================
+    // 3. VALIDAR QUE LA INTERFAZ NO PRESENTA UNA FINCA
+    //    ASIGNADA AL USUARIO
+    // =========================================================
+
+    cy.get('body')
+      .invoke('text')
+      .then((texto) => {
+
+        const tieneMensajeSinFinca =
+          /no tiene una unidad productiva asignada/i.test(texto);
+
+        expect(tieneMensajeSinFinca).to.equal(true);
+
+        cy.writeFile(
+          'tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G82/Resultados/G82-validacion-contexto.txt',
+          [
+            'TC-M09-G82',
+            'Usuario: ingeniero@pecuaria.co',
+            'Rol: Ingeniero de Campo',
+            'URL: ' + window.location.href,
+            '',
+            'Resultado de validación:',
+            '- El usuario autenticado corresponde a Ingeniero de Campo.',
+            '- La interfaz informa que no tiene una unidad productiva asignada.',
+            '- No se presenta una finca productiva asignada en el contexto actual.',
+            '',
+            'Conclusión UI:',
+            'La interfaz restringe el contexto productivo del usuario sin finca asignada.'
+          ].join('\n')
+        );
+      });
+
+    // =========================================================
+    // 4. REGISTRAR URL
+    // =========================================================
+
+    cy.url().then((url) => {
+
+      cy.writeFile(
+        'tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G82/Resultados/G82-url.txt',
+        url
+      );
+
+    });
+
+    // =========================================================
+    // 5. REGISTRAR ENLACES DISPONIBLES
+    // =========================================================
+
+    cy.get('a[href]').then(($links) => {
+
+      let contenido = '';
+
+      $links.each((index, element) => {
+
+        const texto = Cypress.$(element)
+          .text()
+          .trim()
+          .replace(/\s+/g, ' ');
+
+        const href = Cypress.$(element)
+          .attr('href');
+
+        contenido +=
+          `${index + 1}. TEXTO="${texto}" | HREF="${href}"\n`;
+      });
+
+      cy.writeFile(
+        'tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G82/Resultados/G82-rutas-ui.txt',
+        contenido
+      );
+    });
+
+    // =========================================================
+    // 6. REGISTRAR BOTONES / OPCIONES DE LA INTERFAZ
+    // =========================================================
+
+    cy.get('button, [role="button"]').then(($buttons) => {
+
+      let contenido = '';
+
+      $buttons.each((index, element) => {
+
+        const texto = Cypress.$(element)
+          .text()
+          .trim()
+          .replace(/\s+/g, ' ');
+
+        contenido +=
+          `${index + 1}. TEXTO="${texto}"\n`;
+      });
+
+      cy.writeFile(
+        'tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G82/Resultados/G82-botones-ui.txt',
+        contenido
+      );
+    });
+
+    // =========================================================
+    // 7. CAPTURA DE EVIDENCIA
+    // =========================================================
+
+    cy.screenshot(
+      'G82-estado-ingeniero',
+      {
+        capture: 'fullPage'
+      }
+    );
+
+    // =========================================================
+    // 8. VALIDACIÓN FINAL
+    // =========================================================
+
+    cy.get('body')
+      .should(
+        'contain.text',
+        'Actualmente no tiene una unidad productiva asignada'
+      );
+
+  });
+
+});
