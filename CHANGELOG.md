@@ -1,3 +1,9 @@
+## [1.0.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.29...v1.0.0-rc.30) (2026-09-07)
+
+### Bug Fixes
+
+* configure storage volume permissions on backend startup ([91fdf3e](https://github.com/Arekkazu/sgpmp-backend/commit/91fdf3ee24fd49c5d89f1877119168df7c42e866))
+
 ## [1.0.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.28...v1.0.0-rc.29) (2026-09-07)
 
 ### Bug Fixes
