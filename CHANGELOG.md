@@ -1,3 +1,9 @@
+## [1.0.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.27...v1.0.0-rc.28) (2026-09-07)
+
+### Bug Fixes
+
+* **m02:** completar RF-34 con fecha_referencia, 404 en E2, sensores y advertencia de integridad ([eef0de3](https://github.com/Arekkazu/sgpmp-backend/commit/eef0de37f0f2ee9bb9726c290585ef07815cfa3f))
+
 ## [1.0.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.26...v1.0.0-rc.27) (2026-09-07)
 
 ### Features
