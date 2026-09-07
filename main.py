@@ -474,14 +474,14 @@ app.add_middleware(
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
 
-# RF-26: los logotipos institucionales se escriben en `uploads/logos` (ver
+# RF-26: los logotipos institucionales se escriben en `LOGOS_STORAGE_PATH` (ver
 # `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
 app.mount(
-    almacen_logos.RUTA_PUBLICA_BASE,
-    StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+    almacen_logos.RUTA_PUBLICA_LOGOS,
+    StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
 
