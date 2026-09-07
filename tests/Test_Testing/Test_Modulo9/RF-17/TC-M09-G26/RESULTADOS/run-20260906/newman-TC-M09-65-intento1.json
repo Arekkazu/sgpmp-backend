@@ -1,0 +1,206 @@
+{
+  "grupo": "TC-M09-G26",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:27:49.820Z",
+  "caso": "TC-M09-65",
+  "variante": "intento1",
+  "resultado": "FAIL",
+  "metodo": "POST",
+  "endpoint": "/configuracion/umbrales",
+  "especie": {
+    "id": 4,
+    "nombre": "Cachama Blanca",
+    "es_activo": true
+  },
+  "variable": {
+    "id": 916,
+    "perteneceAlCatalogo": false,
+    "tipoEnviado": "integer"
+  },
+  "evidenciaVariable": {
+    "metodo": "GET /configuracion/variables-ambientales",
+    "totalCatalogo": 16,
+    "idsCatalogo": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "idEnviado": 916,
+    "presenteEnCatalogo": false
+  },
+  "invalidezIntencional": "id_variable_ambiental=916 no pertenece al catalogo predefinido",
+  "payloadEnviado": {
+    "id_especie": 4,
+    "id_variable_ambiental": 916,
+    "valor_min": 10,
+    "valor_max": 40,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 10,
+        "limite_superior": 20
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 20,
+        "limite_superior": 30
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 30,
+        "limite_superior": 40
+      }
+    ]
+  },
+  "umbralesPrevios": [
+    {
+      "id": 10,
+      "id_variable_ambiental": 1,
+      "es_activo": true
+    },
+    {
+      "id": 11,
+      "id_variable_ambiental": 3,
+      "es_activo": true
+    }
+  ],
+  "status": 404,
+  "errorCode": "VARIABLE_AMBIENTAL_NO_ENCONTRADA",
+  "respuesta": {
+    "error_code": "VARIABLE_AMBIENTAL_NO_ENCONTRADA",
+    "message": "No existe una variable ambiental activa con ID 916.",
+    "fields": [
+      {
+        "field": "id_variable_ambiental",
+        "message": "No existe una variable ambiental activa con ID 916."
+      }
+    ],
+    "timestamp": "2026-09-06T00:27:48.832462+00:00"
+  },
+  "eventos": [
+    {
+      "caso": "TC-M09-65",
+      "variante": "intento1",
+      "metodo": "POST",
+      "url": "/api-sgpmp-test/configuracion/umbrales",
+      "status": 404,
+      "payload": {
+        "id_especie": 4,
+        "id_variable_ambiental": 916,
+        "valor_min": 10,
+        "valor_max": 40,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": 10,
+            "limite_superior": 20
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 20,
+            "limite_superior": 30
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 30,
+            "limite_superior": 40
+          }
+        ]
+      },
+      "respuesta": {
+        "error_code": "VARIABLE_AMBIENTAL_NO_ENCONTRADA",
+        "message": "No existe una variable ambiental activa con ID 916.",
+        "fields": [
+          {
+            "field": "id_variable_ambiental",
+            "message": "No existe una variable ambiental activa con ID 916."
+          }
+        ],
+        "timestamp": "2026-09-06T00:27:48.832462+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-65",
+      "variante": "intento1",
+      "metodo": "GET",
+      "url": "/api-sgpmp-test/configuracion/umbrales",
+      "status": 200,
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-65",
+      "variante": "intento1",
+      "metodo": "GET",
+      "url": "/api-sgpmp-test/configuracion/variables-ambientales",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "getPosterior": {
+    "status": 200,
+    "total": 2,
+    "ids": [
+      10,
+      11
+    ]
+  },
+  "persistencia": {
+    "umbralesDeLaCombinacion": 0,
+    "esperado": 0,
+    "registrosNuevos": [],
+    "catalogoVariablesDespues": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "variableInvalidaCreada": false
+  },
+  "STOP_ALL": false,
+  "assertions": {
+    "total": 16,
+    "pending": 0,
+    "failed": 1
+  },
+  "failures": [
+    {
+      "test": "HTTP exactamente 400 (oraculo declarado por la matriz y RF-17)",
+      "message": "expected response to have status code 400 but got 404"
+    }
+  ],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-65-intento1.html"
+}

@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "TC-M09-G80 — Auditoría D09 de calibraciones",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{session_value}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Login Administrador",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_secret}}\"\n}"
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('Login Administrador responde 200', () => pm.response.to.have.status(200));",
+              "pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "pm.environment.set('session_value', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identidad Administrador",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "pm.test('Identidad Administrador responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Actor auditor es Administrador', () => { pm.expect(body.correo_electronico).to.eql(pm.environment.get('admin_email')); pm.expect(body.nombre_rol).to.eql('Administrador'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Catálogo D09",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/auditoria/catalogo/tipos-evento"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "const names = (body || []).map(x => String(x.nombre || '').toUpperCase());",
+              "pm.test('Catálogo D09 responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('D09 no declara evento de calibración o sensor', () => pm.expect(names.some(x => x.includes('CALIBR') || x.includes('SENSOR'))).to.eql(false));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "D09 filtrado por evento G74",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/auditoria/?id_usuario={{source_user_id}}&fecha_desde={{source_from}}&fecha_hasta={{source_to}}&pagina=1&tamano=50"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const body = pm.response.json();",
+              "const items = body.items || [];",
+              "const encoded = JSON.stringify(items).toUpperCase();",
+              "pm.test('Consulta D09 filtrada responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Los eventos filtrados no son de calibración', () => pm.expect(encoded.includes('CALIBR')).to.eql(false));",
+              "pm.test('Los eventos filtrados pertenecen a MODULO1', () => pm.expect(items.every(x => String(x.modulo || '').toUpperCase() === 'MODULO1')).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
