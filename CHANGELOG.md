@@ -1,3 +1,13 @@
+## [1.0.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.25...v1.0.0-rc.26) (2026-09-07)
+
+### Bug Fixes
+
+* **config:** forward cookie and JWT env variables ([a6a546b](https://github.com/Arekkazu/sgpmp-backend/commit/a6a546b0353f09011fc0e4da74f7eac0bdc8aff0))
+* **config:** validar variables de entorno al arranque, cookie obligatoria en produccion ([f0e6bab](https://github.com/Arekkazu/sgpmp-backend/commit/f0e6bab6e2444a35df5f2a20991cdffd97c86202))
+* **rf11:** busqueda por nombre completo y trim en listado admin ([a54ad09](https://github.com/Arekkazu/sgpmp-backend/commit/a54ad09cec157955dead21db3baa7b36f9a9f035))
+* **sesiones:** flags explicitos de cookie refresh + leeway en JWT ([0f3f2ca](https://github.com/Arekkazu/sgpmp-backend/commit/0f3f2ca80f68dfcfc77dd304ef599977dd7b82ca))
+* **sesiones:** forzar secure=true cuando SameSite=none en la cookie refresh ([cfa64a0](https://github.com/Arekkazu/sgpmp-backend/commit/cfa64a02878a130851b79128f651e22d5bf67b7c))
+
 ## [1.0.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.24...v1.0.0-rc.25) (2026-09-06)
 
 ### Features
