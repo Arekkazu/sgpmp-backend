@@ -36,6 +36,28 @@ def test_login_emite_cookie_refresh_httponly_y_no_en_el_json(
     assert set(cuerpo.keys()) == {"token", "tipo", "expira_en", "message", "perfil_incompleto"}
 
 
+def test_cookie_refresh_respeta_flags_explicitos(
+    client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """COOKIE_SECURE/COOKIE_SAMESITE mandan sobre ENV al emitir la cookie."""
+    from src.shared import notificacion_service
+
+    monkeypatch.setenv("ENV", "development")
+    monkeypatch.setenv("COOKIE_SECURE", "true")
+    monkeypatch.setenv("COOKIE_SAMESITE", "none")
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+
+    respuesta = _login(client, usuario)
+
+    set_cookie = respuesta.headers.get("set-cookie", "").lower()
+    assert "refresh_token" in set_cookie
+    assert "secure" in set_cookie
+    assert "samesite=none" in set_cookie
+    assert "httponly" in set_cookie
+
+
 def test_refresh_rota_tokens_y_el_nuevo_access_token_funciona(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -170,6 +170,17 @@ class GestionFase:
 
 
 @dataclass
+class HistorialActivo:
+    id_activo_biologico: int
+    version: int
+    tipo_evento: str
+    snapshot: dict
+    fecha_evento: datetime
+    id_usuario: int
+    id_historial_activo: Optional[int] = None
+
+
+@dataclass
 class HistoricoEstado:
     id_activo_biologico: int
     id_estado_anterior: int
@@ -192,6 +203,25 @@ class HistorialInfraestructura:
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+
+
+@dataclass
+class SensorEnInfraestructura:
+    id_sensor: int
+    nombre: str
+    id_dispositivo_iot: int
+    punto_instalacion: str
+    categoria: Optional[str] = None
+
+
+@dataclass
+class ResultadoConsultaAsociacion:
+    tipo_consulta: str
+    id_activo_biologico: int
+    asociacion_activa: Optional[HistorialInfraestructura] = None
+    historial: Optional[list[HistorialInfraestructura]] = None
+    sensores_en_infraestructura: list[SensorEnInfraestructura] = field(default_factory=list)
+    advertencia_integridad: Optional[str] = None
 
 
 @dataclass

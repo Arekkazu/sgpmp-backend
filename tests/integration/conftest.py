@@ -64,7 +64,10 @@ def integration_engine() -> Generator[Engine, None, None]:
         pytest.skip("Define TEST_DATABASE_URL para ejecutar las pruebas de integración.")
 
     _validar_url_pruebas(url)
-    engine = create_engine(url, pool_pre_ping=True)
+    # use_insertmanyvalues=False: igual que src/shared/database.py — evita el
+    # DatatypeMismatch de SQLAlchemy 2.0 al insertar 2+ filas del mismo modelo
+    # con una columna String que mapea a un ENUM nativo de Postgres (#144).
+    engine = create_engine(url, pool_pre_ping=True, use_insertmanyvalues=False)
     try:
         with engine.connect() as connection:
             nombre_real = connection.execute(text("select current_database()")).scalar_one()
@@ -168,6 +171,9 @@ def client(
     from src.identity_access.infrastructure.adapters import (
         correo_activacion_background_adapter,
     )
+    from src.identity_access.infrastructure.adapters import (
+        correo_recuperacion_background_adapter,
+    )
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
     from src.identity_access.infrastructure.routers.usuarios_routers import (
@@ -200,6 +206,11 @@ def client(
     )
     monkeypatch.setattr(
         correo_activacion_background_adapter,
+        "SessionLocal",
+        crear_sesion_background,
+    )
+    monkeypatch.setattr(
+        correo_recuperacion_background_adapter,
         "SessionLocal",
         crear_sesion_background,
     )

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
 
+from src.biological_assets.domain.entities.activo_biologico import SensorEnInfraestructura
+
 
 @dataclass
 class InfraestructuraConsulta:
@@ -30,3 +32,7 @@ class InfraestructuraConsultaPort(ABC):
     @abstractmethod
     def calcular_ocupacion(self, id_infraestructura: int) -> int:
         """Retorna la cantidad total de individuos activos en la infraestructura."""
+
+    @abstractmethod
+    def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:
+        """Retorna los sensores con asociación de área activa en la infraestructura (enriquecimiento RF-22)."""

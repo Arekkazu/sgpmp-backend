@@ -74,27 +74,13 @@ class RegistrarActivoBiologicoDTO(BaseDTO):
 
     @model_validator(mode='after')
     def validar_origen_financiero(self) -> RegistrarActivoBiologicoDTO:
-        # FA-08
-        origen = self.origen_financiero
-        if origen not in ('compra', 'nacimiento', 'donacion', 'transferencia_interna'):
+        # Solo el formato del valor se valida aquí. La coherencia
+        # costo_adquisicion/soporte_documental según origen_financiero (FA-08)
+        # vive en RegistrarActivoBiologicoUseCase para responder 422
+        # (BusinessRuleError) en vez del 400 que produce un ValueError de
+        # Pydantic vía RequestValidationError.
+        if self.origen_financiero not in ('compra', 'nacimiento', 'donacion', 'transferencia_interna'):
             raise ValueError(
                 "origen_financiero debe ser 'compra', 'nacimiento', 'donacion' o 'transferencia_interna'."
             )
-
-        if origen in ('compra', 'donacion'):
-            if not self.costo_adquisicion or self.costo_adquisicion <= 0:
-                raise ValueError(
-                    f"costo_adquisicion mayor a 0 es requerido cuando origen_financiero es '{origen}'."
-                )
-            if not self.soporte_documental:
-                raise ValueError(
-                    f"soporte_documental es requerido cuando origen_financiero es '{origen}'."
-                )
-
-        elif origen == 'nacimiento':
-            if self.costo_adquisicion is not None:
-                raise ValueError("costo_adquisicion no aplica cuando origen_financiero es 'nacimiento'.")
-            if self.soporte_documental is not None:
-                raise ValueError("soporte_documental no aplica cuando origen_financiero es 'nacimiento'.")
-
         return self

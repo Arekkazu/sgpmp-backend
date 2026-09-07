@@ -11,6 +11,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Falla el arranque con un mensaje claro si la configuración de entorno es
+# inválida (QA V2 M01): un typo en COOKIE_SAMESITE o una SECRET_KEY ausente
+# rompen la sesión en runtime; mejor no arrancar.
+from src.shared.configuracion import validar_configuracion  # noqa: E402
+
+validar_configuracion()
+
 logger = logging.getLogger(__name__)
 
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router

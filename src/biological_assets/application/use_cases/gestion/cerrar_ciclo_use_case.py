@@ -4,6 +4,7 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -85,9 +86,6 @@ class CerrarCicloUseCase:
                     field='fecha_cierre',
                 )
 
-        id_estado_anterior = activo.id_estado
-        activo.cambiar_estado(EstadoActivo.CERRADO)
-
         motivo_completo = dto.motivo_cierre
         if dto.descripcion_cierre:
             motivo_completo = f'{dto.motivo_cierre} — {dto.descripcion_cierre}'
@@ -98,15 +96,16 @@ class CerrarCicloUseCase:
             # Cerrar fase primero: el trigger trg_fn_fase_activo_estado_valido bloquea
             # cambios en gestiones_fases si el activo ya está en CERRADO.
             self.repo.cerrar_gestion_activa(id_activo, fecha_cierre_dt, motivo_completo, usuario.id_usuario)
-            # El INSERT dispara trg_sincronizar_estado_activo que actualiza activos_biologicos.id_estado
-            historico = self.historico_repo.registrar(
-                id_activo=id_activo,
-                id_estado_anterior=id_estado_anterior,
+            # aplicar_cambio_estado registra el histórico (el INSERT dispara
+            # trg_sincronizar_estado_activo que actualiza activos_biologicos.id_estado)
+            historico = aplicar_cambio_estado(
+                activo=activo,
                 id_estado_nuevo=EstadoActivo.CERRADO,
                 fecha=fecha_cierre_dt,
                 motivo=motivo_completo,
                 usuario_id=usuario.id_usuario,
-                modulo_origen='modulo2',
+                historico_repo=self.historico_repo,
+                modulo_origen='RF-38',
             )
             self.db.commit()
         except Exception as exc:

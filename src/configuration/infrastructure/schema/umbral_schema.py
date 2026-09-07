@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -57,3 +57,22 @@ class VariableAmbientalResponse(BaseModel):
 class VariablesAmbientalesResponse(BaseModel):
     total: int
     items: List[VariableAmbientalResponse]
+
+
+class AuditoriaUmbralResponse(BaseModel):
+    """Registro de auditoría de un umbral ambiental (RF-17, TC-M09-64)."""
+
+    id_auditoria_umbral: int
+    id_umbral_ambiental: int
+    id_usuario: Optional[int]
+    tipo_operacion: str
+    valores_anteriores: Optional[dict[str, Any]]
+    valores_nuevos: dict[str, Any]
+    fecha_gestion: datetime.datetime
+
+    model_config = {'from_attributes': True}
+
+
+class AuditoriaUmbralesResponse(BaseModel):
+    total: int
+    items: List[AuditoriaUmbralResponse]

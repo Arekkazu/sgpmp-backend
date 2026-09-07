@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func, text
+from sqlalchemy import func, or_, text
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 
@@ -14,6 +14,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     DetalleIndividual,
     DetallePoblacional,
     GestionFase,
+    HistorialActivo,
     HistorialInfraestructura,
 )
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -21,6 +22,7 @@ from src.biological_assets.infrastructure.models.activo_biologico_model import A
 from src.biological_assets.infrastructure.models.detalle_individual_model import DetalleActivoIndividualModel
 from src.biological_assets.infrastructure.models.detalle_poblacional_model import DetalleActivoPoblacionalModel
 from src.biological_assets.infrastructure.models.gestion_fase_model import GestionFaseModel
+from src.biological_assets.infrastructure.models.historial_activo_model import HistorialActivoModel
 from src.biological_assets.infrastructure.models.historial_infraestructura_activo_model import (
     HistorialInfraestructuraActivoModel,
 )
@@ -222,6 +224,38 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             fecha_fin=hist.fecha_fin,
         )
 
+    def obtener_asociacion_en_fecha(
+        self, id_activo: int, fecha_referencia: datetime
+    ) -> Optional[HistorialInfraestructura]:
+        row = (
+            self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
+            .join(
+                InfraestructuraModel,
+                HistorialInfraestructuraActivoModel.id_infraestructura == InfraestructuraModel.id_infraestructura,
+            )
+            .filter(
+                HistorialInfraestructuraActivoModel.id_activo_biologico == id_activo,
+                HistorialInfraestructuraActivoModel.fecha_inicio <= fecha_referencia,
+                or_(
+                    HistorialInfraestructuraActivoModel.fecha_fin.is_(None),
+                    HistorialInfraestructuraActivoModel.fecha_fin > fecha_referencia,
+                ),
+            )
+            .first()
+        )
+        if not row:
+            return None
+        hist, infra = row
+        return HistorialInfraestructura(
+            id_historial=hist.id_historial,
+            id_activo_biologico=hist.id_activo_biologico,
+            id_infraestructura=hist.id_infraestructura,
+            nombre_infraestructura=infra.nombre,
+            tipo_infraestructura=infra.tipo,
+            fecha_inicio=hist.fecha_inicio,
+            fecha_fin=hist.fecha_fin,
+        )
+
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
         rows = (
             self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
@@ -359,6 +393,23 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             {'id': id_activo, 'ahora': ahora},
         ).scalar()
         return bool(row)
+
+    def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        try:
+            orm = HistorialActivoModel(
+                id_activo_biologico=historial.id_activo_biologico,
+                version=historial.version,
+                tipo_evento=historial.tipo_evento,
+                json_snapshot=historial.snapshot,
+                fecha_evento=historial.fecha_evento,
+                id_usuario=historial.id_usuario,
+            )
+            self.db.add(orm)
+            self.db.flush()
+        except Exception as exc:
+            raise_from_db_error(exc)
+        historial.id_historial_activo = orm.id_historial_activo
+        return historial
 
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
         orm = (

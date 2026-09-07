@@ -25,6 +25,7 @@ load_dotenv()
 
 JWT_EXPIRE_HOURS_DEFAULT = 8
 REFRESH_TOKEN_EXPIRE_DAYS_DEFAULT = 7
+JWT_LEEWAY_SECONDS_DEFAULT = 30
 
 
 def _leer_horas_expiracion() -> int:
@@ -37,10 +38,20 @@ def _leer_dias_expiracion_refresco() -> int:
     return int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", str(REFRESH_TOKEN_EXPIRE_DAYS_DEFAULT)))
 
 
+def _leer_leeway_segundos() -> int:
+    """Lee la tolerancia de skew de reloj al verificar ``exp`` (por defecto 30s).
+
+    Sin tolerancia, un reloj del servidor apenas 1 segundo por detrás del
+    emisor convierte un token recién emitido en ``TOKEN_EXPIRADO`` espurio.
+    """
+    return int(os.getenv("JWT_LEEWAY_SECONDS", str(JWT_LEEWAY_SECONDS_DEFAULT)))
+
+
 _SECRET_KEY = os.getenv("SECRET_KEY")
 _ALGORITHM = "HS256"
 _EXPIRE_HOURS = _leer_horas_expiracion()
 _REFRESH_EXPIRE_DAYS = _leer_dias_expiracion_refresco()
+_LEEWAY_SECONDS = _leer_leeway_segundos()
 
 
 def create_token(jti: int, id_usuario: int, id_rol: int) -> tuple[str, datetime]:
@@ -102,7 +113,12 @@ def verify_token(token: str) -> dict:
             corresponde. Ambos HTTP 401.
     """
     try:
-        payload = jwt.decode(token, _SECRET_KEY, algorithms=[_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            _SECRET_KEY,
+            algorithms=[_ALGORITHM],
+            options={"leeway": _LEEWAY_SECONDS},
+        )
         return payload
     except ExpiredSignatureError:
         raise AuthenticationError(

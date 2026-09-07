@@ -11,6 +11,7 @@ from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.db_error_translator import _campo, raise_from_db_error
 from src.shared.errors import (
+    BusinessRuleError,
     ConflictError,
     InfrastructureError,
     ServiceUnavailableError,
@@ -26,6 +27,7 @@ class Diag:
         self.constraint_name = kw.get("constraint_name")
         self.table_name = kw.get("table_name")
         self.message_primary = kw.get("message_primary")
+        self.sqlstate = kw.get("sqlstate")
 
 
 def _error_pg(clase, **kw):
@@ -140,6 +142,76 @@ def test_fk_inexistente_es_dato_invalido_del_cliente() -> None:
 
     assert exc_info.value.code == "REFERENCIA_INVALIDA"
     assert exc_info.value.status_code == 400
+
+
+def test_errcode_duplicate_stage_es_409_no_500() -> None:
+    """RF-32 (#128/#129): DUPLICATE_STAGE (P0104) es un error de clase `P0`
+    (PL/pgSQL) que psycopg2 no clasifica como `IntegrityError`. Sin este mapeo
+    explícito caía al catch-all -> 500, aunque fuera un choque de nombre real."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0104",
+        message_primary='DUPLICATE_STAGE: Ya existe una etapa llamada "Engorde" para esta especie.',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "RECURSO_DUPLICADO"
+    assert exc_info.value.status_code == 409
+    assert "DUPLICATE_STAGE" not in exc_info.value.message
+    assert "Engorde" in exc_info.value.message
+
+
+def test_errcode_duplicate_metric_es_409_no_500() -> None:
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0109",
+        message_primary='DUPLICATE_METRIC: Ya existe una métrica productiva con el nombre "Peso".',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "RECURSO_DUPLICADO"
+    assert exc_info.value.status_code == 409
+
+
+def test_errcode_sensor_ya_activo_es_409_no_500() -> None:
+    """INC-M09-107-G64 (#135): el trigger `trg_sensor_asociacion_unica_activa`
+    de modulo9 señala P0130 (clase `P0`, no mapeada por psycopg2) — sin este
+    mapeo, una condición de carrera al asociar un sensor caía al 500
+    genérico en vez del conflicto de negocio correspondiente."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0130",
+        message_primary='SENSOR_ALREADY_ASSIGNED: El sensor ID 5 ya está activo en el área "Estanque-01".',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "ASOCIACION_YA_ACTIVA"
+    assert exc_info.value.status_code == 409
+    assert "SENSOR_ALREADY_ASSIGNED" not in exc_info.value.message
+
+
+def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
+    """INC-M09-107-G64 (#135): el trigger `trg_sensor_asociacion_finca_fija`
+    señala P0140 (misma clase `P0`) cuando el área destino pertenece a una
+    finca distinta a la del dispositivo del sensor."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0140",
+        message_primary="SENSOR_FINCA_DISTINTA: El sensor ID 5 pertenece al dispositivo de la finca ID 1.",
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "SENSOR_FINCA_DISTINTA"
+    assert exc_info.value.status_code == 422
+    assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
 
 
 def test_integrity_error_no_mapeado_es_500() -> None:
