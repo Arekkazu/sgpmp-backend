@@ -153,9 +153,39 @@ Respuesta esperada `200`:
     "fecha_inicio": "2026-06-27T...",
     "fecha_fin": null
   },
-  "historial": null
+  "historial": null,
+  "sensores_en_infraestructura": [
+    {
+      "id_sensor": 12,
+      "nombre": "Sensor pH-01",
+      "id_dispositivo_iot": 3,
+      "punto_instalacion": "Entrada del estanque",
+      "categoria": "ph"
+    }
+  ],
+  "advertencia_integridad": null
 }
 ```
+
+`sensores_en_infraestructura` (RF-22) solo se calcula para `tipo_consulta=ACTIVA` (o
+`fecha_referencia`) — lista los sensores con asociación de área activa
+(`modulo9.sensores_areas_asociadas.tiene_estado=true`) en la infraestructura vigente
+del activo. `advertencia_integridad` se calcula siempre (ACTIVA e HISTORIAL): si el
+historial completo del activo tiene dos períodos que se solapan (dato sembrado
+manualmente o por un bug de otro flujo), viene con un mensaje descriptivo; si no hay
+solapamiento, es `null`. No bloquea la respuesta.
+
+### GET /activos-biologicos/{id}/infraestructura?fecha_referencia=... — Consulta puntual (CA-3, RF-61)
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/51/infraestructura?tipo_consulta=ACTIVA&fecha_referencia=2025-03-15T00:00:00Z" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Devuelve, en `asociacion_activa`, cuál era la asociación vigente en esa fecha pasada
+(la fila cuyo `fecha_inicio <= fecha_referencia` y `fecha_fin IS NULL OR fecha_fin > fecha_referencia`),
+sin importar si hoy el activo está en otra infraestructura. `sensores_en_infraestructura`
+se calcula sobre la infraestructura que estaba vigente en esa fecha, no la actual.
 
 ### GET /activos-biologicos/{id}/infraestructura — Historial completo
 
@@ -179,13 +209,20 @@ Respuesta esperada `200`:
       "fecha_inicio": "2026-06-27T...",
       "fecha_fin": null
     }
-  ]
+  ],
+  "sensores_en_infraestructura": [],
+  "advertencia_integridad": null
 }
 ```
 
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe
+- `404 ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA` — flujo alterno E2: el activo no tiene
+  asociación activa (o, si se envió `fecha_referencia`, no tenía ninguna vigente en esa
+  fecha). Antes de esta corrección el endpoint respondía `200` con `asociacion_activa=null`;
+  ahora es un `404` con mensaje de alerta técnica, tal como exige CA-5.
 - `400 TIPO_CONSULTA_INVALIDO` — `tipo_consulta` no es 'ACTIVA' ni 'HISTORIAL'
+- `400 FECHA_REFERENCIA_INVALIDA` — se envió `fecha_referencia` junto a `tipo_consulta=HISTORIAL`
 - `403 ACCESO_DENEGADO` — sin permiso R sobre `activos_biologicos`
 
 ---

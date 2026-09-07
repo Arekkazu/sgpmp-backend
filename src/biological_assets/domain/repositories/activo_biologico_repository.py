@@ -46,6 +46,12 @@ class ActivoBiologicoRepository(ABC):
         """Retorna el historial completo de asociaciones de infraestructura."""
 
     @abstractmethod
+    def obtener_asociacion_en_fecha(
+        self, id_activo: int, fecha_referencia: datetime
+    ) -> Optional[HistorialInfraestructura]:
+        """Retorna la asociación de infraestructura vigente en una fecha pasada (CA-3, RF-61)."""
+
+    @abstractmethod
     def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
         """Persiste los cambios en detalle_individual del activo."""
 

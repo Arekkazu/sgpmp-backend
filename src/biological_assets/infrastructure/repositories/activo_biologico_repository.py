@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func, text
+from sqlalchemy import func, or_, text
 from sqlalchemy import exists
 from sqlalchemy.orm import Session
 
@@ -208,6 +208,38 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             .filter(
                 HistorialInfraestructuraActivoModel.id_activo_biologico == id_activo,
                 HistorialInfraestructuraActivoModel.fecha_fin.is_(None),
+            )
+            .first()
+        )
+        if not row:
+            return None
+        hist, infra = row
+        return HistorialInfraestructura(
+            id_historial=hist.id_historial,
+            id_activo_biologico=hist.id_activo_biologico,
+            id_infraestructura=hist.id_infraestructura,
+            nombre_infraestructura=infra.nombre,
+            tipo_infraestructura=infra.tipo,
+            fecha_inicio=hist.fecha_inicio,
+            fecha_fin=hist.fecha_fin,
+        )
+
+    def obtener_asociacion_en_fecha(
+        self, id_activo: int, fecha_referencia: datetime
+    ) -> Optional[HistorialInfraestructura]:
+        row = (
+            self.db.query(HistorialInfraestructuraActivoModel, InfraestructuraModel)
+            .join(
+                InfraestructuraModel,
+                HistorialInfraestructuraActivoModel.id_infraestructura == InfraestructuraModel.id_infraestructura,
+            )
+            .filter(
+                HistorialInfraestructuraActivoModel.id_activo_biologico == id_activo,
+                HistorialInfraestructuraActivoModel.fecha_inicio <= fecha_referencia,
+                or_(
+                    HistorialInfraestructuraActivoModel.fecha_fin.is_(None),
+                    HistorialInfraestructuraActivoModel.fecha_fin > fecha_referencia,
+                ),
             )
             .first()
         )
