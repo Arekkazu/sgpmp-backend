@@ -1,0 +1,166 @@
+{
+  "grupo": "TC-M09-G26",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:43:13.279Z",
+  "catalogoEspecies": {
+    "total": 7,
+    "ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      10,
+      11
+    ],
+    "inactivas": [
+      11,
+      1
+    ]
+  },
+  "catalogoVariables": {
+    "total": 16,
+    "ids": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "checks": [
+    {
+      "archivo": "newman-TC-M09-57-inactiva.json",
+      "caso": "TC-M09-57",
+      "variante": "inactiva",
+      "status": 422,
+      "errorCode": "ESPECIE_INACTIVA",
+      "especieEnCatalogo": true,
+      "especieActiva": false,
+      "variableEnCatalogo": true,
+      "permisosRF17": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "getStatus": 200,
+      "totalUmbrales": 0,
+      "ids": [],
+      "umbralesDeLaCombinacion": []
+    },
+    {
+      "archivo": "newman-TC-M09-57-inexistente.json",
+      "caso": "TC-M09-57",
+      "variante": "inexistente",
+      "status": 422,
+      "errorCode": "ESPECIE_INACTIVA",
+      "especieEnCatalogo": false,
+      "especieActiva": null,
+      "variableEnCatalogo": true,
+      "permisosRF17": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "getStatus": 200,
+      "totalUmbrales": 0,
+      "ids": [],
+      "umbralesDeLaCombinacion": []
+    },
+    {
+      "archivo": "newman-TC-M09-58-intento1.json",
+      "caso": "TC-M09-58",
+      "variante": "intento1",
+      "status": 409,
+      "errorCode": "UMBRAL_DUPLICADO",
+      "especieEnCatalogo": true,
+      "especieActiva": true,
+      "variableEnCatalogo": true,
+      "permisosRF17": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "getStatus": 200,
+      "totalUmbrales": 2,
+      "ids": [
+        10,
+        11
+      ],
+      "umbralesDeLaCombinacion": [
+        {
+          "id": 10,
+          "es_activo": true
+        }
+      ]
+    },
+    {
+      "archivo": "newman-TC-M09-65-intento1.json",
+      "caso": "TC-M09-65",
+      "variante": "intento1",
+      "status": 404,
+      "errorCode": "VARIABLE_AMBIENTAL_NO_ENCONTRADA",
+      "especieEnCatalogo": true,
+      "especieActiva": true,
+      "variableEnCatalogo": false,
+      "permisosRF17": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "getStatus": 200,
+      "totalUmbrales": 2,
+      "ids": [
+        10,
+        11
+      ],
+      "umbralesDeLaCombinacion": []
+    },
+    {
+      "archivo": "newman-TC-M09-65-intento2.json",
+      "caso": "TC-M09-65",
+      "variante": "intento2",
+      "status": 404,
+      "errorCode": "VARIABLE_AMBIENTAL_NO_ENCONTRADA",
+      "especieEnCatalogo": true,
+      "especieActiva": true,
+      "variableEnCatalogo": false,
+      "permisosRF17": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "getStatus": 200,
+      "totalUmbrales": 2,
+      "ids": [
+        10,
+        11
+      ],
+      "umbralesDeLaCombinacion": []
+    }
+  ],
+  "soloLectura": true,
+  "sqlEjecutado": "ninguno"
+}

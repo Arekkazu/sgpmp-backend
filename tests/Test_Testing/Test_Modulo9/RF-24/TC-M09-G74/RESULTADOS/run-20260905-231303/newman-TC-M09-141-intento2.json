@@ -1,0 +1,78 @@
+{
+  "caso": "TC-M09-141",
+  "grupo": "TC-M09-G74",
+  "runId": "run-20260905-231303",
+  "intento": 2,
+  "actor": {
+    "id_usuario": 4,
+    "rol": "Ingeniero de Campo",
+    "correo_coincide": true
+  },
+  "dispositivo": {
+    "id": 1,
+    "serial": "IOT-EST01-HLA-001",
+    "activo": true,
+    "id_infraestructura": 1
+  },
+  "sensor": {
+    "id": 3,
+    "nombre": "Sensor oxígeno disuelto estanque-01",
+    "categoria": "OXIGENO",
+    "activo": true,
+    "id_dispositivo_iot": 1
+  },
+  "area": {
+    "id_infraestructura": 1,
+    "id_dispositivo_iot": 1,
+    "activa": true
+  },
+  "rangoTecnico": {
+    "categoria": "OXIGENO",
+    "min": "0.0000",
+    "max": "20.0000"
+  },
+  "valorReferencia": "10.0000",
+  "observaciones": "QA TC-M09-141 G74 run-20260905-231303",
+  "endpoint": "/configuracion/sensores/3/calibrar",
+  "metodo": "POST",
+  "statuses": {
+    "Login Ingeniero": 200,
+    "Identidad del Ingeniero": 200,
+    "Permisos del Ingeniero": 200,
+    "Rango técnico del sensor": 200,
+    "Dispositivo activo": 200,
+    "Sensor asociado al dispositivo": 200,
+    "Área activa del sensor": 200,
+    "Historial BEFORE": 200,
+    "Registrar calibración TC-M09-141": 201,
+    "Historial AFTER": 200
+  },
+  "historyBefore": {
+    "total": 1,
+    "ids": [
+      3
+    ]
+  },
+  "calibracion": {
+    "id_calibracion": 9,
+    "id_dispositivo_iot": 1,
+    "id_sensor": 3,
+    "valor_referencia": "10.0000",
+    "fecha_calibracion": "2026-09-06T04:13:05.499000Z",
+    "id_usuario": 4,
+    "observaciones": "QA TC-M09-141 G74 run-20260905-231303"
+  },
+  "historyAfter": {
+    "total": 2,
+    "ids": [
+      9,
+      3
+    ]
+  },
+  "assertions": {
+    "total": 23,
+    "failed": 0,
+    "failures": []
+  },
+  "resultado": "PASS"
+}

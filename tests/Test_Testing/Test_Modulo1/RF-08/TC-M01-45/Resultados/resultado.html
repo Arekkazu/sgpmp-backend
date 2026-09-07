@@ -472,7 +472,7 @@ body.theme-light code {
                 <a class="nav-link text-white" id="pills-requests-tab" data-toggle="pill" href="#pills-requests" role="tab" aria-controls="pills-requests" aria-selected="false">Total Requests <span class="badge badge-light">7</span></a>
             </li>
             <li class="nav-item bg-danger" data-toggle="tooltip" title="Click to view the Failed Tests">
-                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">1</span></a>
+                <a class="nav-link text-white" id="pills-failed-tab" data-toggle="pill" href="#pills-failed" role="tab" aria-controls="pills-failed" aria-selected="false">Failed Tests <span class="badge badge-light">0</span></a>
             </li>
             <li class="nav-item bg-warning" data-toggle="tooltip" title="Click to view the Skipped Tests">
                 <a class="nav-link text-white" id="pills-skipped-tab" data-toggle="pill" href="#pills-skipped" role="tab" aria-controls="pills-skipped" aria-selected="false">Skipped Tests <span class="badge badge-light">0</span></a>
@@ -483,11 +483,11 @@ body.theme-light code {
 <div class="row">
   <div class="col-md-9 col-lg-12 main">
    <h1 class="display-2 text-center">Newman Run Dashboard</h1>
-   <h5 class="text-center">Monday, 31 August 2026 22:49:51</h5>
+   <h5 class="text-center">Friday, 04 September 2026 19:55:27</h5>
    <div class="row">
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-success">
-      <div class="card-body bg-danger">
+      <div class="card-body bg-success">
        <div class="rotate">
         <i class="fa fa-retweet fa-5x"></i>
        </div>
@@ -509,12 +509,12 @@ body.theme-light code {
     </div>
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-info">
-      <div class="card-body bg-danger">
+      <div class="card-body bg-success">
        <div class="rotate">
         <i class="fa fa-plus-circle fa-5x"></i>
        </div>
        <h6 class="text-uppercase">Total Failed Tests</h6>
-       <h1 class="display-1">1</h1>
+       <h1 class="display-1">0</h1>
       </div>
      </div>
     </div>
@@ -562,9 +562,9 @@ body.theme-light code {
             <div class="card border-info">
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Timings and Data</h5>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 2.5s<br>
-                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 29.13KB<br>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 276ms<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 3.3s<br>
+                <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 20.32KB<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 456ms<br>
                 </div>
             </div>
         </div>
@@ -596,10 +596,10 @@ body.theme-light code {
                         <td class="text-center">7</td>
                         <td class="text-center">0</td>
                     </tr>
-                    <tr class="table-danger">
+                    <tr class="">
                         <td>Assertions</td>
                         <td class="text-center">9</td>
-                        <td class="text-center">1</td>
+                        <td class="text-center">0</td>
                     </tr>
                     <tr class="">
                         <td>Skipped Tests</td>
@@ -620,36 +620,9 @@ body.theme-light code {
             <div class="tab-pane fade" id="pills-failed" role="tabcard" aria-labelledby="pills-failed-tab">
                 <button id="topOfFailuresScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
-                    <div class="btn-group float-right" role="group" aria-label="Button Group">
-                        <button id="openAllFailed" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 185px;">Expand All Failed Tests</button>
-                    </div>
-                    <br>
-                    <br>
-
-                    <div class="alert alert-danger text-uppercase text-center">
-                        <h4>Showing 1 Failure</h4>
-                    </div>
-                    <div class="col-sm-12 mb-3">
-                    <div class="card-deck">
-                        <div class="card border-danger">
-                            <div class="card-header bg-danger">
-                                <a data-toggle="collapse" href="#" data-target="#fails-collapse-86c44c72-1865-4b41-8c9e-635bce6cf937" aria-expanded="false" aria-controls="collapse" id="fails-86c44c72-1865-4b41-8c9e-635bce6cf937" class="collapsed text-white z-block">
-                                    Iteration 1 - AssertionError - TC-M01-045 - 1. Admin: marcar cuenta objetivo como ELIMINADO <i class="float-lg-right fa fa-chevron-down" style="padding-top:5px;"></i>
-                                </a>
-                            </div>
-                            <div id="fails-collapse-86c44c72-1865-4b41-8c9e-635bce6cf937" class="collapse" aria-labelledby="fails-86c44c72-1865-4b41-8c9e-635bce6cf937">
-                            <div class="card-body">
-                                <h5 ><strong>Failed Test:</strong> Responde 200</h5>
-                            <hr>
-                            <h5 class="card-title text-uppercase text-white text-center bg-danger">Assertion Error Message</h5>
-                            <div>
-                                <pre><code >expected response to have status code 200 but got 400</code></pre>
-                            </div>
-                            </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
+                <div class="alert alert-success text-uppercase text-center">
+                     <br><br><h1 class="text-center">There are no failed tests <span><i class="far fa-thumbs-up"></i></span></h1><br><br>
+                </div>
             </div>
 
             <div class="tab-pane fade" id="pills-skipped" role="tabcard" aria-labelledby="pills-skipped-tab">
@@ -664,7 +637,6 @@ body.theme-light code {
             <button id="topOfRequestsScreen" class="btn btn-outline-success btn-sm backToTop" onclick="topFunction()">Go To Top</button>
 
             <div class="btn-group float-right" role="group" aria-label="Button Group">
-                <button id="showOnlyFailures" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width:160px;">Show Failed Iterations</button>
                 <button id="openAll" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Folders</button>
                 <button id="openAllRequests" class="btn btn-outline-success btn-sm float-right" style="text-align: center; width: 140px;">Expand Requests</button>
             </div>
@@ -679,16 +651,16 @@ body.theme-light code {
     </div>
     <h6 class="text-uppercase text-muted" id="iterationSelected" style="padding-top: 10px;"></h6>
 	<div class="tab-content" id="execution-data">
-            <div id="folder-56277dd6-4229-4edb-bb5c-38e227c37487" class="card-deck iteration-0">
+            <div id="folder-a553f70d-ee85-4c6c-9fde-b229e0af7192" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-56277dd6-4229-4edb-bb5c-38e227c37487" aria-expanded="false" aria-controls="collapse" id="requests-56277dd6-4229-4edb-bb5c-38e227c37487" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192" aria-expanded="false" aria-controls="collapse" id="requests-a553f70d-ee85-4c6c-9fde-b229e0af7192" class="collapsed text-white z-block">
                     Iteration: 1 - 0. Login como Administrador (Daniela) <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-56277dd6-4229-4edb-bb5c-38e227c37487" class="collapse" aria-labelledby="requests-56277dd6-4229-4edb-bb5c-38e227c37487">
+                    <div id="collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192" class="collapse" aria-labelledby="requests-a553f70d-ee85-4c6c-9fde-b229e0af7192">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -697,15 +669,15 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 738ms</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 405B</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 2.2s</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 404B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
@@ -748,7 +720,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">fdcd5c54-e98a-4f9e-b9d5-a959b9533539</td>
+                                                        <td class="text-wrap">37dead0d-85f2-4021-bfe2-8172c29fca00</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -764,7 +736,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Content-Length</td>
-                                                        <td class="text-wrap">96</td>
+                                                        <td class="text-wrap">76</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -782,8 +754,8 @@ body.theme-light code {
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Body</h5>
                                         <div class="dyn-height">
                                             <pre><code id="copyReqText-0" class="prettyPrint">{
-          &quot;correo_electronico&quot;: &quot;danielacastillovargas09@gmail.com&quot;,
-          &quot;contrasena&quot;: &quot;Confirmada#44&quot;
+          &quot;correo_electronico&quot;: &quot;admin@pecuaria.co&quot;,
+          &quot;contrasena&quot;: &quot;Test1234!&quot;
         }</code></pre>
                                         </div>
                                         <div class="card-footer">
@@ -805,8 +777,12 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">405</td>
+                                                    <td class="text-wrap">404</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Type</td>
@@ -814,7 +790,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:48 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:23 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -822,11 +798,11 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Set-Cookie</td>
-                                                    <td class="text-wrap">refresh_token&#x3D;uMdCq78OWytSISViR8K5cT3eoh49MLXsPQCdNooI5uw; HttpOnly; Max-Age&#x3D;604799; Path&#x3D;/; SameSite&#x3D;none; Secure</td>
+                                                    <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA; HttpOnly; Max-Age&#x3D;604798; Path&#x3D;/; SameSite&#x3D;none; Secure</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">5338a930-8af1-4eca-86c7-2affcf8ff43a</td>
+                                                    <td class="text-wrap">a605ad48-39cd-4deb-b194-995ff2f80ab3</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -843,10 +819,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-32846137-6368-47c0-8e8f-476e665ce8ee" class="prettyPrint">{&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MyIsImp0aSI6IjExMDQyIiwicm9sIjoxLCJleHAiOjE3ODgyNjMzODksImlhdCI6MTc4ODIzNDU4OX0.WvxqZ8wLSiZ_nJ-V5M4X0P90WsV1Ct6WuORfP3ZVHrk&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28799,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
+                                                <pre><code id="copyText-ad29901b-d387-49e0-839d-ecf3d82d107e" class="prettyPrint">{&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTI4NjIiLCJyb2wiOjEsImV4cCI6MTc4ODU5ODUyNCwiaWF0IjoxNzg4NTY5NzI0fQ.9Tue5NL5pwjAm18PP9TPR2sAWwwzx7LjEWBJPx_Mx0U&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28798,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-32846137-6368-47c0-8e8f-476e665ce8ee">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-ad29901b-d387-49e0-839d-ecf3d82d107e">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -905,16 +881,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-6fd74826-08ce-4633-9532-e17bbd75942c" class="card-deck iteration-0">
+            <div id="folder-69f6c637-5dd2-4e56-9393-955c11bb7ebc" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
-                    <div class="card-header  bg-danger iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-6fd74826-08ce-4633-9532-e17bbd75942c" aria-expanded="false" aria-controls="collapse" id="requests-6fd74826-08ce-4633-9532-e17bbd75942c" class="collapsed text-white z-block">
+                    <div class="card-header  bg-success iteration-0">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc" aria-expanded="false" aria-controls="collapse" id="requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc" class="collapsed text-white z-block">
                     Iteration: 1 - 1. Admin: marcar cuenta objetivo como ELIMINADO <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-6fd74826-08ce-4633-9532-e17bbd75942c" class="collapse" aria-labelledby="requests-6fd74826-08ce-4633-9532-e17bbd75942c">
+                    <div id="collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc" class="collapse" aria-labelledby="requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -923,21 +899,21 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/gestionar" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/gestionar</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/gestionar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/gestionar</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 400 - Bad Request</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 108ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 138ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 182B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
                                         <div class="progress" style="height: 40px;">
-                                            <div class="progress-bar  bg-danger" style="width: 100%" role="progressbar">
-                                            <h5 style="padding-top:5px;"><strong>0 %</strong></h5>
+                                            <div class="progress-bar  bg-success" style="width: 100%" role="progressbar">
+                                            <h5 style="padding-top:5px;"><strong>100 %</strong></h5>
                                             </div>
                                         </div>
                                     </div>
@@ -962,7 +938,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MyIsImp0aSI6IjExMDQyIiwicm9sIjoxLCJleHAiOjE3ODgyNjMzODksImlhdCI6MTc4ODIzNDU4OX0.WvxqZ8wLSiZ_nJ-V5M4X0P90WsV1Ct6WuORfP3ZVHrk</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTI4NjIiLCJyb2wiOjEsImV4cCI6MTc4ODU5ODUyNCwiaWF0IjoxNzg4NTY5NzI0fQ.9Tue5NL5pwjAm18PP9TPR2sAWwwzx7LjEWBJPx_Mx0U</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -978,7 +954,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">9beb0b31-a6d1-48c2-b19d-4bf4dcf641bf</td>
+                                                        <td class="text-wrap">bbf48a01-2b38-4557-a6fb-ff2d684bfb95</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -995,6 +971,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Content-Length</td>
                                                         <td class="text-wrap">108</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1035,6 +1015,10 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
                                                     <td class="text-wrap">182</td>
                                                 </tr>
@@ -1044,7 +1028,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:48 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:24 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1052,7 +1036,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">228073e2-6c6d-411d-a5c4-e429159a077b</td>
+                                                    <td class="text-wrap">746ada0f-b681-485e-ae36-40b192dda56f</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1069,10 +1053,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-2a6a6c43-de55-4605-b9c4-67f51a26181b" class="prettyPrint">{&quot;error_code&quot;:&quot;ESTADO_SIN_CAMBIO&quot;,&quot;message&quot;:&quot;Inconsistencia de estado. La cuenta ya se encuentra en el estado solicitado.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-09-01T03:49:49.535698+00:00&quot;}</code></pre>
+                                                <pre><code id="copyText-cbce6c7a-68ea-4838-8105-64a5bba52d16" class="prettyPrint">{&quot;error_code&quot;:&quot;ESTADO_SIN_CAMBIO&quot;,&quot;message&quot;:&quot;Inconsistencia de estado. La cuenta ya se encuentra en el estado solicitado.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-09-05T00:55:25.985293+00:00&quot;}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-2a6a6c43-de55-4605-b9c4-67f51a26181b">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-cbce6c7a-68ea-4838-8105-64a5bba52d16">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1088,23 +1072,23 @@ body.theme-light code {
                                         <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
                                             <tbody>
                                                 <tr >
-                                                    <td >Responde 200</td>
+                                                    <td >Responde 200, o ya estaba Eliminada de una corrida anterior (400 ESTADO_SIN_CAMBIO)</td>
+                                                    <td class="text-center bg-success">1</td>
                                                     <td class="text-center ">0</td>
-                                                    <td class="text-center bg-danger">1</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
                                             </tbody>
                                             <tfoot>
                                                 <tr class="bg-light">
                                                     <td><strong>Total</strong></td>
-                                                    <td class="text-center">0</td>
                                                     <td class="text-center">1</td>
+                                                    <td class="text-center">0</td>
                                                     <td class="text-center">0</td>
                                                 </tr>
                                             </tfoot>
                                         </table>
                                     </div>
-                                    <div class="row ">
+                                    <div class="row d-none">
                                     <div class="col-sm-12 mb-3">
                                         <div class="card-deck">
                                         <div class="card border-danger" style="width: 50rem;">
@@ -1114,10 +1098,6 @@ body.theme-light code {
                                                     <table class="table table-hover">
                                                     <thead><tr class="text-nowrap"><th>Test Name</th><th>Assertion Error</th></tr></thead>
                                                         <tbody>
-                                                            <tr>
-                                                                <td class="w-45 text-nowrap ">Responde 200</td>
-                                                                <td class="w-55"><pre><code >expected response to have status code 200 but got 400</code></pre></td>
-                                                            </tr>
                                                         </tbody>
                                                     </table>
                                                 </div>
@@ -1135,16 +1115,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-21f6d0b0-550a-4d9f-b287-39d53db4f3a7" class="card-deck iteration-0">
+            <div id="folder-4b6304f3-c494-43d2-a271-e557e930129b" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7" aria-expanded="false" aria-controls="collapse" id="requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-4b6304f3-c494-43d2-a271-e557e930129b" aria-expanded="false" aria-controls="collapse" id="requests-4b6304f3-c494-43d2-a271-e557e930129b" class="collapsed text-white z-block">
                     Iteration: 1 - 2. Confirmar estado_cuenta &#x3D; Eliminado <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7" class="collapse" aria-labelledby="requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7">
+                    <div id="collapse-4b6304f3-c494-43d2-a271-e557e930129b" class="collapse" aria-labelledby="requests-4b6304f3-c494-43d2-a271-e557e930129b">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1153,14 +1133,14 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/detalle" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/detalle</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/detalle" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/67/detalle</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 191ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 124ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 312B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -1188,7 +1168,7 @@ body.theme-light code {
                                                 <tbody>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MyIsImp0aSI6IjExMDQyIiwicm9sIjoxLCJleHAiOjE3ODgyNjMzODksImlhdCI6MTc4ODIzNDU4OX0.WvxqZ8wLSiZ_nJ-V5M4X0P90WsV1Ct6WuORfP3ZVHrk</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTI4NjIiLCJyb2wiOjEsImV4cCI6MTc4ODU5ODUyNCwiaWF0IjoxNzg4NTY5NzI0fQ.9Tue5NL5pwjAm18PP9TPR2sAWwwzx7LjEWBJPx_Mx0U</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -1204,7 +1184,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">f66a40db-26d6-4b82-baae-e603b5d09a26</td>
+                                                        <td class="text-wrap">b2ad0779-6890-4c7a-a4bf-3de150e1265f</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1217,6 +1197,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Connection</td>
                                                         <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1237,6 +1221,10 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
                                                     <td class="text-wrap">312</td>
                                                 </tr>
@@ -1246,7 +1234,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:49 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:25 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1254,7 +1242,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">311bd105-5157-47a0-b6ba-68af0f87e4cd</td>
+                                                    <td class="text-wrap">aabf0d22-c260-44ae-8170-a9de4304eefa</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1271,10 +1259,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-a9d9a88e-1845-43b9-89e3-767fb65cc073" class="prettyPrint">{&quot;id_usuario&quot;:67,&quot;nombre&quot;:&quot;DANIELA&quot;,&quot;apellidos&quot;:&quot;VARGAS&quot;,&quot;correo_electronico&quot;:&quot;u20222208793@usco.edu.co&quot;,&quot;tipo_identificacion&quot;:&quot;CC&quot;,&quot;numero_identificacion&quot;:&quot;1077225314&quot;,&quot;fecha_nacimiento&quot;:&quot;2000-02-15&quot;,&quot;fecha_registro&quot;:&quot;2026-09-01T03:43:30.494471&quot;,&quot;nombre_rol&quot;:&quot;Productor&quot;,&quot;estado_cuenta&quot;:&quot;Eliminado&quot;,&quot;version&quot;:1}</code></pre>
+                                                <pre><code id="copyText-10f0a7e3-8a68-4719-9223-6282077988b2" class="prettyPrint">{&quot;id_usuario&quot;:67,&quot;nombre&quot;:&quot;DANIELA&quot;,&quot;apellidos&quot;:&quot;VARGAS&quot;,&quot;correo_electronico&quot;:&quot;u20222208793@usco.edu.co&quot;,&quot;tipo_identificacion&quot;:&quot;CC&quot;,&quot;numero_identificacion&quot;:&quot;1077225314&quot;,&quot;fecha_nacimiento&quot;:&quot;2000-02-15&quot;,&quot;fecha_registro&quot;:&quot;2026-09-01T03:43:30.494471&quot;,&quot;nombre_rol&quot;:&quot;Productor&quot;,&quot;estado_cuenta&quot;:&quot;Eliminado&quot;,&quot;version&quot;:1}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-a9d9a88e-1845-43b9-89e3-767fb65cc073">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-10f0a7e3-8a68-4719-9223-6282077988b2">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1339,16 +1327,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-5c4ab1d8-9194-448e-9f89-c87ba148a57b" class="card-deck iteration-0">
+            <div id="folder-11312244-8b5a-41ae-9e9e-fb4e92be7160" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b" aria-expanded="false" aria-controls="collapse" id="requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160" aria-expanded="false" aria-controls="collapse" id="requests-11312244-8b5a-41ae-9e9e-fb4e92be7160" class="collapsed text-white z-block">
                     Iteration: 1 - 3. Baseline de auditoria antes de solicitar recuperacion <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b" class="collapse" aria-labelledby="requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b">
+                    <div id="collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160" class="collapse" aria-labelledby="requests-11312244-8b5a-41ae-9e9e-fb4e92be7160">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1357,15 +1345,15 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 409ms</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 14.11KB</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 151ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 9.58KB</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
@@ -1392,7 +1380,7 @@ body.theme-light code {
                                                 <tbody>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MyIsImp0aSI6IjExMDQyIiwicm9sIjoxLCJleHAiOjE3ODgyNjMzODksImlhdCI6MTc4ODIzNDU4OX0.WvxqZ8wLSiZ_nJ-V5M4X0P90WsV1Ct6WuORfP3ZVHrk</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTI4NjIiLCJyb2wiOjEsImV4cCI6MTc4ODU5ODUyNCwiaWF0IjoxNzg4NTY5NzI0fQ.9Tue5NL5pwjAm18PP9TPR2sAWwwzx7LjEWBJPx_Mx0U</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -1408,7 +1396,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">49cf31e7-3df2-4a96-bc96-0629436e402b</td>
+                                                        <td class="text-wrap">189d05eb-521c-490c-a9fc-5ef44cfb77f2</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1421,6 +1409,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Connection</td>
                                                         <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1441,8 +1433,12 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">14452</td>
+                                                    <td class="text-wrap">9806</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Type</td>
@@ -1450,7 +1446,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:49 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:25 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1458,7 +1454,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">0e0d4c63-9528-4a32-9369-f3ec377246e5</td>
+                                                    <td class="text-wrap">af2cc957-9e69-4a02-82d3-147a49eb0877</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1475,10 +1471,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-f60c4f3f-cba1-4fa3-9a55-7b453be0a7fd" class="prettyPrint">{&quot;total&quot;:2038,&quot;pagina&quot;:1,&quot;tamano&quot;:20,&quot;items&quot;:[{&quot;id_evento&quot;:2047,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:49:49.749525Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:659,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2046,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:49:49.271817Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:659,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2045,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-01T03:47:01.717672Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;total_resultados&quot;:2035},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:658,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2044,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:47:00.487281Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:658,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2043,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.864855Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2042,&quot;tipo_evento&quot;:10,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.679878Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;eliminar&quot;,&quot;motivo&quot;:&quot;TC-M01-045 - verificar que no se genere token de recuperacion para cuenta ELIMINADA&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;estado_nuevo&quot;:5,&quot;estado_anterior&quot;:2,&quot;id_usuario_afectado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CAMBIO_ESTADO_CUENTA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2041,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.523200Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2040,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:27.257485Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:656,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2039,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:26.859794Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:655,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2038,&quot;tipo_evento&quot;:2,&quot;fecha_evento&quot;:&quot;2026-09-01T03:43:58.185727Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;activacion_cuenta&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;estado_nuevo&quot;:2,&quot;estado_anterior&quot;:1,&quot;id_cuenta_usuario&quot;:47},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;ACTIVACION_CUENTA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2037,&quot;tipo_evento&quot;:1,&quot;fecha_evento&quot;:&quot;2026-09-01T03:43:30.500788Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;registro_usuario&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;estado_cuenta&quot;:&quot;PENDIENTE&quot;,&quot;id_rol_asignado&quot;:2,&quot;id_usuario_creado&quot;:67},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;REGISTRO_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2036,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:41:13.436303Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:45},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:654,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2035,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:41:11.891640Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:654,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2034,&quot;tipo_evento&quot;:1,&quot;fecha_evento&quot;:&quot;2026-09-01T03:35:19.331229Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.71.177&quot;,&quot;accion&quot;:&quot;registro_usuario&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36&quot;,&quot;estado_cuenta&quot;:&quot;PENDIENTE&quot;,&quot;id_rol_asignado&quot;:2,&quot;id_usuario_creado&quot;:65},&quot;id_usuario&quot;:65,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;Juan Manuel Gómez Méndez&quot;,&quot;direccion_ip&quot;:&quot;181.59.71.177&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;REGISTRO_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2033,&quot;tipo_evento&quot;:12,&quot;fecha_evento&quot;:&quot;2026-09-01T03:31:10.871831Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;nombre_rol_nuevo&quot;:&quot;dasdasdasdasdas&quot;,&quot;descripcion_nueva&quot;:null},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;MODIFICACION_ROL&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2032,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:31:01.171746Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:1,&quot;id_recurso&quot;:1,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2031,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:58.387002Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:3,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2030,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:57.923365Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:2,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2029,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:57.165536Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:1,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2028,&quot;tipo_evento&quot;:15,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:53.836870Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:1,&quot;id_permiso&quot;:381,&quot;id_recurso&quot;:1,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;REVOCACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;}],&quot;mensaje&quot;:null}</code></pre>
+                                                <pre><code id="copyText-e2f0aec2-76c7-415b-a731-46e7f92ad232" class="prettyPrint">{&quot;total&quot;:4425,&quot;pagina&quot;:1,&quot;tamano&quot;:20,&quot;items&quot;:[{&quot;id_evento&quot;:4479,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-05T00:55:26.130496Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1524,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4478,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:55:24.371858Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1524,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4477,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:47.590673Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:4422},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1523,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4476,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:47.067832Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1523,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4475,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:24.956233Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:4420},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4474,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:24.426617Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4473,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:22.815517Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4472,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:12.769102Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:2,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1521,&quot;nombre_usuario&quot;:&quot;Laura Gómez Torres&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4471,&quot;tipo_evento&quot;:17,&quot;fecha_evento&quot;:&quot;2026-09-05T00:52:49.788990Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;correo&quot;:&quot;sgpmp-test.com&quot;,&quot;id_rol&quot;:null,&quot;nombre&quot;:null,&quot;id_estado&quot;:null,&quot;estado_cuenta&quot;:null,&quot;actualizado_desde&quot;:null},&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:18},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1520,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_LISTA_USUARIOS&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4470,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:52:48.487293Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1520,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4469,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:39.456537Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1519,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4468,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:37.595149Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:2,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1518,&quot;nombre_usuario&quot;:&quot;Laura Gómez Torres&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4467,&quot;tipo_evento&quot;:17,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:36.256782Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;correo&quot;:&quot;danielacastillovargas09@gmail.com&quot;,&quot;id_rol&quot;:null,&quot;nombre&quot;:null,&quot;id_estado&quot;:null,&quot;estado_cuenta&quot;:null,&quot;actualizado_desde&quot;:null},&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:1},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1516,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_LISTA_USUARIOS&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4466,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:35.629161Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:3,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1517,&quot;nombre_usuario&quot;:&quot;Juan Carlos Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4465,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:34.382453Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1516,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4464,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:32.401527Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:10,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1515,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4463,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:29.663622Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:11,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1514,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4462,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:26.406896Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:19,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1513,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4461,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:24.541402Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:22,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1512,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4460,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:22.630788Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:24,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1511,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;}],&quot;mensaje&quot;:null}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-f60c4f3f-cba1-4fa3-9a55-7b453be0a7fd">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-e2f0aec2-76c7-415b-a731-46e7f92ad232">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1537,16 +1533,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-98839fb7-7a87-4dd4-a714-d527c0a79252" class="card-deck iteration-0">
+            <div id="folder-2a750bfb-ee4a-469f-b7db-2195a7490bbd" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-98839fb7-7a87-4dd4-a714-d527c0a79252" aria-expanded="false" aria-controls="collapse" id="requests-98839fb7-7a87-4dd4-a714-d527c0a79252" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd" aria-expanded="false" aria-controls="collapse" id="requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd" class="collapsed text-white z-block">
                     Iteration: 1 - 4. Solicitar recuperacion de contrasena sobre la cuenta ELIMINADA <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-98839fb7-7a87-4dd4-a714-d527c0a79252" class="collapse" aria-labelledby="requests-98839fb7-7a87-4dd4-a714-d527c0a79252">
+                    <div id="collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd" class="collapse" aria-labelledby="requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1555,14 +1551,14 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 202 - Accepted</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 134ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 222ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 116B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -1606,7 +1602,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">37d053df-e17a-4bff-a942-f2d795280449</td>
+                                                        <td class="text-wrap">70aabb9e-5ccf-47b3-8396-f2ea4b324b0b</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1623,6 +1619,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Content-Length</td>
                                                         <td class="text-wrap">54</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1662,6 +1662,10 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
                                                     <td class="text-wrap">116</td>
                                                 </tr>
@@ -1671,7 +1675,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:49 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:25 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1679,7 +1683,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">d5e732f0-2f31-45b2-978a-61fa51296da2</td>
+                                                    <td class="text-wrap">9861e30b-efa7-40ec-8b48-e945304e49e0</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1696,10 +1700,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-66e6c0b8-21d7-4f63-8606-da11af292eb1" class="prettyPrint">{&quot;message&quot;:&quot;Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña en unos minutos.&quot;}</code></pre>
+                                                <pre><code id="copyText-b377e6e5-926b-430a-a7bb-c1a84925957d" class="prettyPrint">{&quot;message&quot;:&quot;Si el correo está registrado, recibirás instrucciones para recuperar tu contraseña en unos minutos.&quot;}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-66e6c0b8-21d7-4f63-8606-da11af292eb1">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-b377e6e5-926b-430a-a7bb-c1a84925957d">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1758,16 +1762,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-7b99229a-d65b-44ab-ab66-ae0329441cfa" class="card-deck iteration-0">
+            <div id="folder-483891ab-2503-4ec6-a0dc-f45a798bb344" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa" aria-expanded="false" aria-controls="collapse" id="requests-7b99229a-d65b-44ab-ab66-ae0329441cfa" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-483891ab-2503-4ec6-a0dc-f45a798bb344" aria-expanded="false" aria-controls="collapse" id="requests-483891ab-2503-4ec6-a0dc-f45a798bb344" class="collapsed text-white z-block">
                     Iteration: 1 - 5. Verificar en auditoria que NO se proceso una recuperacion real <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa" class="collapse" aria-labelledby="requests-7b99229a-d65b-44ab-ab66-ae0329441cfa">
+                    <div id="collapse-483891ab-2503-4ec6-a0dc-f45a798bb344" class="collapse" aria-labelledby="requests-483891ab-2503-4ec6-a0dc-f45a798bb344">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1776,15 +1780,15 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/auditoria/?pagina&#x3D;1&amp;tamano&#x3D;20</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 225ms</span><br>
-                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 14KB</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 144ms</span><br>
+                                    <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 9.73KB</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
                                     <div>
@@ -1811,7 +1815,7 @@ body.theme-light code {
                                                 <tbody>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1MyIsImp0aSI6IjExMDQyIiwicm9sIjoxLCJleHAiOjE3ODgyNjMzODksImlhdCI6MTc4ODIzNDU4OX0.WvxqZ8wLSiZ_nJ-V5M4X0P90WsV1Ct6WuORfP3ZVHrk</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTI4NjIiLCJyb2wiOjEsImV4cCI6MTc4ODU5ODUyNCwiaWF0IjoxNzg4NTY5NzI0fQ.9Tue5NL5pwjAm18PP9TPR2sAWwwzx7LjEWBJPx_Mx0U</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -1827,7 +1831,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">1bc7d434-596d-4799-9f1e-49ab539f257c</td>
+                                                        <td class="text-wrap">1fd51c00-3b30-486a-9832-3a22011ecf6b</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1840,6 +1844,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Connection</td>
                                                         <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1860,8 +1868,12 @@ body.theme-light code {
                                         <thead class="thead-light text-center"><tr><th>Header Name</th><th>Header Value</th></tr></thead>
                                             <tbody>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
-                                                    <td class="text-wrap">14336</td>
+                                                    <td class="text-wrap">9960</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Content-Type</td>
@@ -1869,7 +1881,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:50 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:25 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1877,7 +1889,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">f57f88c7-be81-4e47-8567-ca71112280bc</td>
+                                                    <td class="text-wrap">ba512ab6-edd4-4290-886d-9664b21722cb</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1894,10 +1906,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-75a218fa-24ed-407b-ae2b-fa6a44d2fa29" class="prettyPrint">{&quot;total&quot;:2039,&quot;pagina&quot;:1,&quot;tamano&quot;:20,&quot;items&quot;:[{&quot;id_evento&quot;:2048,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-01T03:49:50.014547Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;total_resultados&quot;:2038},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:659,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2047,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:49:49.749525Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:659,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2046,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:49:49.271817Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:659,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2045,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-01T03:47:01.717672Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;total_resultados&quot;:2035},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:658,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2044,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:47:00.487281Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:658,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2043,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.864855Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2042,&quot;tipo_evento&quot;:10,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.679878Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;eliminar&quot;,&quot;motivo&quot;:&quot;TC-M01-045 - verificar que no se genere token de recuperacion para cuenta ELIMINADA&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;estado_nuevo&quot;:5,&quot;estado_anterior&quot;:2,&quot;id_usuario_afectado&quot;:67},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CAMBIO_ESTADO_CUENTA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2041,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:51.523200Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:657,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2040,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:27.257485Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:656,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2039,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:44:26.859794Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:655,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2038,&quot;tipo_evento&quot;:2,&quot;fecha_evento&quot;:&quot;2026-09-01T03:43:58.185727Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;activacion_cuenta&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;estado_nuevo&quot;:2,&quot;estado_anterior&quot;:1,&quot;id_cuenta_usuario&quot;:47},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;ACTIVACION_CUENTA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2037,&quot;tipo_evento&quot;:1,&quot;fecha_evento&quot;:&quot;2026-09-01T03:43:30.500788Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;accion&quot;:&quot;registro_usuario&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;estado_cuenta&quot;:&quot;PENDIENTE&quot;,&quot;id_rol_asignado&quot;:2,&quot;id_usuario_creado&quot;:67},&quot;id_usuario&quot;:67,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;DANIELA VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;REGISTRO_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2036,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-01T03:41:13.436303Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:45},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:654,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;200.118.145.54&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2035,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-01T03:41:11.891640Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:53,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:654,&quot;nombre_usuario&quot;:&quot;DANIELA CASTILLO VARGAS&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.0 Chrome/148.0.7778.280 Safari/537.36 MSIX&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2034,&quot;tipo_evento&quot;:1,&quot;fecha_evento&quot;:&quot;2026-09-01T03:35:19.331229Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.71.177&quot;,&quot;accion&quot;:&quot;registro_usuario&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36&quot;,&quot;estado_cuenta&quot;:&quot;PENDIENTE&quot;,&quot;id_rol_asignado&quot;:2,&quot;id_usuario_creado&quot;:65},&quot;id_usuario&quot;:65,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:null,&quot;nombre_usuario&quot;:&quot;Juan Manuel Gómez Méndez&quot;,&quot;direccion_ip&quot;:&quot;181.59.71.177&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36&quot;,&quot;descripcion&quot;:&quot;REGISTRO_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2033,&quot;tipo_evento&quot;:12,&quot;fecha_evento&quot;:&quot;2026-09-01T03:31:10.871831Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;nombre_rol_nuevo&quot;:&quot;dasdasdasdasdas&quot;,&quot;descripcion_nueva&quot;:null},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;MODIFICACION_ROL&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2032,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:31:01.171746Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:1,&quot;id_recurso&quot;:1,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2031,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:58.387002Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:3,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2030,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:57.923365Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:2,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:2029,&quot;tipo_evento&quot;:14,&quot;fecha_evento&quot;:&quot;2026-09-01T03:30:57.165536Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;209.14.115.213&quot;,&quot;id_rol&quot;:29,&quot;id_accion&quot;:2,&quot;id_recurso&quot;:1,&quot;nombre_rol&quot;:&quot;dasdasdasdasdas&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;},&quot;id_usuario&quot;:50,&quot;categoria&quot;:&quot;MODIFICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:652,&quot;nombre_usuario&quot;:&quot;Admin Playwright&quot;,&quot;direccion_ip&quot;:&quot;209.14.115.213&quot;,&quot;user_agent&quot;:&quot;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36 OPR/134.0.0.0&quot;,&quot;descripcion&quot;:&quot;ASIGNACION_PERMISO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;}],&quot;mensaje&quot;:null}</code></pre>
+                                                <pre><code id="copyText-f9d8c2de-62b3-41e4-b492-50e1eb1921dd" class="prettyPrint">{&quot;total&quot;:4426,&quot;pagina&quot;:1,&quot;tamano&quot;:20,&quot;items&quot;:[{&quot;id_evento&quot;:4480,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-05T00:55:26.297084Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;total_resultados&quot;:4425},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1524,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4479,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-05T00:55:26.130496Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1524,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4478,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:55:24.371858Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1524,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;PostmanRuntime/7.39.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4477,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:47.590673Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:4422},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1523,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4476,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:47.067832Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1523,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4475,&quot;tipo_evento&quot;:16,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:24.956233Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;categoria&quot;:null,&quot;id_usuario&quot;:null,&quot;fecha_desde&quot;:null,&quot;fecha_hasta&quot;:null,&quot;tipo_evento&quot;:null},&quot;archivados&quot;:false,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:4420},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_AUDITORIA&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4474,&quot;tipo_evento&quot;:18,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:24.426617Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;tiene_id_completo&quot;:true,&quot;id_usuario_consultado&quot;:67},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_DETALLE_USUARIO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4473,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:22.815517Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1522,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4472,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:53:12.769102Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:2,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1521,&quot;nombre_usuario&quot;:&quot;Laura Gómez Torres&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4471,&quot;tipo_evento&quot;:17,&quot;fecha_evento&quot;:&quot;2026-09-05T00:52:49.788990Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;correo&quot;:&quot;sgpmp-test.com&quot;,&quot;id_rol&quot;:null,&quot;nombre&quot;:null,&quot;id_estado&quot;:null,&quot;estado_cuenta&quot;:null,&quot;actualizado_desde&quot;:null},&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:18},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1520,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_LISTA_USUARIOS&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4470,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:52:48.487293Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1520,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4469,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:39.456537Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1519,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4468,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:37.595149Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:2,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1518,&quot;nombre_usuario&quot;:&quot;Laura Gómez Torres&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4467,&quot;tipo_evento&quot;:17,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:36.256782Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;181.59.67.25&quot;,&quot;filtros&quot;:{&quot;correo&quot;:&quot;danielacastillovargas09@gmail.com&quot;,&quot;id_rol&quot;:null,&quot;nombre&quot;:null,&quot;id_estado&quot;:null,&quot;estado_cuenta&quot;:null,&quot;actualizado_desde&quot;:null},&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;total_resultados&quot;:1},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;CONSULTA&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1516,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;181.59.67.25&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;CONSULTA_LISTA_USUARIOS&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4466,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:35.629161Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:3,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1517,&quot;nombre_usuario&quot;:&quot;Juan Carlos Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4465,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:34.382453Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;sesion_previa_cerrada&quot;:true},&quot;id_usuario&quot;:1,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1516,&quot;nombre_usuario&quot;:&quot;Carlos Rodríguez Pérez&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;curl/8.9.1&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4464,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:32.401527Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:10,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1515,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4463,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:29.663622Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:11,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1514,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4462,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:26.406896Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:19,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1513,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;},{&quot;id_evento&quot;:4461,&quot;tipo_evento&quot;:3,&quot;fecha_evento&quot;:&quot;2026-09-05T00:49:24.541402Z&quot;,&quot;modulo&quot;:&quot;MODULO1&quot;,&quot;resultado&quot;:&quot;exitoso&quot;,&quot;detalle&quot;:{&quot;ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;sesion_previa_cerrada&quot;:false},&quot;id_usuario&quot;:22,&quot;categoria&quot;:&quot;AUTENTICACION&quot;,&quot;estado&quot;:&quot;PROCESADO&quot;,&quot;id_sesion&quot;:1512,&quot;nombre_usuario&quot;:&quot;Juan Pérez García&quot;,&quot;direccion_ip&quot;:&quot;10.0.1.113&quot;,&quot;user_agent&quot;:&quot;unknown&quot;,&quot;descripcion&quot;:&quot;LOGIN_EXITOSO&quot;,&quot;integridad_ok&quot;:true,&quot;integridad&quot;:&quot;INTEGRO&quot;}],&quot;mensaje&quot;:null}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-75a218fa-24ed-407b-ae2b-fa6a44d2fa29">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-f9d8c2de-62b3-41e4-b492-50e1eb1921dd">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1962,16 +1974,16 @@ body.theme-light code {
                 </div>
             </div>
             </div>
-            <div id="folder-0d77b0fc-8119-4d8c-92c5-09180b03a0c6" class="card-deck iteration-0">
+            <div id="folder-375078b3-3f20-45ac-80f4-ea3265f9a9b0" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6" aria-expanded="false" aria-controls="collapse" id="requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0" aria-expanded="false" aria-controls="collapse" id="requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0" class="collapsed text-white z-block">
                     Iteration: 1 - 6. (Manual) Confirmar en la bandeja real que NO llego correo de recuperacion <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6" class="collapse" aria-labelledby="requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6">
+                    <div id="collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0" class="collapse" aria-labelledby="requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1980,14 +1992,14 @@ body.theme-light code {
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 405 - Method Not Allowed</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 131ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 193ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 31B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -2027,7 +2039,7 @@ body.theme-light code {
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">197dd9b2-84ae-461c-a9a8-782d58367781</td>
+                                                        <td class="text-wrap">f9a5e62d-d759-4224-bb45-78ccff302cb2</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -2040,6 +2052,10 @@ body.theme-light code {
                                                     <tr>
                                                         <td class="text-nowrap">Connection</td>
                                                         <td class="text-wrap">keep-alive</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="text-nowrap">Cookie</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;gApIGo__XRWl6cvbBWNDuwTucOxvlCprIa-KjjjOprA</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -2064,6 +2080,10 @@ body.theme-light code {
                                                     <td class="text-wrap">POST</td>
                                                 </tr>
                                                 <tr>
+                                                    <td class="text-nowrap">Alt-Svc</td>
+                                                    <td class="text-wrap">h3&#x3D;&quot;:443&quot;; ma&#x3D;2592000</td>
+                                                </tr>
+                                                <tr>
                                                     <td class="text-nowrap">Content-Length</td>
                                                     <td class="text-wrap">31</td>
                                                 </tr>
@@ -2073,7 +2093,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Tue, 01 Sep 2026 03:49:50 GMT</td>
+                                                    <td class="text-wrap">Sat, 05 Sep 2026 00:55:25 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -2081,7 +2101,7 @@ body.theme-light code {
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">d983e5c3-df0c-4ad2-b40a-c130e595e643</td>
+                                                    <td class="text-wrap">11ba38c9-5bd5-4415-9e4c-aa6cd26c51c8</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -2098,10 +2118,10 @@ body.theme-light code {
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-7b7db796-c24b-438c-826f-2049630f9619" class="prettyPrint">{&quot;detail&quot;:&quot;Method Not Allowed&quot;}</code></pre>
+                                                <pre><code id="copyText-04c62676-c2be-48da-ac46-8456315a12df" class="prettyPrint">{&quot;detail&quot;:&quot;Method Not Allowed&quot;}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-7b7db796-c24b-438c-826f-2049630f9619">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-04c62676-c2be-48da-ac46-8456315a12df">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -2226,13 +2246,13 @@ $('#openAll').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#folder-7b670754-2f44-4dd4-8b8b-21641b5976c1-iteration-0').removeClass('collapsed')
-            $('#folder-collapse-7b670754-2f44-4dd4-8b8b-21641b5976c1-iteration-0').addClass('show')
+            $('#folder-33dcac9a-493d-4272-9856-6c25ee99c611-iteration-0').removeClass('collapsed')
+            $('#folder-collapse-33dcac9a-493d-4272-9856-6c25ee99c611-iteration-0').addClass('show')
         $('#openAll').html("Collapse Folders");
         break;
     case 2:
-            $('#folder-7b670754-2f44-4dd4-8b8b-21641b5976c1-iteration-0').addClass('collapsed')
-            $('#folder-collapse-7b670754-2f44-4dd4-8b8b-21641b5976c1-iteration-0').removeClass('show')
+            $('#folder-33dcac9a-493d-4272-9856-6c25ee99c611-iteration-0').addClass('collapsed')
+            $('#folder-collapse-33dcac9a-493d-4272-9856-6c25ee99c611-iteration-0').removeClass('show')
         $('#openAll').html("Expand Folders");
         break;
 }
@@ -2248,65 +2268,65 @@ $('#openAllRequests').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#requests-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('collapsed')
-            $('#collapse-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('collapsed')
-            $('#requests-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('show')
-            $('#collapse-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('show')
-            $('#requests-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('collapsed')
-            $('#collapse-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('collapsed')
-            $('#requests-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('show')
-            $('#collapse-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('show')
-            $('#requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('collapsed')
-            $('#collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('collapsed')
-            $('#requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('show')
-            $('#collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('show')
-            $('#requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('collapsed')
-            $('#collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('collapsed')
-            $('#requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('show')
-            $('#collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('show')
-            $('#requests-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('collapsed')
-            $('#collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('collapsed')
-            $('#requests-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('show')
-            $('#collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('show')
-            $('#requests-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('collapsed')
-            $('#collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('collapsed')
-            $('#requests-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('show')
-            $('#collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('show')
-            $('#requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('collapsed')
-            $('#collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('collapsed')
-            $('#requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('show')
-            $('#collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('show')
+            $('#requests-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('collapsed')
+            $('#collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('collapsed')
+            $('#requests-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('show')
+            $('#collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('show')
+            $('#requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('collapsed')
+            $('#collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('collapsed')
+            $('#requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('show')
+            $('#collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('show')
+            $('#requests-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('collapsed')
+            $('#collapse-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('collapsed')
+            $('#requests-4b6304f3-c494-43d2-a271-e557e930129b').addClass('show')
+            $('#collapse-4b6304f3-c494-43d2-a271-e557e930129b').addClass('show')
+            $('#requests-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('collapsed')
+            $('#collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('collapsed')
+            $('#requests-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('show')
+            $('#collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('show')
+            $('#requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('collapsed')
+            $('#collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('collapsed')
+            $('#requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('show')
+            $('#collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('show')
+            $('#requests-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('collapsed')
+            $('#collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('collapsed')
+            $('#requests-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('show')
+            $('#collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('show')
+            $('#requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('collapsed')
+            $('#collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('collapsed')
+            $('#requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('show')
+            $('#collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('show')
         $('#openAllRequests').html("Collapse Requests");
         break;
     case 2:
-            $('#requests-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('collapsed')
-            $('#collapse-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('collapsed')
-            $('#requests-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('show')
-            $('#collapse-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('show')
-            $('#requests-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('collapsed')
-            $('#collapse-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('collapsed')
-            $('#requests-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('show')
-            $('#collapse-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('show')
-            $('#requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('collapsed')
-            $('#collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('collapsed')
-            $('#requests-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('show')
-            $('#collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('show')
-            $('#requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('collapsed')
-            $('#collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('collapsed')
-            $('#requests-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('show')
-            $('#collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('show')
-            $('#requests-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('collapsed')
-            $('#collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('collapsed')
-            $('#requests-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('show')
-            $('#collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('show')
-            $('#requests-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('collapsed')
-            $('#collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('collapsed')
-            $('#requests-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('show')
-            $('#collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('show')
-            $('#requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('collapsed')
-            $('#collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('collapsed')
-            $('#requests-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('show')
-            $('#collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('show')
+            $('#requests-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('collapsed')
+            $('#collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('collapsed')
+            $('#requests-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('show')
+            $('#collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('show')
+            $('#requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('collapsed')
+            $('#collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('collapsed')
+            $('#requests-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('show')
+            $('#collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('show')
+            $('#requests-4b6304f3-c494-43d2-a271-e557e930129b').addClass('collapsed')
+            $('#collapse-4b6304f3-c494-43d2-a271-e557e930129b').addClass('collapsed')
+            $('#requests-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('show')
+            $('#collapse-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('show')
+            $('#requests-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('collapsed')
+            $('#collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('collapsed')
+            $('#requests-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('show')
+            $('#collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('show')
+            $('#requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('collapsed')
+            $('#collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('collapsed')
+            $('#requests-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('show')
+            $('#collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('show')
+            $('#requests-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('collapsed')
+            $('#collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('collapsed')
+            $('#requests-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('show')
+            $('#collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('show')
+            $('#requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('collapsed')
+            $('#collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('collapsed')
+            $('#requests-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('show')
+            $('#collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('show')
         $('#openAllRequests').html("Expand Requests");
         break;
 }
@@ -2322,65 +2342,65 @@ $('#openAllSkipped').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#skipped-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('collapsed')
-            $('#skipped-collapse-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('collapsed')
-            $('#skipped-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('show')
-            $('#skipped-collapse-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('show')
-            $('#skipped-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('collapsed')
-            $('#skipped-collapse-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('collapsed')
-            $('#skipped-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('show')
-            $('#skipped-collapse-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('show')
-            $('#skipped-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('collapsed')
-            $('#skipped-collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('collapsed')
-            $('#skipped-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('show')
-            $('#skipped-collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('show')
-            $('#skipped-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('collapsed')
-            $('#skipped-collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('collapsed')
-            $('#skipped-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('show')
-            $('#skipped-collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('show')
-            $('#skipped-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('collapsed')
-            $('#skipped-collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('collapsed')
-            $('#skipped-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('show')
-            $('#skipped-collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('show')
-            $('#skipped-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('collapsed')
-            $('#skipped-collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('collapsed')
-            $('#skipped-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('show')
-            $('#skipped-collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('show')
-            $('#skipped-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('collapsed')
-            $('#skipped-collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('collapsed')
-            $('#skipped-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('show')
-            $('#skipped-collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('show')
+            $('#skipped-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('collapsed')
+            $('#skipped-collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('collapsed')
+            $('#skipped-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('show')
+            $('#skipped-collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('show')
+            $('#skipped-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('collapsed')
+            $('#skipped-collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('collapsed')
+            $('#skipped-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('show')
+            $('#skipped-collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('show')
+            $('#skipped-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('collapsed')
+            $('#skipped-collapse-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('collapsed')
+            $('#skipped-4b6304f3-c494-43d2-a271-e557e930129b').addClass('show')
+            $('#skipped-collapse-4b6304f3-c494-43d2-a271-e557e930129b').addClass('show')
+            $('#skipped-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('collapsed')
+            $('#skipped-collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('collapsed')
+            $('#skipped-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('show')
+            $('#skipped-collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('show')
+            $('#skipped-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('collapsed')
+            $('#skipped-collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('collapsed')
+            $('#skipped-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('show')
+            $('#skipped-collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('show')
+            $('#skipped-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('collapsed')
+            $('#skipped-collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('collapsed')
+            $('#skipped-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('show')
+            $('#skipped-collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('show')
+            $('#skipped-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('collapsed')
+            $('#skipped-collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('collapsed')
+            $('#skipped-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('show')
+            $('#skipped-collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('show')
         $('#openAllSkipped').html("Collapse All Skipped Tests");
         break;
     case 2:
-            $('#skipped-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('collapsed')
-            $('#skipped-collapse-56277dd6-4229-4edb-bb5c-38e227c37487').addClass('collapsed')
-            $('#skipped-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('show')
-            $('#skipped-collapse-56277dd6-4229-4edb-bb5c-38e227c37487').removeClass('show')
-            $('#skipped-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('collapsed')
-            $('#skipped-collapse-6fd74826-08ce-4633-9532-e17bbd75942c').addClass('collapsed')
-            $('#skipped-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('show')
-            $('#skipped-collapse-6fd74826-08ce-4633-9532-e17bbd75942c').removeClass('show')
-            $('#skipped-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('collapsed')
-            $('#skipped-collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').addClass('collapsed')
-            $('#skipped-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('show')
-            $('#skipped-collapse-21f6d0b0-550a-4d9f-b287-39d53db4f3a7').removeClass('show')
-            $('#skipped-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('collapsed')
-            $('#skipped-collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').addClass('collapsed')
-            $('#skipped-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('show')
-            $('#skipped-collapse-5c4ab1d8-9194-448e-9f89-c87ba148a57b').removeClass('show')
-            $('#skipped-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('collapsed')
-            $('#skipped-collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').addClass('collapsed')
-            $('#skipped-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('show')
-            $('#skipped-collapse-98839fb7-7a87-4dd4-a714-d527c0a79252').removeClass('show')
-            $('#skipped-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('collapsed')
-            $('#skipped-collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').addClass('collapsed')
-            $('#skipped-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('show')
-            $('#skipped-collapse-7b99229a-d65b-44ab-ab66-ae0329441cfa').removeClass('show')
-            $('#skipped-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('collapsed')
-            $('#skipped-collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').addClass('collapsed')
-            $('#skipped-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('show')
-            $('#skipped-collapse-0d77b0fc-8119-4d8c-92c5-09180b03a0c6').removeClass('show')
+            $('#skipped-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('collapsed')
+            $('#skipped-collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').addClass('collapsed')
+            $('#skipped-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('show')
+            $('#skipped-collapse-a553f70d-ee85-4c6c-9fde-b229e0af7192').removeClass('show')
+            $('#skipped-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('collapsed')
+            $('#skipped-collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').addClass('collapsed')
+            $('#skipped-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('show')
+            $('#skipped-collapse-69f6c637-5dd2-4e56-9393-955c11bb7ebc').removeClass('show')
+            $('#skipped-4b6304f3-c494-43d2-a271-e557e930129b').addClass('collapsed')
+            $('#skipped-collapse-4b6304f3-c494-43d2-a271-e557e930129b').addClass('collapsed')
+            $('#skipped-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('show')
+            $('#skipped-collapse-4b6304f3-c494-43d2-a271-e557e930129b').removeClass('show')
+            $('#skipped-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('collapsed')
+            $('#skipped-collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').addClass('collapsed')
+            $('#skipped-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('show')
+            $('#skipped-collapse-11312244-8b5a-41ae-9e9e-fb4e92be7160').removeClass('show')
+            $('#skipped-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('collapsed')
+            $('#skipped-collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').addClass('collapsed')
+            $('#skipped-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('show')
+            $('#skipped-collapse-2a750bfb-ee4a-469f-b7db-2195a7490bbd').removeClass('show')
+            $('#skipped-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('collapsed')
+            $('#skipped-collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').addClass('collapsed')
+            $('#skipped-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('show')
+            $('#skipped-collapse-483891ab-2503-4ec6-a0dc-f45a798bb344').removeClass('show')
+            $('#skipped-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('collapsed')
+            $('#skipped-collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').addClass('collapsed')
+            $('#skipped-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('show')
+            $('#skipped-collapse-375078b3-3f20-45ac-80f4-ea3265f9a9b0').removeClass('show')
         $('#openAllSkipped').html("Expand All Skipped Tests");
         break;
 }
@@ -2398,21 +2418,9 @@ let failedItemContent
 let failedItemHeading
 switch (clickCount){
     case 1:
-            failedItemHeading = $('#fails-86c44c72-1865-4b41-8c9e-635bce6cf937');
-            failedItemContent = $("#fails-collapse-86c44c72-1865-4b41-8c9e-635bce6cf937");
-            failedItemHeading.removeClass('collapsed')
-            failedItemContent.removeClass('collapsed')
-            failedItemHeading.addClass('show')
-            failedItemContent.addClass('show')
         $('#openAllFailed').html("Collapse All Failed Tests");
         break;
     case 2:
-            failedItemHeading = $('#fails-86c44c72-1865-4b41-8c9e-635bce6cf937');
-            failedItemContent = $("#fails-collapse-86c44c72-1865-4b41-8c9e-635bce6cf937");
-            failedItemHeading.removeClass('show')
-            failedItemContent.removeClass('show')
-            failedItemHeading.addClass('collapsed')
-            failedItemContent.addClass('collapsed')
         $('#openAllFailed').html("Expand All Failed Tests");
         break;
 }
@@ -2537,8 +2545,6 @@ function scrollFunction() {
     document.getElementById("openAllRequests").style.display = "none";
 
 
-    document.getElementById("showOnlyFailures").style.display = "none";
-    document.getElementById("openAllFailed").style.display = "none";
   } else {
     document.getElementById("topOfRequestsScreen").style.display = "none";
     document.getElementById("topOfFailuresScreen").style.display = "none";
@@ -2546,8 +2552,6 @@ function scrollFunction() {
     document.getElementById("openAll").style.display = "block";
     document.getElementById("openAllRequests").style.display = "block";
 
-    document.getElementById("showOnlyFailures").style.display = "block";
-    document.getElementById("openAllFailed").style.display = "block";
   }
 }
 
@@ -2610,7 +2614,6 @@ window.onload = function () {
   document.getElementById('iteration-0').click();
   document.getElementById('iterationSelected').innerHTML = `Iteration ${document.getElementById('iteration-0').innerHTML} selected`
 
-    $("#iteration-0").removeClass('itPassed').addClass('itFailed')
 }
 </script>
 

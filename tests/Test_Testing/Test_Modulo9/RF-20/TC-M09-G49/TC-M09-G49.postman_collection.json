@@ -1,0 +1,441 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G49 Validacion de datos al registrar area productiva",
+    "description": "Automatiza TC-M09-97 (finca inexistente/inactiva), TC-M09-98 (superficie <=0 rechazada / >0 aceptada), TC-M09-99 (nombre duplicado dentro de la misma finca) y TC-M09-100 (tipo de area del catalogo). NOTA: TC-M09-98 (mitad de aceptacion), TC-M09-99 y TC-M09-100 dependen de superar la validacion de tipo_area contra modulo9.tipos_area, que en el servidor de test compartido no existe (migracion 2dbb6d44046f no aplicada -- ver tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md). Esos items quedan en la coleccion tal como deberian comportarse (200/201) para servir de regresion en cuanto se aplique la migracion; hoy fallan con 500 por esa causa ya documentada, no por un defecto propio de este caso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_finca_a_desactivar", "value": "" },
+    { "key": "id_finca_activa", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-97a - Rechaza finca_id inexistente (404)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado: finca no existe (404)', function () { pm.response.to.have.status(404); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo FINCA_NO_ENCONTRADA', function () {",
+              "    pm.expect(json.error_code).to.eql('FINCA_NO_ENCONTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inexistente\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 999999\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Registrar y desactivar una finca (para el caso de finca inactiva)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_inactiva', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_a_desactivar', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Inactiva Prueba {{sufijo_inactiva}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Desactivar esa finca",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Queda inactiva', function () { pm.expect(json.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca_a_desactivar}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca_a_desactivar}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-97b - Rechaza finca inactiva (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado: finca inactiva (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo FINCA_INACTIVA', function () {",
+              "    pm.expect(json.error_code).to.eql('FINCA_INACTIVA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inactiva\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_a_desactivar}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 6 - Registrar una finca activa para los casos siguientes",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_activa', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_activa', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Activa Prueba {{sufijo_activa}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-98a - Rechaza superficie en cero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Cero\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"0\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-98b - Rechaza superficie negativa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por validacion (400)', function () { pm.response.to.have.status(400); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo de error de validacion de entrada', function () {",
+              "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Negativa\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"-5\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-98c - Acepta superficie positiva minima (0.01) [BLOQUEADO: ver NOTA_BLOQUEO de TC-M09-G48]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('superficie almacenada tal cual', function () {",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(0.01);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Minima\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"0.01\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-99a - Registrar area base para probar duplicado [BLOQUEADO]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Duplicado Test\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"50.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-99b - Rechaza nombre duplicado en la misma finca, variando mayusculas [BLOQUEADO]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por duplicado (409)', function () { pm.response.to.have.status(409); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"GALPON DUPLICADO TEST\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"60.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-100a - Acepta tipo de area incluido en el catalogo [BLOQUEADO]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('tipo_area reflejado', function () { pm.expect(json.tipo_area).to.eql('estanque'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Valido\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-100b - Rechaza tipo de area no reconocido en el catalogo [BLOQUEADO]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo TIPO_AREA_NO_RECONOCIDO', function () {",
+              "    pm.expect(json.error_code).to.eql('TIPO_AREA_NO_RECONOCIDO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Invalido\",\n  \"tipo_area\": \"TipoQueNoExiste\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "RF-18/RF-23 - TC-M09-G33 Configuracion valida de frecuencia y heartbeat",
+    "description": "Coleccion para TC-M09-G33 (agrupa TC-M09-70): registra un dispositivo IoT de prueba (tipo GENERICO, id_infraestructura=1) y luego lo configura con frecuencia_captura e intervalo_transmision validos (dentro del rango 1-1440 del tipo GENERICO). Se espera 201 en el registro y 200 en la configuracion, con los valores reflejados correctamente en la respuesta.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token_admin', json.token);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Registrar dispositivo IoT de prueba (tipo GENERICO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Paso 2: dispositivo registrado (201)', function () { pm.response.to.have.status(201); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('id_dispositivo_iot', json.id_dispositivo_iot);",
+            "console.log('Dispositivo creado: id_dispositivo_iot=' + json.id_dispositivo_iot);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"serial\": \"TC-M09-G33-{{$timestamp}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G33\",\n  \"id_infraestructura\": 1,\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G33 - Configurar frecuencia y heartbeat con valores validos",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('TC-M09-G33: configuracion aceptada (202, procesamiento asincrono)', function () { pm.response.to.have.status(202); });",
+            "",
+            "const json = pm.response.json();",
+            "console.log('Respuesta completa: ' + JSON.stringify(json));",
+            "",
+            "pm.test('TC-M09-G33: frecuencia_captura almacenada correctamente (30)', function () {",
+            "    pm.expect(json.frecuencia_captura).to.eql(30);",
+            "});",
+            "",
+            "pm.test('TC-M09-G33: intervalo_transmision almacenado correctamente (60)', function () {",
+            "    pm.expect(json.intervalo_transmision).to.eql(60);",
+            "});",
+            "",
+            "pm.test('TC-M09-G33: se genero un id_configuracion_remota', function () {",
+            "    pm.expect(json.id_configuracion_remota).to.be.a('number');",
+            "});",
+            "",
+            "console.log('id_configuracion_remota generado: ' + json.id_configuracion_remota + ', estado: ' + json.estado);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"frecuencia_captura\": 30,\n  \"intervalo_transmision\": 60\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_iot}}/configurar", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo_iot}}", "configurar"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_dispositivo_iot", "value": "" }
+  ]
+}

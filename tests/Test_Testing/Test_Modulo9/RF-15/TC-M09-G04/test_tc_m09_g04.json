@@ -1,0 +1,365 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g04-reglas-desactivacion-especie",
+    "name": "TC-M09-G04 - Reglas de desactivación y uso de una especie (RF-15)",
+    "description": "Caso de prueba autocontenido E2E para RF-15 (Módulo 9): Desactivación y reglas de uso directo sobre Cachama Blanca (id_especie=4).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspecieTest",
+      "value": "4",
+      "type": "string"
+    },
+    {
+      "key": "idPatologiaTest",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Confirmar Cachama Blanca Activa (Paso 1)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 1 - Cachama Blanca (id=4) se encuentra activa (es_activo == true)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    var item = res.items.find(function(e) { return e.id_especie === 4; });",
+              "    pm.expect(item).to.not.be.undefined;",
+              "    pm.expect(item.es_activo).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear Patologia Dependiente Pre-Desactivacion (Paso 2 SC-4 Causalidad)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia Test Cachama GCuatro\",\n  \"descripcion\": \"Patologia de prueba vinculada a Cachama Blanca antes de desactivar\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "patologias"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 2 - Asociación de patología a Cachama Blanca activa (HTTP 201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_especies_patologias).to.be.a('number');",
+              "    pm.expect(res.id_especie).to.eql(4);",
+              "    pm.collectionVariables.set('idPatologiaTest', res.id_especies_patologias);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Desactivar Cachama Blanca (Paso 3 SC-1)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/4/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "4", "desactivar"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 3 - Desactivación lógica de Cachama Blanca (HTTP 200 OK / es_activo == false)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_especie).to.eql(4);",
+              "    pm.expect(res.es_activo).to.be.false;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Verificar Conservación de Patología Previa tras Desactivar (Paso 4 SC-4 Causalidad)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias?id_especie=4",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "patologias"],
+          "query": [
+            {
+              "key": "id_especie",
+              "value": "4"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 4 - Conservación de registros históricos tras desactivar la especie (SC-4)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    var targetId = pm.collectionVariables.get('idPatologiaTest');",
+              "    var found = res.items.find(function(p) { return p.id_especies_patologias === targetId; });",
+              "    pm.expect(found).to.not.be.undefined;",
+              "    pm.expect(found.nombre).to.eql('Patologia Test Cachama GCuatro');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Verificar Exclusión de Cachama Blanca en Selector de Activas (Paso 5 SC-1)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=true",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 5 - Cachama Blanca inactiva excluida de solo_activas=true (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    var found = res.items.find(function(e) { return e.id_especie === 4; });",
+              "    pm.expect(found).to.be.undefined;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Intento de Registrar Patología sobre Cachama Blanca Inactiva (Paso 6 SC-3 Rechazo)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia Rechazada Cachama Inactiva\",\n  \"descripcion\": \"Intento de registro con payload valido sobre especie inactiva\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/patologias",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "patologias"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 6 - Rechazo de uso de especie inactiva en nuevos registros (HTTP 422 ESPECIE_INACTIVA)', function () {",
+              "    pm.response.to.have.status(422);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.error_code).to.eql('ESPECIE_INACTIVA');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Reactivar Cachama Blanca (Paso 7 Reactivación Crítica)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/4/reactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "4", "reactivar"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 7 - Reactivación exitosa de Cachama Blanca (HTTP 200 OK / es_activo == true)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_especie).to.eql(4);",
+              "    pm.expect(res.es_activo).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Confirmar Estado Activo Final de Cachama Blanca (Paso 8)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 8 - Confirmación final: Cachama Blanca (id=4) queda activa (es_activo == true)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    var item = res.items.find(function(e) { return e.id_especie === 4; });",
+              "    pm.expect(item).to.not.be.undefined;",
+              "    pm.expect(item.es_activo).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
