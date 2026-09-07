@@ -44,6 +44,17 @@ def test_samesite_explicito_independiente_de_secure(monkeypatch) -> None:
     assert _leer_politica_cookie() == (False, "lax")
 
 
+def test_samesite_none_sin_secure_se_auto_corrige(monkeypatch) -> None:
+    """SameSite=None exige Secure: los navegadores descartan la cookie si no.
+    Una combinación mal configurada se fuerza a secure=true en vez de emitir
+    una cookie que el navegador tirará a la basura."""
+    monkeypatch.setenv("ENV", "development")
+    monkeypatch.setenv("COOKIE_SECURE", "false")
+    monkeypatch.setenv("COOKIE_SAMESITE", "none")
+
+    assert _leer_politica_cookie() == (True, "none")
+
+
 def test_secure_acepta_valores_positivos_variados(monkeypatch) -> None:
     monkeypatch.delenv("COOKIE_SAMESITE", raising=False)
     for valor in ("1", "true", "yes", "si", "SÍ"):

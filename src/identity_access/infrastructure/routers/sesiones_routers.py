@@ -51,6 +51,10 @@ def _leer_politica_cookie() -> tuple[bool, str]:
     else:
         es_produccion = valor_secure.strip().lower() in {"1", "true", "yes", "si", "sí"}
     samesite = (os.getenv("COOKIE_SAMESITE") or ("none" if es_produccion else "strict")).strip().lower()
+    if samesite == "none" and not es_produccion:
+        # Los navegadores descartan SameSite=None sin Secure (salvo localhost):
+        # una combinación mal configurada equivaldría a no emitir la cookie.
+        es_produccion = True
     return es_produccion, samesite
 
 
