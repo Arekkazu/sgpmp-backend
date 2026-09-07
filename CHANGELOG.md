@@ -1,3 +1,13 @@
+## [1.0.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.31...v1.0.0-rc.32) (2026-09-07)
+
+### Features
+
+* **rf23:** advertir si MQTT_BROKER_TOKEN quedo desincronizado de la BD ([a968fd2](https://github.com/Arekkazu/sgpmp-backend/commit/a968fd2fccbe0dcefe02c91c338d16c634b34ed8))
+
+### Bug Fixes
+
+* **rf26:** almacenamiento persistente y validacion real del logo institucional ([d25f2a0](https://github.com/Arekkazu/sgpmp-backend/commit/d25f2a0c275f6c845ec09d7c9af7fe41590c0d85))
+
 ## [1.0.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.30...v1.0.0-rc.31) (2026-09-07)
 
 ### Bug Fixes
