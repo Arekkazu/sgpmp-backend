@@ -1,3 +1,13 @@
+## [1.0.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.26...v1.0.0-rc.27) (2026-09-07)
+
+### Features
+
+* **rf17:** endpoint para consultar la auditoría de umbrales ambientales ([693fd57](https://github.com/Arekkazu/sgpmp-backend/commit/693fd57a18717cb979060bac6687cd62490125b2))
+
+### Bug Fixes
+
+* **rf26:** traducir fallo de escritura del logotipo a error tipado ([4d318fa](https://github.com/Arekkazu/sgpmp-backend/commit/4d318facc0ba1cc44be173e9dae1e9b0551a18c2)), closes [#173](https://github.com/Arekkazu/sgpmp-backend/issues/173)
+
 ## [1.0.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.25...v1.0.0-rc.26) (2026-09-07)
 
 ### Bug Fixes
