@@ -16,6 +16,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.umbrales.consultar_auditoria_umbral_use_case import ConsultarAuditoriaUmbralUseCase
 from src.configuration.application.use_cases.umbrales.consultar_umbrales_use_case import ConsultarUmbralesUseCase
 from src.configuration.application.use_cases.umbrales.desactivar_umbral_use_case import DesactivarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.editar_umbral_use_case import EditarUmbralUseCase
@@ -26,7 +27,12 @@ from src.configuration.infrastructure.repositories.auditoria_umbral_repository i
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
 from src.configuration.infrastructure.repositories.variable_ambiental_repository import SqlAlchemyVariableAmbientalRepository
-from src.configuration.infrastructure.schema.umbral_schema import UmbralAmbientalResponse, UmbralesPorEspecieResponse
+from src.configuration.infrastructure.schema.umbral_schema import (
+    AuditoriaUmbralesResponse,
+    AuditoriaUmbralResponse,
+    UmbralAmbientalResponse,
+    UmbralesPorEspecieResponse,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
@@ -86,6 +92,35 @@ def consultar_umbrales(
     umbrales = use_case.execute(id_especie, solo_activas=solo_activas)
     items = [UmbralAmbientalResponse.model_validate(u) for u in umbrales]
     return UmbralesPorEspecieResponse(total=len(items), items=items)
+
+
+@router.get(
+    '/{id_umbral_ambiental}/auditoria',
+    response_model=AuditoriaUmbralesResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar auditoría de un umbral ambiental (TC-M09-64)',
+    description=(
+        'Historial de creación, edición y desactivación de un umbral. Antes de '
+        'este endpoint, la auditoría se persistía en '
+        '`modulo9.auditorias_umbrales_ambientales` pero no era consultable por '
+        'API, por lo que no podía correlacionarse con el `id_umbral_ambiental`.'
+    ),
+)
+def consultar_auditoria_umbral(
+    id_umbral_ambiental: int,
+    db: Session = Depends(get_db),
+) -> AuditoriaUmbralesResponse:
+    use_case = ConsultarAuditoriaUmbralUseCase(
+        auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
+    )
+    items = [AuditoriaUmbralResponse.model_validate(a) for a in use_case.execute(id_umbral_ambiental)]
+    return AuditoriaUmbralesResponse(total=len(items), items=items)
 
 
 @router.patch(
