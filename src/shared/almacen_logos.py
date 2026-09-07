@@ -16,7 +16,7 @@ import os
 import uuid
 from typing import Optional
 
-from src.shared.errors import ValidationError
+from src.shared.errors import InfrastructureError, ValidationError
 
 FORMATOS_PERMITIDOS = {"image/png", "image/jpeg", "image/svg+xml"}
 TAMANO_MAX = 2 * 1024 * 1024  # 2 MB, límite explícito de RF-26
@@ -58,6 +58,21 @@ def guardar_logo(contenido: bytes, content_type: Optional[str]) -> str:
 
     os.makedirs(DIRECTORIO_LOGOS, exist_ok=True)
     nombre = f"{uuid.uuid4()}{_EXTENSIONES[content_type]}"
-    with open(os.path.join(DIRECTORIO_LOGOS, nombre), "wb") as archivo:
-        archivo.write(contenido)
+    try:
+        with open(os.path.join(DIRECTORIO_LOGOS, nombre), "wb") as archivo:
+            archivo.write(contenido)
+    except OSError as exc:
+        # FA "Fallo en la persistencia del archivo (Storage Error)" de RF-26. Sin
+        # este try/except, un fallo del sistema de archivos (contenedor efímero,
+        # disco lleno, permisos) salía como 500 genérico "Ocurrió un error interno"
+        # sin información, y sin distinguir este caso del resto de 500 (INC-M09-26-G86).
+        raise InfrastructureError(
+            code="ERROR_ALMACENAMIENTO",
+            message=(
+                "Error de almacenamiento: No se pudo guardar el logotipo debido a un "
+                "fallo en el servidor de archivos. La configuración anterior no ha "
+                "sido modificada."
+            ),
+            original_error=exc,
+        )
     return f"{RUTA_PUBLICA_LOGOS}/{nombre}"
