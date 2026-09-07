@@ -31,6 +31,7 @@ from src.configuration.infrastructure.routers.infraestructura_router import rout
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
+from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
 from src.configuration.infrastructure.routers.tema_visual_router import router as tema_visual_router
 from src.configuration.infrastructure.routers.dashboard_layout_router import router as dashboard_layout_router
@@ -422,6 +423,10 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Solo advierte en logs si MQTT_BROKER_TOKEN quedó desincronizado de la BD;
+    # nunca escribe nada (ver docstring de la función).
+    verificar_token_configurado()
+
     tasks = [
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
