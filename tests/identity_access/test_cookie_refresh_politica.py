@@ -64,7 +64,7 @@ def test_secure_acepta_valores_positivos_variados(monkeypatch) -> None:
 
 def test_env_example_declara_flags_de_cookie() -> None:
     raiz_proyecto = Path(__file__).resolve().parents[2]
-    contenido = (raiz_proyecto / ".env.example").read_text(encoding="utf-8")
+    lineas = (raiz_proyecto / ".env.example").read_text(encoding="utf-8").splitlines()
 
-    assert "COOKIE_SECURE=" in contenido.splitlines()
-    assert "COOKIE_SAMESITE=" in contenido.splitlines()
+    assert any(line.startswith("COOKIE_SECURE=") and len(line) > len("COOKIE_SECURE=") for line in lineas)
+    assert any(line.startswith("COOKIE_SAMESITE=") and len(line) > len("COOKIE_SAMESITE=") for line in lineas)
