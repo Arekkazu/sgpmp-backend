@@ -3,12 +3,15 @@
 Expone los endpoints de cambio de contraseña (usuario autenticado),
 solicitud de recuperación por correo y restablecimiento por token.
 """
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.contrasena.cambiar_contrasena_use_case import CambiarContrasenaUseCase
 from src.identity_access.application.use_cases.contrasena.restablecer_contrasena_use_case import RestablecerContrasenaUseCase
 from src.identity_access.application.use_cases.contrasena.solicitar_recuperacion_use_case import SolicitarRecuperacionUseCase
+from src.identity_access.infrastructure.adapters.correo_recuperacion_background_adapter import (
+    CorreoRecuperacionBackgroundAdapter,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.contrasena_dto import (
     CambiarContrasenaDTO,
@@ -17,6 +20,7 @@ from src.identity_access.infrastructure.dto.contrasena_dto import (
 )
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
+from src.identity_access.infrastructure.repositories.intento_anonimo_repository import SqlAlchemyIntentoAnonimoRepository
 from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
@@ -36,6 +40,7 @@ router = APIRouter(prefix="/contrasena", tags=["Contraseña"])
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         423: {"model": ErrorResponse},
+        500: {"model": ErrorResponse, "description": "La contraseña puede quedar actualizada aunque falle el cierre de sesiones (RF-07)."},
     },
 )
 def cambiar_contrasena(
@@ -65,14 +70,20 @@ def cambiar_contrasena(
         429: {"model": ErrorResponse},
     },
 )
-def solicitar_recuperacion(dto: SolicitarRecuperacionDTO, request: Request, db: Session = Depends(get_db)):
+def solicitar_recuperacion(
+    dto: SolicitarRecuperacionDTO,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     ip = request.client.host if request.client else "unknown"
     use_case = SolicitarRecuperacionUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        correo_recuperacion_port=CorreoRecuperacionBackgroundAdapter(background_tasks),
     )
     message = use_case.execute(dto, ip)
     return {"message": message}
@@ -97,6 +108,7 @@ def restablecer_contrasena(dto: RestablecerContrasenaDTO, request: Request, db: 
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
+        intentos_anonimos_repo=SqlAlchemyIntentoAnonimoRepository(db),
         db=db,
         notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
     )

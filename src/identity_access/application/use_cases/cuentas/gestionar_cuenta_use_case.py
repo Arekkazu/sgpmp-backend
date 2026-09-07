@@ -190,13 +190,17 @@ class GestionarCuentaUseCase:
                 id_responsable=usuario_actual.id_usuario,
             )
 
-            # 9. Registrar evento de auditoría
+            # 9. Registrar evento de auditoría bajo el usuario AFECTADO: es su cuenta
+            #    la que cambió de estado, y NotificacionService busca el evento a
+            #    notificar por ese id_usuario (ver notificar() más abajo). Registrarlo
+            #    bajo el admin actor (como se hacía antes) hacía que la búsqueda nunca
+            #    encontrara el evento y la notificación se omitiera siempre.
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_CAMBIO_ESTADO,
                 exitoso=True,
-                id_usuario=usuario_actual.id_usuario,
+                id_usuario=id_usuario,
                 detalle={
-                    "id_usuario_afectado": id_usuario,
+                    "id_usuario_responsable": usuario_actual.id_usuario,
                     "accion": dto.accion_cuenta.value,
                     "estado_anterior": estado_actual,
                     "estado_nuevo": nuevo_estado,

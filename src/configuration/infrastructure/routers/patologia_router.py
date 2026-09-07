@@ -22,10 +22,10 @@ from src.configuration.application.use_cases.patologias.consultar_patologias_use
 from src.configuration.application.use_cases.patologias.desactivar_patologia_use_case import DesactivarPatologiaUseCase
 from src.configuration.application.use_cases.patologias.editar_patologia_use_case import EditarPatologiaUseCase
 from src.configuration.application.use_cases.patologias.registrar_patologia_use_case import RegistrarPatologiaUseCase
-from src.configuration.infrastructure.adapters.dependencia_patologia_stub import StubDependenciaPatologiaAdapter
 from src.configuration.infrastructure.dto.editar_patologia_dto import EditarPatologiaDTO
 from src.configuration.infrastructure.dto.registrar_patologia_dto import RegistrarPatologiaDTO
 from src.configuration.infrastructure.repositories.auditoria_patologia_repository import SqlAlchemyAuditoriaPatologiaRepository
+from src.configuration.infrastructure.repositories.dependencia_patologia_repository import SqlAlchemyDependenciaPatologiaRepository
 from src.configuration.infrastructure.repositories.especie_patologia_repository import SqlAlchemyEspeciePatologiaRepository
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.schema.patologia_schema import (
@@ -144,7 +144,7 @@ def desactivar_patologia(
         db=db,
         especie_patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPatologiaRepository(db),
-        dependencia_port=StubDependenciaPatologiaAdapter(),
+        dependencia_port=SqlAlchemyDependenciaPatologiaRepository(db),
     )
     patologia = use_case.execute(id_especies_patologias, usuario_actual)
     return PatologiaEspecieItemResponse.model_validate(patologia)

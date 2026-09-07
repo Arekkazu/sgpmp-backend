@@ -1,0 +1,308 @@
+{
+  "info": {
+    "name": "TC-M09-G58 (TC-M09-113) - Restriccion de rol para el registro de dispositivos IoT",
+    "description": "TC-M09-G58 (RF-21, CU-05 Gestionar Dispositivos IoT), equivalente a TC-M09-113: verifica que POST /configuracion/dispositivos-iot solo pueda ejecutarlo un usuario cuyo rol tenga el permiso Crear (accion=1) sobre el recurso dispositivos_iot (id_recurso=11) en modulo1.permisos. Segun el docstring de dispositivo_iot_router.py: Admin y Ingeniero tienen C=1 (autorizados), Productor solo tiene R=2 (NO autorizado).\n\nNOTA: se intento inicialmente autoregistrar un usuario de prueba con rol Productor (mismo patron usado en TC-M01-084/TC-M09-G55..G57), pero POST /usuarios/ ahora exige un captcha_token real (RF-01, feature/rf01-captcha-registro recien mergeada a test) y el ambiente TEST tiene configurada la llave secreta real de Google reCAPTCHA, no la llave de pruebas oficial - un token arbitrario se rechaza con 400 CAPTCHA_INVALIDO, confirmado por prueba directa. Esto bloquea el autoregistro de usuarios de prueba para cualquier TC futuro que lo necesite, no solo este. Por eso esta coleccion usa una cuenta Productor ya activa que el usuario aporto (u20221206763@usco.edu.co, id_usuario=58, rol=2 confirmado por el claim 'rol' del JWT) en vez de crear una nueva.\n\nResultado esperado: el intento del Productor debe rechazarse con HTTP 403 (error_code ACCESO_DENEGADO, ver src/shared/rbac.py::require_permission). Como control positivo, el mismo payload se reintenta con el token de Administrador para confirmar que el rechazo es especifico del rol, no un fallo general del endpoint.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas de seguridad - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: chequeo RBAC 201 (autorizado) vs 403 (no autorizado).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login (Administrador) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token del Administrador almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como usuario Productor (rol NO autorizado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: el login del usuario Productor responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "console.log('--- Login del usuario Productor ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_productor', respuesta.token);",
+              "",
+              "    function decodificarJwtRol(token) {",
+              "        const payloadB64 = token.split('.')[1];",
+              "        const normalizado = payloadB64.replace(/-/g, '+').replace(/_/g, '/');",
+              "        return JSON.parse(atob(normalizado));",
+              "    }",
+              "    const payload = decodificarJwtRol(respuesta.token);",
+              "    console.log('Usuario Productor autenticado: id_usuario=' + payload.sub + ', id_rol=' + payload.rol);",
+              "",
+              "    pm.test('Precondicion: el usuario usado para este TC tiene rol Productor (id_rol=2), no Admin ni Ingeniero', function () {",
+              "        pm.expect(Number(payload.rol)).to.equal(2);",
+              "    });",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa', respuesta.items[0].id_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G58 - Rol NO autorizado (Productor) intenta registrar un dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Intento de registro con rol Productor (no autorizado) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G58: el rol Productor NO puede registrar dispositivos IoT (HTTP 403)', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('TC-M09-G58: el error indica ACCESO_DENEGADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION (rol no autorizado): ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G58-PRODUCTOR-{{run_id}}\",\n  \"descripcion\": \"Intento de registro sin permiso (rol Productor) - TC-M09-G58\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G58 (control positivo) - Rol autorizado (Administrador) SI puede registrar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Mismo intento con rol Administrador (autorizado) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G58: el rol Administrador SI puede registrar dispositivos IoT (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta) {",
+              "    console.log('CONCLUSION (rol autorizado): dispositivo creado con id_dispositivo_iot=' + respuesta.id_dispositivo_iot + '.');",
+              "    console.log('CONCLUSION GENERAL TC-M09-G58: el permiso definido para el recurso dispositivos_iot (accion Crear) se aplica correctamente - Productor rechazado (403), Administrador aceptado (201) con el mismo payload.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G58-ADMIN-{{run_id}}\",\n  \"descripcion\": \"Control positivo con rol autorizado (Administrador) - TC-M09-G58\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "productor_correo", "value": "u20221206763@usco.edu.co" },
+    { "key": "productor_contrasena", "value": "Test123!" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" }
+  ]
+}

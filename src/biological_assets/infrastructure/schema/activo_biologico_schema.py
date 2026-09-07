@@ -105,11 +105,23 @@ class AsociacionInfraestructuraResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class SensorEnInfraestructuraResponse(BaseModel):
+    id_sensor: int
+    nombre: str
+    id_dispositivo_iot: int
+    punto_instalacion: str
+    categoria: Optional[str] = None
+
+    model_config = {'from_attributes': True}
+
+
 class ConsultaAsociacionResponse(BaseModel):
     tipo_consulta: str
     id_activo_biologico: int
     asociacion_activa: Optional[AsociacionInfraestructuraResponse] = None
     historial: Optional[list[AsociacionInfraestructuraResponse]] = None
+    sensores_en_infraestructura: list[SensorEnInfraestructuraResponse] = []
+    advertencia_integridad: Optional[str] = None
 
 
 class GestionFaseResponse(BaseModel):

@@ -56,13 +56,16 @@ Respuesta esperada `201`:
 }
 ```
 
+Junto con el activo, el registro deja un snapshot inicial (Evento 0) en `modulo2.historial_activos`: `version=1`, `tipo_evento='CREACION'`, `json_snapshot` con el estado del activo en el momento del registro. No es parte de la respuesta HTTP — se verifica consultando esa tabla directamente.
+
 Errores posibles:
 - `400 ESPECIE_INVALIDA` — `id_especie` no existe o está inactiva (FA-05)
 - `400 INFRAESTRUCTURA_INVALIDA` — `id_infraestructura` no existe o está inactiva (FA-06)
 - `400 ATRIBUTO_INVALIDO` — clave en `atributos_dinamicos` no corresponde a métrica de la especie (FA-07)
 - `400` (validación Pydantic) — `fecha_inicio_ciclo` futura o anterior a 1970 (FA-04)
 - `400` (validación Pydantic) — INDIVIDUAL sin `identificador` / con `cantidad_inicial` (FA-02)
-- `400` (validación Pydantic) — `compra`/`donacion` sin `costo_adquisicion` o `soporte_documental` (FA-08)
+- `400` (validación Pydantic) — `origen_financiero` fuera del catálogo (`compra`/`nacimiento`/`donacion`/`transferencia_interna`)
+- `422 COSTO_ADQUISICION_INVALIDO` / `422 SOPORTE_DOCUMENTAL_REQUERIDO` / `422 SOPORTE_DOCUMENTAL_INVALIDO` — `costo_adquisicion`/`soporte_documental` incoherentes con `origen_financiero` (FA-08; corregido de 400 a 422 por issue #28, ver `cu01_gaps_bd_rf33_rf34.md`)
 - `403 ACCESO_DENEGADO` — rol sin permiso C sobre `activos_biologicos` (Contador, Veterinario)
 - `409 IDENTIFICADOR_DUPLICADO` — `identificador` ya registrado (FA-03)
 
@@ -150,9 +153,39 @@ Respuesta esperada `200`:
     "fecha_inicio": "2026-06-27T...",
     "fecha_fin": null
   },
-  "historial": null
+  "historial": null,
+  "sensores_en_infraestructura": [
+    {
+      "id_sensor": 12,
+      "nombre": "Sensor pH-01",
+      "id_dispositivo_iot": 3,
+      "punto_instalacion": "Entrada del estanque",
+      "categoria": "ph"
+    }
+  ],
+  "advertencia_integridad": null
 }
 ```
+
+`sensores_en_infraestructura` (RF-22) solo se calcula para `tipo_consulta=ACTIVA` (o
+`fecha_referencia`) — lista los sensores con asociación de área activa
+(`modulo9.sensores_areas_asociadas.tiene_estado=true`) en la infraestructura vigente
+del activo. `advertencia_integridad` se calcula siempre (ACTIVA e HISTORIAL): si el
+historial completo del activo tiene dos períodos que se solapan (dato sembrado
+manualmente o por un bug de otro flujo), viene con un mensaje descriptivo; si no hay
+solapamiento, es `null`. No bloquea la respuesta.
+
+### GET /activos-biologicos/{id}/infraestructura?fecha_referencia=... — Consulta puntual (CA-3, RF-61)
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/51/infraestructura?tipo_consulta=ACTIVA&fecha_referencia=2025-03-15T00:00:00Z" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Devuelve, en `asociacion_activa`, cuál era la asociación vigente en esa fecha pasada
+(la fila cuyo `fecha_inicio <= fecha_referencia` y `fecha_fin IS NULL OR fecha_fin > fecha_referencia`),
+sin importar si hoy el activo está en otra infraestructura. `sensores_en_infraestructura`
+se calcula sobre la infraestructura que estaba vigente en esa fecha, no la actual.
 
 ### GET /activos-biologicos/{id}/infraestructura — Historial completo
 
@@ -176,13 +209,20 @@ Respuesta esperada `200`:
       "fecha_inicio": "2026-06-27T...",
       "fecha_fin": null
     }
-  ]
+  ],
+  "sensores_en_infraestructura": [],
+  "advertencia_integridad": null
 }
 ```
 
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe
+- `404 ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA` — flujo alterno E2: el activo no tiene
+  asociación activa (o, si se envió `fecha_referencia`, no tenía ninguna vigente en esa
+  fecha). Antes de esta corrección el endpoint respondía `200` con `asociacion_activa=null`;
+  ahora es un `404` con mensaje de alerta técnica, tal como exige CA-5.
 - `400 TIPO_CONSULTA_INVALIDO` — `tipo_consulta` no es 'ACTIVA' ni 'HISTORIAL'
+- `400 FECHA_REFERENCIA_INVALIDA` — se envió `fecha_referencia` junto a `tipo_consulta=HISTORIAL`
 - `403 ACCESO_DENEGADO` — sin permiso R sobre `activos_biologicos`
 
 ---
@@ -288,7 +328,7 @@ curl -X POST http://localhost:8000/activos-biologicos \
 ```
 Respuesta esperada `409 IDENTIFICADOR_DUPLICADO`.
 
-### FA-08: origen=compra sin soporte_documental → 400
+### FA-08: origen=compra sin costo_adquisicion → 422
 
 ```bash
 curl -X POST http://localhost:8000/activos-biologicos \
@@ -306,4 +346,6 @@ curl -X POST http://localhost:8000/activos-biologicos \
     "fecha_nacimiento": "2025-01-01T00:00:00Z"
   }'
 ```
-Respuesta esperada `400`: `costo_adquisicion mayor a 0 es requerido cuando origen_financiero es 'compra'.`
+Respuesta esperada `422 COSTO_ADQUISICION_INVALIDO`: `costo_adquisicion mayor a 0 es requerido cuando origen_financiero es 'compra'.`
+
+(Antes del issue #28 esta validación vivía en un `@model_validator` de Pydantic y respondía `400`; ahora vive en `RegistrarActivoBiologicoUseCase` y responde el `422` que exige el RF.)

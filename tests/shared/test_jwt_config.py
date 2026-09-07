@@ -74,3 +74,55 @@ def test_verify_token_distingue_expirado_de_invalido(monkeypatch) -> None:
     with pytest.raises(AuthenticationError) as exc_info:
         jwt_module.verify_token("esto-no-es-un-jwt-valido")
     assert exc_info.value.code == "TOKEN_INVALIDO"
+
+
+def test_leeway_por_defecto_y_configurable(monkeypatch) -> None:
+    monkeypatch.delenv("JWT_LEEWAY_SECONDS", raising=False)
+    assert jwt_module._leer_leeway_segundos() == 30
+
+    monkeypatch.setenv("JWT_LEEWAY_SECONDS", "60")
+    assert jwt_module._leer_leeway_segundos() == 60
+
+
+def test_verify_token_tolera_skew_dentro_del_leeway(monkeypatch) -> None:
+    """Un token expirado hace 30s sigue siendo válido con leeway=60 (skew de reloj)."""
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-de-prueba")
+    monkeypatch.setattr(jwt_module, "_LEEWAY_SECONDS", 60)
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload = {
+        "sub": "7",
+        "jti": "7",
+        "rol": 2,
+        "iat": ahora - jwt_module.timedelta(minutes=5),
+        "exp": ahora - jwt_module.timedelta(seconds=30),
+    }
+    token = jose_jwt.encode(payload, "clave-de-prueba", algorithm="HS256")
+
+    resultado = jwt_module.verify_token(token)
+
+    assert resultado["sub"] == "7"
+
+
+def test_verify_token_sigue_rechazando_expirado_fuera_del_leeway(monkeypatch) -> None:
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-de-prueba")
+    monkeypatch.setattr(jwt_module, "_LEEWAY_SECONDS", 30)
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload = {
+        "sub": "8",
+        "jti": "8",
+        "rol": 2,
+        "iat": ahora - jwt_module.timedelta(minutes=30),
+        "exp": ahora - jwt_module.timedelta(minutes=5),
+    }
+    token = jose_jwt.encode(payload, "clave-de-prueba", algorithm="HS256")
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        jwt_module.verify_token(token)
+    assert exc_info.value.code == "TOKEN_EXPIRADO"
+
+
+def test_env_example_declara_leeway_jwt() -> None:
+    raiz_proyecto = Path(__file__).resolve().parents[2]
+    contenido = (raiz_proyecto / ".env.example").read_text(encoding="utf-8")
+
+    assert "JWT_LEEWAY_SECONDS=30" in contenido.splitlines()

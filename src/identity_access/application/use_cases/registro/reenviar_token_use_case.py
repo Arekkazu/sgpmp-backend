@@ -78,7 +78,13 @@ class ReenviarTokenUseCase:
         hace_una_hora = ahora - timedelta(hours=1)
         solicitudes = self.eventos_repo.contar_solicitudes_recuperacion_por_ip(ip, hace_una_hora)
         if solicitudes >= MAX_REENVIOS_POR_HORA:
-            proxima_vez = ahora + timedelta(hours=1)
+            primera_solicitud = (
+                self.eventos_repo.obtener_primera_solicitud_recuperacion_por_ip(
+                    ip,
+                    hace_una_hora,
+                )
+            )
+            proxima_vez = (primera_solicitud or ahora) + timedelta(hours=1)
             raise BusinessRuleError(
                 code="LIMITE_SOLICITUDES_EXCEDIDO",
                 message=(

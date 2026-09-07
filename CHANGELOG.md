@@ -1,3 +1,170 @@
+## [1.0.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.27...v1.0.0-rc.28) (2026-09-07)
+
+### Bug Fixes
+
+* **m02:** completar RF-34 con fecha_referencia, 404 en E2, sensores y advertencia de integridad ([eef0de3](https://github.com/Arekkazu/sgpmp-backend/commit/eef0de37f0f2ee9bb9726c290585ef07815cfa3f))
+
+## [1.0.0-rc.27](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.26...v1.0.0-rc.27) (2026-09-07)
+
+### Features
+
+* **rf17:** endpoint para consultar la auditoría de umbrales ambientales ([693fd57](https://github.com/Arekkazu/sgpmp-backend/commit/693fd57a18717cb979060bac6687cd62490125b2))
+
+### Bug Fixes
+
+* **rf26:** traducir fallo de escritura del logotipo a error tipado ([4d318fa](https://github.com/Arekkazu/sgpmp-backend/commit/4d318facc0ba1cc44be173e9dae1e9b0551a18c2)), closes [#173](https://github.com/Arekkazu/sgpmp-backend/issues/173)
+
+## [1.0.0-rc.26](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.25...v1.0.0-rc.26) (2026-09-07)
+
+### Bug Fixes
+
+* **config:** forward cookie and JWT env variables ([a6a546b](https://github.com/Arekkazu/sgpmp-backend/commit/a6a546b0353f09011fc0e4da74f7eac0bdc8aff0))
+* **config:** validar variables de entorno al arranque, cookie obligatoria en produccion ([f0e6bab](https://github.com/Arekkazu/sgpmp-backend/commit/f0e6bab6e2444a35df5f2a20991cdffd97c86202))
+* **rf11:** busqueda por nombre completo y trim en listado admin ([a54ad09](https://github.com/Arekkazu/sgpmp-backend/commit/a54ad09cec157955dead21db3baa7b36f9a9f035))
+* **sesiones:** flags explicitos de cookie refresh + leeway en JWT ([0f3f2ca](https://github.com/Arekkazu/sgpmp-backend/commit/0f3f2ca80f68dfcfc77dd304ef599977dd7b82ca))
+* **sesiones:** forzar secure=true cuando SameSite=none en la cookie refresh ([cfa64a0](https://github.com/Arekkazu/sgpmp-backend/commit/cfa64a02878a130851b79128f651e22d5bf67b7c))
+
+## [1.0.0-rc.25](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.24...v1.0.0-rc.25) (2026-09-06)
+
+### Features
+
+* **m02:** agregar snapshot inicial y CHECK de soporte documental en RF-33 ([c7ae501](https://github.com/Arekkazu/sgpmp-backend/commit/c7ae501c51e977a21b4710b08b950b82006d1a9d)), closes [#28](https://github.com/Arekkazu/sgpmp-backend/issues/28)
+
+### Bug Fixes
+
+* **rf33:** corregir head duplicado de alembic y nombre de constraint ([cc04a0d](https://github.com/Arekkazu/sgpmp-backend/commit/cc04a0d8bd784ec4f93e8014fcf056ef278c7f04))
+
+## [1.0.0-rc.24](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.23...v1.0.0-rc.24) (2026-09-06)
+
+### Bug Fixes
+
+* **rf19:** agregar endpoint PATCH /fincas/{id}/reactivar ([35f969f](https://github.com/Arekkazu/sgpmp-backend/commit/35f969fe0563f654c79fa00a99bb905b5d97c154))
+* Un sensor puede estar asociado a una area, en tanto este disponible y no tenga otra asosiacion ([4072c9a](https://github.com/Arekkazu/sgpmp-backend/commit/4072c9adcbc41f47044eb4fa4298fa3eaf70544d))
+
+## [1.0.0-rc.23](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.22...v1.0.0-rc.23) (2026-09-06)
+
+### Bug Fixes
+
+* **rf22-mod9:** filtrar por finca el historial de asociaciones de un sensor ([28fcab6](https://github.com/Arekkazu/sgpmp-backend/commit/28fcab6347b01f994ec7daa69b5467995d331a4f))
+
+## [1.0.0-rc.22](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.21...v1.0.0-rc.22) (2026-09-06)
+
+### Bug Fixes
+
+* **rf22-mod9:** corregir reasignacion de sensor (500 -> 201) via migracion Alembic ([2cbe8b2](https://github.com/Arekkazu/sgpmp-backend/commit/2cbe8b20e030a29441e6d18b08853c83cc0d8a1f)), closes [#142](https://github.com/Arekkazu/sgpmp-backend/issues/142)
+
+## [1.0.0-rc.21](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.20...v1.0.0-rc.21) (2026-09-06)
+
+### Bug Fixes
+
+* **rf21-mod9:** aplicar limite de tasa al registro de dispositivos IoT ([89126d7](https://github.com/Arekkazu/sgpmp-backend/commit/89126d7cad7008a138310f5ad3b6bc49c4964513))
+* **rf21-mod9:** rechazar sintaxis de inyeccion SQL y script tags en dispositivos IoT ([e8bdc84](https://github.com/Arekkazu/sgpmp-backend/commit/e8bdc84e21cccde8f746caee6d81a7dd54f06eaa))
+* **rf22-mod9:** rechazar asociacion de sensor a area de otra finca ([302a658](https://github.com/Arekkazu/sgpmp-backend/commit/302a6583f184883cbc6e69cf00c9bc11cfe45350))
+
+## [1.0.0-rc.20](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.19...v1.0.0-rc.20) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([#144](https://github.com/Arekkazu/sgpmp-backend/issues/144)) ([588c873](https://github.com/Arekkazu/sgpmp-backend/commit/588c873e166d498ac9aeb4b0947a228b0d52ba01))
+* **rf32:** traducir errores de duplicado de ciclo y metrica a 409 ([0bafb6f](https://github.com/Arekkazu/sgpmp-backend/commit/0bafb6fa1c93d129f560cecbaae09c7c97cd04cd))
+* **rf32:** unicidad de nombre/variable en plantillas debe ignorar filas desactivadas ([941d199](https://github.com/Arekkazu/sgpmp-backend/commit/941d199c74cb911b4155403417994b008b81991c))
+
+## [1.0.0-rc.19](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.18...v1.0.0-rc.19) (2026-09-06)
+
+### Bug Fixes
+
+* **rf02:** permitir bloqueo automatico de cuenta administrador tras intentos fallidos ([2eee014](https://github.com/Arekkazu/sgpmp-backend/commit/2eee014941df17809656c8b6a5709a2cc49d3bdf))
+* **rf02:** traducir errores de guardado de cuenta antes de salir del repository ([35ea796](https://github.com/Arekkazu/sgpmp-backend/commit/35ea796694bce0c6f3cae088a37c0337f3505ee7))
+* **rf08:** evitar enumeración temporal inc-m01-21-041 ([2c35518](https://github.com/Arekkazu/sgpmp-backend/commit/2c355182125010db417730e74c263f1158ac731a))
+
+## [1.0.0-rc.18](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.17...v1.0.0-rc.18) (2026-09-06)
+
+### Bug Fixes
+
+* **rf17:** desactivar insertmanyvalues para evitar DatatypeMismatch en columnas enum ([d0c1286](https://github.com/Arekkazu/sgpmp-backend/commit/d0c1286ac7fba724a9c48d51f4889f84fea4f29e))
+
+## [1.0.0-rc.17](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.16...v1.0.0-rc.17) (2026-09-06)
+
+### Bug Fixes
+
+* **rf31:** validar rango fisico de umbrales al crear o versionar plantilla ([ae6efd2](https://github.com/Arekkazu/sgpmp-backend/commit/ae6efd207a270e12b76d5c492872e3496eae6d31))
+
+## [1.0.0-rc.16](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.15...v1.0.0-rc.16) (2026-09-06)
+
+### Bug Fixes
+
+* **rf16:** consultar dependencias reales al desactivar patologia y metrica ([a2dd2ed](https://github.com/Arekkazu/sgpmp-backend/commit/a2dd2ed35376cda5550a0370deacaebebff97ff1))
+
+## [1.0.0-rc.15](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.14...v1.0.0-rc.15) (2026-09-06)
+
+### Bug Fixes
+
+* **rf08:** calcular hora real de reintento ([726cc34](https://github.com/Arekkazu/sgpmp-backend/commit/726cc347fb85b93ba1e41bd16f102c79d219c66f))
+
+## [1.0.0-rc.14](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.13...v1.0.0-rc.14) (2026-09-05)
+
+### Bug Fixes
+
+* **rf08:** aplicar el limite de recuperacion tambien a correos inexistentes ([38ac799](https://github.com/Arekkazu/sgpmp-backend/commit/38ac79933a56e216ffee9b6febfc6ed246b7d520)), closes [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86) [100/#102](https://github.com/100/sgpmp-backend/issues/102) [104/#105](https://github.com/104/sgpmp-backend/issues/105) [#122](https://github.com/Arekkazu/sgpmp-backend/issues/122) [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86)
+* **rf08:** recuperacion de contrasena responde 429 y anuncia la hora real de reintento ([34b5fcf](https://github.com/Arekkazu/sgpmp-backend/commit/34b5fcf0d56cd67b0ed335d6147cb42dfff78938)), closes [#85](https://github.com/Arekkazu/sgpmp-backend/issues/85) [#104](https://github.com/Arekkazu/sgpmp-backend/issues/104) [#105](https://github.com/Arekkazu/sgpmp-backend/issues/105)
+* **rf09:** alinear nombres de columnas nuevas con la convencion de nomenclatura ([cf4567f](https://github.com/Arekkazu/sgpmp-backend/commit/cf4567f532a234f395669752f79bbda879238627))
+* **rf09:** corregir down_revision de la migracion, rompia el CI de Alembic ([d5f9df0](https://github.com/Arekkazu/sgpmp-backend/commit/d5f9df060293dc76b295025fc476880d18e2ac3f)), closes [#123](https://github.com/Arekkazu/sgpmp-backend/issues/123)
+* **rf09:** migracion idempotente, ya aplicada a mano en sgpmp y pruebas ([5265f27](https://github.com/Arekkazu/sgpmp-backend/commit/5265f277b69c16c7a5b9bdc733b997d822c2cf3c))
+* **rf09:** token de recuperacion ya usado responde 409 y bloquea tras 5 tokens invalidos ([893aa08](https://github.com/Arekkazu/sgpmp-backend/commit/893aa08865726b4540245b1f8fcb0b85329d5513)), closes [#100](https://github.com/Arekkazu/sgpmp-backend/issues/100) [#102](https://github.com/Arekkazu/sgpmp-backend/issues/102) [#86](https://github.com/Arekkazu/sgpmp-backend/issues/86) [#105](https://github.com/Arekkazu/sgpmp-backend/issues/105) [#100](https://github.com/Arekkazu/sgpmp-backend/issues/100) [#102](https://github.com/Arekkazu/sgpmp-backend/issues/102)
+
+## [1.0.0-rc.13](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.12...v1.0.0-rc.13) (2026-09-05)
+
+### Bug Fixes
+
+* **rf08:** mantener 202 y alertar fallo smtp inc-m01-14-044 ([2fe2d66](https://github.com/Arekkazu/sgpmp-backend/commit/2fe2d66020251075a54f209fa7d6d39129e18c78))
+
+## [1.0.0-rc.12](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.11...v1.0.0-rc.12) (2026-09-05)
+
+### Features
+
+* **rf30:** endpoint para consultar auditoria de creacion/versionado de plantillas ([7fc1038](https://github.com/Arekkazu/sgpmp-backend/commit/7fc1038f4138d91e1ab20b58c9210b46d37ee8f4)), closes [#118](https://github.com/Arekkazu/sgpmp-backend/issues/118) [#118](https://github.com/Arekkazu/sgpmp-backend/issues/118)
+
+## [1.0.0-rc.11](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.10...v1.0.0-rc.11) (2026-09-05)
+
+### Bug Fixes
+
+* **rf15:** eliminar trigger de auditoria de especies huerfano que rompia POST/PATCH ([0ff9711](https://github.com/Arekkazu/sgpmp-backend/commit/0ff971111060b0f11eb2ba8c2073cfec5b3321fa)), closes [#111](https://github.com/Arekkazu/sgpmp-backend/issues/111)
+
+## [1.0.0-rc.10](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.9...v1.0.0-rc.10) (2026-09-05)
+
+### Bug Fixes
+
+* permitir bloqueo automatico por fuerza bruta en cuentas protegidas (INC-M01-23-045) ([7fc0696](https://github.com/Arekkazu/sgpmp-backend/commit/7fc069671680cfc1a37f3b4fab975072bdf62d35))
+* **rf14:** notificar al usuario afectado en bloqueo e inactivacion de cuenta ([15c6c35](https://github.com/Arekkazu/sgpmp-backend/commit/15c6c3594b71b14957b9b476c09821ea315c6b40)), closes [#103](https://github.com/Arekkazu/sgpmp-backend/issues/103)
+
+## [1.0.0-rc.9](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.8...v1.0.0-rc.9) (2026-09-05)
+
+### Bug Fixes
+
+* **rf07-rf09:** rechazar reutilización de contraseña actual ([993c32a](https://github.com/Arekkazu/sgpmp-backend/commit/993c32ac2a489aa43ded60a4474df1cd7836dd5b))
+* **rf07:** aislar invalidación de sesiones con savepoint ([e892e8b](https://github.com/Arekkazu/sgpmp-backend/commit/e892e8b45e13782698000ae117b6076cf4a07877))
+* **rf07:** conservar contraseña ante fallo de sesiones inc-m01-08-38 ([39c8a87](https://github.com/Arekkazu/sgpmp-backend/commit/39c8a8787f72a7171b5d1d53046d06343220cb87))
+* **rf07:** rechazar reutilización de contraseña [#84](https://github.com/Arekkazu/sgpmp-backend/issues/84) ([9f462bf](https://github.com/Arekkazu/sgpmp-backend/commit/9f462bf9d5a7692f1e41f9f5973da83377d3abde))
+* **rf13:** incluir id_usuario en el listado administrativo de usuarios ([bf0370d](https://github.com/Arekkazu/sgpmp-backend/commit/bf0370d71edc12d29c111e2878e9c8c6aa99c579)), closes [#91](https://github.com/Arekkazu/sgpmp-backend/issues/91)
+* **rf40:** apuntar la migracion al head real de dev y alinear el DDL con la definicion original ([93e61ac](https://github.com/Arekkazu/sgpmp-backend/commit/93e61ac9177558c9432d3d4b9e088c41e061b92a))
+* **rf40:** corregir unidad gr vs g en trigger de evento de crecimiento ([90b916d](https://github.com/Arekkazu/sgpmp-backend/commit/90b916d4766df11b1c346635ef93b8e4bdcdc029))
+
+## [1.0.0-rc.8](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.7...v1.0.0-rc.8) (2026-09-04)
+
+### Bug Fixes
+
+* **rf42:** corregir restriccion de LOTE en evento reproductivo ([cb43add](https://github.com/Arekkazu/sgpmp-backend/commit/cb43add315bb645256a9233a2b4e8dfd1da41ad0))
+
+## [1.0.0-rc.7](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.6...v1.0.0-rc.7) (2026-09-04)
+
+### Features
+
+* **biological-assets:** registrar origen del cambio de estado MANUAL/RF-38/RF-45 (RF-44) ([8bcf847](https://github.com/Arekkazu/sgpmp-backend/commit/8bcf8472c0d66b15fcec261a89d56492a85bedbb)), closes [#2](https://github.com/Arekkazu/sgpmp-backend/issues/2)
+
+### Bug Fixes
+
+* **m02:** centralizar cambio de estado y cerrar segundo camino en PATCH /{id}/estado ([c11bc6f](https://github.com/Arekkazu/sgpmp-backend/commit/c11bc6f643dfbfef1fda7df2e1229df229cb475f)), closes [#1](https://github.com/Arekkazu/sgpmp-backend/issues/1)
+
 ## [1.0.0-rc.6](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.5...v1.0.0-rc.6) (2026-09-04)
 
 ### Bug Fixes

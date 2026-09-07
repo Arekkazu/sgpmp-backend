@@ -13,6 +13,7 @@ from psycopg2 import errors as pg_errors
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.errors import (
+    BusinessRuleError,
     ConflictError,
     InfrastructureError,
     ServiceUnavailableError,
@@ -20,6 +21,21 @@ from src.shared.errors import (
 )
 
 _PREFIJOS_CONSTRAINT = ("uq_", "uk_", "fk_", "ck_", "chk_", "pk_", "idx_", "ix_")
+
+#: SQLSTATE de duplicados de nombre que triggers de `modulo9` señalan con
+#: `RAISE EXCEPTION ... USING ERRCODE`. Postgres los clasifica como clase
+#: `P0` (PL/pgSQL), que psycopg2/SQLAlchemy no mapea a `IntegrityError`
+#: (cae a `InternalError` genérico) — sin este mapeo explícito, un choque de
+#: nombre entre dos filas activas sale como 500 en vez de 409.
+_ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
+
+#: SQLSTATE de reglas de negocio de `modulo9.sensores_areas_asociadas`
+#: señaladas por trigger con `RAISE EXCEPTION ... USING ERRCODE`. Misma
+#: clase `P0` no mapeada por psycopg2 — sin esto, una condición de carrera
+#: que dispare el trigger sale como 500 en vez del error de negocio
+#: correspondiente (INC-M09-107-G64).
+_ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
+_ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 
 
 def _campo(diag) -> str | None:
@@ -101,6 +117,21 @@ def raise_from_db_error(
         ServiceUnavailableError: Por fallo de conectividad con la base de datos.
         InfrastructureError: Por cualquier otro error de base de datos no mapeado.
     """
+    diag_generico = getattr(getattr(exc, "orig", None), "diag", None)
+    sqlstate = getattr(diag_generico, "sqlstate", None) if diag_generico is not None else None
+
+    if sqlstate in _ERRCODES_NOMBRE_DUPLICADO:
+        mensaje = diag_generico.message_primary or "Ya existe un registro con ese nombre."
+        raise ConflictError(code="RECURSO_DUPLICADO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_ASOCIACION_YA_ACTIVA:
+        mensaje = diag_generico.message_primary or "El sensor ya tiene una asociación activa en otra área."
+        raise ConflictError(code="ASOCIACION_YA_ACTIVA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_SENSOR_FINCA_DISTINTA:
+        mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
+        raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
+
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)
         constraint = getattr(diag, "constraint_name", None)

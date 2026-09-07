@@ -44,12 +44,16 @@ from src.configuration.infrastructure.schema.sensor_schema import ListaSensoresR
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.errors import GatewayTimeoutError
+from src.shared.rate_limit import rate_limit
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/configuracion/dispositivos-iot", tags=["Configuración - Dispositivos IoT"])
 
 _RECURSO = 11  # modulo1.recursos: 'dispositivos_iot'
+# INC-M09-21-G125-02: sin este límite, una ráfaga de registros con seriales
+# secuenciales (enumeración masiva) se procesaba entera sin ningún 429.
+_LIMITE_REGISTRO = rate_limit(10, 60, alcance="dispositivos_iot_registrar")
 
 
 # ── RF-21: Registrar dispositivo ─────────────────────────────────────────────
@@ -58,13 +62,14 @@ _RECURSO = 11  # modulo1.recursos: 'dispositivos_iot'
     "",
     response_model=DispositivoIotResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission(_RECURSO, 1)), Depends(_LIMITE_REGISTRO)],
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
     summary="Registrar dispositivo IoT (RF-21 Flujo A)",
 )

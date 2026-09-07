@@ -3,6 +3,7 @@
 Verifica la contraseña actual, aplica límite de intentos (bloqueo de 30 min
 tras 5 fallos), aplica el nuevo hash e invalida todas las sesiones activas.
 """
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -14,7 +15,9 @@ from src.identity_access.domain.repositories.usuario_repository import UsuarioRe
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.contrasena_dto import CambiarContrasenaDTO
-from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, LockedError
+from src.shared.errors import AuthenticationError, AuthorizationError, BusinessRuleError, ConflictError, InfrastructureError, LockedError
+
+logger = logging.getLogger(__name__)
 
 MAX_INTENTOS = 5
 MINUTOS_BLOQUEO = 30
@@ -54,7 +57,8 @@ class CambiarContrasenaUseCase:
         """Cambia la contraseña del usuario verificando la contraseña actual.
 
         Tras un cambio exitoso invalida todas las sesiones activas del usuario,
-        forzando un nuevo login en todos los dispositivos.
+        forzando un nuevo login en todos los dispositivos. Si falla la invalidación,
+        conserva la contraseña confirmada y devuelve un error controlado.
 
         Args:
             id_usuario: ID del usuario que cambia su contraseña.
@@ -67,8 +71,10 @@ class CambiarContrasenaUseCase:
             BusinessRuleError: Si la cuenta no está activa. HTTP 422.
             LockedError: Si la funcionalidad está bloqueada por intentos fallidos. HTTP 423.
             AuthenticationError: Si la contraseña actual es incorrecta. HTTP 401.
-            ConflictError: Si la nueva contraseña fue usada recientemente
-                (validado por trigger de DB). HTTP 409.
+            ConflictError: Si la nueva contraseña coincide con la vigente.
+                HTTP 409.
+            InfrastructureError: Si falla la invalidación tras confirmar
+                la contraseña y su auditoría. HTTP 500.
         """
         # 1. Solo el propio usuario puede cambiar su contraseña
         if id_usuario != usuario_actual.id_usuario:
@@ -151,14 +157,38 @@ class CambiarContrasenaUseCase:
                 ),
             )
 
-        # 5. Aplicar nueva contraseña (trigger valida no-reuso → ConflictError 409)
-        usuario.cambiar_contrasena(Contrasena.cifrar(dto.nueva_contrasena))
+        # 5. BCrypt incorpora un salt distinto en cada cifrado, por lo que no
+        # sirve comparar hashes. Verificar la nueva entrada contra el hash
+        # vigente aplica la regla aunque cambie el valor enviado como clave
+        # actual o la credencial provenga de otro flujo compatible.
+        if usuario.contrasena.verificar(dto.nueva_contrasena):
+            raise ConflictError(
+                code="CONTRASENA_REUTILIZADA",
+                message=(
+                    "No se permite reutilizar la contraseña actual. "
+                    "Defina una clave completamente nueva."
+                ),
+            )
+
+        # 6. Aplicar nueva contraseña.
+        try:
+            nueva_contrasena = Contrasena.cifrar(dto.nueva_contrasena)
+        except Exception as exc:
+            self.db.rollback()
+            raise InfrastructureError(
+                code="ERROR_CIFRADO_CONTRASENA",
+                message=(
+                    "Error interno de seguridad al cifrar la nueva credencial. "
+                    "La contraseña anterior sigue vigente."
+                ),
+                original_error=exc,
+            ) from exc
+        usuario.cambiar_contrasena(nueva_contrasena)
 
         try:
             self.usuarios_repo.cambiar_contrasena(usuario)
             cuenta.resetear_cambio_contrasena()
             self.cuentas_repo.guardar(cuenta)
-            self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_CAMBIO_CONTRASENA,
                 exitoso=True,
@@ -170,9 +200,50 @@ class CambiarContrasenaUseCase:
             self.db.rollback()
             raise
 
+        # RF-07 conserva la contraseña y su auditoría aunque falle el cierre.
+        # RF-09 tiene una política distinta: no compartir esta separación allí.
+        error_invalidacion = None
+        try:
+            # El SAVEPOINT revierte únicamente los cambios parciales de sesiones
+            # si el repositorio falla y mantiene utilizable la sesión SQL.
+            with self.db.begin_nested():
+                self.sesiones_repo.invalidar_todas_sesiones(cuenta.id_cuenta_usuario)
+        except Exception as exc:
+            logger.exception("Fallo al invalidar sesiones tras cambio de contraseña: usuario=%s", id_usuario)
+            error_invalidacion = InfrastructureError(
+                code="CAMBIO_CONTRASENA_INVALIDACION_FALLIDA",
+                message=(
+                    "Contraseña actualizada, pero ocurrió un error al cerrar las sesiones "
+                    "en otros dispositivos. Se recomienda cerrar sesión manualmente en "
+                    "todos sus equipos para garantizar la seguridad."
+                ),
+                original_error=exc,
+            )
+        else:
+            try:
+                self.db.commit()
+            except Exception as exc:
+                self.db.rollback()
+                logger.exception(
+                    "Fallo al confirmar invalidación de sesiones: usuario=%s",
+                    id_usuario,
+                )
+                error_invalidacion = InfrastructureError(
+                    code="CAMBIO_CONTRASENA_INVALIDACION_FALLIDA",
+                    message=(
+                        "Contraseña actualizada, pero ocurrió un error al cerrar las sesiones "
+                        "en otros dispositivos. Se recomienda cerrar sesión manualmente en "
+                        "todos sus equipos para garantizar la seguridad."
+                    ),
+                    original_error=exc,
+                )
+
         if self.notificacion_service:
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_CAMBIO_CONTRASENA,
                 id_usuario=id_usuario,
                 correo_destino=str(usuario.correo),
             )
+
+        if error_invalidacion is not None:
+            raise error_invalidacion from error_invalidacion.original_error

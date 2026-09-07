@@ -1,0 +1,155 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g82-rf25",
+    "name": "TC-M09-G82 - Restricción de acceso a módulos y fincas no autorizados",
+    "description": "Validación de autorización server-side para impedir el acceso de un usuario no autorizado a un módulo restringido y a una finca que no está asignada a su usuario.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login usuario Ingeniero",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login del usuario Ingeniero exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json.token).to.exist;",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M09-156 - Impedir acceso a módulo no autorizado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/umbrales",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "umbrales"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Módulo no autorizado devuelve HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "",
+              "pm.test('La respuesta indica acceso denegado', function () {",
+              "    pm.expect(json).to.have.property('error_code');",
+              "    pm.expect(json.error_code).to.eql('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "pm.test('No se exponen datos del módulo restringido', function () {",
+              "    pm.expect(json).to.not.have.property('items');",
+              "    pm.expect(json).to.not.have.property('data');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. TC-M09-157 - Impedir acceso a finca no asignada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/19",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas",
+            "19"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Finca no asignada devuelve HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "",
+              "pm.test('La respuesta indica acceso denegado', function () {",
+              "    pm.expect(json).to.have.property('error_code');",
+              "    pm.expect(json.error_code).to.eql('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "pm.test('No se exponen datos de la finca no autorizada', function () {",
+              "    pm.expect(json).to.not.have.property('id_finca');",
+              "    pm.expect(json).to.not.have.property('nombre');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

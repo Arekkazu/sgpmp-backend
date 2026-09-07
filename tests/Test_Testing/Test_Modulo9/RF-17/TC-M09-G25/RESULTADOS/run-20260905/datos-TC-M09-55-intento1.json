@@ -1,0 +1,91 @@
+{
+  "grupo": "TC-M09-G25",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:04:46.954Z",
+  "preflight": [
+    {
+      "url": "https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/login",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/umbrales",
+      "respuestasDeclaradas": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ]
+    }
+  ],
+  "loginStatus": 200,
+  "plan": {
+    "caso": "TC-M09-55",
+    "regla": "Humedad <= 100 %",
+    "especie": {
+      "id": 4,
+      "nombre": "Cachama Blanca",
+      "es_activo": true
+    },
+    "variable": {
+      "id": 10,
+      "nombre": "Humedad Relativa",
+      "unidad": "%",
+      "catalogoActivo": true,
+      "fisicoMin": 0,
+      "fisicoMax": 100
+    },
+    "combinacionLibre": true,
+    "umbralesPrevios": [
+      {
+        "id": 10,
+        "id_variable_ambiental": 1,
+        "es_activo": true
+      },
+      {
+        "id": 11,
+        "id_variable_ambiental": 3,
+        "es_activo": true
+      }
+    ],
+    "invalidezIntencional": "valor_max=120 supera el maximo fisico 100 %",
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 10,
+      "valor_min": 50,
+      "valor_max": 120,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": 50,
+          "limite_superior": 70
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 70,
+          "limite_superior": 90
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 90,
+          "limite_superior": 120
+        }
+      ]
+    }
+  }
+}

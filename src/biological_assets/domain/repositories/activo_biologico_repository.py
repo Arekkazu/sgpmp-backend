@@ -7,6 +7,7 @@ from typing import Optional
 from src.biological_assets.domain.entities.activo_biologico import (
     ActivoBiologico,
     GestionFase,
+    HistorialActivo,
     HistorialInfraestructura,
 )
 
@@ -45,6 +46,12 @@ class ActivoBiologicoRepository(ABC):
         """Retorna el historial completo de asociaciones de infraestructura."""
 
     @abstractmethod
+    def obtener_asociacion_en_fecha(
+        self, id_activo: int, fecha_referencia: datetime
+    ) -> Optional[HistorialInfraestructura]:
+        """Retorna la asociación de infraestructura vigente en una fecha pasada (CA-3, RF-61)."""
+
+    @abstractmethod
     def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
         """Persiste los cambios en detalle_individual del activo."""
 
@@ -75,3 +82,7 @@ class ActivoBiologicoRepository(ABC):
     @abstractmethod
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
         """Retorna la gestión de fase activa del activo, o None si no tiene."""
+
+    @abstractmethod
+    def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        """Inserta un snapshot versionado en historial_activos (RF-33: Evento 0 en el registro)."""

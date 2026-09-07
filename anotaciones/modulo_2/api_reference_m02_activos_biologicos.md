@@ -219,11 +219,11 @@ Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
-| `estado_nuevo` | `str` | Uno de `ACTIVO, INACTIVO, EN_TRATAMIENTO, AISLADO, CERRADO, BAJA` |
+| `estado_nuevo` | `str` | Uno de `ACTIVO, INACTIVO, EN_TRATAMIENTO, AISLADO` |
 | `fecha_cambio_estado` | `date` | No puede ser futura |
 | `motivo_cambio` | `str` | No vacío (stripped) |
 
-`estado_nuevo` se traduce internamente a `id_estado_nuevo` vía `{'ACTIVO':1,'INACTIVO':2,'EN_TRATAMIENTO':3,'AISLADO':4,'CERRADO':5,'BAJA':6}`. La transición se valida contra la máquina de estados — ver [Máquina de estados](#máquina-de-estados-estadoactivo) más abajo.
+`estado_nuevo` se traduce internamente a `id_estado_nuevo` vía `{'ACTIVO':1,'INACTIVO':2,'EN_TRATAMIENTO':3,'AISLADO':4}`. La transición se valida contra la máquina de estados — ver [Máquina de estados](#máquina-de-estados-estadoactivo) más abajo. `CERRADO` y `BAJA` quedan excluidos a propósito (principio de centralización obligatoria de RF-44): solo se alcanzan vía `POST /{id_activo}/cierre` (RF-38) y `POST /{id_activo}/eventos/baja` (RF-45), que aplican las validaciones y efectos secundarios propios de esas transiciones (cierre de fase, sensores IoT, descuento de cantidad de lote, fila en `eventos_bajas`) — un `estado_nuevo` de `CERRADO`/`BAJA` en este endpoint responde `400`.
 
 **Response `CambioEstadoResponse`:**
 

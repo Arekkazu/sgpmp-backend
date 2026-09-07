@@ -1,0 +1,271 @@
+{
+  "grupo": "TC-M09-G24",
+  "rol": "Administrador",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "rama": "qa/juan-esteban-m09",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-05T21:44:37.447Z",
+  "estado": "FAIL",
+  "caso": "TC-M09-54",
+  "plan": {
+    "caso": "TC-M09-54",
+    "especie": "Cachama Blanca",
+    "id_especie": 4,
+    "variable": "Temperatura Ambiental",
+    "id_variable": 9,
+    "unidad": "°C",
+    "limitesFisicos": [
+      -50,
+      100
+    ],
+    "puntos": {
+      "a": -20,
+      "b": 10,
+      "e": 25,
+      "c": 40,
+      "d": 70,
+      "g": 85
+    },
+    "defecto": {
+      "regla": "FA-05 continuidad correcta",
+      "detalle": "niveles contiguos que cubren exactamente [-20, 70] sin huecos ni solapamientos",
+      "codigoEsperado": null
+    },
+    "beforeIds": [
+      10,
+      11
+    ],
+    "payload": {
+      "id_especie": 4,
+      "id_variable_ambiental": 9,
+      "valor_min": -20,
+      "valor_max": 70,
+      "niveles": [
+        {
+          "nivel": "normal",
+          "limite_inferior": -20,
+          "limite_superior": 10
+        },
+        {
+          "nivel": "precaucion",
+          "limite_inferior": 10,
+          "limite_superior": 40
+        },
+        {
+          "nivel": "critico",
+          "limite_inferior": 40,
+          "limite_superior": 70
+        }
+      ]
+    }
+  },
+  "events": [
+    {
+      "caso": "TC-M09-54",
+      "method": "POST",
+      "endpoint": "/configuracion/umbrales",
+      "status": 500,
+      "payload": {
+        "id_especie": 4,
+        "id_variable_ambiental": 9,
+        "valor_min": -20,
+        "valor_max": 70,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": -20,
+            "limite_superior": 10
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 10,
+            "limite_superior": 40
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 40,
+            "limite_superior": 70
+          }
+        ]
+      },
+      "response": {
+        "error_code": "ERROR_INTERNO",
+        "message": "Error inesperado en base de datos",
+        "fields": [],
+        "timestamp": "2026-09-05T21:44:36.825623+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-54",
+      "method": "GET",
+      "endpoint": "/configuracion/umbrales",
+      "status": 200,
+      "response": {
+        "total": 2,
+        "items": [
+          {
+            "id_umbral_ambiental": 10,
+            "id_especie": 4,
+            "id_variable_ambiental": 1,
+            "unidad_medida": "°C",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "26.00",
+                "limite_superior": "32.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "22.00",
+                "limite_superior": "26.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "22.00"
+              }
+            ]
+          },
+          {
+            "id_umbral_ambiental": 11,
+            "id_especie": 4,
+            "id_variable_ambiental": 3,
+            "unidad_medida": "mg/L",
+            "valor_min": "0.00",
+            "valor_max": "100.00",
+            "es_activo": true,
+            "fecha_actualizacion": null,
+            "niveles": [
+              {
+                "nivel": "normal",
+                "limite_inferior": "4.00",
+                "limite_superior": "12.00"
+              },
+              {
+                "nivel": "precaucion",
+                "limite_inferior": "2.00",
+                "limite_superior": "4.00"
+              },
+              {
+                "nivel": "critico",
+                "limite_inferior": "0.00",
+                "limite_superior": "2.00"
+              }
+            ]
+          }
+        ]
+      },
+      "transportError": false
+    }
+  ],
+  "postGetStatus": 200,
+  "totalUmbralesEspecie": 2,
+  "idsEspecie": [
+    10,
+    11
+  ],
+  "persisted": [],
+  "idCreado": null,
+  "STOP_ALL": false,
+  "stats": {
+    "iterations": {
+      "total": 1,
+      "pending": 0,
+      "failed": 0
+    },
+    "items": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "scripts": {
+      "total": 2,
+      "pending": 0,
+      "failed": 1
+    },
+    "prerequests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "requests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "tests": {
+      "total": 2,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertions": {
+      "total": 11,
+      "pending": 0,
+      "failed": 10
+    },
+    "testScripts": {
+      "total": 2,
+      "pending": 0,
+      "failed": 1
+    },
+    "prerequestScripts": {
+      "total": 0,
+      "pending": 0,
+      "failed": 0
+    }
+  },
+  "failures": [
+    {
+      "test": "HTTP exactamente 201",
+      "message": "expected response to have status code 201 but got 500"
+    },
+    {
+      "test": "ID creado positivo",
+      "message": "expected undefined to be a number"
+    },
+    {
+      "test": "Especie y variable correctas",
+      "message": "expected undefined to deeply equal 4"
+    },
+    {
+      "test": "Estado activo",
+      "message": "expected undefined to deeply equal true"
+    },
+    {
+      "test": "valor_min y valor_max correctos",
+      "message": "expected NaN to deeply equal -20"
+    },
+    {
+      "test": "Exactamente tres niveles",
+      "message": "Target cannot be null or undefined."
+    },
+    {
+      "test": "Niveles esperados",
+      "message": "Cannot read properties of undefined (reading 'find')"
+    },
+    {
+      "test": "Continuidad matematica de los niveles",
+      "message": "ns is not iterable"
+    },
+    {
+      "test": "Ausencia de solapamiento",
+      "message": "ns is not iterable"
+    },
+    {
+      "test": "Cobertura completa del rango padre",
+      "message": "ns is not iterable"
+    },
+    {
+      "test": "SyntaxError",
+      "message": "Identifier 'o' has already been declared"
+    }
+  ],
+  "reporter": "htmlextra 1.23.1",
+  "html": "newman-TC-M09-54-intento1.html"
+}

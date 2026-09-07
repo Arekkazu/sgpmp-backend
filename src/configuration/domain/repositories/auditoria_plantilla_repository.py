@@ -8,9 +8,21 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+from src.configuration.domain.entities.auditoria_plantilla import AuditoriaPlantilla
+
 
 class AuditoriaPlantillaRepository(ABC):
-    """Contrato para registrar operaciones sobre plantillas de configuración."""
+    """Contrato para registrar y consultar operaciones sobre plantillas."""
+
+    @abstractmethod
+    def listar_todas(self) -> list[AuditoriaPlantilla]:
+        """Retorna todo el historial de auditoría (creación y versionado).
+
+        CU-07 Flujo D (RF-30): sin esto, no hay forma de consultar quién creó
+        o versionó una plantilla y cuándo, aunque el registro ya se guarde en
+        cada operación de escritura.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def registrar(

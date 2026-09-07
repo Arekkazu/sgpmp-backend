@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime
+from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -18,7 +19,11 @@ from src.biological_assets.application.use_cases.gestion.consultar_historial_fas
 )
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
-from src.biological_assets.domain.entities.activo_biologico import GestionFase, HistorialInfraestructura
+from src.biological_assets.domain.entities.activo_biologico import (
+    GestionFase,
+    HistorialInfraestructura,
+    SensorEnInfraestructura,
+)
 from src.biological_assets.infrastructure.adapters.ciclo_productivo_m09_adapter import CicloProductivoM09Adapter
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
@@ -100,6 +105,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
+    SensorEnInfraestructuraResponse,
     RegistrarEventoCrecimientoResponse,
     RegistrarEventoReproductivoResponse,
     RegistrarEventoSanitarioResponse,
@@ -181,6 +187,16 @@ def _historial_to_response(h: HistorialInfraestructura) -> AsociacionInfraestruc
         tipo_infraestructura=h.tipo_infraestructura,
         fecha_inicio=h.fecha_inicio,
         fecha_fin=h.fecha_fin,
+    )
+
+
+def _sensor_to_response(s: SensorEnInfraestructura) -> SensorEnInfraestructuraResponse:
+    return SensorEnInfraestructuraResponse(
+        id_sensor=s.id_sensor,
+        nombre=s.nombre,
+        id_dispositivo_iot=s.id_dispositivo_iot,
+        punto_instalacion=s.punto_instalacion,
+        categoria=s.categoria,
     )
 
 
@@ -488,27 +504,37 @@ def consultar_asociacion(
         'ACTIVA',
         description="'ACTIVA' devuelve la asociación vigente. 'HISTORIAL' devuelve todos los períodos.",
     ),
+    fecha_referencia: Optional[datetime] = Query(
+        default=None,
+        description=(
+            'Consulta cuál era la asociación vigente en una fecha pasada (CA-3, útil para RF-61). '
+            "Solo válido junto a tipo_consulta='ACTIVA'."
+        ),
+    ),
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConsultaAsociacionResponse:
     use_case = ConsultarAsociacionUseCase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_activo, tipo_consulta, usuario_actual)
-
-    if tipo_consulta == 'ACTIVA':
-        return ConsultaAsociacionResponse(
-            tipo_consulta='ACTIVA',
-            id_activo_biologico=id_activo,
-            asociacion_activa=_historial_to_response(resultado) if resultado else None,
-        )
+    resultado = use_case.execute(id_activo, tipo_consulta, fecha_referencia, usuario_actual)
 
     return ConsultaAsociacionResponse(
-        tipo_consulta='HISTORIAL',
-        id_activo_biologico=id_activo,
-        historial=[_historial_to_response(h) for h in resultado],
+        tipo_consulta=resultado.tipo_consulta,
+        id_activo_biologico=resultado.id_activo_biologico,
+        asociacion_activa=(
+            _historial_to_response(resultado.asociacion_activa) if resultado.asociacion_activa else None
+        ),
+        historial=(
+            [_historial_to_response(h) for h in resultado.historial]
+            if resultado.historial is not None
+            else None
+        ),
+        sensores_en_infraestructura=[_sensor_to_response(s) for s in resultado.sensores_en_infraestructura],
+        advertencia_integridad=resultado.advertencia_integridad,
     )
 
 
