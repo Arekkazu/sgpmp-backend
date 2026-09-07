@@ -45,6 +45,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    user: "0:0"
+    command: >
+      sh -c "chown -R 1000:1000 /app/storage/modelos &&
+             exec uvicorn main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB}-db:5432/${POSTGRES_DB}
       ENV: ${ENV}
