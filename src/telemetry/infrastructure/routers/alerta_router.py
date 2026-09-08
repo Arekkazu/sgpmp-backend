@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import AuthenticationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -133,6 +134,9 @@ def listar_alertas(
         fecha_hasta=fecha_hasta,
         pagina=pagina,
         por_pagina=por_pagina,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return ListaAlertasSchema(
         total=total,
@@ -163,7 +167,12 @@ def obtener_alerta(
         alerta_repo=SqlAlchemyAlertaRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoAlertaRepository(db),
     )
-    alerta, historico = use_case.obtener_detalle(id_alerta)
+    alerta, historico = use_case.obtener_detalle(
+        id_alerta,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return AlertaDetalleSchema(
         **alerta.__dict__,
         historico_estados=[h.__dict__ for h in historico],

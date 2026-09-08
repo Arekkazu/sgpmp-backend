@@ -80,6 +80,8 @@ LEFT JOIN LATERAL (
       AND (saa2.fecha_finalizacion IS NULL OR saa2.fecha_finalizacion > t.timestamp_captura)
     ORDER BY saa2.fecha_asociacion DESC LIMIT 1
 ) saa_lat ON true
+LEFT JOIN modulo9.infraestructuras i
+    ON i.id_infraestructura = COALESCE(vl_lat.id_infraestructura, saa_lat.id_infraestructura)
 LEFT JOIN modulo2.activos_biologicos ab ON ab.id_activo_biologico = vl_lat.id_activo_biologico
 LEFT JOIN modulo9.especies esp ON esp.id_especie = ab.id_especie
 WHERE t.timestamp_captura >= :fecha_inicio
@@ -147,6 +149,9 @@ def _build_query(filtros: FiltrosHistorial, template: str) -> tuple[str, dict]:
     if filtros.origen_dato:
         conds.append("t.origen::text = :origen_dato")
         params['origen_dato'] = filtros.origen_dato
+    if filtros.ids_fincas_permitidas is not None:
+        conds.append('i.id_finca = ANY(:ids_fincas)')
+        params['ids_fincas'] = filtros.ids_fincas_permitidas
 
     filtros_where = ('AND ' + ' AND '.join(conds)) if conds else ''
     orden = 'ASC' if filtros.orden.upper() == 'ASC' else 'DESC'
