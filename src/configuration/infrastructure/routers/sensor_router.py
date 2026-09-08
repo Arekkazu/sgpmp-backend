@@ -37,6 +37,7 @@ from src.configuration.infrastructure.schema.calibracion_schema import (
 )
 from src.configuration.infrastructure.schema.sensor_area_schema import ListaSensorAreasResponse, SensorAreaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.models.roles_model import Roles
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -44,7 +45,6 @@ from src.shared.schemas import ErrorResponse
 router = APIRouter(prefix="/configuracion/sensores", tags=["Configuración - Sensores"])
 
 _RECURSO = 12  # modulo1.recursos: 'sensores'
-_ROL_PROD = 2  # modulo1.roles: mismo criterio que finca_router (Prod solo ve lo suyo)
 
 
 # ── RF-22: Asociar sensor a área productiva ───────────────────────────────────
@@ -101,7 +101,9 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
-    id_filtro = usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
+    rol = db.query(Roles.nombre_rol).filter(Roles.id_rol == usuario_actual.id_rol).scalar()
+    es_productor = bool(rol and "productor" in rol.casefold())
+    id_filtro = usuario_actual.id_usuario if es_productor else None
     use_case = ConsultarAsociacionesUseCase(
         db=db,
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
