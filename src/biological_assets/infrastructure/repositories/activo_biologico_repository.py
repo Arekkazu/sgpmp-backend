@@ -153,9 +153,32 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             })
         return self._a_entidad(orm)
 
-    def obtener_por_id(self, id_activo: int) -> Optional[ActivoBiologico]:
+    def obtener_por_id(
+        self,
+        id_activo: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[ActivoBiologico]:
         orm = self.db.get(ActivoBiologicoModel, id_activo)
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        if ids_fincas_permitidas is not None and not self._pertenece_a_fincas(
+            orm.id_infraestructura, ids_fincas_permitidas
+        ):
+            return None
+        return self._a_entidad(orm)
+
+    def _pertenece_a_fincas(
+        self, id_infraestructura: Optional[int], ids_fincas_permitidas: list[int]
+    ) -> bool:
+        if id_infraestructura is None:
+            return False
+        id_finca = (
+            self.db.query(InfraestructuraModel.id_finca)
+            .filter(InfraestructuraModel.id_infraestructura == id_infraestructura)
+            .scalar()
+        )
+        return id_finca in ids_fincas_permitidas
 
     def listar(
         self,
@@ -165,9 +188,17 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         id_infraestructura: Optional[int],
         pagina: int,
         page_size: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[ActivoBiologico], int]:
         try:
             q = self.db.query(ActivoBiologicoModel)
+            if ids_fincas_permitidas is not None:
+                q = q.join(
+                    InfraestructuraModel,
+                    ActivoBiologicoModel.id_infraestructura
+                    == InfraestructuraModel.id_infraestructura,
+                ).filter(InfraestructuraModel.id_finca.in_(ids_fincas_permitidas))
             if id_especie is not None:
                 q = q.filter(ActivoBiologicoModel.id_especie == id_especie)
             if tipo is not None:

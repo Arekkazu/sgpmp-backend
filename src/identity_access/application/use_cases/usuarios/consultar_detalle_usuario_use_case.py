@@ -12,6 +12,7 @@ en auditoría, la visualización se bloquea.
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
@@ -128,7 +129,19 @@ class ConsultarDetalleUsuarioUseCase:
             "nombre_rol": detalle.nombre_rol,
             "estado_cuenta": detalle.estado_cuenta,
             "version": detalle.version,
+            "fincas": self._obtener_fincas_asignadas(id_usuario),
         }
+
+    def _obtener_fincas_asignadas(self, id_usuario: int) -> list[dict]:
+        """Fincas vinculadas al usuario por ``modulo9.fincas.id_usuario`` (RF-25)."""
+        filas = self.db.execute(
+            text(
+                "SELECT id_finca, nombre FROM modulo9.fincas "
+                "WHERE id_usuario = :id_usuario ORDER BY nombre"
+            ),
+            {"id_usuario": id_usuario},
+        ).mappings().all()
+        return [{"id_finca": f["id_finca"], "nombre": f["nombre"]} for f in filas]
 
     def _puede_ver_identificacion_completa(self, usuario_actual: UsuarioActual) -> bool:
         """Indica si el actor tiene activo el permiso E sobre el recurso Usuarios.

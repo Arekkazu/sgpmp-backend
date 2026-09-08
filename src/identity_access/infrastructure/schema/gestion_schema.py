@@ -72,6 +72,13 @@ class UsuarioListadoPaginadoResponse(BaseModel):
     items: list[UsuarioListadoResponse]
 
 
+class FincaAsignadaResponse(BaseModel):
+    """Finca vinculada a un usuario (RF-25)."""
+
+    id_finca: int
+    nombre: str
+
+
 class UsuarioDetalleResponse(BaseModel):
     """Detalle completo de un usuario retornado en consulta de perfil o detalle admin.
 
@@ -93,6 +100,7 @@ class UsuarioDetalleResponse(BaseModel):
     nombre_rol: str
     estado_cuenta: str
     version: int
+    fincas: list[FincaAsignadaResponse] = []
 
 
 class ExportacionEncoladaResponse(BaseModel):

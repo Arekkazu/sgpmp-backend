@@ -4,9 +4,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.orm import Session
 
+from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.alerta import Alerta
 from src.telemetry.domain.repositories.alerta_repository import AlertaRepository
@@ -130,9 +132,44 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
-    def obtener_por_id(self, id_alerta: int) -> Optional[Alerta]:
+    def obtener_por_id(
+        self,
+        id_alerta: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[Alerta]:
         orm = self.db.query(AlertaModel).filter(AlertaModel.id_alerta == id_alerta).first()
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        if ids_fincas_permitidas is not None and not self._pertenece_a_fincas(orm, ids_fincas_permitidas):
+            return None
+        return self._a_entidad(orm)
+
+    def _pertenece_a_fincas(self, orm: AlertaModel, ids_fincas_permitidas: list[int]) -> bool:
+        if orm.id_infraestructura is not None:
+            return (
+                self.db.query(InfraestructuraModel.id_infraestructura)
+                .filter(
+                    InfraestructuraModel.id_infraestructura == orm.id_infraestructura,
+                    InfraestructuraModel.id_finca.in_(ids_fincas_permitidas),
+                )
+                .first()
+            ) is not None
+        if orm.id_activo_biologico is not None:
+            return (
+                self.db.query(ActivoBiologicoModel.id_activo_biologico)
+                .join(
+                    InfraestructuraModel,
+                    ActivoBiologicoModel.id_infraestructura
+                    == InfraestructuraModel.id_infraestructura,
+                )
+                .filter(
+                    ActivoBiologicoModel.id_activo_biologico == orm.id_activo_biologico,
+                    InfraestructuraModel.id_finca.in_(ids_fincas_permitidas),
+                )
+                .first()
+            ) is not None
+        return False
 
     def listar(
         self,
@@ -146,6 +183,8 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[Alerta], int]:
         q = self.db.query(AlertaModel)
         if estado:
@@ -164,6 +203,25 @@ class SqlAlchemyAlertaRepository(AlertaRepository):
             q = q.filter(AlertaModel.fecha_generacion >= fecha_desde)
         if fecha_hasta:
             q = q.filter(AlertaModel.fecha_generacion <= fecha_hasta)
+        if ids_fincas_permitidas is not None:
+            infra_ids = select(InfraestructuraModel.id_infraestructura).where(
+                InfraestructuraModel.id_finca.in_(ids_fincas_permitidas)
+            )
+            activo_ids = (
+                select(ActivoBiologicoModel.id_activo_biologico)
+                .join(
+                    InfraestructuraModel,
+                    ActivoBiologicoModel.id_infraestructura
+                    == InfraestructuraModel.id_infraestructura,
+                )
+                .where(InfraestructuraModel.id_finca.in_(ids_fincas_permitidas))
+            )
+            q = q.filter(
+                or_(
+                    AlertaModel.id_infraestructura.in_(infra_ids),
+                    AlertaModel.id_activo_biologico.in_(activo_ids),
+                )
+            )
 
         total = q.count()
         offset = (pagina - 1) * por_pagina

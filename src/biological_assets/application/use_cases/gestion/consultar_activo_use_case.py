@@ -23,8 +23,14 @@ class ConsultarActivoUseCase:
         self.repo = repo
         self.bitacora_repo = bitacora_repo
 
-    def execute(self, id_activo: int, usuario: Optional[UsuarioActual] = None) -> ActivoBiologico:
-        activo = self.repo.obtener_por_id(id_activo)
+    def execute(
+        self,
+        id_activo: int,
+        usuario: Optional[UsuarioActual] = None,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> ActivoBiologico:
+        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',

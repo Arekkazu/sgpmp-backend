@@ -37,8 +37,8 @@ from src.configuration.infrastructure.schema.calibracion_schema import (
 )
 from src.configuration.infrastructure.schema.sensor_area_schema import ListaSensorAreasResponse, SensorAreaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
-from src.identity_access.infrastructure.models.roles_model import Roles
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -101,9 +101,11 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
-    rol = db.query(Roles.nombre_rol).filter(Roles.id_rol == usuario_actual.id_rol).scalar()
-    es_productor = bool(rol and "productor" in rol.casefold())
-    id_filtro = usuario_actual.id_usuario if es_productor else None
+    id_filtro = (
+        None
+        if AlcanceFincaAdapter(db).es_global(usuario_actual.id_rol)
+        else usuario_actual.id_usuario
+    )
     use_case = ConsultarAsociacionesUseCase(
         db=db,
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),

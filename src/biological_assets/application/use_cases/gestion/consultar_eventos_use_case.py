@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo
@@ -20,8 +22,13 @@ class ConsultarEventosUseCase:
         self.activo_repo = activo_repo
         self.evento_repo = evento_repo
 
-    def execute(self, id_activo: int) -> list[EventoActivo]:
-        activo = self.activo_repo.obtener_por_id(id_activo)
+    def execute(
+        self,
+        id_activo: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[EventoActivo]:
+        activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El lote con id {id_activo} no existe.')
         if activo.tipo != 'POBLACIONAL':

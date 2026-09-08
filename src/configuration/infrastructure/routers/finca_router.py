@@ -31,14 +31,14 @@ from src.configuration.infrastructure.repositories.auditoria_finca_repository im
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
-from src.shared.rbac import require_permission, tiene_permiso
+from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/configuracion/fincas", tags=["Configuración - Fincas"])
 
 _RECURSO = 9   # modulo1.recursos: 'fincas'
-_ACCION_ACTUALIZAR = 3
 
 
 def _id_usuario_alcance_lectura(
@@ -47,16 +47,12 @@ def _id_usuario_alcance_lectura(
 ) -> Optional[int]:
     """Resuelve el alcance de datos sin depender de IDs fijos de roles.
 
-    Quien administra fincas mediante el permiso U conserva la vista global. Un
-    rol de solo lectura mantiene su permiso R, pero queda limitado a las fincas
-    vinculadas a su usuario por ``modulo9.fincas.id_usuario``.
+    Quien administra fincas (permiso de gestión sobre el recurso) conserva la
+    vista global. Un rol de solo lectura mantiene su permiso R, pero queda
+    limitado a las fincas vinculadas a su usuario por ``modulo9.fincas.id_usuario``.
     """
-    if tiene_permiso(
-        db,
-        usuario_actual.id_rol,
-        _RECURSO,
-        _ACCION_ACTUALIZAR,
-    ):
+    alcance = AlcanceFincaAdapter(db)
+    if alcance.es_global(usuario_actual.id_rol):
         return None
     return usuario_actual.id_usuario
 
