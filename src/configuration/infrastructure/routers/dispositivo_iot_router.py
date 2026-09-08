@@ -43,6 +43,7 @@ from src.configuration.infrastructure.schema.dispositivo_iot_schema import Dispo
 from src.configuration.infrastructure.schema.sensor_schema import ListaSensoresResponse, SensorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import GatewayTimeoutError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import require_permission
@@ -111,7 +112,13 @@ def listar_dispositivos_iot(
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaDispositivoIotRepository(db),
     )
-    dispositivos = use_case.listar(usuario_actual, solo_activos=solo_activos)
+    dispositivos = use_case.listar(
+        usuario_actual,
+        solo_activos=solo_activos,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     items = [DispositivoIotResponse.from_entity(d) for d in dispositivos]
     return ListaDispositivosIotResponse(total=len(items), items=items)
 
@@ -139,7 +146,13 @@ def obtener_dispositivo_iot(
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaDispositivoIotRepository(db),
     )
-    dispositivo = use_case.obtener(id_dispositivo_iot, usuario_actual)
+    dispositivo = use_case.obtener(
+        id_dispositivo_iot,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return DispositivoIotResponse.from_entity(dispositivo)
 
 
