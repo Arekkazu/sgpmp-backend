@@ -29,5 +29,5 @@ class FincaRepository(ABC):
 
     @abstractmethod
     def listar(self, *, id_usuario_filtro: Optional[int] = None, solo_activas: bool = False) -> list[Finca]:
-        """Lista fincas. Si id_usuario_filtro es provisto, filtra por productor."""
+        """Lista fincas; el filtro opcional limita al usuario asignado."""
         raise NotImplementedError

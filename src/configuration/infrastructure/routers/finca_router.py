@@ -1,8 +1,8 @@
 """Router FastAPI para la gestión de fincas (`/configuracion/fincas`).
 
-RF-19 — CU04:
+RF-19 — CU04 y alcance de RF-25:
   A) POST  /configuracion/fincas          — Registrar (Admin)
-  B) GET   /configuracion/fincas          — Listar (Admin=todas, Prod=las suyas)
+  B) GET   /configuracion/fincas          — Listar según el contexto del usuario
   C) GET   /configuracion/fincas/{id}    — Detalle
   D) PATCH /configuracion/fincas/{id}    — Editar (Admin; 412 concurrencia)
   E) PATCH /configuracion/fincas/{id}/desactivar — Desactivar (Admin; FA-04)
@@ -32,14 +32,33 @@ from src.configuration.infrastructure.repositories.finca_repository import SqlAl
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
-from src.shared.rbac import require_permission
+from src.shared.rbac import require_permission, tiene_permiso
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/configuracion/fincas", tags=["Configuración - Fincas"])
 
 _RECURSO = 9   # modulo1.recursos: 'fincas'
-_ROL_ADMIN = 1
-_ROL_PROD = 2
+_ACCION_ACTUALIZAR = 3
+
+
+def _id_usuario_alcance_lectura(
+    db: Session,
+    usuario_actual: UsuarioActual,
+) -> Optional[int]:
+    """Resuelve el alcance de datos sin depender de IDs fijos de roles.
+
+    Quien administra fincas mediante el permiso U conserva la vista global. Un
+    rol de solo lectura mantiene su permiso R, pero queda limitado a las fincas
+    vinculadas a su usuario por ``modulo9.fincas.id_usuario``.
+    """
+    if tiene_permiso(
+        db,
+        usuario_actual.id_rol,
+        _RECURSO,
+        _ACCION_ACTUALIZAR,
+    ):
+        return None
+    return usuario_actual.id_usuario
 
 
 @router.post(
@@ -83,9 +102,7 @@ def listar_fincas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaFincasResponse:
-    id_filtro: Optional[int] = (
-        usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
-    )
+    id_filtro = _id_usuario_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     fincas = use_case.listar(id_usuario_filtro=id_filtro, solo_activas=solo_activas)
     items = [FincaResponse.from_entity(f) for f in fincas]
@@ -108,9 +125,7 @@ def obtener_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
-    id_filtro: Optional[int] = (
-        usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
-    )
+    id_filtro = _id_usuario_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
     finca = use_case.obtener(id_finca, id_usuario_filtro=id_filtro)
     return FincaResponse.from_entity(finca)

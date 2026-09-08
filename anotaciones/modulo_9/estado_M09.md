@@ -348,6 +348,13 @@ más amplio del que el RF autoriza explícitamente.
   `usuario_actual.id_rol == _ROL_PROD` con `_ROL_PROD = 2` hardcodeado en el router — no es
   una decisión de acceso (RBAC sigue en `modulo1.permisos`), pero si el `id_rol` de Productor
   cambiara alguna vez, el alcance de datos se rompería en silencio, sin error visible.
+- **Aislamiento de lectura — RESUELTO (2026-09-07, issue #176; rc.32).** El fix de `dev`
+  reemplaza el chequeo anterior: los roles con permiso `R` y sin permiso administrativo `U`
+  consultan exclusivamente las fincas vinculadas a su usuario mediante `fincas.id_usuario`;
+  el detalle de una finca ajena ahora responde `403` (antes `404`) sin exponer datos y el
+  listado omite recursos fuera del contexto. Se elimina el `_ROL_PROD = 2` hardcodeado: el
+  alcance global se resuelve por permisos activos, sin IDs de rol fijos. Ver
+  `inc_m09_g82_acceso_finca.md`. Pendiente reverificar TC-M09-G44/G91 con este cambio.
 - Mismo gap de unicidad "global y por productor" del nombre — no se confirmó si la
   restricción `UNIQUE` de `modulo9.fincas.nombre` es global (lo más probable, dado que no se
   encontró columna compuesta con `id_usuario`) o si además hay una unicidad específica por

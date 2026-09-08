@@ -16,6 +16,7 @@ Verifica con fakes (sin BD; modulo9 no existe en la BD `pruebas`).
 """
 from __future__ import annotations
 
+import io
 import os
 from collections.abc import Generator
 from typing import Optional
@@ -23,6 +24,7 @@ from typing import Optional
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from src.configuration.application.use_cases.personalizacion.guardar_identidad_visual_use_case import (
     GuardarIdentidadVisualUseCase,
@@ -37,7 +39,13 @@ from src.shared.errors import ValidationError
 
 ADMIN = UsuarioActual(id_usuario=1, id_token=1, id_rol=1, id_estado_cuenta=2)
 
-PNG_MINIMO = b"\x89PNG\r\n\x1a\n" + b"\x00" * 32
+def _png_minimo() -> bytes:
+    buf = io.BytesIO()
+    Image.new("RGBA", (10, 10), (26, 107, 60, 255)).save(buf, format="PNG")
+    return buf.getvalue()
+
+
+PNG_MINIMO = _png_minimo()
 
 
 class DbFake:
@@ -137,7 +145,7 @@ def test_el_color_ajustado_no_reemplaza_al_guardado() -> None:
 
 def test_el_logo_se_guarda_bajo_la_ruta_publica_montada(tmp_path, monkeypatch) -> None:
     """La ruta persistida tiene que coincidir con lo que `main.py` sirve como estatico."""
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(almacen_logos, "DIRECTORIO_LOGOS", str(tmp_path))
     db, repo = DbFake(), IdentidadRepoFake()
 
     guardada = _caso(repo, db).execute(_dto("#1A6B3C"), PNG_MINIMO, "image/png", ADMIN)
@@ -145,8 +153,8 @@ def test_el_logo_se_guarda_bajo_la_ruta_publica_montada(tmp_path, monkeypatch) -
     assert guardada.logo_path.startswith(almacen_logos.RUTA_PUBLICA_LOGOS + "/")
     assert guardada.logo_path.endswith(".png")
     # Y el archivo existe donde el montaje lo va a buscar.
-    relativa = guardada.logo_path[len(almacen_logos.RUTA_PUBLICA_BASE) + 1:]
-    assert os.path.isfile(os.path.join(almacen_logos.DIRECTORIO_BASE, relativa))
+    nombre = guardada.logo_path.rsplit("/", 1)[1]
+    assert os.path.isfile(os.path.join(str(tmp_path), nombre))
 
 
 @pytest.mark.parametrize("tipo", ["image/gif", "application/pdf", "image/webp", None])
@@ -194,24 +202,27 @@ def test_la_aplicacion_sirve_el_directorio_de_logotipos() -> None:
     import main
 
     montajes = {ruta.path for ruta in main.app.routes if hasattr(ruta, "app")}
-    assert almacen_logos.RUTA_PUBLICA_BASE in montajes
+    assert almacen_logos.RUTA_PUBLICA_LOGOS in montajes
 
 
 def test_el_logotipo_subido_se_descarga_por_su_ruta(tmp_path, monkeypatch) -> None:
     """Prueba de extremo a extremo del contrato: lo que se guarda, se sirve."""
     from fastapi.staticfiles import StaticFiles
 
-    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(almacen_logos, "DIRECTORIO_LOGOS", str(tmp_path))
     ruta = almacen_logos.guardar_logo(PNG_MINIMO, "image/png")
 
     app = FastAPI()
     app.mount(
-        almacen_logos.RUTA_PUBLICA_BASE,
-        StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+        almacen_logos.RUTA_PUBLICA_LOGOS,
+        StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
         name="uploads",
     )
     with TestClient(app) as cliente:
         respuesta = cliente.get(ruta)
 
     assert respuesta.status_code == 200
-    assert respuesta.content == PNG_MINIMO
+    # El contenido se reescribe (redimensionado + limpieza de metadatos), asi que
+    # se compara la imagen resultante, no los bytes crudos.
+    with Image.open(io.BytesIO(respuesta.content)) as descargada:
+        assert descargada.size == (10, 10)

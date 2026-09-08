@@ -1,3 +1,32 @@
+## [1.0.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.31...v1.0.0-rc.32) (2026-09-07)
+
+### Features
+
+* **rf23:** advertir si MQTT_BROKER_TOKEN quedo desincronizado de la BD ([a968fd2](https://github.com/Arekkazu/sgpmp-backend/commit/a968fd2fccbe0dcefe02c91c338d16c634b34ed8))
+
+### Bug Fixes
+
+* **rf26:** almacenamiento persistente y validacion real del logo institucional ([d25f2a0](https://github.com/Arekkazu/sgpmp-backend/commit/d25f2a0c275f6c845ec09d7c9af7fe41590c0d85))
+
+## [1.0.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.30...v1.0.0-rc.31) (2026-09-07)
+
+### Bug Fixes
+
+* remove temporary storage permissions command ([dff7c70](https://github.com/Arekkazu/sgpmp-backend/commit/dff7c70b61b1dbc8d9a717880cf02c60157c6738))
+
+## [1.0.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.29...v1.0.0-rc.30) (2026-09-07)
+
+### Bug Fixes
+
+* configure storage volume permissions on backend startup ([91fdf3e](https://github.com/Arekkazu/sgpmp-backend/commit/91fdf3ee24fd49c5d89f1877119168df7c42e866))
+
+## [1.0.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.28...v1.0.0-rc.29) (2026-09-07)
+
+### Bug Fixes
+
+* **docker:** se agregan volumenes al compose ([736272f](https://github.com/Arekkazu/sgpmp-backend/commit/736272fbbf1813c747391a48246da37042fccada))
+* **rf25:** restringir acceso a fincas ajenas ([cb6c817](https://github.com/Arekkazu/sgpmp-backend/commit/cb6c817dc808479e58169020c68042ca47f0b4f8)), closes [#176](https://github.com/Arekkazu/sgpmp-backend/issues/176)
+
 ## [1.0.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.27...v1.0.0-rc.28) (2026-09-07)
 
 ### Bug Fixes
