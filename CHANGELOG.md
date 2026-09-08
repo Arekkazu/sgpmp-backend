@@ -1,3 +1,9 @@
+## [1.0.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.33...v1.0.0-rc.34) (2026-09-08)
+
+### Bug Fixes
+
+* **rf22:** resolver productor por rol dinamico ([86cd196](https://github.com/Arekkazu/sgpmp-backend/commit/86cd196230da7ed9e8d0b79581f187942e08c540))
+
 ## [1.0.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.32...v1.0.0-rc.33) (2026-09-08)
 
 ### Bug Fixes
