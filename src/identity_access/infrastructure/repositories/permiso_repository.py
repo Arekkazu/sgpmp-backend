@@ -52,6 +52,20 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
         )
         return [self._a_entidad(p) for p in filas]
 
+    def listar_por_roles(self, id_roles: list[int]) -> dict[int, list[Permiso]]:
+        if not id_roles:
+            return {}
+        filas = (
+            self.db.query(Permisos)
+            .filter(Permisos.id_rol.in_(id_roles))
+            .order_by(Permisos.id_rol, Permisos.id_recurso, Permisos.id_accion)
+            .all()
+        )
+        agrupados: dict[int, list[Permiso]] = {}
+        for orm in filas:
+            agrupados.setdefault(orm.id_rol, []).append(self._a_entidad(orm))
+        return agrupados
+
     def buscar(self, id_rol: int, id_recurso: int, id_accion: int) -> Optional[Permiso]:
         orm = (
             self.db.query(Permisos)

@@ -17,6 +17,7 @@ def test_reutilizacion_se_rechaza_antes_de_cifrar_y_sin_efectos_colaterales() ->
 
     cuenta = MagicMock()
     cuenta.id_usuario = 74
+    cuenta.token_usado = False
     cuenta.bloqueado_hasta = None
     cuenta.fecha_cambio_estado = datetime.now(timezone.utc)
 
@@ -26,6 +27,7 @@ def test_reutilizacion_se_rechaza_antes_de_cifrar_y_sin_efectos_colaterales() ->
     cuentas.obtener_por_hash_token.return_value = cuenta
     sesiones = MagicMock()
     eventos = MagicMock()
+    intentos_anonimos = MagicMock()
     db = MagicMock()
     notificaciones = MagicMock()
     caso = RestablecerContrasenaUseCase(
@@ -33,6 +35,7 @@ def test_reutilizacion_se_rechaza_antes_de_cifrar_y_sin_efectos_colaterales() ->
         cuentas_repo=cuentas,
         sesiones_repo=sesiones,
         eventos_repo=eventos,
+        intentos_anonimos_repo=intentos_anonimos,
         db=db,
         notificacion_service=notificaciones,
     )
