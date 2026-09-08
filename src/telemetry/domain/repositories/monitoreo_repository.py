@@ -12,9 +12,15 @@ class MonitoreoRepository(ABC):
         id_infraestructura: Optional[int],
         pagina: int,
         por_pagina: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
         """Devuelve (sensores, total) del estado actual con contexto M09."""
 
     @abstractmethod
-    def obtener_resumen_unidades(self) -> list[ResumenUnidadProductiva]:
+    def obtener_resumen_unidades(
+        self,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[ResumenUnidadProductiva]:
         """Devuelve estado agregado por unidad productiva (para encabezado del dashboard)."""

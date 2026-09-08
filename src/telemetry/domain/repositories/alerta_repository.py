@@ -40,7 +40,12 @@ class AlertaRepository(ABC):
     ) -> Alerta: ...
 
     @abstractmethod
-    def obtener_por_id(self, id_alerta: int) -> Optional[Alerta]: ...
+    def obtener_por_id(
+        self,
+        id_alerta: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[Alerta]: ...
 
     @abstractmethod
     def listar(
@@ -55,4 +60,6 @@ class AlertaRepository(ABC):
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[Alerta], int]: ...

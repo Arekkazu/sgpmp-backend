@@ -61,6 +61,7 @@ LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infrae
 LEFT JOIN modulo9.fincas f ON f.id_finca = i.id_finca
 LEFT JOIN modulo3.alertas a ON a.id_alerta = eas.id_alerta AND a.estado_alerta = 'ACTIVA'
 WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestructura)
+  AND (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
 ORDER BY eas.id_sensor
 LIMIT :por_pagina OFFSET :offset
 """)
@@ -75,7 +76,9 @@ LEFT JOIN LATERAL (
     ORDER BY saa2.fecha_asociacion DESC
     LIMIT 1
 ) saa_lat ON true
+LEFT JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
 WHERE (:id_infraestructura IS NULL OR saa_lat.id_infraestructura = :id_infraestructura)
+  AND (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
 """)
 
 _SQL_RESUMEN = text("""
@@ -117,6 +120,7 @@ JOIN LATERAL (
 ) saa_lat ON true
 JOIN modulo9.infraestructuras i ON i.id_infraestructura = saa_lat.id_infraestructura
 JOIN modulo9.fincas f ON f.id_finca = i.id_finca
+WHERE (:filtro_finca = FALSE OR i.id_finca = ANY(:ids_fincas))
 GROUP BY i.id_infraestructura, i.nombre, i.id_finca, f.nombre
 ORDER BY i.nombre
 """)
@@ -132,19 +136,34 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
         id_infraestructura: Optional[int],
         pagina: int,
         por_pagina: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], int]:
         offset = (pagina - 1) * por_pagina
         params = {
             'id_infraestructura': id_infraestructura,
             'por_pagina': por_pagina,
             'offset': offset,
+            'filtro_finca': ids_fincas_permitidas is not None,
+            'ids_fincas': ids_fincas_permitidas or [],
         }
         filas = self.db.execute(_SQL_ESTADOS, params).mappings().all()
-        total = self.db.execute(_SQL_COUNT, {'id_infraestructura': id_infraestructura}).scalar_one()
+        total = self.db.execute(_SQL_COUNT, {
+            'id_infraestructura': id_infraestructura,
+            'filtro_finca': ids_fincas_permitidas is not None,
+            'ids_fincas': ids_fincas_permitidas or [],
+        }).scalar_one()
         return [self._fila_a_entidad(f) for f in filas], total
 
-    def obtener_resumen_unidades(self) -> list[ResumenUnidadProductiva]:
-        filas = self.db.execute(_SQL_RESUMEN).mappings().all()
+    def obtener_resumen_unidades(
+        self,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[ResumenUnidadProductiva]:
+        filas = self.db.execute(_SQL_RESUMEN, {
+            'filtro_finca': ids_fincas_permitidas is not None,
+            'ids_fincas': ids_fincas_permitidas or [],
+        }).mappings().all()
         return [
             ResumenUnidadProductiva(
                 id_infraestructura=f['id_infraestructura'],

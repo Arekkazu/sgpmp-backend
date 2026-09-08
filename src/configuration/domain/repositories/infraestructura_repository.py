@@ -10,7 +10,12 @@ from src.configuration.domain.entities.infraestructura import Infraestructura
 class InfraestructuraRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_infraestructura: int) -> Optional[Infraestructura]:
+    def obtener_por_id(
+        self,
+        id_infraestructura: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[Infraestructura]:
         raise NotImplementedError
 
     @abstractmethod
@@ -22,5 +27,11 @@ class InfraestructuraRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def listar_por_finca(self, id_finca: int, *, solo_activas: bool = False) -> list[Infraestructura]:
+    def listar_por_finca(
+        self,
+        id_finca: int,
+        *,
+        solo_activas: bool = False,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[Infraestructura]:
         raise NotImplementedError

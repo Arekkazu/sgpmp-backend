@@ -17,6 +17,7 @@ from src.identity_access.application.use_cases.registro.activar_cuenta_use_case 
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
     CaptchaVerifierPort,
@@ -29,6 +30,7 @@ from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
+from src.identity_access.infrastructure.dto.asignar_fincas_dto import AsignarFincasDTO
 from src.shared.rbac import require_permission
 from src.identity_access.infrastructure.dto.perfil_dto import (EditarPerfilAdminDTO, EditarPerfilDTO)
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
@@ -402,3 +404,28 @@ def gestionar_cuenta(
 )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}
+
+
+@router.put(
+    "/{id_usuario}/fincas",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_permission(1, 3))],
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+    },
+    summary="Asignar o desasignar fincas a un usuario (RF-25)",
+)
+def asignar_fincas(
+    id_usuario: int,
+    dto: AsignarFincasDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    use_case = AsignarFincasUsuarioUseCase(db=db)
+    resultado = use_case.execute(id_usuario, dto, usuario_actual)
+    return {
+        "message": f"Fincas asignadas al usuario {id_usuario}: {resultado['ids_fincas']}."
+    }

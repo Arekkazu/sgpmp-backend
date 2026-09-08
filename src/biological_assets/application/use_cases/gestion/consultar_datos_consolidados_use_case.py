@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -28,9 +29,14 @@ class ConsultarDatosConsolidadosUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
-        self, id_activo: int, dto: DatosConsolidadosDTO, usuario: UsuarioActual
+        self,
+        id_activo: int,
+        dto: DatosConsolidadosDTO,
+        usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> DatosConsolidados:
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',
