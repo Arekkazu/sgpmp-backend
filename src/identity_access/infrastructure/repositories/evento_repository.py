@@ -91,7 +91,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 fecha_hasta,
                 modelo,
             )
-            .order_by(modelo.fecha_evento.desc())
+            .order_by(modelo.fecha_evento.desc(), modelo.id_evento.desc())
             .offset(offset)
             .limit(limit)
             .all()
@@ -158,7 +158,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             self._query_con_filtros(
                 id_usuario, tipo_evento, categoria, fecha_desde, fecha_hasta, modelo
             )
-            .order_by(modelo.fecha_evento.desc())
+            .order_by(modelo.fecha_evento.desc(), modelo.id_evento.desc())
             .limit(limite)
         )
         lote: list = []

@@ -1,3 +1,13 @@
+## [1.0.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.32...v1.0.0-rc.33) (2026-09-08)
+
+### Bug Fixes
+
+* **rf10:** orden estable de paginacion de auditoria con desempate id_evento ([5dcbee8](https://github.com/Arekkazu/sgpmp-backend/commit/5dcbee82b248f1fa5ca0062a1f53b3e936697830))
+
+### Performance Improvements
+
+* **rf04:** eliminar N+1 en el listado de roles ([9faf733](https://github.com/Arekkazu/sgpmp-backend/commit/9faf7337eb98046c3e91478e14423f9f7a5e0329))
+
 ## [1.0.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.31...v1.0.0-rc.32) (2026-09-07)
 
 ### Features
