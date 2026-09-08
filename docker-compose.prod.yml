@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  # PostgreSQL service (full definition, no extends)
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    container_name: ${POSTGRES_DB}-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports: []   # no host port exposure in production
+    volumes:
+      - sgpmp_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # Backend service (full definition, no extends)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--workers", "4", "--bind", "0.0.0.0:8000"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB}-db:5432/${POSTGRES_DB}
+      ENV: ${ENV}
+      SECRET_KEY: ${SECRET_KEY}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      ROOT_PATH: ${ROOT_PATH}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS}
+      COOKIE_SECURE: ${COOKIE_SECURE}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH}
+      MODELOS_STORAGE_PATH: ${MODELOS_STORAGE_PATH}
+      LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/app/storage/modelos/logos}
+      AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH}
+      AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE}
+      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER}
+      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID}
+      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET}
+      RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL}
+      MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
+    volumes:
+      - sgpmp_modelos:/app/storage/modelos
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: always
+    user: "appuser"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2g
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 5
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    depends_on:
+      db:
+        condition: service_healthy
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  sgpmp_pgdata:
+    external: false
+  sgpmp_modelos:
+    external: false
+
