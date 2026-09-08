@@ -1,3 +1,16 @@
+## [1.0.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.34...v1.0.0-rc.35) (2026-09-08)
+
+### Features
+
+* **rf25:** asignar/desasignar fincas a usuarios desde administración (RF-25) ([f7e18aa](https://github.com/Arekkazu/sgpmp-backend/commit/f7e18aaa9babec8ff29726cbb64ae1a5782463bc))
+* **rf25:** generalizar alcance de activos en suministros por finca (RF-25) ([b21d0e7](https://github.com/Arekkazu/sgpmp-backend/commit/b21d0e76d79328a692f9bd39939b2c471e0d508f))
+* **rf25:** mecanismo común de alcance por finca (RF-25) ([f62a76e](https://github.com/Arekkazu/sgpmp-backend/commit/f62a76ed1d1ebec44531a23821c44d7ff8fb21c6))
+* **rf25:** restringir activos biológicos a la finca del usuario (RF-25) ([6ca29b5](https://github.com/Arekkazu/sgpmp-backend/commit/6ca29b5a8ad8dedcde87b3061d3df26aadbbfef9))
+* **rf25:** restringir dispositivos IoT a la finca del usuario (RF-25) ([32f18ae](https://github.com/Arekkazu/sgpmp-backend/commit/32f18aec18befdbc92e1c6c77339e1359fef9e40))
+* **rf25:** restringir infraestructura y asociaciones de sensor a la finca (RF-25) ([dc7e02b](https://github.com/Arekkazu/sgpmp-backend/commit/dc7e02bbe04de3be7a63289d908965dfbd027a3c))
+* **rf25:** restringir telemetría IoT a la finca del usuario (RF-25) ([6224ec3](https://github.com/Arekkazu/sgpmp-backend/commit/6224ec3d2e617fab6a28c6be74aabc7162fe0db4))
+* **rf25:** validar finca del activo en historial diagnóstico (RF-25) ([87b7aac](https://github.com/Arekkazu/sgpmp-backend/commit/87b7aaca4980f1147f02e8e2004a7bf873dec5ac))
+
 ## [1.0.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.33...v1.0.0-rc.34) (2026-09-08)
 
 ### Bug Fixes
