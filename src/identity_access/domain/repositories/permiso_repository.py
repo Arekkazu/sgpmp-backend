@@ -22,6 +22,22 @@ class PermisoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def listar_por_roles(self, id_roles: list[int]) -> dict[int, list[Permiso]]:
+        """Retorna los permisos de varios roles agrupados por ``id_rol``.
+
+        Reemplaza N llamadas a :meth:`listar_por_rol` por una sola consulta
+        ``WHERE id_rol IN (...)`` (evita el N+1 del listado de roles).
+
+        Args:
+            id_roles: Identificadores de los roles a consultar.
+
+        Returns:
+            Diccionario ``id_rol -> [Permiso]``, cada lista ordenada por
+            recurso y acción. Los roles sin permisos se omiten de las claves.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def buscar(self, id_rol: int, id_recurso: int, id_accion: int) -> Optional[Permiso]:
         """Busca un permiso por la combinación rol + recurso + acción."""
         raise NotImplementedError
