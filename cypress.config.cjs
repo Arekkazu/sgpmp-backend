@@ -1,4 +1,5 @@
 const { defineConfig } = require('cypress');
+const path = require('path');
 
 module.exports = defineConfig({
   e2e: {
@@ -7,18 +8,13 @@ module.exports = defineConfig({
     supportFile: 'cypress/support/e2e.js',
 
     reporter: 'mochawesome',
+
     reporterOptions: {
-      reportDir:
-        'tests/Test_Testing/Test_Modulo9/RF-27/TC-M09-G94/Resultados',
       overwrite: true,
       html: true,
       json: false,
-      charts: true,
-      reportPageTitle: 'TC-M09-G94 - RF-27'
+      charts: true
     },
-
-    screenshotsFolder:
-      'tests/Test_Testing/Test_Modulo9/RF-27/TC-M09-G94/Resultados',
 
     video: false,
     screenshotOnRunFailure: true
