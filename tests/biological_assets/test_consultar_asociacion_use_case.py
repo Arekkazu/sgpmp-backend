@@ -34,7 +34,7 @@ class ActivoRepoFake:
         self.historial = historial or []
         self.asociacion_en_fecha = asociacion_en_fecha
 
-    def obtener_por_id(self, _id: int):
+    def obtener_por_id(self, _id: int, ids_fincas_permitidas=None):
         return self.activo
 
     def obtener_asociacion_activa(self, _id: int):

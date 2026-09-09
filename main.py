@@ -31,6 +31,7 @@ from src.configuration.infrastructure.routers.infraestructura_router import rout
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
+from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
 from src.configuration.infrastructure.routers.tema_visual_router import router as tema_visual_router
 from src.configuration.infrastructure.routers.dashboard_layout_router import router as dashboard_layout_router
@@ -422,6 +423,10 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Solo advierte en logs si MQTT_BROKER_TOKEN quedó desincronizado de la BD;
+    # nunca escribe nada (ver docstring de la función).
+    verificar_token_configurado()
+
     tasks = [
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
@@ -474,14 +479,14 @@ app.add_middleware(
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
 
-# RF-26: los logotipos institucionales se escriben en `uploads/logos` (ver
+# RF-26: los logotipos institucionales se escriben en `LOGOS_STORAGE_PATH` (ver
 # `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
 app.mount(
-    almacen_logos.RUTA_PUBLICA_BASE,
-    StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+    almacen_logos.RUTA_PUBLICA_LOGOS,
+    StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
 

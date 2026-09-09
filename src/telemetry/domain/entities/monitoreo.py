@@ -107,6 +107,7 @@ class FiltrosHistorial:
     pagina: int = 1
     por_pagina: int = 100
     orden: str = 'DESC'
+    ids_fincas_permitidas: Optional[list[int]] = None
 
     def tiene_filtro_adicional(self) -> bool:
         """True si hay al menos un filtro adicional además del rango de fechas."""

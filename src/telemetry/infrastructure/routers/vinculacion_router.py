@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import NotFoundError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -69,6 +70,9 @@ def listar_vinculaciones(
         fecha_hasta=fecha_hasta,
         pagina=pagina,
         por_pagina=por_pagina,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return ListaVinculacionesSchema(
         total=total,
@@ -96,7 +100,12 @@ def obtener_vinculacion(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> VinculacionLecturaSchema:
     repo = SqlAlchemyVinculacionLecturaRepository(db)
-    vinculacion = repo.obtener_por_id(id_vinculacion_lectura)
+    vinculacion = repo.obtener_por_id(
+        id_vinculacion_lectura,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     if vinculacion is None:
         raise NotFoundError(
             code='VINCULACION_NO_ENCONTRADA',

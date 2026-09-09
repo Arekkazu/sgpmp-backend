@@ -10,7 +10,12 @@ from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 class DispositivoIotRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_dispositivo_iot: int) -> Optional[DispositivoIot]:
+    def obtener_por_id(
+        self,
+        id_dispositivo_iot: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[DispositivoIot]:
         ...
 
     @abstractmethod
@@ -26,5 +31,10 @@ class DispositivoIotRepository(ABC):
         ...
 
     @abstractmethod
-    def listar(self, *, solo_activos: bool = False) -> list[DispositivoIot]:
+    def listar(
+        self,
+        *,
+        solo_activos: bool = False,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[DispositivoIot]:
         ...

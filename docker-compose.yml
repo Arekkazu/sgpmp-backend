@@ -64,6 +64,9 @@ services:
       COOKIE_SAMESITE: ${COOKIE_SAMESITE}
       FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH}
       MODELOS_STORAGE_PATH: ${MODELOS_STORAGE_PATH}
+      # RF-26: reutiliza el volumen `sgpmp_modelos` ya provisionado (montado abajo
+      # en /app/storage/modelos) en vez de pedir uno nuevo solo para logotipos.
+      LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/app/storage/modelos/logos}
       AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH}
       AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE}
       AGROFUSION_ISSUER: ${AGROFUSION_ISSUER}
@@ -72,12 +75,16 @@ services:
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
+    volumes:
+      - sgpmp_modelos:/app/storage/modelos
     expose:
       - "8000"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    
 
 volumes:
   sgpmp_pgdata:
+  sgpmp_modelos:
