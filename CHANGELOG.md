@@ -1,3 +1,61 @@
+## [1.0.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.34...v1.0.0-rc.35) (2026-09-08)
+
+### Features
+
+* **rf25:** asignar/desasignar fincas a usuarios desde administración (RF-25) ([f7e18aa](https://github.com/Arekkazu/sgpmp-backend/commit/f7e18aaa9babec8ff29726cbb64ae1a5782463bc))
+* **rf25:** generalizar alcance de activos en suministros por finca (RF-25) ([b21d0e7](https://github.com/Arekkazu/sgpmp-backend/commit/b21d0e76d79328a692f9bd39939b2c471e0d508f))
+* **rf25:** mecanismo común de alcance por finca (RF-25) ([f62a76e](https://github.com/Arekkazu/sgpmp-backend/commit/f62a76ed1d1ebec44531a23821c44d7ff8fb21c6))
+* **rf25:** restringir activos biológicos a la finca del usuario (RF-25) ([6ca29b5](https://github.com/Arekkazu/sgpmp-backend/commit/6ca29b5a8ad8dedcde87b3061d3df26aadbbfef9))
+* **rf25:** restringir dispositivos IoT a la finca del usuario (RF-25) ([32f18ae](https://github.com/Arekkazu/sgpmp-backend/commit/32f18aec18befdbc92e1c6c77339e1359fef9e40))
+* **rf25:** restringir infraestructura y asociaciones de sensor a la finca (RF-25) ([dc7e02b](https://github.com/Arekkazu/sgpmp-backend/commit/dc7e02bbe04de3be7a63289d908965dfbd027a3c))
+* **rf25:** restringir telemetría IoT a la finca del usuario (RF-25) ([6224ec3](https://github.com/Arekkazu/sgpmp-backend/commit/6224ec3d2e617fab6a28c6be74aabc7162fe0db4))
+* **rf25:** validar finca del activo en historial diagnóstico (RF-25) ([87b7aac](https://github.com/Arekkazu/sgpmp-backend/commit/87b7aaca4980f1147f02e8e2004a7bf873dec5ac))
+
+## [1.0.0-rc.34](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.33...v1.0.0-rc.34) (2026-09-08)
+
+### Bug Fixes
+
+* **rf22:** resolver productor por rol dinamico ([86cd196](https://github.com/Arekkazu/sgpmp-backend/commit/86cd196230da7ed9e8d0b79581f187942e08c540))
+
+## [1.0.0-rc.33](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.32...v1.0.0-rc.33) (2026-09-08)
+
+### Bug Fixes
+
+* **rf10:** orden estable de paginacion de auditoria con desempate id_evento ([5dcbee8](https://github.com/Arekkazu/sgpmp-backend/commit/5dcbee82b248f1fa5ca0062a1f53b3e936697830))
+
+### Performance Improvements
+
+* **rf04:** eliminar N+1 en el listado de roles ([9faf733](https://github.com/Arekkazu/sgpmp-backend/commit/9faf7337eb98046c3e91478e14423f9f7a5e0329))
+
+## [1.0.0-rc.32](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.31...v1.0.0-rc.32) (2026-09-07)
+
+### Features
+
+* **rf23:** advertir si MQTT_BROKER_TOKEN quedo desincronizado de la BD ([a968fd2](https://github.com/Arekkazu/sgpmp-backend/commit/a968fd2fccbe0dcefe02c91c338d16c634b34ed8))
+
+### Bug Fixes
+
+* **rf26:** almacenamiento persistente y validacion real del logo institucional ([d25f2a0](https://github.com/Arekkazu/sgpmp-backend/commit/d25f2a0c275f6c845ec09d7c9af7fe41590c0d85))
+
+## [1.0.0-rc.31](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.30...v1.0.0-rc.31) (2026-09-07)
+
+### Bug Fixes
+
+* remove temporary storage permissions command ([dff7c70](https://github.com/Arekkazu/sgpmp-backend/commit/dff7c70b61b1dbc8d9a717880cf02c60157c6738))
+
+## [1.0.0-rc.30](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.29...v1.0.0-rc.30) (2026-09-07)
+
+### Bug Fixes
+
+* configure storage volume permissions on backend startup ([91fdf3e](https://github.com/Arekkazu/sgpmp-backend/commit/91fdf3ee24fd49c5d89f1877119168df7c42e866))
+
+## [1.0.0-rc.29](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.28...v1.0.0-rc.29) (2026-09-07)
+
+### Bug Fixes
+
+* **docker:** se agregan volumenes al compose ([736272f](https://github.com/Arekkazu/sgpmp-backend/commit/736272fbbf1813c747391a48246da37042fccada))
+* **rf25:** restringir acceso a fincas ajenas ([cb6c817](https://github.com/Arekkazu/sgpmp-backend/commit/cb6c817dc808479e58169020c68042ca47f0b4f8)), closes [#176](https://github.com/Arekkazu/sgpmp-backend/issues/176)
+
 ## [1.0.0-rc.28](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.27...v1.0.0-rc.28) (2026-09-07)
 
 ### Bug Fixes

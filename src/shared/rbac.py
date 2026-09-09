@@ -16,6 +16,26 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 
 
+def tiene_permiso(
+    db: Session,
+    id_rol: int,
+    id_recurso: int,
+    id_accion: int,
+) -> bool:
+    """Indica si un rol tiene activo un permiso sobre un recurso y acción."""
+    return (
+        db.query(Permisos)
+        .filter(
+            Permisos.id_rol == id_rol,
+            Permisos.id_recurso == id_recurso,
+            Permisos.id_accion == id_accion,
+            Permisos.es_activo.is_(True),
+        )
+        .first()
+        is not None
+    )
+
+
 def require_permission(
     id_recurso: int,
     id_accion: int,
@@ -70,17 +90,12 @@ def require_permission(
                 ),
             )
 
-        tiene_permiso = (
-            db.query(Permisos)
-            .filter(
-                Permisos.id_rol == usuario_actual.id_rol,
-                Permisos.id_recurso == id_recurso,
-                Permisos.id_accion == id_accion,
-                Permisos.es_activo.is_(True),
-            )
-            .first()
-        )
-        if tiene_permiso is None:
+        if not tiene_permiso(
+            db,
+            usuario_actual.id_rol,
+            id_recurso,
+            id_accion,
+        ):
             raise AuthorizationError(
                 code="ACCESO_DENEGADO",
                 message=(

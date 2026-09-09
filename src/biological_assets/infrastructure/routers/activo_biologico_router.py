@@ -118,6 +118,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rbac import require_permission
@@ -128,6 +129,13 @@ router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 _RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+
+
+def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
+    """Resuelve las fincas permitidas para el usuario (RF-25). ``None`` = global."""
+    return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario, usuario_actual.id_rol
+    )
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -266,7 +274,10 @@ def listar_activos(
         raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
 
     use_case = ListarActivosUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
-    registros, total = use_case.execute(dto)
+    registros, total = use_case.execute(
+        dto,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return ActivosPaginadosResponse(
         total_registros=total,
@@ -400,7 +411,11 @@ def consultar_activo(
         repo=SqlAlchemyActivoBiologicoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    activo = use_case.execute(id_activo, usuario_actual)
+    activo = use_case.execute(
+        id_activo,
+        usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return _activo_to_response(activo)
 
 
@@ -479,7 +494,7 @@ def historial_fases(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialFasesResponse:
     use_case = ConsultarHistorialFasesUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
-    fases = use_case.execute(id_activo)
+    fases = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
     return HistorialFasesResponse(
         id_activo_biologico=id_activo,
         fases=[_gestion_to_response(g) for g in fases],
@@ -520,7 +535,10 @@ def consultar_asociacion(
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_activo, tipo_consulta, fecha_referencia, usuario_actual)
+    resultado = use_case.execute(
+        id_activo, tipo_consulta, fecha_referencia, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
 
     return ConsultaAsociacionResponse(
         tipo_consulta=resultado.tipo_consulta,
@@ -636,7 +654,7 @@ def consultar_eventos(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
     )
-    eventos = use_case.execute(id_activo)
+    eventos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
     return HistorialEventosResponse(
         id_activo_biologico=id_activo,
         total=len(eventos),
@@ -939,7 +957,10 @@ def consultar_historial(
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    pagina_historial = use_case.execute(id_activo, dto, usuario_actual)
+    pagina_historial = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return HistorialActivoResponse(
         id_activo_biologico=id_activo,
         total_registros=pagina_historial.total_registros,
@@ -983,7 +1004,10 @@ def consultar_ficha_integral(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    ficha = use_case.execute(id_activo, usuario_actual)
+    ficha = use_case.execute(
+        id_activo, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return FichaIntegralResponse(
         id_activo_biologico=ficha.id_activo_biologico,
         identificador=ficha.identificador,
@@ -1175,7 +1199,10 @@ def consultar_indicadores(
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    resultado = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return IndicadoresActivoResponse(
         id_activo_biologico=resultado.id_activo_biologico,
         tipo_activo=resultado.tipo_activo,
@@ -1245,7 +1272,10 @@ def consultar_datos_consolidados(
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    datos = use_case.execute(id_activo, dto, usuario_actual)
+    datos = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return DatosConsolidadosResponse(
         id_activo_biologico=datos.id_activo_biologico,
         identificador=datos.identificador,

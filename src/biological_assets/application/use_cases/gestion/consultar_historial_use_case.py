@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -27,9 +28,16 @@ class ConsultarHistorialUseCase:
         self.transferencia_repo = transferencia_repo
         self.bitacora_repo = bitacora_repo
 
-    def execute(self, id_activo: int, dto: ConsultarHistorialDTO, usuario: UsuarioActual) -> PaginaHistorial:
+    def execute(
+        self,
+        id_activo: int,
+        dto: ConsultarHistorialDTO,
+        usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> PaginaHistorial:
         # E-01: el activo debe existir
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',

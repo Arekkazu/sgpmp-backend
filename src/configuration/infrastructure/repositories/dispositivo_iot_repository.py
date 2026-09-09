@@ -9,6 +9,7 @@ from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.infrastructure.models.dispositivo_iot_model import DispositivoIotModel
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
 
 
@@ -29,9 +30,24 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_id(self, id_dispositivo_iot: int) -> Optional[DispositivoIot]:
+    def obtener_por_id(
+        self,
+        id_dispositivo_iot: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[DispositivoIot]:
         orm = self.db.get(DispositivoIotModel, id_dispositivo_iot)
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        if ids_fincas_permitidas is not None:
+            id_finca = (
+                self.db.query(InfraestructuraModel.id_finca)
+                .filter(InfraestructuraModel.id_infraestructura == orm.id_infraestructura)
+                .scalar()
+            )
+            if id_finca not in ids_fincas_permitidas:
+                return None
+        return self._a_entidad(orm)
 
     def obtener_por_serial(self, serial: str) -> Optional[DispositivoIot]:
         orm = (
@@ -72,8 +88,19 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
 
-    def listar(self, *, solo_activos: bool = False) -> list[DispositivoIot]:
+    def listar(
+        self,
+        *,
+        solo_activos: bool = False,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[DispositivoIot]:
         query = self.db.query(DispositivoIotModel)
+        if ids_fincas_permitidas is not None:
+            query = query.join(
+                InfraestructuraModel,
+                DispositivoIotModel.id_infraestructura
+                == InfraestructuraModel.id_infraestructura,
+            ).filter(InfraestructuraModel.id_finca.in_(ids_fincas_permitidas))
         if solo_activos:
             query = query.filter(DispositivoIotModel.es_activo.is_(True))
         return [self._a_entidad(orm) for orm in query.order_by(DispositivoIotModel.serial).all()]

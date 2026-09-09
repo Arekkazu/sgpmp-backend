@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import ServiceUnavailableError, ValidationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -72,6 +73,9 @@ def obtener_dashboard(
         pagina=pagina,
         por_pagina=por_pagina,
         id_rol_usuario=usuario_actual.id_rol,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return DashboardResponseSchema(
         total=total,
@@ -106,6 +110,9 @@ def obtener_dashboard_por_unidad(
         pagina=pagina,
         por_pagina=por_pagina,
         id_rol_usuario=usuario_actual.id_rol,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
     return DashboardResponseSchema(
         total=total,
@@ -215,6 +222,9 @@ def consultar_historial(
         pagina=pagina,
         por_pagina=por_pagina,
         orden=orden.upper(),
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
     )
 
     use_case = ConsultarHistorialUseCase(

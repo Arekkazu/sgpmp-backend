@@ -52,6 +52,8 @@ class ConsultarAsociacionUseCase:
         tipo_consulta: str,
         fecha_referencia: Optional[datetime] = None,
         usuario: Optional[UsuarioActual] = None,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ResultadoConsultaAsociacion:
         if tipo_consulta not in ('ACTIVA', 'HISTORIAL'):
             raise ValidationError(
@@ -67,7 +69,7 @@ class ConsultarAsociacionUseCase:
                 field='fecha_referencia',
             )
 
-        activo = self.repo.obtener_por_id(id_activo)
+        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if not activo:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',

@@ -72,6 +72,14 @@ class EventoRepoFake:
         return self.consultas_previas
 
 
+class _ResultadoFincasVacio:
+    def mappings(self):
+        return self
+
+    def all(self):
+        return []
+
+
 class UnidadTrabajoFake:
     def __init__(self) -> None:
         self.commits = 0
@@ -82,6 +90,9 @@ class UnidadTrabajoFake:
 
     def rollback(self) -> None:
         self.rollbacks += 1
+
+    def execute(self, _sql, _params=None):
+        return _ResultadoFincasVacio()
 
 
 def _use_case(permisos: PermisoRepoFake, eventos: EventoRepoFake, db: UnidadTrabajoFake):
