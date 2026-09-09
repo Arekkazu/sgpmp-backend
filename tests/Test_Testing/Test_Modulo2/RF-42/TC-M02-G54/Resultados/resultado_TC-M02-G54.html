@@ -483,7 +483,7 @@ body.theme-light code {
 <div class="row">
   <div class="col-md-9 col-lg-12 main">
    <h1 class="display-2 text-center">Newman Run Dashboard</h1>
-   <h5 class="text-center">Tuesday, 08 September 2026 20:17:53</h5>
+   <h5 class="text-center">Wednesday, 09 September 2026 15:23:58</h5>
    <div class="row">
     <div class="col-lg-3 col-md-6">
      <div class="card text-white card-success">
@@ -551,18 +551,17 @@ body.theme-light code {
                 <div class="card-body">
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Collection Description</h5>
                 <div class="dyn-height">
-                    <code class="renderMarkdown">TC-M02-G54 (RF-42, CU08 Gestionar eventos reproductivos), equivalente a TC-M02-100 y TC-M02-104: intentar registrar directamente un evento reproductivo tipo NACIMIENTO sobre un activo que no tiene ningun evento previo de inseminacion/servicio ni de diagnostico.
+                    <code class="renderMarkdown">TC-M02-G54 (RF-42, CU08 Gestionar eventos reproductivos), sub-casos TC-M02-100 y TC-M02-104.
 
 ENDPOINT REAL BAJO PRUEBA: POST /activos-biologicos/{id_activo}/eventos/reproductivo (RegistrarEventoReproductivoUseCase, src/biological_assets/application/use_cases/gestion/registrar_evento_reproductivo_use_case.py). RBAC: recurso 29 (activos_biologicos), accion 1 (Crear).
 
-A diferencia de TC-M02-G53, esta validacion de secuencia ocurre completamente en Python ANTES de llegar a la base de datos (lineas ~103-119 del use case): para un activo INDIVIDUAL, &#x27;nacimiento&#x27; exige tanto tiene_servicio_o_inseminacion_previa() como tiene_diagnostico_positivo_previo(); si falta cualquiera de los dos, se lanza BusinessRuleError(code&#x3D;&#x27;SECUENCIA_REPRODUCTIVA_INVALIDA&#x27;) -&gt; HTTP 422, sin intentar ningun INSERT. Por eso este TC no deberia verse afectado por el bug 500 confirmado en TC-M02-G53 (ese bug esta en el camino de escritura de un evento valido, no en esta validacion previa).
+CORRECCION 2026-09-09: en la construccion original de este TC (2026-09-08) el &#x27;Sub-caso 2&#x27; de esta coleccion se etiqueto por error como TC-M02-104, pero en realidad solo verificaba que el historial quedara vacio tras el sub-caso 1 -- no probaba el escenario real de TC-M02-104 (&#x27;Rechazar fase productiva incompatible con reproduccion&#x27;, activo en fase Engorde/Finalizacion -&gt; 409). Se renombra ese paso a &#x27;Verificacion adicional&#x27; (sigue siendo utll, solo que no es TC-M02-104) y TC-M02-104 se cubre aparte con Pytest (test_tc_m02_104_fase_incompatible_reproduccion.py), porque RegistrarEventoReproductivoUseCase ni siquiera recibe un ciclo_port/fase-repo en su constructor -- no tiene forma de consultar la fase del activo en absoluto (hallazgo ya confirmado independientemente en TC-M02-G58: la clase nunca llama obtener_fase_activa()). RF-42 no valida compatibilidad de fase, ni en Python ni en trigger de BD.
 
-Sub-caso 1 (TC-M02-100): verificacion por codigo/mensaje de respuesta del API -- POST del evento nacimiento debe responder 422 con code&#x3D;SECUENCIA_REPRODUCTIVA_INVALIDA.
-Sub-caso 2 (TC-M02-104): verificacion por consulta directa de datos -- GET del historial consolidado (RF-46) del activo debe confirmar que el intento rechazado NO dejo ningun registro de categoria REPRODUCTIVO.
+Sub-caso 1 (TC-M02-100): intentar registrar directamente un evento reproductivo tipo NACIMIENTO sobre un activo sin ningun evento previo de inseminacion/servicio ni de diagnostico. A diferencia de TC-M02-G53, esta validacion de secuencia ocurre completamente en Python ANTES de llegar a la base de datos (lineas ~103-119 del use case): para un activo INDIVIDUAL, &#x27;nacimiento&#x27; exige tanto tiene_servicio_o_inseminacion_previa() como tiene_diagnostico_positivo_previo(); si falta cualquiera de los dos, se lanza BusinessRuleError(code&#x3D;&#x27;SECUENCIA_REPRODUCTIVA_INVALIDA&#x27;) -&gt; HTTP 422, sin intentar ningun INSERT. Por eso este TC no deberia verse afectado por el bug 500 confirmado en TC-M02-G53 (ese bug esta en el camino de escritura de un evento valido, no en esta validacion previa).
 
 La coleccion es autocontenida: registra su propia hembra reproductora (activo INDIVIDUAL, especie Tilapia id&#x3D;10) sobre un area productiva activa ya existente en TEST (finca_id&#x3D;1, id_infraestructura&#x3D;3), en estado ACTIVO segun RF-33/34, sin registrarle ningun evento reproductivo previo -- precondicion exacta que pide el TC (&#x27;Activo sin eventos de inseminacion ni diagnostico&#x27;).
 
-Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman). Nota del plan: 2 sub-caso(s) verificables por codigo/mensaje de respuesta del API o por consulta directa de datos.</code>
+Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman) / Pytest.</code>
                 </div>
                 </div>
             </div>
@@ -575,7 +574,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                 <h5 class="card-title text-uppercase text-white text-center bg-info">Timings and Data</h5>
                 <span><i class="fas fa-stopwatch"></i></span><strong> Total run duration:</strong> 3.9s<br>
                 <span><i class="fas fa-database"></i></span><strong> Total data received:</strong> 1.39KB<br>
-                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 883ms<br>
+                <span><i class="fas fa-stopwatch"></i></span><strong> Average response time:</strong> 899ms<br>
                 </div>
             </div>
         </div>
@@ -662,16 +661,16 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
     </div>
     <h6 class="text-uppercase text-muted" id="iterationSelected" style="padding-top: 10px;"></h6>
 	<div class="tab-content" id="execution-data">
-            <div id="folder-5703e1a0-a578-458e-9af4-b43704c33cea" class="card-deck iteration-0">
+            <div id="folder-64428826-2524-44e3-acbf-46631c190dc9" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-5703e1a0-a578-458e-9af4-b43704c33cea" aria-expanded="false" aria-controls="collapse" id="requests-5703e1a0-a578-458e-9af4-b43704c33cea" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-64428826-2524-44e3-acbf-46631c190dc9" aria-expanded="false" aria-controls="collapse" id="requests-64428826-2524-44e3-acbf-46631c190dc9" class="collapsed text-white z-block">
                     Iteration: 1 - Precondicion - Iniciar sesion como Administrador <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-5703e1a0-a578-458e-9af4-b43704c33cea" class="collapse" aria-labelledby="requests-5703e1a0-a578-458e-9af4-b43704c33cea">
+                    <div id="collapse-64428826-2524-44e3-acbf-46631c190dc9" class="collapse" aria-labelledby="requests-64428826-2524-44e3-acbf-46631c190dc9">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -687,7 +686,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 3s</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 3.2s</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 404B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -731,7 +730,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">b91973ea-125d-493b-af63-7f1afb0e6bf3</td>
+                                                        <td class="text-wrap">dd14dd82-0891-4af9-9374-4981bb7d1963</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -801,7 +800,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Wed, 09 Sep 2026 01:17:48 GMT</td>
+                                                    <td class="text-wrap">Wed, 09 Sep 2026 20:23:54 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -809,11 +808,11 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Set-Cookie</td>
-                                                    <td class="text-wrap">refresh_token&#x3D;u6LEw5WKGqeOFTuXcuAWe553wa0IT4XMLR6uvgNYSgk; HttpOnly; Max-Age&#x3D;604797; Path&#x3D;/; SameSite&#x3D;none; Secure</td>
+                                                    <td class="text-wrap">refresh_token&#x3D;9shmkAMDl1R6sgOH7f2ngKTDXmgjHK1Rv0uYh5beqbY; HttpOnly; Max-Age&#x3D;604798; Path&#x3D;/; SameSite&#x3D;lax; Secure</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">a7b86414-7493-4f5d-b93d-7de01d9b4fb7</td>
+                                                    <td class="text-wrap">a63c1458-fd03-40b2-9c7a-1089abb3b89f</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -830,10 +829,10 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-e25071e6-21fd-4495-b07d-82d29f3c56c7" class="prettyPrint">{&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ1MTAiLCJyb2wiOjEsImV4cCI6MTc4ODk0NTQ2OSwiaWF0IjoxNzg4OTE2NjY5fQ.5d3eSrYmYUMuHvEtiL2hJG4SLzwus83SkLuTYQ_GmFY&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28797,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
+                                                <pre><code id="copyText-9745451f-3da1-4fe2-a604-ca7e0bf4b714" class="prettyPrint">{&quot;token&quot;:&quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTAxNDIzNSwiaWF0IjoxNzg4OTg1NDM1fQ.dA1affW0jBe02awyc3mYMFxtxtv4aeyBKhGcaixGQsg&quot;,&quot;tipo&quot;:&quot;Bearer&quot;,&quot;expira_en&quot;:28798,&quot;message&quot;:&quot;Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.&quot;,&quot;perfil_incompleto&quot;:false}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-e25071e6-21fd-4495-b07d-82d29f3c56c7">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-9745451f-3da1-4fe2-a604-ca7e0bf4b714">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -898,16 +897,16 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                 </div>
             </div>
             </div>
-            <div id="folder-3af20b1e-8193-458d-8415-4e35d3d2d092" class="card-deck iteration-0">
+            <div id="folder-7a77326f-eee6-41a5-ad8d-2b19d083bc14" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-3af20b1e-8193-458d-8415-4e35d3d2d092" aria-expanded="false" aria-controls="collapse" id="requests-3af20b1e-8193-458d-8415-4e35d3d2d092" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14" aria-expanded="false" aria-controls="collapse" id="requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14" class="collapsed text-white z-block">
                     Iteration: 1 - Precondicion - Registrar hembra reproductora ACTIVO sin eventos previos <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-3af20b1e-8193-458d-8415-4e35d3d2d092" class="collapse" aria-labelledby="requests-3af20b1e-8193-458d-8415-4e35d3d2d092">
+                    <div id="collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14" class="collapse" aria-labelledby="requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -923,7 +922,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 201 - Created</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 157ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 139ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 672B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -955,7 +954,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ1MTAiLCJyb2wiOjEsImV4cCI6MTc4ODk0NTQ2OSwiaWF0IjoxNzg4OTE2NjY5fQ.5d3eSrYmYUMuHvEtiL2hJG4SLzwus83SkLuTYQ_GmFY</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTAxNDIzNSwiaWF0IjoxNzg4OTg1NDM1fQ.dA1affW0jBe02awyc3mYMFxtxtv4aeyBKhGcaixGQsg</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -971,7 +970,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">75df29d3-5af1-4b71-850c-8dc58943950d</td>
+                                                        <td class="text-wrap">a1e650a2-cb14-45ef-b62b-bf48faf9928c</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -991,7 +990,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Cookie</td>
-                                                        <td class="text-wrap">refresh_token&#x3D;u6LEw5WKGqeOFTuXcuAWe553wa0IT4XMLR6uvgNYSgk</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;9shmkAMDl1R6sgOH7f2ngKTDXmgjHK1Rv0uYh5beqbY</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1014,9 +1013,9 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
           &quot;fecha_inicio_ciclo&quot;: &quot;2026-01-15&quot;,
           &quot;origen_financiero&quot;: &quot;compra&quot;,
           &quot;costo_adquisicion&quot;: 50000,
-          &quot;soporte_documental&quot;: &quot;factura-hembra-1788916672286&quot;,
+          &quot;soporte_documental&quot;: &quot;factura-hembra-1788985437288&quot;,
           &quot;id_infraestructura&quot;: 3,
-          &quot;identificador&quot;: &quot;HEMBRA-G54-1788916672286&quot;,
+          &quot;identificador&quot;: &quot;HEMBRA-G54-1788985437288&quot;,
           &quot;raza&quot;: &quot;Tilapia Nilotica&quot;,
           &quot;sexo&quot;: &quot;Hembra&quot;,
           &quot;fecha_nacimiento&quot;: &quot;2025-01-01T00:00:00Z&quot;,
@@ -1055,7 +1054,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Wed, 09 Sep 2026 01:17:51 GMT</td>
+                                                    <td class="text-wrap">Wed, 09 Sep 2026 20:23:56 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1063,7 +1062,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">d7c57768-b813-4211-9876-e55947e10640</td>
+                                                    <td class="text-wrap">14b3c527-29b8-4504-8f39-267b820cbfb5</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1080,10 +1079,10 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-f7935e80-2e14-4242-aff8-c6dc0827ec6f" class="prettyPrint">{&quot;id_activo_biologico&quot;:124,&quot;id_especie&quot;:10,&quot;tipo&quot;:&quot;INDIVIDUAL&quot;,&quot;identificador&quot;:&quot;HEMBRA-G54-1788916672286&quot;,&quot;fecha_inicio_ciclo&quot;:&quot;2026-01-15&quot;,&quot;detalles_procedencia&quot;:null,&quot;origen_financiero&quot;:&quot;compra&quot;,&quot;costo_adquisicion&quot;:&quot;50000.0000&quot;,&quot;soporte_documental&quot;:&quot;factura-hembra-1788916672286&quot;,&quot;descripcion&quot;:null,&quot;id_infraestructura&quot;:3,&quot;atributos_dinamicos&quot;:null,&quot;id_estado&quot;:1,&quot;nombre_estado&quot;:&quot;ACTIVO&quot;,&quot;id_usuario&quot;:1,&quot;fecha_creacion&quot;:&quot;2026-09-09T01:17:51.908983Z&quot;,&quot;detalle_individual&quot;:{&quot;id_detalle&quot;:46,&quot;raza&quot;:&quot;Tilapia Nilotica&quot;,&quot;sexo&quot;:&quot;Hembra&quot;,&quot;fecha_nacimiento&quot;:&quot;2025-01-01T00:00:00Z&quot;,&quot;peso_inicial&quot;:&quot;0.500&quot;,&quot;fecha_creacion&quot;:&quot;2026-09-09T01:17:51.908983Z&quot;},&quot;detalle_poblacional&quot;:null}</code></pre>
+                                                <pre><code id="copyText-fa5e5c94-e2c7-48f8-88e1-881f515fb083" class="prettyPrint">{&quot;id_activo_biologico&quot;:177,&quot;id_especie&quot;:10,&quot;tipo&quot;:&quot;INDIVIDUAL&quot;,&quot;identificador&quot;:&quot;HEMBRA-G54-1788985437288&quot;,&quot;fecha_inicio_ciclo&quot;:&quot;2026-01-15&quot;,&quot;detalles_procedencia&quot;:null,&quot;origen_financiero&quot;:&quot;compra&quot;,&quot;costo_adquisicion&quot;:&quot;50000.0000&quot;,&quot;soporte_documental&quot;:&quot;factura-hembra-1788985437288&quot;,&quot;descripcion&quot;:null,&quot;id_infraestructura&quot;:3,&quot;atributos_dinamicos&quot;:null,&quot;id_estado&quot;:1,&quot;nombre_estado&quot;:&quot;ACTIVO&quot;,&quot;id_usuario&quot;:1,&quot;fecha_creacion&quot;:&quot;2026-09-09T20:23:57.250374Z&quot;,&quot;detalle_individual&quot;:{&quot;id_detalle&quot;:86,&quot;raza&quot;:&quot;Tilapia Nilotica&quot;,&quot;sexo&quot;:&quot;Hembra&quot;,&quot;fecha_nacimiento&quot;:&quot;2025-01-01T00:00:00Z&quot;,&quot;peso_inicial&quot;:&quot;0.500&quot;,&quot;fecha_creacion&quot;:&quot;2026-09-09T20:23:57.250374Z&quot;},&quot;detalle_poblacional&quot;:null}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-f7935e80-2e14-4242-aff8-c6dc0827ec6f">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-fa5e5c94-e2c7-48f8-88e1-881f515fb083">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1142,16 +1141,16 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                 </div>
             </div>
             </div>
-            <div id="folder-a829b211-c32f-418e-8cd8-deecd62adb5d" class="card-deck iteration-0">
+            <div id="folder-8a597bd2-ac88-45cc-9f90-cded308b5406" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-a829b211-c32f-418e-8cd8-deecd62adb5d" aria-expanded="false" aria-controls="collapse" id="requests-a829b211-c32f-418e-8cd8-deecd62adb5d" class="collapsed text-white z-block">
+                        <a data-toggle="collapse" href="#" data-target="#collapse-8a597bd2-ac88-45cc-9f90-cded308b5406" aria-expanded="false" aria-controls="collapse" id="requests-8a597bd2-ac88-45cc-9f90-cded308b5406" class="collapsed text-white z-block">
                     Iteration: 1 - Sub-caso 1 (TC-M02-100) - Intentar registrar NACIMIENTO directo, sin inseminacion/diagnostico previo <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-a829b211-c32f-418e-8cd8-deecd62adb5d" class="collapse" aria-labelledby="requests-a829b211-c32f-418e-8cd8-deecd62adb5d">
+                    <div id="collapse-8a597bd2-ac88-45cc-9f90-cded308b5406" class="collapse" aria-labelledby="requests-8a597bd2-ac88-45cc-9f90-cded308b5406">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1160,14 +1159,14 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> POST</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/124/eventos/reproductivo" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/124/eventos/reproductivo</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/177/eventos/reproductivo" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/177/eventos/reproductivo</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 422 - Unprocessable Entity</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 130ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 125ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 222B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -1199,7 +1198,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ1MTAiLCJyb2wiOjEsImV4cCI6MTc4ODk0NTQ2OSwiaWF0IjoxNzg4OTE2NjY5fQ.5d3eSrYmYUMuHvEtiL2hJG4SLzwus83SkLuTYQ_GmFY</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTAxNDIzNSwiaWF0IjoxNzg4OTg1NDM1fQ.dA1affW0jBe02awyc3mYMFxtxtv4aeyBKhGcaixGQsg</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -1215,7 +1214,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">51395465-bc8d-41f6-b354-ee23fe00bd3c</td>
+                                                        <td class="text-wrap">37e51b43-db4d-4ad0-bed6-1ee83c0d7866</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1235,7 +1234,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Cookie</td>
-                                                        <td class="text-wrap">refresh_token&#x3D;u6LEw5WKGqeOFTuXcuAWe553wa0IT4XMLR6uvgNYSgk</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;9shmkAMDl1R6sgOH7f2ngKTDXmgjHK1Rv0uYh5beqbY</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1290,7 +1289,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Wed, 09 Sep 2026 01:17:51 GMT</td>
+                                                    <td class="text-wrap">Wed, 09 Sep 2026 20:23:56 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1298,7 +1297,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">e043dc37-8c16-4279-bac8-e3dd458fa8d1</td>
+                                                    <td class="text-wrap">705e7dea-7adb-46f4-8a31-d86aa9090b32</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1315,10 +1314,10 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-8bcf7a22-1985-4516-87d5-406271c75fde" class="prettyPrint">{&quot;error_code&quot;:&quot;SECUENCIA_REPRODUCTIVA_INVALIDA&quot;,&quot;message&quot;:&quot;No se puede registrar un nacimiento sin eventos previos de servicio o inseminación sobre este activo.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-09-09T01:17:52.148537+00:00&quot;}</code></pre>
+                                                <pre><code id="copyText-19efc53f-7698-49e2-b963-eb53e0a5f452" class="prettyPrint">{&quot;error_code&quot;:&quot;SECUENCIA_REPRODUCTIVA_INVALIDA&quot;,&quot;message&quot;:&quot;No se puede registrar un nacimiento sin eventos previos de servicio o inseminación sobre este activo.&quot;,&quot;fields&quot;:[],&quot;timestamp&quot;:&quot;2026-09-09T20:23:57.493042+00:00&quot;}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-8bcf7a22-1985-4516-87d5-406271c75fde">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-19efc53f-7698-49e2-b963-eb53e0a5f452">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1383,16 +1382,16 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                 </div>
             </div>
             </div>
-            <div id="folder-de366c64-6cc0-4902-956c-ded3369671ac" class="card-deck iteration-0">
+            <div id="folder-94a21ddb-0963-4548-85c6-6aafdccabe2e" class="card-deck iteration-0">
             <div class="row iteration-0">
                 <div class="col-sm-12 mb-3 iteration-0">
                 <div class="card iteration-0">
                     <div class="card-header  bg-success iteration-0">
-                        <a data-toggle="collapse" href="#" data-target="#collapse-de366c64-6cc0-4902-956c-ded3369671ac" aria-expanded="false" aria-controls="collapse" id="requests-de366c64-6cc0-4902-956c-ded3369671ac" class="collapsed text-white z-block">
-                    Iteration: 1 - Sub-caso 2 (TC-M02-104) - Consultar historial: confirmar que no quedo ningun evento reproductivo registrado <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
+                        <a data-toggle="collapse" href="#" data-target="#collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e" aria-expanded="false" aria-controls="collapse" id="requests-94a21ddb-0963-4548-85c6-6aafdccabe2e" class="collapsed text-white z-block">
+                    Iteration: 1 - Verificacion adicional (NO es TC-M02-104) - Consultar historial: confirmar que no quedo ningun evento reproductivo registrado <i class="float-lg-right fa fa-chevron-down" style="padding-top: 5px;"></i>
                 </a>
                     </div>
-                    <div id="collapse-de366c64-6cc0-4902-956c-ded3369671ac" class="collapse" aria-labelledby="requests-de366c64-6cc0-4902-956c-ded3369671ac">
+                    <div id="collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e" class="collapse" aria-labelledby="requests-94a21ddb-0963-4548-85c6-6aafdccabe2e">
                     <div class="card-body">
                         <div class="row">
                             <div class="col-sm-12 mb-3">
@@ -1401,14 +1400,14 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Request Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Request Method:</strong> <span class="badge-outline-success badge badge-success"> GET</span><br>
-                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/124/historial" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/124/historial</a><br>
+                                    <span><i class="fas fa-info-circle"></i></span><strong> Request URL:</strong> <a href="https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/177/historial" target="_blank">https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/177/historial</a><br>
                                     </div>
                                 </div>
                                 <div class="card border-info" style="width: 50rem;">
                                     <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Information</h5>
                                     <span><i class="fas fa-info-circle"></i></span><strong> Response Code:</strong> <span class="float-right badge-outline badge badge-success"> 200 - OK</span><br>
-                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 191ms</span><br>
+                                    <span><i class="fas fa-stopwatch"></i></span><strong> Mean time per request:</strong> <span class="float-right badge-outline badge badge-success"> 134ms</span><br>
                                     <span><i class="fas fa-database"></i></span><strong> Mean size per request:</strong> <span class="float-right badge-outline badge badge-success"> 124B</span><br>
                                     <hr>
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Test Pass Percentage</h5>
@@ -1436,7 +1435,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 <tbody>
                                                     <tr>
                                                         <td class="text-nowrap">Authorization</td>
-                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ1MTAiLCJyb2wiOjEsImV4cCI6MTc4ODk0NTQ2OSwiaWF0IjoxNzg4OTE2NjY5fQ.5d3eSrYmYUMuHvEtiL2hJG4SLzwus83SkLuTYQ_GmFY</td>
+                                                        <td class="text-wrap">Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTQ4MjIiLCJyb2wiOjEsImV4cCI6MTc4OTAxNDIzNSwiaWF0IjoxNzg4OTg1NDM1fQ.dA1affW0jBe02awyc3mYMFxtxtv4aeyBKhGcaixGQsg</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">User-Agent</td>
@@ -1452,7 +1451,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Postman-Token</td>
-                                                        <td class="text-wrap">1adf602f-abd2-4d3e-a921-79a4abb53f52</td>
+                                                        <td class="text-wrap">557030ad-a046-440d-a43f-01aca15f1310</td>
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Host</td>
@@ -1468,7 +1467,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                     </tr>
                                                     <tr>
                                                         <td class="text-nowrap">Cookie</td>
-                                                        <td class="text-wrap">refresh_token&#x3D;u6LEw5WKGqeOFTuXcuAWe553wa0IT4XMLR6uvgNYSgk</td>
+                                                        <td class="text-wrap">refresh_token&#x3D;9shmkAMDl1R6sgOH7f2ngKTDXmgjHK1Rv0uYh5beqbY</td>
                                                     </tr>
                                                 </tbody>
                                             </table>
@@ -1502,7 +1501,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Date</td>
-                                                    <td class="text-wrap">Wed, 09 Sep 2026 01:17:51 GMT</td>
+                                                    <td class="text-wrap">Wed, 09 Sep 2026 20:23:57 GMT</td>
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">Server</td>
@@ -1510,7 +1509,7 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                                 </tr>
                                                 <tr>
                                                     <td class="text-nowrap">X-Request-Id</td>
-                                                    <td class="text-wrap">8d211c85-9192-44bc-88ee-5a389b5b78d9</td>
+                                                    <td class="text-wrap">540f837d-be24-4209-9ec2-db7132860b26</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -1527,10 +1526,10 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                 <div class="card-body">
                                     <h5 class="card-title text-uppercase text-white text-center bg-info">Response Body</h5>
                                         <div class="dyn-height">
-                                                <pre><code id="copyText-ee1bf553-4b9d-416d-a107-7c65cfd402ab" class="prettyPrint">{&quot;id_activo_biologico&quot;:124,&quot;total_registros&quot;:0,&quot;pagina_actual&quot;:1,&quot;total_paginas&quot;:1,&quot;registros_por_pagina&quot;:20,&quot;registros&quot;:[]}</code></pre>
+                                                <pre><code id="copyText-9a04b1a1-8cd4-472e-97fd-de140464705a" class="prettyPrint">{&quot;id_activo_biologico&quot;:177,&quot;total_registros&quot;:0,&quot;pagina_actual&quot;:1,&quot;total_paginas&quot;:1,&quot;registros_por_pagina&quot;:20,&quot;registros&quot;:[]}</code></pre>
                                         </div>
                                         <div class="card-footer">
-                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-ee1bf553-4b9d-416d-a107-7c65cfd402ab">Copy to Clipboard</button>
+                                            <button class="btn btn-outline-secondary btn-sm copyButton" type="button" data-clipboard-action="copy" data-clipboard-target="#copyText-9a04b1a1-8cd4-472e-97fd-de140464705a">Copy to Clipboard</button>
                                         </div>
                                 </div>
                             </div>
@@ -1546,13 +1545,13 @@ Responsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - P
                                         <thead><tr class="text-center"><th>Name</th><th>Passed</th><th>Failed</th><th>Skipped</th></tr></thead>
                                             <tbody>
                                                 <tr >
-                                                    <td >Sub-caso 2: la consulta del historial consolidado responde HTTP 200</td>
+                                                    <td >Verificacion adicional: la consulta del historial consolidado responde HTTP 200</td>
                                                     <td class="text-center bg-success">1</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
                                                 </tr>
                                                 <tr >
-                                                    <td >Sub-caso 2: el historial del activo no contiene ningun evento REPRODUCTIVO (el intento rechazado no dejo rastro)</td>
+                                                    <td >Verificacion adicional: el historial del activo no contiene ningun evento REPRODUCTIVO (el intento rechazado no dejo rastro)</td>
                                                     <td class="text-center bg-success">1</td>
                                                     <td class="text-center ">0</td>
                                                     <td class="text-center ">0</td>
@@ -1661,13 +1660,13 @@ $('#openAll').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#folder-848805c0-bd13-478d-8297-3a7469605bdb-iteration-0').removeClass('collapsed')
-            $('#folder-collapse-848805c0-bd13-478d-8297-3a7469605bdb-iteration-0').addClass('show')
+            $('#folder-f3bf0a20-e4e0-484d-aead-020d25ea9412-iteration-0').removeClass('collapsed')
+            $('#folder-collapse-f3bf0a20-e4e0-484d-aead-020d25ea9412-iteration-0').addClass('show')
         $('#openAll').html("Collapse Folders");
         break;
     case 2:
-            $('#folder-848805c0-bd13-478d-8297-3a7469605bdb-iteration-0').addClass('collapsed')
-            $('#folder-collapse-848805c0-bd13-478d-8297-3a7469605bdb-iteration-0').removeClass('show')
+            $('#folder-f3bf0a20-e4e0-484d-aead-020d25ea9412-iteration-0').addClass('collapsed')
+            $('#folder-collapse-f3bf0a20-e4e0-484d-aead-020d25ea9412-iteration-0').removeClass('show')
         $('#openAll').html("Expand Folders");
         break;
 }
@@ -1683,41 +1682,41 @@ $('#openAllRequests').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#requests-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('collapsed')
-            $('#collapse-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('collapsed')
-            $('#requests-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('show')
-            $('#collapse-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('show')
-            $('#requests-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('collapsed')
-            $('#collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('collapsed')
-            $('#requests-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('show')
-            $('#collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('show')
-            $('#requests-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('collapsed')
-            $('#collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('collapsed')
-            $('#requests-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('show')
-            $('#collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('show')
-            $('#requests-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('collapsed')
-            $('#collapse-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('collapsed')
-            $('#requests-de366c64-6cc0-4902-956c-ded3369671ac').addClass('show')
-            $('#collapse-de366c64-6cc0-4902-956c-ded3369671ac').addClass('show')
+            $('#requests-64428826-2524-44e3-acbf-46631c190dc9').removeClass('collapsed')
+            $('#collapse-64428826-2524-44e3-acbf-46631c190dc9').removeClass('collapsed')
+            $('#requests-64428826-2524-44e3-acbf-46631c190dc9').addClass('show')
+            $('#collapse-64428826-2524-44e3-acbf-46631c190dc9').addClass('show')
+            $('#requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('collapsed')
+            $('#collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('collapsed')
+            $('#requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('show')
+            $('#collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('show')
+            $('#requests-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('collapsed')
+            $('#collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('collapsed')
+            $('#requests-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('show')
+            $('#collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('show')
+            $('#requests-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('collapsed')
+            $('#collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('collapsed')
+            $('#requests-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('show')
+            $('#collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('show')
         $('#openAllRequests').html("Collapse Requests");
         break;
     case 2:
-            $('#requests-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('collapsed')
-            $('#collapse-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('collapsed')
-            $('#requests-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('show')
-            $('#collapse-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('show')
-            $('#requests-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('collapsed')
-            $('#collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('collapsed')
-            $('#requests-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('show')
-            $('#collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('show')
-            $('#requests-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('collapsed')
-            $('#collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('collapsed')
-            $('#requests-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('show')
-            $('#collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('show')
-            $('#requests-de366c64-6cc0-4902-956c-ded3369671ac').addClass('collapsed')
-            $('#collapse-de366c64-6cc0-4902-956c-ded3369671ac').addClass('collapsed')
-            $('#requests-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('show')
-            $('#collapse-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('show')
+            $('#requests-64428826-2524-44e3-acbf-46631c190dc9').addClass('collapsed')
+            $('#collapse-64428826-2524-44e3-acbf-46631c190dc9').addClass('collapsed')
+            $('#requests-64428826-2524-44e3-acbf-46631c190dc9').removeClass('show')
+            $('#collapse-64428826-2524-44e3-acbf-46631c190dc9').removeClass('show')
+            $('#requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('collapsed')
+            $('#collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('collapsed')
+            $('#requests-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('show')
+            $('#collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('show')
+            $('#requests-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('collapsed')
+            $('#collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('collapsed')
+            $('#requests-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('show')
+            $('#collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('show')
+            $('#requests-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('collapsed')
+            $('#collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('collapsed')
+            $('#requests-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('show')
+            $('#collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('show')
         $('#openAllRequests').html("Expand Requests");
         break;
 }
@@ -1733,41 +1732,41 @@ $('#openAllSkipped').on('click', function(e) {
 let clickCount = $(this).data("clickCount") || 1
 switch (clickCount){
     case 1:
-            $('#skipped-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('collapsed')
-            $('#skipped-collapse-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('collapsed')
-            $('#skipped-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('show')
-            $('#skipped-collapse-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('show')
-            $('#skipped-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('collapsed')
-            $('#skipped-collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('collapsed')
-            $('#skipped-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('show')
-            $('#skipped-collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('show')
-            $('#skipped-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('collapsed')
-            $('#skipped-collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('collapsed')
-            $('#skipped-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('show')
-            $('#skipped-collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('show')
-            $('#skipped-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('collapsed')
-            $('#skipped-collapse-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('collapsed')
-            $('#skipped-de366c64-6cc0-4902-956c-ded3369671ac').addClass('show')
-            $('#skipped-collapse-de366c64-6cc0-4902-956c-ded3369671ac').addClass('show')
+            $('#skipped-64428826-2524-44e3-acbf-46631c190dc9').removeClass('collapsed')
+            $('#skipped-collapse-64428826-2524-44e3-acbf-46631c190dc9').removeClass('collapsed')
+            $('#skipped-64428826-2524-44e3-acbf-46631c190dc9').addClass('show')
+            $('#skipped-collapse-64428826-2524-44e3-acbf-46631c190dc9').addClass('show')
+            $('#skipped-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('collapsed')
+            $('#skipped-collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('collapsed')
+            $('#skipped-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('show')
+            $('#skipped-collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('show')
+            $('#skipped-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('collapsed')
+            $('#skipped-collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('collapsed')
+            $('#skipped-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('show')
+            $('#skipped-collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('show')
+            $('#skipped-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('collapsed')
+            $('#skipped-collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('collapsed')
+            $('#skipped-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('show')
+            $('#skipped-collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('show')
         $('#openAllSkipped').html("Collapse All Skipped Tests");
         break;
     case 2:
-            $('#skipped-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('collapsed')
-            $('#skipped-collapse-5703e1a0-a578-458e-9af4-b43704c33cea').addClass('collapsed')
-            $('#skipped-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('show')
-            $('#skipped-collapse-5703e1a0-a578-458e-9af4-b43704c33cea').removeClass('show')
-            $('#skipped-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('collapsed')
-            $('#skipped-collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').addClass('collapsed')
-            $('#skipped-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('show')
-            $('#skipped-collapse-3af20b1e-8193-458d-8415-4e35d3d2d092').removeClass('show')
-            $('#skipped-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('collapsed')
-            $('#skipped-collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').addClass('collapsed')
-            $('#skipped-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('show')
-            $('#skipped-collapse-a829b211-c32f-418e-8cd8-deecd62adb5d').removeClass('show')
-            $('#skipped-de366c64-6cc0-4902-956c-ded3369671ac').addClass('collapsed')
-            $('#skipped-collapse-de366c64-6cc0-4902-956c-ded3369671ac').addClass('collapsed')
-            $('#skipped-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('show')
-            $('#skipped-collapse-de366c64-6cc0-4902-956c-ded3369671ac').removeClass('show')
+            $('#skipped-64428826-2524-44e3-acbf-46631c190dc9').addClass('collapsed')
+            $('#skipped-collapse-64428826-2524-44e3-acbf-46631c190dc9').addClass('collapsed')
+            $('#skipped-64428826-2524-44e3-acbf-46631c190dc9').removeClass('show')
+            $('#skipped-collapse-64428826-2524-44e3-acbf-46631c190dc9').removeClass('show')
+            $('#skipped-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('collapsed')
+            $('#skipped-collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').addClass('collapsed')
+            $('#skipped-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('show')
+            $('#skipped-collapse-7a77326f-eee6-41a5-ad8d-2b19d083bc14').removeClass('show')
+            $('#skipped-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('collapsed')
+            $('#skipped-collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').addClass('collapsed')
+            $('#skipped-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('show')
+            $('#skipped-collapse-8a597bd2-ac88-45cc-9f90-cded308b5406').removeClass('show')
+            $('#skipped-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('collapsed')
+            $('#skipped-collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').addClass('collapsed')
+            $('#skipped-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('show')
+            $('#skipped-collapse-94a21ddb-0963-4548-85c6-6aafdccabe2e').removeClass('show')
         $('#openAllSkipped').html("Expand All Skipped Tests");
         break;
 }
