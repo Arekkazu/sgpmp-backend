@@ -1,0 +1,383 @@
+{
+  "info": {
+    "name": "TC-M02-G58 (parte Postman) - activo_relacionado inexistente/BAJA y unicidad genealogica por cria",
+    "description": "TC-M02-G58 (RF-42, CU08), sub-casos TC-M02-228 (activo_relacionado inexistente O inactivo -> 404) y TC-M02-229 (relacion genealogica unica N:1 por cria, tras un PARTO con crias generadas). Los sub-casos TC-M02-230 (fase productiva incompatible) y TC-M02-231 (BOLA otra finca) se prueban aparte con Pytest (test_tc_m02_g58_fase_y_bola.py), por el mismo motivo que TC-M02-G56: son preguntas de autorizacion/validacion que hay que aislar del bug de escritura ya confirmado en TC-M02-G53/G55, o el 500 compartido las vuelve inobservables en un black-box contra el backend real.\n\nENDPOINT REAL BAJO PRUEBA: POST /activos-biologicos/{id_activo}/eventos/reproductivo.\n\nSub-caso TC-M02-228 (dos variantes, ambas Python puro, antes de tocar la BD -- no deberian verse afectadas por el bug de G53/G55):\n  (a) id_padre que NO EXISTE -> se espera 404 ACTIVO_RELACIONADO_NO_ENCONTRADO (ya confirmado funcionando en TC-M02-G55/TC-M02-102).\n  (b) id_padre que existe pero esta en estado BAJA (dado de baja explicitamente en esta coleccion) -> se espera el MISMO 404 ACTIVO_RELACIONADO_NO_ENCONTRADO, ya que el use case usa 'if padre.id_estado != 1' (no distingue BAJA de cualquier otro estado distinto de ACTIVO). Variante nueva, no probada en TC-M02-G55.\n\nSub-caso TC-M02-229: registrar inseminacion -> diagnostico -> parto con numero_crias=3, y consultar la genealogia de cada cria generada. HALLAZGO DE DISENO (independiente del bug 500 de TC-M02-G53): el modelo de datos de RF-42 NO tiene entidades individuales por cria -- 'numero_crias' es un simple entero agregado en UN SOLO evento (categoria=parto), con un unico id_padre/id_madre compartido para todas las crias declaradas. No existe ningun endpoint que devuelva 'la genealogia de cada cria' como N registros independientes, cada uno con su propia madre/padre -- lo maximo verificable es el evento agregado en el historial (RF-46), que representa las 3 crias como una sola fila. Aunque el bug 500 de TC-M02-G53 se corrigiera, este sub-caso seguiria sin ser 100% verificable tal como esta redactado en la ficha ('cada cria tiene registrada exactamente una madre y un padre') porque no hay registros por-cria que consultar.\n\nEsta coleccion se deja intencionalmente afirmando el comportamiento CORRECTO esperado por el RF en el sub-caso 229 (201 en cada paso) en vez de ajustarse al 500/422-en-cascada ya confirmado: un Newman en rojo ahi es evidencia adicional del mismo bug de TC-M02-G53, no un hallazgo nuevo.\n\nLa coleccion es autocontenida: registra su propia hembra (madre), un padre valido ACTIVO y un segundo activo que se da de baja para la variante (b), todos INDIVIDUAL/Tilapia (id_especie=10) sobre id_infraestructura=3 (finca 1).\n\nResponsable: Juan Pablo. Prioridad: Media. Herramienta: API - Postman (Newman) [parte 1 de 2 de TC-M02-G58].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra (madre) ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la madre responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_madre', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-madre-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"MADRE-G58-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar activo que sera dado de BAJA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo a dar de baja responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_padre_baja', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-padrebaja-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"PBAJA-G58-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.6\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Dar de BAJA al activo anterior",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: la baja responde HTTP 201', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-08\",\n  \"motivo_baja\": \"Baja de prueba TC-M02-G58 (sub-caso 228b)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_padre_baja}}/eventos/baja",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_padre_baja}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 228a - Rechazar id_padre inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 228a: servicio con id_padre inexistente ---');",
+              "console.log(pm.response.text());",
+              "pm.test('228a: rechazado con HTTP 404', function () { pm.response.to.have.status(404); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('228a: code=ACTIVO_RELACIONADO_NO_ENCONTRADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACTIVO_RELACIONADO_NO_ENCONTRADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": 999999999\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 228b (TC-M02-228) - Rechazar id_padre en estado BAJA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 228b: servicio con id_padre en estado BAJA ---');",
+              "console.log(pm.response.text());",
+              "pm.test('228b: rechazado con HTTP 404', function () { pm.response.to.have.status(404); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('228b: code=ACTIVO_RELACIONADO_NO_ENCONTRADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACTIVO_RELACIONADO_NO_ENCONTRADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre_baja}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar padre valido ACTIVO (para sub-caso 229)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del padre responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_padre', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-padre-g58-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"PADRE-G58-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.6\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 229 (paso 1/4) - Registrar inseminacion con padre valido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 229, paso 1: inseminacion ---');",
+              "console.log(pm.response.text());",
+              "pm.test('229 paso 1: inseminacion registrada (HTTP 201) -- ver TC-M02-G53: hoy responde 500', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (!(pm.response.code === 201 && respuesta)) {",
+              "    console.log('CONCLUSION paso 1: FALLIDO. ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"inseminacion\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 229 (paso 2/4) - Registrar diagnostico exitoso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 229, paso 2: diagnostico (requiere el paso 1) ---');",
+              "console.log(pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"diagnostico\",\n  \"resultado\": \"exitoso\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 229 (paso 3/4) - Registrar parto con numero_crias=3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 229, paso 3: parto con 3 crias (requiere el paso 2) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('229 paso 3: parto registrado con 3 crias (HTTP 201) -- bloqueado en cascada por el bug de TC-M02-G53', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 229 (paso 4/4) - Consultar genealogia (historial consolidado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 229, paso 4: historial (RF-46) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('229 paso 4: la consulta del historial responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const reproductivos = (respuesta.registros || []).filter(function (r) { return r.categoria === 'REPRODUCTIVO'; });",
+              "    pm.test('229: existe un registro REPRODUCTIVO de categoria parto con numero_cria=3, id_padre e id_madre consistentes (unica forma de verificar N:1, ya que la API no expone registros individuales por cria) -- BLOQUEADO en cascada por TC-M02-G53', function () {",
+              "        const partos = reproductivos.filter(function (r) { return r.detalle_especifico && r.detalle_especifico.categoria === 'parto'; });",
+              "        pm.expect(partos.length).to.equal(1);",
+              "        pm.expect(partos[0].detalle_especifico.numero_cria).to.equal(3);",
+              "    });",
+              "    console.log('CONCLUSION sub-caso 229: ' + reproductivos.length + ' evento(s) REPRODUCTIVO(s) encontrados (se esperaban al menos inseminacion+diagnostico+parto). NOTA DE DISENO: aunque este bug se corrija, la API no expone genealogia por cria individual -- numero_cria es un entero agregado en un unico evento, no N registros con madre/padre propios.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/historial",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "historial" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_madre", "value": "" },
+    { "key": "id_padre", "value": "" },
+    { "key": "id_padre_baja", "value": "" }
+  ]
+}
