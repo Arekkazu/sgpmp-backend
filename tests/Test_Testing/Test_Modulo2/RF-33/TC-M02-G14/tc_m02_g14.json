@@ -1,0 +1,568 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g14-rf33",
+    "name": "TC-M02-G14 - Validacion origen financiero y costo",
+    "description": "Casos TC-M02-016, TC-M02-017, TC-M02-018 y TC-M02-019 para RF-33.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    },
+    {
+      "key": "activo_transferencia_id",
+      "value": ""
+    },
+    {
+      "key": "identificador_transferencia",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const loginResponse = pm.response.json();",
+              "pm.expect(loginResponse.token, 'token').to.exist;",
+              "pm.collectionVariables.set('access_token', loginResponse.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Consultar especie activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especies HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const speciesResponse = pm.response.json();",
+              "const speciesItems = speciesResponse.items || speciesResponse.data || speciesResponse;",
+              "const speciesList = Array.isArray(speciesItems) ? speciesItems : [];",
+              "",
+              "const selectedSpecies = speciesList.find(function (e) {",
+              "    return e.es_activo === true || e.estado === 'ACTIVO' || e.estado_especie === 'ACTIVO';",
+              "}) || speciesList.find(function (e) {",
+              "    return Number(e.id_especie) === 4;",
+              "});",
+              "",
+              "pm.expect(selectedSpecies, 'Debe existir una especie válida').to.exist;",
+              "pm.collectionVariables.set('especie_id', String(selectedSpecies.id_especie));",
+              "",
+              "console.log('Especie seleccionada:', selectedSpecies);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - Consultar infraestructura activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Infraestructuras HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const infrastructureResponse = pm.response.json();",
+              "const infrastructureItems = infrastructureResponse.items || infrastructureResponse.data || infrastructureResponse;",
+              "const infrastructureList = Array.isArray(infrastructureItems) ? infrastructureItems : [];",
+              "",
+              "const selectedInfrastructure = infrastructureList.find(function (i) {",
+              "    return i.es_activo === true || i.estado === 'ACTIVO' || i.estado_infraestructura === 'ACTIVO';",
+              "}) || infrastructureList.find(function (i) {",
+              "    return Number(i.id_infraestructura) === 6;",
+              "});",
+              "",
+              "pm.expect(selectedInfrastructure, 'Debe existir una infraestructura válida').to.exist;",
+              "pm.collectionVariables.set('infraestructura_id', String(selectedInfrastructure.id_infraestructura));",
+              "",
+              "console.log('Infraestructura seleccionada:', selectedInfrastructure);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=3",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "3"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - TC-M02-016 - COMPRA sin costo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.variables.set('timestamp', Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-016 - HTTP 400/422', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const compraResponse = pm.response.json();",
+              "const compraText = JSON.stringify(compraResponse).toLowerCase();",
+              "",
+              "pm.test('TC-M02-016 - identifica costo/origen', function () {",
+              "    pm.expect(compraText).to.satisfy(function (text) {",
+              "        return text.includes('costo_adquisicion') ||",
+              "            text.includes('costo') ||",
+              "            text.includes('compra') ||",
+              "            text.includes('required');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M02-016 - registro rechazado', function () {",
+              "    pm.expect(compraResponse.error_code || compraResponse.message || compraResponse.detail).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": \"factura_TC-M02-016.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"CMP-{{timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - TC-M02-016 - DONACION sin soporte",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.variables.set('timestamp', Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-016 DONACION - HTTP 400/422', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const donacionResponse = pm.response.json();",
+              "const donacionText = JSON.stringify(donacionResponse).toLowerCase();",
+              "",
+              "pm.test('TC-M02-016 DONACION - identifica soporte', function () {",
+              "    pm.expect(donacionText).to.satisfy(function (text) {",
+              "        return text.includes('soporte_documental') ||",
+              "            text.includes('soporte') ||",
+              "            text.includes('document') ||",
+              "            text.includes('donacion') ||",
+              "            text.includes('required');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M02-016 DONACION - registro rechazado', function () {",
+              "    pm.expect(donacionResponse.error_code || donacionResponse.message || donacionResponse.detail).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"donacion\",\n  \"costo_adquisicion\": 500000,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"DON-{{timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - TC-M02-017 - NACIMIENTO con costo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.variables.set('timestamp', Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-017 - HTTP 400/422', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const nacimientoResponse = pm.response.json();",
+              "const nacimientoText = JSON.stringify(nacimientoResponse).toLowerCase();",
+              "",
+              "pm.test('TC-M02-017 - identifica costo/nacimiento', function () {",
+              "    pm.expect(nacimientoText).to.satisfy(function (text) {",
+              "        return text.includes('costo_adquisicion') ||",
+              "            text.includes('costo') ||",
+              "            text.includes('nacimiento') ||",
+              "            text.includes('null') ||",
+              "            text.includes('no aplica');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M02-017 - registro rechazado', function () {",
+              "    pm.expect(nacimientoResponse.error_code || nacimientoResponse.message || nacimientoResponse.detail).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"nacimiento\",\n  \"costo_adquisicion\": 500000,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"NAC-{{timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2026-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - TC-M02-018 - TRANSFERENCIA_INTERNA valida con costo y soporte",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const transferTimestamp = Date.now();",
+              "pm.variables.set('timestamp', transferTimestamp);",
+              "pm.collectionVariables.set('identificador_transferencia', 'TRF-' + transferTimestamp);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-018 - HTTP 201', function () {",
+              "    pm.expect(pm.response.code).to.eql(201);",
+              "});",
+              "",
+              "const transferResponse = pm.response.json();",
+              "const transferData = transferResponse.data || transferResponse;",
+              "",
+              "const transferId = transferData.id_activo_biologico || transferData.id || transferResponse.id_activo_biologico || transferResponse.id;",
+              "pm.collectionVariables.set('activo_transferencia_id', String(transferId || ''));",
+              "",
+              "pm.test('TC-M02-018 - activo creado', function () {",
+              "    pm.expect(transferId).to.exist;",
+              "});",
+              "",
+              "const transferOrigin = String(transferData.origen_financiero ?? transferResponse.origen_financiero ?? '').toLowerCase();",
+              "",
+              "pm.test('TC-M02-018 - origen TRANSFERENCIA_INTERNA', function () {",
+              "    pm.expect(transferOrigin).to.eql('transferencia_interna');",
+              "});",
+              "",
+              "const transferCost = transferData.costo_adquisicion ?? transferResponse.costo_adquisicion;",
+              "",
+              "pm.test('TC-M02-018 - costo registrado', function () {",
+              "    pm.expect(Number(transferCost)).to.be.above(0);",
+              "});",
+              "",
+              "const transferSupport = transferData.soporte_documental ?? transferResponse.soporte_documental;",
+              "",
+              "pm.test('TC-M02-018 - soporte registrado', function () {",
+              "    pm.expect(transferSupport).to.exist;",
+              "});",
+              "",
+              "console.log('Activo transferencia creado:', transferData);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"transferencia_interna\",\n  \"costo_adquisicion\": 750000,\n  \"soporte_documental\": \"soporte_transferencia_TC-M02-018.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"TRF-{{timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - TC-M02-019 - origen financiero omitido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.variables.set('timestamp', Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-019 - HTTP 400/422', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const noOriginResponse = pm.response.json();",
+              "const noOriginText = JSON.stringify(noOriginResponse).toLowerCase();",
+              "",
+              "pm.test('TC-M02-019 - identifica origen financiero requerido', function () {",
+              "    pm.expect(noOriginText).to.satisfy(function (text) {",
+              "        return text.includes('origen_financiero') ||",
+              "            text.includes('origen financiero') ||",
+              "            text.includes('financial') ||",
+              "            text.includes('required');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M02-019 - registro rechazado', function () {",
+              "    pm.expect(noOriginResponse.error_code || noOriginResponse.message || noOriginResponse.detail).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"costo_adquisicion\": 500000,\n  \"soporte_documental\": \"soporte_TC-M02-019.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"SOR-{{timestamp}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      }
+    }
+  ]
+}
