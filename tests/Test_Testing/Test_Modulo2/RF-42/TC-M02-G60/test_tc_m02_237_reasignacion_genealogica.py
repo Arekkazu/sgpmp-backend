@@ -5,42 +5,51 @@ cria ya existente (TC-M02-237).
 RF relacionado: RF-42, CU08 Gestionar eventos reproductivos
 Categoria: Pruebas de validacion
 
-Criterio de aceptacion (segun la ficha, sub-caso 3):
+Criterio de aceptacion (segun la ficha, sub-caso 2):
     "Cada cria debe tener exactamente 1 madre y 1 padre (N:1); no se
     permite sobreescritura genealogica." Precondicion: "Cria con relacion
     genealogica (madre y/o padre) ya registrada previamente." Paso:
-    "Intentar registrar/asociar una segunda madre o un segundo padre a una
-    cria que ya tiene relacion genealogica registrada." Resultado esperado:
-    "El sistema rechaza la operacion, preservando la relacion genealogica
-    original de la cria (1 madre y 1 padre maximo)."
+    "Intentar registrar/asociar una segunda madre o un segundo padre a
+    una cria que ya tiene relacion genealogica registrada." Resultado
+    esperado: "El sistema rechaza la operacion, preservando la relacion
+    genealogica original de la cria (1 madre y 1 padre maximo)."
 
-Por que Pytest con dobles de prueba y no Newman contra el backend en vivo
-(mismo criterio que TC-M02-G56/G58): cualquier escritura real en
-modulo2.eventos_reproductivos hoy responde 500 por el bug de
-db_error_translator ya documentado en TC-M02-G53/G55/G57/G58, lo que
-haria indistinguible "el sistema rechazo la reasignacion" de "el sistema
-fallo por el bug ya conocido". Aislando el use case con dobles de prueba
-se puede verificar si el codigo siquiera intenta detectar una reasignacion,
-sin ese ruido.
+CORRECCION 2026-09-09 (revisado con el usuario): la version anterior de
+este test asumia que "registrar una segunda inseminacion con un padre
+distinto sobre la MISMA hembra" era equivalente al escenario de la ficha
+("reasignar madre/padre a una CRIA ya existente"), y lo dejaba en rojo
+como si fuera un bug. Tras revision, esa premisa es incorrecta:
 
-Hallazgo (leido en registrar_evento_reproductivo_use_case.py completo):
-no existe ningun mecanismo de "cria" como entidad individual -- ver
-tambien TC-M02-G58 (TC-M02-229), donde se documenta que 'numero_crias' es
-un entero agregado en un unico evento, sin registros por-cria. Por lo
-tanto tampoco existe ningun concepto de "reasignar la madre/padre de una
-cria ya existente": el unico dato que se fija por evento es el
-`id_padre`/`id_madre` DEL EVENTO EN SI (la hembra tratada, no una cria
-individual). El use case no consulta si el activo ya tiene un
-servicio/inseminacion previo con un padre DISTINTO antes de aceptar uno
-nuevo -- simplemente inserta el nuevo evento sin comparar contra eventos
-anteriores del mismo activo. Registrar una segunda inseminacion con un
-id_padre diferente sobre la misma hembra se acepta sin ninguna
-verificacion de conflicto.
+1. **No existe ninguna entidad "cria" individual en el modelo de datos**
+   (ya documentado en TC-M02-G58/TC-M02-229): `numero_crias` es un
+   entero agregado en un unico evento (`eventos_reproductivos`), sin
+   registros por-cria. El escenario LITERAL de la ficha -- reasignar el
+   padre/madre de una cria especifica que ya tiene su propia relacion
+   genealogica registrada -- no tiene forma de materializarse contra el
+   sistema real: no hay ninguna entidad "cria" a la que apuntar.
 
-Se deja la prueba afirmando el comportamiento CORRECTO esperado por el RF
-(rechazo de la segunda inseminacion con un padre distinto) en vez de
-ajustarse al comportamiento actual: un Pytest en rojo aqui es la evidencia
-documentada, mismo criterio aplicado en TC-M02-G53/G55/G56/G58.
+2. La aproximacion mas cercana disponible -- una HEMBRA (el activo
+   tratado, no una cria) que ya tiene una inseminacion previa recibe un
+   SEGUNDO evento de inseminacion con un padre DISTINTO -- no es
+   "sobreescritura genealogica de una cria". Es un nuevo ciclo
+   reproductivo independiente sobre la misma hembra. La regla N:1 de la
+   ficha aplica a la genealogia de la CRIA resultante de un evento (su
+   registro de nacimiento tiene 1 madre y 1 padre), no al historial
+   reproductivo de la hembra a lo largo de su vida. Una hembra puede
+   (y biologicamente debe poder) tener multiples ciclos reproductivos
+   con machos distintos en distintas fechas -- es exactamente la funcion
+   que RF-42 debe cumplir, no una violacion de ninguna regla.
+
+Por lo tanto: que el sistema ACEPTE una segunda inseminacion con un padre
+distinto es el comportamiento CORRECTO, no un bug. Este test se corrige
+para afirmar ese comportamiento (aceptacion) en vez de rechazo -- pasa en
+verde.
+
+**Conclusion final para TC-M02-237: NO APLICA / no es un hallazgo
+reportable.** El escenario literal de la ficha no es materializable
+contra el sistema real por el gap de diseno ya documentado en
+TC-M02-G58 (ausencia de entidad "cria"), y la aproximacion mas cercana
+observable demuestra comportamiento correcto del sistema, no un defecto.
 
 Como correrlo (desde la raiz del repo, con las env vars seteadas):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
@@ -83,12 +92,30 @@ def _activo(id_activo_biologico: int) -> ActivoBiologico:
 
 class TestTCM02237ReasignacionGenealogica:
 
-    def test_use_case_no_rechaza_segunda_inseminacion_con_padre_distinto(self):
+    def test_no_existe_entidad_cria_por_lo_que_el_escenario_de_la_ficha_no_es_materializable(self):
         """
-        RF-42: una vez que una hembra ya tiene una relacion genealogica
-        establecida (una inseminacion con un padre valido), el sistema debe
-        rechazar un intento de asociarle un SEGUNDO padre distinto (evitar
-        sobreescritura de la relacion N:1 original).
+        Documenta por que TC-M02-237 no puede probarse literalmente: el
+        modelo de datos no tiene ninguna entidad "cria" individual con
+        su propia relacion genealogica -- ver EventoReproductivo, que
+        solo expone `numero_crias` (int agregado), sin lista de crias.
+        """
+        campos = set(EventoReproductivo.__dataclass_fields__.keys())
+
+        assert 'numero_cria' in campos or 'numero_crias' in campos
+        assert 'crias' not in campos and 'lista_crias' not in campos, (
+            'Si existiera una coleccion de crias individuales aqui, el '
+            'escenario de TC-M02-237 (reasignar madre/padre a UNA cria '
+            'ya existente) si seria materializable. No existe -- '
+            'confirma el gap de diseno ya documentado en TC-M02-G58.'
+        )
+
+    def test_una_segunda_inseminacion_con_padre_distinto_es_un_nuevo_ciclo_valido_no_una_reasignacion(self):
+        """
+        RF-42: una hembra que ya tiene una inseminacion previa registrada
+        puede recibir un SEGUNDO evento de inseminacion con un padre
+        distinto -- esto es un nuevo ciclo reproductivo independiente,
+        no una sobreescritura de la genealogia de ninguna cria. El
+        sistema lo acepta correctamente.
         """
         madre = _activo(ID_MADRE)
         padre_original = _activo(ID_PADRE_ORIGINAL)
@@ -108,20 +135,13 @@ class TestTCM02237ReasignacionGenealogica:
 
         evento_repo = MagicMock()
         evento_repo.obtener_ultima_fecha.return_value = None
-        # Simula que la madre YA tiene una inseminacion previa registrada
-        # con padre_original (precondicion de la ficha: "relacion
-        # genealogica ya registrada previamente").
+        # La madre YA tiene una inseminacion previa registrada con
+        # padre_original -- precondicion de la ficha ("relacion
+        # genealogica ya registrada previamente"), reinterpretada a
+        # nivel de evento/hembra en vez de cria (ver docstring del
+        # modulo).
         evento_repo.tiene_servicio_o_inseminacion_previa.return_value = True
-
-        db = MagicMock()
-        use_case = RegistrarEventoReproductivoUseCase(
-            db=db, activo_repo=activo_repo, evento_repo=evento_repo, bitacora_repo=MagicMock(),
-        )
-        usuario_actual = UsuarioActual(id_usuario=1, id_token=1, id_rol=2, id_estado_cuenta=2)
-
-        # Intento de "reasignar" el padre: una segunda inseminacion sobre
-        # la MISMA madre, ahora con un padre DISTINTO.
-        evento_repo.guardar.return_value = EventoActivo(
+        evento_guardado = EventoActivo(
             id_activo_biologico=ID_MADRE,
             fecha=datetime(2026, 9, 9, tzinfo=timezone.utc),
             id_usuario=1,
@@ -130,24 +150,24 @@ class TestTCM02237ReasignacionGenealogica:
                 categoria='inseminacion', resultado='exitoso', id_padre=ID_PADRE_NUEVO,
             ),
         )
-        dto_reasignacion = RegistrarEventoReproductivoDTO(
+        evento_repo.guardar.return_value = evento_guardado
+
+        db = MagicMock()
+        use_case = RegistrarEventoReproductivoUseCase(
+            db=db, activo_repo=activo_repo, evento_repo=evento_repo, bitacora_repo=MagicMock(),
+        )
+        usuario_actual = UsuarioActual(id_usuario=1, id_token=1, id_rol=2, id_estado_cuenta=2)
+        dto_segundo_ciclo = RegistrarEventoReproductivoDTO(
             categoria='inseminacion', resultado='exitoso', id_padre=ID_PADRE_NUEVO,
         )
 
-        excepcion_lanzada = None
-        try:
-            use_case.execute(ID_MADRE, dto_reasignacion, usuario_actual)
-        except Exception as exc:
-            excepcion_lanzada = exc
+        resultado = use_case.execute(ID_MADRE, dto_segundo_ciclo, usuario_actual)
 
-        assert excepcion_lanzada is not None, (
-            "RF-42 exige que una segunda inseminacion con un padre distinto "
-            "sobre una hembra que ya tiene una relacion genealogica "
-            "establecida sea rechazada, preservando la relacion original "
-            "(1 madre y 1 padre maximo). El use case no lanzo ninguna "
-            "excepcion -- de hecho, nunca consulta si el activo ya tiene un "
-            "servicio/inseminacion previo con un padre DISTINTO antes de "
-            "aceptar uno nuevo; solo verifica que el nuevo id_padre exista "
-            "y este ACTIVO (lineas 62-79), sin comparar contra eventos "
-            "anteriores del mismo activo."
+        assert resultado is evento_guardado, (
+            'Un segundo evento de inseminacion con un padre distinto sobre '
+            'la misma hembra debe aceptarse -- es un nuevo ciclo '
+            'reproductivo valido, no una violacion de la regla N:1 de '
+            'genealogia (esa regla aplica a la cria resultante de un '
+            'evento, no al historial reproductivo de la hembra).'
         )
+        assert resultado.reproductivo.id_padre == ID_PADRE_NUEVO
