@@ -1,0 +1,167 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-057-mass-assignment-cantidad-inicial",
+    "name": "TC-M02-057 - Mass Assignment sobre campo inmutable cantidad_inicial (RF-36 - OWASP API3)",
+    "description": "Prueba de seguridad OWASP API3 (Mass Assignment): Enviar un evento biológico incluyendo el campo inmutable cantidad_inicial=500. El backend debe ignorar o rechazar el campo, asegurando que cantidad_inicial mantenga su valor original.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_finca1",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "cantidad_inicial_esperada",
+      "value": "5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Registrar evento biológico con inyección de cantidad_inicial (TC-M02-057)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 55.0,\n  \"unidad_medida\": \"g\",\n  \"nuevo_peso_promedio\": 55.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-09T02:00:00Z\",\n  \"cantidad_inicial\": 500\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}/eventos/crecimiento",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}",
+            "eventos",
+            "crecimiento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Respuesta del evento: Acepta ignorando campo extra (201) o rechaza por validación estricta (400/422)', function () {",
+              "    pm.expect([200, 201, 400, 422]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar activo biológico y verificar inmutabilidad de cantidad_inicial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar activo', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Seguridad Mass Assignment: cantidad_inicial NO fue modificada por la inyección (sigue siendo el valor original)', function () {",
+              "    var res = pm.response.json();",
+              "    var cantidadInicial = null;",
+              "    if (res.detalle_poblacional && res.detalle_poblacional.cantidad_inicial !== undefined) {",
+              "        cantidadInicial = res.detalle_poblacional.cantidad_inicial;",
+              "    } else if (res.cantidad_inicial !== undefined) {",
+              "        cantidadInicial = res.cantidad_inicial;",
+              "    }",
+              "    pm.expect(cantidadInicial).to.not.be.null;",
+              "    pm.expect(cantidadInicial).to.eql(parseInt(pm.collectionVariables.get('cantidad_inicial_esperada')));",
+              "    pm.expect(cantidadInicial).to.not.eql(500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

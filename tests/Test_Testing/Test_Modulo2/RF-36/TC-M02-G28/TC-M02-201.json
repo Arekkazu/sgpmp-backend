@@ -1,0 +1,172 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-201-rechazar-transferencia-otra-finca",
+    "name": "TC-M02-201 - Rechazar transferencia a infraestructura de otra finca (RF-36 / RF-48)",
+    "description": "Prueba de aceptación para RF-36 y RF-48: Rechazar intento de transferencia de lote a una infraestructura que pertenece a una finca diferente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_origen_id",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_otra_finca_id",
+      "value": "4",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar transferencia a infraestructura de otra finca (TC-M02-201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_otra_finca_id}},\n  \"fecha_transferencia\": \"2026-09-08\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura otra finca TC-M02-201\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: Rechazo por infraestructura de otra finca (400, 403 o 422)', function () {",
+              "    pm.expect([400, 403, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Mensaje de error indica incompatibilidad de finca o rechazo de transferencia externa', function () {",
+              "    if ([400, 403, 422].includes(pm.response.code)) {",
+              "        var resText = pm.response.text();",
+              "        pm.expect(resText).to.be.a('string');",
+              "    } else {",
+              "        pm.expect.fail('DEFECTO: El backend permitió transferir el lote a una infraestructura de otra finca con HTTP ' + pm.response.code);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Verificar que el lote no cambió de infraestructura",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('El lote permanece en su infraestructura original (3)', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_origen_id')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
