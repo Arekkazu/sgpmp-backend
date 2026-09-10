@@ -967,6 +967,7 @@ def consultar_historial(
         pagina_actual=pagina_historial.pagina_actual,
         total_paginas=pagina_historial.total_paginas,
         registros_por_pagina=pagina_historial.registros_por_pagina,
+        mensaje=pagina_historial.mensaje,
         registros=[
             RegistroHistorialResponse(
                 categoria=r.categoria,
