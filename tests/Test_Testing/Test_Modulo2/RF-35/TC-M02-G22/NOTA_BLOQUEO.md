@@ -32,42 +32,44 @@ Esto crea un **bloqueo circular**: `TRATAMIENTO` y `VACUNACION` exigen un `DIAGN
 lo que falla con 500. En la práctica, **ningún tipo de evento sanitario se puede registrar hoy en este entorno TEST**
 sobre un activo sin historial sanitario previo.
 
-## Hipótesis de causa raíz (no confirmada — sin acceso a la base de datos)
+## Causa raíz — CONFIRMADA con acceso directo a la base de datos (corrige la hipótesis original de abajo)
 
-No tengo acceso directo a PostgreSQL de TEST desde este entorno de ejecución (solo API), así que esto es una
-hipótesis basada en lectura de código, no una causa confirmada:
+**Actualización posterior con acceso a PostgreSQL de TEST** (credencial de solo consulta, autorizada explícitamente
+por el usuario): la hipótesis original de este documento (el trigger de secuencia sanitaria) **era incorrecta**.
+Se revisó `trg_fn_evento_sanitario_secuencia` directamente y su condición de disparo exige `medicamento IS NOT NULL
+AND dosis IS NOT NULL` — nunca se activa para `DIAGNOSTICO`/`CONTROL_PREVENTIVO`, que no tienen esos campos.
 
-- El use case (`registrar_evento_sanitario_use_case.py`) y el modelo ORM (`evento_sanitario_model.py`, con sus 4
-  `CheckConstraint` nombrados) se revisaron línea por línea y no muestran ningún problema evidente para estos dos
-  tipos: `DIAGNOSTICO` solo exige `diagnostico IS NOT NULL` (cumplido) y `CONTROL_PREVENTIVO` solo exige
-  `observaciones IS NOT NULL` (cumplido).
-- La auditoría previa del módulo (`anotaciones/modulo_2/estado.md`, sección RF-41) ya señalaba que el trigger de BD
-  `trg_fn_evento_sanitario_secuencia` "infiere diagnóstico previo por proxy (presencia/ausencia de
-  medicamento/dosis) en vez de por tipo" — una lógica descrita ahí mismo como "más frágil" que la del use case. Es
-  plausible que esa misma lógica por proxy esté fallando (o lanzando una excepción con `ERRCODE` propio) también
-  para los tipos que el use case no necesita validar (`DIAGNOSTICO`/`CONTROL_PREVENTIVO`, que no tienen
-  medicamento/dosis).
-- Esto coincidiría con el "Hallazgo transversal #4" ya documentado: excepciones de trigger con `ERRCODE` propio
-  (`P02xx`) que `raise_from_db_error` no traduce, y que caen en el manejador genérico → 500 `ERROR_INTERNO` (el
-  mensaje exacto que se observó aquí).
-- **No se puede confirmar sin consultar directamente el código fuente del trigger en la base de datos** (`\df+` /
-  `pg_get_functiondef` sobre `trg_fn_evento_sanitario_secuencia`) o los logs del servidor — ninguno de los dos está
-  disponible desde este entorno de ejecución.
+La causa real es otro trigger, sobre la tabla **padre** `modulo2.eventos_activos`: `trg_fn_evento_fecha_coherente`
+(SQLSTATE `P0215`), que rechaza `fecha > now()` con **tolerancia prácticamente nula** (se confirmó un rechazo con
+solo ~1.1 segundos de diferencia). El use case (`registrar_evento_sanitario_use_case.py`, `fecha = dto.fecha or
+datetime.now(timezone.utc)`) usa "ahora" calculado en el servidor de aplicación cuando el cliente no manda `fecha`
+explícita — que es exactamente lo que hicieron todas las peticiones de esta sesión. Confirmado de forma concluyente
+contra la API real (no solo en un script aislado):
 
-## Por qué no se puede resolver desde esta sesión
+```
+POST .../eventos/sanitario {"tipo":"DIAGNOSTICO","diagnostico":"..."}                     (sin fecha) → HTTP 500
+POST .../eventos/sanitario {"tipo":"DIAGNOSTICO","diagnostico":"...","fecha":"<hace 10 min>"} → HTTP 201
+```
 
-Sin acceso a PostgreSQL de TEST ni a los logs del backend desplegado, no se puede inspeccionar la definición real
-del trigger ni el traceback completo del error 500 para confirmar la causa exacta.
+Y por qué sale como 500 genérico en vez de un 400/422 limpio: `raise_from_db_error()`
+(`src/shared/db_error_translator.py`) solo tiene mapeos hardcodeados para 4 SQLSTATE de **módulo 9**
+(`P0104`, `P0109`, `P0130`, `P0140`) — ningún SQLSTATE de módulo 2 (`P0215`, `P0219`, `P0224`-`P0228`, ninguno)
+está mapeado. Postgres clasifica un `RAISE EXCEPTION ... USING ERRCODE='P0215'` como `InternalError` genérico, que
+no es `IntegrityError`/`DataError`/`OperationalError`, así que cae directo en el `raise InfrastructureError(code=
+"ERROR_INTERNO", message="Error inesperado en base de datos", ...)` del final de la función — el mensaje exacto
+observado en todos los intentos.
 
-## Cómo desbloquear
+## Cómo desbloquear (confirmado, ya no requiere seguir investigando)
 
-1. Revisar la definición de `trg_fn_evento_sanitario_secuencia` (y cualquier otro trigger sobre
-   `modulo2.eventos_sanitarios`) directamente en la base de TEST, con foco en su comportamiento para
-   `tipo IN ('DIAGNOSTICO', 'CONTROL_PREVENTIVO')`.
-2. Revisar los logs del backend TEST en el momento de los timestamps de arriba
-   (`2026-09-09T22:59:28Z`, `2026-09-09T23:01:18Z`) para obtener el traceback real y el `ERRCODE` de Postgres.
-3. Una vez identificado, aplicar el mismo criterio ya usado en otros RFs de este módulo: o se corrige el trigger, o
-   se amplía `raise_from_db_error` para traducir su `ERRCODE` a un código de negocio controlado en vez de 500.
+1. Causa raíz real: el timestamp por defecto calculado en el servidor de aplicación puede leerse como "futuro" por
+   la base de datos con una tolerancia casi nula. Revisar por qué (desfase de reloj entre el contenedor del backend
+   y el de PostgreSQL en TEST, o latencia entre el cálculo en Python y la ejecución del `INSERT`) y, como mitigación
+   robusta, agregar un pequeño margen de tolerancia en `trg_fn_evento_fecha_coherente` (p. ej. rechazar solo si
+   `fecha > now() + interval '2 seconds'`) en vez de una comparación exacta.
+2. Extender `raise_from_db_error` para mapear los SQLSTATE `P02xx` propios de `modulo2` (no solo los 4 de
+   `modulo9` que ya cubre) a errores de dominio controlados — así cualquier violación real de regla de negocio
+   sale como 400/409/422 con el código documentado por su RF, no como 500 genérico. Afecta a los `P02xx` de RF-37,
+   RF-39/40/41/42 y RF-44/45 por igual (mismo gap transversal ya señalado en la auditoría del módulo).
 
 ## Alcance del bloqueo
 
