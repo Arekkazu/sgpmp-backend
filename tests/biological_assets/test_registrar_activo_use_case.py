@@ -65,9 +65,13 @@ class EspecieFake:
 
 
 class InfraFake:
+    def __init__(self, superficie: Decimal | None = None) -> None:
+        self.superficie = superficie
+
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
+            superficie=self.superficie,
         )
 
 
@@ -105,12 +109,13 @@ def _use_case(
     repo: ActivoRepoFake,
     db: DbFake,
     parametros: list[ParametroEspecie] | None = None,
+    infra_port: InfraFake | None = None,
 ) -> RegistrarActivoBiologicoUseCase:
     return RegistrarActivoBiologicoUseCase(
         db=db,
         repo=repo,
         especie_port=EspecieFake(),
-        infra_port=InfraFake(),
+        infra_port=infra_port or InfraFake(),
         parametros_port=ParametrosFake(parametros),
     )
 
@@ -249,3 +254,43 @@ def test_atributo_dinamico_valido_se_persiste_normalmente() -> None:
     assert repo.guardados == 1
     assert len(repo.historial) == 1
     assert db.commits == 1
+
+
+def test_registro_poblacional_calcula_densidad_inicial_con_superficie_conocida() -> None:
+    # INC-M02-37-G24 (TC-M02-048): antes, densidad quedaba null hasta el
+    # primer evento de crecimiento; debe calcularse ya en el registro.
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, infra_port=InfraFake(superficie=Decimal('500')))
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=100,
+        peso_promedio_inicial=Decimal('0.2'),
+    )
+
+    activo = uc.execute(dto, _usuario())
+
+    assert activo.detalle_poblacional.densidad == Decimal('100') / Decimal('500')
+
+
+def test_registro_poblacional_sin_superficie_conocida_deja_densidad_none() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, infra_port=InfraFake(superficie=None))
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=100,
+        peso_promedio_inicial=Decimal('0.2'),
+    )
+
+    activo = uc.execute(dto, _usuario())
+
+    assert activo.detalle_poblacional.densidad is None
