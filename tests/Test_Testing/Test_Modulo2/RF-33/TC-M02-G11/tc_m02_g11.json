@@ -1,0 +1,423 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g11-rf33",
+    "name": "TC-M02-G11 - Validacion de rango de cantidad_inicial y fecha_inicio_ciclo",
+    "description": "Pruebas negativas del RF-33 para validar cantidad_inicial y fecha_inicio_ciclo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    },
+    {
+      "key": "fecha_futura",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 200 - Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.expect(body.token).to.be.a(\"string\");",
+              "pm.expect(body.token.length).to.be.greaterThan(0);",
+              "pm.collectionVariables.set(\"token\", body.token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Obtener especie activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 200 - Consulta de especies exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "let especies = Array.isArray(body) ? body : (body.items || body.data || body.especies || []);",
+              "",
+              "const especie = especies.find(e => e.es_activo === true) || especies.find(e => e.estado === \"ACTIVO\") || especies[0];",
+              "",
+              "pm.test(\"Existe una especie disponible\", function () {",
+              "    pm.expect(especie).to.exist;",
+              "});",
+              "",
+              "if (especie) {",
+              "    const id = especie.id_especie ?? especie.id;",
+              "    pm.expect(id).to.exist;",
+              "    pm.collectionVariables.set(\"especie_id\", String(id));",
+              "    console.log(\"Especie seleccionada:\", id, especie.nombre_especie || especie.nombre);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Obtener infraestructura activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=3",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "3"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 200 - Consulta de infraestructura exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "let infraestructuras = Array.isArray(body) ? body : (body.items || body.data || body.infraestructuras || []);",
+              "",
+              "const infraestructura = infraestructuras.find(i => i.es_activa === true || i.es_activo === true || i.estado === \"ACTIVO\") || infraestructuras[0];",
+              "",
+              "pm.test(\"Existe una infraestructura disponible\", function () {",
+              "    pm.expect(infraestructura).to.exist;",
+              "});",
+              "",
+              "if (infraestructura) {",
+              "    const id = infraestructura.id_infraestructura ?? infraestructura.id;",
+              "    pm.expect(id).to.exist;",
+              "    pm.collectionVariables.set(\"infraestructura_id\", String(id));",
+              "    console.log(\"Infraestructura seleccionada:\", id, infraestructura.nombre_infraestructura || infraestructura.nombre);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-011-A - Rechazar cantidad_inicial = 0",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 0,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 400 - cantidad_inicial = 0 es rechazada\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const texto = JSON.stringify(body).toLowerCase();",
+              "",
+              "pm.test(\"El error corresponde a cantidad_inicial\", function () {",
+              "    pm.expect(texto).to.include(\"cantidad_inicial\");",
+              "});",
+              "",
+              "pm.test(\"El mensaje indica que la cantidad debe ser mayor a 0\", function () {",
+              "    pm.expect(texto).to.satisfy(t =>",
+              "        t.includes(\"debe ser mayor a 0\") ||",
+              "        t.includes(\"mayor a cero\") ||",
+              "        t.includes(\"mayor que 0\")",
+              "    );",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-011-B - Rechazar cantidad_inicial = null",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 400 - cantidad_inicial = null es rechazada\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const texto = JSON.stringify(body).toLowerCase();",
+              "",
+              "pm.test(\"El error corresponde a cantidad_inicial\", function () {",
+              "    pm.expect(texto).to.include(\"cantidad_inicial\");",
+              "});",
+              "",
+              "pm.test(\"El mensaje indica que cantidad_inicial es requerida\", function () {",
+              "    pm.expect(texto).to.satisfy(t =>",
+              "        t.includes(\"es requerida\") ||",
+              "        t.includes(\"requerida para activos de tipo poblacional\")",
+              "    );",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-012-A - Rechazar fecha_inicio_ciclo futura",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"{{fecha_futura}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);",
+              "const yyyy = tomorrow.getUTCFullYear();",
+              "const mm = String(tomorrow.getUTCMonth() + 1).padStart(2, '0');",
+              "const dd = String(tomorrow.getUTCDate()).padStart(2, '0');",
+              "const fecha = `${yyyy}-${mm}-${dd}`;",
+              "pm.collectionVariables.set(\"fecha_futura\", fecha);",
+              "console.log(\"Fecha futura enviada:\", fecha);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 400 - fecha futura es rechazada\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const texto = JSON.stringify(body).toLowerCase();",
+              "",
+              "pm.test(\"El error corresponde a fecha_inicio_ciclo\", function () {",
+              "    pm.expect(texto).to.include(\"fecha_inicio_ciclo\");",
+              "});",
+              "",
+              "pm.test(\"El error indica que la fecha futura no es válida\", function () {",
+              "    pm.expect(texto).to.satisfy(t =>",
+              "        t.includes(\"futura\") ||",
+              "        t.includes(\"actual\") ||",
+              "        t.includes(\"posterior\") ||",
+              "        t.includes(\"mayor\") ||",
+              "        t.includes(\"fecha_inicio_ciclo\")",
+              "    );",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-012-B - Rechazar fecha_inicio_ciclo anterior a 1970",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"1969-12-31\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"HTTP 400 - fecha anterior a 1970 es rechazada\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "const texto = JSON.stringify(body).toLowerCase();",
+              "",
+              "pm.test(\"El error indica que la fecha es anterior al límite permitido\", function () {",
+              "    pm.expect(texto).to.satisfy(t =>",
+              "        t.includes(\"no puede ser anterior a 1970-01-01\") ||",
+              "        (t.includes(\"1970-01-01\") && t.includes(\"fecha_inicio_ciclo\"))",
+              "    );",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
