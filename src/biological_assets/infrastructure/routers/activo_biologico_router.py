@@ -118,6 +118,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
@@ -362,8 +363,9 @@ def consultar_bitacora(
     use_case = ConsultarBitacoraUseCase(
         db=db,
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        rol_repo=SqlAlchemyRolRepository(db),
     )
-    registros, total = use_case.execute(dto)
+    registros, total = use_case.execute(dto, usuario_actual)
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return BitacoraAuditoriaResponse(
         total_registros=total,

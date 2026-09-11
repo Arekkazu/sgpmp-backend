@@ -27,5 +27,12 @@ class BitacoraAuditoriaRepository(ABC):
         fecha_fin: Optional[datetime],
         pagina: int,
         page_size: int,
+        *,
+        clasificaciones_permitidas: Optional[set[str]] = None,
+        id_propietario_acceso_datos: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
-        """Retorna (registros, total_count) aplicando filtros y paginación."""
+        """Retorna (registros, total_count) aplicando filtros, alcance y paginación."""
+
+    @abstractmethod
+    def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
+        """Indica si el usuario registró el activo consultado."""
