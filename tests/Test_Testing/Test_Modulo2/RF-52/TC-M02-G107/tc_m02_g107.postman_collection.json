@@ -1,0 +1,317 @@
+{
+  "info": {
+    "name": "TC-M02-G107 - Cadena de custodia NIC 41 y registro de eventos rechazados (RF-52 CA-7/CA-10, CU13)",
+    "description": "TC-M02-G107 (RF-52, CU13), sub-casos TC-M02-270 (CA-7, cadena de custodia completa) y TC-M02-271 (CA-10, registro de eventos fallidos/rechazados).\n\nSub-caso 1 (TC-M02-270): la ficha pide ejecutar la secuencia completa RF-33 (registro) -> RF-37 (cambio de fase) -> RF-40 (evento de crecimiento) -> RF-43 (evento productivo) -> RF-44 (estado al cierre) sobre un mismo activo y verificar que la bitacora permite reconstruirla cronologicamente. **La cadena es IMPOSIBLE de completar hoy contra el backend real**, por una combinacion de bugs y gaps ya documentados en sesiones anteriores:\n- RF-33 (registro): funciona, genera un evento EXITOSO (GESTION_OPERATIVA).\n- RF-37 (cambio de fase, POST .../fases): responde 500 SIEMPRE (TC-M02-G61 -- cambiar_fase_use_case.py:72 llama cerrar_gestion_activa con un argumento faltante). La cadena se rompe aqui: ningun activo puede llegar a tener una fase real.\n- RF-40 (evento de crecimiento): tambien exige una fase productiva activa (`SIN_FASE_ACTIVA`, registrar_evento_crecimiento_use_case.py:62-65) -- bloqueado en cascada por el mismo motivo que RF-37.\n- RF-43 (evento productivo): tambien exige fase activa (`SIN_FASE_PRODUCTIVA_ACTIVA`, TC-M02-G61) -- bloqueado igual, y ademas esta validacion ocurre ANTES del bloque de auditoria, asi que ni siquiera generaria una fila FALLIDA (ver sub-caso 2 de este mismo TC).\n- RF-44 (estado al cierre): endpoint separado (PATCH/POST /activos-biologicos/{id}/estado), no depende de los anteriores, pero no tiene sentido probarlo aislado si la cadena que lo precede nunca se completo.\n\nEsta coleccion documenta el punto exacto donde la cadena se rompe (RF-37) y confirma que, de los 5 eventos exigidos por CA-7, solo 1 (RF-33) queda realmente disponible en la bitacora del activo -- imposibilitando reconstruir la 'transformacion biologica del periodo' como exige NIC 41.\n\nSub-caso 2 (TC-M02-271, CA-10): usa el escenario EXACTO que sugiere la propia ficha -- forzar el rechazo de un evento reproductivo fuera de secuencia (RF-42, NACIMIENTO directo sin servicio/diagnostico previo, ya documentado en TC-M02-G54/G59) -- y confirma que **CA-10 se viola en este caso concreto**: el rechazo (422 SECUENCIA_REPRODUCTIVA_INVALIDA) NO genera ninguna fila en la bitacora. Solo las fallas que ocurren DENTRO del bloque try/except de persistencia (ej. los bugs 500 de TC-M02-G53/G58/G60/G102) se auditan; las validaciones de negocio tempranas (Python, antes de cualquier intento de escritura) --como esta, y como SIN_FASE_PRODUCTIVA_ACTIVA de RF-43-- se pierden sin dejar rastro, contradiciendo CA-10 ('toda operacion rechazada o fallida... debe registrarse').\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 1/5 (RF-33) - Registrar activo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Paso 1 (RF-33): el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_cadena', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cadena-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CADENA-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 2/5 (RF-37) - Cambiar fase (BUG: la cadena se rompe aqui)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 2 (RF-37): la cadena de custodia CA-7 exige que este paso funcione para poder continuar con RF-40/RF-43 ---');",
+              "console.log(pm.response.text());",
+              "pm.test('(BUG, ver TC-M02-G61) Paso 2 (RF-37): deberia responder 201, pero responde 500 -- CA-7 no puede cumplirse porque este paso nunca funciona', function () {",
+              "    pm.expect(pm.response.code).to.equal(500);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productivo_cachama}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_cadena}}/fases",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_cadena}}", "fases" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 3/5 (RF-40) - Evento de crecimiento (bloqueado en cascada por falta de fase)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 3 (RF-40): tambien exige fase activa (SIN_FASE_ACTIVA) -- bloqueado en cascada por el paso 2 ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Paso 3 (RF-40): rechazado, confirma el bloqueo en cascada (no hay fase activa para habilitar el evento)', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([404, 422]);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 1.2,\n  \"unidad_medida\": \"kg\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_cadena}}/eventos/crecimiento",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_cadena}}", "eventos", "crecimiento" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 4/5 (RF-43) - Evento productivo (bloqueado en cascada, y sin dejar rastro en auditoria)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 4 (RF-43): tambien exige fase activa, y esta validacion ni siquiera se audita (ver TC-M02-G07) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Paso 4 (RF-43): rechazado con 422 SIN_FASE_PRODUCTIVA_ACTIVA', function () {",
+              "    pm.response.to.have.status(422);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-10\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_cadena}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_cadena}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 5/5 - Consultar bitacora del activo: confirmar que la cadena NO se puede reconstruir",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificacion final CA-7: cuantos de los 5 eventos de la cadena quedaron disponibles en la bitacora ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const rfsPresentes = (respuesta.registros || []).map(function (r) { return r.rf_origen; });",
+              "console.log('RF presentes en la bitacora del activo: ' + rfsPresentes.join(', '));",
+              "pm.test('(BUG, CA-7 incumplido) Solo RF-33 queda disponible en la bitacora -- RF-37/RF-40/RF-43 nunca llegan a completarse ni a auditarse, imposibilitando reconstruir la cadena de custodia completa que exige NIC 41', function () {",
+              "    pm.expect(rfsPresentes).to.include('RF33');",
+              "    pm.expect(rfsPresentes).to.not.include('RF40');",
+              "    pm.expect(rfsPresentes).to.not.include('RF43');",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: la cadena de custodia CA-7 no puede reconstruirse hoy -- se rompe en RF-37 (bug de TC-M02-G61) y arrastra en cascada a RF-40/RF-43.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_cadena}}&page_size=20",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_cadena}}" },
+            { "key": "page_size", "value": "20" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/3 (TC-M02-271) - Registrar activo fresco (Tilapia, sin eventos previos)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_ca10', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_tilapia}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-ca10-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura_tilapia}},\n  \"identificador\": \"CA10-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/3 (TC-M02-271) - Forzar rechazo: NACIMIENTO fuera de secuencia (RF-42)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: mismo escenario que sugiere la propia ficha -- NACIMIENTO sin servicio/diagnostico previo ---');",
+              "console.log(pm.response.text());",
+              "pm.test('El rechazo ocurre correctamente con HTTP 422 SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.response.to.have.status(422);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_ca10}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_ca10}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 3/3 (TC-M02-271, BUG CA-10) - Confirmar que el rechazo NO quedo auditado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificando si el rechazo del paso anterior genero alguna fila en la bitacora ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const eventosReproductivos = (respuesta.registros || []).filter(function (r) { return r.rf_origen === 'RF42'; });",
+              "pm.test('(BUG, CA-10 incumplido) el rechazo SECUENCIA_REPRODUCTIVA_INVALIDA NO genero ninguna fila en la bitacora -- viola CA-10 (\"toda operacion rechazada o fallida... debe registrarse\")', function () {",
+              "    pm.expect(eventosReproductivos.length).to.equal(0);",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: solo las fallas DENTRO del bloque try/except de persistencia se auditan (ej. bugs 500 de TC-M02-G53/G58/G60/G102). Las validaciones de negocio tempranas -- como esta, y como SIN_FASE_PRODUCTIVA_ACTIVA de RF-43 -- se pierden sin dejar rastro, contradiciendo CA-10 literalmente con el mismo escenario que sugiere la ficha.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_ca10}}&page_size=20",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_ca10}}" },
+            { "key": "page_size", "value": "20" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_ciclo_productivo_cachama", "value": "4" },
+    { "key": "id_especie_tilapia", "value": "10" },
+    { "key": "id_infraestructura_tilapia", "value": "3" },
+    { "key": "id_activo_cadena", "value": "" },
+    { "key": "id_activo_ca10", "value": "" }
+  ]
+}
