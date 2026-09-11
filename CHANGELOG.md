@@ -1,3 +1,12 @@
+## [1.0.0-rc.37](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.36...v1.0.0-rc.37) (2026-09-11)
+
+### Bug Fixes
+
+* **rf16-rf30:** no exigir tipo_dato/es_obligatorio al crear plantillas nuevas ([5517cba](https://github.com/Arekkazu/sgpmp-backend/commit/5517cba0085b8bf2bb41bac32c448fa48027de49)), closes [#208](https://github.com/Arekkazu/sgpmp-backend/issues/208)
+* **rf16-rf33:** agregar metadatos a atributos dinámicos ([fa249d7](https://github.com/Arekkazu/sgpmp-backend/commit/fa249d76deb1fe8597177427d1628ecdfd0cd9f1))
+* **rf38-rf45:** registrar baja antes del estado terminal ([285395c](https://github.com/Arekkazu/sgpmp-backend/commit/285395c5176c501470c60574a4ee12e4183e114c))
+* **rf46:** agregar mensaje al historial sin resultados ([f460579](https://github.com/Arekkazu/sgpmp-backend/commit/f46057902172f615712c0fae4d066bc41862f640))
+
 ## [1.0.0-rc.36](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.35...v1.0.0-rc.36) (2026-09-11)
 
 ### Bug Fixes
