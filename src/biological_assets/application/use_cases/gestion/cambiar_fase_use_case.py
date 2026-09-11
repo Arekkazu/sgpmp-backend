@@ -69,7 +69,12 @@ class CambiarFaseUseCase:
 
         try:
             # Cerrar fase activa actual si existe (antes de insertar la nueva, por el trigger)
-            self.repo.cerrar_gestion_activa(id_activo, ahora, dto.motivo_cambio or '')
+            self.repo.cerrar_gestion_activa(
+                id_activo,
+                ahora,
+                dto.motivo_cambio or '',
+                usuario.id_usuario,
+            )
 
             nueva_gestion = GestionFase(
                 id_gestion_fases=None,
