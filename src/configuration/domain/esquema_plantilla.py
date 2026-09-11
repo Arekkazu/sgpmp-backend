@@ -109,14 +109,25 @@ CAMPOS_REQUERIDOS: dict[str, dict[str, Regla]] = {
         "unidad_medida": TEXTO,
         "tipo_medicion": _uno_de(*(m.value for m in TipoMedicion)),
         "aplica_a_tipo_activo": _uno_de(*(a.value for a in AplicaTipoActivo)),
-        "tipo_dato": _uno_de(*(t.value for t in TipoDatoAtributo)),
-        "es_obligatorio": BOOLEANO,
     },
     "umbrales_ambientales": {
         "id_variable_ambiental": ENTERO_POSITIVO,
         "unidad_medida": TEXTO,
         "valor_min": NUMERO,
         "valor_max": NUMERO,
+    },
+}
+
+#: Campos opcionales de cada ítem: si vienen se valida su tipo, si faltan el
+#: repositorio aplica el valor por defecto (`guardar_desde_snapshot` infiere
+#: `tipo_dato` desde `tipo_medicion` y asume `es_obligatorio=False`). No van en
+#: `CAMPOS_REQUERIDOS` para no romper la creación de plantillas nuevas desde
+#: clientes que todavía no envían estos dos campos (#208 solo agregó metadata
+#: a RF-16/RF-33, no volvió estos campos obligatorios en RF-30).
+CAMPOS_OPCIONALES: dict[str, dict[str, Regla]] = {
+    "metricas_produccion": {
+        "tipo_dato": _uno_de(*(t.value for t in TipoDatoAtributo)),
+        "es_obligatorio": BOOLEANO,
     },
 }
 
@@ -138,9 +149,12 @@ CHANGELOG: tuple[dict[str, Any], ...] = (
         "fecha": "2026-09-09",
         "compatible_con": (1, 2),
         "cambios": (
-            "Las métricas productivas conservan tipo_dato y es_obligatorio para los atributos dinámicos.",
-            "tipo_dato admite NUMERICO, ENTERO, TEXTO o BOOLEANO; es_obligatorio debe ser booleano.",
-            "Las plantillas de versión 1 siguen siendo aplicables con tipo inferido y obligatoriedad desactivada.",
+            "Las métricas productivas admiten tipo_dato y es_obligatorio para los atributos dinámicos.",
+            "Ambos campos son opcionales en el snapshot: si vienen, tipo_dato debe ser uno de "
+            "NUMERICO, ENTERO, TEXTO o BOOLEANO, y es_obligatorio debe ser booleano.",
+            "Si no vienen, se infiere tipo_dato desde tipo_medicion y es_obligatorio queda en False "
+            "— así una plantilla nueva creada por un cliente que aún no los envía sigue siendo válida.",
+            "Las plantillas de versión 1 siguen siendo aplicables con el mismo criterio de inferencia.",
         ),
     },
     {
@@ -219,6 +233,16 @@ def _validar_item(item: dict[str, Any], reglas: dict[str, Regla], ubicacion: str
     return errores
 
 
+def _validar_opcionales(item: dict[str, Any], reglas: dict[str, Regla], ubicacion: str) -> list[str]:
+    """Valida el tipo de campos opcionales solo cuando vienen informados."""
+    errores: list[str] = []
+    for campo, (descripcion, es_valido) in reglas.items():
+        valor = item.get(campo)
+        if valor is not None and not es_valido(valor):
+            errores.append(f"{ubicacion}.{campo} debe ser {descripcion}; llegó {valor!r}.")
+    return errores
+
+
 def _validar_niveles(umbral: dict[str, Any], ubicacion: str) -> list[str]:
     """Valida `niveles` del umbral. La clave es opcional; su contenido no."""
     niveles = umbral.get("niveles")
@@ -294,6 +318,7 @@ def validar_snapshot(snapshot: dict[str, Any]) -> list[str]:
                 errores.append(f"{ubicacion} debe ser un objeto.")
                 continue
             errores.extend(_validar_item(item, CAMPOS_REQUERIDOS[categoria], ubicacion))
+            errores.extend(_validar_opcionales(item, CAMPOS_OPCIONALES.get(categoria, {}), ubicacion))
             if categoria == "umbrales_ambientales":
                 errores.extend(_validar_niveles(item, ubicacion))
 
