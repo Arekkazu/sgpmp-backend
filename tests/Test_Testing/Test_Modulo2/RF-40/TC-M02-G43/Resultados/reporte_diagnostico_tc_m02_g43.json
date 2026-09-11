@@ -1,0 +1,3653 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "dd99005f-fe30-41bf-955b-47b7d8207d0a",
+        "name": "00-SETUP",
+        "item": [
+          {
+            "id": "8eeaaf0e-77c2-47de-a19a-309ace1746c1",
+            "name": "Contrato vivo OpenAPI por HTTPS",
+            "request": {
+              "url": {
+                "protocol": "https",
+                "path": [
+                  "api-sgpmp-test",
+                  "openapi.json"
+                ],
+                "host": [
+                  "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                  "sslip",
+                  "io"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "496d95f7-2d71-4bee-a918-bb1c09a0cef8",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test(\"OpenAPI HTTPS 200\", function () { pm.response.to.have.status(200); });"
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "5970950c-95bf-4d52-b484-d5452757e333",
+        "name": "01-CASO-PRINCIPAL",
+        "item": [
+          {
+            "id": "75ece242-9f72-49f0-92cb-e4e05493a302",
+            "name": "Productor",
+            "item": [
+              {
+                "id": "7ed9e21b-f2bf-425b-a697-0f07c1fa06e9",
+                "name": "Login — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "sesiones",
+                      ""
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "65f23da1-bb7d-459f-a3d7-c6f9debe2798",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                        "pm.environment.set('token_productor', pm.response.json().token);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "de72215d-efc3-44b8-be3a-27c1bb22a858",
+                "name": "Acceso legítimo y estado — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "1efab7a1-22f2-4a20-8170-ca59d0a125de",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: activo 279 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(279); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "a81c0838-09df-4796-a444-3f91ec996b64",
+                "name": "Fase activa — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279",
+                      "fases"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "b415e88d-6a37-4d7c-b895-d010b07b9cd2",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "4d4c9854-4410-4d59-97da-a55a6c92f225",
+                "name": "ANTES — historial de crecimiento — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "86a3fd6e-9600-45d1-9583-2bcc663f975c",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.environment.set('conteo_antes_productor', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                        "pm.test(\"ANTES: conteo de crecimiento capturado para activo 279\", function () { pm.expect(Number(pm.environment.get('conteo_antes_productor'))).to.be.at.least(0); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "c2c0a433-26c1-4a37-9cc8-aaf5bb877b63",
+                "name": "POST crecimiento PESO 250 kg — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279",
+                      "eventos",
+                      "crecimiento"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:00:00Z\",\n  \"descripcion\": \"TC-M02-G43 Productor: PESO 250 kg\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "d653fac5-674d-4366-b6f1-af8cb2d2fb28",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                        "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(279); });",
+                        "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:00:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                        "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(35); });",
+                        "pm.environment.set('evento_productor', pm.response.json().evento.id_eventos);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "515ff58e-0c27-4dab-aae6-f3eb80c15f36",
+                "name": "DESPUÉS — persistencia e historial por API — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "1a3ec98b-e7e3-4e29-855d-9cc96e7ed70a",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:00:00Z' && x.descripcion === 'TC-M02-G43 Productor: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                        "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_productor')) + 1); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "b7cd0462-c5da-489c-befb-19f64b52c861",
+                "name": "Historial cronológico — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "279",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "0fc47005-0798-4066-b8a1-d29cda074b38",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:00:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "5c3714cc-bb2b-496f-9a01-c84688794565",
+                "name": "Auditoría RF-40 — Productor",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "auditoria"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "rf_origen",
+                        "value": "RF40"
+                      },
+                      {
+                        "key": "id_activo_biologico",
+                        "value": "279"
+                      },
+                      {
+                        "key": "resultado",
+                        "value": "EXITOSO"
+                      },
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_productor}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "47c28f8c-1be8-4d97-8ad0-0280c12892a4",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V6 — auditoría registra el crecimiento y actor\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.tipo_evento === 'EVENTO_CRECIMIENTO_REGISTRADO' && x.id_usuario_responsable === 35; })).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "event": []
+          },
+          {
+            "id": "e454e825-5ac7-4663-8350-eaa81985042b",
+            "name": "Veterinario",
+            "item": [
+              {
+                "id": "98141c8b-5c2c-4e68-a678-95451cafbaff",
+                "name": "Login — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "sesiones",
+                      ""
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo_electronico\": \"juan.carlos.qa133@sgpmp-test.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "140b47eb-ffa2-458b-8e6c-c485e877825f",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                        "pm.environment.set('token_veterinario', pm.response.json().token);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "101a1d93-2c5d-48cd-b296-76221ef3edfd",
+                "name": "Acceso legítimo y estado — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "6728a2b7-c0cb-4650-ad4c-8c1a06b624fd",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: activo 311 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(311); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "178cb31e-2a83-4a51-8dfa-fe22335d6ff6",
+                "name": "Fase activa — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311",
+                      "fases"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "f7c358a4-ab02-4066-bcd0-4e7047308dd3",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "d98e2864-7754-4298-954e-fbe31f436e1b",
+                "name": "ANTES — historial de crecimiento — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "bd5f6b74-5513-4349-8dbb-3dfa8452b480",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.environment.set('conteo_antes_veterinario', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                        "pm.test(\"ANTES: conteo de crecimiento capturado para activo 311\", function () { pm.expect(Number(pm.environment.get('conteo_antes_veterinario'))).to.be.at.least(0); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "ae04518f-cc4d-4040-8223-8565022dd418",
+                "name": "POST crecimiento PESO 250 kg — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311",
+                      "eventos",
+                      "crecimiento"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:00:00Z\",\n  \"descripcion\": \"TC-M02-G43 Veterinario: PESO 250 kg\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "45fcebc6-851f-46eb-962c-3deb78040a1d",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                        "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(311); });",
+                        "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:00:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                        "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(3); });",
+                        "pm.environment.set('evento_veterinario', pm.response.json().evento.id_eventos);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "e200bdf1-dfd4-454c-9602-e752acd77ab4",
+                "name": "DESPUÉS — persistencia e historial por API — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "b6c3887b-6ac0-4be0-b31d-f9da106c7c00",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:00:00Z' && x.descripcion === 'TC-M02-G43 Veterinario: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                        "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_veterinario')) + 1); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "afd14877-8530-404e-8c06-e45224b29390",
+                "name": "Historial cronológico — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "311",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "2dd251cd-fd94-457b-a81a-c1ae50f0b35a",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:00:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "7a90322c-c7f5-4418-8f42-a3678aefdb05",
+                "name": "Auditoría RF-40 — Veterinario",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "auditoria"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "rf_origen",
+                        "value": "RF40"
+                      },
+                      {
+                        "key": "id_activo_biologico",
+                        "value": "311"
+                      },
+                      {
+                        "key": "resultado",
+                        "value": "EXITOSO"
+                      },
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_veterinario}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "02cae076-58b6-4782-8223-f94f1e2aa46c",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V6 — auditoría registra el crecimiento y actor\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.tipo_evento === 'EVENTO_CRECIMIENTO_REGISTRADO' && x.id_usuario_responsable === 3; })).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "event": []
+          },
+          {
+            "id": "a2773a9f-c00c-40a9-8cc0-ae3de68abcec",
+            "name": "Ingeniero de campo",
+            "item": [
+              {
+                "id": "20d44b93-64fd-42d2-a9c0-eb89df079e2d",
+                "name": "Login — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "sesiones",
+                      ""
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "84eaaf2e-8405-4abb-972d-fa42653972b3",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                        "pm.environment.set('token_ingeniero_de_campo', pm.response.json().token);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "19c71c7c-46ae-4fc0-9a26-b56ec3d2db33",
+                "name": "Acceso legítimo y estado — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "38da8dcd-c1d2-4dd7-b241-4fa201e1a938",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: activo 312 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(312); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "1391154d-2363-4466-865e-7ddd9553336b",
+                "name": "Fase activa — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312",
+                      "fases"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "7d1be273-4e3f-4daf-9966-c95581e7d692",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "04be15b4-d633-428c-9b74-bc41949b2ddf",
+                "name": "ANTES — historial de crecimiento — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "a6ad83ec-09cd-44c6-af64-7af023c71147",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.environment.set('conteo_antes_ingeniero_de_campo', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                        "pm.test(\"ANTES: conteo de crecimiento capturado para activo 312\", function () { pm.expect(Number(pm.environment.get('conteo_antes_ingeniero_de_campo'))).to.be.at.least(0); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "8e46747f-2ed5-4288-ab08-c431d3365db4",
+                "name": "POST crecimiento PESO 250 kg — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312",
+                      "eventos",
+                      "crecimiento"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    },
+                    {
+                      "key": "Content-Type",
+                      "value": "application/json"
+                    }
+                  ],
+                  "method": "POST",
+                  "body": {
+                    "mode": "raw",
+                    "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:00:00Z\",\n  \"descripcion\": \"TC-M02-G43 Ingeniero de campo: PESO 250 kg\"\n}",
+                    "options": {
+                      "raw": {
+                        "language": "json"
+                      }
+                    }
+                  }
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "1a4b917f-8b4d-49e2-8c8d-ce34cbb7b80d",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                        "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(312); });",
+                        "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:00:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                        "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(4); });",
+                        "pm.environment.set('evento_ingeniero_de_campo', pm.response.json().evento.id_eventos);"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "600f665b-eafe-4221-9233-e2f4633f92b2",
+                "name": "DESPUÉS — persistencia e historial por API — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "586007d2-0fbf-4cc1-9721-56da1ec40531",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:00:00Z' && x.descripcion === 'TC-M02-G43 Ingeniero de campo: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                        "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_ingeniero_de_campo')) + 1); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "45e4a575-7507-4638-bd44-f42ba58935b5",
+                "name": "Historial cronológico — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "312",
+                      "historial"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "e1ed2d39-f7f0-4abe-8966-3ca155dbab0c",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                        "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:00:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                        "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "156e0f94-eef7-4c00-89a5-b1649ab52865",
+                "name": "Auditoría RF-40 — Ingeniero de campo",
+                "request": {
+                  "url": {
+                    "protocol": "https",
+                    "path": [
+                      "api-sgpmp-test",
+                      "activos-biologicos",
+                      "auditoria"
+                    ],
+                    "host": [
+                      "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                      "sslip",
+                      "io"
+                    ],
+                    "query": [
+                      {
+                        "key": "rf_origen",
+                        "value": "RF40"
+                      },
+                      {
+                        "key": "id_activo_biologico",
+                        "value": "312"
+                      },
+                      {
+                        "key": "resultado",
+                        "value": "EXITOSO"
+                      },
+                      {
+                        "key": "page_size",
+                        "value": "100"
+                      }
+                    ],
+                    "variable": []
+                  },
+                  "header": [
+                    {
+                      "key": "Authorization",
+                      "value": "Bearer {{token_ingeniero_de_campo}}"
+                    }
+                  ],
+                  "method": "GET"
+                },
+                "response": [],
+                "event": [
+                  {
+                    "listen": "test",
+                    "script": {
+                      "id": "e12c05fb-1ae6-4827-8bdc-36712fb388a5",
+                      "type": "text/javascript",
+                      "exec": [
+                        "pm.test(\"RF-52: la bitácora se protege con permiso independiente\", function () { pm.response.to.have.status(403); });"
+                      ]
+                    }
+                  }
+                ]
+              }
+            ],
+            "event": []
+          }
+        ],
+        "event": []
+      },
+      {
+        "id": "59697871-1a5c-4da5-9c55-bdd261dc0ccf",
+        "name": "02-DIAGNOSTICO",
+        "description": {
+          "content": "Vacía salvo desviaciones que requieran investigación.",
+          "type": "text/plain"
+        },
+        "item": [
+          {
+            "id": "9efa6e9f-9b38-4702-b966-de426fbcfabd",
+            "name": "Login observador de auditoría — Administrador",
+            "request": {
+              "url": {
+                "protocol": "https",
+                "path": [
+                  "api-sgpmp-test",
+                  "sesiones",
+                  ""
+                ],
+                "host": [
+                  "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                  "sslip",
+                  "io"
+                ],
+                "query": [],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "method": "POST",
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{password}}\"\n}",
+                "options": {
+                  "raw": {
+                    "language": "json"
+                  }
+                }
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "1c5b7293-99b3-41f3-a14d-1d205a3686fa",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test(\"Login observador 200\", function () { pm.response.to.have.status(200); });",
+                    "pm.environment.set(\"token_observador\", pm.response.json().token);"
+                  ],
+                  "_lastExecutionId": "48697873-4d42-4445-928b-a4008ec0cc66"
+                }
+              }
+            ]
+          },
+          {
+            "id": "5fdeefa7-5d5f-4660-99d3-59f6b4ace7c3",
+            "name": "Diagnóstico V6 — bitácora del Ingeniero",
+            "request": {
+              "url": {
+                "protocol": "https",
+                "path": [
+                  "api-sgpmp-test",
+                  "activos-biologicos",
+                  "auditoria"
+                ],
+                "host": [
+                  "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                  "sslip",
+                  "io"
+                ],
+                "query": [
+                  {
+                    "key": "rf_origen",
+                    "value": "RF40"
+                  },
+                  {
+                    "key": "id_activo_biologico",
+                    "value": "312"
+                  },
+                  {
+                    "key": "resultado",
+                    "value": "EXITOSO"
+                  },
+                  {
+                    "key": "page_size",
+                    "value": "100"
+                  }
+                ],
+                "variable": []
+              },
+              "header": [
+                {
+                  "key": "Authorization",
+                  "value": "Bearer {{token_observador}}"
+                }
+              ],
+              "method": "GET"
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "id": "fd721a84-b884-4dfd-901f-18d568cb0d8a",
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test(\"Bitácora 200\", function () { pm.response.to.have.status(200); });",
+                    "pm.test(\"Evento del Ingeniero auditado\", function () { pm.expect(pm.response.json().registros.some(function (x) { return x.tipo_evento === \"EVENTO_CRECIMIENTO_REGISTRADO\" && x.id_usuario_responsable === 4; })).to.eql(true); });"
+                  ],
+                  "_lastExecutionId": "9b62c865-4f68-41c2-b761-40bdc87bd7eb"
+                }
+              }
+            ]
+          }
+        ],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "",
+        "key": "password"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "engineer_password"
+      }
+    ],
+    "info": {
+      "_postman_id": "4a65bd60-dbe6-4625-846a-4485e04e2390",
+      "name": "TC-M02-G43 — RF-40 Registro exitoso de crecimiento",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Ejecución HTTPS. SETUP solo consulta OpenAPI; el caso principal autentica y registra exactamente PESO=250 kg en activos existentes 279, 311 y 312.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "3a746d64-4dde-4b77-9895-e5a2923b9303",
+    "values": [
+      {
+        "type": "any",
+        "value": "[REDACTADO]",
+        "key": "password"
+      },
+      {
+        "type": "any",
+        "value": "[JWT_REDACTADO]",
+        "key": "token_observador"
+      }
+    ]
+  },
+  "globals": {
+    "id": "b6e99252-e9a7-44e1-a224-79aa57b1df3a",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 1779.5,
+      "responseMin": 133,
+      "responseMax": 3426,
+      "responseSd": 1646.5,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789025089380,
+      "completed": 1789025093120
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 2,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "19331a0b-d326-465f-8ff9-d9ae545ce98f",
+          "httpRequestId": "2500f002-1bc4-439d-9e0e-90c0b0453045"
+        },
+        "item": {
+          "id": "9efa6e9f-9b38-4702-b966-de426fbcfabd",
+          "name": "Login observador de auditoría — Administrador",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1c5b7293-99b3-41f3-a14d-1d205a3686fa",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login observador 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.environment.set(\"token_observador\", pm.response.json().token);"
+                ],
+                "_lastExecutionId": "48697873-4d42-4445-928b-a4008ec0cc66"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8d418f2c-2ffe-4417-ada8-9192f7bd2abd",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"[REDACTADO]\"\n}",
+            "options": {
+              "raw": {
+                "language": "json"
+              }
+            }
+          }
+        },
+        "response": {
+          "id": "cf565290-3ea1-4898-a785-08c1db929255",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 07:24:48 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=[REDACTADO]; HttpOnly; Max-Age=604797; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1694a8f0-4a92-48bd-bb1c-5ee738c03c1e"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              91,
+              74,
+              87,
+              84,
+              95,
+              82,
+              69,
+              68,
+              65,
+              67,
+              84,
+              65,
+              68,
+              79,
+              93,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              55,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 3426,
+          "responseSize": 404
+        },
+        "id": "9efa6e9f-9b38-4702-b966-de426fbcfabd",
+        "assertions": [
+          {
+            "assertion": "Login observador 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f081f438-01c2-48db-b172-95a3317d8b18",
+          "length": 2,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "347a642a-1118-41f1-8bf6-4a875b08f465"
+        },
+        "item": {
+          "id": "5fdeefa7-5d5f-4660-99d3-59f6b4ace7c3",
+          "name": "Diagnóstico V6 — bitácora del Ingeniero",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "api-sgpmp-test",
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "rf_origen",
+                  "value": "RF40"
+                },
+                {
+                  "key": "id_activo_biologico",
+                  "value": "312"
+                },
+                {
+                  "key": "resultado",
+                  "value": "EXITOSO"
+                },
+                {
+                  "key": "page_size",
+                  "value": "100"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_observador}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "fd721a84-b884-4dfd-901f-18d568cb0d8a",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Bitácora 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Evento del Ingeniero auditado\", function () { pm.expect(pm.response.json().registros.some(function (x) { return x.tipo_evento === \"EVENTO_CRECIMIENTO_REGISTRADO\" && x.id_usuario_responsable === 4; })).to.eql(true); });"
+                ],
+                "_lastExecutionId": "9b62c865-4f68-41c2-b761-40bdc87bd7eb"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "auditoria"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "rf_origen",
+                "value": "RF40"
+              },
+              {
+                "key": "id_activo_biologico",
+                "value": "312"
+              },
+              {
+                "key": "resultado",
+                "value": "EXITOSO"
+              },
+              {
+                "key": "page_size",
+                "value": "100"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer [JWT_REDACTADO]"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "f7d90d19-3365-4058-be08-e51a2afff369",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=[REDACTADO]",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "49aad5a3-9f94-4364-ad61-48d6d8ba82a5",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "1496"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 07:24:51 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "7dc66115-b1bb-40d1-ae9f-07e7cb68a4c7"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              50,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              49,
+              48,
+              48,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              105,
+              100,
+              95,
+              98,
+              105,
+              116,
+              97,
+              99,
+              111,
+              114,
+              97,
+              34,
+              58,
+              56,
+              48,
+              56,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              98,
+              49,
+              55,
+              48,
+              51,
+              50,
+              102,
+              98,
+              45,
+              51,
+              50,
+              51,
+              101,
+              45,
+              52,
+              48,
+              49,
+              54,
+              45,
+              97,
+              53,
+              49,
+              49,
+              45,
+              48,
+              101,
+              99,
+              55,
+              52,
+              56,
+              100,
+              50,
+              52,
+              49,
+              53,
+              53,
+              34,
+              44,
+              34,
+              114,
+              102,
+              95,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              34,
+              58,
+              34,
+              82,
+              70,
+              52,
+              48,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              69,
+              86,
+              69,
+              78,
+              84,
+              79,
+              95,
+              67,
+              82,
+              69,
+              67,
+              73,
+              77,
+              73,
+              69,
+              78,
+              84,
+              79,
+              95,
+              82,
+              69,
+              71,
+              73,
+              83,
+              84,
+              82,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              99,
+              108,
+              97,
+              115,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              97,
+              34,
+              58,
+              34,
+              84,
+              82,
+              65,
+              78,
+              83,
+              70,
+              79,
+              82,
+              77,
+              65,
+              67,
+              73,
+              79,
+              78,
+              95,
+              66,
+              73,
+              79,
+              76,
+              79,
+              71,
+              73,
+              67,
+              65,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              51,
+              49,
+              50,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              55,
+              58,
+              50,
+              52,
+              58,
+              51,
+              48,
+              46,
+              48,
+              57,
+              57,
+              54,
+              51,
+              50,
+              90,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              55,
+              58,
+              50,
+              52,
+              58,
+              51,
+              48,
+              46,
+              48,
+              57,
+              57,
+              54,
+              54,
+              56,
+              90,
+              34,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              108,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              69,
+              88,
+              73,
+              84,
+              79,
+              83,
+              79,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              69,
+              118,
+              101,
+              110,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              99,
+              114,
+              101,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              58,
+              32,
+              80,
+              69,
+              83,
+              79,
+              32,
+              61,
+              32,
+              50,
+              53,
+              48,
+              32,
+              107,
+              103,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              116,
+              101,
+              99,
+              110,
+              105,
+              99,
+              111,
+              34,
+              58,
+              123,
+              34,
+              118,
+              97,
+              108,
+              111,
+              114,
+              34,
+              58,
+              34,
+              50,
+              53,
+              48,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              109,
+              101,
+              100,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              80,
+              69,
+              83,
+              79,
+              34,
+              125,
+              44,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              95,
+              114,
+              101,
+              115,
+              112,
+              111,
+              110,
+              115,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              52,
+              44,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              95,
+              99,
+              111,
+              110,
+              115,
+              117,
+              109,
+              105,
+              100,
+              111,
+              114,
+              34,
+              58,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              50,
+              34,
+              44,
+              34,
+              115,
+              101,
+              118,
+              101,
+              114,
+              105,
+              100,
+              97,
+              100,
+              95,
+              108,
+              111,
+              103,
+              34,
+              58,
+              34,
+              73,
+              78,
+              70,
+              79,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              95,
+              99,
+              111,
+              114,
+              114,
+              101,
+              108,
+              97,
+              99,
+              105,
+              111,
+              110,
+              97,
+              100,
+              111,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              104,
+              97,
+              115,
+              104,
+              95,
+              105,
+              110,
+              116,
+              101,
+              103,
+              114,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              101,
+              99,
+              99,
+              56,
+              98,
+              57,
+              54,
+              52,
+              101,
+              50,
+              101,
+              98,
+              56,
+              52,
+              57,
+              100,
+              51,
+              97,
+              97,
+              97,
+              55,
+              49,
+              56,
+              97,
+              57,
+              48,
+              54,
+              50,
+              99,
+              52,
+              102,
+              50,
+              56,
+              101,
+              57,
+              97,
+              48,
+              55,
+              98,
+              97,
+              101,
+              100,
+              51,
+              99,
+              97,
+              54,
+              48,
+              49,
+              50,
+              52,
+              56,
+              50,
+              52,
+              54,
+              56,
+              97,
+              57,
+              97,
+              102,
+              48,
+              99,
+              101,
+              50,
+              55,
+              34,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125,
+              44,
+              123,
+              34,
+              105,
+              100,
+              95,
+              98,
+              105,
+              116,
+              97,
+              99,
+              111,
+              114,
+              97,
+              34,
+              58,
+              56,
+              48,
+              51,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              98,
+              55,
+              49,
+              51,
+              101,
+              50,
+              97,
+              55,
+              45,
+              49,
+              51,
+              55,
+              100,
+              45,
+              52,
+              50,
+              99,
+              53,
+              45,
+              98,
+              53,
+              54,
+              100,
+              45,
+              53,
+              102,
+              50,
+              49,
+              54,
+              55,
+              97,
+              100,
+              56,
+              56,
+              52,
+              99,
+              34,
+              44,
+              34,
+              114,
+              102,
+              95,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              34,
+              58,
+              34,
+              82,
+              70,
+              52,
+              48,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              69,
+              86,
+              69,
+              78,
+              84,
+              79,
+              95,
+              67,
+              82,
+              69,
+              67,
+              73,
+              77,
+              73,
+              69,
+              78,
+              84,
+              79,
+              95,
+              82,
+              69,
+              71,
+              73,
+              83,
+              84,
+              82,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              99,
+              108,
+              97,
+              115,
+              105,
+              102,
+              105,
+              99,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              97,
+              34,
+              58,
+              34,
+              84,
+              82,
+              65,
+              78,
+              83,
+              70,
+              79,
+              82,
+              77,
+              65,
+              67,
+              73,
+              79,
+              78,
+              95,
+              66,
+              73,
+              79,
+              76,
+              79,
+              71,
+              73,
+              67,
+              65,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              51,
+              49,
+              50,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              55,
+              58,
+              50,
+              50,
+              58,
+              49,
+              56,
+              46,
+              54,
+              50,
+              52,
+              57,
+              54,
+              56,
+              90,
+              34,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              55,
+              58,
+              50,
+              50,
+              58,
+              49,
+              56,
+              46,
+              54,
+              50,
+              52,
+              57,
+              57,
+              52,
+              90,
+              34,
+              44,
+              34,
+              114,
+              101,
+              115,
+              117,
+              108,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              69,
+              88,
+              73,
+              84,
+              79,
+              83,
+              79,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              69,
+              118,
+              101,
+              110,
+              116,
+              111,
+              32,
+              100,
+              101,
+              32,
+              99,
+              114,
+              101,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              58,
+              32,
+              80,
+              69,
+              83,
+              79,
+              32,
+              61,
+              32,
+              50,
+              53,
+              48,
+              32,
+              107,
+              103,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              116,
+              101,
+              99,
+              110,
+              105,
+              99,
+              111,
+              34,
+              58,
+              123,
+              34,
+              118,
+              97,
+              108,
+              111,
+              114,
+              34,
+              58,
+              34,
+              50,
+              53,
+              48,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              109,
+              101,
+              100,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              80,
+              69,
+              83,
+              79,
+              34,
+              125,
+              44,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              95,
+              114,
+              101,
+              115,
+              112,
+              111,
+              110,
+              115,
+              97,
+              98,
+              108,
+              101,
+              34,
+              58,
+              52,
+              44,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              95,
+              99,
+              111,
+              110,
+              115,
+              117,
+              109,
+              105,
+              100,
+              111,
+              114,
+              34,
+              58,
+              34,
+              109,
+              111,
+              100,
+              117,
+              108,
+              111,
+              50,
+              34,
+              44,
+              34,
+              115,
+              101,
+              118,
+              101,
+              114,
+              105,
+              100,
+              97,
+              100,
+              95,
+              108,
+              111,
+              103,
+              34,
+              58,
+              34,
+              73,
+              78,
+              70,
+              79,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              95,
+              99,
+              111,
+              114,
+              114,
+              101,
+              108,
+              97,
+              99,
+              105,
+              111,
+              110,
+              97,
+              100,
+              111,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              104,
+              97,
+              115,
+              104,
+              95,
+              105,
+              110,
+              116,
+              101,
+              103,
+              114,
+              105,
+              100,
+              97,
+              100,
+              34,
+              58,
+              34,
+              51,
+              51,
+              51,
+              51,
+              102,
+              48,
+              57,
+              53,
+              49,
+              52,
+              99,
+              51,
+              98,
+              98,
+              48,
+              56,
+              57,
+              99,
+              50,
+              57,
+              55,
+              51,
+              101,
+              51,
+              99,
+              51,
+              56,
+              49,
+              56,
+              100,
+              101,
+              100,
+              51,
+              48,
+              102,
+              51,
+              101,
+              53,
+              101,
+              50,
+              56,
+              98,
+              98,
+              100,
+              57,
+              97,
+              102,
+              49,
+              101,
+              98,
+              54,
+              49,
+              53,
+              57,
+              100,
+              55,
+              99,
+              99,
+              48,
+              55,
+              98,
+              49,
+              98,
+              56,
+              34,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125,
+              93,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 133,
+          "responseSize": 1496
+        },
+        "id": "5fdeefa7-5d5f-4660-99d3-59f6b4ace7c3",
+        "assertions": [
+          {
+            "assertion": "Bitácora 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Evento del Ingeniero auditado",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1900
+    },
+    "failures": [],
+    "error": null
+  }
+}
