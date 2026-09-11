@@ -109,6 +109,7 @@ class PaginaHistorial:
     pagina_actual: int
     total_paginas: int
     registros_por_pagina: int
+    mensaje: Optional[str] = None
 
 
 @dataclass

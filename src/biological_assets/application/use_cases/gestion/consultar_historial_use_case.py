@@ -53,6 +53,13 @@ class ConsultarHistorialUseCase:
             page_size=dto.page_size,
         )
 
+        filtros_aplicados = any((dto.fecha_inicio, dto.fecha_fin, dto.categoria_evento))
+        if filtros_aplicados and resultado.total_registros == 0:
+            resultado.mensaje = (
+                f'No se encontraron eventos para el activo {id_activo} con los filtros aplicados. '
+                'Puede ampliar el rango de fechas o cambiar la categoría de evento.'
+            )
+
         if self.bitacora_repo:
             try:
                 self.bitacora_repo.registrar(EventoAuditoria(

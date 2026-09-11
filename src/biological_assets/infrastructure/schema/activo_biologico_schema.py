@@ -258,6 +258,7 @@ class HistorialActivoResponse(BaseModel):
     total_paginas: int
     registros_por_pagina: int
     registros: list[RegistroHistorialResponse]
+    mensaje: Optional[str] = None
 
 
 class FichaIntegralResponse(BaseModel):
