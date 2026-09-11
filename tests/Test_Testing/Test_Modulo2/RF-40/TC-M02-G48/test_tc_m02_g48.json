@@ -1,0 +1,1039 @@
+{
+  "info": {
+    "name": "TC-M02-G48 - RF-40 existencia y estado del activo",
+    "description": "RF-40 / TC-M02-G48. Sub-casos TC-M02-304 (activo inexistente, ID oficial 99999) y TC-M02-305 (activo existente en estado CERRADO) sobre POST /activos-biologicos/{id_activo}/eventos/crecimiento, ejecutados con Productor, Veterinario e Ingeniero de campo. El payload es identico y valido en los seis casos: la unica condicion invalida es el activo destino. El SETUP es de solo lectura.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "Contrato vivo OpenAPI por HTTPS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/eventos/crecimiento';",
+                  "pm.test('La ruta POST ' + ruta + ' existe en el contrato', () => {",
+                  "  pm.expect(spec.paths).to.have.property(ruta);",
+                  "  pm.expect(spec.paths[ruta]).to.have.property('post');",
+                  "});",
+                  "const resp = Object.keys(spec.paths[ruta].post.responses);",
+                  "pm.collectionVariables.set('respuestas_declaradas', resp.join(','));",
+                  "pm.test('El contrato declara 404 para este endpoint', () => pm.expect(resp).to.include('404'));",
+                  "pm.test('DISCREPANCIA DOCUMENTADA: el contrato no declara 409 pese a que la ficha lo exige', () => {",
+                  "  pm.expect(resp, 'respuestas declaradas: ' + resp.join(',')).to.not.include('409');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Productor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Productor', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_productor', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 35 (Productor)', () => pm.expect(String(sub)).to.eql('35'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-304: el activo 99999 no existe - Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('El activo 99999 no existe: la consulta devuelve 404 (Productor)', () => pm.response.to.have.status(404));",
+                  "pm.test('El 404 es de negocio (ACTIVO_NO_ENCONTRADO), no de ruta inexistente', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                  "});",
+                  "pm.collectionVariables.set('inexistente_productor', 'CONFIRMADO');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-305: activo 288 existente y CERRADO - Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 288 - Productor (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 288 existe y su identificador es QAJE-CREC-CERRADO', () => pm.expect(b.identificador).to.eql('QAJE-CREC-CERRADO'));",
+                  "pm.test('El estado real del activo 288 es CERRADO', () => pm.expect(b.nombre_estado).to.eql('CERRADO'));",
+                  "pm.test('El activo 288 es INDIVIDUAL, por lo que no aplica tipo_agregacion', () => pm.expect(b.tipo).to.eql('INDIVIDUAL'));",
+                  "pm.collectionVariables.set('estado_productor', b.nombre_estado);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo ANTES del activo 288 - Productor",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible del activo 288', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_productor', n);",
+                  "pm.test('Conteo ANTES del activo 288 (Productor): ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Veterinario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"juan.carlos.qa133@sgpmp-test.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Veterinario', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_veterinario', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 3 (Veterinario)', () => pm.expect(String(sub)).to.eql('3'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-304: el activo 99999 no existe - Veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('El activo 99999 no existe: la consulta devuelve 404 (Veterinario)', () => pm.response.to.have.status(404));",
+                  "pm.test('El 404 es de negocio (ACTIVO_NO_ENCONTRADO), no de ruta inexistente', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                  "});",
+                  "pm.collectionVariables.set('inexistente_veterinario', 'CONFIRMADO');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-305: activo 329 existente y CERRADO - Veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/329"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 329 - Veterinario (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 329 existe y su identificador es QAJE-RF40-CERRADO-VET', () => pm.expect(b.identificador).to.eql('QAJE-RF40-CERRADO-VET'));",
+                  "pm.test('El estado real del activo 329 es CERRADO', () => pm.expect(b.nombre_estado).to.eql('CERRADO'));",
+                  "pm.test('El activo 329 es INDIVIDUAL, por lo que no aplica tipo_agregacion', () => pm.expect(b.tipo).to.eql('INDIVIDUAL'));",
+                  "pm.collectionVariables.set('estado_veterinario', b.nombre_estado);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo ANTES del activo 329 - Veterinario",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_veterinario}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/329/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible del activo 329', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_veterinario', n);",
+                  "pm.test('Conteo ANTES del activo 329 (Veterinario): ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (lectura de sesion) - Ingeniero de campo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Login exitoso - Ingeniero de campo', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_ingeniero', t);",
+                  "const sub = JSON.parse(atob(t.split('.')[1])).sub;",
+                  "pm.test('El token pertenece al usuario 4 (Ingeniero de campo)', () => pm.expect(String(sub)).to.eql('4'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-304: el activo 99999 no existe - Ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('El activo 99999 no existe: la consulta devuelve 404 (Ingeniero de campo)', () => pm.response.to.have.status(404));",
+                  "pm.test('El 404 es de negocio (ACTIVO_NO_ENCONTRADO), no de ruta inexistente', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                  "});",
+                  "pm.collectionVariables.set('inexistente_ingeniero', 'CONFIRMADO');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Precondicion TC-M02-305: activo 336 existente y CERRADO - Ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/336"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Acceso legitimo al activo 336 - Ingeniero de campo (no 403 ni 404)', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo 336 existe y su identificador es QAJE-RF40-CERRADO-ING', () => pm.expect(b.identificador).to.eql('QAJE-RF40-CERRADO-ING'));",
+                  "pm.test('El estado real del activo 336 es CERRADO', () => pm.expect(b.nombre_estado).to.eql('CERRADO'));",
+                  "pm.test('El activo 336 es INDIVIDUAL, por lo que no aplica tipo_agregacion', () => pm.expect(b.tipo).to.eql('INDIVIDUAL'));",
+                  "pm.collectionVariables.set('estado_ingeniero', b.nombre_estado);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Conteo ANTES del activo 336 - Ingeniero de campo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/336/historial?page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "pm.test('Historial legible del activo 336', () => pm.response.to.have.status(200));",
+                  "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                  "pm.collectionVariables.set('base_ingeniero', n);",
+                  "pm.test('Conteo ANTES del activo 336 (Ingeniero de campo): ' + n, () => pm.expect(n).to.be.a('number'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "Productor",
+          "item": [
+            {
+              "name": "TC-M02-304 - activo 99999 inexistente - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-304 Productor: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-304 / Productor: el activo 99999 fue confirmado inexistente antes del POST', () => pm.expect(pm.collectionVariables.get('inexistente_productor')).to.eql('CONFIRMADO'));",
+                      "pm.test('TC-M02-304 / Productor: la peticion viaja autenticada', () => pm.expect(String(pm.request.headers.get('Authorization'))).to.match(/^Bearer .+/));",
+                      "pm.test('TC-M02-304 / Productor: el payload es valido, el ID es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-304 / Productor: la URL apunta realmente al ID 99999', () => pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/99999/eventos/crecimiento'));",
+                      "pm.test('TC-M02-304 / Productor: HTTP 404 segun la ficha', () => pm.expect(code).to.eql(404));",
+                      "pm.test('TC-M02-304 / Productor: el mensaje corresponde a activo inexistente', () => {",
+                      "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                      "  pm.expect(txt).to.include('no existe');",
+                      "  pm.expect(txt).to.include('99999');",
+                      "});",
+                      "pm.test('TC-M02-304 / Productor: el 404 no proviene de una ruta inexistente', () => {",
+                      "  pm.expect(b, 'un 404 de enrutado responderia {\"detail\":\"Not Found\"}').to.not.have.property('detail');",
+                      "  pm.expect(b).to.have.property('error_code');",
+                      "});",
+                      "pm.collectionVariables.set('http_productor_304', code);",
+                      "pm.collectionVariables.set('body_productor_304', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion tras TC-M02-304: el activo 99999 sigue sin existir - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('TC-M02-304 / Productor: el POST rechazado no creo el activo 99999', () => pm.response.to.have.status(404));",
+                      "pm.test('TC-M02-304 / Productor: el activo sigue reportandose como inexistente', () => pm.expect(pm.response.json().error_code).to.eql('ACTIVO_NO_ENCONTRADO'));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-305 - activo 288 CERRADO - Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-305 Productor: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-305 / Productor: el activo 288 existe y su estado real es CERRADO', () => pm.expect(pm.collectionVariables.get('estado_productor')).to.eql('CERRADO'));",
+                      "pm.test('TC-M02-305 / Productor: el actor tiene acceso legitimo al activo 288', () => pm.expect(code, 'un 403 impediria evaluar la regla de estado').to.not.eql(403));",
+                      "pm.test('TC-M02-305 / Productor: el payload es valido, el estado es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-305 / Productor: HTTP 409 segun la ficha', () => pm.expect(code).to.eql(409));",
+                      "pm.test('TC-M02-305 / Productor: el mensaje corresponde a activo no ACTIVO', () => {",
+                      "  pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                      "  pm.expect(txt).to.include('no se encuentra en estado activo');",
+                      "});",
+                      "pm.test('TC-M02-305 / Productor: la respuesta identifica el estado real CERRADO', () => pm.expect(txt).to.include('cerrado'));",
+                      "pm.test('TC-M02-305 / Productor: el rechazo no se debe a otra regla de RF-40', () => {",
+                      "  ['sin_fase_activa', 'fecha_futura', 'fecha_anterior', 'tipo_medicion_no_configurado', 'valor_fuera_de_rango', 'agregacion_no_permitida', 'tipo_agregacion_requerido', 'activo_no_encontrado'].forEach((otro) => {",
+                      "    pm.expect(txt, 'rechazo atribuido a ' + otro).to.not.include(otro);",
+                      "  });",
+                      "});",
+                      "pm.collectionVariables.set('http_productor_305', code);",
+                      "pm.collectionVariables.set('body_productor_305', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-305 - Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/288/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_productor'));",
+                      "pm.test('TC-M02-305 / Productor: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_productor_305', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Veterinario",
+          "item": [
+            {
+              "name": "TC-M02-304 - activo 99999 inexistente - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-304 Veterinario: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-304 / Veterinario: el activo 99999 fue confirmado inexistente antes del POST', () => pm.expect(pm.collectionVariables.get('inexistente_veterinario')).to.eql('CONFIRMADO'));",
+                      "pm.test('TC-M02-304 / Veterinario: la peticion viaja autenticada', () => pm.expect(String(pm.request.headers.get('Authorization'))).to.match(/^Bearer .+/));",
+                      "pm.test('TC-M02-304 / Veterinario: el payload es valido, el ID es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-304 / Veterinario: la URL apunta realmente al ID 99999', () => pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/99999/eventos/crecimiento'));",
+                      "pm.test('TC-M02-304 / Veterinario: HTTP 404 segun la ficha', () => pm.expect(code).to.eql(404));",
+                      "pm.test('TC-M02-304 / Veterinario: el mensaje corresponde a activo inexistente', () => {",
+                      "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                      "  pm.expect(txt).to.include('no existe');",
+                      "  pm.expect(txt).to.include('99999');",
+                      "});",
+                      "pm.test('TC-M02-304 / Veterinario: el 404 no proviene de una ruta inexistente', () => {",
+                      "  pm.expect(b, 'un 404 de enrutado responderia {\"detail\":\"Not Found\"}').to.not.have.property('detail');",
+                      "  pm.expect(b).to.have.property('error_code');",
+                      "});",
+                      "pm.collectionVariables.set('http_veterinario_304', code);",
+                      "pm.collectionVariables.set('body_veterinario_304', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion tras TC-M02-304: el activo 99999 sigue sin existir - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('TC-M02-304 / Veterinario: el POST rechazado no creo el activo 99999', () => pm.response.to.have.status(404));",
+                      "pm.test('TC-M02-304 / Veterinario: el activo sigue reportandose como inexistente', () => pm.expect(pm.response.json().error_code).to.eql('ACTIVO_NO_ENCONTRADO'));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-305 - activo 329 CERRADO - Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/329/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-305 Veterinario: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-305 / Veterinario: el activo 329 existe y su estado real es CERRADO', () => pm.expect(pm.collectionVariables.get('estado_veterinario')).to.eql('CERRADO'));",
+                      "pm.test('TC-M02-305 / Veterinario: el actor tiene acceso legitimo al activo 329', () => pm.expect(code, 'un 403 impediria evaluar la regla de estado').to.not.eql(403));",
+                      "pm.test('TC-M02-305 / Veterinario: el payload es valido, el estado es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-305 / Veterinario: HTTP 409 segun la ficha', () => pm.expect(code).to.eql(409));",
+                      "pm.test('TC-M02-305 / Veterinario: el mensaje corresponde a activo no ACTIVO', () => {",
+                      "  pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                      "  pm.expect(txt).to.include('no se encuentra en estado activo');",
+                      "});",
+                      "pm.test('TC-M02-305 / Veterinario: la respuesta identifica el estado real CERRADO', () => pm.expect(txt).to.include('cerrado'));",
+                      "pm.test('TC-M02-305 / Veterinario: el rechazo no se debe a otra regla de RF-40', () => {",
+                      "  ['sin_fase_activa', 'fecha_futura', 'fecha_anterior', 'tipo_medicion_no_configurado', 'valor_fuera_de_rango', 'agregacion_no_permitida', 'tipo_agregacion_requerido', 'activo_no_encontrado'].forEach((otro) => {",
+                      "    pm.expect(txt, 'rechazo atribuido a ' + otro).to.not.include(otro);",
+                      "  });",
+                      "});",
+                      "pm.collectionVariables.set('http_veterinario_305', code);",
+                      "pm.collectionVariables.set('body_veterinario_305', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-305 - Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/329/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_veterinario'));",
+                      "pm.test('TC-M02-305 / Veterinario: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_veterinario_305', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ingeniero de campo",
+          "item": [
+            {
+              "name": "TC-M02-304 - activo 99999 inexistente - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-304 Ingeniero de campo: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el activo 99999 fue confirmado inexistente antes del POST', () => pm.expect(pm.collectionVariables.get('inexistente_ingeniero')).to.eql('CONFIRMADO'));",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: la peticion viaja autenticada', () => pm.expect(String(pm.request.headers.get('Authorization'))).to.match(/^Bearer .+/));",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el payload es valido, el ID es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: la URL apunta realmente al ID 99999', () => pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/99999/eventos/crecimiento'));",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: HTTP 404 segun la ficha', () => pm.expect(code).to.eql(404));",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el mensaje corresponde a activo inexistente', () => {",
+                      "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                      "  pm.expect(txt).to.include('no existe');",
+                      "  pm.expect(txt).to.include('99999');",
+                      "});",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el 404 no proviene de una ruta inexistente', () => {",
+                      "  pm.expect(b, 'un 404 de enrutado responderia {\"detail\":\"Not Found\"}').to.not.have.property('detail');",
+                      "  pm.expect(b).to.have.property('error_code');",
+                      "});",
+                      "pm.collectionVariables.set('http_ingeniero_304', code);",
+                      "pm.collectionVariables.set('body_ingeniero_304', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion tras TC-M02-304: el activo 99999 sigue sin existir - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el POST rechazado no creo el activo 99999', () => pm.response.to.have.status(404));",
+                      "pm.test('TC-M02-304 / Ingeniero de campo: el activo sigue reportandose como inexistente', () => pm.expect(pm.response.json().error_code).to.eql('ACTIVO_NO_ENCONTRADO'));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-305 - activo 336 CERRADO - Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/336/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_evento}}\",\n  \"descripcion\": \"TC-M02-305 Ingeniero de campo: payload valido, unica condicion invalida en el activo\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "const enviado = JSON.parse(pm.request.body.raw);",
+                      "const code = pm.response.code;",
+                      "const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                      "const txt = norm(cuerpo());",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el activo 336 existe y su estado real es CERRADO', () => pm.expect(pm.collectionVariables.get('estado_ingeniero')).to.eql('CERRADO'));",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el actor tiene acceso legitimo al activo 336', () => pm.expect(code, 'un 403 impediria evaluar la regla de estado').to.not.eql(403));",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el payload es valido, el estado es la unica condicion invalida', () => {",
+                      "  pm.expect(enviado.tipo_medicion).to.eql('PESO');",
+                      "  pm.expect(enviado.valor_medicion).to.be.above(0);",
+                      "  pm.expect(enviado.unidad_medida).to.eql('kg');",
+                      "  pm.expect(enviado.fecha).to.match(/^\\d{4}-\\d{2}-\\d{2}T/);",
+                      "  pm.expect(enviado).to.not.have.property('tipo_agregacion');",
+                      "});",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: HTTP 409 segun la ficha', () => pm.expect(code).to.eql(409));",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el mensaje corresponde a activo no ACTIVO', () => {",
+                      "  pm.expect(b.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                      "  pm.expect(txt).to.include('no se encuentra en estado activo');",
+                      "});",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: la respuesta identifica el estado real CERRADO', () => pm.expect(txt).to.include('cerrado'));",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el rechazo no se debe a otra regla de RF-40', () => {",
+                      "  ['sin_fase_activa', 'fecha_futura', 'fecha_anterior', 'tipo_medicion_no_configurado', 'valor_fuera_de_rango', 'agregacion_no_permitida', 'tipo_agregacion_requerido', 'activo_no_encontrado'].forEach((otro) => {",
+                      "    pm.expect(txt, 'rechazo atribuido a ' + otro).to.not.include(otro);",
+                      "  });",
+                      "});",
+                      "pm.collectionVariables.set('http_ingeniero_305', code);",
+                      "pm.collectionVariables.set('body_ingeniero_305', pm.response.text().slice(0, 600));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Verificacion de no persistencia tras TC-M02-305 - Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/336/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                      "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                      "pm.test('Historial legible', () => pm.response.to.have.status(200));",
+                      "const n = pm.response.json().registros.filter((r) => r.categoria === 'CRECIMIENTO').length;",
+                      "const base = Number(pm.collectionVariables.get('base_ingeniero'));",
+                      "pm.test('TC-M02-305 / Ingeniero de campo: el rechazo no persistio ningun evento (' + base + ' -> ' + n + ', delta 0)', () => pm.expect(n).to.eql(base));",
+                      "pm.collectionVariables.set('post_ingeniero_305', n);"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Fecha valida: no futura (el backend la rechaza con FECHA_FUTURA) y posterior a",
+          "// cualquier evento previo de los activos utilizados, que no tienen eventos de crecimiento.",
+          "pm.collectionVariables.set('fecha_evento', new Date(Date.now() - 120000).toISOString().replace(/\\.\\d{3}Z$/, 'Z'));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "password",
+      "value": "Test1234!"
+    },
+    {
+      "key": "engineer_password",
+      "value": "Pruebas12#"
+    }
+  ]
+}

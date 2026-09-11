@@ -1,0 +1,93 @@
+{
+  "sub_casos": {
+    "TC-M02-164-A": {
+      "metodo": "POST",
+      "ruta": "/activos-biologicos/279/datos-consolidados",
+      "http": 405,
+      "allow": "GET",
+      "cuerpo": "{\"detail\":\"Method Not Allowed\"}",
+      "integridad_antes": {
+        "estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "id_especie": 40,
+        "descripcion": "QAJE-CREC-OK",
+        "n_eventos": 4,
+        "n_crecimiento": 4,
+        "n_fases": 1,
+        "n_historial": 1
+      },
+      "integridad_despues": {
+        "estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "id_especie": 40,
+        "descripcion": "QAJE-CREC-OK",
+        "n_eventos": 4,
+        "n_crecimiento": 4,
+        "n_fases": 1,
+        "n_historial": 1
+      }
+    },
+    "TC-M02-164-B": {
+      "metodo": "PUT",
+      "ruta": "/activos-biologicos/279/datos-consolidados",
+      "http": 405,
+      "allow": "GET",
+      "cuerpo": "{\"detail\":\"Method Not Allowed\"}",
+      "integridad_antes": {
+        "estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "id_especie": 40,
+        "descripcion": "QAJE-CREC-OK",
+        "n_eventos": 4,
+        "n_crecimiento": 4,
+        "n_fases": 1,
+        "n_historial": 1
+      },
+      "integridad_despues": {
+        "estado": "ACTIVO",
+        "id_infraestructura": 48,
+        "id_especie": 40,
+        "descripcion": "QAJE-CREC-OK",
+        "n_eventos": 4,
+        "n_crecimiento": 4,
+        "n_fases": 1,
+        "n_historial": 1
+      }
+    },
+    "TC-M02-165-A": {
+      "credencial": "AUSENTE",
+      "http": 401,
+      "cabeceras_enviadas": [],
+      "cuerpo": "{\"error_code\":\"TOKEN_REQUERIDO\",\"message\":\"Se requiere autenticación. Proporciona un token Bearer válido.\",\"fields\":[],\"timestamp\":\"2026-09-10T20:57:35.548857+00:00\"}"
+    },
+    "TC-M02-165-B": {
+      "credencial": "INVALIDA (valor ficticio de prueba)",
+      "http": 401,
+      "cuerpo": "{\"error_code\":\"TOKEN_INVALIDO\",\"message\":\"El token es inválido o ha expirado.\",\"fields\":[],\"timestamp\":\"2026-09-10T20:57:36.240894+00:00\"}"
+    }
+  },
+  "get_lectura_previo": {
+    "http": 200,
+    "id_activo": 279
+  },
+  "integridad_antes": {
+    "estado": "ACTIVO",
+    "id_infraestructura": 48,
+    "id_especie": 40,
+    "descripcion": "QAJE-CREC-OK",
+    "n_eventos": 4,
+    "n_crecimiento": 4,
+    "n_fases": 1,
+    "n_historial": 1
+  },
+  "integridad_final": {
+    "estado": "ACTIVO",
+    "id_infraestructura": 48,
+    "id_especie": 40,
+    "descripcion": "QAJE-CREC-OK",
+    "n_eventos": 4,
+    "n_crecimiento": 4,
+    "n_fases": 1,
+    "n_historial": 1
+  }
+}
