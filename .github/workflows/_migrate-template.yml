@@ -1,0 +1,71 @@
+name: Alembic Migrate (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      python_version:
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      database_url:
+        required: true
+
+jobs:
+  migrate:
+    name: Run Alembic upgrade (${{ inputs.environment_name }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verificar que existe una única head
+        run: |
+          HEADS=$(alembic heads | wc -l)
+          if [ "$HEADS" -ne 1 ]; then
+            echo "::error::Se detectaron múltiples heads en el historial de Alembic. Resuélvelo con 'alembic merge heads' antes de desplegar."
+            alembic heads
+            exit 1
+          fi
+
+      - name: Estado actual de la base de datos
+        env:
+          DATABASE_URL: ${{ secrets.database_url }}
+        run: |
+          echo "Revisión actual en la base de datos:"
+          alembic current
+          echo "Head del repositorio:"
+          alembic heads
+
+      - name: Ejecutar alembic upgrade head
+        env:
+          DATABASE_URL: ${{ secrets.database_url }}
+        run: alembic upgrade head
+
+      - name: Confirmar versión final aplicada
+        if: always()
+        env:
+          DATABASE_URL: ${{ secrets.database_url }}
+        run: alembic current
+
+      - name: Reportar fallo
+        if: failure()
+        run: |
+          echo "::error::La migración falló en el entorno ${{ inputs.environment_name }}. Revisa el log de 'Ejecutar alembic upgrade head' y el estado con 'alembic current' antes de reintentar. No se recomienda downgrade automático."

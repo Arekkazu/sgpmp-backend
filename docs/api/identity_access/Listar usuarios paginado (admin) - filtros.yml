@@ -1,0 +1,31 @@
+info:
+  name: Listar usuarios paginado (admin) - filtros
+  type: http
+  seq: 10
+
+http:
+  method: get
+  url: http://localhost:8000/usuarios/admin?nombre=Juan&id_rol=2&pagina=1&tamano=10
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  params:
+    - name: nombre
+      value: Juan
+      type: query
+    - name: id_rol
+      value: "2"
+      type: query
+    - name: pagina
+      value: "1"
+      type: query
+    - name: tamano
+      value: "10"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

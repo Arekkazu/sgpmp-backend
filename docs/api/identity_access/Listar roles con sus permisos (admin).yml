@@ -1,0 +1,26 @@
+info:
+  name: Listar roles con sus permisos (admin)
+  type: http
+  seq: 16
+
+http:
+  method: post
+  url: http://localhost:8000/contrasena/restablecer
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "token": "<TOKEN_RECUPERACION>",
+        "nueva_contrasena": "ContrasenaNueva1!",
+        "confirmar_contrasena": "ContrasenaNueva1!"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

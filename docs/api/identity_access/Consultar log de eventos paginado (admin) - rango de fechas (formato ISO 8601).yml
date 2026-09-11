@@ -1,0 +1,31 @@
+info:
+  name: " Consultar log de eventos paginado (admin) - rango de fechas (formato ISO 8601)"
+  type: http
+  seq: 28
+
+http:
+  method: get
+  url: http://localhost:8000/auditoria/?fecha_desde=2026-01-01T00:00:00&fecha_hasta=2026-06-10T23:59:59&pagina=1&tamano=20
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  params:
+    - name: fecha_desde
+      value: 2026-01-01T00:00:00
+      type: query
+    - name: fecha_hasta
+      value: 2026-06-10T23:59:59
+      type: query
+    - name: pagina
+      value: "1"
+      type: query
+    - name: tamano
+      value: "20"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

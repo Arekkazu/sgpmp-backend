@@ -1,0 +1,26 @@
+info:
+  name: Registrar token FCM (notificaciones push)
+  type: http
+  seq: 8
+
+http:
+  method: post
+  url: http://localhost:8000/usuarios/me/fcm-token
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "token": "fcm_token_del_dispositivo_aqui"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

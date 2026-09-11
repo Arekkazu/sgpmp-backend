@@ -1,0 +1,25 @@
+info:
+  name: Consultar log de eventos paginado (admin)
+  type: http
+  seq: 26
+
+http:
+  method: get
+  url: http://localhost:8000/auditoria/?pagina=1&tamano=20
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  params:
+    - name: pagina
+      value: "1"
+      type: query
+    - name: tamano
+      value: "20"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

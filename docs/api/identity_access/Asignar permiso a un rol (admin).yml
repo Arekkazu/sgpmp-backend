@@ -1,0 +1,27 @@
+info:
+  name: " Asignar permiso a un rol (admin)"
+  type: http
+  seq: 24
+
+http:
+  method: post
+  url: http://localhost:8000/roles/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "id_recurso": 2,
+        "id_accion": 1
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

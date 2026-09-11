@@ -1,0 +1,33 @@
+info:
+  name: " Registrar nuevo usuario"
+  type: http
+  seq: 4
+
+http:
+  method: post
+  url: http://localhost:8000/usuarios/
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "correo_electronico": "nuevo@ejemplo.com",
+        "telefono": "3001234567",
+        "tipo_identificacion": "CC",
+        "numero_identificacion": "1234567890",
+        "nombre": "Juan",
+        "apellidos": "Pérez García",
+        "fecha_nacimiento": "1990-05-15",
+        "genero": "M",
+        "contrasena": "Contrasena1!",
+        "direccion": "Calle 123 # 45-67"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

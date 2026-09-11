@@ -1,0 +1,18 @@
+info:
+  name: Catálogo de acciones
+  type: http
+  seq: 22
+
+http:
+  method: get
+  url: http://localhost:8000/roles/catalogo/acciones
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

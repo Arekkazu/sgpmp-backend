@@ -1,0 +1,27 @@
+info:
+  name: Gestionar cuenta de usuario (admin)
+  type: http
+  seq: 11
+
+http:
+  method: post
+  url: http://localhost:8000/usuarios/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "accion_cuenta": "inactivar",
+        "motivo_accion": "Incumplimiento de términos de uso"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

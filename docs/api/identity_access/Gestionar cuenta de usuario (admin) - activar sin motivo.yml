@@ -1,0 +1,26 @@
+info:
+  name: Gestionar cuenta de usuario (admin) - activar sin motivo
+  type: http
+  seq: 12
+
+http:
+  method: post
+  url: http://localhost:8000/usuarios/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "accion_cuenta": "activar"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

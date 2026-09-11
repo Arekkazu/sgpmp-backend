@@ -1,0 +1,31 @@
+info:
+  name: " Consultar log de eventos paginado (admin) -- Con filtros opcionales"
+  type: http
+  seq: 27
+
+http:
+  method: get
+  url: http://localhost:8000/auditoria/?id_usuario=5&tipo_evento=1&pagina=1&tamano=10
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+  params:
+    - name: id_usuario
+      value: "5"
+      type: query
+    - name: tipo_evento
+      value: "1"
+      type: query
+    - name: pagina
+      value: "1"
+      type: query
+    - name: tamano
+      value: "10"
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

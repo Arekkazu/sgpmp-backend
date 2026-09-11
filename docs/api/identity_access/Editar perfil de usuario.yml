@@ -1,0 +1,31 @@
+info:
+  name: Editar perfil de usuario
+  type: http
+  seq: 7
+
+http:
+  method: patch
+  url: http://localhost:8000/usuarios/
+  headers:
+    - name: Authorization
+      value: Bearer <TOKEN>
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "nombre": "Juan",
+        "apellidos": "Pérez García",
+        "correo_electronico": "nuevo_correo@ejemplo.com",
+        "telefono": "3009876543",
+        "direccion": "Carrera 10 # 20-30",
+        "version": 1
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

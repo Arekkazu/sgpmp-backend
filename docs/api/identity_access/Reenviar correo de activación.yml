@@ -1,0 +1,24 @@
+info:
+  name: Reenviar correo de activación
+  type: http
+  seq: 5
+
+http:
+  method: post
+  url: http://localhost:8000/usuarios/activar/reenviar
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "correo_electronico": "usuario@ejemplo.com"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: false
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
