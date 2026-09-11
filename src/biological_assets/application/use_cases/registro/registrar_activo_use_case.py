@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
@@ -13,10 +14,6 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
-
-_TIPOS_NUMERICOS = {'PESO', 'VOLUMEN', 'LONGITUD'}
-_TIPOS_ENTERO = {'CONTEO'}
-
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -60,8 +57,27 @@ def _validar_atributos_dinamicos(
 ) -> None:
     parametros = parametros_port.listar_por_especie(id_especie, tipo_activo)
     nombres_validos = {p.nombre.lower(): p for p in parametros}
+    atributos_normalizados: dict[str, tuple[str, object]] = {}
 
     for clave, valor in atributos.items():
+        if not isinstance(clave, str):
+            raise ValidationError(
+                code='ATRIBUTO_INVALIDO',
+                message='Los nombres de atributos dinámicos deben ser texto.',
+                field='atributos_dinamicos',
+            )
+        atributos_normalizados[clave.lower()] = (clave, valor)
+
+    for nombre_normalizado, parametro in nombres_validos.items():
+        entrada = atributos_normalizados.get(nombre_normalizado)
+        if parametro.es_obligatorio and (entrada is None or entrada[1] is None):
+            raise BusinessRuleError(
+                code='ATRIBUTO_REQUERIDO',
+                message=f"El atributo dinámico '{parametro.nombre}' es obligatorio.",
+                field=f'atributos_dinamicos.{parametro.nombre}',
+            )
+
+    for clave, valor in atributos_normalizados.values():
         param = nombres_validos.get(clave.lower())
         if param is None:
             raise ValidationError(
@@ -69,22 +85,50 @@ def _validar_atributos_dinamicos(
                 message=f"El atributo '{clave}' no corresponde a una métrica activa de la especie.",
                 field='atributos_dinamicos',
             )
-        tipo_med = param.tipo_medicion.upper()
-        if tipo_med in _TIPOS_NUMERICOS:
-            try:
-                float(valor)
-            except (TypeError, ValueError):
-                raise ValidationError(
-                    code='ATRIBUTO_TIPO_INVALIDO',
-                    message=f"El atributo '{clave}' debe ser un valor numérico ({param.tipo_medicion}).",
-                    field='atributos_dinamicos',
+        if valor is None:
+            continue
+
+        tipo_dato = param.tipo_dato.upper()
+        es_valido = False
+        descripcion = tipo_dato.lower()
+        if tipo_dato == 'NUMERICO':
+            es_valido = isinstance(valor, (int, float, Decimal)) and not isinstance(valor, bool)
+            if es_valido:
+                try:
+                    es_valido = Decimal(str(valor)).is_finite()
+                except (InvalidOperation, ValueError):
+                    es_valido = False
+            descripcion = 'numérico'
+        elif tipo_dato == 'ENTERO':
+            es_valido = isinstance(valor, int) and not isinstance(valor, bool)
+            descripcion = 'entero'
+        elif tipo_dato == 'TEXTO':
+            es_valido = isinstance(valor, str)
+            descripcion = 'texto'
+        elif tipo_dato == 'BOOLEANO':
+            es_valido = isinstance(valor, bool)
+            descripcion = 'booleano'
+
+        if not es_valido:
+            raise BusinessRuleError(
+                code='ATRIBUTO_TIPO_INVALIDO',
+                message=f"El atributo '{clave}' debe ser de tipo {descripcion}.",
+                field=f'atributos_dinamicos.{clave}',
+            )
+
+        if tipo_dato in {'NUMERICO', 'ENTERO'}:
+            numero = Decimal(str(valor))
+            if param.valor_min is not None and numero < param.valor_min:
+                raise BusinessRuleError(
+                    code='ATRIBUTO_FUERA_DE_RANGO',
+                    message=f"El atributo '{clave}' debe ser mayor o igual a {param.valor_min}.",
+                    field=f'atributos_dinamicos.{clave}',
                 )
-        elif tipo_med in _TIPOS_ENTERO:
-            if not isinstance(valor, int):
-                raise ValidationError(
-                    code='ATRIBUTO_TIPO_INVALIDO',
-                    message=f"El atributo '{clave}' debe ser un entero ({param.tipo_medicion}).",
-                    field='atributos_dinamicos',
+            if param.valor_max is not None and numero > param.valor_max:
+                raise BusinessRuleError(
+                    code='ATRIBUTO_FUERA_DE_RANGO',
+                    message=f"El atributo '{clave}' debe ser menor o igual a {param.valor_max}.",
+                    field=f'atributos_dinamicos.{clave}',
                 )
 
 
@@ -141,13 +185,12 @@ class RegistrarActivoBiologicoUseCase:
             )
 
         # FA-07: validar atributos_dinamicos
-        if dto.atributos_dinamicos:
-            _validar_atributos_dinamicos(
-                dto.atributos_dinamicos,
-                dto.tipo_activo,
-                self.parametros_port,
-                dto.id_especie,
-            )
+        _validar_atributos_dinamicos(
+            dto.atributos_dinamicos or {},
+            dto.tipo_activo,
+            self.parametros_port,
+            dto.id_especie,
+        )
 
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
 
