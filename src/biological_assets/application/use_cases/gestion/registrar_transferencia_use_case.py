@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -33,6 +33,16 @@ class RegistrarTransferenciaUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
+        # E-10 es una regla funcional de RF-48. Se valida en el caso de uso
+        # para responder 422, como declara el contrato, y no como un error de
+        # estructura de Pydantic (400/VAL_ENTRADA).
+        if dto.fecha_transferencia > date.today():
+            raise BusinessRuleError(
+                code='FECHA_TRANSFERENCIA_FUTURA',
+                message='La fecha de transferencia no puede ser posterior a la fecha actual.',
+                field='fecha_transferencia',
+            )
+
         # E-01: control de concurrencia — bloquea el registro para evitar transferencias simultáneas
         hay_concurrencia = self.transferencia_repo.hay_transferencia_en_progreso(id_activo)
         if hay_concurrencia:
