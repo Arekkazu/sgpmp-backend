@@ -1,0 +1,183 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-202-transferencia-valida-recalculo-densidad",
+    "name": "TC-M02-202 - Aceptar transferencia válida y verificar recálculo de densidad (RF-36 / RF-48)",
+    "description": "Prueba de aceptación para RF-36 y RF-48: Transferir lote a infraestructura activa de la misma finca con superficie distinta y verificar que la densidad se recalcule automáticamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_origen_id",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_valida_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "superficie_destino",
+      "value": "2500",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Ejecutar transferencia válida hacia Estanque-01 (TC-M02-202)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_valida_id}},\n  \"fecha_transferencia\": \"2026-09-08\",\n  \"motivo_transferencia\": \"Transferencia válida a Estanque-01 con recálculo TC-M02-202\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK o 201 Created (transferencia exitosa)', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('La respuesta confirma el traslado a la infraestructura destino', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_activo_biologico).to.eql(parseInt(pm.collectionVariables.get('id_lote')));",
+              "    pm.expect(res.infraestructura_destino).to.be.a('string');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar activo biológico y verificar nuevo ID de infraestructura y recálculo de densidad",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('El lote fue asignado a la nueva infraestructura destino (ID 1: Estanque-01)', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_valida_id')));",
+              "});",
+              "",
+              "pm.test('La densidad del lote se recalculó automáticamente con la nueva superficie (5 / 2500 = 0.002)', function () {",
+              "    var res = pm.response.json();",
+              "    var cantidadActual = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual) || res.cantidad_actual || 5;",
+              "    var densidad = res.detalle_poblacional ? parseFloat(res.detalle_poblacional.densidad) : parseFloat(res.densidad);",
+              "    var sup = parseFloat(pm.collectionVariables.get('superficie_destino'));",
+              "    var densidadEsperada = cantidadActual / sup;",
+              "    pm.expect(densidad).to.be.closeTo(densidadEsperada, 0.0001);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

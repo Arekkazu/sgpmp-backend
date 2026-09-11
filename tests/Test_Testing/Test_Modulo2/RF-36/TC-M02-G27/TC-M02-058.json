@@ -1,0 +1,154 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-058-bola-consulta-lote-otra-granja",
+    "name": "TC-M02-058 - BOLA en consulta de lote de otra granja (RF-36 - OWASP API1)",
+    "description": "Prueba de seguridad OWASP API1 (Broken Object Level Authorization): Un usuario con rol Productor intenta consultar GET /activos-biologicos/{id_lote} de un lote que pertenece a una finca diferente. El sistema debe responder 403 Forbidden (o 404) y no exponer datos del lote ajeno.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token_productor",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_finca1",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "id_lote_finca2",
+      "value": "8",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"m2m.nuevo@ejemplo.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa como Productor (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token_productor', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar consultar lote de Finca 2 ajena (TC-M02-058 - OWASP API1 BOLA)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca2}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca2}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Seguridad BOLA: Rechazar acceso a lote de otra finca (HTTP 403 Forbidden o 404 Not Found)', function () {",
+              "    pm.expect([403, 404]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('No se expone información del lote ajeno', function () {",
+              "    if ([403, 404].includes(pm.response.code)) {",
+              "        var res = pm.response.json();",
+              "        pm.expect(res).to.not.have.property('id_infraestructura');",
+              "        pm.expect(res).to.not.have.property('detalle_poblacional');",
+              "    } else {",
+              "        pm.expect.fail('VULNERABILIDAD BOLA DETECTADA: Se expusieron los datos del lote ajeno con HTTP ' + pm.response.code);",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Control positivo: Consultar lote de su propia finca / accesible",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote_finca1}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote_finca1}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Control positivo: Lote accesible retorna HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
