@@ -153,6 +153,7 @@ def test_reaplicar_plantilla_con_mismos_nombres_ya_no_da_500(
                 "metricas_produccion": [{
                     "nombre": nombre_metrica, "unidad_medida": "kg",
                     "tipo_medicion": "PESO", "aplica_a_tipo_activo": "AMBOS",
+                    "tipo_dato": "NUMERICO", "es_obligatorio": False,
                 }],
                 "umbrales_ambientales": [{
                     "id_variable_ambiental": variable_ambiental_activa["id_variable_ambiental"],

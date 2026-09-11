@@ -101,3 +101,53 @@ def test_volumen_litro_abreviado_ok_201(config_client, una_especie, crear_usuari
         headers=h,
     )
     assert r.status_code == 201, r.text
+
+
+def test_rf16_expone_y_audita_tipo_y_obligatoriedad(
+    config_client,
+    una_especie,
+    db_session,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    h = _headers_vet(crear_usuario_db, crear_auth_headers)
+    r = config_client.post(
+        "/configuracion/metricas",
+        json={
+            "id_especie": una_especie,
+            "nombre": "Peso Ingreso G17",
+            "unidad_medida": "kg",
+            "tipo_medicion": "PESO",
+            "aplica_a_tipo_activo": "INDIVIDUAL",
+            "tipo_dato": "NUMERICO",
+            "es_obligatorio": True,
+        },
+        headers=h,
+    )
+
+    assert r.status_code == 201, r.text
+    creada = r.json()
+    assert creada["tipo_dato"] == "NUMERICO"
+    assert creada["es_obligatorio"] is True
+
+    listado = config_client.get(
+        f"/configuracion/metricas?id_especie={una_especie}&solo_activas=true",
+        headers=h,
+    )
+    assert listado.status_code == 200, listado.text
+    configurada = next(
+        item for item in listado.json()["items"]
+        if item["id_metrica_produccion"] == creada["id_metrica_produccion"]
+    )
+    assert configurada["tipo_dato"] == "NUMERICO"
+    assert configurada["es_obligatorio"] is True
+
+    auditoria = db_session.execute(
+        text(
+            "SELECT valores_nuevos FROM modulo9.auditorias_metricas_produccion "
+            "WHERE id_metrica_produccion = :id ORDER BY id_auditoria_metrica DESC LIMIT 1"
+        ),
+        {"id": creada["id_metrica_produccion"]},
+    ).scalar_one()
+    assert auditoria["tipo_dato"] == "NUMERICO"
+    assert auditoria["es_obligatorio"] is True
