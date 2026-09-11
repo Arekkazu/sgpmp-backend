@@ -5,11 +5,13 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.models.bitacora_auditoria_m02_model import BitacoraAuditoriaM02Model
+from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
 
 
 def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
@@ -70,8 +72,28 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         fecha_fin: Optional[datetime],
         pagina: int,
         page_size: int,
+        *,
+        clasificaciones_permitidas: Optional[set[str]] = None,
+        id_propietario_acceso_datos: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
+
+        if id_propietario_acceso_datos is not None:
+            q = q.outerjoin(
+                ActivoBiologicoModel,
+                BitacoraAuditoriaM02Model.id_activo_biologico
+                == ActivoBiologicoModel.id_activo_biologico,
+            ).filter(
+                or_(
+                    BitacoraAuditoriaM02Model.clasificacion_biologica != 'ACCESO_DATOS',
+                    ActivoBiologicoModel.id_usuario == id_propietario_acceso_datos,
+                )
+            )
+
+        if clasificaciones_permitidas is not None:
+            q = q.filter(
+                BitacoraAuditoriaM02Model.clasificacion_biologica.in_(clasificaciones_permitidas)
+            )
 
         if rf_origen is not None:
             q = q.filter(BitacoraAuditoriaM02Model.rf_origen == rf_origen)
@@ -101,6 +123,17 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             .all()
         )
         return [self._a_entidad(r) for r in registros_orm], total
+
+    def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
+        return (
+            self.db.query(ActivoBiologicoModel.id_activo_biologico)
+            .filter(
+                ActivoBiologicoModel.id_activo_biologico == id_activo,
+                ActivoBiologicoModel.id_usuario == id_usuario,
+            )
+            .first()
+            is not None
+        )
 
     def _a_entidad(self, orm: BitacoraAuditoriaM02Model) -> EventoAuditoria:
         return EventoAuditoria(
