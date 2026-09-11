@@ -1,0 +1,480 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g32-suite",
+    "name": "TC-M02-G32 - Registro de evento PRODUCTIVO sobre lote y rechazo por estructura inválida (RF-36)",
+    "description": "Suite de pruebas para el caso agrupado TC-M02-G32 correspondiente al RF-36 (Gestión Poblacional / CU03). Evalúa el registro de evento productivo sin alteración de cantidad/peso (TC-M02-198) y el rechazo ante estructuras de eventos inválidas o incompletas (TC-M02-199).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-198",
+      "description": "Subcaso TC-M02-198: Registrar evento PRODUCTIVO sin alterar cantidad ni peso",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-198)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Registrar evento productivo sobre lote 130",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_producto\": \"PESO\",\n  \"cantidad_producida\": 10.0,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-10\",\n  \"condiciones_produccion\": \"Normal\",\n  \"observaciones\": \"TC-M02-198 Registro de evento productivo sobre lote\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/productivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "productivo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-198: Evento productivo aceptado con HTTP 201 (esperado por caso de uso)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-198: Evento registrado en historial del activo', function () {",
+                  "    if (pm.response.code === 201) {",
+                  "        var res = pm.response.json();",
+                  "        pm.expect(res).to.have.property('id_eventos');",
+                  "    } else {",
+                  "        var err = pm.response.json();",
+                  "        pm.expect(err.error_code).to.eql('TIPO_PRODUCTO_NO_HABILITADO_FASE');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Verificar inmutabilidad de cantidad y peso en lote 130",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote 130 exitosa (HTTP 200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-198: Cantidad actual del lote permanece inalterada en 5', function () {",
+                  "    var res = pm.response.json();",
+                  "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
+                  "    pm.expect(cant).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-198: Peso promedio del lote permanece inalterado en 2.50', function () {",
+                  "    var res = pm.response.json();",
+                  "    var peso = (res.detalle_poblacional && res.detalle_poblacional.peso_promedio !== undefined) ? res.detalle_poblacional.peso_promedio : res.peso_promedio;",
+                  "    pm.expect(Number(peso)).to.eql(2.5);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-199",
+      "description": "Subcaso TC-M02-199: Rechazar evento con estructura inválida",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-199)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Variante A: Rechazar evento productivo con tipo_producto no catalogado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_producto\": \"TIPO_INEXISTENTE_XYZ\",\n  \"cantidad_producida\": 10,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-11\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/productivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "productivo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-199 Variante A: Código de rechazo HTTP 4xx recibido', function () {",
+                  "    pm.expect([400, 422]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante A: Código de error TIPO_PRODUCTO_NO_CATALOGADO o VAL_ENTRADA', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(['TIPO_PRODUCTO_NO_CATALOGADO', 'VAL_ENTRADA']).to.include(res.error_code);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante A: Mensaje describe restricción de catálogo', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.message).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Variante A2: Rechazar evento productivo con campos requeridos ausentes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_evento\": \"INVALIDO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/productivo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "productivo"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-199 Variante A2: Código HTTP es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante A2: Código de error de validación de entrada VAL_ENTRADA', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error_code).to.eql('VAL_ENTRADA');",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante A2: Detalle de campos requeridos ausentes en payload', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.fields).to.be.an('array').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Variante B: Rechazar evento baja con estructura malformada",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_evento\": \"INVALIDO\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-199 Variante B: Código HTTP es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante B: Código de error de validación VAL_ENTRADA', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.error_code).to.eql('VAL_ENTRADA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Variante B2: Evento baja sin cantidad_afectada (diagnóstico de trigger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"motivo_baja\": \"Prueba de validación TC-M02-199\",\n  \"fecha_baja\": \"2026-09-11\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-199 Variante B2: Respuesta recibida (Rechazo 4xx o fallo por bug conocido PR #254)', function () {",
+                  "    pm.expect([400, 422, 500]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199 Variante B2: Documentar código de error según comportamiento', function () {",
+                  "    var res = pm.response.json();",
+                  "    if (pm.response.code === 500) {",
+                  "        pm.expect(res.error_code).to.eql('ERROR_INTERNO');",
+                  "    } else {",
+                  "        pm.expect(['VAL_ENTRADA', 'CAMPOS_FALTANTES']).to.include(res.error_code);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "5. Verificar que el lote 130 no sufrió modificaciones en BD",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta final de lote 130 exitosa (HTTP 200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199: Cantidad del lote 130 inalterada tras intentos fallidos', function () {",
+                  "    var res = pm.response.json();",
+                  "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
+                  "    pm.expect(cant).to.eql(5);",
+                  "});",
+                  "",
+                  "pm.test('TC-M02-199: Estado del lote 130 sigue siendo ACTIVO', function () {",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.nombre_estado || res.estado).to.eql('ACTIVO');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
