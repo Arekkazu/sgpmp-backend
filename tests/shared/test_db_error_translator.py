@@ -247,3 +247,19 @@ def test_excepcion_desconocida_es_500() -> None:
 
     assert exc_info.value.code == "ERROR_INTERNO"
     assert exc_info.value.status_code == 500
+
+
+def test_byte_nulo_de_psycopg2_es_400_no_500() -> None:
+    """INC-M02-57-G06 (#93): psycopg2 rechaza un byte nulo embebido con un
+    ValueError de Python plano en la adaptación del parámetro — no una
+    subclase de IntegrityError/DataError/OperationalError — así que sin este
+    mapeo caía al catch-all -> 500, aunque el dato mal formado sea del cliente.
+    `BaseDTO` ya lo bloquea en la frontera; esto es la red de seguridad del
+    repositorio para cualquier valor que la esquive."""
+    exc = ValueError("A string literal cannot contain NUL (0x00) characters.")
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400

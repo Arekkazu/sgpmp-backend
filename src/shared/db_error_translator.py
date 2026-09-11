@@ -37,6 +37,14 @@ _ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
 _ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
 _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 
+#: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
+#: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
+#: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
+#: IntegrityError/DataError/OperationalError. `BaseDTO` ya lo rechaza en la
+#: frontera para todo DTO de entrada; esto es la red de seguridad para
+#: cualquier valor que llegue a la base de datos por otra vía.
+_MENSAJE_BYTE_NULO_PSYCOPG2 = "A string literal cannot contain NUL (0x00) characters."
+
 
 def _campo(diag) -> str | None:
     """Deriva el nombre de columna a partir del diagnóstico de psycopg2.
@@ -92,6 +100,7 @@ def raise_from_db_error(
       fallo del servidor.
     - ``DataError`` → ``ValidationError`` (HTTP 400).
     - ``OperationalError`` → ``ServiceUnavailableError`` (HTTP 503).
+    - ``ValueError`` de psycopg2 por byte nulo embebido → ``ValidationError`` (HTTP 400).
     - Cualquier otro caso → ``InfrastructureError`` (HTTP 500).
 
     Debe llamarse desde el bloque ``except`` del repositorio, antes de que
@@ -117,6 +126,12 @@ def raise_from_db_error(
         ServiceUnavailableError: Por fallo de conectividad con la base de datos.
         InfrastructureError: Por cualquier otro error de base de datos no mapeado.
     """
+    if isinstance(exc, ValueError) and str(exc) == _MENSAJE_BYTE_NULO_PSYCOPG2:
+        raise ValidationError(
+            code="VALOR_NO_PERMITIDO",
+            message="El texto no puede contener caracteres nulos.",
+        )
+
     diag_generico = getattr(getattr(exc, "orig", None), "diag", None)
     sqlstate = getattr(diag_generico, "sqlstate", None) if diag_generico is not None else None
 
