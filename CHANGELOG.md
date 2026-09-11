@@ -1,3 +1,10 @@
+## [1.0.0-rc.36](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.35...v1.0.0-rc.36) (2026-09-11)
+
+### Bug Fixes
+
+* **shared:** agregar cabeceras de seguridad HTTP recomendadas ([a0cea12](https://github.com/Arekkazu/sgpmp-backend/commit/a0cea12b6f1c1e3420cb6c6f9402a76e93948f9f))
+* **shared:** rechazar bytes nulos en DTOs y en el traductor de errores de BD ([c34cee4](https://github.com/Arekkazu/sgpmp-backend/commit/c34cee47b93b6666acec4becf74daaa6e95f08b9)), closes [#93](https://github.com/Arekkazu/sgpmp-backend/issues/93)
+
 ## [1.0.0-rc.35](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.34...v1.0.0-rc.35) (2026-09-08)
 
 ### Features
