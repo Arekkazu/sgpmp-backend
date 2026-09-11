@@ -373,7 +373,7 @@ class ActivoBiologico:
             self.detalle_individual.peso_inicial = peso_inicial
 
     def _snapshot(self) -> dict:
-        return {
+        snapshot = {
             'id_activo_biologico': self.id_activo_biologico,
             'id_especie': self.id_especie,
             'tipo': self.tipo,
@@ -386,6 +386,22 @@ class ActivoBiologico:
             'soporte_documental': self.soporte_documental,
             'detalles_procedencia': self.detalles_procedencia,
         }
+        if self.detalle_individual is not None:
+            di = self.detalle_individual
+            snapshot['detalle_individual'] = {
+                'raza': di.raza,
+                'sexo': di.sexo,
+                'fecha_nacimiento': di.fecha_nacimiento.isoformat() if di.fecha_nacimiento else None,
+                'peso_inicial': str(di.peso_inicial) if di.peso_inicial is not None else None,
+            }
+        if self.detalle_poblacional is not None:
+            dp = self.detalle_poblacional
+            snapshot['detalle_poblacional'] = {
+                'cantidad_inicial': dp.cantidad_inicial,
+                'cantidad_actual': dp.cantidad_actual,
+                'peso_promedio_inicial': str(dp.peso_promedio_inicial) if dp.peso_promedio_inicial is not None else None,
+            }
+        return snapshot
 
     def _validar_tipo_poblacional(self) -> None:
         if self.tipo != 'POBLACIONAL':

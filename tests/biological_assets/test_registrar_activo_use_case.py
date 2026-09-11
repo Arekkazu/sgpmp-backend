@@ -128,8 +128,34 @@ def test_registro_exitoso_deja_snapshot_evento_0() -> None:
     assert snapshot.version == 1
     assert snapshot.tipo_evento == 'CREACION'
     assert snapshot.snapshot['identificador'] == 'BOV-100'
+    assert snapshot.snapshot['detalle_individual']['raza'] == 'Angus'
+    assert snapshot.snapshot['detalle_individual']['sexo'] == 'M'
     assert db.commits == 1
     assert db.rollbacks == 0
+
+
+def test_registro_poblacional_snapshot_incluye_cantidades_y_peso_inicial() -> None:
+    # INC-M02-46-G13 / INC-M02-G08: el snapshot inicial de un lote debe
+    # conservar cantidad_inicial, cantidad_actual y peso_promedio_inicial.
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db)
+    dto = _dto(
+        tipo_activo='POBLACIONAL',
+        identificador=None,
+        raza=None,
+        sexo=None,
+        fecha_nacimiento=None,
+        cantidad_inicial=10,
+        peso_promedio_inicial=Decimal('2.5'),
+    )
+
+    uc.execute(dto, _usuario())
+
+    snapshot = repo.historial[0].snapshot
+    assert snapshot['detalle_poblacional']['cantidad_inicial'] == 10
+    assert snapshot['detalle_poblacional']['cantidad_actual'] == 10
+    assert snapshot['detalle_poblacional']['peso_promedio_inicial'] == '2.5'
 
 
 @dataclass
