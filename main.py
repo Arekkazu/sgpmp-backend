@@ -78,7 +78,7 @@ from src.identity_access.infrastructure.routers.usuarios_routers import router a
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared import almacen_logos
 from src.shared.error_handlers import register_error_handlers
-from src.shared.middlewares import RequestContextMiddleware
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -478,6 +478,12 @@ app.add_middleware(
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
+
+# INC-M02-56-G04: agregado último para quedar como capa más externa — así
+# sella las cabeceras de seguridad en toda respuesta, incluidas las que
+# arma un error_handler antes de que la petición vuelva a subir por el resto
+# del stack de middlewares.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # RF-26: los logotipos institucionales se escriben en `LOGOS_STORAGE_PATH` (ver
 # `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
