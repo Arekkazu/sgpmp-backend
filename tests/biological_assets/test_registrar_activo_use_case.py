@@ -21,6 +21,7 @@ from src.biological_assets.application.use_cases.registro.registrar_activo_use_c
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistorialActivo
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsulta
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError
@@ -41,12 +42,14 @@ class DbFake:
 class ActivoRepoFake:
     def __init__(self) -> None:
         self.historial: list[HistorialActivo] = []
+        self.guardados = 0
         self._next_id = 100
 
     def existe_identificador(self, identificador: str) -> bool:
         return False
 
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
+        self.guardados += 1
         activo.id_activo_biologico = self._next_id
         return activo
 
@@ -69,8 +72,11 @@ class InfraFake:
 
 
 class ParametrosFake:
+    def __init__(self, parametros: list[ParametroEspecie] | None = None) -> None:
+        self.parametros = parametros or []
+
     def listar_por_especie(self, id_especie: int, tipo_activo: str):
-        return []
+        return self.parametros
 
 
 def _usuario() -> UsuarioActual:
@@ -95,13 +101,17 @@ def _dto(**overrides) -> RegistrarActivoBiologicoDTO:
     return RegistrarActivoBiologicoDTO(**base)
 
 
-def _use_case(repo: ActivoRepoFake, db: DbFake) -> RegistrarActivoBiologicoUseCase:
+def _use_case(
+    repo: ActivoRepoFake,
+    db: DbFake,
+    parametros: list[ParametroEspecie] | None = None,
+) -> RegistrarActivoBiologicoUseCase:
     return RegistrarActivoBiologicoUseCase(
         db=db,
         repo=repo,
         especie_port=EspecieFake(),
         infra_port=InfraFake(),
-        parametros_port=ParametrosFake(),
+        parametros_port=ParametrosFake(parametros),
     )
 
 
@@ -167,3 +177,75 @@ def test_costo_adquisicion_invalido_para_origen_bloquea_antes_de_persistir() -> 
     assert exc_info.value.status_code == 422
     assert repo.historial == []
     assert db.commits == 0
+
+
+def _parametro_requerido(**overrides) -> ParametroEspecie:
+    base = {
+        'nombre': 'Peso de ingreso G17',
+        'tipo_medicion': 'PESO',
+        'aplica_a_tipo_activo': 'INDIVIDUAL',
+        'tipo_dato': 'NUMERICO',
+        'es_obligatorio': True,
+        'valor_min': Decimal('0.1'),
+        'valor_max': Decimal('500'),
+    }
+    base.update(overrides)
+    return ParametroEspecie(**base)
+
+
+@pytest.mark.parametrize(
+    'atributos',
+    [None, {}, {'Peso de ingreso G17': None}],
+)
+def test_tc_m02_187_rechaza_atributo_obligatorio_omitido_o_null_sin_persistir(
+    atributos,
+) -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, [_parametro_requerido()])
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(_dto(atributos_dinamicos=atributos), _usuario())
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'ATRIBUTO_REQUERIDO'
+    assert repo.guardados == 0
+    assert repo.historial == []
+    assert db.commits == 0
+
+
+@pytest.mark.parametrize('valor_invalido', ['12.5', True, [12.5]])
+def test_tc_m02_188_rechaza_tipo_distinto_al_configurado_sin_persistir(
+    valor_invalido,
+) -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, [_parametro_requerido()])
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(
+            _dto(atributos_dinamicos={'Peso de ingreso G17': valor_invalido}),
+            _usuario(),
+        )
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'ATRIBUTO_TIPO_INVALIDO'
+    assert repo.guardados == 0
+    assert repo.historial == []
+    assert db.commits == 0
+
+
+def test_atributo_dinamico_valido_se_persiste_normalmente() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+    uc = _use_case(repo, db, [_parametro_requerido()])
+
+    activo = uc.execute(
+        _dto(atributos_dinamicos={'Peso de ingreso G17': 12.5}),
+        _usuario(),
+    )
+
+    assert activo.atributos_dinamicos == {'Peso de ingreso G17': 12.5}
+    assert repo.guardados == 1
+    assert len(repo.historial) == 1
+    assert db.commits == 1

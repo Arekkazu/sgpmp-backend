@@ -11,6 +11,8 @@ class ParametroEspecie:
     nombre: str
     tipo_medicion: str
     aplica_a_tipo_activo: str
+    tipo_dato: str
+    es_obligatorio: bool
     valor_min: Optional[Decimal] = field(default=None)
     valor_max: Optional[Decimal] = field(default=None)
 

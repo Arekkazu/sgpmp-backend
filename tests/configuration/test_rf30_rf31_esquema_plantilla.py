@@ -256,6 +256,7 @@ def test_enums_de_metrica_se_validan_contra_los_value_objects():
         "metricas_produccion": [{
             "nombre": "Peso promedio", "unidad_medida": "kg",
             "tipo_medicion": "INVENTADO", "aplica_a_tipo_activo": "ANIMAL",
+            "tipo_dato": "NUMERICO", "es_obligatorio": False,
         }],
     })
     assert len(errores) == 2

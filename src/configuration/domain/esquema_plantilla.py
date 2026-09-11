@@ -28,10 +28,11 @@ from typing import Any, Callable
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.shared.errors import BusinessRuleError
 
-SCHEMA_VERSION_ACTUAL = 1
+SCHEMA_VERSION_ACTUAL = 2
 
 #: Categorías que el RF-30 autoriza dentro de una plantilla.
 CATEGORIAS: tuple[str, ...] = (
@@ -78,6 +79,10 @@ def _es_numero(valor: Any) -> bool:
         return False
 
 
+def _es_booleano(valor: Any) -> bool:
+    return isinstance(valor, bool)
+
+
 def _uno_de(*opciones: str) -> Regla:
     return (f"uno de {list(opciones)}", lambda valor: valor in opciones)
 
@@ -85,6 +90,7 @@ def _uno_de(*opciones: str) -> Regla:
 TEXTO: Regla = ("texto no vacío", _es_texto)
 ENTERO_POSITIVO: Regla = ("entero positivo", _es_entero_positivo)
 NUMERO: Regla = ("número", _es_numero)
+BOOLEANO: Regla = ("booleano", _es_booleano)
 
 #: Campos obligatorios de cada ítem, con su tipo. Son los que
 #: `*_desde_snapshot` de los repositorios lee sin `.get()` y convierte con
@@ -103,6 +109,8 @@ CAMPOS_REQUERIDOS: dict[str, dict[str, Regla]] = {
         "unidad_medida": TEXTO,
         "tipo_medicion": _uno_de(*(m.value for m in TipoMedicion)),
         "aplica_a_tipo_activo": _uno_de(*(a.value for a in AplicaTipoActivo)),
+        "tipo_dato": _uno_de(*(t.value for t in TipoDatoAtributo)),
+        "es_obligatorio": BOOLEANO,
     },
     "umbrales_ambientales": {
         "id_variable_ambiental": ENTERO_POSITIVO,
@@ -125,6 +133,16 @@ CAMPOS_NIVEL_ALERTA: dict[str, Regla] = {
 #: antigua. `compatible_con` lista los `schema_version` que esta versión del
 #: sistema todavía sabe aplicar.
 CHANGELOG: tuple[dict[str, Any], ...] = (
+    {
+        "version": 2,
+        "fecha": "2026-09-09",
+        "compatible_con": (1, 2),
+        "cambios": (
+            "Las métricas productivas conservan tipo_dato y es_obligatorio para los atributos dinámicos.",
+            "tipo_dato admite NUMERICO, ENTERO, TEXTO o BOOLEANO; es_obligatorio debe ser booleano.",
+            "Las plantillas de versión 1 siguen siendo aplicables con tipo inferido y obligatoriedad desactivada.",
+        ),
+    },
     {
         "version": 1,
         "fecha": "2026-06-21",
