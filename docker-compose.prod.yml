@@ -1,0 +1,199 @@
+# ==============================================================
+# SGPMP - Backend - Ambiente PROD
+# ==============================================================
+# Derivado de docker-compose.yml (el de DEV), que es la fuente de verdad del
+# stack. Cada diferencia con DEV es deliberada y esta explicada en el
+# comentario que la acompana.
+#
+# No se declara `version:`: es obsoleta en Compose V2 y solo genera una
+# advertencia.
+#
+# Sintaxis ${VARIABLE:?mensaje} (adoptada del compose de TEST): hace que
+# `docker compose config` falle de forma legible cuando falta una variable
+# obligatoria, en vez de levantar un contenedor mal configurado.
+#
+# Prerrequisito: la red `sgpmp-network` es externa y debe existir antes de
+# levantar el stack -> docker network create sgpmp-network
+# ==============================================================
+
+# Nombre de proyecto explicito: sin esto Compose lo deriva del nombre del
+# directorio, que en el host compartido de Dokploy no es estable ni unico.
+name: sgpmp-backend-prod
+
+services:
+  db:
+    # container_name único (no el genérico "db"): Dokploy conecta el backend
+    # también a su red compartida "dokploy-network" además de la propia del
+    # proyecto, y ahí "db" puede colisionar con el alias del Postgres de OTRO
+    # proyecto desplegado en el mismo host — Docker resuelve el hostname
+    # ambiguo a cualquiera de los dos. ${POSTGRES_DB} ya es distinto por
+    # ambiente, así que sirve como sufijo único sin agregar una env var nueva.
+    container_name: ${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}-db
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    # shared_preload_libraries requiere estar seteado desde el arranque del
+    # proceso (no se puede activar con solo CREATE EXTENSION) — de ahí el
+    # override de command en vez de dejar el entrypoint default de la imagen.
+    # Instalado preventivamente: nada en el código lo usa todavía, pero el
+    # batch/scheduler de Módulo 5 (configuracion_batch_ica y similares) lo va
+    # a necesitar. La extensión igual requiere un paso manual
+    # (CREATE EXTENSION pg_cron;) ejecutado por el DBA después del deploy —
+    # ver docs/SEGUIMIENTO-ENTORNO-TEST.md sección de pg_cron para el mismo
+    # procedimiento ya aplicado en test.
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_cron
+      - -c
+      - cron.database_name=${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER es obligatoria en PROD (la provee el DBA)}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatoria en PROD (la provee el DBA)}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}
+    # SIN `ports:` — esta es la diferencia central con DEV y TEST. En PROD la
+    # base de datos NO se expone al host: el único consumidor es el backend,
+    # que la alcanza por el hostname interno a través de `sgpmp-network`.
+    # Publicar 5432 (o cualquier otro puerto) en un servidor con IP pública lo
+    # deja expuesto a barridos automatizados y a fuerza bruta.
+    # Si Despliegue llegara a necesitar acceso directo para mantenimiento, la
+    # forma correcta NO es agregar un mapeo abierto aquí: debe habilitarse con
+    # restricción de firewall a IPs conocidas del equipo, nunca a 0.0.0.0/0.
+    # La alternativa preferible es un túnel SSH al servidor y desde ahí
+    # `docker exec` o `psql` contra el contenedor.
+    volumes:
+      - sgpmp_pgdata_prod:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER es obligatoria en PROD (la provee el DBA)} -d ${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # `always` y no `unless-stopped`: la diferencia importa tras un reboot del
+    # servidor. `unless-stopped` NO vuelve a levantar el contenedor si había
+    # quedado detenido manualmente antes del reinicio; `always` sí.
+    restart: always
+    # Compose V2 honra deploy.resources.limits fuera de Swarm. Acota el
+    # impacto de una consulta pesada sobre el resto del host compartido.
+    # NO se declara deploy.restart_policy: solo aplica en Swarm, `docker
+    # compose up` lo ignora y duplicaría la intención de `restart`.
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
+    # Rotación de logs: sin esto el archivo json-file crece sin límite y
+    # termina llenando el disco del servidor.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - sgpmp-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # SIN `command:` — se usa el CMD del Dockerfile:
+    #   uvicorn main:app --host 0.0.0.0 --port 8000
+    # Monoproceso a propósito. El backend tiene dos singletons en memoria que
+    # se degradan al multiplicar procesos:
+    #   1. src/shared/rate_limit.py lleva su contador en un deque con
+    #      threading.Lock dentro del proceso (el módulo existe por el
+    #      incidente INC-M09-21-G125-02: una ráfaga de 50 registros IoT
+    #      concurrentes pasó sin ningún 429). Con N procesos el límite
+    #      efectivo se multiplica por N.
+    #   2. _semaforo_llamadas_broker = threading.Semaphore(10) del adaptador
+    #      MQTT pasaría a permitir 10xN llamadas concurrentes al broker.
+    # No introducir Gunicorn ni --workers sin migrar antes esos dos a un
+    # backend compartido (p. ej. Redis).
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER es obligatoria en PROD (la provee el DBA)}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatoria en PROD (la provee el DBA)}@${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}-db:5432/${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}
+      # Fijo, no parametrizado: si fuera ${ENV} alguien podría cambiarlo en
+      # Dokploy y perder en silencio las validaciones de cookie que el backend
+      # solo aplica cuando ENV vale literalmente "production".
+      ENV: production
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatoria en PROD (la genera Implementacion)}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL es obligatoria en PROD (la provee Despliegue)}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS es obligatoria en PROD (origen HTTPS exacto del frontend, sin barra final)}
+      ROOT_PATH: ${ROOT_PATH:-/api}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:?SMTP_USER es obligatoria en PROD (sin ella fallan la activacion de cuenta y la recuperacion de contrasena, y fallan en silencio)}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD es obligatoria en PROD (sin ella fallan la activacion de cuenta y la recuperacion de contrasena, y fallan en silencio)}
+      RECAPTCHA_SECRET_KEY: ${RECAPTCHA_SECRET_KEY:?RECAPTCHA_SECRET_KEY es obligatoria en PROD (RF-01, la provee Desarrollo)}
+      JWT_EXPIRE_HOURS: ${JWT_EXPIRE_HOURS:-8}
+      JWT_LEEWAY_SECONDS: ${JWT_LEEWAY_SECONDS:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      # Críticas en PROD: el backend valida al arranque y se niega a levantar
+      # si faltan cuando ENV=production. Con frontend y backend en dominios
+      # registrables distintos corresponde true/none; si comparten dominio,
+      # lax alcanza. Los navegadores descartan SameSite=None sin Secure.
+      COOKIE_SECURE: ${COOKIE_SECURE:?COOKIE_SECURE es obligatoria en PROD (true siempre que el frontend use HTTPS)}
+      COOKIE_SAMESITE: ${COOKIE_SAMESITE:?COOKIE_SAMESITE es obligatoria en PROD (none si frontend y backend viven en dominios registrables distintos, lax si comparten dominio)}
+      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
+      MODELOS_STORAGE_PATH: ${MODELOS_STORAGE_PATH:-/app/storage/modelos}
+      # RF-26: reutiliza el volumen `sgpmp_modelos_prod` ya provisionado
+      # (montado abajo en /app/storage/modelos) en vez de pedir uno nuevo solo
+      # para logotipos.
+      LOGOS_STORAGE_PATH: ${LOGOS_STORAGE_PATH:-/app/storage/modelos/logos}
+      AGROFUSION_SSO_PUBLIC_KEY_PATH: ${AGROFUSION_SSO_PUBLIC_KEY_PATH:-}
+      AGROFUSION_PROJECT_CODE: ${AGROFUSION_PROJECT_CODE:-}
+      AGROFUSION_ISSUER: ${AGROFUSION_ISSUER:-agrofusion-auth}
+      AGROFUSION_HUB_CLIENT_ID: ${AGROFUSION_HUB_CLIENT_ID:-}
+      AGROFUSION_HUB_CLIENT_SECRET: ${AGROFUSION_HUB_CLIENT_SECRET:-}
+      RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
+      MQTT_BROKER_URL: ${MQTT_BROKER_URL:-}
+      MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:-}
+    volumes:
+      - sgpmp_modelos_prod:/app/storage/modelos
+    # Sin `ports:`: Traefik enruta al backend por dominio dentro de la red.
+    expose:
+      - "8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Healthcheck contra /health (definido en main.py). NO se usa `curl`: la
+    # imagen es python:3.13-slim y el Dockerfile solo instala gcc y libpq-dev,
+    # así que curl no existe en el contenedor y el healthcheck fallaría
+    # siempre, dejando el servicio permanentemente `unhealthy`. Se usa el
+    # Python que ya está en la imagen. urlopen lanza excepción ante error de
+    # conexión o HTTP != 2xx, y esa excepción ya produce un código de salida
+    # distinto de cero.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4).status == 200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # Margen para el arranque de uvicorn y la conexión inicial a la base.
+      start_period: 40s
+    restart: always
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - sgpmp-network
+
+# Red externa compartida entre stacks. Corrige el incidente del 7 de
+# septiembre: el gateway AIoT devolvía 500 en DEV porque vive en otro stack de
+# Compose y no podía resolver el hostname interno de PostgreSQL
+# (socket.gaierror: Temporary failure in name resolution). Con una red externa
+# compartida el gateway resuelve el hostname interno y, además, deja de ser
+# necesario publicar el puerto de la base.
+# Al ser `external: true`, la red debe existir antes de levantar el stack:
+#   docker network create sgpmp-network
+networks:
+  sgpmp-network:
+    external: true
+
+volumes:
+  sgpmp_pgdata_prod:
+  sgpmp_modelos_prod:
