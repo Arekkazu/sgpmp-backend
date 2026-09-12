@@ -37,6 +37,10 @@ _ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
 _ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
 _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 
+#: INC-M02-82-G102: el trigger de coherencia temporal de eventos usa un
+#: SQLSTATE PL/pgSQL propio. Es una regla de negocio, no un fallo del servidor.
+_ERRCODE_EVENTO_FECHA_INVALIDA = "P0215"
+
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
 #: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
 #: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
@@ -100,6 +104,8 @@ def raise_from_db_error(
       fallo del servidor.
     - ``DataError`` → ``ValidationError`` (HTTP 400).
     - ``OperationalError`` → ``ServiceUnavailableError`` (HTTP 503).
+    - SQLSTATE ``P0215`` de fechas de eventos → ``BusinessRuleError``
+      (HTTP 422).
     - ``ValueError`` de psycopg2 por byte nulo embebido → ``ValidationError`` (HTTP 400).
     - Cualquier otro caso → ``InfrastructureError`` (HTTP 500).
 
@@ -146,6 +152,18 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_SENSOR_FINCA_DISTINTA:
         mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
         raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
+        mensaje = (
+            diag_generico.message_primary
+            or "INVALID_DATE: La fecha del evento es inválida o inconsistente."
+        ).split(": ", 1)[-1]
+        codigo = (
+            "FECHA_ANTERIOR_REGISTRO"
+            if "anterior" in mensaje.lower()
+            else "FECHA_FUTURA"
+        )
+        raise BusinessRuleError(code=codigo, message=mensaje, field="fecha")
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)

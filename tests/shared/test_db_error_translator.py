@@ -7,7 +7,7 @@ hacia el cliente. Antes de este cambio el frontend recibía
 """
 import pytest
 from psycopg2 import errors as pg_errors
-from sqlalchemy.exc import DataError, IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, IntegrityError, InternalError, OperationalError
 
 from src.shared.db_error_translator import _campo, raise_from_db_error
 from src.shared.errors import (
@@ -212,6 +212,43 @@ def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
     assert exc_info.value.code == "SENSOR_FINCA_DISTINTA"
     assert exc_info.value.status_code == 422
     assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
+
+
+@pytest.mark.parametrize(
+    ("mensaje_pg", "codigo_esperado"),
+    [
+        (
+            "INVALID_DATE: La fecha del evento no puede ser futura.",
+            "FECHA_FUTURA",
+        ),
+        (
+            "INVALID_DATE: La fecha del evento no puede ser anterior a la fecha de registro.",
+            "FECHA_ANTERIOR_REGISTRO",
+        ),
+    ],
+)
+def test_errcode_fecha_evento_invalida_es_422_no_500(
+    mensaje_pg: str,
+    codigo_esperado: str,
+) -> None:
+    """INC-M02-82-G102: P0215 es una regla temporal, no infraestructura."""
+    exc = InternalError(
+        "stmt",
+        {},
+        _error_pg(
+            pg_errors.InternalError_,
+            sqlstate="P0215",
+            message_primary=mensaje_pg,
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == codigo_esperado
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.field == "fecha"
+    assert "INVALID_DATE:" not in exc_info.value.message
 
 
 def test_integrity_error_no_mapeado_es_500() -> None:

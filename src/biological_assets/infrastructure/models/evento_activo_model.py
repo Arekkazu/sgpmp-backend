@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 class EventoActivoModel(Base):
     __tablename__ = 'eventos_activos'
     __table_args__ = (
-        CheckConstraint('fecha <= now()', name='chk_eventos_fecha_no_futura'),
+        CheckConstraint('fecha <= clock_timestamp()', name='chk_eventos_fecha_no_futura'),
         PrimaryKeyConstraint('id_eventos', name='eventos_activos_pkey'),
         Index('idx_eventos_activos_activo_fecha', 'id_activo_biologico', 'fecha'),
         {'schema': 'modulo2'},
