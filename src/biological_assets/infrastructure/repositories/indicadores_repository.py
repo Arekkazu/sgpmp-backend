@@ -278,8 +278,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         ultima = row.ultima
         dias = max((ultima - primera).days, 1)
         try:
-            total = Decimal(str(row.total))
-            promedio = (total / Decimal(str(dias))).quantize(Decimal('0.0001'))
+            promedio = (Decimal(str(row.total)) / Decimal(str(dias))).quantize(Decimal('0.0001'))
         except (InvalidOperation, ZeroDivisionError):
             promedio = None
 
@@ -294,7 +293,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 fecha_calculo=ahora,
                 disponible=promedio is not None,
                 variables_usadas={
-                    'total_producido': float(total),
+                    'total_producido': float(row.total),
                     'dias': dias,
                     'total_eventos': int(row.n),
                 },
