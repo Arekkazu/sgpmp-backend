@@ -1,0 +1,363 @@
+{
+  "info": {
+    "_postman_id": "11f5e3b9-4e48-45a8-9031-ad764c7d126f",
+    "name": "TC-M01-092 (retest) - Notificacion por bloqueo/desactivacion administrativa",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login cuenta objetivo (68) - linea base de notificaciones",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_objetivo}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A login objetivo: ' + pm.response.code);",
+              "pm.test('0A - login exitoso', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_objetivo', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Total de notificaciones ANTES (cuenta objetivo)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_objetivo}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/notificaciones?pagina=1&tamano=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notificaciones?pagina=1&tamano=1"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0B total antes: ' + pm.response.text());",
+              "pm.test('0B - se puede consultar la bandeja propia', function () { pm.response.to.have.status(200); });",
+              "pm.collectionVariables.set('total_antes', pm.response.json().total);",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0C. Login administrador (admin.test)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0C login admin: ' + pm.response.code);",
+              "pm.test('0C - login admin exitoso', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Admin BLOQUEA la cuenta objetivo (68)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_objetivo}}/gestionar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{id_objetivo}}",
+            "gestionar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"bloquear\",\n  \"motivo_accion\": \"Retest TC-M01-092 - verificar notificacion de bloqueo administrativo\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('1 bloquear: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('1 - bloqueo aplicado (200)', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin REACTIVA la cuenta objetivo (68) inmediatamente",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_objetivo}}/gestionar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{id_objetivo}}",
+            "gestionar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Retest TC-M01-092 - restauracion inmediata tras la prueba\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('2 activar: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('2 - cuenta objetivo restaurada a Activo (200)', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3A. Re-login cuenta objetivo (ya reactivada) para revisar su bandeja",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_objetivo}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('3A re-login objetivo: ' + pm.response.code);",
+              "pm.test('3A - la cuenta objetivo puede volver a iniciar sesion (confirma que quedo Activa)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_objetivo_2', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3B. Total de notificaciones DESPUES (cuenta objetivo) + inspeccionar tipo_evento",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_objetivo_2}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/notificaciones?pagina=1&tamano=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "notificaciones?pagina=1&tamano=10"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var data = pm.response.json();",
+              "console.log('3B total despues: ' + data.total);",
+              "console.log('3B items: ' + JSON.stringify(data.items.map(function(i){ return {tipo_evento: i.tipo_evento, mensaje: i.mensaje}; })));",
+              "",
+              "var totalAntes = parseInt(pm.collectionVariables.get('total_antes'));",
+              "var totalDespues = data.total;",
+              "",
+              "pm.test('TC-M01-092 (retest) - el conteo de notificaciones AUMENTO tras bloquear y luego activar (antes: ' + totalAntes + ', despues: ' + totalDespues + ')', function () {",
+              "    pm.expect(totalDespues).to.be.above(totalAntes);",
+              "});",
+              "",
+              "var notificacionesCambioEstado = data.items.filter(function(i) { return i.tipo_evento === 10; });",
+              "pm.test('TC-M01-092 (retest) - existe al menos una notificacion de tipo_evento=10 (CAMBIO_ESTADO_CUENTA)', function () {",
+              "    pm.expect(notificacionesCambioEstado.length).to.be.above(0);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_objetivo",
+      "value": "daniiella.vargass@gmail.com"
+    },
+    {
+      "key": "contrasena_objetivo",
+      "value": "@Daniela1"
+    },
+    {
+      "key": "id_objetivo",
+      "value": "68"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_objetivo",
+      "value": ""
+    },
+    {
+      "key": "token_objetivo_2",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "total_antes",
+      "value": ""
+    }
+  ]
+}
