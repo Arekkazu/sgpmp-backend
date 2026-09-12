@@ -68,7 +68,13 @@ from src.biological_assets.infrastructure.dto.consultar_historial_dto import Con
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.application.use_cases.gestion.cambiar_estado_asociacion_sensor_use_case import (
+    CambiarEstadoAsociacionSensorUseCase,
+)
 from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
+from src.biological_assets.infrastructure.dto.cambiar_estado_asociacion_sensor_dto import (
+    CambiarEstadoAsociacionSensorDTO,
+)
 from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_repository import (
     SqlAlchemyAsociacionSensorActivoRepository,
 )
@@ -1149,6 +1155,46 @@ def asociar_sensor_iot(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
+    return AsociacionSensorActivoResponse(
+        id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
+        id_activo_biologico=resultado.id_activo_biologico,
+        tipo_activo=resultado.tipo_activo,
+        tipo_asociacion=resultado.tipo_asociacion,
+        dispositivo_iot_id=resultado.dispositivo_iot_id,
+        sensor_id=resultado.sensor_id,
+        id_infraestructura=resultado.id_infraestructura,
+        fecha_inicio=resultado.fecha_inicio,
+        fecha_fin=resultado.fecha_fin,
+        estado_asociacion=resultado.estado_asociacion,
+        motivo=resultado.motivo,
+        advertencia=None,
+    )
+
+
+@router.patch(
+    '/{id_activo}/sensores/{id_asociacion}',
+    response_model=AsociacionSensorActivoResponse,
+    status_code=200,
+    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 3))],
+    responses={
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Cambiar estado (activar/desactivar) de una asociación sensor-activo (RF-49)',
+)
+def cambiar_estado_asociacion_sensor(
+    id_activo: int,
+    id_asociacion: int,
+    dto: CambiarEstadoAsociacionSensorDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> AsociacionSensorActivoResponse:
+    use_case = CambiarEstadoAsociacionSensorUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+    )
+    resultado = use_case.execute(id_activo, id_asociacion, dto, usuario_actual)
     return AsociacionSensorActivoResponse(
         id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
         id_activo_biologico=resultado.id_activo_biologico,
