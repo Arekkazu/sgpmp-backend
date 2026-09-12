@@ -157,6 +157,25 @@ class AsociarSensorActivoUseCase:
                     ),
                 )
 
+            # V8c — Restricción 4 (RF-49): un sensor POBLACIONAL solo puede estar
+            # activo en un único lote a la vez. V8b solo valida por activo (que el
+            # LOTE no tenga ya otro sensor); esta es la simétrica por SENSOR (que
+            # el sensor no esté ya activo en otro lote), ausente hasta ahora.
+            activas_sensor_pob = self.repo.listar_activas_por_sensor(dto.sensor_id, 'poblacional')
+            conflicto_sensor = next(
+                (a for a in activas_sensor_pob if a.id_activo_biologico != id_activo),
+                None,
+            )
+            if conflicto_sensor:
+                raise ConflictError(
+                    code='SENSOR_YA_ASOCIADO_A_OTRO_LOTE',
+                    message=(
+                        f'El sensor {dto.sensor_id} ya está asociado con tipo POBLACIONAL '
+                        f'al activo {conflicto_sensor.id_activo_biologico}. Un sensor solo puede '
+                        'estar activo en un único lote a la vez. Desactive esa asociación primero.'
+                    ),
+                )
+
         fecha_inicio = dto.fecha_inicio or datetime.datetime.now(datetime.timezone.utc)
 
         # Si existe asociación ACTIVA previa para el mismo sensor+activo → marcarla SUPERADA

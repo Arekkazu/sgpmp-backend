@@ -176,6 +176,19 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 }
 ```
 
+### FA-05b — Sensor POBLACIONAL ya activo en otro lote (409, INC-M02-64-G88)
+
+Restricción 4 del RF-49: un sensor POBLACIONAL solo puede estar activo en un
+único lote a la vez. Simétrico al caso anterior (ese valida por activo, este
+por sensor).
+
+```json
+{
+  "code": "SENSOR_YA_ASOCIADO_A_OTRO_LOTE",
+  "message": "El sensor 1 ya está asociado con tipo POBLACIONAL al activo 20. Un sensor solo puede estar activo en un único lote a la vez. Desactive esa asociación primero."
+}
+```
+
 ### FA-06 — Sin permiso (403)
 
 ```json
