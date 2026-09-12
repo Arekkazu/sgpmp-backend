@@ -92,10 +92,15 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/indicadores" \
     "DATOS_INSUFICIENTES: no hay eventos productivos en el período solicitado.",
     "NO_APLICA_INDIVIDUAL: tasa_morbilidad solo aplica a activos POBLACIONALES.",
     "NO_APLICA_INDIVIDUAL: tasa_mortalidad solo aplica a activos POBLACIONALES.",
-    "REQUIERE_M05: El indicador conversion_alimenticia requiere datos de consumo de alimento del módulo M05, que aún no está implementado."
+    "DATOS_INSUFICIENTES: no hay consumo de alimento (kg) validado en el modulo M05 para el periodo solicitado."
   ]
 }
 ```
+
+> Nota (INC-M02-98-G96): `conversion_alimenticia` ahora se calcula con datos reales de
+> `modulo5.registros_consumo_alimentos` (kg de alimento validado / kg de ganancia neta
+> en el período) en vez de devolver siempre `REQUIERE_M05`. Solo se consideran registros
+> con `estado_registro='VALIDADO'` y `tipo_unidad` en kg.
 
 ---
 
@@ -205,6 +210,85 @@ curl -X GET "http://localhost:8000/activos-biologicos/286/indicadores?tipo_indic
   "error_code": "RANGO_FUERA_DE_CICLO_VIDA",
   "message": "La fecha de fin (2026-09-05) es posterior a la fecha de baja del activo (2026-08-31).",
   "field": "fecha_fin"
+}
+```
+
+#### E-06 — Outlier crítico en ganancia_peso (INC-M02-98-G96)
+
+Un `gpd` calculado que excede el umbral de plausibilidad biológica (>10 kg/día) no se
+publica como válido: se marca `disponible: false` y se agrega la advertencia
+`OUTLIER_CRITICO` en vez de exponer el valor atípico.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/280/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-08-01&fecha_fin=2026-08-02" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 200** (indicador rechazado, no expuesto como válido):
+```json
+{
+  "id_activo_biologico": 280,
+  "tipo_activo": "INDIVIDUAL",
+  "indicadores": [
+    {
+      "tipo": "ganancia_peso",
+      "valor": null,
+      "unidad": "kg/dia",
+      "variables_usadas": {
+        "peso_inicial_kg": 10.0,
+        "peso_final_kg": 510.0,
+        "dias": 1,
+        "total_mediciones": 2,
+        "valor_calculado_kg_dia": 500.0
+      },
+      "fecha_calculo": "2026-09-12T00:00:00Z",
+      "disponible": false
+    }
+  ],
+  "advertencias": [
+    "OUTLIER_CRITICO: el valor calculado (500.0000 kg/dia) excede el umbral de plausibilidad biologica y no se publica como valido. Requiere revision manual de las mediciones de peso registradas."
+  ]
+}
+```
+
+Como este endpoint se llamó con un `tipo_indicador` específico (no `TODOS`) y el único
+indicador resultante quedó `disponible: false`, la respuesta real es **422** (ver E-08),
+no 200 — el ejemplo de arriba muestra el indicador tal como queda armado internamente.
+
+#### E-07 — Indicador no aplicable por sexo (INC-M02-98-G96)
+
+`PRODUCCION` no aplica a un activo INDIVIDUAL de sexo Macho (no existe salida productiva
+tipo lactancia/postura que aplique). Se rechaza antes de calcular, sin depender de si hay
+o no eventos registrados:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/299/indicadores?tipo_indicador=PRODUCCION" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "INDICADOR_NO_APLICABLE_SEXO",
+  "message": "El indicador 'PRODUCCION' no aplica biológicamente a un activo de sexo Macho.",
+  "field": "tipo_indicador"
+}
+```
+
+#### E-08 — Indicador específico sin datos suficientes (INC-M02-98-G96)
+
+Cuando se pide un `tipo_indicador` específico (no `TODOS`) y ese indicador no puede
+calcularse con los datos disponibles, se rechaza con 422 en vez de 200 con
+`disponible: false` (ese formato de respuesta se conserva solo para `tipo_indicador=TODOS`,
+donde puede convivir con otros indicadores que sí tengan datos):
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/285/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-07-31" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 422:**
+```json
+{
+  "error_code": "INDICADOR_NO_DISPONIBLE",
+  "message": "DATOS_INSUFICIENTES: ganancia_peso requiere al menos 2 mediciones de peso."
 }
 ```
 

@@ -20,6 +20,12 @@ _INCLUDE_PRODUCCION = {'PRODUCCION', 'TODOS'}
 _INCLUDE_SANITARIO = {'SANITARIO', 'TODOS'}
 _INCLUDE_EFICIENCIA = {'EFICIENCIA', 'TODOS'}
 
+# ponytail: umbral global de plausibilidad biológica para ganancia_peso. No existe
+# en el sistema un catálogo de rangos fisiológicos por especie (RF-51 no lo define);
+# este valor solo descarta outliers evidentes (ver INC-M02-98-G96). Si se necesita
+# precisión por especie, subir a una tabla modulo9 en vez de este constante.
+_GDP_MAXIMO_PLAUSIBLE_KG_DIA = Decimal('10')
+
 
 class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
 
@@ -62,17 +68,10 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 advertencias.append(aviso_mort)
 
         if tipo_indicador in _INCLUDE_EFICIENCIA:
-            indicadores.append(IndicadorZootecnico(
-                tipo='conversion_alimenticia',
-                unidad='kg_alimento/kg_ganancia',
-                fecha_calculo=ahora,
-                disponible=False,
-                variables_usadas={},
-            ))
-            advertencias.append(
-                'REQUIERE_M05: El indicador conversion_alimenticia requiere datos de consumo '
-                'de alimento del módulo M05, que aún no está implementado.'
-            )
+            ind, aviso = self._calcular_conversion_alimenticia(id_activo, fecha_inicio, fecha_fin, ahora)
+            indicadores.append(ind)
+            if aviso:
+                advertencias.append(aviso)
 
         return ResultadoIndicadores(
             id_activo_biologico=id_activo,
@@ -120,20 +119,122 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         dias = Decimal(str(max((fecha_ultima - fecha_primera).days, 1)))
         gpd = (peso_final - peso_inicial) / dias
 
+        periodo_inicio = fecha_primera.date() if hasattr(fecha_primera, 'date') else fecha_primera
+        periodo_fin = fecha_ultima.date() if hasattr(fecha_ultima, 'date') else fecha_ultima
+        variables_usadas = {
+            'peso_inicial_kg': float(peso_inicial),
+            'peso_final_kg': float(peso_final),
+            'dias': int(dias),
+            'total_mediciones': len(rows),
+        }
+
+        if abs(gpd) > _GDP_MAXIMO_PLAUSIBLE_KG_DIA:
+            return (
+                IndicadorZootecnico(
+                    tipo='ganancia_peso',
+                    unidad='kg/dia',
+                    periodo_inicio=periodo_inicio,
+                    periodo_fin=periodo_fin,
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={**variables_usadas, 'valor_calculado_kg_dia': float(gpd)},
+                ),
+                f'OUTLIER_CRITICO: el valor calculado ({gpd.quantize(Decimal("0.0001"))} kg/dia) excede '
+                'el umbral de plausibilidad biologica y no se publica como valido. Requiere revision manual '
+                'de las mediciones de peso registradas.',
+            )
+
         return (
             IndicadorZootecnico(
                 tipo='ganancia_peso',
                 valor=gpd.quantize(Decimal('0.0001')),
                 unidad='kg/dia',
-                periodo_inicio=fecha_primera.date() if hasattr(fecha_primera, 'date') else fecha_primera,
-                periodo_fin=fecha_ultima.date() if hasattr(fecha_ultima, 'date') else fecha_ultima,
+                periodo_inicio=periodo_inicio,
+                periodo_fin=periodo_fin,
+                fecha_calculo=ahora,
+                disponible=True,
+                variables_usadas=variables_usadas,
+            ),
+            None,
+        )
+
+    def _calcular_conversion_alimenticia(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+        ahora: datetime,
+    ) -> tuple[IndicadorZootecnico, Optional[str]]:
+        ganancia_ind, _ = self._calcular_ganancia_peso(id_activo, fecha_inicio, fecha_fin, ahora)
+        if not ganancia_ind.disponible:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={},
+                ),
+                'DATOS_INSUFICIENTES: conversion_alimenticia requiere un indicador ganancia_peso '
+                'valido (minimo 2 mediciones de peso y sin outliers) en el periodo solicitado.',
+            )
+
+        ganancia_kg = (
+            Decimal(str(ganancia_ind.variables_usadas['peso_final_kg']))
+            - Decimal(str(ganancia_ind.variables_usadas['peso_inicial_kg']))
+        )
+        if ganancia_kg <= 0:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={'total_kg_ganancia': float(ganancia_kg)},
+                ),
+                'DATOS_INSUFICIENTES: conversion_alimenticia requiere una ganancia de peso neta '
+                'positiva en el periodo (el activo no ganó peso).',
+            )
+
+        row = self.db.execute(
+            text(
+                "SELECT COALESCE(SUM(cantidad_suministrada), 0) AS total_kg "
+                "FROM modulo5.registros_consumo_alimentos "
+                "WHERE id_activo_biologico = :id AND estado_registro = 'VALIDADO' "
+                "AND lower(tipo_unidad) IN ('kg', 'kilogramo', 'kilogramos') "
+                "AND (:fi IS NULL OR fecha_consumo >= :fi) "
+                "AND (:ff IS NULL OR fecha_consumo <= :ff)"
+            ),
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+        ).fetchone()
+        total_kg_alimento = Decimal(str(row.total_kg)) if row and row.total_kg else Decimal('0')
+
+        if total_kg_alimento <= 0:
+            return (
+                IndicadorZootecnico(
+                    tipo='conversion_alimenticia',
+                    unidad='kg_alimento/kg_ganancia',
+                    fecha_calculo=ahora,
+                    disponible=False,
+                    variables_usadas={'total_kg_ganancia': float(ganancia_kg)},
+                ),
+                'DATOS_INSUFICIENTES: no hay consumo de alimento (kg) validado en el modulo M05 '
+                'para el periodo solicitado.',
+            )
+
+        fcr = (total_kg_alimento / ganancia_kg).quantize(Decimal('0.0001'))
+        return (
+            IndicadorZootecnico(
+                tipo='conversion_alimenticia',
+                valor=fcr,
+                unidad='kg_alimento/kg_ganancia',
+                periodo_inicio=ganancia_ind.periodo_inicio,
+                periodo_fin=ganancia_ind.periodo_fin,
                 fecha_calculo=ahora,
                 disponible=True,
                 variables_usadas={
-                    'peso_inicial_kg': float(peso_inicial),
-                    'peso_final_kg': float(peso_final),
-                    'dias': int(dias),
-                    'total_mediciones': len(rows),
+                    'total_kg_alimento': float(total_kg_alimento),
+                    'total_kg_ganancia': float(ganancia_kg),
                 },
             ),
             None,
@@ -177,8 +278,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         ultima = row.ultima
         dias = max((ultima - primera).days, 1)
         try:
-            total = Decimal(str(row.total))
-            promedio = (total / Decimal(str(dias))).quantize(Decimal('0.0001'))
+            promedio = (Decimal(str(row.total)) / Decimal(str(dias))).quantize(Decimal('0.0001'))
         except (InvalidOperation, ZeroDivisionError):
             promedio = None
 
@@ -193,7 +293,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 fecha_calculo=ahora,
                 disponible=promedio is not None,
                 variables_usadas={
-                    'total_producido': float(total),
+                    'total_producido': float(row.total),
                     'dias': dias,
                     'total_eventos': int(row.n),
                 },
