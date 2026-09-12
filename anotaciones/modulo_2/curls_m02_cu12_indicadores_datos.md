@@ -443,3 +443,30 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?fecha
 
 #### E-04 — Sin permisos (FA-05)
 **HTTP 403:** Lanzado automáticamente por `require_permission(29, 2)` si el rol no tiene permiso.
+
+#### E-05 — Inconsistencia jerárquica del activo (INC-M02-97-G95)
+
+El activo mantiene una asociación vigente (`fecha_fin IS NULL` en
+`historial_infraestructura_activo`) hacia una infraestructura con `es_activo = false`.
+Se rechaza antes de construir el dataset — no expone ningún dato analítico del activo
+mientras la inconsistencia se mantenga:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/289/datos-consolidados?tipo_dato=todos" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 409:**
+```json
+{
+  "error_code": "INCONSISTENCIA_JERARQUICA",
+  "message": "El activo mantiene una asociación vigente con la infraestructura \"Corral 49\", la cual está inactiva. Regulariza la jerarquía del activo antes de consultar datos consolidados."
+}
+```
+
+---
+
+### Nota — ruta contractual (INC-M02-97-G95)
+
+La ruta oficial y desplegada de RF-50 es `/activos-biologicos/{id_activo}/datos-consolidados`
+(ver arriba). `/datos-analiticos`, referenciada en la matriz de pruebas de QA, no existe en
+este backend — es una discrepancia de la matriz, no del contrato OpenAPI vivo.

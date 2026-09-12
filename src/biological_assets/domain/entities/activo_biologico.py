@@ -204,6 +204,7 @@ class HistorialInfraestructura:
     tipo_infraestructura: str
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
+    es_activo_infraestructura: bool = True
 
 
 @dataclass
