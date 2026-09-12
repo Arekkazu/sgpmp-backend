@@ -2,6 +2,7 @@
   "info": {
     "_postman_id": "tc-m01-119-eliminar-rol",
     "name": "TC-M01-119 - Eliminar un rol sin usuarios asociados",
+    "description": "Validar que el rol Auxiliar de Campo pueda eliminarse cuando no tiene usuarios asociados.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -53,7 +54,7 @@
       ]
     },
     {
-      "name": "2. Consultar roles registrados",
+      "name": "2. Consultar roles y localizar Auxiliar de Campo",
       "request": {
         "method": "GET",
         "header": [
@@ -85,6 +86,10 @@
               "",
               "var roles = pm.response.json();",
               "",
+              "pm.test(\"La respuesta contiene una lista de roles\", function () {",
+              "    pm.expect(roles).to.be.an(\"array\");",
+              "});",
+              "",
               "var rolAuxiliar = roles.find(function (rol) {",
               "    return rol.nombre_rol === \"Auxiliar de Campo\";",
               "});",
@@ -95,6 +100,24 @@
               "",
               "if (rolAuxiliar) {",
               "    pm.environment.set(\"idRolAuxiliar\", rolAuxiliar.id_rol);",
+              "",
+              "    console.log(\"Rol encontrado:\", rolAuxiliar);",
+              "",
+              "    if (rolAuxiliar.usuarios_asociados !== undefined) {",
+              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
+              "            pm.expect(rolAuxiliar.usuarios_asociados).to.equal(0);",
+              "        });",
+              "    } else if (rolAuxiliar.cantidad_usuarios !== undefined) {",
+              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
+              "            pm.expect(rolAuxiliar.cantidad_usuarios).to.equal(0);",
+              "        });",
+              "    } else if (rolAuxiliar.numero_usuarios !== undefined) {",
+              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
+              "            pm.expect(rolAuxiliar.numero_usuarios).to.equal(0);",
+              "        });",
+              "    } else {",
+              "        console.warn(\"La respuesta de /roles/ no contiene un atributo para verificar usuarios asociados.\");",
+              "    }",
               "}"
             ]
           }
