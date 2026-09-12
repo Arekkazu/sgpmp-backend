@@ -698,7 +698,10 @@ def registrar_evento_crecimiento(
         ciclo_port=CicloProductivoM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    evento, fase_avanzada = use_case.execute(id_activo, dto, usuario_actual)
+    evento, fase_avanzada = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return RegistrarEventoCrecimientoResponse(
         evento=_evento_to_response(evento),
         fase_avanzada=fase_avanzada,
