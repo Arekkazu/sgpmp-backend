@@ -45,6 +45,12 @@ _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 #: salía como 500 en vez del 422 de negocio documentado en RF-42.
 _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
 
+#: INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, cualquier tabla
+#: de eventos vía `eventos_activos`) también señala con `RAISE ... USING
+#: ERRCODE`, sin mapeo — un cliente que sí mande una fecha inválida (futura o
+#: anterior al registro del activo) recibía 500 en vez de 400.
+_ERRCODE_EVENTO_FECHA_INVALIDA = "P0215"
+
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
 #: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
 #: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
@@ -158,6 +164,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
         mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."
         raise BusinessRuleError(code="EVENTO_NO_PERMITIDO_LOTE", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
+        mensaje = diag_generico.message_primary or "La fecha del evento es inválida."
+        raise ValidationError(code="FECHA_INVALIDA", message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)

@@ -218,6 +218,14 @@ de llegar a la base de datos, y el trigger `trg_fn_evento_reproductivo_secuencia
 (ERRCODE `P0220`) la vuelve a exigir como red de seguridad — `db_error_translator.py`
 lo traduce al mismo 422 en vez de un 500 si esa vía llega a dispararse.
 
+**Nota (INC-M02-75-G53):** el body de `A1` puede omitir `fecha` — el use case
+calcula `datetime.now(timezone.utc)` cuando no se envía. Antes de la migración
+`68232a1efcc2` esto fallaba con 500 (`ERROR_INTERNO`) en cualquier evento sin
+`fecha` explícita, por un mal cálculo de "ahora" en el trigger/CHECK de BD
+(`now()` fijo por transacción vs. reloj real), no por nada relacionado con la
+categoría reproductiva. Con `fecha` explícita (como en todos los ejemplos de
+este documento) el bug nunca se manifestaba, lo que dificultó detectarlo antes.
+
 ## FA-05 — Activo padre inexistente o no activo
 
 **HTTP 404 Not Found**

@@ -238,6 +238,32 @@ def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
     assert "TYPE_RESTRICTION:" not in exc_info.value.message
 
 
+def test_errcode_evento_fecha_invalida_es_400_no_500() -> None:
+    """INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, dispara para
+    cualquier tipo de evento vía `eventos_activos`) señala P0215 (misma clase
+    `P0`, no mapeada) cuando la fecha del evento es futura o anterior al
+    registro del activo. La causa raíz real del incidente era otra (`now()`
+    fijo por transacción rechazaba fechas válidas, corregido con
+    `clock_timestamp()` en la migración `68232a1efcc2`), pero si algún día una
+    fecha sí es genuinamente inválida, este mapeo evita que vuelva a salir
+    como 500 genérico."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0215",
+        message_primary=(
+            "INVALID_DATE: La fecha del evento (2026-09-13 00:00:00+00) no puede "
+            "ser futura. Fecha actual del sistema: 2026-09-12 00:00:00+00."
+        ),
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "FECHA_INVALIDA"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_DATE:" not in exc_info.value.message
+
+
 def test_integrity_error_no_mapeado_es_500() -> None:
     exc = _integrity(pg_errors.NotNullViolation, constraint_name="algo")
 
