@@ -5,6 +5,9 @@ from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -13,7 +16,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, ValidationError
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -155,6 +158,23 @@ class RegistrarActivoBiologicoUseCase:
         dto: RegistrarActivoBiologicoDTO,
         usuario: UsuarioActual,
     ) -> ActivoBiologico:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=None,
+            id_activo=None,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF33',
+            tipo_evento_rechazado='ACTIVO_REGISTRO_RECHAZADO',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
+        self,
+        dto: RegistrarActivoBiologicoDTO,
+        usuario: UsuarioActual,
+    ) -> ActivoBiologico:
         # FA-08: costo_adquisicion/soporte_documental coherentes con origen_financiero
         _validar_origen_financiero(dto)
 
@@ -206,6 +226,9 @@ class RegistrarActivoBiologicoUseCase:
                 id_usuario=usuario.id_usuario,
             ))
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:

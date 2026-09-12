@@ -4,12 +4,15 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import AppError, NotFoundError
 
 
 class ActualizarActivoIndividualUseCase:
@@ -24,6 +27,19 @@ class ActualizarActivoIndividualUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) -> ActivoBiologico:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF35',
+            tipo_evento_rechazado='ACTIVO_INDIVIDUAL_ACTUALIZADO',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(self, id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) -> ActivoBiologico:
         activo = self.repo.obtener_por_id(id_activo)
         if activo is None:
             raise NotFoundError(
@@ -42,6 +58,9 @@ class ActualizarActivoIndividualUseCase:
         try:
             activo = self.repo.actualizar_detalle_individual(activo)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:

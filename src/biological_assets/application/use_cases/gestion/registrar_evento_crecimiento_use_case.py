@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._event_validations import validar_fecha_evento
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoCrecimiento, GestionFase
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -15,7 +18,7 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class RegistrarEventoCrecimientoUseCase:
@@ -39,6 +42,21 @@ class RegistrarEventoCrecimientoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
+        self, id_activo: int, dto: RegistrarEventoCrecimientoDTO, usuario: UsuarioActual
+    ) -> tuple[EventoActivo, bool]:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF40',
+            tipo_evento_rechazado='EVENTO_CRECIMIENTO_RECHAZADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA',
+        )
+
+    def _execute(
         self, id_activo: int, dto: RegistrarEventoCrecimientoDTO, usuario: UsuarioActual
     ) -> tuple[EventoActivo, bool]:
         activo = self.activo_repo.obtener_por_id(id_activo)
@@ -156,6 +174,9 @@ class RegistrarEventoCrecimientoUseCase:
             if activo.tipo == 'POBLACIONAL':
                 self.activo_repo.actualizar_detalle_poblacional(activo)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:

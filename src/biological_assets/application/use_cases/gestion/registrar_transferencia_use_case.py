@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, Transferencia
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -13,7 +16,7 @@ from src.biological_assets.domain.repositories.transferencia_repository import T
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class RegistrarTransferenciaUseCase:
@@ -33,6 +36,22 @@ class RegistrarTransferenciaUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF48',
+            tipo_evento_rechazado='TRANSFERENCIA_RECHAZADA',
+            clasificacion_biologica='GESTION_OPERATIVA',
+            tipos_por_codigo={
+                'TRANSFERENCIA_CONCURRENTE': 'TRANSFERENCIA_CONCURRENTE_BLOQUEADA',
+            },
+        )
+
+    def _execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
         # E-01: control de concurrencia — bloquea el registro para evitar transferencias simultáneas
         hay_concurrencia = self.transferencia_repo.hay_transferencia_en_progreso(id_activo)
         if hay_concurrencia:
@@ -191,6 +210,9 @@ class RegistrarTransferenciaUseCase:
             resultado = self.transferencia_repo.guardar(transferencia)
 
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:
