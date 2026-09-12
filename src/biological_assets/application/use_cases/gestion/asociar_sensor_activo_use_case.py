@@ -52,10 +52,13 @@ class AsociarSensorActivoUseCase:
         dto: AsociarSensorActivoDTO,
         usuario_actual: UsuarioActual,
     ) -> AsociacionSensorActivo:
-        # V1 — Activo existe
+        # V1 — Activo existe (CU11 Flujo Alterno "Activo Biológico No Válido":
+        # inexistente o BAJA comparten el mismo flujo -> BusinessRuleError/422,
+        # no NotFoundError/404. V2 abajo ya usa BusinessRuleError para el caso
+        # BAJA; esto solo alinea el caso "inexistente" con esa misma regla.
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
-            raise NotFoundError(
+            raise BusinessRuleError(
                 code='ACTIVO_NO_ENCONTRADO',
                 message=f'No existe un activo biológico con id {id_activo}.',
             )
