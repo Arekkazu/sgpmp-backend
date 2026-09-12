@@ -184,3 +184,73 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
   "message": "No tienes permiso para realizar esta acción."
 }
 ```
+
+---
+
+## PATCH /activos-biologicos/{id_activo}/sensores/{id_asociacion}
+
+**INC-M02-65-G89 (RF-49):** no existía ningún endpoint para gestionar el ciclo
+de vida de una asociación una vez creada — todo intento devolvía 404 por falta
+de ruta, incluida la transición inválida que debía rechazarse explícitamente.
+
+Transiciones manuales permitidas: `ACTIVA → INACTIVA` (desactivación),
+`INACTIVA → ACTIVA` (reactivación). `SUPERADA` es terminal y exclusivamente
+system-managed (la asigna `AsociarSensorActivoUseCase` al reemplazar una
+asociación) — no es alcanzable desde este endpoint bajo ninguna transición.
+
+### Desactivar una asociación ACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "INACTIVA", "motivo": "Sensor retirado para mantenimiento"}'
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_asociacion_activo_sensor": 1,
+  "estado_asociacion": "INACTIVA",
+  "fecha_fin": "2026-09-12T12:00:00Z",
+  "motivo": "Sensor retirado para mantenimiento",
+  "...": "resto de campos igual que en POST"
+}
+```
+
+### Reactivar una asociación INACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "ACTIVA"}'
+```
+
+**Resultado**: `fecha_fin` vuelve a `null`.
+
+### Errores
+
+**Transición inválida — ej. intentar fijar SUPERADA manualmente (422):**
+```json
+{
+  "error_code": "TRANSICION_INVALIDA",
+  "message": "La transición INACTIVA → SUPERADA no está permitida. Transiciones válidas desde INACTIVA: ACTIVA."
+}
+```
+
+**Estado redundante — ya está en el estado solicitado (409):**
+```json
+{
+  "error_code": "ESTADO_REDUNDANTE",
+  "message": "La asociación ya se encuentra en estado ACTIVA."
+}
+```
+
+**Asociación inexistente, o de otro activo (404):**
+```json
+{
+  "error_code": "ASOCIACION_NO_ENCONTRADA",
+  "message": "No existe una asociación con id 999 para el activo 1."
+}
+```
