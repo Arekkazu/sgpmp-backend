@@ -178,6 +178,36 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/indicadores?tipo_indicad
 #### E-04 — Sin permisos (FA-05)
 **HTTP 403:** Lanzado automáticamente por `require_permission(29, 2)` si el rol no tiene permiso.
 
+#### E-05 — Rango fuera del ciclo de vida del activo (INC-M02-99-G97)
+
+`fecha_inicio` anterior al nacimiento o al inicio de ciclo del activo:
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2025-12-01&fecha_fin=2026-09-10" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "RANGO_FUERA_DE_CICLO_VIDA",
+  "message": "La fecha de inicio (2025-12-01) es anterior a la fecha de nacimiento del activo (2026-01-15).",
+  "field": "fecha_inicio"
+}
+```
+
+`fecha_fin` posterior a la baja (o cierre) del activo:
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/286/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-09-05" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "RANGO_FUERA_DE_CICLO_VIDA",
+  "message": "La fecha de fin (2026-09-05) es posterior a la fecha de baja del activo (2026-08-31).",
+  "field": "fecha_fin"
+}
+```
+
 ---
 
 ## GET /activos-biologicos/{id_activo}/datos-consolidados

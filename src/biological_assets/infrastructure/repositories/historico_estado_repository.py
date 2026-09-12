@@ -55,3 +55,26 @@ class SqlAlchemyHistoricoEstadoRepository(HistoricoEstadoRepository):
             modulo_origen=orm.modulo_origen,
             id_usuario=orm.id_usuario,
         )
+
+    def obtener_ultimo_cambio(self, id_activo: int) -> Optional[HistoricoEstado]:
+        orm = (
+            self.db.query(HistoricoEstadoActivoModel)
+            .filter(HistoricoEstadoActivoModel.id_activo_biologico == id_activo)
+            .order_by(
+                HistoricoEstadoActivoModel.fecha_cambio.desc(),
+                HistoricoEstadoActivoModel.id_historico_estado_activo.desc(),
+            )
+            .first()
+        )
+        if orm is None:
+            return None
+        return HistoricoEstado(
+            id_historico=orm.id_historico_estado_activo,
+            id_activo_biologico=orm.id_activo_biologico,
+            id_estado_anterior=orm.id_estado_anterior,
+            id_estado_nuevo=orm.id_estado_nuevo,
+            fecha_cambio=orm.fecha_cambio,
+            motivo_cambio=orm.motivo_cambio,
+            modulo_origen=orm.modulo_origen,
+            id_usuario=orm.id_usuario,
+        )
