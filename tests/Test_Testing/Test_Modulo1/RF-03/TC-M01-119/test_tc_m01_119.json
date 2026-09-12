@@ -18,7 +18,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"admin.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -47,7 +47,9 @@
               "    pm.expect(respuesta.token).to.exist;",
               "});",
               "",
-              "pm.environment.set(\"token\", respuesta.token);"
+              "if (respuesta.token) {",
+              "    pm.environment.set(\"token\", respuesta.token);",
+              "}"
             ]
           }
         }
@@ -103,20 +105,27 @@
               "",
               "    console.log(\"Rol encontrado:\", rolAuxiliar);",
               "",
+              "    var tieneCampoUsuarios = false;",
+              "",
               "    if (rolAuxiliar.usuarios_asociados !== undefined) {",
+              "        tieneCampoUsuarios = true;",
               "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
               "            pm.expect(rolAuxiliar.usuarios_asociados).to.equal(0);",
               "        });",
               "    } else if (rolAuxiliar.cantidad_usuarios !== undefined) {",
+              "        tieneCampoUsuarios = true;",
               "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
               "            pm.expect(rolAuxiliar.cantidad_usuarios).to.equal(0);",
               "        });",
               "    } else if (rolAuxiliar.numero_usuarios !== undefined) {",
+              "        tieneCampoUsuarios = true;",
               "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
               "            pm.expect(rolAuxiliar.numero_usuarios).to.equal(0);",
               "        });",
-              "    } else {",
-              "        console.warn(\"La respuesta de /roles/ no contiene un atributo para verificar usuarios asociados.\");",
+              "    }",
+              "",
+              "    if (!tieneCampoUsuarios) {",
+              "        console.warn(\"La respuesta de /roles/ no contiene un atributo para verificar usuarios asociados. Se registra la limitación, sin inventar un campo.\");",
               "    }",
               "}"
             ]
@@ -201,6 +210,10 @@
               "});",
               "",
               "var roles = pm.response.json();",
+              "",
+              "pm.test(\"La respuesta contiene una lista de roles\", function () {",
+              "    pm.expect(roles).to.be.an(\"array\");",
+              "});",
               "",
               "var rolEliminado = roles.find(function (rol) {",
               "    return rol.nombre_rol === \"Auxiliar de Campo\";",

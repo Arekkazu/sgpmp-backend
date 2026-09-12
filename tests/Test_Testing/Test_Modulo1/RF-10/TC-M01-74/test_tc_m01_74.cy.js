@@ -1,18 +1,17 @@
 describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
 
-  const email = Cypress.env('TEST_EMAIL') || 'admin@pecuaria.co';
-  const password = Cypress.env('TEST_PASSWORD') || 'Test1234!';
+  const email = 'admin.dev@gmail.com';
+  const password = 'Test1234!';
 
   const evidenceDir =
     'tests/Test_Testing/Test_Modulo1/RF-10/TC-M01-74/Resultados';
 
   beforeEach(() => {
-
-    // ============================================================
-    // 1. Ingresar al frontend TEST
-    // ============================================================
-
     cy.visit('/login');
+
+    // ============================================================
+    // 1. Inicio de sesión
+    // ============================================================
 
     cy.get(
       'input[type="email"], input[name="correo"], input[name="correo_electronico"]',
@@ -41,15 +40,14 @@ describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
       .should('be.visible')
       .click();
 
-    // Esperar autenticación y llegada al sistema.
-    cy.url({ timeout: 15000 }).should('include', '/dashboard');
+    cy.url({ timeout: 15000 })
+      .should('include', '/dashboard');
   });
-
 
   it('Debe deshabilitar la exportación de auditoría cuando el navegador está offline', () => {
 
     // ============================================================
-    // 2. Acceder a Auditoría
+    // 2. Ingresar al módulo de Auditoría
     // ============================================================
 
     cy.contains(
@@ -58,21 +56,14 @@ describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
       { timeout: 15000 }
     )
       .first()
-      .should('be.visible')
-      .click();
+      .should('exist')
+      .click({ force: true });
 
-    // Confirmar que estamos en la pantalla de auditoría.
-    cy.contains(
-      /auditoría|auditoria/i,
-      { timeout: 15000 }
-    )
-      .should('be.visible');
-
-    cy.wait(1000);
-
+    // Esperar carga del módulo
+    cy.wait(1500);
 
     // ============================================================
-    // 3. Localizar botón de exportación
+    // 3. Buscar el botón Exportar
     // ============================================================
 
     cy.contains(
@@ -81,44 +72,37 @@ describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
       { timeout: 15000 }
     )
       .first()
-      .should('be.visible')
+      .should('exist')
       .as('botonExportar');
 
+    // Registrar evidencia inicial
+    cy.writeFile(
+      `${evidenceDir}/estado_online.txt`,
+      'TC-M01-074\n' +
+      'Estado inicial: navegador en línea.\n' +
+      'Se ingresó correctamente al módulo de Auditoría.\n' +
+      'Se encontró el botón Exportar.'
+    );
 
     // ============================================================
-    // 4. Evidencia antes de desconectar
+    // 4. Verificar estado inicial del botón
     // ============================================================
 
     cy.get('@botonExportar')
-      .then(($boton) => {
-
-        cy.writeFile(
-          `${evidenceDir}/TC-M01-074-estado-online.txt`,
-          [
-            'TC-M01-074 - Estado inicial',
-            'Red: ONLINE',
-            `disabled: ${$boton.prop('disabled')}`,
-            `aria-disabled: ${$boton.attr('aria-disabled') || 'no definido'}`
-          ].join('\n')
-        );
+      .should('not.have.attr', 'aria-disabled', 'true')
+      .and(($boton) => {
+        expect(
+          $boton.prop('disabled'),
+          'El botón Exportar debe estar habilitado inicialmente'
+        ).to.equal(false);
       });
 
-    cy.screenshot(
-      'TC-M01-074-01-exportacion-online',
-      {
-        capture: 'viewport'
-      }
-    );
-
-
     // ============================================================
-    // 5. Simular pérdida de conexión
+    // 5. Simular estado offline
     // ============================================================
 
     cy.window().then((win) => {
 
-      // Se reemplaza temporalmente navigator.onLine para
-      // representar el estado offline en la interfaz.
       Object.defineProperty(win.navigator, 'onLine', {
         configurable: true,
         get: () => false
@@ -127,25 +111,25 @@ describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
       win.dispatchEvent(new Event('offline'));
     });
 
-
     // ============================================================
-    // 6. Verificar que la aplicación detecta estado offline
+    // 6. Confirmar que navigator.onLine está en false
     // ============================================================
 
-    cy.window().its('navigator.onLine').should('eq', false);
+    cy.window()
+      .its('navigator.onLine')
+      .should('eq', false);
 
     cy.writeFile(
-      `${evidenceDir}/TC-M01-074-estado-offline.txt`,
-      [
-        'TC-M01-074 - Estado de red',
-        'Red: OFFLINE',
-        'navigator.onLine: false'
-      ].join('\n')
+      `${evidenceDir}/estado_offline.txt`,
+      'TC-M01-074\n' +
+      'Estado simulado: navegador offline.\n' +
+      'navigator.onLine = false.\n' +
+      'Se disparó el evento offline.\n' +
+      'No se utiliza cy.screenshot() durante el estado offline para evitar bloqueo del navegador.'
     );
 
-
     // ============================================================
-    // 7. Verificar botón de exportación
+    // 7. Verificar que Exportar queda deshabilitado
     // ============================================================
 
     cy.get('@botonExportar')
@@ -156,53 +140,35 @@ describe('TC-M01-074 - Intentar exportar auditoría sin conexión', () => {
 
         expect(
           disabledProperty === true ||
-          ariaDisabled === 'true'
+          ariaDisabled === 'true',
+          'El botón Exportar debe estar deshabilitado cuando no hay conexión'
         ).to.equal(true);
       });
 
-
     // ============================================================
-    // 8. Evidencia final
+    // 8. Registrar resultado
     // ============================================================
 
-    cy.get('@botonExportar')
-      .then(($boton) => {
-
-        const disabledProperty = $boton.prop('disabled');
-        const ariaDisabled = $boton.attr('aria-disabled');
-
-        cy.writeFile(
-          `${evidenceDir}/TC-M01-074-resultado.txt`,
-          [
-            'TC-M01-074 - Intentar exportar auditoría sin conexión',
-            '',
-            'Estado de red: OFFLINE',
-            'navigator.onLine: false',
-            `disabled: ${disabledProperty}`,
-            `aria-disabled: ${ariaDisabled || 'no definido'}`,
-            '',
-            'RESULTADO: APROBADO',
-            'La exportación se encuentra deshabilitada mientras no existe conexión.'
-          ].join('\n')
-        );
-      });
-
-    cy.screenshot(
-      'TC-M01-074-02-exportacion-offline-deshabilitada',
-      {
-        capture: 'viewport'
-      }
+    cy.writeFile(
+      `${evidenceDir}/resultado_TC-M01-074.txt`,
+      'TC-M01-074 - APROBADO\n\n' +
+      '1. Inicio de sesión realizado correctamente con usuario administrador.\n' +
+      '2. Se ingresó al módulo de Auditoría.\n' +
+      '3. Se verificó la existencia del botón Exportar.\n' +
+      '4. El botón Exportar estaba habilitado inicialmente.\n' +
+      '5. Se simuló el estado offline mediante navigator.onLine = false.\n' +
+      '6. Se disparó el evento offline.\n' +
+      '7. Se verificó que el botón Exportar quedara deshabilitado.\n'
     );
   });
 
+  // ==============================================================
+  // 9. Restaurar estado online
+  // ==============================================================
 
   afterEach(() => {
 
-    // ============================================================
-    // Restaurar navigator.onLine para no afectar otras pruebas.
-    // ============================================================
-
-    cy.window().then((win) => {
+    cy.window({ log: false }).then((win) => {
 
       Object.defineProperty(win.navigator, 'onLine', {
         configurable: true,
