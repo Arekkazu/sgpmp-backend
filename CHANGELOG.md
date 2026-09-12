@@ -1,3 +1,11 @@
+## [1.1.0](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0...v1.1.0) (2026-09-12)
+
+### Features
+
+* **prod:** agregar .env.prod.example con el catalogo de variables de PROD ([6b6c2d9](https://github.com/Arekkazu/sgpmp-backend/commit/6b6c2d932caeb102913a9907fb2dd14ae5ed9a32))
+* **prod:** agregar docker-compose.prod.yml del backend ([00dbf94](https://github.com/Arekkazu/sgpmp-backend/commit/00dbf946bab4ff2991a3281ade73c5687e88fc5a))
+* **prod:** pasar MQTT_BROKER_HTTP_TIMEOUT explicito al contenedor ([11c65cd](https://github.com/Arekkazu/sgpmp-backend/commit/11c65cd0e6cd85fbc385b5c6857786c05e953140))
+
 ## 1.0.0 (2026-09-11)
 
 ### Features
