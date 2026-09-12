@@ -158,12 +158,11 @@ Respuesta esperada `200`:
 ]
 ```
 
-Nota (INC-M02-74-G80): excluye la infraestructura actual del activo e incluye sólo
-infraestructuras activas **de la misma finca**, compatibles por especie (C1) y con
-capacidad disponible (C3) — las mismas reglas deterministas que valida el POST, para
-que un destino "disponible" siempre sea "transferible". La compatibilidad por tipo de
-infraestructura (C2) no se filtra aquí: su modelo de compatibilidad todavía no existe
-(ver INC-M02-72-G80/DEF-G80-01).
+Nota (INC-M02-74-G80, INC-M02-72-G80): excluye la infraestructura actual del activo e
+incluye sólo infraestructuras activas **de la misma finca**, compatibles por especie (C1),
+compatibles por tipo de infraestructura (C2) y con capacidad disponible (C3) — las mismas
+reglas deterministas que valida el POST, para que un destino "disponible" siempre sea
+"transferible".
 
 ### POST /activos-biologicos/{id_activo}/transferencias — Registrar transferencia
 
@@ -201,6 +200,8 @@ Errores posibles:
 - `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior
 - `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
+- `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA` — el tipo de infraestructura destino no es compatible con la especie del activo (C2). Corregido en INC-M02-72-G80 (antes no existía ningún modelo de compatibilidad; un bovino se aceptaba en un Estanque) — ver `modulo9.compatibilidades_tipo_area_especie`; un tipo de infraestructura sin ninguna regla configurada sigue sin restricción
+- `422 DESTINO_OTRA_FINCA` — la infra destino pertenece a una finca distinta a la del activo (alcance por finca). Corregido en INC-M02-74-G80 — antes solo se filtraba en el listado de `disponibles`, no en el POST
 - `422 CAPACIDAD_EXCEDIDA` — la infra destino no tiene capacidad suficiente (C3)
 - `422 FECHA_FUTURA` — fecha_transferencia es posterior al día actual
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
