@@ -214,6 +214,30 @@ def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
     assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
 
 
+def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
+    """INC-M02-76-G55: el trigger `trg_fn_evento_reproductivo_secuencia` (modulo2)
+    señala P0220 (misma clase `P0`, no mapeada por psycopg2) cuando un activo
+    POBLACIONAL recibe un evento reproductivo distinto a "nacimiento". El use
+    case ya valida esto antes de llegar a la DB, pero sin este mapeo cualquier
+    otra vía que dispare el trigger caía al 500 genérico en vez del 422 de
+    negocio documentado en RF-42."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0220",
+        message_primary=(
+            "TYPE_RESTRICTION: Para activos de tipo LOTE (poblacional) solo se "
+            "permite el evento reproductivo nacimiento. Categoría recibida: parto."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "EVENTO_NO_PERMITIDO_LOTE"
+    assert exc_info.value.status_code == 422
+    assert "TYPE_RESTRICTION:" not in exc_info.value.message
+
+
 def test_integrity_error_no_mapeado_es_500() -> None:
     exc = _integrity(pg_errors.NotNullViolation, constraint_name="algo")
 

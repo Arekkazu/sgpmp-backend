@@ -37,6 +37,14 @@ _ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
 _ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
 _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 
+#: INC-M02-76-G55: `trg_fn_evento_reproductivo_secuencia` (modulo2) ya impedía
+#: correctamente un evento reproductivo de categoría distinta a "nacimiento"
+#: sobre un activo POBLACIONAL, pero su ERRCODE tampoco caía en ninguna clase
+#: que psycopg2/SQLAlchemy traduzca — cualquier vía que llegue al trigger sin
+#: pasar por la validación de aplicación (`RegistrarEventoReproductivoUseCase`)
+#: salía como 500 en vez del 422 de negocio documentado en RF-42.
+_ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
+
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
 #: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
 #: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
@@ -146,6 +154,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_SENSOR_FINCA_DISTINTA:
         mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
         raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
+        mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."
+        raise BusinessRuleError(code="EVENTO_NO_PERMITIDO_LOTE", message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)
