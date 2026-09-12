@@ -1198,6 +1198,7 @@ def consultar_indicadores(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(
