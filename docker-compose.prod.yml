@@ -146,6 +146,13 @@ services:
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:-}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:-}
+      # Acoplado por contrato al MQTT_ACK_TIMEOUT_SECONDS=30s del broker: el
+      # backend debe esperar MAS que el broker para recibir su veredicto
+      # NO_CONF en vez de cortar la conexion primero. El codigo ya tiene 35 por
+      # default (mqtt_http_adapter.py); se pasa explicito para que el
+      # acoplamiento sea visible en la configuracion de despliegue y no quede
+      # enterrado en el codigo. Si cambia el timeout del broker, cambia aqui.
+      MQTT_BROKER_HTTP_TIMEOUT: ${MQTT_BROKER_HTTP_TIMEOUT:-35}
     volumes:
       - sgpmp_modelos_prod:/app/storage/modelos
     # Sin `ports:`: Traefik enruta al backend por dominio dentro de la red.
