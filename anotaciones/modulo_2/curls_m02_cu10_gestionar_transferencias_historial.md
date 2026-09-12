@@ -158,7 +158,12 @@ Respuesta esperada `200`:
 ]
 ```
 
-Nota: excluye la infraestructura actual del activo. Incluye sólo infraestructuras activas.
+Nota (INC-M02-74-G80): excluye la infraestructura actual del activo e incluye sólo
+infraestructuras activas **de la misma finca**, compatibles por especie (C1) y con
+capacidad disponible (C3) — las mismas reglas deterministas que valida el POST, para
+que un destino "disponible" siempre sea "transferible". La compatibilidad por tipo de
+infraestructura (C2) no se filtra aquí: su modelo de compatibilidad todavía no existe
+(ver INC-M02-72-G80/DEF-G80-01).
 
 ### POST /activos-biologicos/{id_activo}/transferencias — Registrar transferencia
 
