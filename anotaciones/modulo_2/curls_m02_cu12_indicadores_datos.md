@@ -463,6 +463,23 @@ curl -X GET "http://localhost:8000/activos-biologicos/289/datos-consolidados?tip
 }
 ```
 
+#### E-06 — Rango de fechas futuro (INC-M02-91-G93 / TC-M02-156-B)
+
+`fecha_inicio` posterior a la fecha actual: los datos consolidados son sobre eventos
+ya ocurridos, no tiene sentido un rango que empiece en el futuro.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-09-11&fecha_fin=2026-09-12" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "code": "PARAMETROS_INVALIDOS",
+  "message": "Parámetro inválido: 1 validation error for DatosConsolidadosDTO\n  Value error, La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos. [...]"
+}
+```
+
 #### E-06 — Límite de tasa excedido (INC-M02-96-G94)
 
 RF-50 exige 100 solicitudes/minuto por consumidor. El límite es por usuario autenticado
