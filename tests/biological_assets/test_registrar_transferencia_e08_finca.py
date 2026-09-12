@@ -45,6 +45,9 @@ class InfraPortFake:
     def calcular_ocupacion(self, _id: int) -> int:
         return 0
 
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        return True
+
 
 def _infra(id_infraestructura, id_finca):
     return InfraestructuraConsulta(

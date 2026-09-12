@@ -112,6 +112,18 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_destino_id',
             )
 
+        # E-07b: compatibilidad C2 — tipo de infraestructura vs especie del activo
+        if not self.infra_port.es_tipo_compatible(infra_destino.tipo, activo.id_especie):
+            raise BusinessRuleError(
+                code='INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA',
+                message=(
+                    f'La infraestructura {infra_destino.nombre} (tipo {infra_destino.tipo}) '
+                    'no es compatible con la especie del activo. '
+                    'Seleccione una infraestructura de un tipo compatible.'
+                ),
+                field='infraestructura_destino_id',
+            )
+
         # E-08: alcance por finca — el destino debe pertenecer a la misma finca
         # que la infraestructura origen. `listar_infraestructuras_disponibles`
         # ya filtraba esto para el listado (INC-M02-74-G80), pero execute()
@@ -254,11 +266,9 @@ class RegistrarTransferenciaUseCase:
         """Retorna infraestructuras activas, compatibles y con cupo para el activo.
 
         Aplica las mismas reglas deterministas que el POST valida al confirmar
-        la transferencia (C1 especie, C3 capacidad, alcance por finca) para que
-        "disponible" implique "transferible" y no induzca a elegir un destino
-        que luego será rechazado. C2 (compatibilidad por tipo de infraestructura)
-        no se filtra aquí porque su modelo de compatibilidad aún no existe
-        (INC-M02-72-G80/DEF-G80-01, issue separado).
+        la transferencia (C1 especie, C2 tipo de infraestructura, C3 capacidad,
+        alcance por finca) para que "disponible" implique "transferible" y no
+        induzca a elegir un destino que luego será rechazado.
         """
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
@@ -276,6 +286,8 @@ class RegistrarTransferenciaUseCase:
             if id_finca_origen is not None and i.id_finca != id_finca_origen:
                 continue
             if i.id_especie is not None and i.id_especie != activo.id_especie:
+                continue
+            if not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
                 continue
             if i.capacidad_maxima is not None:
                 ocupacion_actual = self.infra_port.calcular_ocupacion(i.id_infraestructura)

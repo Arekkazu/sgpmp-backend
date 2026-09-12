@@ -44,6 +44,9 @@ class InfraPortFake:
     def calcular_ocupacion(self, _id: int) -> int:
         return 0
 
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        return True
+
 
 def test_destino_igual_origen_es_422_no_400():
     activo = ActivoBiologico(
