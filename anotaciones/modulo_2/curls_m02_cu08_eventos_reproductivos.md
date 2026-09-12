@@ -213,6 +213,11 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/reproduc
 }
 ```
 
+Esta regla se valida en dos capas (INC-M02-76-G55): el use case la rechaza antes
+de llegar a la base de datos, y el trigger `trg_fn_evento_reproductivo_secuencia`
+(ERRCODE `P0220`) la vuelve a exigir como red de seguridad — `db_error_translator.py`
+lo traduce al mismo 422 en vez de un 500 si esa vía llega a dispararse.
+
 ## FA-05 — Activo padre inexistente o no activo
 
 **HTTP 404 Not Found**
