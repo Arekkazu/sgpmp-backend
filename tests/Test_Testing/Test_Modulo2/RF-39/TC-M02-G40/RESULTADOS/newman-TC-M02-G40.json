@@ -1,0 +1,4848 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "3ded7a9a-0384-4b3a-a3c2-208f1a8247b3",
+        "name": "0A. Login admin.test",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "7029336e-52bd-49b0-b8e2-09456f3eb7fc",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+              ],
+              "_lastExecutionId": "dd77d20f-f1e1-4511-af6e-2c662ed9dcaf"
+            }
+          }
+        ]
+      },
+      {
+        "id": "746e5d6a-99a3-430f-b839-c28532570c3a",
+        "name": "0B. Verificar precondicion - activo 213 esta CERRADO (preparado con INSERT directo autorizado, ver README)",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_cerrado}}"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "9e6b1c0a-9fca-4718-97c1-3926390e1828",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Precondicion: el activo existe y esta CERRADO', function () {",
+                "  pm.response.to.have.status(200);",
+                "  pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO');",
+                "});"
+              ],
+              "_lastExecutionId": "ff90b65d-9aa3-4f01-a15a-01b503df6493"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e3f22f90-fcf9-4e86-a98f-9116bd8393ac",
+        "name": "1. TC-M02-075 - Rechazar evento sobre activo CERRADO",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_cerrado}}",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "d7a98fb2-45c7-4d82-aeea-ce120e5a5667",
+              "type": "text/javascript",
+              "exec": [
+                "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+              ],
+              "_lastExecutionId": "5c1c5882-f499-4e14-b969-a58a9c60bc67"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "3ef0a7b6-8b46-42df-8763-051696adb5d5",
+              "type": "text/javascript",
+              "exec": [
+                "console.log('[TC-M02-075] status=' + pm.response.code + ' body=' + pm.response.text());",
+                "pm.test('RF-39: CERRADO no admite nuevos eventos (409)', function () { pm.response.to.have.status(409); });",
+                "const body = pm.response.json();",
+                "pm.test('El mensaje indica que el estado actual no permite eventos', function () {",
+                "  pm.expect(body.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                "  pm.expect(body.message.toLowerCase()).to.match(/cerrado/);",
+                "});"
+              ],
+              "_lastExecutionId": "be321cd6-b369-4e0e-b241-7431115d8b8d"
+            }
+          }
+        ]
+      },
+      {
+        "id": "042f6f7f-7ed3-4103-899f-b5f30be00f77",
+        "name": "2A. Setup - activo fresco para TC-M02-076 (fecha invalida)",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador}}\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "prerequest",
+            "script": {
+              "id": "3a95c8cc-ebd3-483d-a404-a00a0934a679",
+              "type": "text/javascript",
+              "exec": [
+                "pm.collectionVariables.set('identificador', 'G40B-' + Date.now());",
+                "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+              ],
+              "_lastExecutionId": "69d49421-0d82-46a6-96d0-ac89dd34c8d7"
+            }
+          },
+          {
+            "listen": "test",
+            "script": {
+              "id": "747548fe-518d-4858-9229-4b99f9a4ef01",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+              ],
+              "_lastExecutionId": "22b02574-93b3-4028-8efa-2e3fa9c46002"
+            }
+          }
+        ]
+      },
+      {
+        "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+        "name": "2B. TC-M02-076 - Rechazar fecha futura",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_fecha}}",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+              "type": "text/javascript",
+              "exec": [
+                "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+                "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                "const body = pm.response.json();",
+                "pm.test('El mensaje coincide con el documentado', function () {",
+                "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+                "});"
+              ],
+              "_lastExecutionId": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+            }
+          }
+        ]
+      },
+      {
+        "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+        "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id_activo_fecha}}",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "99bbca88-56cf-4182-944a-3615ec753025",
+              "type": "text/javascript",
+              "exec": [
+                "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+                "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                "const body = pm.response.json();",
+                "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+                "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+                "});"
+              ],
+              "_lastExecutionId": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "admin.test@sgpmp.com.co",
+        "key": "correo_admin"
+      },
+      {
+        "type": "any",
+        "value": "Administrador123#",
+        "key": "contrasena_admin"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_admin"
+      },
+      {
+        "type": "any",
+        "value": "3",
+        "key": "id_especie"
+      },
+      {
+        "type": "any",
+        "value": "6",
+        "key": "id_infraestructura"
+      },
+      {
+        "type": "any",
+        "value": "213",
+        "key": "id_activo_cerrado"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "id_activo_fecha"
+      }
+    ],
+    "info": {
+      "_postman_id": "b1758bdf-d2b8-49b2-9563-b69f39fb8cd8",
+      "name": "TC-M02-G40 - Restricciones de estado y coherencia temporal para eventos biologicos",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se preparo con un INSERT directo autorizado en historicos_estados_activos, porque las dos vias de la API para llegar a CERRADO (POST /cierre y POST /eventos/baja) estan bloqueadas por defectos ya reportados (INC-M02-37-01 e INC-M02-45-02) -- ver README.md. Las assertions de TC-M02-076 codifican el codigo HTTP QUE EXIGE la ficha (400); el sistema real usa 422 (BusinessRuleError) con el mensaje exacto documentado -- ver resultado para el detalle de esta discrepancia menor.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "3e5af69a-6b56-4934-adea-ec145d7d2250",
+    "values": []
+  },
+  "globals": {
+    "id": "a1560de3-1b1f-4eed-9ea0-91e3ccc5f730",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 8,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 9,
+        "pending": 0,
+        "failed": 2
+      },
+      "testScripts": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 281.8333333333333,
+      "responseMin": 129,
+      "responseMax": 974,
+      "responseSd": 309.73936175795006,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789004584568,
+      "completed": 1789004586707
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 6,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "bf9ca0cd-549e-48fb-8ab8-dd0f59248c77",
+          "httpRequestId": "72f4bd0e-785a-4ab4-881c-13017e697b32"
+        },
+        "item": {
+          "id": "3ded7a9a-0384-4b3a-a3c2-208f1a8247b3",
+          "name": "0A. Login admin.test",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7029336e-52bd-49b0-b8e2-09456f3eb7fc",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+                ],
+                "_lastExecutionId": "dd77d20f-f1e1-4511-af6e-2c662ed9dcaf"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "e71cb6c2-8186-4ba4-8bc2-79d4abf2ae25",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "90",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin.test@sgpmp.com.co\",\n  \"contrasena\": \"Administrador123#\"\n}"
+          }
+        },
+        "response": {
+          "id": "dd20131a-d8c0-42eb-b51a-47ebda28f683",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "405"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:03 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "12e37d25-d3a9-4941-8c30-17b074300c15"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              48,
+              78,
+              121,
+              73,
+              115,
+              73,
+              109,
+              112,
+              48,
+              97,
+              83,
+              73,
+              54,
+              73,
+              106,
+              69,
+              49,
+              77,
+              68,
+              85,
+              50,
+              73,
+              105,
+              119,
+              105,
+              99,
+              109,
+              57,
+              115,
+              73,
+              106,
+              111,
+              120,
+              76,
+              67,
+              74,
+              108,
+              101,
+              72,
+              65,
+              105,
+              79,
+              106,
+              69,
+              51,
+              79,
+              68,
+              107,
+              119,
+              77,
+              122,
+              77,
+              122,
+              79,
+              68,
+              81,
+              115,
+              73,
+              109,
+              108,
+              104,
+              100,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              84,
+              65,
+              119,
+              78,
+              68,
+              85,
+              52,
+              78,
+              72,
+              48,
+              46,
+              84,
+              105,
+              78,
+              66,
+              82,
+              102,
+              74,
+              82,
+              68,
+              104,
+              99,
+              78,
+              103,
+              95,
+              104,
+              79,
+              110,
+              116,
+              80,
+              95,
+              83,
+              50,
+              49,
+              90,
+              45,
+              45,
+              54,
+              119,
+              84,
+              85,
+              105,
+              52,
+              108,
+              66,
+              75,
+              90,
+              109,
+              57,
+              117,
+              103,
+              120,
+              106,
+              77,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 974,
+          "responseSize": 405
+        },
+        "id": "3ded7a9a-0384-4b3a-a3c2-208f1a8247b3",
+        "assertions": [
+          {
+            "assertion": "Login exitoso (200)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "5ed2201f-162f-40d5-b981-e335c713335c",
+          "length": 6,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "623c4f36-425f-4d7e-9a30-6446e5eb24bb"
+        },
+        "item": {
+          "id": "746e5d6a-99a3-430f-b839-c28532570c3a",
+          "name": "0B. Verificar precondicion - activo 213 esta CERRADO (preparado con INSERT directo autorizado, ver README)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_cerrado}}"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "9e6b1c0a-9fca-4718-97c1-3926390e1828",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Precondicion: el activo existe y esta CERRADO', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "ff90b65d-9aa3-4f01-a15a-01b503df6493"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "213"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjE1MDU2Iiwicm9sIjoxLCJleHAiOjE3ODkwMzMzODQsImlhdCI6MTc4OTAwNDU4NH0.TiNBRfJRDhcNg_hOntP_S21Z--6wTUi4lBKZm9ugxjM"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "8fb71780-5aa2-4405-afb7-5fad363958d7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "b8108c76-b4af-45f6-872d-73ea97520e15",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "634"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:03 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "341a15d1-cefd-4cc0-829d-657dd45ef24c"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              49,
+              51,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              51,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              34,
+              58,
+              34,
+              71,
+              52,
+              48,
+              45,
+              48,
+              52,
+              52,
+              52,
+              55,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              115,
+              95,
+              112,
+              114,
+              111,
+              99,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              95,
+              102,
+              105,
+              110,
+              97,
+              110,
+              99,
+              105,
+              101,
+              114,
+              111,
+              34,
+              58,
+              34,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              44,
+              34,
+              99,
+              111,
+              115,
+              116,
+              111,
+              95,
+              97,
+              100,
+              113,
+              117,
+              105,
+              115,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              115,
+              111,
+              112,
+              111,
+              114,
+              116,
+              101,
+              95,
+              100,
+              111,
+              99,
+              117,
+              109,
+              101,
+              110,
+              116,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              54,
+              44,
+              34,
+              97,
+              116,
+              114,
+              105,
+              98,
+              117,
+              116,
+              111,
+              115,
+              95,
+              100,
+              105,
+              110,
+              97,
+              109,
+              105,
+              99,
+              111,
+              115,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              53,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              67,
+              69,
+              82,
+              82,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              34,
+              58,
+              52,
+              55,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              114,
+              101,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              48,
+              58,
+              52,
+              55,
+              46,
+              49,
+              49,
+              48,
+              56,
+              49,
+              49,
+              90,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              105,
+              110,
+              100,
+              105,
+              118,
+              105,
+              100,
+              117,
+              97,
+              108,
+              34,
+              58,
+              123,
+              34,
+              105,
+              100,
+              95,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              34,
+              58,
+              49,
+              49,
+              55,
+              44,
+              34,
+              114,
+              97,
+              122,
+              97,
+              34,
+              58,
+              34,
+              67,
+              97,
+              109,
+              97,
+              114,
+              111,
+              110,
+              32,
+              81,
+              65,
+              45,
+              71,
+              52,
+              48,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              34,
+              44,
+              34,
+              115,
+              101,
+              120,
+              111,
+              34,
+              58,
+              34,
+              77,
+              97,
+              99,
+              104,
+              111,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              49,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              48,
+              48,
+              58,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              108,
+              34,
+              58,
+              34,
+              50,
+              46,
+              53,
+              48,
+              48,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              114,
+              101,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              48,
+              58,
+              52,
+              55,
+              46,
+              49,
+              49,
+              48,
+              56,
+              49,
+              49,
+              90,
+              34,
+              125,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              112,
+              111,
+              98,
+              108,
+              97,
+              99,
+              105,
+              111,
+              110,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 142,
+          "responseSize": 634
+        },
+        "id": "746e5d6a-99a3-430f-b839-c28532570c3a",
+        "assertions": [
+          {
+            "assertion": "Precondicion: el activo existe y esta CERRADO",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "3bbf8d03-428e-44b6-a828-ea7215cc76be",
+          "length": 6,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "df2320f4-79e2-46f9-a27a-e4ff87b92a32"
+        },
+        "item": {
+          "id": "e3f22f90-fcf9-4e86-a98f-9116bd8393ac",
+          "name": "1. TC-M02-075 - Rechazar evento sobre activo CERRADO",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_cerrado}}",
+                "eventos",
+                "sanitario"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "d7a98fb2-45c7-4d82-aeea-ce120e5a5667",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+                ],
+                "_lastExecutionId": "5c1c5882-f499-4e14-b969-a58a9c60bc67"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "3ef0a7b6-8b46-42df-8763-051696adb5d5",
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-075] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('RF-39: CERRADO no admite nuevos eventos (409)', function () { pm.response.to.have.status(409); });",
+                  "const body = pm.response.json();",
+                  "pm.test('El mensaje indica que el estado actual no permite eventos', function () {",
+                  "  pm.expect(body.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                  "  pm.expect(body.message.toLowerCase()).to.match(/cerrado/);",
+                  "});"
+                ],
+                "_lastExecutionId": "be321cd6-b369-4e0e-b241-7431115d8b8d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "213",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjE1MDU2Iiwicm9sIjoxLCJleHAiOjE3ODkwMzMzODQsImlhdCI6MTc4OTAwNDU4NH0.TiNBRfJRDhcNg_hOntP_S21Z--6wTUi4lBKZm9ugxjM"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0abce119-802f-4137-ba74-bfa50831a90e",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "136",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"2026-09-10T01:43:02.838Z\"\n}"
+          }
+        },
+        "response": {
+          "id": "2347a550-4af8-4e9f-9be0-a47bc7e6905e",
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "337"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:04 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4ceb009e-49bd-458d-a6fe-cf2adaf64c21"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              83,
+              84,
+              65,
+              68,
+              79,
+              95,
+              78,
+              79,
+              95,
+              80,
+              69,
+              82,
+              77,
+              73,
+              84,
+              69,
+              95,
+              69,
+              86,
+              69,
+              78,
+              84,
+              79,
+              83,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              78,
+              111,
+              32,
+              101,
+              115,
+              32,
+              112,
+              111,
+              115,
+              105,
+              98,
+              108,
+              101,
+              32,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              97,
+              114,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              115,
+              111,
+              98,
+              114,
+              101,
+              32,
+              101,
+              115,
+              116,
+              101,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              46,
+              32,
+              69,
+              108,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              115,
+              101,
+              32,
+              101,
+              110,
+              99,
+              117,
+              101,
+              110,
+              116,
+              114,
+              97,
+              32,
+              101,
+              110,
+              32,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              32,
+              67,
+              69,
+              82,
+              82,
+              65,
+              68,
+              79,
+              44,
+              32,
+              101,
+              108,
+              32,
+              99,
+              117,
+              97,
+              108,
+              32,
+              110,
+              111,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              116,
+              101,
+              32,
+              110,
+              117,
+              101,
+              118,
+              111,
+              115,
+              32,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              101,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              115,
+              46,
+              32,
+              76,
+              111,
+              115,
+              32,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              115,
+              32,
+              113,
+              117,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              116,
+              101,
+              110,
+              32,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              32,
+              100,
+              101,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              115,
+              32,
+              115,
+              111,
+              110,
+              58,
+              32,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              44,
+              32,
+              69,
+              78,
+              95,
+              84,
+              82,
+              65,
+              84,
+              65,
+              77,
+              73,
+              69,
+              78,
+              84,
+              79,
+              44,
+              32,
+              65,
+              73,
+              83,
+              76,
+              65,
+              68,
+              79,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              51,
+              58,
+              48,
+              52,
+              46,
+              57,
+              55,
+              55,
+              57,
+              57,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 147,
+          "responseSize": 337
+        },
+        "id": "e3f22f90-fcf9-4e86-a98f-9116bd8393ac",
+        "assertions": [
+          {
+            "assertion": "RF-39: CERRADO no admite nuevos eventos (409)",
+            "skipped": false
+          },
+          {
+            "assertion": "El mensaje indica que el estado actual no permite eventos",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "e9115859-e432-452e-b26e-8fb74fe24197",
+          "length": 6,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "b61626fb-475e-41b0-9d23-054a3e492b9a"
+        },
+        "item": {
+          "id": "042f6f7f-7ed3-4103-899f-b5f30be00f77",
+          "name": "2A. Setup - activo fresco para TC-M02-076 (fecha invalida)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador}}\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "id": "3a95c8cc-ebd3-483d-a404-a00a0934a679",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('identificador', 'G40B-' + Date.now());",
+                  "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+                ],
+                "_lastExecutionId": "69d49421-0d82-46a6-96d0-ac89dd34c8d7"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "id": "747548fe-518d-4858-9229-4b99f9a4ef01",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                  "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+                ],
+                "_lastExecutionId": "22b02574-93b3-4028-8efa-2e3fa9c46002"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjE1MDU2Iiwicm9sIjoxLCJleHAiOjE3ODkwMzMzODQsImlhdCI6MTc4OTAwNDU4NH0.TiNBRfJRDhcNg_hOntP_S21Z--6wTUi4lBKZm9ugxjM"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "1cc293b5-7a6d-4a8f-b690-dbf29b313b23",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "317",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 3,\n  \"fecha_inicio_ciclo\": \"2026-09-10\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": 6,\n  \"identificador\": \"G40B-1789004586056\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+          }
+        },
+        "response": {
+          "id": "7e8cfa39-0f07-4ea1-9396-946688788972",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "640"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:04 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "82a34f07-d25a-466a-a80f-be208559d866"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              49,
+              53,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              51,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              34,
+              58,
+              34,
+              71,
+              52,
+              48,
+              66,
+              45,
+              49,
+              55,
+              56,
+              57,
+              48,
+              48,
+              52,
+              53,
+              56,
+              54,
+              48,
+              53,
+              54,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              111,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              115,
+              95,
+              112,
+              114,
+              111,
+              99,
+              101,
+              100,
+              101,
+              110,
+              99,
+              105,
+              97,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              111,
+              114,
+              105,
+              103,
+              101,
+              110,
+              95,
+              102,
+              105,
+              110,
+              97,
+              110,
+              99,
+              105,
+              101,
+              114,
+              111,
+              34,
+              58,
+              34,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              44,
+              34,
+              99,
+              111,
+              115,
+              116,
+              111,
+              95,
+              97,
+              100,
+              113,
+              117,
+              105,
+              115,
+              105,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              115,
+              111,
+              112,
+              111,
+              114,
+              116,
+              101,
+              95,
+              100,
+              111,
+              99,
+              117,
+              109,
+              101,
+              110,
+              116,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              34,
+              58,
+              54,
+              44,
+              34,
+              97,
+              116,
+              114,
+              105,
+              98,
+              117,
+              116,
+              111,
+              115,
+              95,
+              100,
+              105,
+              110,
+              97,
+              109,
+              105,
+              99,
+              111,
+              115,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              49,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              34,
+              44,
+              34,
+              105,
+              100,
+              95,
+              117,
+              115,
+              117,
+              97,
+              114,
+              105,
+              111,
+              34,
+              58,
+              52,
+              55,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              114,
+              101,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              51,
+              58,
+              48,
+              53,
+              46,
+              49,
+              56,
+              57,
+              51,
+              50,
+              48,
+              90,
+              34,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              105,
+              110,
+              100,
+              105,
+              118,
+              105,
+              100,
+              117,
+              97,
+              108,
+              34,
+              58,
+              123,
+              34,
+              105,
+              100,
+              95,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              34,
+              58,
+              49,
+              49,
+              57,
+              44,
+              34,
+              114,
+              97,
+              122,
+              97,
+              34,
+              58,
+              34,
+              67,
+              97,
+              109,
+              97,
+              114,
+              111,
+              110,
+              32,
+              81,
+              65,
+              45,
+              71,
+              52,
+              48,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              34,
+              44,
+              34,
+              115,
+              101,
+              120,
+              111,
+              34,
+              58,
+              34,
+              77,
+              97,
+              99,
+              104,
+              111,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              110,
+              97,
+              99,
+              105,
+              109,
+              105,
+              101,
+              110,
+              116,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              53,
+              45,
+              48,
+              49,
+              45,
+              49,
+              53,
+              84,
+              48,
+              48,
+              58,
+              48,
+              48,
+              58,
+              48,
+              48,
+              90,
+              34,
+              44,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              108,
+              34,
+              58,
+              34,
+              50,
+              46,
+              53,
+              48,
+              48,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              99,
+              114,
+              101,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              51,
+              58,
+              48,
+              53,
+              46,
+              49,
+              56,
+              57,
+              51,
+              50,
+              48,
+              90,
+              34,
+              125,
+              44,
+              34,
+              100,
+              101,
+              116,
+              97,
+              108,
+              108,
+              101,
+              95,
+              112,
+              111,
+              98,
+              108,
+              97,
+              99,
+              105,
+              111,
+              110,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 164,
+          "responseSize": 640
+        },
+        "id": "042f6f7f-7ed3-4103-899f-b5f30be00f77",
+        "assertions": [
+          {
+            "assertion": "Activo creado (201)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f1b2a0bf-2f0d-4edc-bb7d-a59377751acf",
+          "length": 6,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "1e6973a8-5bd9-471c-90a0-093d7207fdbf"
+        },
+        "item": {
+          "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+          "name": "2B. TC-M02-076 - Rechazar fecha futura",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_fecha}}",
+                "eventos",
+                "sanitario"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                  "const body = pm.response.json();",
+                  "pm.test('El mensaje coincide con el documentado', function () {",
+                  "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+                  "});"
+                ],
+                "_lastExecutionId": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "215",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjE1MDU2Iiwicm9sIjoxLCJleHAiOjE3ODkwMzMzODQsImlhdCI6MTc4OTAwNDU4NH0.TiNBRfJRDhcNg_hOntP_S21Z--6wTUi4lBKZm9ugxjM"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "7708b0f9-062a-4395-8e90-fed3e356eb4f",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "116",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+          }
+        },
+        "response": {
+          "id": "290c0c1c-d6bf-4d0e-83b8-c1fc658b64d3",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "162"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:04 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b85af501-804a-420e-a654-58be25675b42"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              70,
+              69,
+              67,
+              72,
+              65,
+              95,
+              70,
+              85,
+              84,
+              85,
+              82,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              100,
+              101,
+              108,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              32,
+              110,
+              111,
+              32,
+              112,
+              117,
+              101,
+              100,
+              101,
+              32,
+              115,
+              101,
+              114,
+              32,
+              112,
+              111,
+              115,
+              116,
+              101,
+              114,
+              105,
+              111,
+              114,
+              32,
+              97,
+              32,
+              108,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              51,
+              58,
+              48,
+              53,
+              46,
+              52,
+              50,
+              54,
+              56,
+              56,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 129,
+          "responseSize": 162
+        },
+        "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+        "assertions": [
+          {
+            "assertion": "RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)",
+              "message": "expected response to have status code 400 but got 422",
+              "stack": "AssertionError: expected response to have status code 400 but got 422\n   at Object.eval sandbox-script.js:1:5)"
+            }
+          },
+          {
+            "assertion": "El mensaje coincide con el documentado",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "8787bbf5-c623-48fa-a9d7-4e1e41633b41",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "40416d2f-6c07-4642-937a-46c91b0e1f7b"
+        },
+        "item": {
+          "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+          "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_fecha}}",
+                "eventos",
+                "sanitario"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "99bbca88-56cf-4182-944a-3615ec753025",
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                  "const body = pm.response.json();",
+                  "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+                  "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+                  "});"
+                ],
+                "_lastExecutionId": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "215",
+              "eventos",
+              "sanitario"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0NyIsImp0aSI6IjE1MDU2Iiwicm9sIjoxLCJleHAiOjE3ODkwMzMzODQsImlhdCI6MTc4OTAwNDU4NH0.TiNBRfJRDhcNg_hOntP_S21Z--6wTUi4lBKZm9ugxjM"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2e26e44e-2a89-4220-a8bf-7cad01949ad4",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "130",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=Z_OuyyxsViTstH-O-htifToHGKn4VcEsyKVunbbZN6o",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+          }
+        },
+        "response": {
+          "id": "117f8216-3563-4911-85ab-574fd30bfbd5",
+          "status": "Unprocessable Entity",
+          "code": 422,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "178"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 01:43:04 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "0d4b4df9-30c4-4d25-a196-dc0bcbea27a5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              70,
+              69,
+              67,
+              72,
+              65,
+              95,
+              65,
+              78,
+              84,
+              69,
+              82,
+              73,
+              79,
+              82,
+              95,
+              82,
+              69,
+              71,
+              73,
+              83,
+              84,
+              82,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              76,
+              97,
+              32,
+              102,
+              101,
+              99,
+              104,
+              97,
+              32,
+              100,
+              101,
+              108,
+              32,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              32,
+              101,
+              115,
+              32,
+              105,
+              110,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              97,
+              32,
+              111,
+              32,
+              105,
+              110,
+              99,
+              111,
+              110,
+              115,
+              105,
+              115,
+              116,
+              101,
+              110,
+              116,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              101,
+              108,
+              32,
+              104,
+              105,
+              115,
+              116,
+              111,
+              114,
+              105,
+              97,
+              108,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              48,
+              84,
+              48,
+              49,
+              58,
+              52,
+              51,
+              58,
+              48,
+              53,
+              46,
+              54,
+              53,
+              49,
+              48,
+              50,
+              49,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 135,
+          "responseSize": 178
+        },
+        "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+        "assertions": [
+          {
+            "assertion": "RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)",
+              "message": "expected response to have status code 400 but got 422",
+              "stack": "AssertionError: expected response to have status code 400 but got 422\n   at Object.eval sandbox-script.js:1:6)"
+            }
+          },
+          {
+            "assertion": "El mensaje coincide EXACTAMENTE con el documentado en la ficha",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 2356
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)",
+          "message": "expected response to have status code 400 but got 422",
+          "stack": "AssertionError: expected response to have status code 400 but got 422\n   at Object.eval sandbox-script.js:1:5)",
+          "checksum": "a18de073e3cc5fdec69611c4f3b6b728",
+          "id": "09af337d-4fdb-4284-8053-b0d95189807c",
+          "timestamp": 1789004586471,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 5,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+          "name": "2B. TC-M02-076 - Rechazar fecha futura",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_fecha}}",
+                "eventos",
+                "sanitario"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                  "const body = pm.response.json();",
+                  "pm.test('El mensaje coincide con el documentado', function () {",
+                  "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+                  "});"
+                ],
+                "_lastExecutionId": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3ded7a9a-0384-4b3a-a3c2-208f1a8247b3",
+              "name": "0A. Login admin.test",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7029336e-52bd-49b0-b8e2-09456f3eb7fc",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                      "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+                    ],
+                    "_lastExecutionId": "dd77d20f-f1e1-4511-af6e-2c662ed9dcaf"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "746e5d6a-99a3-430f-b839-c28532570c3a",
+              "name": "0B. Verificar precondicion - activo 213 esta CERRADO (preparado con INSERT directo autorizado, ver README)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_cerrado}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9e6b1c0a-9fca-4718-97c1-3926390e1828",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Precondicion: el activo existe y esta CERRADO', function () {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO');",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ff90b65d-9aa3-4f01-a15a-01b503df6493"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "e3f22f90-fcf9-4e86-a98f-9116bd8393ac",
+              "name": "1. TC-M02-075 - Rechazar evento sobre activo CERRADO",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_cerrado}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "d7a98fb2-45c7-4d82-aeea-ce120e5a5667",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+                    ],
+                    "_lastExecutionId": "5c1c5882-f499-4e14-b969-a58a9c60bc67"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3ef0a7b6-8b46-42df-8763-051696adb5d5",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-075] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: CERRADO no admite nuevos eventos (409)', function () { pm.response.to.have.status(409); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje indica que el estado actual no permite eventos', function () {",
+                      "  pm.expect(body.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                      "  pm.expect(body.message.toLowerCase()).to.match(/cerrado/);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "be321cd6-b369-4e0e-b241-7431115d8b8d"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "042f6f7f-7ed3-4103-899f-b5f30be00f77",
+              "name": "2A. Setup - activo fresco para TC-M02-076 (fecha invalida)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador}}\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "3a95c8cc-ebd3-483d-a404-a00a0934a679",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('identificador', 'G40B-' + Date.now());",
+                      "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+                    ],
+                    "_lastExecutionId": "69d49421-0d82-46a6-96d0-ac89dd34c8d7"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "747548fe-518d-4858-9229-4b99f9a4ef01",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+                    ],
+                    "_lastExecutionId": "22b02574-93b3-4028-8efa-2e3fa9c46002"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+              "name": "2B. TC-M02-076 - Rechazar fecha futura",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_fecha}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje coincide con el documentado', function () {",
+                      "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+              "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_fecha}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "99bbca88-56cf-4182-944a-3615ec753025",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+                      "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "admin.test@sgpmp.com.co",
+              "key": "correo_admin"
+            },
+            {
+              "type": "any",
+              "value": "Administrador123#",
+              "key": "contrasena_admin"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_admin"
+            },
+            {
+              "type": "any",
+              "value": "3",
+              "key": "id_especie"
+            },
+            {
+              "type": "any",
+              "value": "6",
+              "key": "id_infraestructura"
+            },
+            {
+              "type": "any",
+              "value": "213",
+              "key": "id_activo_cerrado"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "id_activo_fecha"
+            }
+          ],
+          "info": {
+            "_postman_id": "b1758bdf-d2b8-49b2-9563-b69f39fb8cd8",
+            "name": "TC-M02-G40 - Restricciones de estado y coherencia temporal para eventos biologicos",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se preparo con un INSERT directo autorizado en historicos_estados_activos, porque las dos vias de la API para llegar a CERRADO (POST /cierre y POST /eventos/baja) estan bloqueadas por defectos ya reportados (INC-M02-37-01 e INC-M02-45-02) -- ver README.md. Las assertions de TC-M02-076 codifican el codigo HTTP QUE EXIGE la ficha (400); el sistema real usa 422 (BusinessRuleError) con el mensaje exacto documentado -- ver resultado para el detalle de esta discrepancia menor.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "f1b2a0bf-2f0d-4edc-bb7d-a59377751acf",
+          "length": 6,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "1e6973a8-5bd9-471c-90a0-093d7207fdbf",
+          "scriptId": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+          "execution": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)",
+          "message": "expected response to have status code 400 but got 422",
+          "stack": "AssertionError: expected response to have status code 400 but got 422\n   at Object.eval sandbox-script.js:1:6)",
+          "checksum": "2a9387a0e4a07c80aecc67ead00c19d7",
+          "id": "c0f260cb-0fe9-46cd-8f4b-0c497c07f139",
+          "timestamp": 1789004586692,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 6,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+          "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id_activo_fecha}}",
+                "eventos",
+                "sanitario"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "99bbca88-56cf-4182-944a-3615ec753025",
+                "type": "text/javascript",
+                "exec": [
+                  "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+                  "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                  "const body = pm.response.json();",
+                  "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+                  "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+                  "});"
+                ],
+                "_lastExecutionId": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "3ded7a9a-0384-4b3a-a3c2-208f1a8247b3",
+              "name": "0A. Login admin.test",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7029336e-52bd-49b0-b8e2-09456f3eb7fc",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+                      "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+                    ],
+                    "_lastExecutionId": "dd77d20f-f1e1-4511-af6e-2c662ed9dcaf"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "746e5d6a-99a3-430f-b839-c28532570c3a",
+              "name": "0B. Verificar precondicion - activo 213 esta CERRADO (preparado con INSERT directo autorizado, ver README)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_cerrado}}"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9e6b1c0a-9fca-4718-97c1-3926390e1828",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Precondicion: el activo existe y esta CERRADO', function () {",
+                      "  pm.response.to.have.status(200);",
+                      "  pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO');",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ff90b65d-9aa3-4f01-a15a-01b503df6493"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "e3f22f90-fcf9-4e86-a98f-9116bd8393ac",
+              "name": "1. TC-M02-075 - Rechazar evento sobre activo CERRADO",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_cerrado}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-075: intento sobre activo CERRADO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "d7a98fb2-45c7-4d82-aeea-ce120e5a5667",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+                    ],
+                    "_lastExecutionId": "5c1c5882-f499-4e14-b969-a58a9c60bc67"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "3ef0a7b6-8b46-42df-8763-051696adb5d5",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-075] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: CERRADO no admite nuevos eventos (409)', function () { pm.response.to.have.status(409); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje indica que el estado actual no permite eventos', function () {",
+                      "  pm.expect(body.error_code).to.eql('ESTADO_NO_PERMITE_EVENTOS');",
+                      "  pm.expect(body.message.toLowerCase()).to.match(/cerrado/);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "be321cd6-b369-4e0e-b241-7431115d8b8d"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "042f6f7f-7ed3-4103-899f-b5f30be00f77",
+              "name": "2A. Setup - activo fresco para TC-M02-076 (fecha invalida)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador}}\",\n  \"raza\": \"Camaron QA-G40 fecha\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "id": "3a95c8cc-ebd3-483d-a404-a00a0934a679",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.collectionVariables.set('identificador', 'G40B-' + Date.now());",
+                      "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+                    ],
+                    "_lastExecutionId": "69d49421-0d82-46a6-96d0-ac89dd34c8d7"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "747548fe-518d-4858-9229-4b99f9a4ef01",
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+                      "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+                    ],
+                    "_lastExecutionId": "22b02574-93b3-4028-8efa-2e3fa9c46002"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "f9297eff-87eb-4fd0-8608-897360f1699a",
+              "name": "2B. TC-M02-076 - Rechazar fecha futura",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_fecha}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha futura\",\n  \"fecha\": \"2027-01-01T00:00:00Z\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0341052a-6bb0-43bd-a94c-5ef8f7fb1995",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje coincide con el documentado', function () {",
+                      "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
+                      "});"
+                    ],
+                    "_lastExecutionId": "8329d1c7-51df-4858-aa89-f80f172b94c6"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "4e175a39-ec8a-4726-80fd-bb9b4b43b997",
+              "name": "2C. TC-M02-076 - Rechazar fecha anterior al registro (2025-01-01)",
+              "request": {
+                "url": {
+                  "path": [
+                    "activos-biologicos",
+                    "{{id_activo_fecha}}",
+                    "eventos",
+                    "sanitario"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-076: fecha anterior al registro\",\n  \"fecha\": \"2025-01-01T00:00:00Z\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "99bbca88-56cf-4182-944a-3615ec753025",
+                    "type": "text/javascript",
+                    "exec": [
+                      "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
+                      "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+                      "const body = pm.response.json();",
+                      "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
+                      "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",
+                      "});"
+                    ],
+                    "_lastExecutionId": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "admin.test@sgpmp.com.co",
+              "key": "correo_admin"
+            },
+            {
+              "type": "any",
+              "value": "Administrador123#",
+              "key": "contrasena_admin"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_admin"
+            },
+            {
+              "type": "any",
+              "value": "3",
+              "key": "id_especie"
+            },
+            {
+              "type": "any",
+              "value": "6",
+              "key": "id_infraestructura"
+            },
+            {
+              "type": "any",
+              "value": "213",
+              "key": "id_activo_cerrado"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "id_activo_fecha"
+            }
+          ],
+          "info": {
+            "_postman_id": "b1758bdf-d2b8-49b2-9563-b69f39fb8cd8",
+            "name": "TC-M02-G40 - Restricciones de estado y coherencia temporal para eventos biologicos",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se preparo con un INSERT directo autorizado en historicos_estados_activos, porque las dos vias de la API para llegar a CERRADO (POST /cierre y POST /eventos/baja) estan bloqueadas por defectos ya reportados (INC-M02-37-01 e INC-M02-45-02) -- ver README.md. Las assertions de TC-M02-076 codifican el codigo HTTP QUE EXIGE la ficha (400); el sistema real usa 422 (BusinessRuleError) con el mensaje exacto documentado -- ver resultado para el detalle de esta discrepancia menor.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "ref": "8787bbf5-c623-48fa-a9d7-4e1e41633b41",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "40416d2f-6c07-4642-937a-46c91b0e1f7b",
+          "scriptId": "99bbca88-56cf-4182-944a-3615ec753025",
+          "execution": "ef5ddd2d-0294-4fcd-9a55-394a6f7f4f97"
+        }
+      }
+    ],
+    "error": null
+  }
+}

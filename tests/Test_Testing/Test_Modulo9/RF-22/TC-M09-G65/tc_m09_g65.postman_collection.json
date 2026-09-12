@@ -1,0 +1,479 @@
+{
+  "info": {
+    "name": "TC-M09-G65 - Restriccion de rol para la asociacion de sensores (RBAC)",
+    "description": "TC-M09-G65 (RF-22, CU-05 Gestionar Dispositivos IoT), equivalente a TC-M09-124: verificar que POST /configuracion/sensores/{id_sensor}/asociar solo pueda ser ejecutado por los roles autorizados.\n\nContrato RBAC real (src/configuration/infrastructure/routers/sensor_router.py, id_recurso=12 'sensores', id_accion=1 'Crear'): Admin e Ingeniero tienen permiso de Crear (C=1) sobre este recurso; Productor y Veterinario solo tienen Leer (R=2), sin permiso de asociar. El gate lo aplica require_permission (src/shared/rbac.py) consultando modulo1.permisos en cada request; si el rol no tiene el permiso activo lanza AuthorizationError -> HTTP 403, error_code ACCESO_DENEGADO.\n\nEscenarios cubiertos:\n1. Rol autorizado (Administrador, tiene C=1 sobre recurso 12) -> la asociacion se ejecuta, HTTP 201.\n2. Rol NO autorizado (Productor, solo tiene R=2 sobre recurso 12) -> HTTP 403, error_code ACCESO_DENEGADO, y el sensor queda SIN esa asociacion (verificado consultando el historial con el token de Administrador).\n\nLa coleccion es autocontenida: el Administrador registra su propio dispositivo IoT y 2 sensores de prueba sobre un area productiva activa ya existente en TEST (finca_id=1) -- uno para el escenario autorizado y otro distinto para el escenario denegado, evitando que el resultado del primero (asociacion ya vigente) contamine el segundo con un 409 en vez de un 403. La cuenta Productor usada (u20221206763@usco.edu.co, id_usuario=58) fue provista por el usuario como cuenta activa de referencia para pruebas RBAC negativas (ya usada en TC-M01-110 y TC-M09-G58).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas de seguridad. Herramienta: Newman. Nota del plan: chequeo RBAC 200 vs 403 (aqui 201 vs 403, ya que el endpoint de asociacion responde 201 en el camino feliz).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion (admin) exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login (admin) contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else {",
+              "    console.log('El login del admin fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente (finca_id=1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos 1 area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length >= 1) {",
+              "    pm.collectionVariables.set('id_infraestructura', respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT de prueba (como Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G65-{{run_id}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G65 (RBAC asociacion de sensores)\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar sensor A (para el escenario autorizado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del sensor A responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor_autorizado', respuesta.id_sensores);",
+              "    console.log('id_sensor_autorizado: ' + respuesta.id_sensores);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor A TC-M09-G65 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar sensor B (para el escenario denegado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del sensor B responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor_denegado', respuesta.id_sensores);",
+              "    console.log('id_sensor_denegado: ' + respuesta.id_sensores);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor B TC-M09-G65 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-124) - Rol AUTORIZADO (Administrador) puede asociar el sensor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 1: Administrador (tiene permiso C=1 sobre recurso sensores) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 1: el Administrador SI puede asociar el sensor (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 1: la asociacion queda vigente para el sensor autorizado', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.id_sensor).to.equal(Number(pm.collectionVariables.get('id_sensor_autorizado')));",
+              "    pm.expect(respuesta.fecha_finalizacion).to.equal(null);",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 1: rol Administrador autorizado, asociacion creada id=' + respuesta.id_sensores_area_asociada); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo}},\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"punto_instalacion\": \"Escenario 1 (rol autorizado) - TC-M09-G65\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor_autorizado}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor_autorizado}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Productor (rol sin permiso de asociar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion (productor) exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login (productor) contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_productor', respuesta.token);",
+              "} else {",
+              "    console.log('El login del productor fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (TC-M09-124) - Rol NO AUTORIZADO (Productor) no puede asociar el sensor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2: Productor (solo tiene R=2 sobre recurso sensores, sin C=1) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2: el Productor NO puede asociar el sensor (HTTP 403)', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 2: el error indica ACCESO_DENEGADO (RBAC de rbac.py)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 2: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo}},\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"punto_instalacion\": \"Escenario 2 (rol NO autorizado) - TC-M09-G65\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor_denegado}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor_denegado}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion final - El sensor del escenario denegado sigue SIN asociacion (con token de Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial de asociaciones del sensor B tras el intento denegado ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Verificacion final: la consulta del historial responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.test('Verificacion final: el sensor B (rol denegado) no quedo con ninguna asociacion', function () {",
+              "        pm.expect(respuesta.items).to.be.an('array').with.length(0);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION GENERAL TC-M09-G65: el rol Administrador (C=1) pudo asociar el sensor; el rol Productor (solo R=2) fue rechazado con 403 ACCESO_DENEGADO y no dejo ninguna asociacion creada.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor_denegado}}/asociaciones",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor_denegado}}", "asociaciones" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "productor_correo", "value": "u20221206763@usco.edu.co" },
+    { "key": "productor_contrasena", "value": "Test123!" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo", "value": "" },
+    { "key": "id_sensor_autorizado", "value": "" },
+    { "key": "id_sensor_denegado", "value": "" }
+  ]
+}

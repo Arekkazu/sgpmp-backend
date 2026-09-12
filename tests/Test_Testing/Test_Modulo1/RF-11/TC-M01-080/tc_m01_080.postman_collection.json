@@ -1,0 +1,287 @@
+{
+  "info": {
+    "name": "TC-M01-080 - Verificar orden descendente del listado de usuarios por fecha de registro",
+    "description": "TC-M01-080 (RF-11, CU07 - Consultar Historial y Auditoria): la propia coleccion registra 3 usuarios de prueba en secuencia (antiguo -> intermedio -> reciente) via POST /usuarios/ y luego consulta GET /usuarios/admin como Administrador para verificar que el listado los presenta en orden descendente por fecha_registro (el mas reciente primero), que es el orden fijo aplicado por el repositorio (fecha_registro DESC, id_usuario DESC). No depende de usuarios preexistentes: cada corrida usa correos e identificaciones unicos basados en un run_id generado en tiempo de ejecucion, por lo que es repetible. Valores limite: fechas de registro distintas por segundos/milisegundos entre cada registro. Responsable: Juan Parra. Prioridad: Media. Tipo: Pruebas funcionales - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Recomendado ejecutar con 'newman run tc_m01_080.postman_collection.json --delay-request 1000' para separar mejor los timestamps de registro.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    const runId = Date.now().toString();",
+              "    pm.collectionVariables.set('run_id', runId);",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "    console.log('run_id generado para esta corrida: ' + runId);",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con el registro de usuarios de prueba.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-080 - Registrar usuario de prueba mas antiguo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro usuario mas antiguo ---');",
+              "console.log('correo utilizado: tc080.antiguo.' + pm.collectionVariables.get('run_id') + '@sgpmp-test.com');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-080: registro del usuario mas antiguo responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "if (pm.response.code !== 201) {",
+              "    console.log('El registro del usuario mas antiguo fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc080.antiguo.{{run_id}}@sgpmp-test.com\",\n  \"telefono\": \"3001110001\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"{{run_id}}01\",\n  \"nombre\": \"PruebaTcM\",\n  \"apellidos\": \"Antiguo\",\n  \"fecha_nacimiento\": \"1998-05-14\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba123!\",\n  \"confirmar_contrasena\": \"Prueba123!\",\n  \"direccion\": \"Cra 1 #1-01, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-080 - Registrar usuario de prueba intermedio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro usuario intermedio ---');",
+              "console.log('correo utilizado: tc080.intermedio.' + pm.collectionVariables.get('run_id') + '@sgpmp-test.com');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-080: registro del usuario intermedio responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "if (pm.response.code !== 201) {",
+              "    console.log('El registro del usuario intermedio fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc080.intermedio.{{run_id}}@sgpmp-test.com\",\n  \"telefono\": \"3001110002\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"{{run_id}}02\",\n  \"nombre\": \"PruebaTcM\",\n  \"apellidos\": \"Intermedio\",\n  \"fecha_nacimiento\": \"1998-05-14\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba123!\",\n  \"confirmar_contrasena\": \"Prueba123!\",\n  \"direccion\": \"Cra 1 #1-02, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-080 - Registrar usuario de prueba mas reciente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro usuario mas reciente ---');",
+              "console.log('correo utilizado: tc080.reciente.' + pm.collectionVariables.get('run_id') + '@sgpmp-test.com');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-080: registro del usuario mas reciente responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "if (pm.response.code !== 201) {",
+              "    console.log('El registro del usuario mas reciente fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc080.reciente.{{run_id}}@sgpmp-test.com\",\n  \"telefono\": \"3001110003\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"{{run_id}}03\",\n  \"nombre\": \"PruebaTcM\",\n  \"apellidos\": \"Reciente\",\n  \"fecha_nacimiento\": \"1998-05-14\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba123!\",\n  \"confirmar_contrasena\": \"Prueba123!\",\n  \"direccion\": \"Cra 1 #1-03, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-080 - Consultar listado de usuarios y verificar orden descendente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const runId = pm.collectionVariables.get('run_id');",
+              "const correoAntiguo = 'tc080.antiguo.' + runId + '@sgpmp-test.com';",
+              "const correoIntermedio = 'tc080.intermedio.' + runId + '@sgpmp-test.com';",
+              "const correoReciente = 'tc080.reciente.' + runId + '@sgpmp-test.com';",
+              "",
+              "console.log('--- Usuarios de prueba esperados (de mas reciente a mas antiguo) ---');",
+              "console.log('1. ' + correoReciente);",
+              "console.log('2. ' + correoIntermedio);",
+              "console.log('3. ' + correoAntiguo);",
+              "",
+              "pm.test('TC-M01-080: la consulta del listado de usuarios responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa del listado de usuarios (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "",
+              "    pm.test('TC-M01-080: la respuesta contiene la estructura esperada (total, pagina, tamano, items)', function () {",
+              "        pm.expect(respuesta).to.have.property('total');",
+              "        pm.expect(respuesta).to.have.property('items');",
+              "        pm.expect(respuesta.items).to.be.an('array');",
+              "    });",
+              "",
+              "    const items = respuesta.items;",
+              "",
+              "    const indiceReciente = items.findIndex(function (u) { return u.correo_electronico === correoReciente; });",
+              "    const indiceIntermedio = items.findIndex(function (u) { return u.correo_electronico === correoIntermedio; });",
+              "    const indiceAntiguo = items.findIndex(function (u) { return u.correo_electronico === correoAntiguo; });",
+              "",
+              "    console.log('Posicion en el listado -> reciente: ' + indiceReciente + ', intermedio: ' + indiceIntermedio + ', antiguo: ' + indiceAntiguo);",
+              "",
+              "    pm.test('TC-M01-080: los 3 usuarios de prueba registrados en esta corrida aparecen en la primera pagina del listado', function () {",
+              "        pm.expect(indiceReciente, 'usuario mas reciente no encontrado en el listado').to.be.at.least(0);",
+              "        pm.expect(indiceIntermedio, 'usuario intermedio no encontrado en el listado').to.be.at.least(0);",
+              "        pm.expect(indiceAntiguo, 'usuario mas antiguo no encontrado en el listado').to.be.at.least(0);",
+              "    });",
+              "",
+              "    if (indiceReciente >= 0 && indiceIntermedio >= 0 && indiceAntiguo >= 0) {",
+              "        pm.test('TC-M01-080: el listado respeta el orden descendente por fecha de registro (reciente -> intermedio -> antiguo)', function () {",
+              "            pm.expect(indiceReciente).to.be.below(indiceIntermedio);",
+              "            pm.expect(indiceIntermedio).to.be.below(indiceAntiguo);",
+              "        });",
+              "        console.log('CONCLUSION: orden descendente por fecha de registro confirmado (el mas reciente aparece primero).');",
+              "    } else {",
+              "        console.log('ADVERTENCIA: no se pudo validar el orden porque no se encontraron los 3 usuarios de prueba dentro del tamano de pagina consultado.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/admin?pagina=1&tamano=50",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "admin" ],
+          "query": [
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "50" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" }
+  ]
+}

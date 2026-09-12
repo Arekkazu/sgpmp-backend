@@ -1,0 +1,199 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-121-delete-administrator-role",
+    "name": "TC-M01-121 - Intentar eliminar el rol Administrador",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idRolAdministrador",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Inicio de sesión exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const respuesta = pm.response.json();",
+              "",
+              "pm.test('El token existe', function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', respuesta.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar roles registrados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de roles exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const roles = pm.response.json();",
+              "const rolAdministrador = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Administrador';",
+              "});",
+              "",
+              "pm.test('El rol Administrador existe', function () {",
+              "    pm.expect(rolAdministrador).to.exist;",
+              "});",
+              "",
+              "if (rolAdministrador) {",
+              "    pm.collectionVariables.set('idRolAdministrador', rolAdministrador.id_rol);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Intentar eliminar el rol Administrador",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRolAdministrador}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRolAdministrador}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('El sistema rechaza la eliminación del rol Administrador', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 409, 422]);",
+              "});",
+              "",
+              "pm.test('La respuesta comunica que la eliminación fue rechazada', function () {",
+              "    const texto = pm.response.text();",
+              "    pm.expect(texto.length).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Verificar que el rol Administrador continúa existiendo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRolAdministrador}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRolAdministrador}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta del rol Administrador exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const rol = pm.response.json();",
+              "",
+              "pm.test('El rol conserva su nombre original', function () {",
+              "    pm.expect(rol.nombre_rol).to.eql('Administrador');",
+              "});",
+              "",
+              "pm.test('El rol Administrador continúa protegido', function () {",
+              "    pm.expect(rol.es_protegido).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

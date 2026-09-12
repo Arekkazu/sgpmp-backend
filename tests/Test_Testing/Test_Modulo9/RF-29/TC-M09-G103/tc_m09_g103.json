@@ -1,0 +1,258 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g103",
+    "name": "TC-M09-G103 - Auditoría de cambios de idioma",
+    "description": "Valida que el cambio de idioma es-CO a en-US quede registrado en la auditoría con trazabilidad de la operación.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login - Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login del Administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.expect(body.token).to.exist;",
+              "pm.collectionVariables.set('token', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Preparar idioma - es-CO",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"es-CO\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Idioma inicial establecido en es-CO', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-197 - Cambio es-CO a en-US",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"locale_code\": \"en-US\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/idioma",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "idioma"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Cambio de idioma es-CO a en-US exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "pm.test('El idioma resultante es en-US', function () {",
+              "    pm.expect(body.locale_code).to.eq('en-US');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-197 - Consultar auditoría",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?page=1&size=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "size",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de auditoría exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const body = pm.response.json();",
+              "console.log('Respuesta completa de auditoría:', body);",
+              "",
+              "function buscarEvento(obj) {",
+              "    if (!obj || typeof obj !== 'object') return null;",
+              "",
+              "    if (Array.isArray(obj)) {",
+              "        for (const item of obj) {",
+              "            const encontrado = buscarEvento(item);",
+              "            if (encontrado) return encontrado;",
+              "        }",
+              "        return null;",
+              "    }",
+              "",
+              "    const texto = JSON.stringify(obj).toLowerCase();",
+              "",
+              "    const relacionadoIdioma =",
+              "        texto.includes('idioma') ||",
+              "        texto.includes('locale') ||",
+              "        texto.includes('language');",
+              "",
+              "    const contieneEnUS = texto.includes('en-us');",
+              "",
+              "    if (relacionadoIdioma && contieneEnUS) {",
+              "        return obj;",
+              "    }",
+              "",
+              "    for (const key of Object.keys(obj)) {",
+              "        const encontrado = buscarEvento(obj[key]);",
+              "        if (encontrado) return encontrado;",
+              "    }",
+              "",
+              "    return null;",
+              "}",
+              "",
+              "const evento = buscarEvento(body);",
+              "",
+              "console.log('Evento de cambio de idioma encontrado:', evento);",
+              "",
+              "pm.test('Existe registro de auditoría relacionado con el cambio a en-US', function () {",
+              "    pm.expect(evento).to.not.equal(null);",
+              "});",
+              "",
+              "if (evento) {",
+              "    const textoEvento = JSON.stringify(evento).toLowerCase();",
+              "",
+              "    pm.test('El registro contiene el valor en-US', function () {",
+              "        pm.expect(textoEvento).to.include('en-us');",
+              "    });",
+              "",
+              "    pm.test('El registro contiene información relacionada con idioma/locale', function () {",
+              "        pm.expect(",
+              "            textoEvento.includes('idioma') ||",
+              "            textoEvento.includes('locale') ||",
+              "            textoEvento.includes('language')",
+              "        ).to.be.true;",
+              "    });",
+              "}",
+              "",
+              "pm.collectionVariables.set('eventoAuditoria', evento ? JSON.stringify(evento) : 'NO ENCONTRADO');"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

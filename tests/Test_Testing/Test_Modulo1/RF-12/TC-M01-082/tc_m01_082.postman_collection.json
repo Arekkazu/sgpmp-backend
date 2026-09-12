@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "TC-M01-082 - Consultar el detalle de usuario con permiso ver_identificacion_completa",
+    "description": "TC-M01-082 (RF-12, CU07 - Consultar Historial y Auditoria): valida que un actor con el permiso especial de RF-12 (en BD: modulo1.permisos 'admin_ejecutar_identificacion_completa', id_rol=1 Administrador, id_recurso=1 Usuarios, id_accion=5 Ejecutar) reciba el numero_identificacion COMPLETO (sin enmascarar) al consultar GET /usuarios/{id_usuario}/detalle. Solo el rol Administrador tiene sembrada esta combinacion (migracion f2c84d91a6e7); ningun otro rol la posee. La coleccion inicia sesion como Administrador, decodifica su propio id_usuario del JWT (claim 'sub') y consulta su propio detalle: el mecanismo de enmascarado depende exclusivamente del permiso del actor que consulta (usuario_actual), no de a quien se consulta, por lo que el resultado es representativo sin depender de IDs de otros usuarios que puedan no existir en corridas futuras. Valor limite probado: permiso presente (caso contrario -> TC pendiente con permiso ausente). Responsable: Juan Parra. Prioridad: Alta. Tipo: Pruebas de seguridad - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador y obtener su id_usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "",
+              "    function decodificarJwtSub(token) {",
+              "        const payloadB64 = token.split('.')[1];",
+              "        const normalizado = payloadB64.replace(/-/g, '+').replace(/_/g, '/');",
+              "        const decodificado = atob(normalizado);",
+              "        const payload = JSON.parse(decodificado);",
+              "        return payload.sub;",
+              "    }",
+              "",
+              "    try {",
+              "        const idAdmin = decodificarJwtSub(respuesta.token);",
+              "        pm.collectionVariables.set('id_usuario_admin', idAdmin);",
+              "        console.log('Token del Administrador almacenado. id_usuario (del claim sub del JWT): ' + idAdmin);",
+              "    } catch (e) {",
+              "        console.log('No se pudo decodificar el id_usuario del JWT: ' + e.message);",
+              "        postman.setNextRequest(null);",
+              "    }",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con la consulta del detalle.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-082 - Consultar detalle propio con permiso ver_identificacion_completa habilitado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-082: la consulta del detalle responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa del detalle (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "",
+              "    pm.test('TC-M01-082: la respuesta contiene numero_identificacion y tipo_identificacion', function () {",
+              "        pm.expect(respuesta).to.have.property('numero_identificacion');",
+              "        pm.expect(respuesta).to.have.property('tipo_identificacion');",
+              "        pm.expect(respuesta.numero_identificacion).to.be.a('string').and.not.empty;",
+              "    });",
+              "",
+              "    const numero = respuesta.numero_identificacion;",
+              "    console.log('tipo_identificacion: ' + respuesta.tipo_identificacion);",
+              "    console.log('numero_identificacion recibido: ' + numero);",
+              "",
+              "    pm.test('TC-M01-082: numero_identificacion NO viene enmascarado (sin asteriscos)', function () {",
+              "        pm.expect(numero).to.not.include('*');",
+              "    });",
+              "",
+              "    if (respuesta.tipo_identificacion === 'CC') {",
+              "        pm.test('TC-M01-082: para tipo CC, el numero completo son solo digitos (evidencia de que no esta truncado/enmascarado)', function () {",
+              "            pm.expect(/^[0-9]+$/.test(numero)).to.be.true;",
+              "        });",
+              "    }",
+              "",
+              "    console.log('CONCLUSION: con el permiso admin_ejecutar_identificacion_completa activo, el detalle de usuario expone el numero_identificacion completo.');",
+              "} else {",
+              "    console.log('ADVERTENCIA: la consulta del detalle no devolvio una respuesta valida.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_usuario_admin}}/detalle",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "{{id_usuario_admin}}", "detalle" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_usuario_admin", "value": "" }
+  ]
+}

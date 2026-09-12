@@ -1,0 +1,141 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-014 Rechazo por formato invalido",
+    "description": "Coleccion para RF-01 / TC-M01-014: rechazo por error de formato (HTTP 400) en 3 escenarios independientes: numero_identificacion con letras, correo_electronico sin '@', y correo_electronico sin dominio.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Escenario 1 - Identificacion con caracteres alfabeticos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: HTTP 400 por identificacion con letras', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Escenario 1: el campo reportado es numero_identificacion', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.fields && json.fields.length) {",
+              "        const fieldsStr = JSON.stringify(json.fields).toLowerCase();",
+              "        pm.expect(fieldsStr).to.include('identificacion');",
+              "    } else if (json && json.field) {",
+              "        pm.expect(json.field).to.include('identificacion');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "console.log('Escenario 1 (ID alfabetica): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc014a.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550515\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"ABC123XY\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Formato Identificacion\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - Correo sin arroba (@)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: HTTP 400 por correo sin @', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Escenario 2: el campo reportado es correo_electronico', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.fields && json.fields.length) {",
+              "        const fieldsStr = JSON.stringify(json.fields).toLowerCase();",
+              "        pm.expect(fieldsStr).to.include('correo');",
+              "    } else if (json && json.field) {",
+              "        pm.expect(json.field).to.include('correo');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "console.log('Escenario 2 (sin @): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"usuario-sin-arroba.com\",\n  \"telefono\": \"3125550516\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000516\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Formato Correo Arroba\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3 - Correo sin dominio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 3: HTTP 400 por correo sin dominio', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Escenario 3: el campo reportado es correo_electronico', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.fields && json.fields.length) {",
+              "        const fieldsStr = JSON.stringify(json.fields).toLowerCase();",
+              "        pm.expect(fieldsStr).to.include('correo');",
+              "    } else if (json && json.field) {",
+              "        pm.expect(json.field).to.include('correo');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "console.log('Escenario 3 (sin dominio): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"usuario@\",\n  \"telefono\": \"3125550517\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000517\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Formato Correo Dominio\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

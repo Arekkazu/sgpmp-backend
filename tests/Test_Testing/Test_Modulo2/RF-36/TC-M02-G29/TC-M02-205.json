@@ -1,0 +1,220 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-205-auditoria-intento-rechazado",
+    "name": "TC-M02-205 - Registro de auditoría tras intento rechazado (RF-36 / RF-52)",
+    "description": "Prueba de aceptación para RF-36 y RF-52: Intentar modificar directamente biomasa_total mediante PATCH, verificar rechazo estricto con HTTP 400 Bad Request (VAL_ENTRADA) y exigir el registro de auditoría del rechazo (DEF-INC-M02-41-RF52).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar modificar biomasa_total mediante PATCH (TC-M02-205)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"biomasa_total\": 999.99\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 400 Bad Request (Rechazo de edición directa)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('El error retornado es de validación de entrada (VAL_ENTRADA)', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.error_code).to.eql('VAL_ENTRADA');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar bitácora de auditoría y verificar registro del rechazo (RF-52)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/auditoria?id_activo_biologico={{id_lote}}&pagina=1&page_size=20",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "id_activo_biologico",
+              "value": "{{id_lote}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Existe registro de auditoría para el intento fallido/rechazado (INC-M02-41-RF52)', function () {",
+              "    var res = pm.response.json();",
+              "    var registros = res.registros || [];",
+              "    var encontrado = registros.some(function (r) {",
+              "        return ['RECHAZADO', 'FALLIDO'].includes(r.resultado) &&",
+              "               ['RF35', 'RF36'].includes(r.rf_origen) &&",
+              "               r.id_usuario_responsable === 1;",
+              "    });",
+              "    if (!encontrado) {",
+              "        pm.expect.fail('DEFECTO INC-M02-41-RF52: El backend rechazó la petición con HTTP 400 pero no generó el registro de auditoría para la operación rechazada.');",
+              "    }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Verificar que la biomasa_total no fue alterada en el lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar activo', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La biomasa_total permanece inalterada (no es 999.99)', function () {",
+              "    var res = pm.response.json();",
+              "    var biomasa = (res.detalle_poblacional && res.detalle_poblacional.biomasa_total) || res.biomasa_total;",
+              "    pm.expect(parseFloat(biomasa)).to.not.eql(999.99);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

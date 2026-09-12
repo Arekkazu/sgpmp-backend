@@ -1,0 +1,336 @@
+{
+  "info": {
+    "name": "TC-M02-G03 (TC-M02-177/178/179) - Autenticacion, sesion y canal - Modulo 2",
+    "description": "Transversal - OWASP API2 Broken Authentication / ASVS V9. TC-177: exige token valido en una muestra representativa de endpoints de /activos-biologicos. TC-178: verifica que el token de acceso y el refresh token quedan invalidados tras logout (incluye reproduccion del patron de M01 -- Anexo TC-M01-074). TC-179: solo la parte verificable con Postman (flags de la cookie de sesion); la verificacion de TLS a nivel de red/MQTT queda fuera de alcance -- ver notas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_firma_invalida", "value": "" },
+    { "key": "token_alg_none", "value": "" },
+    { "key": "refresh_token_previo", "value": "" },
+    { "key": "set_cookie_crudo", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test (y preparar tokens manipulados)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "",
+              "if (pm.response.code === 200) {",
+              "  const token = pm.response.json().token;",
+              "  pm.collectionVariables.set('token_admin', token);",
+              "",
+              "  // Capturar el valor crudo de la cookie refresh_token ANTES de que el",
+              "  // logout la invalide, para poder reutilizarla deliberadamente despues",
+              "  // (TC-M02-178) sin depender de que el cookie-jar automatico la borre.",
+              "  const rt = pm.cookies.get('refresh_token');",
+              "  pm.collectionVariables.set('refresh_token_previo', rt || '');",
+              "  console.log('[LOGIN] refresh_token capturado, longitud=' + (rt || '').length);",
+              "",
+              "  const setCookieHeader = pm.response.headers.get('Set-Cookie') || '';",
+              "  pm.collectionVariables.set('set_cookie_crudo', setCookieHeader);",
+              "  console.log('[LOGIN] Set-Cookie crudo: ' + setCookieHeader);",
+              "",
+              "  // --- Construir un token con firma invalida (mismo header/payload, ultimo caracter de la firma alterado) ---",
+              "  const partes = token.split('.');",
+              "  let firmaAlterada = partes[2];",
+              "  const ultimo = firmaAlterada.slice(-1);",
+              "  const reemplazo = ultimo === 'A' ? 'B' : 'A';",
+              "  firmaAlterada = firmaAlterada.slice(0, -1) + reemplazo;",
+              "  pm.collectionVariables.set('token_firma_invalida', partes[0] + '.' + partes[1] + '.' + firmaAlterada);",
+              "",
+              "  // --- Construir un token alg=none (ataque clasico JWT: sin firma) ---",
+              "  function base64url(obj) {",
+              "    return Buffer.from(JSON.stringify(obj)).toString('base64')",
+              "      .replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/, '');",
+              "  }",
+              "  const headerNone = base64url({ alg: 'none', typ: 'JWT' });",
+              "  const payloadNone = base64url({ sub: '1', jti: '1', rol: 1, exp: Math.floor(Date.now() / 1000) + 3600, iat: Math.floor(Date.now() / 1000) });",
+              "  pm.collectionVariables.set('token_alg_none', headerNone + '.' + payloadNone + '.');",
+              "",
+              "  console.log('[PREP] token_firma_invalida y token_alg_none generados');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-177a. POST /activos-biologicos (crear) exige token valido",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos';",
+        "const body = { mode: 'raw', raw: JSON.stringify({}) };",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'POST', header: headers, body }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([{ key: 'Content-Type', value: 'application/json' }], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177b. GET /activos-biologicos (listar) exige token valido",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/activos-biologicos" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos';",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'GET', header: headers }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177c. GET /activos-biologicos/{id} (consultar) exige token valido",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/activos-biologicos/1" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/1';",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'GET', header: headers }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177d. PATCH /activos-biologicos/{id} (actualizar) exige token valido",
+      "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/activos-biologicos/1", "body": { "mode": "raw", "raw": "{}" } },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/1';",
+        "const body = { mode: 'raw', raw: JSON.stringify({}) };",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'PATCH', header: headers, body }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([{ key: 'Content-Type', value: 'application/json' }], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177e. GET /activos-biologicos/{id}/eventos exige token valido",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/activos-biologicos/1/eventos" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/1/eventos';",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'GET', header: headers }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177f. GET /activos-biologicos/auditoria (bitacora) exige token valido",
+      "request": { "method": "GET", "header": [], "url": "{{base_url}}/activos-biologicos/auditoria" },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/auditoria';",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'GET', header: headers }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177g. POST /activos-biologicos/{id}/eventos/crecimiento exige token valido",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/activos-biologicos/1/eventos/crecimiento", "body": { "mode": "raw", "raw": "{}" } },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/1/eventos/crecimiento';",
+        "const body = { mode: 'raw', raw: JSON.stringify({}) };",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'POST', header: headers, body }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([{ key: 'Content-Type', value: 'application/json' }], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-177h. PATCH /activos-biologicos/{id}/estado exige token valido",
+      "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "url": "{{base_url}}/activos-biologicos/1/estado", "body": { "mode": "raw", "raw": "{}" } },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const url = pm.collectionVariables.get('base_url') + '/activos-biologicos/1/estado';",
+        "const body = { mode: 'raw', raw: JSON.stringify({}) };",
+        "",
+        "function probar(headers, nombre, cb) {",
+        "  pm.sendRequest({ url, method: 'PATCH', header: headers, body }, function (err, res) {",
+        "    pm.test(nombre, function () { pm.expect(res.code).to.eql(401); });",
+        "    cb();",
+        "  });",
+        "}",
+        "",
+        "probar([{ key: 'Content-Type', value: 'application/json' }], 'Sin token -> 401', function () {",
+        "  probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_firma_invalida') }], 'Token con firma invalida -> 401', function () {",
+        "    probar([{ key: 'Content-Type', value: 'application/json' }, { key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('token_alg_none') }], 'Token alg=none -> 401', function () {});",
+        "  });",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-178a. Confirmar que el token funciona ANTES del logout",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[ANTES DE LOGOUT] status=' + pm.response.code);",
+        "pm.test('El token todavia autentica correctamente (no 401)', function () {",
+        "  pm.expect(pm.response.code).to.not.eql(401);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-178b. DELETE /sesiones/ (logout)",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[LOGOUT] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El logout se confirma con 200', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-178c. Reutilizar el access token ya cerrado contra un endpoint de M02",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[REUSO ACCESS TOKEN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El token invalidado por logout se rechaza (401)', function () { pm.response.to.have.status(401); });",
+        "if (pm.response.code === 401) {",
+        "  pm.test('El error identifica el token como revocado', function () {",
+        "    pm.expect(pm.response.json().error_code || '').to.match(/REVOCAD/i);",
+        "  });",
+        "}"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-178d. Reutilizar el refresh token previamente emitido tras logout",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Cookie", "value": "refresh_token={{refresh_token_previo}}" }],
+        "url": "{{base_url}}/sesiones/refresh"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[REUSO REFRESH TOKEN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('No debe reproducirse el patron de 401 intermitente en refresh (M01, Anexo TC-M01-074): la respuesta debe ser consistentemente de rechazo', function () {",
+        "  pm.expect([401, 410]).to.include(pm.response.code);",
+        "});",
+        "if (pm.response.code === 401) {",
+        "  pm.test('El error identifica el refresh token como invalido/reutilizado', function () {",
+        "    pm.expect(pm.response.json().error_code || '').to.match(/REFRESH_TOKEN/i);",
+        "  });",
+        "}"
+      ] } }]
+    },
+    {
+      "name": "TC-M02-179. Inspeccionar flags de la cookie de sesion (parte verificable con Postman)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "const setCookie = pm.collectionVariables.get('set_cookie_crudo');",
+        "console.log('[TC-179] Set-Cookie observado en el login: ' + setCookie);",
+        "",
+        "pm.test('La cookie de sesion (refresh_token) tiene el flag HttpOnly', function () {",
+        "  pm.expect(setCookie.toLowerCase()).to.include('httponly');",
+        "});",
+        "",
+        "pm.test('La URL base del API usa HTTPS (TLS) para todo el trafico HTTP probado en esta coleccion', function () {",
+        "  pm.expect(pm.collectionVariables.get('base_url')).to.match(/^https:\\/\\//);",
+        "});",
+        "",
+        "// El flag Secure y SameSite se documentan tal cual se observan, sin dar",
+        "// por sentado un valor esperado fijo: el codigo fuente (sesiones_routers.py)",
+        "// activa Secure solo cuando ENV=production, y usa SameSite=Strict fuera de",
+        "// produccion (front y backend comparten site) o SameSite=None en produccion.",
+        "// Ver la evidencia para el detalle y la nota de alcance de este sub-caso.",
+        "console.log('[TC-179] Contiene \"secure\": ' + setCookie.toLowerCase().includes('secure'));",
+        "console.log('[TC-179] Atributo SameSite: ' + (setCookie.match(/samesite=([a-z]+)/i) || ['', 'no encontrado'])[1]);"
+      ] } }]
+    }
+  ]
+}

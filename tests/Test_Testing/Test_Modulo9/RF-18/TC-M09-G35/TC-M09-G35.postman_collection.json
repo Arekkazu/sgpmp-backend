@@ -1,0 +1,153 @@
+{
+  "info": {
+    "name": "TC-M09-G35 - Edicion y unicidad de configuracion IoT",
+    "description": "Automatiza TC-M09-76 (actualizar configuracion existente) y TC-M09-77 (impedir mas de una configuracion activa) sobre el dispositivo id=2 (GENERICO, config previa APLICADA 30/300).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "id_dispositivo",
+      "value": "2"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login (Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.test('Tipo de token es Bearer', function () {",
+              "    pm.expect(jsonData.tipo).to.eql('Bearer');",
+              "});",
+              "",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('token', jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "1. TC-M09-76 - Actualizar configuracion existente (dispositivo 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 202 (aceptado, pendiente de broker MQTT)', function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Estado devuelto es PENDIENTE', function () {",
+              "    pm.expect(jsonData.estado).to.eql('PENDIENTE');",
+              "});",
+              "",
+              "pm.test('Respuesta incluye id_configuracion_remota', function () {",
+              "    pm.expect(jsonData).to.have.property('id_configuracion_remota');",
+              "});",
+              "",
+              "pm.test('Respuesta incluye mensaje', function () {",
+              "    pm.expect(jsonData).to.have.property('mensaje');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 20,\n  \"intervalo_transmision\": 200\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar"]
+        }
+      }
+    },
+    {
+      "name": "2. TC-M09-77 - Impedir segunda configuracion activa (dispositivo 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 409 (conflicto: ya existe config pendiente)', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "const jsonData = pm.response.json();",
+              "",
+              "pm.test('Codigo de error es CONFIG_PENDIENTE_EXISTENTE', function () {",
+              "    pm.expect(jsonData.error_code).to.eql('CONFIG_PENDIENTE_EXISTENTE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 25,\n  \"intervalo_transmision\": 250\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar"]
+        }
+      }
+    }
+  ]
+}

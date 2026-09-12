@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "RF-02/RF-01 - TC-M01-020 Login rechazado en cuenta pendiente",
+    "description": "Coleccion para TC-M01-020: registra una cuenta nueva (queda en estado PENDIENTE_ACTIVACION, sin activarla) e intenta iniciar sesion. Se espera HTTP 403, con mensaje indicando que la cuenta esta pendiente de activacion y opcion de reenvio de token.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Registrar cuenta (queda PENDIENTE_ACTIVACION)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: registro exitoso (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "console.log('Cuenta creada, SIN activar (no se le da clic al correo). Ahora se intenta login.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc020.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550520\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000520\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Cuenta Pendiente\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-020 - Login con cuenta pendiente de activacion (debe rechazar, 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-020: HTTP 403 por cuenta pendiente de activacion', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('TC-M01-020: el mensaje menciona activacion o cuenta pendiente', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('activ') || b.includes('pendient');",
+              "    });",
+              "});",
+              "",
+              "console.log('Resultado obtenido: ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc020.qa@sgpmp-test.com\",\n  \"contrasena\": \"Abcd12#3\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

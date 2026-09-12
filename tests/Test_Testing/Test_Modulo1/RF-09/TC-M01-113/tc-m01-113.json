@@ -1,0 +1,196 @@
+{
+  "info": {
+    "name": "TC-M01-113",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "msgA1", "value": "" },
+    { "key": "msgB1", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Escenario A - Intento 1 (token invalido + clave123, esperado 400)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });",
+          "const b = pm.response.json();",
+          "pm.collectionVariables.set('msgA1', JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields }));"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_contrasena\": \"clave123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario A - Intento 2 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgA1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_contrasena\": \"clave123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario A - Intento 3 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgA1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_contrasena\": \"clave123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario A - Intento 4 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgA1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_contrasena\": \"clave123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario A - Intento 5 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgA1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_contrasena\": \"clave123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario B - Intento 1 (token invalido + clave valida, esperado 401 TOKEN_INVALIDO)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "pm.collectionVariables.set('msgB1', JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields }));"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario B - Intento 2 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgB1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario B - Intento 3 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgB1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario B - Intento 4 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgB1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Escenario B - Intento 5 (mensaje debe ser identico al 1)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });",
+          "const b = pm.response.json();",
+          "const normalizado = JSON.stringify({ error_code: b.error_code, message: b.message, fields: b.fields });",
+          "pm.test('TC-M01-113: mensaje identico al intento 1 (sin contar el timestamp)', function () {",
+          "    pm.expect(normalizado).to.eql(pm.collectionVariables.get('msgB1'));",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"zzz-invalido-000\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    }
+  ]
+}

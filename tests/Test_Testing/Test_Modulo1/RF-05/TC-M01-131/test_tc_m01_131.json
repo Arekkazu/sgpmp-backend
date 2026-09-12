@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "TC-M01-131 - Consultar usuarios administradores filtrando por correo",
+    "_postman_id": "tc-m01-131",
+    "description": "Caso de prueba para validar que el administrador puede consultar usuarios utilizando el filtro por correo electrónico.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "email_admin",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "password_admin",
+      "value": "Test1234!"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "correo_busqueda",
+      "value": "juan.carlos@email.com"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{email_admin}}\",\n  \"contrasena\": \"{{password_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "var data = pm.response.json();",
+              "var token = data.token || data.access_token || data.accessToken;",
+              "",
+              "pm.collectionVariables.set('access_token', token);",
+              "",
+              "pm.test('Token obtenido correctamente', function () {",
+              "    pm.expect(token).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar usuarios filtrando por correo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/usuarios/admin?correo={{correo_busqueda}}&pagina=1&tamano=20"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta exitosa', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "var data = pm.response.json();",
+              "",
+              "pm.test('La respuesta contiene un único resultado', function () {",
+              "    pm.expect(data.total).to.eql(1);",
+              "    pm.expect(data.items).to.be.an('array');",
+              "    pm.expect(data.items.length).to.eql(1);",
+              "});",
+              "",
+              "var usuario = data.items[0];",
+              "",
+              "pm.test('El correo corresponde al filtro solicitado', function () {",
+              "    pm.expect(usuario.correo_electronico).to.eql(pm.collectionVariables.get('correo_busqueda'));",
+              "});",
+              "",
+              "pm.test('El usuario tiene los datos esperados', function () {",
+              "    pm.expect(usuario.nombre_usuario).to.exist;",
+              "    pm.expect(usuario.nombre_rol).to.exist;",
+              "    pm.expect(usuario.estado_cuenta).to.exist;",
+              "    pm.expect(usuario.ultima_modificacion).to.exist;",
+              "});",
+              "",
+              "pm.test('El usuario filtrado es Juan Carlos Pérez García', function () {",
+              "    pm.expect(usuario.nombre_usuario).to.eql('Juan Carlos Pérez García');",
+              "});",
+              "",
+              "pm.test('El rol corresponde a Veterinario', function () {",
+              "    pm.expect(usuario.nombre_rol).to.eql('Veterinario');",
+              "});",
+              "",
+              "pm.test('La cuenta se encuentra activa', function () {",
+              "    pm.expect(usuario.estado_cuenta).to.eql('Activo');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,125 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-022 Sesion unica - blacklist del token anterior",
+    "description": "Login desde 'dispositivo 1', verifica que su token funciona, hace login desde 'dispositivo 2' con las mismas credenciales, y confirma que el token del dispositivo 1 quedo invalidado (blacklist) mientras que el del dispositivo 2 funciona con normalidad.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login desde dispositivo 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 1: login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_dispositivo_1', json.token);",
+              "console.log('Paso 1 (login dispositivo 1): ' + pm.response.code + ' - token guardado.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Verificar que el token del dispositivo 1 funciona",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 2: el token del dispositivo 1 es valido (200)', function () { pm.response.to.have.status(200); });",
+              "console.log('Paso 2 (perfil con token dispositivo 1): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_dispositivo_1}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/me", "host": ["{{base_url}}"], "path": ["usuarios", "me"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Login desde dispositivo 2 (mismas credenciales)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 3: login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_dispositivo_2', json.token);",
+              "console.log('Paso 3 (login dispositivo 2): ' + pm.response.code + ' - ' + json.message);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - El token del dispositivo 1 debe estar invalidado (blacklist)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 4: el token viejo (dispositivo 1) ya NO es valido (401)', function () { pm.response.to.have.status(401); });",
+              "console.log('Paso 4 (perfil con token VIEJO dispositivo 1): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_dispositivo_1}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/me", "host": ["{{base_url}}"], "path": ["usuarios", "me"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - El token del dispositivo 2 (el nuevo) sigue funcionando",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 5: el token nuevo (dispositivo 2) es valido (200)', function () { pm.response.to.have.status(200); });",
+              "console.log('Paso 5 (perfil con token dispositivo 2): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_dispositivo_2}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/me", "host": ["{{base_url}}"], "path": ["usuarios", "me"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_dispositivo_1", "value": "" },
+    { "key": "token_dispositivo_2", "value": "" }
+  ]
+}

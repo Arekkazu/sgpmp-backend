@@ -1,0 +1,199 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g90-vacios-diseno-ambiental-ubicacion",
+    "name": "TC-M02-G90: Vacíos de Diseño Tipo AMBIENTAL y Coherencia de Infraestructura (RF-49)",
+    "description": "Suite automatizada en Newman para el caso agrupado TC-M02-G90 (RF-49 / CU11). Entorno: TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Test1234!"
+    },
+    {
+      "key": "bearerToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-220",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.collectionVariables.set('bearerToken', data.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": ["{{baseUrl}}"],
+              "path": ["sesiones", ""]
+            }
+          }
+        },
+        {
+          "name": "01 - Crear Asociación AMBIENTAL en Endpoint de Activo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-220: Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.test('TC-M02-220: Tipo de asociación es AMBIENTAL', function () {",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('ambiental');",
+                  "});",
+                  "pm.test('TC-M02-220: Estado inicial es ACTIVA', function () {",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"AMBIENTAL\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 3,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Evaluacion de asociacion AMBIENTAL en endpoint de activo TC-M02-220\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "19", "sensores"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-221",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var data = pm.response.json();",
+                  "pm.collectionVariables.set('bearerToken', data.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": ["{{baseUrl}}"],
+              "path": ["sesiones", ""]
+            }
+          }
+        },
+        {
+          "name": "01 - Sensor Infra 1 con Activo Infra 2 (Misma Finca)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('TC-M02-221: Respuesta coherente con alguna interpretación del RF-49', function () {",
+                  "    pm.expect([201, 409, 422]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 201) {",
+                  "    var data = pm.response.json();",
+                  "    pm.test('TC-M02-221: Estado de asociación creada es ACTIVA', function () {",
+                  "        pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 3,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Evaluacion de sensor en Infra 1 con activo en Infra 2 dentro de Finca 1 TC-M02-221\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/1/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "1", "sensores"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-118-modificar-rol-administrador",
+    "name": "TC-M01-118 - Intentar modificar el rol Administrador",
+    "description": "Prueba negativa de seguridad para validar que el sistema no permita modificar el rol protegido Administrador.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idAdministrador",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Inicio de sesión exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "",
+              "pm.test('El token existe y es una cadena de texto', function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "    pm.expect(respuesta.token).to.be.a('string');",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', respuesta.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar roles registrados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta de roles exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "",
+              "pm.test('La respuesta contiene una lista de roles', function () {",
+              "    pm.expect(roles).to.be.an('array');",
+              "});",
+              "",
+              "var administrador = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Administrador';",
+              "});",
+              "",
+              "pm.test('El rol Administrador existe', function () {",
+              "    pm.expect(administrador).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set('idAdministrador', administrador.id_rol);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Intentar modificar el rol Administrador",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"Admin2\",\n  \"descripcion\": \"Intento de modificación del rol Administrador durante TC-M01-118\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idAdministrador}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idAdministrador}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El sistema no permite modificar exitosamente el rol Administrador', function () {",
+              "    pm.expect(pm.response.code).to.not.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('El servidor devuelve una respuesta ante el intento de modificación', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 409, 500]);",
+              "});",
+              "",
+              "var contentType = pm.response.headers.get('Content-Type') || '';",
+              "",
+              "if (contentType.includes('application/json')) {",
+              "    var respuesta = pm.response.json();",
+              "",
+              "    pm.test('La respuesta JSON contiene información del error', function () {",
+              "        pm.expect(respuesta).to.exist;",
+              "    });",
+              "} else {",
+              "    pm.test('La respuesta del servidor no está vacía', function () {",
+              "        pm.expect(pm.response.text()).to.not.be.empty;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Verificar que el rol Administrador no fue modificado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idAdministrador}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idAdministrador}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta del rol Administrador exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var rol = pm.response.json();",
+              "",
+              "pm.test('El rol conserva su nombre original Administrador', function () {",
+              "    pm.expect(rol.nombre_rol).to.eql('Administrador');",
+              "});",
+              "",
+              "pm.test('El rol no fue renombrado a Admin2', function () {",
+              "    pm.expect(rol.nombre_rol).to.not.eql('Admin2');",
+              "});",
+              "",
+              "pm.test('El rol Administrador continúa protegido', function () {",
+              "    pm.expect(rol.es_protegido).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

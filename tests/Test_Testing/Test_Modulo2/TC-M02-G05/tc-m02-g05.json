@@ -1,0 +1,761 @@
+{
+  "info": {
+    "name": "TC-M02-G05 (TC-M02-183/184) - Resistencia a payload excesivo y control de acceso a objetos (IDOR)",
+    "description": "OWASP API4 (Unrestricted Resource Consumption) / OWASP API1 (Broken Object Level Authorization). Un admin crea una finca+infraestructura+activo de prueba (Productor B no participa en su creacion), y luego Productor B intenta leerlos por ID directo y por adivinacion secuencial. Tambien prueba que un payload JSON de varios MB o con anidamiento extremo sea rechazado antes de procesarse, usando los IDs reales recien creados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_daniela",
+      "value": "danielacastillovargas09@gmail.com"
+    },
+    {
+      "key": "contrasena_admin_daniela",
+      "value": "Verificada#45"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_prod2",
+      "value": "daniiella.vargass@gmail.com"
+    },
+    {
+      "key": "contrasena_prod2",
+      "value": "@Daniela1"
+    },
+    {
+      "key": "token_prod2",
+      "value": ""
+    },
+    {
+      "key": "tipo_area_valido",
+      "value": "Estanque"
+    },
+    {
+      "key": "sufijo_finca",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada",
+      "value": ""
+    },
+    {
+      "key": "id_activo_creado",
+      "value": ""
+    },
+    {
+      "key": "id_especie_valida",
+      "value": "4"
+    },
+    {
+      "key": "id_infraestructura_valida",
+      "value": "999999"
+    },
+    {
+      "key": "big_string",
+      "value": ""
+    },
+    {
+      "key": "nested_json",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "0A. Login Admin - cuenta de Daniela (intento 1)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_daniela}}\",\n  \"contrasena\": \"{{contrasena_admin_daniela}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN admin Daniela] status=' + pm.response.code);",
+              "if (pm.response.code === 200 && !pm.collectionVariables.get('token_admin')) {",
+              "  pm.collectionVariables.set('token_admin', pm.response.json().token);",
+              "  console.log('[LOGIN admin Daniela] OK, usando esta cuenta para el setup');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0A-bis. Login Admin - admin.test (respaldo, autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN admin.test] status=' + pm.response.code);",
+              "if (pm.response.code === 200 && !pm.collectionVariables.get('token_admin')) {",
+              "  pm.collectionVariables.set('token_admin', pm.response.json().token);",
+              "  console.log('[LOGIN admin.test] OK, usando esta cuenta de respaldo para el setup');",
+              "}",
+              "if (!pm.collectionVariables.get('token_admin')) {",
+              "  console.log('[SETUP] ADVERTENCIA: ninguna de las dos cuentas admin pudo iniciar sesion. Los pasos de creacion van a fallar.');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0C (previo). Obtener un tipo_area real del catalogo (como admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/tipos-area"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[previo tipo_area] status=' + pm.response.code);",
+              "if (pm.response.code === 200) {",
+              "  var body = pm.response.json();",
+              "  if (body.items && body.items.length > 0) {",
+              "    pm.collectionVariables.set('tipo_area_valido', body.items[0].nombre);",
+              "    console.log('[previo tipo_area] usando: ' + body.items[0].nombre);",
+              "  } else { console.log('[previo tipo_area] ADVERTENCIA: catalogo vacio.'); }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba (sin asignar a Productor B)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/fincas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i=0;i<8;i++){ suf += letras.charAt(Math.floor(Math.random()*26)); }",
+              "pm.collectionVariables.set('sufijo_finca', suf);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP-1 finca] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP: la finca de prueba se crea correctamente (201)', function(){ pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var b = pm.response.json();",
+              "  pm.collectionVariables.set('id_finca_creada', b.id_finca);",
+              "  console.log('[SETUP-1 finca] id_finca_creada=' + b.id_finca + ' id_usuario=' + b.id_usuario);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G05-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"{{tipo_area_valido}}\",\n  \"superficie\": 500.00,\n  \"finca_id\": {{id_finca_creada}},\n  \"descripcion_infraestructura\": \"Infraestructura de prueba TC-M02-G05\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP-2 infra] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP: la infraestructura de prueba se crea correctamente (201)', function(){ pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var b = pm.response.json();",
+              "  pm.collectionVariables.set('id_infraestructura_creada', b.id_infraestructura);",
+              "  pm.collectionVariables.set('id_infraestructura_valida', b.id_infraestructura);",
+              "  console.log('[SETUP-2 infra] id_infraestructura_creada=' + b.id_infraestructura);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2b. Admin re-consulta esa misma infraestructura inmediatamente (control de consistencia)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_creada}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP-2b] status=' + pm.response.code + ' (deberia ser 200, la acaba de crear el mismo admin)');",
+              "pm.test('La infraestructura recien creada es visible de inmediato para el admin que la creo', function(){",
+              "  pm.expect(pm.response.code).to.equal(200);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0D (previo). Obtener id_especie real del catalogo global",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Catalogo de especies responde 200', function(){ pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "if (body.items && body.items.length > 0) {",
+              "  pm.collectionVariables.set('id_especie_valida', body.items[0].id_especie);",
+              "  console.log('[previo especie] id_especie=' + body.items[0].id_especie + ' nombre=' + body.items[0].nombre);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra un activo biologico real dentro de esa infraestructura",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_valida}},\n  \"id_infraestructura\": {{id_infraestructura_creada}},\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1500.00,\n  \"soporte_documental\": \"Factura-QA-G05-SETUP\",\n  \"identificador\": \"QA-G05-SETUP-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP-3 activo] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP: el activo de prueba se crea correctamente (201)', function(){ pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "  var b = pm.response.json();",
+              "  pm.collectionVariables.set('id_activo_creado', b.id_activo_biologico);",
+              "  console.log('[SETUP-3 activo] id_activo_creado=' + b.id_activo_biologico + ' id_usuario_dueno=' + b.id_usuario);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Login Productor B (cuenta de prueba activada, id 68)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prod2}}\",\n  \"contrasena\": \"{{contrasena_prod2}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[LOGIN Productor B] status=' + pm.response.code);",
+              "pm.test('Login Productor B exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_prod2', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-finca. Productor B consulta la finca creada por admin (control)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/fincas/{{id_finca_creada}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-finca] id=' + pm.collectionVariables.get('id_finca_creada') + ' status=' + pm.response.code);",
+              "pm.test('La finca ajena no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-infra-intento1. Productor B consulta la infraestructura creada por admin (intento 1/3)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_creada}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-infra intento 1] id=' + pm.collectionVariables.get('id_infraestructura_creada') + ' status=' + pm.response.code);",
+              "pm.test('La infraestructura ajena no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  var b = pm.response.json();",
+              "  console.log('[184j-infra intento 1] EXPUESTA: nombre=' + b.nombre_infraestructura + ' id_finca_dueno=' + b.id_finca);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-infra-intento2. Productor B consulta la infraestructura creada por admin (intento 2/3)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_creada}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-infra intento 2] id=' + pm.collectionVariables.get('id_infraestructura_creada') + ' status=' + pm.response.code);",
+              "pm.test('La infraestructura ajena no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  var b = pm.response.json();",
+              "  console.log('[184j-infra intento 2] EXPUESTA: nombre=' + b.nombre_infraestructura + ' id_finca_dueno=' + b.id_finca);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-infra-intento3. Productor B consulta la infraestructura creada por admin (intento 3/3)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_creada}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-infra intento 3] id=' + pm.collectionVariables.get('id_infraestructura_creada') + ' status=' + pm.response.code);",
+              "pm.test('La infraestructura ajena no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  var b = pm.response.json();",
+              "  console.log('[184j-infra intento 3] EXPUESTA: nombre=' + b.nombre_infraestructura + ' id_finca_dueno=' + b.id_finca);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-activo. Productor B consulta el activo biologico creado por admin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_creado}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-activo] id=' + pm.collectionVariables.get('id_activo_creado') + ' status=' + pm.response.code);",
+              "pm.test('El activo ajeno no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  var b = pm.response.json();",
+              "  console.log('[184j-activo] EXPUESTO: identificador=' + b.identificador + ' id_usuario_dueno=' + b.id_usuario + ' costo_adquisicion=' + b.costo_adquisicion);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184j-eventos. Productor B consulta el sub-recurso /eventos del activo ajeno",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_creado}}/eventos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184j-eventos] status=' + pm.response.code);",
+              "pm.test('El historial de eventos del activo ajeno no deberia ser accesible (403/404 esperado)', function(){",
+              "  pm.expect([403,404]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184k1. Productor B adivina id_activo=1 por fuerza bruta secuencial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184k1] status=' + pm.response.code);",
+              "pm.test('El ID adivinado no deberia exponer datos (403/404, o 200 solo si es su propio recurso)', function(){",
+              "  pm.expect([403,404,200]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184k2. Productor B adivina id_activo=2 por fuerza bruta secuencial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/2"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184k2] status=' + pm.response.code);",
+              "pm.test('El ID adivinado no deberia exponer datos (403/404, o 200 solo si es su propio recurso)', function(){",
+              "  pm.expect([403,404,200]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-184k3. Productor B adivina id_activo=3 por fuerza bruta secuencial",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/3"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[184k3] status=' + pm.response.code);",
+              "pm.test('El ID adivinado no deberia exponer datos (403/404, o 200 solo si es su propio recurso)', function(){",
+              "  pm.expect([403,404,200]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-183a. Payload JSON de gran tamano (~3MB) debe ser rechazado antes de procesarse",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_valida}},\n  \"id_infraestructura\": {{id_infraestructura_valida}},\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 5000.00,\n  \"soporte_documental\": \"Factura-QA-G05-BIG\",\n  \"identificador\": \"QA-G05-BIG-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\",\n  \"atributos_dinamicos\": {\"nota_extensa\": \"{{big_string}}\"}\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var chunk = 'x'.repeat(1024*1024);",
+              "var big = '';",
+              "for (var i=0;i<3;i++){ big += chunk; }",
+              "pm.collectionVariables.set('big_string', big);",
+              "console.log('[183a] payload generado: ' + (big.length/1024/1024).toFixed(2) + ' MB, id_infraestructura usado=' + pm.collectionVariables.get('id_infraestructura_valida') + ', id_especie usado=' + pm.collectionVariables.get('id_especie_valida'));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[183a] status=' + pm.response.code + ' tiempo=' + pm.response.responseTime + 'ms');",
+              "pm.test('Rechaza el payload sobredimensionado antes de procesarlo (400 o 413)', function () {",
+              "  pm.expect([400,413]).to.include(pm.response.code);",
+              "});",
+              "pm.test('No degrada a un error no controlado (nunca 500)', function () {",
+              "  pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "var raw = pm.response.text();",
+              "var patrones = [/Traceback/i, /site-packages/i, /psycopg2/i, /sqlalchemy/i, /File \"\\/.*\\.py\"/i];",
+              "patrones.forEach(function(p){",
+              "  pm.test('No expone detalle interno en el cuerpo (' + p + ')', function(){ pm.expect(p.test(raw)).to.eql(false); });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-183b. Anidamiento JSON extremo debe ser rechazado sin causar un error no controlado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_valida}},\n  \"id_infraestructura\": {{id_infraestructura_valida}},\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 5000.00,\n  \"soporte_documental\": \"Factura-QA-G05-NEST\",\n  \"identificador\": \"QA-G05-NEST-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\",\n  \"atributos_dinamicos\": {\"nivel_extremo\": {{nested_json}}}\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var depth = 3000;",
+              "var s = '1';",
+              "for (var i=0;i<depth;i++){ s = '{\"n\":' + s + '}'; }",
+              "pm.collectionVariables.set('nested_json', s);",
+              "console.log('[183b] profundidad generada=' + depth + ' tamano_aprox=' + s.length + ' bytes');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[183b] status=' + pm.response.code + ' tiempo=' + pm.response.responseTime + 'ms');",
+              "pm.test('Rechaza el anidamiento extremo antes de procesarlo (400 o 413)', function () {",
+              "  pm.expect([400,413]).to.include(pm.response.code);",
+              "});",
+              "pm.test('No degrada a un error no controlado (nunca 500)', function () {",
+              "  pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "var raw = pm.response.text();",
+              "var patrones = [/Traceback/i, /RecursionError/i, /site-packages/i, /File \"\\/.*\\.py\"/i];",
+              "patrones.forEach(function(p){",
+              "  pm.test('No expone detalle interno en el cuerpo (' + p + ')', function(){ pm.expect(p.test(raw)).to.eql(false); });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-183c. El servicio sigue respondiendo con normalidad tras los payloads anteriores",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[183c] status=' + pm.response.code + ' tiempo=' + pm.response.responseTime + 'ms');",
+              "pm.test('El backend sigue respondiendo con normalidad (200)', function(){ pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

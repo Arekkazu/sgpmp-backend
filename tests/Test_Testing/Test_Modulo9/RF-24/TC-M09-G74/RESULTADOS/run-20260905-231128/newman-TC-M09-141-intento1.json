@@ -1,0 +1,134 @@
+{
+  "caso": "TC-M09-141",
+  "grupo": "TC-M09-G74",
+  "runId": "run-20260905-231128",
+  "actor": {
+    "correo_coincide": false
+  },
+  "dispositivo": {},
+  "sensor": null,
+  "area": null,
+  "rangoTecnico": null,
+  "valorReferencia": "10.0000",
+  "observaciones": "QA TC-M09-141 G74 run-20260905-231128",
+  "endpoint": "/configuracion/sensores/3/calibrar",
+  "metodo": "POST",
+  "statuses": {
+    "Login Ingeniero": 200,
+    "Identidad del Ingeniero": 401,
+    "Permisos del Ingeniero": 401,
+    "Rango técnico del sensor": 401,
+    "Dispositivo activo": 401,
+    "Sensor asociado al dispositivo": 401,
+    "Área activa del sensor": 401,
+    "Historial BEFORE": 401,
+    "Registrar calibración TC-M09-141": 401,
+    "Historial AFTER": 401
+  },
+  "historyBefore": {
+    "ids": []
+  },
+  "calibracion": {},
+  "historyAfter": {
+    "ids": []
+  },
+  "assertions": {
+    "total": 23,
+    "failed": 23,
+    "failures": [
+      {
+        "source": "Identidad del Ingeniero",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Identidad del Ingeniero",
+        "error": "expected undefined to deeply equal 'ingeniero@pecuaria.co'"
+      },
+      {
+        "source": "Permisos del Ingeniero",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Permisos del Ingeniero",
+        "error": "expected false to deeply equal true"
+      },
+      {
+        "source": "Permisos del Ingeniero",
+        "error": "expected false to deeply equal true"
+      },
+      {
+        "source": "Permisos del Ingeniero",
+        "error": "expected false to deeply equal true"
+      },
+      {
+        "source": "Rango técnico del sensor",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Rango técnico del sensor",
+        "error": "expected undefined to exist"
+      },
+      {
+        "source": "Rango técnico del sensor",
+        "error": "Cannot read properties of undefined (reading 'valor_min')"
+      },
+      {
+        "source": "Rango técnico del sensor",
+        "error": "Cannot read properties of undefined (reading 'valor_min')"
+      },
+      {
+        "source": "Dispositivo activo",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Dispositivo activo",
+        "error": "expected undefined to deeply equal 1"
+      },
+      {
+        "source": "Sensor asociado al dispositivo",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Sensor asociado al dispositivo",
+        "error": "expected undefined to exist"
+      },
+      {
+        "source": "Área activa del sensor",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Área activa del sensor",
+        "error": "expected undefined to exist"
+      },
+      {
+        "source": "Historial BEFORE",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Registrar calibración TC-M09-141",
+        "error": "expected response to have status code 201 but got 401"
+      },
+      {
+        "source": "Registrar calibración TC-M09-141",
+        "error": "expected undefined to be a number"
+      },
+      {
+        "source": "Historial AFTER",
+        "error": "expected response to have status code 200 but got 401"
+      },
+      {
+        "source": "Historial AFTER",
+        "error": "expected undefined to exist"
+      },
+      {
+        "source": "Historial AFTER",
+        "error": "expected undefined to deeply equal NaN"
+      },
+      {
+        "source": "Historial AFTER",
+        "error": "Cannot read properties of undefined (reading 'id_dispositivo_iot')"
+      }
+    ]
+  },
+  "resultado": "FAIL"
+}

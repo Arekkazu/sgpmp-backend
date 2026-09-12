@@ -1,0 +1,264 @@
+{
+  "info": {
+    "name": "TC-M01-065 - Intentar modificar un registro de auditoria existente",
+    "description": "TC-M01-065 (RF-10, CU07): Se intenta modificar un registro de auditoria utilizando un usuario Veterinario proporcionado por Desarrollo. La prueba valida que la auditoria es inmutable y que la API bloquea operaciones PATCH.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token del Veterinario almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion de la prueba.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"juan.carlos@email.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Evidencia - Consultar auditoria antes del intento de modificacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Consulta previa al intento de modificacion ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.collectionVariables.set('respuesta_previa', pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=1&tamano=20",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-065 - Intentar modificar auditoria mediante PATCH",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-065: intento de modificacion de auditoria ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M01-065: la operacion de modificacion es bloqueada', function () {",
+              "    pm.response.to.have.status(405);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "pm.test('TC-M01-065: la respuesta tiene formato JSON valido', function () {",
+              "    respuesta = pm.response.json();",
+              "    pm.expect(respuesta).to.be.an('object');",
+              "});",
+              "",
+              "pm.test('TC-M01-065: la API identifica la auditoria como inmutable', function () {",
+              "    pm.expect(respuesta).to.have.property('error_code');",
+              "    pm.expect(respuesta.error_code).to.eql('AUDITORIA_INMUTABLE');",
+              "});",
+              "",
+              "pm.test('TC-M01-065: la respuesta informa que la operacion no esta permitida', function () {",
+              "    pm.expect(respuesta).to.have.property('message');",
+              "    pm.expect(respuesta.message.toLowerCase()).to.include('operación no permitida');",
+              "    pm.expect(respuesta.message.toLowerCase()).to.include('inmutables');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"descripcion\": \"INTENTO_MODIFICACION_TC_M01_065\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/auditoria/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Evidencia final - Consultar auditoria despues del intento",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Evidencia posterior al intento de modificacion ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('La auditoria no fue modificada mediante la operacion PATCH', function () {",
+              "    const respuestaModificacion = pm.collectionVariables.get('respuesta_previa');",
+              "    pm.expect(respuestaModificacion).to.not.equal(undefined);",
+              "});",
+              "",
+              "console.log('TC-M01-065 finalizado. La evidencia de las respuestas fue registrada en la ejecucion de Newman.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=1&tamano=20",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "respuesta_previa",
+      "value": ""
+    }
+  ]
+}

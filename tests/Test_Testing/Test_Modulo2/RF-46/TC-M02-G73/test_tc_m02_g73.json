@@ -1,0 +1,210 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g73-validacion-parametros-invalidos",
+    "name": "TC-M02-G73 - Validación de parámetros de consulta inválidos en historial (RF-46)",
+    "description": "Caso agrupado TC-M02-G73 (RF-46): Validación de parámetros de consulta inválidos en GET /activos-biologicos/{id_activo}/historial. Contiene TC-M02-120 (rango de fechas invertido) y TC-M02-122 (activo inexistente).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_activo",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "id_activo_inexistente",
+      "value": "999999",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('00.1 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Consultar historial con fechas invertidas (TC-M02-120)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial?fecha_inicio=2025-01-01&fecha_fin=2024-01-01",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo}}",
+            "historial"
+          ],
+          "query": [
+            {
+              "key": "fecha_inicio",
+              "value": "2025-01-01"
+            },
+            {
+              "key": "fecha_fin",
+              "value": "2024-01-01"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('[TC-M02-120] Código de respuesta HTTP debe ser 400 Bad Request o 422 Unprocessable Entity', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});",
+              "",
+              "pm.test('[TC-M02-120] Estructura estándar de ErrorResponse (error_code, message, timestamp)', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('object');",
+              "    pm.expect(jsonData.error_code).to.be.a('string');",
+              "    pm.expect(jsonData.message).to.be.a('string');",
+              "});",
+              "",
+              "pm.test('[TC-M02-120] Código de error interno es PARAMETROS_INVALIDOS o E-03', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.be.oneOf(['PARAMETROS_INVALIDOS', 'E-03', 'VAL_ENTRADA']);",
+              "});",
+              "",
+              "pm.test('[TC-M02-120] Mensaje de error indica que fecha_inicio no puede ser posterior a fecha_fin', function () {",
+              "    var jsonData = pm.response.json();",
+              "    var mensaje = (jsonData.message || jsonData.detail || '').toLowerCase();",
+              "    pm.expect(mensaje).to.include('posterior');",
+              "    pm.expect(mensaje).to.include('fecha');",
+              "});",
+              "",
+              "pm.test('[TC-M02-120] Tiempo de respuesta inferior a 1500ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar historial de activo inexistente (TC-M02-122)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_activo_inexistente}}/historial",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_inexistente}}",
+            "historial"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('[TC-M02-122] Código de respuesta HTTP debe ser 404 Not Found', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "pm.test('[TC-M02-122] Estructura estándar de ErrorResponse (error_code, message, timestamp)', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.be.an('object');",
+              "    pm.expect(jsonData.error_code).to.be.a('string');",
+              "    pm.expect(jsonData.message).to.be.a('string');",
+              "});",
+              "",
+              "pm.test('[TC-M02-122] Código de error interno es ACTIVO_NO_ENCONTRADO o E-01', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error_code).to.be.oneOf(['ACTIVO_NO_ENCONTRADO', 'E-01', 'NOT_FOUND']);",
+              "});",
+              "",
+              "pm.test('[TC-M02-122] Mensaje de error indica que el activo 999999 no existe o no fue encontrado', function () {",
+              "    var jsonData = pm.response.json();",
+              "    var mensaje = jsonData.message || jsonData.detail || '';",
+              "    pm.expect(mensaje).to.include('999999');",
+              "    pm.expect(mensaje.toLowerCase()).to.match(/(no fue encontrado|no existe)/);",
+              "});",
+              "",
+              "pm.test('[TC-M02-122] Tiempo de respuesta inferior a 1500ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1500);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1334 @@
+{
+  "info": {
+    "_postman_id": "322d87c9-ed8b-48b1-bf9c-d20f0bdf6b34",
+    "name": "TC-M02-G06 - Datos sensibles en logs + Fuzzing JSON dinamico",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200 o 201', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});",
+              "if (pm.response.code === 200 || pm.response.code === 201) {",
+              "    var json = pm.response.json();",
+              "    pm.collectionVariables.set('token_admin', json.token);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B-1. Login Productor B con contrasena INCORRECTA (marcador QA, genera evento fallido)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prod2}}\",\n  \"contrasena\": \"{{marcador_password_login_fallido}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0B-1 login fallido intencional: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0B-1 - login con contrasena incorrecta responde 401', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B-2. Login Productor B con contrasena CORRECTA",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prod2}}\",\n  \"contrasena\": \"{{contrasena_prod2}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0B-2 login correcto: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0B-2 - login correcto responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    var json = pm.response.json();",
+              "    pm.collectionVariables.set('token_prod2', json.token);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B-3. Productor B intenta cambiar su contrasena con contrasena_actual INCORRECTA (marcadores QA, genera evento fallido)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_prod2}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/contrasena/usuarios/{{id_usuario_prod2}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "contrasena",
+            "usuarios",
+            "{{id_usuario_prod2}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"{{marcador_password_cambio_actual}}\",\n  \"nueva_contrasena\": \"{{marcador_password_cambio_nueva}}\",\n  \"confirmar_nueva_contrasena\": \"{{marcador_password_cambio_nueva}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0B-3 cambio contrasena fallido intencional: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0B-3 - cambio de contrasena con actual incorrecta responde 401', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test('0B-3 - la contrasena de Productor B NO fue modificada (401, no 200)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(200);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g06}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g06', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set('id_finca_creada_g06', pm.response.json().id_finca);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G06-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g06}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G06\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set('id_infraestructura_creada_g06', pm.response.json().id_infraestructura);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Obtener id_especie real del catalogo global",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 especies: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - catalogo de especies responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "    var json = pm.response.json();",
+              "    var items = json.items || json;",
+              "    if (items && items.length > 0) {",
+              "        pm.collectionVariables.set('id_especie_valida_g06', items[0].id_especie);",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-185a. Admin consulta /auditoria filtrando LOGIN_FALLIDO (tipo_evento=4) de Productor B",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario={{id_usuario_prod2}}&tipo_evento=4&tamano=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "id_usuario",
+              "value": "{{id_usuario_prod2}}"
+            },
+            {
+              "key": "tipo_evento",
+              "value": "4"
+            },
+            {
+              "key": "tamano",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-185a auditoria login_fallido: ' + pm.response.code);",
+              "pm.test('TC-185a - consulta de auditoria responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('TC-185a - el registro de auditoria NO contiene la contrasena incorrecta usada (marcador)', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('marcador_password_login_fallido'));",
+              "});",
+              "pm.test('TC-185a - el registro de auditoria NO contiene la contrasena real de Productor B', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('contrasena_prod2'));",
+              "});",
+              "pm.test('TC-185a - no hay patron de hash bcrypt ($2a$/$2b$/$2y$) en la respuesta', function () {",
+              "    pm.expect(/\\$2[aby]\\$/.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-185b. Admin consulta /auditoria filtrando LOGIN_EXITOSO (tipo_evento=3) de Productor B",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario={{id_usuario_prod2}}&tipo_evento=3&tamano=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "id_usuario",
+              "value": "{{id_usuario_prod2}}"
+            },
+            {
+              "key": "tipo_evento",
+              "value": "3"
+            },
+            {
+              "key": "tamano",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-185b auditoria login_exitoso: ' + pm.response.code);",
+              "pm.test('TC-185b - consulta de auditoria responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('TC-185b - la respuesta NO contiene el token JWT emitido a Productor B', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('token_prod2'));",
+              "});",
+              "pm.test('TC-185b - no hay un patron de JWT (tres segmentos separados por punto, eyJ...) en la respuesta', function () {",
+              "    pm.expect(/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/.test(body)).to.eql(false);",
+              "});",
+              "pm.test('TC-185b - la respuesta NO contiene la contrasena real de Productor B', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('contrasena_prod2'));",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-185c. Admin consulta /auditoria filtrando CAMBIO_CONTRASENA fallido (tipo_evento=6) de Productor B",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario={{id_usuario_prod2}}&tipo_evento=6&tamano=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "id_usuario",
+              "value": "{{id_usuario_prod2}}"
+            },
+            {
+              "key": "tipo_evento",
+              "value": "6"
+            },
+            {
+              "key": "tamano",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-185c auditoria cambio_contrasena: ' + pm.response.code);",
+              "pm.test('TC-185c - consulta de auditoria responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('TC-185c - la respuesta NO contiene la contrasena_actual (marcador) enviada', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('marcador_password_cambio_actual'));",
+              "});",
+              "pm.test('TC-185c - la respuesta NO contiene la nueva_contrasena (marcador) enviada', function () {",
+              "    pm.expect(body).to.not.include(pm.collectionVariables.get('marcador_password_cambio_nueva'));",
+              "});",
+              "pm.test('TC-185c - no hay patron de hash bcrypt en la respuesta', function () {",
+              "    pm.expect(/\\$2[aby]\\$/.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-185d. Admin consulta /auditoria SIN filtro de tipo (todos los eventos recientes de Productor B) - revision agregada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario={{id_usuario_prod2}}&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "id_usuario",
+              "value": "{{id_usuario_prod2}}"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-185d auditoria agregada: ' + pm.response.code + ' len=' + body.length);",
+              "pm.test('TC-185d - consulta de auditoria responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('TC-185d - ninguno de los marcadores de contrasena aparece en el conjunto completo', function () {",
+              "    var marcadores = [",
+              "        pm.collectionVariables.get('marcador_password_login_fallido'),",
+              "        pm.collectionVariables.get('marcador_password_cambio_actual'),",
+              "        pm.collectionVariables.get('marcador_password_cambio_nueva'),",
+              "        pm.collectionVariables.get('contrasena_prod2')",
+              "    ];",
+              "    marcadores.forEach(function (m) {",
+              "        pm.expect(body).to.not.include(m);",
+              "    });",
+              "});",
+              "pm.test('TC-185d - no hay patron de JWT en la respuesta agregada', function () {",
+              "    pm.expect(/eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+/.test(body)).to.eql(false);",
+              "});",
+              "pm.test('TC-185d - no hay patron de hash bcrypt en la respuesta agregada', function () {",
+              "    pm.expect(/\\$2[aby]\\$/.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186a. Fuzzing: JSON con sintaxis malformada (coma colgante)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie_valida_g06}},\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura_creada_g06}},\n  \"cantidad_inicial\": 5,\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186a: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186a - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186a - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186a - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186b. Fuzzing: atributos_dinamicos como arreglo en vez de objeto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5,\n  \"atributos_dinamicos\": [\n    1,\n    2,\n    3\n  ]\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186b: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186b - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186b - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186b - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186c. Fuzzing: atributos_dinamicos como string en vez de objeto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5,\n  \"atributos_dinamicos\": \"no soy un objeto\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186c: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186c - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186c - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186c - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186d. Fuzzing: id_infraestructura con tipo incorrecto (string no numerico)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"no-es-un-id\",\n  \"cantidad_inicial\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186d: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186d - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186d - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186d - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186e. Fuzzing: id_infraestructura con entero extremo (fuera de rango)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": 999999999999999999999999,\n  \"cantidad_inicial\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186e: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186e - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186e - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186e - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186f. Fuzzing: costo_adquisicion con string no numerico",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"compra\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5,\n  \"costo_adquisicion\": \"gratis\",\n  \"soporte_documental\": \"factura-qa.pdf\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186f: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186f - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186f - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186f - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186g. Fuzzing: fecha_inicio_ciclo con entero en vez de fecha",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": 20260101,\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186g: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186g - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186g - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186g - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186h. Fuzzing: identificador con cadena extremadamente larga (excede varchar(50))",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"identificador\": \"{{identificador_largo}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.collectionVariables.set('identificador_largo', 'QA-' + 'X'.repeat(300));",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186h: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186h - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186h - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186h - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186i. Fuzzing: descripcion con byte nulo embebido",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5,\n  \"detalles_procedencia\": \"QA\\u0000NULO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186i: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186i - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186i - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186i - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186j. Fuzzing: raza con unicode especial (emoji, RTL override, zero-width) - no debe crashear",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"identificador\": \"QA-G06-Unicode-{{$timestamp}}\",\n  \"raza\": \"🐄QA‮​-raza\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var body = pm.response.text();",
+              "console.log('TC-186j: ' + pm.response.code + ' body=' + body);",
+              "pm.test('TC-186j - nunca responde 500 (error no controlado)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(500);",
+              "});",
+              "pm.test('TC-186j - responde con un codigo de rechazo controlado (400/422) o, si el valor es valido, lo acepta (201)', function () {",
+              "    pm.expect([201, 400, 422]).to.include(pm.response.code);",
+              "});",
+              "pm.test('TC-186j - la respuesta no expone detalles internos (traceback, rutas .py, sqlalchemy, psycopg2)', function () {",
+              "    var patronFuga = /Traceback|site-packages|psycopg2|sqlalchemy\\.exc|\\.py\\\"|File \\\"/i;",
+              "    pm.expect(patronFuga.test(body)).to.eql(false);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186k. Control final: activo POBLACIONAL valido se sigue creando con normalidad tras el fuzzing",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": \"{{id_especie_valida_g06}}\",\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g06}}\",\n  \"cantidad_inicial\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-186k control final: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-186k - tras el fuzzing, el servicio sigue aceptando una peticion valida (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-186l. Verificacion de salud del servicio tras el fuzzing",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-186l health: ' + pm.response.code);",
+              "pm.test('TC-186l - el servicio responde 200 OK tras el fuzzing', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "correo_prod2",
+      "value": "daniiella.vargass@gmail.com"
+    },
+    {
+      "key": "contrasena_prod2",
+      "value": "@Daniela1"
+    },
+    {
+      "key": "id_usuario_prod2",
+      "value": "68"
+    },
+    {
+      "key": "token_prod2",
+      "value": ""
+    },
+    {
+      "key": "marcador_password_login_fallido",
+      "value": "QA-Marcador-185-LoginFallido-NoRealX1"
+    },
+    {
+      "key": "marcador_password_cambio_actual",
+      "value": "QA-Marcador-185-CambioActual-NoRealX2"
+    },
+    {
+      "key": "marcador_password_cambio_nueva",
+      "value": "QAMarcador185Nueva#99"
+    },
+    {
+      "key": "sufijo_finca_g06",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada_g06",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada_g06",
+      "value": ""
+    },
+    {
+      "key": "id_especie_valida_g06",
+      "value": "4"
+    },
+    {
+      "key": "identificador_largo",
+      "value": ""
+    }
+  ]
+}

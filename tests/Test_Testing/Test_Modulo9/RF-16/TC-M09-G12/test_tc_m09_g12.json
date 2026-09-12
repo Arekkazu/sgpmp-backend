@@ -1,0 +1,468 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g12-validacion-etapas",
+    "name": "TC-M09-G12 - Validación de campos de Etapa productiva (RF-16 / TC-M09-22 a TC-M09-26)",
+    "description": "Caso de prueba E2E autocontenido para RF-16 / CU-02 (Módulo 9): Validaciones de límites de nombre (3 y 50 caracteres), rechazo de duración cero, negativa y decimal, y rechazo de duplicados case-insensitive.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspecie",
+      "value": "4",
+      "type": "string"
+    },
+    {
+      "key": "nombre50Chars",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEtapa3Chars",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEtapa50Chars",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEtapaEngorde",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticar Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 0 - Autenticación Admin exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      }
+    },
+    {
+      "name": "1. TC-M09-22: Nombre de EXACTAMENTE 3 caracteres ('Cri')",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var nom3 = 'Cri';",
+              "console.log('TC-M09-22: Nombre a enviar = \"' + nom3 + '\", Longitud real = ' + nom3.length);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M09-22 - Etapa con nombre de 3 caracteres es aceptada (HTTP 201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.nombre).to.equal('Cri');",
+              "    pm.collectionVariables.set('idEtapa3Chars', res.id_ciclo_biologico.toString());",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"Cri\",\n  \"descripcion\": \"Prueba TC-M09-22 (3 caracteres)\",\n  \"duracion_dias\": 30\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "2. TC-M09-23: Nombre de EXACTAMENTE 50 caracteres",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var nom50 = 'Etapa Con Nombre Exacto De Cincuenta Caracteres QA';",
+              "console.log('TC-M09-23: Nombre a enviar = \"' + nom50 + '\", Longitud real = ' + nom50.length);",
+              "pm.collectionVariables.set('nombre50Chars', nom50);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M09-23 - Etapa con nombre de 50 caracteres es aceptada (HTTP 201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.nombre.length).to.equal(50);",
+              "    pm.collectionVariables.set('idEtapa50Chars', res.id_ciclo_biologico.toString());",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"{{nombre50Chars}}\",\n  \"descripcion\": \"Prueba TC-M09-23 (50 caracteres)\",\n  \"duracion_dias\": 45\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "3. TC-M09-24: Rechazar duracion_dias = 0",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('TC-M09-24 STATUS:', pm.response.code);",
+              "console.log('TC-M09-24 BODY:', pm.response.text());",
+              "pm.test('TC-M09-24 - Rechazar etapa con duracion_dias = 0 (HTTP 400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var res = {};",
+              "try { res = pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M09-24 - Respuesta de error capturada', function () {",
+              "    pm.expect(res).to.have.property('error_code');",
+              "    console.log('TC-M09-24 error_code real:', res.error_code, '| mensaje:', res.message);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"Etapa Duracion Cero\",\n  \"descripcion\": \"Prueba TC-M09-24\",\n  \"duracion_dias\": 0\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "4. TC-M09-25a: Rechazar duracion_dias negativa (-5)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('TC-M09-25a STATUS:', pm.response.code);",
+              "console.log('TC-M09-25a BODY:', pm.response.text());",
+              "pm.test('TC-M09-25a - Rechazar etapa con duracion_dias negativa (HTTP 400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var res = {};",
+              "try { res = pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M09-25a - Respuesta de error capturada', function () {",
+              "    pm.expect(res).to.have.property('error_code');",
+              "    console.log('TC-M09-25a error_code real:', res.error_code, '| mensaje:', res.message);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"Etapa Duracion Negativa\",\n  \"descripcion\": \"Prueba TC-M09-25a\",\n  \"duracion_dias\": -5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "5. TC-M09-25b: Rechazar duracion_dias decimal (10.5)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('TC-M09-25b STATUS:', pm.response.code);",
+              "console.log('TC-M09-25b BODY:', pm.response.text());",
+              "pm.test('TC-M09-25b - Rechazar etapa con duracion_dias decimal (HTTP 400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "var res = {};",
+              "try { res = pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M09-25b - Respuesta de error capturada', function () {",
+              "    pm.expect(res).to.have.property('error_code');",
+              "    console.log('TC-M09-25b error_code real:', res.error_code, '| mensaje:', res.message);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"Etapa Duracion Decimal\",\n  \"descripcion\": \"Prueba TC-M09-25b\",\n  \"duracion_dias\": 10.5\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "6. TC-M09-26a: Registrar etapa base 'Engorde'",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M09-26a - Registro de etapa base Engorde exitoso (HTTP 201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "if (pm.response.code === 201) {",
+              "    var res = pm.response.json();",
+              "    pm.collectionVariables.set('idEtapaEngorde', res.id_ciclo_biologico.toString());",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"Engorde\",\n  \"descripcion\": \"Etapa base para prueba de duplicado TC-M09-26\",\n  \"duracion_dias\": 90\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "7. TC-M09-26b: Rechazar duplicado case-insensitive ('ENGORDE')",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('TC-M09-26b STATUS:', pm.response.code);",
+              "console.log('TC-M09-26b BODY:', pm.response.text());",
+              "pm.test('TC-M09-26b - Rechazar etapa duplicada (HTTP 409 Conflict o HTTP 400 Bad Request)', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([409, 400]);",
+              "});",
+              "var res = {};",
+              "try { res = pm.response.json(); } catch(e) {}",
+              "pm.test('TC-M09-26b - Respuesta de error por duplicado capturada', function () {",
+              "    pm.expect(res).to.have.property('error_code');",
+              "    console.log('TC-M09-26b error_code real:', res.error_code, '| mensaje:', res.message);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{idEspecie}},\n  \"nombre\": \"ENGORDE\",\n  \"descripcion\": \"Intento de registro duplicado en mayúsculas TC-M09-26\",\n  \"duracion_dias\": 90\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos" ]
+        }
+      }
+    },
+    {
+      "name": "8. Limpieza: Desactivar etapa 3 caracteres ('Cri')",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var id = pm.collectionVariables.get('idEtapa3Chars');",
+              "if (id) {",
+              "    pm.test('Limpieza 1 - Desactivación de etapa Cri exitosa (HTTP 200 OK)', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "} else {",
+              "    console.log('Limpieza 1 omitida (ID no asignado).');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/{{idEtapa3Chars}}/desactivar",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos", "{{idEtapa3Chars}}", "desactivar" ]
+        }
+      }
+    },
+    {
+      "name": "9. Limpieza: Desactivar etapa 50 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var id = pm.collectionVariables.get('idEtapa50Chars');",
+              "if (id) {",
+              "    pm.test('Limpieza 2 - Desactivación de etapa 50 caracteres exitosa (HTTP 200 OK)', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "} else {",
+              "    console.log('Limpieza 2 omitida (ID no asignado).');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/{{idEtapa50Chars}}/desactivar",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos", "{{idEtapa50Chars}}", "desactivar" ]
+        }
+      }
+    },
+    {
+      "name": "10. Limpieza: Desactivar etapa base 'Engorde'",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var id = pm.collectionVariables.get('idEtapaEngorde');",
+              "if (id) {",
+              "    pm.test('Limpieza 3 - Desactivación de etapa Engorde exitosa (HTTP 200 OK)', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "} else {",
+              "    console.log('Limpieza 3 omitida (ID no asignado).');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{jwt_token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/ciclos/{{idEtapaEngorde}}/desactivar",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "ciclos", "{{idEtapaEngorde}}", "desactivar" ]
+        }
+      }
+    }
+  ]
+}

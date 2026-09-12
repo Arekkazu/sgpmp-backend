@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "TC-M01-084 - Verificar que cada acceso al detalle de usuario genere auditoria",
+    "description": "TC-M01-084 (RF-12, CU07 - Consultar Historial y Auditoria): verifica que cada consulta a GET /usuarios/{id_usuario}/detalle quede trazada 1:1 en el log de auditoria (tipo_evento=18, TIPO_CONSULTA_DETALLE_USUARIO en consultar_detalle_usuario_use_case.py). No se usa a la Diana Paola Rincon real de TEST porque la API no expone ningun endpoint para resolver nombre -> id_usuario sin acceso directo a BD (UsuarioListadoResponse no trae id_usuario). En su lugar, la coleccion registra su propio usuario de prueba con ese mismo nombre y obtiene su id_usuario leyendo el evento de auditoria que genera su propio registro (tipo_evento=1, TIPO_REGISTRO_USUARIO, que guarda nombre_usuario congelado). Luego mide el total de eventos tipo_evento=18 del Administrador antes y despues de consultar el detalle de esa usuaria de prueba, y confirma que el delta es exactamente +1 y que el nuevo evento referencia su id_usuario en detalle.id_usuario_consultado. Todo por API (Newman), sin acceso a BD. Responsable: Juan Parra. Prioridad: Alta. Tipo: Pruebas de integracion / trazabilidad - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador y obtener su id_usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "",
+              "    function decodificarJwtSub(token) {",
+              "        const payloadB64 = token.split('.')[1];",
+              "        const normalizado = payloadB64.replace(/-/g, '+').replace(/_/g, '/');",
+              "        return JSON.parse(atob(normalizado)).sub;",
+              "    }",
+              "",
+              "    try {",
+              "        const idAdmin = decodificarJwtSub(respuesta.token);",
+              "        pm.collectionVariables.set('id_usuario_admin', idAdmin);",
+              "        console.log('Token del Administrador almacenado. id_usuario_admin: ' + idAdmin);",
+              "    } catch (e) {",
+              "        console.log('No se pudo decodificar el id_usuario del JWT: ' + e.message);",
+              "        postman.setNextRequest(null);",
+              "    }",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-084 - Registrar usuaria de prueba Diana Paola Rincon",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro de la usuaria de prueba Diana Paola Rincon ---');",
+              "console.log('correo utilizado: tc084.diana.' + pm.collectionVariables.get('run_id') + '@sgpmp-test.com');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-084: el registro de la usuaria de prueba responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "if (pm.response.code !== 201) {",
+              "    console.log('El registro de la usuaria de prueba fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc084.diana.{{run_id}}@sgpmp-test.com\",\n  \"telefono\": \"3001110084\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"{{run_id}}84\",\n  \"nombre\": \"Diana Paola\",\n  \"apellidos\": \"Rincón\",\n  \"fecha_nacimiento\": \"1998-05-14\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba123!\",\n  \"confirmar_contrasena\": \"Prueba123!\",\n  \"direccion\": \"Cra 1 #1-84, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-084 - Obtener id_usuario de Diana desde el evento de registro",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-084: la consulta de auditoria (tipo_evento=1) responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Ultimos eventos tipo_evento=1 (TIPO_REGISTRO_USUARIO) - evidencia ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const items = respuesta.items || [];",
+              "    const evento = items.find(function (e) { return e.nombre_usuario === 'Diana Paola Rincón'; });",
+              "",
+              "    pm.test('TC-M01-084: se encontro el evento de registro de Diana Paola Rincon con su id_usuario', function () {",
+              "        pm.expect(evento, 'no se encontro un evento tipo_evento=1 con nombre_usuario \"Diana Paola Rincón\" entre los ultimos registrados').to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (evento) {",
+              "        pm.collectionVariables.set('id_usuario_diana', evento.id_usuario);",
+              "        console.log('id_usuario de Diana Paola Rincon (obtenido via evento de registro): ' + evento.id_usuario);",
+              "    } else {",
+              "        postman.setNextRequest(null);",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=1&tamano=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "tipo_evento", "value": "1" },
+            { "key": "tamano", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-084 - Linea base: total de eventos de consulta de detalle (tipo_evento=18) antes del acceso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-084: la consulta de linea base de auditoria responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Linea base tipo_evento=18 del Administrador (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.collectionVariables.set('total_consultas_antes', respuesta.total);",
+              "    console.log('Total de eventos tipo_evento=18 del Administrador ANTES del acceso: ' + respuesta.total);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=18&id_usuario={{id_usuario_admin}}&tamano=1",
+          "host": [ "{{base_url}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "tipo_evento", "value": "18" },
+            { "key": "id_usuario", "value": "{{id_usuario_admin}}" },
+            { "key": "tamano", "value": "1" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-084 - Consultar el detalle de Diana Paola Rincon (accion bajo prueba)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Consulta del detalle de Diana Paola Rincon (id_usuario=' + pm.collectionVariables.get('id_usuario_diana') + ') ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-084: la consulta del detalle de Diana responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.test('TC-M01-084: el detalle consultado corresponde a Diana Paola Rincon', function () {",
+              "        pm.expect(respuesta.nombre + ' ' + respuesta.apellidos).to.equal('Diana Paola Rincón');",
+              "    });",
+              "    console.log('Acceso realizado sobre: ' + respuesta.nombre + ' ' + respuesta.apellidos + ' (' + respuesta.correo_electronico + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/{{id_usuario_diana}}/detalle",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "{{id_usuario_diana}}", "detalle" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-084 - Verificar que el acceso genero exactamente 1 registro de auditoria nuevo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-084: la consulta de verificacion de auditoria responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Eventos tipo_evento=18 del Administrador DESPUES del acceso (evidencia) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const totalAntes = Number(pm.collectionVariables.get('total_consultas_antes'));",
+              "    const totalDespues = Number(respuesta.total);",
+              "    const idUsuarioDiana = Number(pm.collectionVariables.get('id_usuario_diana'));",
+              "",
+              "    console.log('Total ANTES: ' + totalAntes + ' | Total DESPUES: ' + totalDespues);",
+              "",
+              "    pm.test('TC-M01-084: el acceso al detalle genero exactamente 1 nuevo registro de auditoria (1 acceso -> 1 evento)', function () {",
+              "        pm.expect(totalDespues).to.equal(totalAntes + 1);",
+              "    });",
+              "",
+              "    const items = respuesta.items || [];",
+              "    const nuevoEvento = items[0];",
+              "",
+              "    pm.test('TC-M01-084: existe al menos un evento en la respuesta', function () {",
+              "        pm.expect(nuevoEvento, 'no se recibieron items en la consulta de verificacion').to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (nuevoEvento) {",
+              "        console.log('Evento mas reciente -> id_evento: ' + nuevoEvento.id_evento + ', categoria: ' + nuevoEvento.categoria + ', resultado: ' + nuevoEvento.resultado + ', detalle: ' + JSON.stringify(nuevoEvento.detalle));",
+              "",
+              "        pm.test('TC-M01-084: el nuevo evento de auditoria referencia el acceso al detalle de Diana Paola Rincon', function () {",
+              "            pm.expect(nuevoEvento.detalle).to.have.property('id_usuario_consultado');",
+              "            pm.expect(Number(nuevoEvento.detalle.id_usuario_consultado)).to.equal(idUsuarioDiana);",
+              "        });",
+              "",
+              "        pm.test('TC-M01-084: el evento quedo registrado como exitoso', function () {",
+              "            pm.expect(nuevoEvento.resultado.toLowerCase()).to.equal('exitoso');",
+              "        });",
+              "",
+              "        pm.test('TC-M01-084: el evento pasa la verificacion de integridad del hash', function () {",
+              "            pm.expect(nuevoEvento.integridad_ok).to.equal(true);",
+              "        });",
+              "",
+              "        console.log('CONCLUSION: el acceso al detalle de Diana Paola Rincon quedo trazado 1:1 en el log de auditoria (id_evento ' + nuevoEvento.id_evento + ').');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento=18&id_usuario={{id_usuario_admin}}&tamano=1",
+          "host": [ "{{base_url}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "tipo_evento", "value": "18" },
+            { "key": "id_usuario", "value": "{{id_usuario_admin}}" },
+            { "key": "tamano", "value": "1" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_usuario_admin", "value": "" },
+    { "key": "id_usuario_diana", "value": "" },
+    { "key": "total_consultas_antes", "value": "" }
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-01 Registro exitoso (camino feliz)",
+    "description": "TC-M01-01: registro exitoso de usuario. El sistema debe crear la cuenta en estado PENDIENTE_ACTIVACION, asignar el rol PRODUCTOR por defecto y generar el token de activacion.\n\nNota: se usan datos DISTINTOS a los de TC-M01-03/04 (identificacion y correo nuevos) porque los originales (1075334521 / ana.martinez.qa1@sgpmp-test.com) ya quedaron registrados en TEST al correr la precondicion de TC-M01-03, y reusarlos aqui daria 409 en vez de 201.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-01 - Registro exitoso de usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-01: HTTP 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('TC-M01-01: la respuesta trae un cuerpo JSON no vacio', function () {",
+              "    pm.response.to.be.json;",
+              "    pm.expect(pm.response.text().length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "// La API no tiene documentado publicamente el esquema exacto de respuesta,",
+              "// asi que este bloque solo imprime el cuerpo para verificacion manual de:",
+              "// estado = PENDIENTE_ACTIVACION, rol = PRODUCTOR, y generacion del token de activacion.",
+              "console.log('--- Respuesta completa de TC-M01-01 (verificar manualmente estado/rol/token) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "try {",
+              "    const body = pm.response.json();",
+              "    pm.collectionVariables.set('tc_m01_01_response', JSON.stringify(body));",
+              "} catch (e) {",
+              "    console.log('La respuesta no pudo parsearse como JSON:', e.message);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"majito231027@hotmail.com\",\n  \"telefono\": \"3125557892\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"1193208092\",\n  \"nombre\": \"Maria\",\n  \"apellidos\": \"Pérez Gómez\",\n  \"fecha_nacimiento\": \"1995-07-22\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba#2026\",\n  \"direccion\": \"Cra 5 #12-34, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "tc_m01_01_response", "value": "" }
+  ]
+}

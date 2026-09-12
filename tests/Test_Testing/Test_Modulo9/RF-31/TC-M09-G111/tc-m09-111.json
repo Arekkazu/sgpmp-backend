@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "TC-M09-G111 (TC-M09-211/212)",
+    "description": "Validacion de la especie asociada a la plantilla, tanto activa como inactiva (RF-31, CU-07, dependencia de RF-15). TC-M09-211: crear una plantilla asociada a una especie ACTIVA (Bovino, segun la ficha) debe registrar la asociacion correctamente. TC-M09-212: crear una plantilla asociada a una especie INACTIVA (Porcino, segun la ficha) debe rechazarse con 404 y no debe quedar ninguna plantilla creada. Como no se conoce de antemano si existe una especie inactiva real en el ambiente de TEST, el paso 0C busca dinamicamente una especie inactiva (por nombre 'Porcino' o, si no existe con ese nombre, cualquiera con activo=false) y deja el resultado impreso en consola para poder adaptar el caso si el dato de prueba no existe todavia. Ejecutar con: newman run tc-m09-111.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-111.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_activa", "value": "" },
+    { "key": "id_especie_inactiva", "value": "999999" },
+    { "key": "id_especie_inactiva_es_real", "value": "false" },
+    { "key": "template_name_activa", "value": "" },
+    { "key": "template_name_inactiva", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "0B. Obtener una especie ACTIVA (idealmente 'Bovino', segun la ficha)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) {",
+        "    var bovino = body.items.find(function (e) { return (e.nombre || '').toLowerCase().indexOf('bovino') !== -1; });",
+        "    var elegida = bovino || body.items[0];",
+        "    pm.collectionVariables.set('id_especie_activa', elegida.id_especie);",
+        "    pm.collectionVariables.set('template_name_activa', 'QA-EspecieActiva-' + Date.now());",
+        "    console.log('Especie ACTIVA elegida: id_especie=' + elegida.id_especie + ' nombre=' + elegida.nombre + (bovino ? ' (coincide con Bovino de la ficha)' : ' (Bovino no encontrado en la lista de activas, se usa la primera disponible)'));",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "0C. Buscar una especie INACTIVA (idealmente 'Porcino', segun la ficha)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LISTA COMPLETA ESPECIES] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "var items = body.items || [];",
+        "var esInactiva = function (e) { return e.es_activo === false || e.activo === false || e.activa === false; };",
+        "var porcino = items.find(function (e) { return (e.nombre || '').toLowerCase().indexOf('porcino') !== -1; });",
+        "var todasInactivas = items.filter(esInactiva);",
+        "var inactiva = todasInactivas[0];",
+        "var elegida = null;",
+        "console.log('Especies inactivas encontradas en el ambiente (' + todasInactivas.length + '): ' + todasInactivas.map(function (e) { return e.nombre + ' (id=' + e.id_especie + ')'; }).join(', '));",
+        "if (porcino && esInactiva(porcino)) {",
+        "    elegida = porcino;",
+        "    console.log('Especie INACTIVA elegida: Porcino (id_especie=' + porcino.id_especie + '), coincide exactamente con la ficha.');",
+        "} else if (inactiva) {",
+        "    elegida = inactiva;",
+        "    console.log('NOTA: no existe una especie llamada \"Porcino\" en este catalogo (sistema acuicola, no gandaero) -- se usa como sustituto real la primera especie inactiva encontrada: id_especie=' + inactiva.id_especie + ' nombre=' + inactiva.nombre);",
+        "} else if (porcino) {",
+        "    console.log('ADVERTENCIA: se encontro \"Porcino\" (id_especie=' + porcino.id_especie + ') pero esta ACTIVA en este ambiente, no inactiva como pide la ficha. No se encontro ninguna especie inactiva en absoluto.');",
+        "} else {",
+        "    console.log('ADVERTENCIA: no existe ninguna especie inactiva en el ambiente de TEST en este momento. TC-M09-212 no se puede ejecutar con datos reales tal como esta.');",
+        "}",
+        "pm.collectionVariables.set('template_name_inactiva', 'QA-EspecieInactiva-' + Date.now());",
+        "if (elegida) {",
+        "    pm.collectionVariables.set('id_especie_inactiva', elegida.id_especie);",
+        "    pm.collectionVariables.set('id_especie_inactiva_es_real', 'true');",
+        "} else {",
+        "    console.log('Se usara el id sustituto 999999 (inexistente) en el siguiente paso -- esto valida un caso distinto (especie inexistente) y no el que pide la ficha exactamente (especie existente pero inactiva). Revisar con el equipo si se puede provisionar una especie inactiva real en TEST.');",
+        "    pm.collectionVariables.set('id_especie_inactiva_es_real', 'false');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=false"
+      }
+    },
+    {
+      "name": "1. TC-M09-211 - Crear plantilla asociada a especie ACTIVA (debe aceptarse)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[ESPECIE ACTIVA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-211: se crea con 201 y queda asociada a la especie activa', function () {",
+        "    pm.response.to.have.status(201);",
+        "});",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.test('TC-M09-211: la plantilla creada tiene el id_especie correcto', function () {",
+        "        pm.expect(String(body.id_especie)).to.eql(String(pm.collectionVariables.get('id_especie_activa')));",
+        "    });",
+        "    console.log('Plantilla creada OK: id_plantilla=' + body.id_plantilla + ' id_especie=' + body.id_especie);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_activa}}\",\n  \"id_especie\": {{id_especie_activa}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.1 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-212 - Crear plantilla asociada a especie INACTIVA (debe rechazarse con 404)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var esReal = pm.collectionVariables.get('id_especie_inactiva_es_real') === 'true';",
+        "console.log('¿La especie inactiva usada es un dato real del ambiente (no un id sustituto inexistente)?: ' + esReal);",
+        "console.log('[ESPECIE INACTIVA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-212: debe rechazarse con 404 (no debe crear la plantilla)', function () {",
+        "    pm.response.to.have.status(404);",
+        "});",
+        "pm.test('TC-M09-212: la respuesta no debe contener una plantilla creada (sin id_plantilla)', function () {",
+        "    var body = pm.response.json();",
+        "    pm.expect(body).to.not.have.property('id_plantilla');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"{{template_name_inactiva}}\",\n  \"id_especie\": {{id_especie_inactiva}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio_kg\", \"valor\": 1.1 } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    }
+  ]
+}

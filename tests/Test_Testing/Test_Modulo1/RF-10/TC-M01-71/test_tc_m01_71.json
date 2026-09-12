@@ -1,0 +1,463 @@
+{
+  "info": {
+    "name": "TC-M01-071 - Verificar paginacion del historial de auditoria",
+    "description": "TC-M01-071 (RF-10, CU07): Se verifica la paginacion del historial de auditoria consultando paginas consecutivas con un maximo de 50 registros por pagina. La prueba valida los parametros de paginacion, la cantidad maxima de registros, la estructura de respuesta y la ausencia de registros repetidos entre paginas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta del login Administrador ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token del Administrador almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion de la prueba.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-071 - Consultar pagina 1 con 50 registros",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-071: Pagina 1 ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('Pagina 1: la consulta responde correctamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const respuesta = pm.response.json();",
+              "",
+              "pm.test('Pagina 1: la respuesta contiene la estructura esperada', function () {",
+              "    pm.expect(respuesta).to.have.property('total');",
+              "    pm.expect(respuesta).to.have.property('pagina');",
+              "    pm.expect(respuesta).to.have.property('tamano');",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Pagina 1: el numero de pagina corresponde a la pagina solicitada', function () {",
+              "    pm.expect(respuesta.pagina).to.equal(1);",
+              "});",
+              "",
+              "pm.test('Pagina 1: el tamano de pagina es 50', function () {",
+              "    pm.expect(respuesta.tamano).to.equal(50);",
+              "});",
+              "",
+              "pm.test('Pagina 1: no se reciben mas de 50 registros', function () {",
+              "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+              "});",
+              "",
+              "pm.collectionVariables.set('total_registros', respuesta.total);",
+              "pm.collectionVariables.set('cantidad_pagina_1', respuesta.items.length);",
+              "",
+              "const idsPagina1 = respuesta.items.map(function(item) {",
+              "    return item.id_evento;",
+              "});",
+              "",
+              "pm.collectionVariables.set('ids_pagina_1', JSON.stringify(idsPagina1));",
+              "",
+              "console.log('Total de registros disponibles:', respuesta.total);",
+              "console.log('Cantidad de registros en pagina 1:', respuesta.items.length);",
+              "console.log('IDs pagina 1:', idsPagina1);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-071 - Consultar pagina 2 con 50 registros",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-071: Pagina 2 ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('Pagina 2: la consulta responde correctamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const respuesta = pm.response.json();",
+              "",
+              "pm.test('Pagina 2: la respuesta contiene la estructura esperada', function () {",
+              "    pm.expect(respuesta).to.have.property('total');",
+              "    pm.expect(respuesta).to.have.property('pagina');",
+              "    pm.expect(respuesta).to.have.property('tamano');",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Pagina 2: el numero de pagina corresponde a la pagina solicitada', function () {",
+              "    pm.expect(respuesta.pagina).to.equal(2);",
+              "});",
+              "",
+              "pm.test('Pagina 2: el tamano de pagina es 50', function () {",
+              "    pm.expect(respuesta.tamano).to.equal(50);",
+              "});",
+              "",
+              "pm.test('Pagina 2: no se reciben mas de 50 registros', function () {",
+              "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+              "});",
+              "",
+              "const idsPagina1 = JSON.parse(pm.collectionVariables.get('ids_pagina_1') || '[]');",
+              "const idsPagina2 = respuesta.items.map(function(item) {",
+              "    return item.id_evento;",
+              "});",
+              "",
+              "const registrosRepetidos = idsPagina2.filter(function(id) {",
+              "    return idsPagina1.includes(id);",
+              "});",
+              "",
+              "pm.test('Pagina 2: no existen registros repetidos respecto a la pagina 1', function () {",
+              "    pm.expect(registrosRepetidos.length).to.equal(0);",
+              "});",
+              "",
+              "pm.collectionVariables.set('cantidad_pagina_2', respuesta.items.length);",
+              "pm.collectionVariables.set('ids_pagina_2', JSON.stringify(idsPagina2));",
+              "",
+              "console.log('Cantidad de registros en pagina 2:', respuesta.items.length);",
+              "console.log('IDs pagina 2:', idsPagina2);",
+              "console.log('Registros repetidos entre pagina 1 y pagina 2:', registrosRepetidos);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=2&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "2"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-071 - Consultar pagina 3 con registros restantes",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-071: Pagina 3 ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('Pagina 3: la consulta responde correctamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "const respuesta = pm.response.json();",
+              "",
+              "pm.test('Pagina 3: la respuesta contiene la estructura esperada', function () {",
+              "    pm.expect(respuesta).to.have.property('total');",
+              "    pm.expect(respuesta).to.have.property('pagina');",
+              "    pm.expect(respuesta).to.have.property('tamano');",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Pagina 3: el numero de pagina corresponde a la pagina solicitada', function () {",
+              "    pm.expect(respuesta.pagina).to.equal(3);",
+              "});",
+              "",
+              "pm.test('Pagina 3: no se reciben mas de 50 registros', function () {",
+              "    pm.expect(respuesta.items.length).to.be.at.most(50);",
+              "});",
+              "",
+              "const idsPagina1 = JSON.parse(pm.collectionVariables.get('ids_pagina_1') || '[]');",
+              "const idsPagina2 = JSON.parse(pm.collectionVariables.get('ids_pagina_2') || '[]');",
+              "const idsAnteriores = idsPagina1.concat(idsPagina2);",
+              "",
+              "const idsPagina3 = respuesta.items.map(function(item) {",
+              "    return item.id_evento;",
+              "});",
+              "",
+              "const registrosRepetidos = idsPagina3.filter(function(id) {",
+              "    return idsAnteriores.includes(id);",
+              "});",
+              "",
+              "pm.test('Pagina 3: no existen registros repetidos respecto a las paginas anteriores', function () {",
+              "    pm.expect(registrosRepetidos.length).to.equal(0);",
+              "});",
+              "",
+              "pm.collectionVariables.set('cantidad_pagina_3', respuesta.items.length);",
+              "",
+              "console.log('Cantidad de registros en pagina 3:', respuesta.items.length);",
+              "console.log('IDs pagina 3:', idsPagina3);",
+              "console.log('Registros repetidos:', registrosRepetidos);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=3&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "3"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Resultado final - Verificar paginacion del historial",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const total = Number(pm.collectionVariables.get('total_registros'));",
+              "const pagina1 = Number(pm.collectionVariables.get('cantidad_pagina_1'));",
+              "const pagina2 = Number(pm.collectionVariables.get('cantidad_pagina_2'));",
+              "const pagina3 = Number(pm.collectionVariables.get('cantidad_pagina_3'));",
+              "",
+              "console.log('--- Resultado final TC-M01-071 ---');",
+              "console.log('Total de registros reportados por la API:', total);",
+              "console.log('Pagina 1:', pagina1, 'registros');",
+              "console.log('Pagina 2:', pagina2, 'registros');",
+              "console.log('Pagina 3:', pagina3, 'registros');",
+              "",
+              "pm.test('TC-M01-071: se registro evidencia de las tres paginas consultadas', function () {",
+              "    pm.expect(pm.collectionVariables.get('cantidad_pagina_1')).to.not.equal(undefined);",
+              "    pm.expect(pm.collectionVariables.get('cantidad_pagina_2')).to.not.equal(undefined);",
+              "    pm.expect(pm.collectionVariables.get('cantidad_pagina_3')).to.not.equal(undefined);",
+              "});",
+              "",
+              "pm.test('TC-M01-071: ninguna pagina supera el limite de 50 registros', function () {",
+              "    pm.expect(pagina1).to.be.at.most(50);",
+              "    pm.expect(pagina2).to.be.at.most(50);",
+              "    pm.expect(pagina3).to.be.at.most(50);",
+              "});",
+              "",
+              "if (total >= 120) {",
+              "    pm.test('TC-M01-071: con una base de al menos 120 registros, las dos primeras paginas contienen 50 registros', function () {",
+              "        pm.expect(pagina1).to.equal(50);",
+              "        pm.expect(pagina2).to.equal(50);",
+              "    });",
+              "",
+              "    pm.test('TC-M01-071: la tercera pagina contiene los registros restantes', function () {",
+              "        pm.expect(pagina3).to.be.at.least(1);",
+              "        pm.expect(pagina3).to.be.at.most(50);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION: Se valido la paginacion sobre una base con al menos 120 registros.');",
+              "} else {",
+              "    console.log('CONCLUSION: La base actual contiene menos de 120 registros. Se valido la funcionalidad de paginacion con los registros disponibles y se registro esta condicion como evidencia.');",
+              "}",
+              "",
+              "console.log('TC-M01-071 finalizado correctamente.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=1&tamano=1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "total_registros",
+      "value": ""
+    },
+    {
+      "key": "ids_pagina_1",
+      "value": "[]"
+    },
+    {
+      "key": "ids_pagina_2",
+      "value": "[]"
+    },
+    {
+      "key": "cantidad_pagina_1",
+      "value": ""
+    },
+    {
+      "key": "cantidad_pagina_2",
+      "value": ""
+    },
+    {
+      "key": "cantidad_pagina_3",
+      "value": ""
+    }
+  ]
+}

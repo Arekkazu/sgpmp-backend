@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "TC-M02-G60 (parte Postman) - Inmutabilidad y auditoria de eventos reproductivos",
+    "description": "TC-M02-G60 (RF-42/RF-52, CU08), sub-casos TC-M02-235 y TC-M02-236. El sub-caso TC-M02-237 (rechazo de reasignacion de madre/padre a una cria ya existente) se prueba aparte con Pytest (test_tc_m02_237_reasignacion_genealogica.py) -- no solo porque el bug de escritura ya confirmado en TC-M02-G53/G55/G57/G58 (500 en cualquier insert de modulo2.eventos_reproductivos) impide probarlo en vivo, sino porque, tras revision (2026-09-09), el escenario LITERAL de la ficha (reasignar madre/padre a una CRIA ya existente) no es materializable en absoluto: no existe ninguna entidad 'cria' individual en el modelo de datos (gap ya documentado en TC-M02-G58). La aproximacion mas cercana -- una hembra con una inseminacion previa recibiendo una segunda con un padre distinto -- resulto ser comportamiento CORRECTO del sistema (un nuevo ciclo reproductivo valido), no un bug; ver el docstring de test_tc_m02_237_reasignacion_genealogica.py para el detalle completo. Conclusion final de TC-M02-237: NO APLICA / no es un hallazgo reportable.\n\nSub-caso 1 (TC-M02-235): la ficha describe el endpoint 'DELETE /activos-biologicos/{id_activo}/eventos/reproductivo/{id_evento}', pero ese endpoint NO EXISTE en el router (activo_biologico_router.py solo registra POST sobre '/{id_activo}/eventos/reproductivo', sin ningun DELETE ni ruta con {id_evento}). Confirmado en vivo: cualquier DELETE a esa ruta responde 404 'Not Found' generico de FastAPI (no el formato de error propio de la app), sin importar si el id_evento existe o no -- la inmutabilidad se logra por AUSENCIA de capacidad de borrado, no por una regla de negocio activa que la rechace explicitamente. Funcionalmente el resultado pedido por el RF se cumple (el evento nunca puede eliminarse), pero el mecanismo real difiere de lo que la ficha describe (un 403/409 con mensaje de negocio).\n\nSub-caso 2 (TC-M02-236): registrar un evento INSEMINACION (que se sabe fallara con 500 por el bug de TC-M02-G53) y consultar inmediatamente GET /activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={id}. Confirmado en vivo (codigo fuente: registrar_evento_reproductivo_use_case.py, bloque except) que el use case SI registra un evento de auditoria incluso cuando el evento reproductivo en si falla -- tipo_evento=EVENTO_REPRODUCTIVO_FALLIDO, resultado=FALLIDO, rf_origen=RF42, id_usuario_responsable presente. El mecanismo de auditoria funciona correctamente de forma independiente al bug de escritura; este sub-caso documenta ese comportamiento (el 'resultado de la operacion' que refleja la bitacora es FALLIDO, no EXITOSO, porque hoy ningun evento reproductivo puede completarse con exito).\n\nENDPOINTS REALES BAJO PRUEBA: DELETE /activos-biologicos/{id_activo}/eventos/reproductivo/{id_evento} (inexistente); POST /activos-biologicos/{id_activo}/eventos/reproductivo; GET /activos-biologicos/auditoria.\n\nLa coleccion es autocontenida: registra su propia hembra y su propio macho (INDIVIDUAL, especie Tilapia id=10) sobre id_infraestructura=3 (finca 1).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion / Funcional. Herramienta: API - Postman (Newman) [parte 1 de 2 de TC-M02-G60].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-235) - Intentar eliminar (DELETE) un evento reproductivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: DELETE sobre un evento reproductivo (endpoint no existe en el router) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: la eliminacion es rechazada (no HTTP 200/204) -- el evento nunca puede eliminarse porque el endpoint DELETE no existe en absoluto (404 generico de FastAPI, no una regla de negocio explicita)', function () {",
+              "    pm.expect(pm.response.code).to.not.be.oneOf([200, 204]);",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: HTTP ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/1/eventos/reproductivo/999999",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "1", "eventos", "reproductivo", "999999" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra (madre) ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la madre responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_madre', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-madre-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"MADRE-G60-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar macho (padre) ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del padre responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_padre', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-padre-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"PADRE-G60-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.6\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/2 (TC-M02-236) - Registrar evento INSEMINACION",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 1: inseminacion (se sabe que fallara con 500, ver TC-M02-G53) ---');",
+              "console.log(pm.response.text());",
+              "console.log('Se continua de todas formas para verificar que la auditoria registre el intento.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"inseminacion\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/2 (TC-M02-236) - Consultar bitacora de auditoria (RF-52)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 2: bitacora de auditoria filtrada por rf_origen=RF42 e id_activo_biologico ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.test('Sub-caso 2: existe al menos un registro de auditoria para el intento de evento reproductivo, con rf_origen=RF42 y usuario responsable presente', function () {",
+              "        pm.expect(respuesta.registros.length).to.be.greaterThan(0);",
+              "        const registro = respuesta.registros[0];",
+              "        pm.expect(registro.rf_origen).to.equal('RF42');",
+              "        pm.expect(registro.id_usuario_responsable).to.not.equal(null);",
+              "        pm.expect(registro.resultado).to.be.oneOf(['EXITOSO', 'FALLIDO']);",
+              "    });",
+              "    console.log('CONCLUSION sub-caso 2: ' + respuesta.registros.length + ' registro(s) de auditoria encontrados. resultado=' + (respuesta.registros[0] ? respuesta.registros[0].resultado : 'N/A') + ' (FALLIDO es lo esperado mientras el bug de TC-M02-G53 siga presente; el mecanismo de auditoria en si funciona correctamente).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF42&id_activo_biologico={{id_madre}}&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF42" },
+            { "key": "id_activo_biologico", "value": "{{id_madre}}" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_madre", "value": "" },
+    { "key": "id_padre", "value": "" }
+  ]
+}

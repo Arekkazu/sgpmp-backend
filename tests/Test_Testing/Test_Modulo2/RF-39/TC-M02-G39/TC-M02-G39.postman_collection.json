@@ -1,0 +1,177 @@
+{
+  "info": {
+    "name": "TC-M02-G39 - Registro de eventos biologicos segun estado operativo del activo",
+    "description": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-072 (ACTIVO), TC-M02-073 (EN_TRATAMIENTO) y TC-M02-074 (AISLADO). Usa eventos sanitarios (RF-41) como tipo representativo porque usa el gate compartido validar_estado_permite_eventos() y no depende de una fase productiva activa (a diferencia de crecimiento/RF-40 y productivo/RF-43, bloqueados hoy por INC-M02-37-01). Se pasa 'fecha' explicita en cada evento para evitar el defecto ya reportado INC-M02-41-01 (fecha por defecto rechazada por trg_fn_evento_fecha_coherente).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "3" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0B. Setup - Registrar activo POBLACIONAL de prueba (nace ACTIVO; GET /eventos solo aplica a lotes)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"cantidad_inicial\": 100,\n  \"peso_promedio_inicial\": 0.05\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) {",
+          "  const body = pm.response.json();",
+          "  pm.collectionVariables.set('id_activo', body.id_activo_biologico);",
+          "  pm.test('Nace en estado ACTIVO', function () { pm.expect(body.nombre_estado).to.eql('ACTIVO'); });",
+          "}"
+        ] } }
+      ]
+    },
+    {
+      "name": "1. TC-M02-072 - Registrar evento biologico valido sobre activo ACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-072: evento sobre activo ACTIVO\",\n  \"fecha\": \"{{fecha_evento_1}}\"\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "const f = new Date(Date.now() - 2000).toISOString();",
+          "pm.collectionVariables.set('fecha_evento_1', f);"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[TC-M02-072] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('RF-39: evento sobre activo ACTIVO se registra (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) {",
+          "  const body = pm.response.json();",
+          "  pm.test('El evento queda asociado al activo y al usuario responsable', function () {",
+          "    pm.expect(body.evento.id_activo_biologico).to.eql(pm.collectionVariables.get('id_activo') * 1);",
+          "    pm.expect(body.evento.id_usuario).to.be.a('number');",
+          "  });",
+          "}"
+        ] } }
+      ]
+    },
+    {
+      "name": "2. Transicion a EN_TRATAMIENTO (RF-44, para la precondicion de TC-M02-073)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": { "mode": "raw", "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy}}\",\n  \"motivo_cambio\": \"QA-G39: precondicion TC-M02-073\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Transicion a EN_TRATAMIENTO aceptada (200)', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "3. TC-M02-073 - Permitir evento sobre activo EN_TRATAMIENTO",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-073: evento sobre activo EN_TRATAMIENTO\",\n  \"fecha\": \"{{fecha_evento_2}}\"\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "const f = new Date(Date.now() - 2000).toISOString();",
+          "pm.collectionVariables.set('fecha_evento_2', f);"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[TC-M02-073] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('RF-39: EN_TRATAMIENTO permite el registro (201, no bloquea)', function () { pm.response.to.have.status(201); });"
+        ] } }
+      ]
+    },
+    {
+      "name": "4. Transicion a AISLADO (RF-44, para la precondicion de TC-M02-074)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": { "mode": "raw", "raw": "{\n  \"estado_nuevo\": \"AISLADO\",\n  \"fecha_cambio_estado\": \"{{fecha_hoy}}\",\n  \"motivo_cambio\": \"QA-G39: precondicion TC-M02-074\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Transicion a AISLADO aceptada (200)', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "5. TC-M02-074 - Permitir evento sobre activo AISLADO",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"TC-M02-074: evento sobre activo AISLADO\",\n  \"fecha\": \"{{fecha_evento_3}}\"\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "const f = new Date(Date.now() - 2000).toISOString();",
+          "pm.collectionVariables.set('fecha_evento_3', f);"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[TC-M02-074] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('RF-39: AISLADO permite el registro (201, no bloquea)', function () { pm.response.to.have.status(201); });"
+        ] } }
+      ]
+    },
+    {
+      "name": "6. Verificacion - GET historial de eventos del activo",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[VERIFICACION] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El historial responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('Los 3 eventos (ACTIVO, EN_TRATAMIENTO, AISLADO) quedaron en el historial', function () {",
+        "  pm.expect(body.total).to.eql(3);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "7. Verificacion - bitacora de auditoria registra los 3 eventos exitosos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF41&id_activo_biologico={{id_activo}}",
+          "host": ["{{base_url}}"], "path": ["activos-biologicos", "auditoria"],
+          "query": [{ "key": "rf_origen", "value": "RF41" }, { "key": "id_activo_biologico", "value": "{{id_activo}}" }]
+        }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[AUDITORIA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('La bitacora responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('Existen 3 registros EVENTO_SANITARIO_REGISTRADO exitosos para este activo', function () {",
+        "  const exitosos = (body.registros || []).filter((r) => r.tipo_evento === 'EVENTO_SANITARIO_REGISTRADO' && r.resultado === 'EXITOSO');",
+        "  pm.expect(exitosos.length).to.eql(3);",
+        "});"
+      ] } }]
+    }
+  ]
+}

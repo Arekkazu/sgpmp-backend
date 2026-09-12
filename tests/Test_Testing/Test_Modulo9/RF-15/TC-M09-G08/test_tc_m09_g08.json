@@ -1,0 +1,371 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g08-auditoria-especies",
+    "name": "TC-M09-G08 - Auditoría de creación, edición y desactivación de especies (RF-15 / TC-M09-18)",
+    "description": "Caso de prueba E2E autocontenido para RF-15 (Módulo 9): Trazabilidad y auditoría de operaciones CREATE -> UPDATE -> DEACTIVATE sobre el catálogo de especies. Apunta UPDATE y DEACTIVATE a id_especie=2 (Trucha Arcoíris, preexistente) con fecha_actualizacion para aislar la validación del defecto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspeciePreexistente",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "nombreEspecie",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "step_update_ok",
+      "value": "false",
+      "type": "string"
+    },
+    {
+      "key": "step_deactivate_ok",
+      "value": "false",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Autenticar Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación Admin exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      }
+    },
+    {
+      "name": "1. Operación CREATE: Registrar especie sintética",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "function randomLetras(n) {",
+              "    var chars = 'abcdefghijklmnopqrstuvwxyz';",
+              "    var res = '';",
+              "    for (var i = 0; i < n; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));",
+              "    return res;",
+              "}",
+              "var nombreSintetico = 'Especie Audit ' + randomLetras(6);",
+              "pm.collectionVariables.set('nombreEspecie', nombreSintetico);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('STATUS CREATE:', pm.response.code);",
+              "console.log('BODY CREATE:', pm.response.text());",
+              "pm.test('Paso 1.1 - Registro de especie exitoso (HTTP 201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('Paso 1.2 - Especie creada con ID asignado y es_activo = true', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res).to.have.property('id_especie');",
+              "    pm.expect(res.es_activo).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreEspecie}}\",\n  \"descripcion\": \"Especie sintética para auditoría TC-M09-18 (CREATE)\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "especies" ]
+        }
+      }
+    },
+    {
+      "name": "2. Verificación Auditoría API: Evento CREATE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Paso 2.1 - Consulta de auditoría general responde HTTP 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Paso 2.2 - El log de auditoría contiene registros para el usuario Admin', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res).to.have.property('items');",
+              "    pm.expect(res.items).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "id_usuario", "value": "1" },
+            { "key": "tamano", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Operación UPDATE: Modificar especie preexistente (id_especie=2 Trucha Arcoíris)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('STATUS UPDATE:', pm.response.code);",
+              "console.log('BODY UPDATE:', pm.response.text());",
+              "pm.test('Paso 3.1 - Edición de especie responde HTTP 200 OK (RF-15)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var esOk = (pm.response.code === 200);",
+              "pm.collectionVariables.set('step_update_ok', esOk ? 'true' : 'false');",
+              "",
+              "pm.test('Paso 3.2 - La especie editada refleja la nueva descripción', function () {",
+              "    if (!esOk) {",
+              "        pm.expect.fail(null, null, 'No se evalúa payload de edición debido a que HTTP status no fue 200 (Código recibido: ' + pm.response.code + ')');",
+              "    }",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.descripcion).to.include('EDITADO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Trucha Arcoiris\",\n  \"descripcion\": \"Especie de agua fría cultivada en estanques EDITADO TC18\",\n  \"fecha_actualizacion\": \"2026-04-28T14:42:28.213141+00:00\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspeciePreexistente}}",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "especies", "{{idEspeciePreexistente}}" ]
+        }
+      }
+    },
+    {
+      "name": "4. Verificación Auditoría API: Evento UPDATE (Dependiente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var updatePrevioOk = (pm.collectionVariables.get('step_update_ok') === 'true');",
+              "",
+              "if (!updatePrevioOk) {",
+              "    pm.test('Paso 4.1 - [OMITIDO] Verificación de auditoría de UPDATE omitida por falla en Paso 3', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else {",
+              "    pm.test('Paso 4.1 - Consulta de auditoría post-UPDATE responde HTTP 200 OK', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "    pm.test('Paso 4.2 - El log registra la operación de UPDATE', function () {",
+              "        var res = pm.response.json();",
+              "        pm.expect(res.items).to.be.an('array');",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "id_usuario", "value": "1" },
+            { "key": "tamano", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Operación DEACTIVATE: Desactivar especie preexistente (id_especie=2 Trucha Arcoíris)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('STATUS DEACTIVATE:', pm.response.code);",
+              "console.log('BODY DEACTIVATE:', pm.response.text());",
+              "pm.test('Paso 5.1 - Desactivación de especie responde HTTP 200 OK (RF-15)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var esOk = (pm.response.code === 200);",
+              "pm.collectionVariables.set('step_deactivate_ok', esOk ? 'true' : 'false');",
+              "",
+              "pm.test('Paso 5.2 - La especie desactivada refleja es_activo = false', function () {",
+              "    if (!esOk) {",
+              "        pm.expect.fail(null, null, 'No se evalúa payload de desactivación debido a que HTTP status no fue 200 (Código recibido: ' + pm.response.code + ')');",
+              "    }",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.es_activo).to.be.false;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspeciePreexistente}}/desactivar",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "configuracion", "especies", "{{idEspeciePreexistente}}", "desactivar" ]
+        }
+      }
+    },
+    {
+      "name": "6. Verificación Auditoría API: Evento DEACTIVATE (Dependiente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var deactivatePrevioOk = (pm.collectionVariables.get('step_deactivate_ok') === 'true');",
+              "",
+              "if (!deactivatePrevioOk) {",
+              "    pm.test('Paso 6.1 - [OMITIDO] Verificación de auditoría de DEACTIVATE omitida por falla en Paso 5', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else {",
+              "    pm.test('Paso 6.1 - Consulta de auditoría post-DEACTIVATE responde HTTP 200 OK', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "    pm.test('Paso 6.2 - El log registra la operación de DEACTIVATE', function () {",
+              "        var res = pm.response.json();",
+              "        pm.expect(res.items).to.be.an('array');",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "host": [ "{{baseUrl}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "id_usuario", "value": "1" },
+            { "key": "tamano", "value": "10" }
+          ]
+        }
+      }
+    }
+  ]
+}

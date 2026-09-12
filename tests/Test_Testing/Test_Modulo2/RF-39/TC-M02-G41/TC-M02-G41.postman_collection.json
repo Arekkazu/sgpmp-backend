@@ -1,0 +1,148 @@
+{
+  "info": {
+    "name": "TC-M02-G41 - Validacion del esquema de datos_evento segun tipo_evento y tipo_activo",
+    "description": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-077 (esquema por tipo_evento), TC-M02-078 (campos de agregacion obligatorios para LOTE+CRECIMIENTO) y TC-M02-079 (cantidad_afectada de BAJA no puede superar cantidad_actual). TC-M02-078 usa el activo POBLACIONAL preexistente id=130 (tiene una fase productiva activa sembrada antes de esta sesion) porque crear una fase nueva esta bloqueado por INC-M02-37-01 -- el evento se envia deliberadamente invalido, asi que se espera rechazo y ningun dato de ese activo se modifica.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "3" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_lote_con_fase", "value": "130" },
+    { "key": "id_activo_individual", "value": "" },
+    { "key": "id_lote_cantidad", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0B. Setup - activo INDIVIDUAL fresco (TC-M02-077)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_a}}\",\n  \"raza\": \"Camaron QA-G41\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('identificador_a', 'G41A-' + Date.now());",
+          "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Activo individual creado (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_individual', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "1. TC-M02-077 - Rechazar SANITARIO/DIAGNOSTICO sin el campo obligatorio 'diagnostico'",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_individual}}/eventos/sanitario",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo\": \"DIAGNOSTICO\",\n  \"fecha\": \"{{fecha_reciente}}\"\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('fecha_reciente', new Date(Date.now() - 3000).toISOString());"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[TC-M02-077] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('RF-39: rechaza por esquema incompleto (400)', function () { pm.response.to.have.status(400); });",
+          "const body = pm.response.json();",
+          "pm.test('El mensaje identifica el campo faltante (diagnostico)', function () {",
+          "  const texto = JSON.stringify(body).toLowerCase();",
+          "  pm.expect(texto).to.match(/diagnostico/);",
+          "});"
+        ] } }
+      ]
+    },
+    {
+      "name": "2. TC-M02-078 - Rechazar CRECIMIENTO en LOTE sin campos de agregacion",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_con_fase}}/eventos/crecimiento",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 260,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"{{fecha_reciente_2}}\"\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('fecha_reciente_2', new Date(Date.now() - 3000).toISOString());"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[TC-M02-078] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('RF-39: rechaza por faltar campos de agregacion obligatorios para LOTE (400)', function () { pm.response.to.have.status(400); });",
+          "const body = pm.response.json();",
+          "pm.test('El mensaje identifica el campo obligatorio faltante', function () {",
+          "  pm.expect(body.error_code).to.match(/REQUERID/);",
+          "  pm.expect(body.fields[0].field).to.eql('nuevo_peso_promedio');",
+          "});"
+        ] } }
+      ]
+    },
+    {
+      "name": "3A. Setup - LOTE fresco con cantidad_inicial=50 (TC-M02-079)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"cantidad_inicial\": 50,\n  \"peso_promedio_inicial\": 0.05\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Lote creado con cantidad_inicial=50 (201)', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "  const body = pm.response.json();",
+        "  pm.collectionVariables.set('id_lote_cantidad', body.id_activo_biologico);",
+        "  pm.test('cantidad_actual nace en 50', function () { pm.expect(body.detalle_poblacional.cantidad_actual).to.eql(50); });",
+        "}"
+      ] } }]
+    },
+    {
+      "name": "3B. TC-M02-079 - Rechazar BAJA con cantidad_afectada (80) superior a cantidad_actual (50)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_cantidad}}/eventos/baja",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-079: cantidad excesiva\",\n  \"cantidad_afectada\": 80\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-079] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-39: rechaza porque cantidad_afectada supera cantidad_actual (422)', function () { pm.response.to.have.status(422); });",
+        "const body = pm.response.json();",
+        "pm.test('El mensaje explica la comparacion 80 > 50', function () {",
+        "  pm.expect(body.error_code).to.eql('CANTIDAD_BAJA_SUPERIOR_EXISTENCIA');",
+        "  pm.expect(body.message).to.match(/80/);",
+        "  pm.expect(body.message).to.match(/50/);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "4. Verificacion - el lote de TC-M02-079 sigue con cantidad_actual=50 (nada se aplico)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_lote_cantidad}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Consulta responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('cantidad_actual no cambio (rollback correcto tras el rechazo)', function () {",
+        "  pm.expect(body.detalle_poblacional.cantidad_actual).to.eql(50);",
+        "});"
+      ] } }]
+    }
+  ]
+}

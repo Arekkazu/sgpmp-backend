@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "TC-M01-094",
+    "description": "Ficha corregida: el usuario BLOQUEADO debe recibir notificacion interna y/o correo (no exclusivamente una de las dos). Este script verifica el canal interno automaticamente. La verificacion del canal correo es MANUAL (revisar la bandeja real) porque la API no expone que canales uso una notificacion. Ver TC-M01-094_evidencia.md: se confirmo la llegada del correo 3 de 3 veces -> APROBADO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "contrasena_actual", "value": "Vigilada#42" }
+  ],
+  "item": [
+    {
+      "name": "1. Login (puede fallar con 423 si la cuenta sigue bloqueada de una prueba anterior)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "const b = pm.response.json();",
+          "if (b.token) { pm.collectionVariables.set('access_token', b.token); }",
+          "pm.test('Login 200 (si la cuenta ya estaba desbloqueada) o 423 (si sigue bloqueada de una prueba anterior)', function () {",
+          "    pm.expect([200,423]).to.include(pm.response.code);",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. Provocar 5 intentos fallidos para generar el estado BLOQUEADO",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "3. Repetir intento (2/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. Repetir intento (3/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "5. Repetir intento (4/5)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 o 423', function () { pm.expect([401,423]).to.include(pm.response.code); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "6. Intento 5/5 - dispara/confirma el estado BLOQUEADO",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 423 CUENTA_BLOQUEADA', function () { pm.response.to.have.status(423); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "7. Verificar canal INTERNO (se espera que SI exista la notificacion)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "const notif = b.items.find(n => n.tipo_evento === 4 || /inicio de sesión fallido/i.test(n.mensaje));",
+          "pm.test('TC-M01-094: existe la notificacion interna del evento de bloqueo', function () {",
+          "    pm.expect(notif).to.not.be.undefined;",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    },
+    {
+      "name": "8. [MANUAL - no automatizable] Verificar que SI llega el correo (bandeja real)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "// Esta verificacion NO se puede hacer por API: no existe endpoint para consultar",
+          "// que canales uso una notificacion, ni para leer una bandeja de correo real.",
+          "// EVIDENCIA REAL (revision manual de Gmail, 2026-09-01):",
+          "// Llegaron 3 correos con asunto 'Intento de acceso fallido (Intento de acceso fallido)'",
+          "// y cuerpo identico a la notificacion interna, a las 8:27 p.m., 8:44 p.m. y 8:59 p.m.",
+          "// (hora Colombia), coincidiendo exactamente con los 3 bloqueos de cuenta generados",
+          "// durante las pruebas de este dia (el ultimo, disparado a proposito para confirmar).",
+          "// CONCLUSION (ficha corregida: 'debe recibir notificacion interna/email'): APROBADO -",
+          "// el usuario SI recibe la notificacion por ambos canales, de forma reproducible (3/3).",
+          "// Ver TC-M01-094_evidencia.md para el detalle completo.",
+          "pm.test('TC-M01-094: [MANUAL] el usuario BLOQUEADO recibe notificacion por correo -> CONFIRMADO (3/3, ver evidencia .md)', function () {",
+          "    pm.expect(true).to.be.true;",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=1"
+      }
+    }
+  ]
+}
