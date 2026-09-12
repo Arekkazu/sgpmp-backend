@@ -50,3 +50,25 @@ Sin cambios de esquema de BD ni de contrato de respuesta (mismo shape JSON).
 (nuevo, 4 casos: filtra por finca, filtra por especie, filtra por capacidad,
 degrada correctamente si no hay origen activo). Suite completa de
 `tests/biological_assets/`: 84 passed, sin regresiones.
+
+## Adenda — el `POST` tampoco validaba alcance por finca (E-08 ausente)
+
+Revisión posterior encontró que el fix de arriba solo corregía el **listado**.
+`RegistrarTransferenciaUseCase.execute()` (el `POST` real que ejecuta el
+movimiento) nunca validó alcance por finca en ningún punto — la numeración de
+sus validaciones salta de `E-07` (especie) a `E-09` (capacidad), sin `E-08`.
+Un cliente que llamara el `POST` directamente con un `infraestructura_destino_id`
+de otra finca (sin pasar por `disponibles`) lograba la transferencia igual: el
+filtro del listado era una sugerencia de UI, no una regla de negocio exigida.
+
+Se agregó el `E-08` faltante en `execute()`: obtiene la infraestructura origen
+vía `infra_port.obtener_activa(dto.infraestructura_origen_id)` y rechaza con
+`BusinessRuleError(code='DESTINO_OTRA_FINCA')` si `id_finca` de origen y
+destino difieren (ambos no nulos). Mismo criterio que ya aplicaba el listado,
+ahora también en el punto de escritura real.
+
+Test agregado: `tests/biological_assets/test_registrar_transferencia_e08_finca.py`
+(no existía ningún test previo de `execute()` en este repo — el use case
+completo no tenía cobertura unitaria antes de este fix, lo que explica cómo
+pasó desapercibido). Suite completa de `tests/biological_assets/`: 86 passed
+(84 + 2 nuevos), sin regresiones.

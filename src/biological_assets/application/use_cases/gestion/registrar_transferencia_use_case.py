@@ -112,6 +112,27 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_destino_id',
             )
 
+        # E-08: alcance por finca — el destino debe pertenecer a la misma finca
+        # que la infraestructura origen. `listar_infraestructuras_disponibles`
+        # ya filtraba esto para el listado (INC-M02-74-G80), pero execute()
+        # nunca lo validaba: un cliente que llame el POST directo con un
+        # infraestructura_destino_id de otra finca lo lograba igual.
+        infra_origen = self.infra_port.obtener_activa(dto.infraestructura_origen_id)
+        if (
+            infra_origen is not None
+            and infra_origen.id_finca is not None
+            and infra_destino.id_finca is not None
+            and infra_destino.id_finca != infra_origen.id_finca
+        ):
+            raise BusinessRuleError(
+                code='DESTINO_OTRA_FINCA',
+                message=(
+                    f'La infraestructura {infra_destino.nombre} pertenece a una finca '
+                    'distinta a la del activo. Seleccione un destino dentro de la misma finca.'
+                ),
+                field='infraestructura_destino_id',
+            )
+
         # E-09: capacidad C3
         if infra_destino.capacidad_maxima is not None:
             cantidad_activo = self._cantidad_a_transferir(activo)
