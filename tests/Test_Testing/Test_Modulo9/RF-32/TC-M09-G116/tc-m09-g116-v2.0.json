@@ -1,0 +1,136 @@
+{
+  "info": {
+    "_postman_id": "e5b7c9a0-1d4e-4f33-8a7b-tc09116v20",
+    "name": "TC-M09-G116 v2.0 - Aplicacion exitosa de una plantilla (camino feliz)",
+    "description": "Retest de TC-M09-G116 (TC-M09-224). La primera ejecucion (2026-09-05) encontro un defecto CRITICO: POST /configuracion/plantillas/{id}/aplicar respondia siempre 500 ERROR_INTERNO, incluso con datos completamente validos, bloqueando el flujo principal de RF-32 (tambien confirmado desde TC-M09-G118 y TC-M09-G122 con distintas plantillas y especies). Esta coleccion repite el camino feliz completo: crea una plantilla valida sobre una especie origen y la aplica sobre una especie destino distinta. La asercion principal expresa lo que exige la ficha (200 OK): si el defecto persiste, sale en rojo; solo sale en verde si de verdad esta corregido.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_origen", "value": "" },
+    { "key": "id_especie_destino", "value": "" },
+    { "key": "fecha_actualizacion_destino", "value": "" },
+    { "key": "id_plantilla", "value": "" },
+    { "key": "nombre_metrica_test", "value": "" },
+    { "key": "nombre_ciclo_test", "value": "" },
+    { "key": "body_aplicar_json", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener 2 especies activas distintas (origen y destino)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos 2 especies activas', function () { pm.expect(body.items.length).to.be.above(1); });",
+        "if (body.items && body.items.length > 1) {",
+        "    pm.collectionVariables.set('id_especie_origen', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('id_especie_destino', body.items[1].id_especie);",
+        "    pm.collectionVariables.set('fecha_actualizacion_destino', body.items[1].fecha_actualizacion || null);",
+        "    var ts = Date.now();",
+        "    pm.collectionVariables.set('nombre_metrica_test', 'Peso Test G116 ' + ts);",
+        "    pm.collectionVariables.set('nombre_ciclo_test', 'Etapa Test G116 ' + ts);",
+        "    console.log('[ESPECIES] origen=' + body.items[0].id_especie + ' destino=' + body.items[1].id_especie + ' fecha_actualizacion_destino=' + body.items[1].fecha_actualizacion);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Crear plantilla valida sobre la especie origen (metricas + ciclos)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR PLANTILLA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('1 - la plantilla se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla', pm.response.json().id_plantilla); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-G116-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_origen}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      { \"nombre\": \"{{nombre_metrica_test}}\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" }\n    ],\n    \"ciclos_biologicos\": [\n      { \"nombre\": \"{{nombre_ciclo_test}}\", \"duracion_dias\": 30 }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. TC-M09-224 v2.0 - Aplicar la plantilla sobre la especie destino (camino feliz)",
+      "event": [{ "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+        "var fecha = pm.collectionVariables.get('fecha_actualizacion_destino');",
+        "var esValida = fecha && fecha !== 'null' && fecha !== 'undefined' && fecha !== '';",
+        "var bodyObj = {",
+        "    id_especie_destino: parseInt(pm.collectionVariables.get('id_especie_destino')),",
+        "    fecha_actualizacion_especie_destino: esValida ? fecha : null",
+        "};",
+        "pm.collectionVariables.set('body_aplicar_json', JSON.stringify(bodyObj));",
+        "console.log('[APLICAR - body a enviar] ' + JSON.stringify(bodyObj));"
+      ] } }, { "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[APLICAR] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 500) { console.log('DEFECTO SIGUE PRESENTE: la aplicacion de una plantilla valida sigue respondiendo 500.'); }",
+        "pm.test('TC-M09-224 v2.0 - aplicar una plantilla valida a una especie destino valida debe responder 200 OK', function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "if (pm.response.code === 200) {",
+        "    var b = pm.response.json();",
+        "    pm.test('2 - target_config.id_especie corresponde a la especie destino', function () {",
+        "        pm.expect(b.target_config.id_especie).to.eql(parseInt(pm.collectionVariables.get('id_especie_destino')));",
+        "    });",
+        "    pm.test('2 - after_snapshot incluye la nueva metrica de la plantilla aplicada', function () {",
+        "        var nombres = (b.after_snapshot.metricas_produccion || []).map(function(m) { return m.nombre; });",
+        "        pm.expect(nombres).to.include(pm.collectionVariables.get('nombre_metrica_test'));",
+        "    });",
+        "    pm.test('2 - after_snapshot incluye el nuevo ciclo biologico de la plantilla aplicada', function () {",
+        "        var nombres = (b.after_snapshot.ciclos_biologicos || []).map(function(c) { return c.nombre; });",
+        "        pm.expect(nombres).to.include(pm.collectionVariables.get('nombre_ciclo_test'));",
+        "    });",
+        "    pm.test('2 - before_snapshot quedo registrado (no es null)', function () {",
+        "        pm.expect(b.before_snapshot).to.not.be.null;",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{{body_aplicar_json}}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla}}/aplicar"
+      }
+    },
+    {
+      "name": "3. Confirmar en el historial de aplicaciones",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[HISTORIAL] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 200) {",
+        "    var data = pm.response.json();",
+        "    var idPlantilla = parseInt(pm.collectionVariables.get('id_plantilla'));",
+        "    var encontrada = (data.items || []).find(function(a) { return a.id_plantilla === idPlantilla; });",
+        "    pm.test('3 - la aplicacion aparece en el historial de aplicaciones', function () {",
+        "        pm.expect(encontrada, 'No aparecio en el historial la aplicacion de id_plantilla=' + idPlantilla).to.not.be.undefined;",
+        "    });",
+        "} else {",
+        "    console.log('3: no se pudo confirmar historial (status ' + pm.response.code + '), omitido.');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/historial"
+      }
+    }
+  ]
+}

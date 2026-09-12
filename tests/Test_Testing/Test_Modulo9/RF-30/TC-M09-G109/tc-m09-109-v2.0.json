@@ -1,0 +1,549 @@
+{
+  "info": {
+    "_postman_id": "b6eb0249-24c8-43fd-8082-f964573a98ee",
+    "name": "TC-M09-G109 v2.0 - Auditoria de consulta y gestion de plantillas",
+    "description": "Verifica GET /configuracion/plantillas/auditoria contra los 4 escenarios que exige la ficha (creacion, consulta, creacion fallida, versionado). Cada asercion representa lo que la ficha EXIGE: si el escenario ya esta corregido, sale en verde; si el defecto sigue presente, sale en rojo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('0 - login admin exitoso', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Baseline - total de entradas en /configuracion/plantillas/auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "pm.test('1 - se puede consultar la auditoria de plantillas', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var data = pm.response.json();",
+              "    console.log('1 baseline total auditoria: ' + data.total);",
+              "    pm.collectionVariables.set('total_auditoria_0', data.total);",
+              "} else {",
+              "    console.log('1: fallo con ' + pm.response.code + ' ' + pm.response.text());",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear plantilla nueva",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-AUDIT-TC109-{{$timestamp}}\",\n  \"id_especie\": 4,\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      {\n        \"nombre\": \"peso_promedio_kg\",\n        \"unidad_medida\": \"kg\",\n        \"tipo_medicion\": \"PESO\",\n        \"aplica_a_tipo_activo\": \"INDIVIDUAL\"\n      }\n    ]\n  }\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('2: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('2 - creacion exitosa (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    pm.collectionVariables.set('id_plantilla_1', pm.response.json().id_plantilla);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. La CREACION exitosa debe quedar registrada en auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "if (pm.response.code !== 200) {",
+              "    console.log('3: fallo con ' + pm.response.code + ' ' + pm.response.text());",
+              "    pm.test('3 - se pudo consultar la auditoria (requisito para esta verificacion)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var data = pm.response.json();",
+              "    var total0 = parseInt(pm.collectionVariables.get('total_auditoria_0'));",
+              "    var idPlantilla1 = parseInt(pm.collectionVariables.get('id_plantilla_1'));",
+              "    console.log('3: total auditoria ahora = ' + data.total + ' (antes: ' + total0 + ')');",
+              "",
+              "    pm.test('TC-M09-G109 - la CREACION exitosa de una plantilla debe quedar registrada en auditoria', function () {",
+              "        pm.expect(data.total).to.eql(total0 + 1);",
+              "    });",
+              "",
+              "    var entrada = (data.items || []).find(function(i) { return i.id_plantilla === idPlantilla1; });",
+              "    pm.test('3 - la entrada nueva corresponde a la plantilla recien creada, con tipo_operacion CREATE', function () {",
+              "        pm.expect(entrada, 'No se encontro una entrada de auditoria para id_plantilla=' + idPlantilla1).to.not.be.undefined;",
+              "        pm.expect(entrada.tipo_operacion).to.eql('CREATE');",
+              "    });",
+              "    pm.collectionVariables.set('total_auditoria_1', data.total);",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Consultar la plantilla recien creada",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/{{id_plantilla_1}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "{{id_plantilla_1}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('4: ' + pm.response.code);",
+              "pm.test('4 - consulta exitosa (200)', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. La CONSULTA de una plantilla debe quedar registrada en auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "if (pm.response.code !== 200) {",
+              "    console.log('5: fallo con ' + pm.response.code + ' ' + pm.response.text());",
+              "    pm.test('5 - se pudo consultar la auditoria (requisito para esta verificacion)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var data = pm.response.json();",
+              "    var total1 = parseInt(pm.collectionVariables.get('total_auditoria_1'));",
+              "    console.log('5: total auditoria tras consulta = ' + data.total + ' (antes de consultar: ' + total1 + ')');",
+              "",
+              "    // Esta asercion representa lo que EXIGE la ficha (RF-30: auditar tambien",
+              "    // las consultas). Si sale en rojo, el defecto sigue presente. Si algun dia",
+              "    // sale en verde, es la senal de que ya se puede dar por corregido.",
+              "    pm.test('TC-M09-G109 - la CONSULTA de una plantilla debe quedar registrada en auditoria', function () {",
+              "        pm.expect(data.total, 'El total de auditoria no aumento tras la consulta -- la consulta no se esta registrando').to.be.above(total1);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Intentar crear plantilla con id_especie inexistente (debe fallar)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-AUDIT-TC109-FALLIDA-{{$timestamp}}\",\n  \"id_especie\": 999999,\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      {\n        \"nombre\": \"peso_promedio_kg\",\n        \"unidad_medida\": \"kg\",\n        \"tipo_medicion\": \"PESO\",\n        \"aplica_a_tipo_activo\": \"INDIVIDUAL\"\n      }\n    ]\n  }\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('6: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('6 - falla como se espera (404 ESPECIE_NO_ENCONTRADA)', function () { pm.response.to.have.status(404); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. El intento FALLIDO de creacion debe quedar registrado en auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "if (pm.response.code !== 200) {",
+              "    console.log('7: fallo con ' + pm.response.code + ' ' + pm.response.text());",
+              "    pm.test('7 - se pudo consultar la auditoria (requisito para esta verificacion)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var data = pm.response.json();",
+              "    var total1 = parseInt(pm.collectionVariables.get('total_auditoria_1'));",
+              "    console.log('7: total auditoria tras intento fallido = ' + data.total + ' (antes del intento: ' + total1 + ')');",
+              "",
+              "    // Igual que arriba: esta asercion es lo que EXIGE la ficha. Rojo = el",
+              "    // defecto sigue presente. Verde = ya se corrigio.",
+              "    pm.test('TC-M09-G109 - el intento FALLIDO de creacion debe quedar registrado en auditoria', function () {",
+              "        pm.expect(data.total, 'El total de auditoria no aumento tras el intento fallido -- los fallos no se estan registrando').to.be.above(total1);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Versionar (modificacion) la plantilla creada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/{{id_plantilla_1}}/versiones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "{{id_plantilla_1}}",
+            "versiones"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [\n      {\n        \"nombre\": \"peso_promedio_kg\",\n        \"unidad_medida\": \"kg\",\n        \"tipo_medicion\": \"PESO\",\n        \"aplica_a_tipo_activo\": \"AMBOS\"\n      }\n    ]\n  }\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('8: ' + pm.response.code + ' ' + pm.response.text());",
+              "pm.test('8 - version nueva creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var body = pm.response.json();",
+              "    pm.collectionVariables.set('id_plantilla_2', body.id_plantilla);",
+              "    pm.test('8 - la nueva version es la version 2', function () { pm.expect(body.version).to.eql(2); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. El VERSIONADO (modificacion) exitoso debe quedar registrado en auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/plantillas/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "plantillas",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "if (pm.response.code !== 200) {",
+              "    console.log('9: fallo con ' + pm.response.code + ' ' + pm.response.text());",
+              "    pm.test('9 - se pudo consultar la auditoria (requisito para esta verificacion)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var data = pm.response.json();",
+              "    var total1 = parseInt(pm.collectionVariables.get('total_auditoria_1'));",
+              "    var idPlantilla2 = parseInt(pm.collectionVariables.get('id_plantilla_2'));",
+              "    console.log('9: total auditoria tras versionar = ' + data.total + ' (antes: ' + total1 + ')');",
+              "",
+              "    pm.test('TC-M09-G109 - el VERSIONADO (modificacion) exitoso debe quedar registrado en auditoria', function () {",
+              "        pm.expect(data.total).to.eql(total1 + 1);",
+              "    });",
+              "",
+              "    var entrada = (data.items || []).find(function(i) { return i.id_plantilla === idPlantilla2; });",
+              "    pm.test('9 - la entrada nueva corresponde a la version recien creada, con tipo_operacion CREATE', function () {",
+              "        pm.expect(entrada, 'No se encontro una entrada de auditoria para id_plantilla=' + idPlantilla2).to.not.be.undefined;",
+              "        pm.expect(entrada.tipo_operacion).to.eql('CREATE');",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "total_auditoria_0",
+      "value": ""
+    },
+    {
+      "key": "total_auditoria_1",
+      "value": ""
+    },
+    {
+      "key": "id_plantilla_1",
+      "value": ""
+    },
+    {
+      "key": "id_plantilla_2",
+      "value": ""
+    }
+  ]
+}
