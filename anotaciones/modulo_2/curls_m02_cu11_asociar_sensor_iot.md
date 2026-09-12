@@ -104,6 +104,20 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 
 ## Errores posibles
 
+### FA-01 — Activo biológico inexistente (422)
+
+Antes de INC-M02-63-G88 este caso respondía `404 ACTIVO_NO_ENCONTRADO`. El
+Flujo Alterno "Activo Biológico No Válido" del CU11 agrupa inexistente y BAJA
+bajo la misma respuesta — `422`, no `404` — y `ACTIVO_EN_BAJA` (abajo) ya lo
+hacía bien; solo faltaba alinear este caso con su vecino.
+
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "No existe un activo biológico con id 99999."
+}
+```
+
 ### FA-02 — Activo en BAJA (422)
 
 ```json
