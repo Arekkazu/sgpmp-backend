@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.1.0...v1.1.1) (2026-09-12)
+
+### Bug Fixes
+
+* **docker:** resolver hallazgos de Hadolint sin arriesgar el despliegue ([388c0f0](https://github.com/Arekkazu/sgpmp-backend/commit/388c0f0114c9929c7ea05423e3a58ebd9737e7e8))
+
 ## [1.1.0](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0...v1.1.0) (2026-09-12)
 
 ### Features
