@@ -463,6 +463,26 @@ curl -X GET "http://localhost:8000/activos-biologicos/289/datos-consolidados?tip
 }
 ```
 
+#### E-06 — Límite de tasa excedido (INC-M02-96-G94)
+
+RF-50 exige 100 solicitudes/minuto por consumidor. El límite es por usuario autenticado
+(ventana deslizante de 60s); el aislamiento por-módulo declarado en el RF queda pendiente
+de INC-M02-90-G92 (no existe todavía una identidad de módulo autenticable, ver ese issue).
+
+```bash
+for i in $(seq 1 101); do
+  curl -s -o /dev/null -w "%{http_code}\n" -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados" \
+    -H "Authorization: Bearer <TOKEN>"
+done
+```
+**HTTP 429** en la solicitud 101:
+```json
+{
+  "error_code": "LIMITE_TASA_EXCEDIDO",
+  "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos."
+}
+```
+
 ---
 
 ### Nota — ruta contractual (INC-M02-97-G95)
