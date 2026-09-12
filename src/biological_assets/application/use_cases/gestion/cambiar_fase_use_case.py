@@ -4,13 +4,16 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, GestionFase
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError, ValidationError
 
 
 class CambiarFaseUseCase:
@@ -27,6 +30,19 @@ class CambiarFaseUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CambiarFaseDTO, usuario: UsuarioActual) -> GestionFase:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF37',
+            tipo_evento_rechazado='FASE_CAMBIO_RECHAZADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA',
+        )
+
+    def _execute(self, id_activo: int, dto: CambiarFaseDTO, usuario: UsuarioActual) -> GestionFase:
         # FA-01: activo debe existir
         activo = self.repo.obtener_por_id(id_activo)
         if activo is None:
@@ -87,6 +103,9 @@ class CambiarFaseUseCase:
             )
             gestion = self.repo.crear_gestion_fase(nueva_gestion)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:
