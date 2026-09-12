@@ -253,6 +253,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             tipo_infraestructura=infra.tipo,
             fecha_inicio=hist.fecha_inicio,
             fecha_fin=hist.fecha_fin,
+            es_activo_infraestructura=infra.es_activo,
         )
 
     def obtener_asociacion_en_fecha(
@@ -285,6 +286,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             tipo_infraestructura=infra.tipo,
             fecha_inicio=hist.fecha_inicio,
             fecha_fin=hist.fecha_fin,
+            es_activo_infraestructura=infra.es_activo,
         )
 
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
@@ -307,6 +309,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 tipo_infraestructura=i.tipo,
                 fecha_inicio=h.fecha_inicio,
                 fecha_fin=h.fecha_fin,
+                es_activo_infraestructura=i.es_activo,
             )
             for h, i in rows
         ]
