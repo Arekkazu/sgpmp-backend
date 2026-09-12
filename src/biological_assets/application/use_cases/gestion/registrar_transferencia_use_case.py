@@ -93,9 +93,9 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_destino_id',
             )
 
-        # E-06: destino distinto al origen
+        # E-06: destino distinto al origen (regla de negocio, no de formato -> 422)
         if dto.infraestructura_destino_id == dto.infraestructura_origen_id:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='DESTINO_IGUAL_ORIGEN',
                 message='La infraestructura destino debe ser diferente a la infraestructura origen del activo.',
                 field='infraestructura_destino_id',

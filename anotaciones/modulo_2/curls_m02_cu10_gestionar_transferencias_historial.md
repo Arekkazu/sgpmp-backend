@@ -196,12 +196,19 @@ Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo no existe (FA-01)
 - `409 ACTIVO_NO_ACTIVO` — el activo no está en estado ACTIVO (FA-03)
 - `409 TRANSFERENCIA_CONCURRENTE` — hay una transferencia en progreso para el mismo activo (FA-07)
-- `422 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04)
-- `422 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04)
-- `422 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05)
-- `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06)
+- `400 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo)
+- `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). Mismo caso que el anterior
+- `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior
+- `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
 - `422 CAPACIDAD_EXCEDIDA` — la infra destino no tiene capacidad suficiente (C3)
 - `422 FECHA_FUTURA` — fecha_transferencia es posterior al día actual
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
 - `403` — rol sin permiso de ejecución sobre activos biológicos (solo admin y productor)
+
+> **Nota (INC-M02-73-G80):** `SIN_INFRAESTRUCTURA_ORIGEN`, `INFRAESTRUCTURA_ORIGEN_INCORRECTA`
+> e `INFRAESTRUCTURA_DESTINO_INVALIDA` usan `ValidationError` (400) igual que `DESTINO_IGUAL_ORIGEN`
+> usaba antes de este fix — el propio reporte de QA que originó este fix señala que podrían tener
+> el mismo defecto, pero explícitamente no lo confirma ("no deben considerarse defectos
+> funcionalmente confirmados con esta evidencia"). No se tocan aquí; quedan para un issue propio si
+> QA lo confirma.
