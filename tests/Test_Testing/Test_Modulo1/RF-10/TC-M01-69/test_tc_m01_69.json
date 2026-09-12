@@ -1,0 +1,283 @@
+{
+  "info": {
+    "name": "TC-M01-069 - Consultar auditoria utilizando rango de fechas valido",
+    "description": "TC-M01-069 (RF-10, CU07): Se valida la consulta del historial de auditoria utilizando un rango de fechas valido de aproximadamente seis meses, comprendido entre el 01/02/2026 y el 01/08/2026, dentro del limite maximo documentado de 12 meses.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('Precondicion cumplida: inicio de sesion como Administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La respuesta del Administrador contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta del login Administrador ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    console.log('Token del Administrador almacenado correctamente.');",
+              "} else {",
+              "    console.log('No fue posible obtener el token del Administrador.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Validar rango de fechas solicitado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fechaDesde = new Date(pm.collectionVariables.get('fecha_desde'));",
+              "const fechaHasta = new Date(pm.collectionVariables.get('fecha_hasta'));",
+              "",
+              "console.log('--- Validacion del rango de fechas ---');",
+              "console.log('Fecha desde:', pm.collectionVariables.get('fecha_desde'));",
+              "console.log('Fecha hasta:', pm.collectionVariables.get('fecha_hasta'));",
+              "",
+              "pm.test('La fecha inicial es valida', function () {",
+              "    pm.expect(fechaDesde.toString()).to.not.equal('Invalid Date');",
+              "});",
+              "",
+              "pm.test('La fecha final es valida', function () {",
+              "    pm.expect(fechaHasta.toString()).to.not.equal('Invalid Date');",
+              "});",
+              "",
+              "pm.test('La fecha inicial es anterior a la fecha final', function () {",
+              "    pm.expect(fechaDesde.getTime()).to.be.lessThan(fechaHasta.getTime());",
+              "});",
+              "",
+              "const diferenciaMilisegundos = fechaHasta.getTime() - fechaDesde.getTime();",
+              "const diferenciaDias = diferenciaMilisegundos / (1000 * 60 * 60 * 24);",
+              "",
+              "pm.collectionVariables.set('rango_dias', String(diferenciaDias));",
+              "",
+              "console.log('Duracion aproximada del rango en dias:', diferenciaDias);",
+              "",
+              "pm.test('El rango se encuentra dentro del limite maximo de 12 meses', function () {",
+              "    pm.expect(diferenciaDias).to.be.at.most(366);",
+              "});",
+              "",
+              "console.log('Rango valido dentro del limite documentado de 12 meses.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/auditoria/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-069 - Consultar auditoria utilizando rango de fechas valido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-069: consulta de auditoria por rango de fechas ---');",
+              "console.log('Fecha desde:', pm.collectionVariables.get('fecha_desde'));",
+              "console.log('Fecha hasta:', pm.collectionVariables.get('fecha_hasta'));",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M01-069: la consulta con rango valido responde exitosamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-069: la respuesta tiene formato JSON valido', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "});",
+              "",
+              "pm.test('TC-M01-069: la respuesta contiene la estructura esperada', function () {",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "    pm.expect(respuesta).to.have.property('total');",
+              "    pm.expect(respuesta).to.have.property('pagina');",
+              "    pm.expect(respuesta).to.have.property('tamano');",
+              "});",
+              "",
+              "const fechaDesde = new Date(pm.collectionVariables.get('fecha_desde'));",
+              "const fechaHasta = new Date(pm.collectionVariables.get('fecha_hasta'));",
+              "const items = respuesta && Array.isArray(respuesta.items) ? respuesta.items : [];",
+              "",
+              "console.log('Cantidad de registros obtenidos:', items.length);",
+              "console.log('Total informado por la API:', respuesta.total);",
+              "",
+              "pm.test('TC-M01-069: todos los eventos devueltos tienen fecha valida', function () {",
+              "    items.forEach(function (evento) {",
+              "        pm.expect(evento).to.have.property('fecha_evento');",
+              "        const fechaEvento = new Date(evento.fecha_evento);",
+              "        pm.expect(fechaEvento.toString()).to.not.equal('Invalid Date');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-069: todos los eventos devueltos estan dentro del rango solicitado', function () {",
+              "    items.forEach(function (evento) {",
+              "        const fechaEvento = new Date(evento.fecha_evento);",
+              "",
+              "        pm.expect(",
+              "            fechaEvento.getTime(),",
+              "            'El evento ' + evento.id_evento + ' debe ser posterior o igual a la fecha inicial'",
+              "        ).to.be.at.least(fechaDesde.getTime());",
+              "",
+              "        pm.expect(",
+              "            fechaEvento.getTime(),",
+              "            'El evento ' + evento.id_evento + ' debe ser anterior o igual a la fecha final'",
+              "        ).to.be.at.most(fechaHasta.getTime());",
+              "    });",
+              "});",
+              "",
+              "pm.collectionVariables.set('resultado_consulta_rango', pm.response.text());",
+              "",
+              "console.log('--- Resumen TC-M01-069 ---');",
+              "console.log('Rango utilizado:', pm.collectionVariables.get('fecha_desde'), 'hasta', pm.collectionVariables.get('fecha_hasta'));",
+              "console.log('Duracion aproximada en dias:', pm.collectionVariables.get('rango_dias'));",
+              "console.log('Registros devueltos:', items.length);",
+              "console.log('TC-M01-069 ejecutado correctamente.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?fecha_desde={{fecha_desde}}&fecha_hasta={{fecha_hasta}}&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "fecha_desde",
+              "value": "{{fecha_desde}}"
+            },
+            {
+              "key": "fecha_hasta",
+              "value": "{{fecha_hasta}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "fecha_desde",
+      "value": "2026-02-01T00:00:00Z"
+    },
+    {
+      "key": "fecha_hasta",
+      "value": "2026-08-01T23:59:59Z"
+    },
+    {
+      "key": "rango_dias",
+      "value": ""
+    },
+    {
+      "key": "resultado_consulta_rango",
+      "value": ""
+    }
+  ]
+}

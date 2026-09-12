@@ -1,0 +1,83 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-017 Login exitoso con credenciales validas",
+    "description": "Activa la cuenta jmanuelgomen+tcm017@gmail.com con el token real obtenido del correo, y luego inicia sesion con sus credenciales. Se espera 200 en ambos pasos, y que el login devuelva un token JWT y el rol asignado (Productor, id_rol=2).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Activar la cuenta con el token real del correo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 1: cuenta activada exitosamente (200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "console.log('Paso 1: ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/YNr0jJtguB9aCiDDOGR-GZvKHl5K5GzkWf0Y7h7c8rQ",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "YNr0jJtguB9aCiDDOGR-GZvKHl5K5GzkWf0Y7h7c8rQ"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - TC-M01-017 - Login con credenciales validas (cuenta ya activa)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Paso 2: login exitoso (200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json;",
+              "try { json = pm.response.json(); } catch (e) { json = null; }",
+              "",
+              "pm.test('Paso 2: la respuesta incluye un token (JWT o similar)', function () {",
+              "    pm.expect(json).to.not.be.null;",
+              "    const bodyStr = JSON.stringify(json).toLowerCase();",
+              "    pm.expect(bodyStr).to.satisfy(function (s) {",
+              "        return s.includes('token') || s.includes('access');",
+              "    });",
+              "});",
+              "",
+              "console.log('Paso 2 (login): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

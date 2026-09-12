@@ -1,0 +1,55 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-02 Activacion exitosa de cuenta (retroprueba INC-M01-03)",
+    "description": "TC-M01-02: retroprueba del defecto INC-M01-03 (500 AUDITORIA_OBLIGATORIA_FALLIDA) con un token de activacion fresco, obtenido de un usuario creado manualmente desde la interfaz. El token real se tomo del link de activacion del correo (no de la BD, esa columna guarda un hash).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-02 - Activar cuenta con token valido (retroprueba)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-02: HTTP 200 al activar con token valido', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-M01-02: la respuesta confirma la activacion', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "console.log('--- Respuesta completa de TC-M01-02 (retroprueba INC-M01-03) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 500) {",
+              "    console.log('El defecto INC-M01-03 (AUDITORIA_OBLIGATORIA_FALLIDA) SIGUE PRESENTE.');",
+              "} else if (pm.response.code === 200) {",
+              "    console.log('El defecto INC-M01-03 parece CORREGIDO: la activacion se completo con HTTP 200.');",
+              "} else if (pm.response.code === 400) {",
+              "    console.log('TOKEN_INVALIDO/expirado: resultado inconcluso, no confirma ni descarta el fix. Repetir con un token mas fresco.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/{{token_activacion}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "activar", "{{token_activacion}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_activacion", "value": "sRmqjzL-Cm_4HIe9uXYIWNoApnAelxpiQjnHTeTM8ZA" }
+  ]
+}

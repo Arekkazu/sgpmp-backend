@@ -1,0 +1,312 @@
+{
+  "info": {
+    "_postman_id": "c6a23f54-d34e-4b2a-89a1-87a45e2c4f10",
+    "name": "TC-M02-G91 - Integridad del historial y trazabilidad post-creacion de la asociacion",
+    "description": "Colección de pruebas automatizadas Newman para TC-M02-G91 (RF-49 / CU11). Subcasos TC-M02-222 y TC-M02-223.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@pecuaria.co",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "Test1234!",
+      "type": "string"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "nuevaAsociacionId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-222",
+      "description": "Subcaso TC-M02-222: Rechazar eliminación (DELETE) de una asociación existente (Restricción 8 append-only).",
+      "item": [
+        {
+          "name": "TC-M02-222_Login_Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Token presente en respuesta\", function () {",
+                  "    pm.expect(jsonData.token).to.be.a('string');",
+                  "});",
+                  "pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-222_DELETE_Asociacion_Existente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rechazo de eliminacion (DELETE no permitido / append-only)\", function () {",
+                  "    pm.expect([404, 405]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test(\"Verificar que la respuesta confirma la no eliminacion fisica (No 200 ni 204)\", function () {",
+                  "    pm.expect(pm.response.code).to.not.equal(200);",
+                  "    pm.expect(pm.response.code).to.not.equal(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/17",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores",
+                "17"
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-222_DELETE_Ruta_Base_Sensores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rechazo de eliminacion en ruta base (HTTP 405 Method Not Allowed)\", function () {",
+                  "    pm.expect(pm.response.code).to.equal(405);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-223",
+      "description": "Subcaso TC-M02-223: Verificar que la asociación creada es visible en consultas posteriores (RF-49 Criterio de aceptación).",
+      "item": [
+        {
+          "name": "TC-M02-223_Login_Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Token presente en respuesta\", function () {",
+                  "    pm.expect(jsonData.token).to.be.a('string');",
+                  "});",
+                  "pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-223_POST_Crear_Asociacion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Respuesta contiene asociacion activa\", function () {",
+                  "    var idAsoc = jsonData.id_asociacion_activo_sensor || jsonData.asociacion_id;",
+                  "    pm.expect(idAsoc).to.be.a('number');",
+                  "    pm.expect(jsonData.estado_asociacion).to.equal('ACTIVA');",
+                  "    pm.expect(jsonData.sensor_id).to.equal(2);",
+                  "});",
+                  "if (jsonData.id_asociacion_activo_sensor) {",
+                  "    pm.collectionVariables.set(\"nuevaAsociacionId\", jsonData.id_asociacion_activo_sensor.toString());",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Verificacion funcional visibilidad post-creacion TC-M02-223\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-223_GET_Consultar_Sensores_Activo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"RF-49 Criterio de Aceptacion: El sistema refleja la asociacion en consultas posteriores (HTTP 200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"La asociacion recien creada es visible en la consulta de sensores del activo\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    var encontrada = jsonData.some(function(item) {",
+                  "        return item.sensor_id === 2 && item.estado_asociacion === 'ACTIVA';",
+                  "    });",
+                  "    pm.expect(encontrada).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

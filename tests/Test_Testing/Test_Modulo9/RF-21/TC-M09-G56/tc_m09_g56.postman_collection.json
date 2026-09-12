@@ -1,0 +1,617 @@
+{
+  "info": {
+    "name": "TC-M09-G56 - Validacion de datos al registrar un dispositivo IoT",
+    "description": "TC-M09-G56 (RF-21, CU-05 Gestionar Dispositivos IoT) agrupa 4 escenarios de validacion/rechazo sobre POST /configuracion/dispositivos-iot, equivalentes a TC-M09-108, TC-M09-109, TC-M09-110 y TC-M09-111:\n\n1. Serial vacio -> debe rechazarse (obligatorio).\n2. Serial duplicado -> debe rechazarse (unico en el sistema).\n3. Area invalida/inactiva -> debe rechazarse (inexistente e inactiva); incluye tambien el control positivo con area activa para confirmar que el rechazo es especifico de la condicion probada, no un fallo general.\n4. Descripcion que excede el limite -> debe rechazarse; incluye el control positivo con descripcion exactamente en el limite de 100 caracteres.\n\nContrato real verificado en el codigo (RegistrarDispositivoIotDTO y RegistrarDispositivoIotUseCase):\n- Los errores de validacion de Pydantic (serial vacio, descripcion > 100 caracteres) los traduce request_validation_error_handler en src/shared/error_handlers.py a HTTP 400 (no 422) con error_code VAL_ENTRADA y la lista fields - IMPORTANTE: este backend usa 400 para errores de DTO, distinto del 422 generico de FastAPI.\n- Serial duplicado -> ConflictError, HTTP 409, error_code SERIAL_DUPLICADO (campo serial).\n- Area inexistente -> NotFoundError, HTTP 404, error_code AREA_NO_ENCONTRADA.\n- Area inactiva -> BusinessRuleError, HTTP 422, error_code AREA_NO_DISPONIBLE.\n\nLa coleccion usa un area activa ya existente en TEST (finca_id=1) para los casos que no prueban el area en si.\n\nBLOQUEO ENCONTRADO (2026-09-05): POST /configuracion/infraestructuras devuelve 500 ERROR_INTERNO con cualquier body valido - el fallo esta en AuditoriaInfraestructuraRepository.registrar() dentro de RegistrarInfraestructuraUseCase, que revienta con un error de integridad no mapeado por raise_from_db_error al insertar el registro de auditoria (registrar_infraestructura_use_case.py). Confirmado variando tipo_area, formato de superficie y con/sin descripcion - falla siempre igual, no es un problema de datos de entrada. Esto impide crear un area nueva para desactivarla y usarla en el escenario 3b (area inactiva), y en TEST no existia ninguna infraestructura inactiva de antes (se revisaron las 12 areas de las 7 fincas). El endpoint tampoco tiene forma de 'reactivar' un area por API una vez desactivada, asi que desactivar una real de forma permanente por este TC no era aceptable sin autorizacion.\n\nPor eso el escenario 3b depende de la variable de coleccion id_infraestructura_inactiva, que se completa a mano: alguien con acceso a la base de datos TEST pone es_activo=false en una fila descartable (ej. 'Area Test Gap', id_infraestructura=12, finca_id=6, que no tiene dispositivos asociados) y avisa el id para completar la variable antes de correr este escenario. El primer item de este bloque (precondicion) valida que esa area este realmente inactiva antes de intentar el registro, para no dar una falsa validacion contra un area que en realidad sigue activa.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas de validacion - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: variantes de rechazo sobre los campos de entrada del dispositivo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    const runId = Date.now().toString();",
+              "    pm.collectionVariables.set('run_id', runId);",
+              "    pm.collectionVariables.set('descripcion_100', 'x'.repeat(100));",
+              "    pm.collectionVariables.set('descripcion_101', 'x'.repeat(101));",
+              "    console.log('Token de autenticacion almacenado correctamente. run_id=' + runId);",
+              "    console.log('descripcion_100 longitud: ' + pm.collectionVariables.get('descripcion_100').length);",
+              "    console.log('descripcion_101 longitud: ' + pm.collectionVariables.get('descripcion_101').length);",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Areas productivas activas de la finca 1 ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos un area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    const area = respuesta.items[0];",
+              "    pm.collectionVariables.set('id_infraestructura_activa', area.id_infraestructura);",
+              "    pm.collectionVariables.set('tipo_area_conocido', area.tipo_area);",
+              "    console.log('Area activa elegida: id_infraestructura=' + area.id_infraestructura + ', tipo_area=' + area.tipo_area);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Catalogo de tipos de dispositivo IoT ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Confirmar que el area de referencia esta inactiva (preparada manualmente en BD)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const idInactivaConfigurado = pm.collectionVariables.get('id_infraestructura_inactiva');",
+              "",
+              "if (!idInactivaConfigurado) {",
+              "    console.log('PENDIENTE: id_infraestructura_inactiva no esta configurada todavia (falta preparar un area inactiva a mano en BD). Se omite el escenario 3b; continua el resto de la coleccion.');",
+              "} else {",
+              "    console.log('--- Verificando area inactiva preparada manualmente: id_infraestructura=' + idInactivaConfigurado + ' ---');",
+              "    console.log(pm.response.text());",
+              "",
+              "    pm.test('Precondicion: la consulta del area de referencia responde HTTP 200', function () {",
+              "        pm.response.to.have.status(200);",
+              "    });",
+              "",
+              "    let respuesta;",
+              "    try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "    if (respuesta) {",
+              "        pm.test('Precondicion: el area de referencia esta efectivamente inactiva (preparada manualmente en BD, ver NOTA en la descripcion de la coleccion)', function () {",
+              "            pm.expect(respuesta.es_activo, 'el area ' + respuesta.id_infraestructura + ' (' + respuesta.nombre_infraestructura + ') sigue activa - pedir que la desactiven manualmente antes de correr este TC').to.equal(false);",
+              "        });",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_inactiva}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras", "{{id_infraestructura_inactiva}}" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-108) - Rechazar registro con serial vacio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 1: serial vacio ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 1: el registro con serial vacio responde HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 1: el error indica VAL_ENTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    const errorSerial = (respuesta.fields || []).find(function (f) { return f.field === 'serial'; });",
+              "    pm.test('Escenario 1: el error de validacion senala el campo serial como obligatorio', function () {",
+              "        pm.expect(errorSerial, 'fields recibidos: ' + JSON.stringify(respuesta.fields)).to.not.equal(undefined);",
+              "        pm.expect(errorSerial.message.toLowerCase()).to.include('obligatorio');",
+              "    });",
+              "    console.log('CONCLUSION escenario 1: el serial vacio fue rechazado correctamente (' + (errorSerial ? errorSerial.message : 'sin detalle') + ').');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"\",\n  \"descripcion\": \"Intento de registro con serial vacio (TC-M09-G56 escenario 1)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion escenario 2 - Registrar dispositivo base con serial conocido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro del dispositivo base (para luego duplicar su serial) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion escenario 2: el registro del dispositivo base responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('serial_base', respuesta.serial);",
+              "    console.log('Dispositivo base creado con serial: ' + respuesta.serial);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-DUP-{{run_id}}\",\n  \"descripcion\": \"Dispositivo base para probar serial duplicado (TC-M09-G56)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (TC-M09-109) - Rechazar registro con serial duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2: serial duplicado (' + pm.collectionVariables.get('serial_base') + ') ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2: el registro con serial duplicado responde HTTP 409', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 2: el error indica SERIAL_DUPLICADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SERIAL_DUPLICADO');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    console.log('CONCLUSION escenario 2: ' + respuesta.message);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"{{serial_base}}\",\n  \"descripcion\": \"Segundo intento con el mismo serial (TC-M09-G56 escenario 2)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3a (TC-M09-110) - Rechazar registro con area inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 3a: area inexistente (id 999999) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 3a: el registro con area inexistente responde HTTP 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 3a: el error indica AREA_NO_ENCONTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('AREA_NO_ENCONTRADA');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 3a: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-AREAINEX-{{run_id}}\",\n  \"descripcion\": \"Intento de registro con area inexistente (TC-M09-G56 escenario 3a)\",\n  \"id_infraestructura\": 999999,\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3b (TC-M09-110) - Rechazar registro con area inactiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const idInactivaConfigurado = pm.collectionVariables.get('id_infraestructura_inactiva');",
+              "",
+              "if (!idInactivaConfigurado) {",
+              "    console.log('ESCENARIO 3b OMITIDO: falta configurar id_infraestructura_inactiva (area inactiva preparada a mano en BD). Ver NOTA en la descripcion de la coleccion.');",
+              "} else {",
+              "    console.log('--- Escenario 3b: area inactiva (id ' + idInactivaConfigurado + ') ---');",
+              "    console.log(pm.response.text());",
+              "",
+              "    pm.test('Escenario 3b: el registro con area inactiva responde HTTP 422', function () {",
+              "        pm.response.to.have.status(422);",
+              "    });",
+              "",
+              "    let respuesta;",
+              "    try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "    pm.test('Escenario 3b: el error indica AREA_NO_DISPONIBLE', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('AREA_NO_DISPONIBLE');",
+              "    });",
+              "",
+              "    if (respuesta) { console.log('CONCLUSION escenario 3b: ' + respuesta.message); }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-AREAINACTIVA-{{run_id}}\",\n  \"descripcion\": \"Intento de registro con area inactiva (TC-M09-G56 escenario 3b)\",\n  \"id_infraestructura\": {{id_infraestructura_inactiva}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3c (control positivo) - Registrar con area existente y activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 3c (control positivo): area existente y activa ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 3c: el registro con area valida y activa SI se acepta (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta) {",
+              "    console.log('CONCLUSION escenario 3: el rechazo de 3a/3b es especifico de la condicion del area (inexistente/inactiva), no un fallo general del endpoint - con area activa el registro se acepta normalmente (id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ').');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-AREAVALIDA-{{run_id}}\",\n  \"descripcion\": \"Control positivo con area valida y activa (TC-M09-G56 escenario 3c)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 4a (control positivo) - Descripcion en el limite de 100 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 4a (control positivo): descripcion de exactamente 100 caracteres ---');",
+              "console.log('longitud enviada: ' + pm.collectionVariables.get('descripcion_100').length);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 4a: una descripcion de exactamente 100 caracteres SI se acepta (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (respuesta) {",
+              "    pm.test('Escenario 4a: la descripcion se guarda completa, sin truncar', function () {",
+              "        pm.expect(respuesta.descripcion.length).to.equal(100);",
+              "    });",
+              "    console.log('CONCLUSION escenario 4a: descripcion de 100 caracteres aceptada (id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ').');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-DESC100-{{run_id}}\",\n  \"descripcion\": \"{{descripcion_100}}\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 4b (TC-M09-111) - Rechazar descripcion de 101 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 4b: descripcion de 101 caracteres (excede el limite) ---');",
+              "console.log('longitud enviada: ' + pm.collectionVariables.get('descripcion_101').length);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 4b: una descripcion de 101 caracteres responde HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 4b: el error indica VAL_ENTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    const errorDescripcion = (respuesta.fields || []).find(function (f) { return f.field === 'descripcion'; });",
+              "    pm.test('Escenario 4b: el error de validacion senala el campo descripcion y su limite de 100 caracteres', function () {",
+              "        pm.expect(errorDescripcion, 'fields recibidos: ' + JSON.stringify(respuesta.fields)).to.not.equal(undefined);",
+              "        pm.expect(errorDescripcion.message).to.include('100');",
+              "    });",
+              "    console.log('CONCLUSION escenario 4b: ' + (errorDescripcion ? errorDescripcion.message : 'sin detalle'));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G56-DESC101-{{run_id}}\",\n  \"descripcion\": \"{{descripcion_101}}\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "descripcion_100", "value": "" },
+    { "key": "descripcion_101", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "tipo_area_conocido", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_infraestructura_inactiva", "value": "12" },
+    { "key": "serial_base", "value": "" }
+  ]
+}

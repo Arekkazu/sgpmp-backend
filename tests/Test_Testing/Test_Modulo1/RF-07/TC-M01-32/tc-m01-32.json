@@ -1,0 +1,161 @@
+{
+  "info": {
+    "name": "TC-M01-032",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login responde 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.collectionVariables.set('access_token', jsonData.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Nueva#2027\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. Intento fallido 1 de 5 (401)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "2. Intento fallido 2 de 5 (401)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "3. Intento fallido 3 de 5 (401)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "4. Intento fallido 4 de 5 (401)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "5. Intento fallido 5 de 5 - debe bloquear (423)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-032: responde 423 Locked', function () {",
+              "    pm.response.to.have.status(423);",
+              "});",
+              "const jsonData = pm.response.json();",
+              "pm.test('TC-M01-032: error_code de bloqueo', function () {",
+              "    pm.expect(jsonData.error_code).to.eql('CAMBIO_CONTRASENA_BLOQUEADO');",
+              "});",
+              "pm.test('TC-M01-032: menciona 30 minutos', function () {",
+              "    pm.expect(jsonData.message).to.include('30 minutos');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"ClaveErronea1#\",\n  \"nueva_contrasena\": \"OtraClave#99\",\n  \"confirmar_nueva_contrasena\": \"OtraClave#99\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "TC-M01-097",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "contrasena_actual", "value": "Notificada#41" },
+    { "key": "contrasena_nueva", "value": "Vigilada#42" }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "if (b.token) { pm.collectionVariables.set('access_token', b.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. Cambiar contrasena (dispara notificacion CAMBIO_CONTRASENA)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"{{contrasena_actual}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva}}\",\n  \"confirmar_nueva_contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/53"
+      }
+    },
+    {
+      "name": "3. Login de nuevo con la contrasena nueva (la sesion anterior quedo cerrada)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "if (b.token) { pm.collectionVariables.set('access_token', b.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. Leer notificaciones propias y verificar que no filtren datos sensibles",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "const notifCambio = b.items.find(n => n.tipo_evento === 6 || /contrase/i.test(n.mensaje));",
+          "pm.test('TC-M01-097: existe la notificacion de cambio de contrasena', function () {",
+          "    pm.expect(notifCambio).to.not.be.undefined;",
+          "});",
+          "if (notifCambio) {",
+          "    const msg = notifCambio.mensaje;",
+          "    pm.test('TC-M01-097: el mensaje NO contiene la contrasena actual ni la nueva en texto plano', function () {",
+          "        pm.expect(msg).to.not.include(pm.collectionVariables.get('contrasena_actual'));",
+          "        pm.expect(msg).to.not.include(pm.collectionVariables.get('contrasena_nueva'));",
+          "    });",
+          "    pm.test('TC-M01-097: el mensaje NO contiene patrones de hash conocidos', function () {",
+          "        pm.expect(msg).to.not.match(/\\$2[aby]\\$/);",
+          "        pm.expect(msg).to.not.match(/[a-f0-9]{32,}/i);",
+          "    });",
+          "    pm.test('TC-M01-097: el mensaje es unicamente descriptivo (longitud razonable, sin datos crudos)', function () {",
+          "        pm.expect(msg.length).to.be.below(200);",
+          "    });",
+          "}"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=20"
+      }
+    }
+  ]
+}

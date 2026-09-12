@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "TC-M01-110 - Consistencia del mensaje de error en los intentos fallidos de login",
+    "description": "TC-M01-110 (RF-02, Inicio de sesion): valida que el mensaje de error de POST /sesiones/ sea consistente entre intentos fallidos consecutivos (mismo formato, solo cambia el contador) y que no se filtre informacion adicional entre intentos, contra el correo {{correo_prueba}} con la contrasena erronea 'ClaveErronea1#' repetida.\n\nComportamiento real verificado en login_use_case.py (MAX_INTENTOS=5): los intentos 1 a 4 devuelven HTTP 401 (error_code CREDENCIALES_INVALIDAS) con el formato exacto 'Credenciales incorrectas. Intento N de 5. Tras el quinto intento fallido, su cuenta sera bloqueada por 15 minutos por seguridad.', donde solo N cambia. Al alcanzar 5 intentos fallidos la cuenta pasa a BLOQUEADA y el mensaje cambia por diseño a HTTP 423 (error_code CUENTA_BLOQUEADA) con un formato completamente distinto - esto es la politica de seguridad de RF-02 funcionando, no una inconsistencia: un atacante no debe poder seguir contando intentos una vez bloqueada la cuenta. Esta coleccion valida ambas fases por separado: (1) que todos los mensajes de la fase de advertencia (401) comparten el mismo template y que el contador sube de 1 en 1; y (2) que, una vez bloqueada, reintentos adicionales devuelven el MISMO mensaje de bloqueo sin exponer el contador de intentos ni ninguna otra informacion nueva.\n\nNo asume que la cuenta arranca en 0 intentos fallidos (el codigo tiene un detalle donde Cuenta.desbloquear() no resetea intentos_fallidos, solo un login exitoso lo hace via resetear_intentos() - una cuenta que ya se bloqueo antes y cuyo bloqueo expiro puede reincidir en el limite mas rapido de lo esperado). La validacion es adaptativa al codigo de respuesta real de cada intento en vez de asumir la secuencia literal 1,2,3,4,5.\n\nADVERTENCIA: esta prueba bloquea deliberadamente la cuenta {{correo_prueba}} por 15 minutos (politica RF-02). No ejecutar en paralelo con otro TC que dependa de poder iniciar sesion con esa cuenta durante ese lapso.\n\nResponsable: Juan Parra. Prioridad: Media. Tipo: Consistencia de mensajes - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-110 - Intento 1 con contrasena erronea",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento (real #1 de esta corrida) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "const yaBloqueada = pm.collectionVariables.get('cuenta_bloqueada') === 'true';",
+              "",
+              "if (pm.response.code === 401) {",
+              "    pm.test('Intento #1: la cuenta no deberia recibir un 401 si ya estaba bloqueada', function () {",
+              "        pm.expect(yaBloqueada).to.equal(false);",
+              "    });",
+              "",
+              "    pm.test('Intento #1: HTTP 401 con error_code CREDENCIALES_INVALIDAS', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CREDENCIALES_INVALIDAS');",
+              "    });",
+              "",
+              "    const match = respuesta && respuesta.message && respuesta.message.match(/^Credenciales incorrectas\\. Intento (\\d+) de 5\\. Tras el quinto intento fallido, su cuenta ser\\u00e1 bloqueada por 15 minutos por seguridad\\.$/);",
+              "    pm.test('Intento #1: el mensaje sigue exactamente el formato esperado (solo cambia el contador)', function () {",
+              "        pm.expect(match, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    if (match) {",
+              "        const contador = Number(match[1]);",
+              "        console.log('Contador de intentos reportado por el backend: ' + contador + ' de 5');",
+              "        pm.collectionVariables.set('ultimo_contador_login', String(contador));",
+              "        pm.collectionVariables.set('primer_contador_visto', String(contador));",
+              "    }",
+              "} else if (pm.response.code === 423) {",
+              "    console.log('La cuenta ya estaba bloqueada desde antes de correr esta coleccion (bloqueo previo aun vigente).');",
+              "    pm.test('Intento #1: HTTP 423 con error_code CUENTA_BLOQUEADA', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "    });",
+              "    pm.collectionVariables.set('cuenta_bloqueada', 'true');",
+              "} else {",
+              "    pm.test('Intento #1: codigo de respuesta inesperado, revisar estado de la cuenta de prueba', function () {",
+              "        pm.expect.fail('HTTP ' + pm.response.code + ' no es 401 ni 423. Cuerpo: ' + pm.response.text());",
+              "    });",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-110 - Intento 2 con contrasena erronea",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento (real #2 de esta corrida) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "const yaBloqueada = pm.collectionVariables.get('cuenta_bloqueada') === 'true';",
+              "",
+              "if (pm.response.code === 401 && !yaBloqueada) {",
+              "    pm.test('Intento #2: HTTP 401 con error_code CREDENCIALES_INVALIDAS', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CREDENCIALES_INVALIDAS');",
+              "    });",
+              "",
+              "    const match = respuesta && respuesta.message && respuesta.message.match(/^Credenciales incorrectas\\. Intento (\\d+) de 5\\. Tras el quinto intento fallido, su cuenta ser\\u00e1 bloqueada por 15 minutos por seguridad\\.$/);",
+              "    pm.test('Intento #2: el mensaje sigue exactamente el mismo formato que el intento anterior (solo cambia el contador)', function () {",
+              "        pm.expect(match, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    if (match) {",
+              "        const contador = Number(match[1]);",
+              "        const anterior = Number(pm.collectionVariables.get('ultimo_contador_login') || '0');",
+              "        console.log('Contador de intentos reportado por el backend: ' + contador + ' de 5');",
+              "        pm.test('Intento #2: el contador aumento exactamente en 1 respecto al intento anterior', function () {",
+              "            pm.expect(contador).to.equal(anterior + 1);",
+              "        });",
+              "        pm.collectionVariables.set('ultimo_contador_login', String(contador));",
+              "    }",
+              "} else if (pm.response.code === 423) {",
+              "    pm.test('Intento #2: HTTP 423 con error_code CUENTA_BLOQUEADA', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "    });",
+              "    console.log(yaBloqueada ? 'La cuenta se mantiene bloqueada; mensaje consistente con el intento previo.' : 'Este intento disparo el bloqueo de la cuenta (arranco con intentos previos no reseteados).');",
+              "    pm.collectionVariables.set('cuenta_bloqueada', 'true');",
+              "} else {",
+              "    pm.test('Intento #2: codigo de respuesta inesperado, revisar estado de la cuenta de prueba', function () {",
+              "        pm.expect.fail('HTTP ' + pm.response.code + ' no es el esperado en esta fase. Cuerpo: ' + pm.response.text());",
+              "    });",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-110 - Intento 3 con contrasena erronea",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento (real #3 de esta corrida) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "const yaBloqueada = pm.collectionVariables.get('cuenta_bloqueada') === 'true';",
+              "",
+              "if (pm.response.code === 401 && !yaBloqueada) {",
+              "    pm.test('Intento #3: HTTP 401 con error_code CREDENCIALES_INVALIDAS', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CREDENCIALES_INVALIDAS');",
+              "    });",
+              "",
+              "    const match = respuesta && respuesta.message && respuesta.message.match(/^Credenciales incorrectas\\. Intento (\\d+) de 5\\. Tras el quinto intento fallido, su cuenta ser\\u00e1 bloqueada por 15 minutos por seguridad\\.$/);",
+              "    pm.test('Intento #3: el mensaje sigue exactamente el mismo formato que los intentos anteriores (solo cambia el contador)', function () {",
+              "        pm.expect(match, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    if (match) {",
+              "        const contador = Number(match[1]);",
+              "        const anterior = Number(pm.collectionVariables.get('ultimo_contador_login') || '0');",
+              "        console.log('Contador de intentos reportado por el backend: ' + contador + ' de 5');",
+              "        pm.test('Intento #3: el contador aumento exactamente en 1 respecto al intento anterior', function () {",
+              "            pm.expect(contador).to.equal(anterior + 1);",
+              "        });",
+              "        pm.collectionVariables.set('ultimo_contador_login', String(contador));",
+              "    }",
+              "} else if (pm.response.code === 423) {",
+              "    pm.test('Intento #3: HTTP 423 con error_code CUENTA_BLOQUEADA', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "    });",
+              "    console.log(yaBloqueada ? 'La cuenta se mantiene bloqueada; mensaje consistente con el intento previo.' : 'Este intento disparo el bloqueo de la cuenta (arranco con intentos previos no reseteados).');",
+              "    pm.collectionVariables.set('cuenta_bloqueada', 'true');",
+              "} else {",
+              "    pm.test('Intento #3: codigo de respuesta inesperado, revisar estado de la cuenta de prueba', function () {",
+              "        pm.expect.fail('HTTP ' + pm.response.code + ' no es el esperado en esta fase. Cuerpo: ' + pm.response.text());",
+              "    });",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-110 - Intento 4 con contrasena erronea",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento (real #4 de esta corrida) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "const yaBloqueada = pm.collectionVariables.get('cuenta_bloqueada') === 'true';",
+              "",
+              "if (pm.response.code === 401 && !yaBloqueada) {",
+              "    pm.test('Intento #4: HTTP 401 con error_code CREDENCIALES_INVALIDAS', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CREDENCIALES_INVALIDAS');",
+              "    });",
+              "",
+              "    const match = respuesta && respuesta.message && respuesta.message.match(/^Credenciales incorrectas\\. Intento (\\d+) de 5\\. Tras el quinto intento fallido, su cuenta ser\\u00e1 bloqueada por 15 minutos por seguridad\\.$/);",
+              "    pm.test('Intento #4: el mensaje sigue exactamente el mismo formato que los intentos anteriores (solo cambia el contador)', function () {",
+              "        pm.expect(match, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    if (match) {",
+              "        const contador = Number(match[1]);",
+              "        const anterior = Number(pm.collectionVariables.get('ultimo_contador_login') || '0');",
+              "        console.log('Contador de intentos reportado por el backend: ' + contador + ' de 5');",
+              "        pm.test('Intento #4: el contador aumento exactamente en 1 respecto al intento anterior', function () {",
+              "            pm.expect(contador).to.equal(anterior + 1);",
+              "        });",
+              "        pm.collectionVariables.set('ultimo_contador_login', String(contador));",
+              "    }",
+              "} else if (pm.response.code === 423) {",
+              "    pm.test('Intento #4: HTTP 423 con error_code CUENTA_BLOQUEADA', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "    });",
+              "    console.log(yaBloqueada ? 'La cuenta se mantiene bloqueada; mensaje consistente con el intento previo.' : 'Este intento disparo el bloqueo de la cuenta (arranco con intentos previos no reseteados).');",
+              "    pm.collectionVariables.set('cuenta_bloqueada', 'true');",
+              "} else {",
+              "    pm.test('Intento #4: codigo de respuesta inesperado, revisar estado de la cuenta de prueba', function () {",
+              "        pm.expect.fail('HTTP ' + pm.response.code + ' no es el esperado en esta fase. Cuerpo: ' + pm.response.text());",
+              "    });",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-110 - Intento 5 con contrasena erronea (deberia bloquear la cuenta)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento (real #5 de esta corrida) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "const yaBloqueada = pm.collectionVariables.get('cuenta_bloqueada') === 'true';",
+              "",
+              "if (pm.response.code === 401 && !yaBloqueada) {",
+              "    pm.test('Intento #5: HTTP 401 con error_code CREDENCIALES_INVALIDAS', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CREDENCIALES_INVALIDAS');",
+              "    });",
+              "",
+              "    const match = respuesta && respuesta.message && respuesta.message.match(/^Credenciales incorrectas\\. Intento (\\d+) de 5\\. Tras el quinto intento fallido, su cuenta ser\\u00e1 bloqueada por 15 minutos por seguridad\\.$/);",
+              "    pm.test('Intento #5: el mensaje sigue exactamente el mismo formato que los intentos anteriores (solo cambia el contador)', function () {",
+              "        pm.expect(match, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    if (match) {",
+              "        const contador = Number(match[1]);",
+              "        const anterior = Number(pm.collectionVariables.get('ultimo_contador_login') || '0');",
+              "        console.log('Contador de intentos reportado por el backend: ' + contador + ' de 5');",
+              "        pm.test('Intento #5: el contador aumento exactamente en 1 respecto al intento anterior', function () {",
+              "            pm.expect(contador).to.equal(anterior + 1);",
+              "        });",
+              "        pm.collectionVariables.set('ultimo_contador_login', String(contador));",
+              "        console.log('ADVERTENCIA: tras 5 intentos reales en esta corrida el backend NO bloqueo la cuenta todavia (contador acumulado seguramente venia mas bajo de lo esperado antes de empezar).');",
+              "    }",
+              "} else if (pm.response.code === 423) {",
+              "    pm.test('Intento #5: HTTP 423 con error_code CUENTA_BLOQUEADA', function () {",
+              "        pm.expect(respuesta).to.not.equal(null);",
+              "        pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "    });",
+              "",
+              "    const matchBloqueo = respuesta && respuesta.message && respuesta.message.match(/^Cuenta bloqueada por seguridad debido a m\\u00faltiples intentos fallidos\\. Podr\\u00e1 intentar acceder nuevamente a las \\d{2}:\\d{2}:\\d{2} \\(dentro de 15 minutos exactos\\)\\.$/);",
+              "    pm.test('Intento #5: el mensaje de bloqueo sigue el formato esperado, sin exponer el contador de intentos', function () {",
+              "        pm.expect(matchBloqueo, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "    });",
+              "",
+              "    console.log(yaBloqueada ? 'La cuenta ya estaba bloqueada; mensaje consistente con el intento previo.' : 'Este intento disparo el bloqueo de la cuenta (comportamiento esperado del quinto intento fallido consecutivo).');",
+              "    pm.collectionVariables.set('cuenta_bloqueada', 'true');",
+              "} else {",
+              "    pm.test('Intento #5: codigo de respuesta inesperado, revisar estado de la cuenta de prueba', function () {",
+              "        pm.expect.fail('HTTP ' + pm.response.code + ' no es el esperado en esta fase. Cuerpo: ' + pm.response.text());",
+              "    });",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-110 - Intento adicional tras el bloqueo: el mensaje debe mantenerse identico",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('=== Intento adicional (real #6, verifica consistencia post-bloqueo) ===');",
+              "console.log('HTTP status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('TC-M01-110: la cuenta quedo bloqueada en algun punto de la secuencia de intentos', function () {",
+              "    pm.expect(pm.collectionVariables.get('cuenta_bloqueada')).to.equal('true');",
+              "});",
+              "",
+              "pm.test('Intento adicional: sigue devolviendo HTTP 423 con error_code CUENTA_BLOQUEADA (no vuelve a 401)', function () {",
+              "    pm.response.to.have.status(423);",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('CUENTA_BLOQUEADA');",
+              "});",
+              "",
+              "const matchBloqueo = respuesta && respuesta.message && respuesta.message.match(/^Cuenta bloqueada por seguridad debido a m\\u00faltiples intentos fallidos\\. Podr\\u00e1 intentar acceder nuevamente a las \\d{2}:\\d{2}:\\d{2} \\(dentro de 15 minutos exactos\\)\\.$/);",
+              "pm.test('Intento adicional: el mensaje de bloqueo mantiene el mismo formato, sin filtrar informacion nueva (ni contador ni pistas de la contrasena)', function () {",
+              "    pm.expect(matchBloqueo, 'mensaje recibido: ' + (respuesta && respuesta.message)).to.not.equal(null);",
+              "});",
+              "",
+              "console.log('CONCLUSION: los mensajes de credenciales invalidas comparten un unico formato (solo cambia el contador), y una vez bloqueada la cuenta el mensaje de bloqueo se mantiene identico en reintentos posteriores, sin filtrar informacion adicional entre intentos.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_prueba}}\",\n  \"contrasena\": \"{{contrasena_erronea}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_prueba", "value": "u20221206763@usco.edu.co" },
+    { "key": "contrasena_erronea", "value": "ClaveErronea1#" },
+    { "key": "ultimo_contador_login", "value": "" },
+    { "key": "primer_contador_visto", "value": "" },
+    { "key": "cuenta_bloqueada", "value": "false" }
+  ]
+}

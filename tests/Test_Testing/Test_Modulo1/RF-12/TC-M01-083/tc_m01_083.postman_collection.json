@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "TC-M01-083 - Intentar consultar el detalle de un usuario inexistente",
+    "description": "TC-M01-083 (RF-12, CU07 - Consultar Historial y Auditoria): prueba negativa. Un Administrador autenticado consulta GET /usuarios/999999/detalle con un id_usuario que no existe en la base. ConsultarDetalleUsuarioUseCase.execute() valida primero el ritmo de consulta y luego busca el usuario; si usuarios_repo.obtener_detalle() devuelve None, lanza NotFoundError(code='USUARIO_NO_ENCONTRADO'), que el handler global (src/shared/error_handlers.py) traduce a HTTP 404 con el cuerpo estandar {error_code, message, fields, timestamp}. Se verifica el codigo de respuesta y que el mensaje informe explicitamente que el usuario no existe. Responsable: Juan Parra. Prioridad: Media. Tipo: Pruebas funcionales - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con la consulta del usuario inexistente.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-083 - Consultar detalle de un id_usuario inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Respuesta completa de la consulta a id_usuario inexistente (evidencia) ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-083: la consulta a un id_usuario inexistente responde HTTP 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-083: el cuerpo de la respuesta trae la estructura estandar de error (error_code, message)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('error_code');",
+              "    pm.expect(respuesta).to.have.property('message');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    console.log('error_code recibido: ' + respuesta.error_code);",
+              "    console.log('message recibido: ' + respuesta.message);",
+              "",
+              "    pm.test('TC-M01-083: el error_code indica que el usuario no fue encontrado', function () {",
+              "        pm.expect(respuesta.error_code).to.equal('USUARIO_NO_ENCONTRADO');",
+              "    });",
+              "",
+              "    pm.test('TC-M01-083: el mensaje informa explicitamente que el usuario no existe', function () {",
+              "        pm.expect(respuesta.message.toLowerCase()).to.include('no existe');",
+              "    });",
+              "",
+              "    console.log('CONCLUSION: el sistema informa correctamente que el usuario consultado no existe (HTTP 404, error_code USUARIO_NO_ENCONTRADO).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/999999/detalle",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "999999", "detalle" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" }
+  ]
+}

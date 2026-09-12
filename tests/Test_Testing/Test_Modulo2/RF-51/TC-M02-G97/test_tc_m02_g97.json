@@ -1,0 +1,739 @@
+{
+  "info": {
+    "name": "TC-M02-G97 REFORMULADO - RF-51 inexistencia, ciclo de vida y autorizacion",
+    "description": "RF-51 / TC-M02-G97 (version reformulada). TC-M02-312 (activo inexistente -> 404), TC-M02-313-A (inicio anterior al nacimiento -> 400), TC-M02-313-B (fin posterior a la baja -> 400) y TC-M02-314 (usuario autenticado SIN permiso de lectura (29,2) -> 403). La matriz indica POST /indicadores, pero el contrato solo declara GET: la discrepancia se verifica en SETUP y con un POST de diagnostico que devuelve 405. AUTH_OK = m2m.nuevo@ejemplo.com (rol Productor, con READ); AUTH_NO_READ = contador@pecuaria.co (rol Contador, sin READ, cuenta Activa, credencial legitima). No se revoca ningun permiso ni se usa token invalido. Solo lectura: cero escrituras de QA.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI - resolucion POST vs GET (§4)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/indicadores';",
+                  "const metodos = Object.keys(spec.paths[ruta]);",
+                  "pm.collectionVariables.set('metodo_openapi', metodos.join(','));",
+                  "pm.test('D2/V30: OpenAPI declara UNICAMENTE GET para RF-51', () => pm.expect(metodos).to.eql(['get']));",
+                  "pm.test('V31: DISCREPANCIA MATRIZ(POST) <-> OPENAPI(GET) documentada', () => {",
+                  "  pm.expect(spec.paths[ruta].post, 'la matriz indica POST').to.eql(undefined);",
+                  "  const otras = Object.keys(spec.paths).filter((p) => /indicad/i.test(p) && spec.paths[p].post);",
+                  "  pm.expect(otras.join(','), 'no hay POST de indicadores en ninguna ruta').to.eql('');",
+                  "});",
+                  "const resp = Object.keys(spec.paths[ruta].get.responses);",
+                  "pm.test('El contrato declara 404, 400 y 403 (§G6)', () => {",
+                  "  ['404','400','403'].forEach((c) => pm.expect(resp, 'falta ' + c).to.include(c));",
+                  "});",
+                  "const p = spec.paths[ruta].get.parameters.find((x) => x.name === 'tipo_indicador');",
+                  "pm.test('D7: CRECIMIENTO es un valor valido de tipo_indicador', () => pm.expect(p.schema.description).to.include('CRECIMIENTO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AUTH_OK - login del consumidor autorizado (con READ)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('D3: AUTH_OK autentica correctamente', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('tokenAutorizado', t);",
+                  "pm.test('D3: AUTH_OK corresponde al usuario 35', () => {",
+                  "  pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('35');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "AUTH_NO_READ - login del usuario SIN READ (Contador)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('V23: AUTH_NO_READ autentica correctamente (credencial legitima)', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('tokenSinRead', t);",
+                  "pm.test('V22/V23: AUTH_NO_READ corresponde al usuario 5, rol 5 (Contador)', () => {",
+                  "  const payload = JSON.parse(atob(t.split('.')[1]));",
+                  "  pm.expect(String(payload.sub)).to.eql('5');",
+                  "  pm.expect(Number(payload.rol)).to.eql(5);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A3 - AUTH_OK tiene READ: control positivo (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('A3: AUTH_OK obtiene 200 en /indicadores', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('autorizacion_ok', 'SI');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V24 - AUTH_NO_READ carece de READ: control negativo del acceso base",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSinRead}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('V24: AUTH_NO_READ recibe 403 al leer el activo (READ ausente demostrado)', () => {",
+                  "  pm.expect(pm.response.code).to.eql(403);",
+                  "});",
+                  "pm.test('V24: el 403 es por permiso de rol (ACCESO_DENEGADO), no por cuenta inactiva', () => {",
+                  "  const b = json() || {};",
+                  "  pm.expect(b.error_code, 'un CUENTA_NO_ACTIVA no probaria falta de READ').to.eql('ACCESO_DENEGADO');",
+                  "});",
+                  "pm.collectionVariables.set('sin_read_confirmado', 'SI');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "D1 - El activo 99999 no existe",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('D1/A1: el activo 99999 no existe (404)', () => pm.response.to.have.status(404));",
+                  "pm.collectionVariables.set('inexistente_confirmado', 'SI');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ciclo de vida - activo 279 (QAJE-CREC-OK)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 279 existe y es accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo es QAJE-CREC-OK', () => pm.expect(b.identificador).to.eql('QAJE-CREC-OK'));",
+                  "pm.collectionVariables.set('estado_279', String(b.estado_actual));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Ciclo de vida - activo 286 (QAJE-IND-BAJA)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/286/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('El activo 286 existe y es accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo es QAJE-IND-BAJA', () => pm.expect(b.identificador).to.eql('QAJE-IND-BAJA'));",
+                  "pm.collectionVariables.set('estado_286', String(b.estado_actual));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "TC-M02-312 - activo inexistente (99999)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/99999/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-06-01&fecha_fin=2026-08-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code; const b = json() || {};",
+                  "pm.test('V1: la inexistencia de 99999 fue confirmada antes', () => pm.expect(pm.collectionVariables.get('inexistente_confirmado')).to.eql('SI'));",
+                  "pm.test('V2: AUTH_OK esta autorizado', () => pm.expect(pm.collectionVariables.get('autorizacion_ok')).to.eql('SI'));",
+                  "pm.test('V4: HTTP 404 NOT FOUND', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(404));",
+                  "pm.test('V5: el motivo es la inexistencia del activo', () => {",
+                  "  pm.expect(b.error_code).to.eql('ACTIVO_NO_ENCONTRADO');",
+                  "  pm.expect(String(b.message)).to.include('99999');",
+                  "});",
+                  "pm.test('TC-312: no expone stack trace ni SQL', () => pm.expect(texto()).to.not.match(/Traceback|SELECT .*FROM|sqlalchemy/i));",
+                  "sinIndicador('TC-M02-312');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-313-A - inicio antes del nacimiento (activo 279)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2025-12-01&fecha_fin=2026-09-10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('V7: el activo existe y esta ACTIVO', () => pm.expect(pm.collectionVariables.get('estado_279')).to.eql('ACTIVO'));",
+                  "pm.test('V8/V9/A6: el inicio (2025-12-01) es anterior al nacimiento y al ingreso', () => {",
+                  "  pm.expect(new Date('2025-12-01')).to.be.below(new Date('2026-01-15'));",
+                  "  pm.expect(new Date('2025-12-01')).to.be.below(new Date('2026-06-01'));",
+                  "});",
+                  "pm.test('V10/A5: el fin (2026-09-10) esta dentro del ciclo y no invierte el rango', () => {",
+                  "  pm.expect(new Date('2026-09-10')).to.be.above(new Date('2026-06-01'));",
+                  "  pm.expect(new Date('2026-09-10')).to.be.above(new Date('2025-12-01'));",
+                  "});",
+                  "pm.test('V11: HTTP 400 por rango fuera del ciclo de vida', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(400));",
+                  "pm.test('V12: el motivo identifica el ciclo de vida', () => pm.expect(norm(texto())).to.match(/ciclo de vida|fuera del ciclo|vida:/));",
+                  "sinIndicador('TC-M02-313-A');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-313-B - fin posterior a la baja (activo 286)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/286/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-09-05"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('V14/V15: el activo existe y esta en BAJA (baja 2026-08-31)', () => pm.expect(pm.collectionVariables.get('estado_286')).to.eql('BAJA'));",
+                  "pm.test('V16: el inicio (2026-07-01) esta dentro del ciclo', () => {",
+                  "  pm.expect(new Date('2026-07-01')).to.be.above(new Date('2026-06-01'));",
+                  "  pm.expect(new Date('2026-07-01')).to.be.below(new Date('2026-08-31'));",
+                  "});",
+                  "pm.test('V17/A8: el fin (2026-09-05) es posterior a la baja', () => pm.expect(new Date('2026-09-05')).to.be.above(new Date('2026-08-31')));",
+                  "pm.test('V18/A9: el fin NO es futuro (aisla ciclo de vida de fecha futura)', () => pm.expect(new Date('2026-09-05')).to.be.below(new Date()));",
+                  "pm.test('V19: HTTP 400 por rango fuera del ciclo de vida', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(400));",
+                  "pm.test('V20: el motivo identifica el ciclo de vida', () => pm.expect(norm(texto())).to.match(/ciclo de vida|fuera del ciclo|baja|vida:/));",
+                  "sinIndicador('TC-M02-313-B');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-314 - usuario autenticado sin READ (activo 279)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenSinRead}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-06-01&fecha_fin=2026-09-10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code; const b = json() || {};",
+                  "pm.test('V22/V23: el usuario esta autenticado con credencial valida', () => {",
+                  "  pm.expect(String(pm.request.headers.get('Authorization'))).to.include('Bearer ');",
+                  "  pm.expect(pm.collectionVariables.get('tokenSinRead'), 'no hay token').to.be.a('string');",
+                  "});",
+                  "pm.test('V24: la ausencia de READ fue demostrada por API en SETUP', () => {",
+                  "  pm.expect(pm.collectionVariables.get('sin_read_confirmado')).to.eql('SI');",
+                  "});",
+                  "pm.test('V25: el activo 279 existe (no es 99999)', () => pm.expect(279).to.not.eql(99999));",
+                  "pm.test('V27: HTTP 403 FORBIDDEN', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(403));",
+                  "pm.test('V28: la causa es autorizacion insuficiente, no autenticacion', () => {",
+                  "  pm.expect(b.error_code, 'no debe ser TOKEN_* (autenticacion)').to.eql('ACCESO_DENEGADO');",
+                  "  pm.expect(code, 'un 401 seria autenticacion').to.not.eql(401);",
+                  "});",
+                  "sinIndicador('TC-M02-314');",
+                  "sinVariables('TC-M02-314');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": [
+        {
+          "name": "DIAG - el MISMO activo de 313-A con rango DENTRO del ciclo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-06-01&fecha_fin=2026-09-10"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('DIAG: el rango valido responde 200', () => pm.response.to.have.status(200));",
+                  "const ind = indicadorDe('ganancia_peso');",
+                  "pm.test('DIAG: la respuesta es identica a la del rango invalido -> el rango no interviene en ninguna validacion de ciclo', () => {",
+                  "  pm.expect(ind).to.not.eql(null);",
+                  "  pm.expect(ind.periodo_inicio, 'el periodo lo fijan las mediciones, no el rango').to.not.eql('2025-12-01');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "DIAG - el POST de la matriz devuelve 405",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAutorizado}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/286/indicadores",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_indicador\": \"CRECIMIENTO\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const texto = () => pm.response.text();",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const sinIndicador = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': no se expone ningun indicador calculado', () => {",
+                  "    const b = json();",
+                  "    const pub = (b && Array.isArray(b.indicadores))",
+                  "      ? b.indicadores.filter((i) => i.disponible === true || i.valor !== null) : [];",
+                  "    pm.expect(pub.map((i) => i.tipo + '=' + i.valor).join(','), 'indicadores publicados').to.eql('');",
+                  "  });",
+                  "};",
+                  "const sinVariables = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone variables del calculo', () => {",
+                  "    pm.expect(norm(texto())).to.not.match(/variables_usadas|eventos_sanitarios|peso_inicial|total_mediciones/);",
+                  "  });",
+                  "};",
+                  "pm.test('DIAG: POST /indicadores -> 405 Method Not Allowed', () => pm.expect(pm.response.code).to.eql(405));",
+                  "pm.test('DIAG: la cabecera Allow confirma solo GET', () => pm.expect(String(pm.response.headers.get('Allow'))).to.include('GET'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "password",
+      "value": "Test1234!"
+    }
+  ]
+}

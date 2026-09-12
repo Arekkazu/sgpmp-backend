@@ -1,0 +1,21 @@
+name: Deploy Migrations - test
+
+on:
+  push:
+    branches:
+      - test
+    paths:
+      - "alembic/versions/**"
+  workflow_dispatch:
+
+concurrency:
+  group: alembic-migrate-test
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    uses: ./.github/workflows/_migrate-template.yml
+    with:
+      environment_name: test
+    secrets:
+      database_url: ${{ secrets.TEST_DATABASE_URL }}

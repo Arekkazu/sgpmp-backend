@@ -1,0 +1,208 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-05 Registro contrasena invalida",
+    "description": "Coleccion para RF-01 / TC-M01-05: rechazo del registro cuando la contrasena no cumple uno o mas de los 4 criterios de seguridad (HTTP 400). Prueba 4 variantes independientes: sin mayuscula, sin numero, sin caracter especial, y menos de 8 caracteres. Cada variante usa correo e identificacion unicos para que el 400 se deba unicamente a la contrasena, sin interferencia de la validacion de duplicados (TC-M01-03/04).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Variante 1 - Sin mayuscula",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Variante 1 (sin mayuscula): HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Variante 1: el mensaje hace referencia a la contrasena', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('contrase') || b.includes('password') || b.includes('mayuscul');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Variante 1: el campo reportado es contrasena (si el backend lo incluye)', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('contrasena');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('Variante 1: no se creo una cuenta (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0501.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550501\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000501\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"TC0501\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"clave123#\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Variante 2 - Sin numero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Variante 2 (sin numero): HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Variante 2: el mensaje hace referencia a la contrasena', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('contrase') || b.includes('password') || b.includes('numero') || b.includes('número');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Variante 2: el campo reportado es contrasena (si el backend lo incluye)', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('contrasena');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('Variante 2: no se creo una cuenta (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0502.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550502\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000502\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"TC0502\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Clave#abc\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Variante 3 - Sin caracter especial",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Variante 3 (sin caracter especial): HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Variante 3: el mensaje hace referencia a la contrasena', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('contrase') || b.includes('password') || b.includes('especial');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Variante 3: el campo reportado es contrasena (si el backend lo incluye)', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('contrasena');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('Variante 3: no se creo una cuenta (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0503.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550503\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000503\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"TC0503\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Clave1234\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Variante 4 - Menos de 8 caracteres",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Variante 4 (menos de 8 caracteres): HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "pm.test('Variante 4: el mensaje hace referencia a la contrasena o longitud', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('contrase') || b.includes('password') || b.includes('longitud') || b.includes('8') || b.includes('caracteres');",
+              "    });",
+              "});",
+              "",
+              "pm.test('Variante 4: el campo reportado es contrasena (si el backend lo incluye)', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('contrasena');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('Variante 4: no se creo una cuenta (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0504.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550504\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000504\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"TC0504\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Cl1#ab\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

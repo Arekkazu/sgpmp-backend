@@ -1,0 +1,669 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g02-crear-especie-catalogo",
+    "name": "TC-M09-G02 - Validar creación de especies productivas (RF-15)",
+    "description": "Prueba de contrato API para verificar los 7 sub-casos del endpoint POST /configuracion/especies: límite inferior (3 chars), límite superior (50 chars), <3 chars, >50 chars, nombre omitido/nulo/espacios, caracteres especiales y duplicados case-insensitive, además del teardown.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "espMinimo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "espMinimoUpper",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "espMaximo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspecieMinima",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspecieMaxima",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.collectionVariables.set('tokenAdmin', response.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Sub-caso 1: Éxito Límite Inferior (3 caracteres)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const l1 = String.fromCharCode(65 + Math.floor(Math.random() * 26));",
+              "const l2 = String.fromCharCode(97 + Math.floor(Math.random() * 26));",
+              "const l3 = String.fromCharCode(97 + Math.floor(Math.random() * 26));",
+              "const nombreMin = l1 + l2 + l3;",
+              "pm.collectionVariables.set('espMinimo', nombreMin);",
+              "pm.collectionVariables.set('espMinimoUpper', nombreMin.toUpperCase());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('[Sub-caso 1 LOG] Response Code:', pm.response.code, 'Body:', pm.response.text());",
+              "}",
+              "pm.test('Sub-caso 1: Debe registrar especie con 3 caracteres (201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.id_especie).to.be.a('number');",
+              "    pm.expect(response.es_activo).to.be.true;",
+              "    pm.expect(response.nombre).to.eql(pm.collectionVariables.get('espMinimo'));",
+              "    pm.collectionVariables.set('idEspecieMinima', response.id_especie);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{espMinimo}}\",\n  \"descripcion\": \"Prueba limite inferior 3 caracteres\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "2. Sub-caso 2: Éxito Límite Superior (50 caracteres)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// baseStr = 40 chars exactamente + 10 random = 50 chars totales",
+              "const baseStr = 'EspecieProductivaParaPruebasDeControlQui';",
+              "let randSuffix = '';",
+              "for (let i = 0; i < 10; i++) {",
+              "    randSuffix += String.fromCharCode(97 + Math.floor(Math.random() * 26));",
+              "}",
+              "const nombreMax = baseStr + randSuffix;",
+              "pm.collectionVariables.set('espMaximo', nombreMax);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('[Sub-caso 2 LOG] Response Code:', pm.response.code, 'Body:', pm.response.text());",
+              "}",
+              "pm.test('Sub-caso 2: Debe registrar especie con 50 caracteres (201 Created)', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.id_especie).to.be.a('number');",
+              "    pm.expect(response.es_activo).to.be.true;",
+              "    pm.expect(response.nombre.length).to.eql(50);",
+              "    pm.collectionVariables.set('idEspecieMaxima', response.id_especie);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{espMaximo}}\",\n  \"descripcion\": \"Prueba limite superior 50 caracteres\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "3. Sub-caso 3: Error Longitud <3 caracteres (2 caracteres)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 3: Debe rechazar nombre < 3 caracteres (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.include('El nombre debe tener entre 3 y 50 caracteres.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Ab\",\n  \"descripcion\": \"Prueba error menos de 3 caracteres\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "4. Sub-caso 4: Error Longitud >50 caracteres (51 caracteres)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 4: Debe rechazar nombre > 50 caracteres (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.include('El nombre debe tener entre 3 y 50 caracteres.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"EspecieEspecialParaPruebaDeLimiteSuperiorCincuentaU\",\n  \"descripcion\": \"Prueba error 51 caracteres\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5a. Sub-caso 5a: Error Campo nombre Omitido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 5a: Debe rechazar solicitud sin campo nombre (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.eql('Field required');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"descripcion\": \"Prueba error nombre omitido\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5b. Sub-caso 5b: Error Campo nombre Nulo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 5b: Debe rechazar campo nombre nulo (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.eql('Input should be a valid string');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": null,\n  \"descripcion\": \"Prueba error nombre nulo\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "5c. Sub-caso 5c: Error Campo nombre Espacios en blanco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 5c: Debe rechazar campo nombre compuesto por espacios (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.include('El nombre debe tener entre 3 y 50 caracteres.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"   \",\n  \"descripcion\": \"Prueba error nombre espacios\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "6. Sub-caso 6: Error Caracteres Especiales o Números",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sub-caso 6: Debe rechazar caracteres especiales o números (400 Bad Request)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('VAL_ENTRADA');",
+              "    const fieldErr = response.fields.find(f => f.field === 'nombre');",
+              "    pm.expect(fieldErr).to.exist;",
+              "    pm.expect(fieldErr.message).to.include('El nombre solo puede contener letras y espacios, sin símbolos ni números.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Bovino-123!\",\n  \"descripcion\": \"Prueba error caracteres especiales\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "7. Sub-caso 7: Error Nombre Duplicado Case-Insensitive",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('espMinimoUpper')) {",
+              "    pm.expect.fail('Sub-caso 7 requiere que el Sub-caso 1 haya sido exitoso.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code !== 409) {",
+              "    console.log('[Sub-caso 7 LOG] Response Code:', pm.response.code, 'Body:', pm.response.text());",
+              "}",
+              "pm.test('Sub-caso 7: Debe rechazar especie duplicada case-insensitive (409 Conflict)', function () {",
+              "    pm.response.to.have.status(409);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.eql('ESPECIE_DUPLICADA');",
+              "    pm.expect(response.message).to.include('ya se encuentra registrada en el catálogo.');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{espMinimoUpper}}\",\n  \"descripcion\": \"Prueba error duplicado case-insensitive\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "8. Teardown 1: Desactivar Especie Límite Inferior",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('idEspecieMinima')) {",
+              "    pm.expect.fail('Teardown 1 omitido: No se obtuvo id_especie en Sub-caso 1.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown 1: Debe desactivar la especie creada en Sub-caso 1 (200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.es_activo).to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspecieMinima}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies",
+            "{{idEspecieMinima}}",
+            "desactivar"
+          ]
+        }
+      }
+    },
+    {
+      "name": "9. Teardown 2: Desactivar Especie Límite Superior",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('idEspecieMaxima')) {",
+              "    pm.expect.fail('Teardown 2 omitido: No se obtuvo id_especie en Sub-caso 2.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Teardown 2: Debe desactivar la especie creada en Sub-caso 2 (200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.es_activo).to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspecieMaxima}}/desactivar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies",
+            "{{idEspecieMaxima}}",
+            "desactivar"
+          ]
+        }
+      }
+    }
+  ]
+}

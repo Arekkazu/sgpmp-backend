@@ -1,0 +1,76 @@
+{
+  "info": {
+    "name": "TC-M01-041",
+    "description": "Anti-enumeracion en /contrasena/recuperar: la respuesta debe ser indistinguible entre un correo EXISTENTE y uno INEXISTENTE (mismo codigo HTTP, mismo cuerpo, tiempo de respuesta comparable). Consume 2 de las 3 solicitudes de recuperacion por hora (una por cada correo). Ejecutar con newman run tc-m01-041.json --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-041.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_existente", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "correo_inexistente", "value": "inexistente.qa@sgpmp-test.com" }
+  ],
+  "item": [
+    {
+      "name": "1. Solicitar recuperacion - correo EXISTENTE",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.collectionVariables.set('resp1_status', pm.response.code);",
+        "pm.collectionVariables.set('resp1_body', pm.response.text());",
+        "pm.collectionVariables.set('resp1_time', pm.response.responseTime);",
+        "console.log('[EXISTENTE] status=' + pm.response.code + ' time=' + pm.response.responseTime + 'ms body=' + pm.response.text());",
+        "pm.test('Responde 202 Accepted (si sale 422, ya se agoto el cupo de 3/hora por conexion)', function () {",
+        "    pm.response.to.have.status(202);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_existente}}\"\n}" },
+        "url": "{{base_url}}/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "2. Solicitar recuperacion - correo INEXISTENTE",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var status1 = parseInt(pm.collectionVariables.get('resp1_status'), 10);",
+        "var body1 = pm.collectionVariables.get('resp1_body');",
+        "var time1 = parseFloat(pm.collectionVariables.get('resp1_time'));",
+        "var status2 = pm.response.code;",
+        "var body2 = pm.response.text();",
+        "var time2 = pm.response.responseTime;",
+        "console.log('[INEXISTENTE] status=' + status2 + ' time=' + time2 + 'ms body=' + body2);",
+        "console.log('[COMPARACION] status: ' + status1 + ' vs ' + status2 + ' | tiempo: ' + time1 + 'ms vs ' + time2 + 'ms | diferencia: ' + Math.abs(time1 - time2) + 'ms');",
+        "",
+        "pm.test('Responde 202 Accepted (correo inexistente no debe revelar nada distinto)', function () {",
+        "    pm.response.to.have.status(202);",
+        "});",
+        "",
+        "pm.test('TC-M01-041: el codigo HTTP debe ser IGUAL para correo existente e inexistente', function () {",
+        "    pm.expect(status2, 'status existente=' + status1 + ' vs inexistente=' + status2).to.eql(status1);",
+        "});",
+        "",
+        "pm.test('TC-M01-041: el cuerpo de la respuesta debe ser IDENTICO (mensaje generico) para ambos correos', function () {",
+        "    pm.expect(body2, 'body existente=' + body1 + ' vs inexistente=' + body2).to.eql(body1);",
+        "});",
+        "",
+        "pm.test('TC-M01-041: el tiempo de respuesta no debe delatar si el correo existe (diferencia < 300ms)', function () {",
+        "    var diferencia = Math.abs(time1 - time2);",
+        "    pm.expect(diferencia, ",
+        "        'Diferencia de ' + diferencia + 'ms entre existente (' + time1 + 'ms) e inexistente (' + time2 + 'ms). ' +",
+        "        'Una diferencia grande y consistente es un canal lateral de tiempo: revisando el codigo, ' +",
+        "        'solicitar_recuperacion_use_case.py SOLO llama a send_email() cuando el correo SI existe ' +",
+        "        '(el envio es sincronico, dentro del mismo request) -- para un correo inexistente el flujo ' +",
+        "        'retorna casi de inmediato tras el chequeo en BD, sin enviar nada. Eso podria permitir a un ' +",
+        "        'atacante inferir si un correo esta registrado midiendo cuanto tarda la respuesta, aunque el ' +",
+        "        'cuerpo y el codigo HTTP sean iguales.'",
+        "    ).to.be.below(300);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_inexistente}}\"\n}" },
+        "url": "{{base_url}}/contrasena/recuperar"
+      }
+    }
+  ]
+}

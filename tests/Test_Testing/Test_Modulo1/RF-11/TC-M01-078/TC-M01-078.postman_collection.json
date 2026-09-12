@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "RF-11 - TC-M01-078 Filtros simultaneos en listado de usuarios",
+    "description": "Coleccion para TC-M01-078: consulta GET /usuarios/admin con 3 filtros a la vez (estado_cuenta=Activo, id_rol=3 [Veterinario], correo que contenga 'qa'). Verifica que TODOS los usuarios devueltos cumplan los 3 criterios simultaneamente, no solo alguno de ellos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-078 - GET /usuarios/admin con 3 filtros simultaneos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-078: HTTP 200', function () { pm.response.to.have.status(200); });",
+              "",
+              "const json = pm.response.json();",
+              "console.log('Total de coincidencias: ' + json.total + '. Items devueltos: ' + json.items.length);",
+              "",
+              "pm.test('TC-M01-078: TODOS los items devueltos cumplen los 3 filtros a la vez', function () {",
+              "    if (json.items.length === 0) {",
+              "        console.log('ADVERTENCIA: la consulta no devolvio ningun usuario. No hay datos de prueba que cumplan los 3 filtros combinados. Revisar si hace falta un usuario Veterinario activo con qa en el correo.');",
+              "        return;",
+              "    }",
+              "    json.items.forEach(function (u) {",
+              "        pm.expect(u.estado_cuenta.toLowerCase()).to.eql('activo');",
+              "        pm.expect(u.nombre_rol).to.eql('Veterinario');",
+              "        pm.expect(u.correo_electronico.toLowerCase()).to.include('qa');",
+              "    });",
+              "});",
+              "",
+              "console.log('Items: ' + JSON.stringify(json.items.map(function(u){ return {correo: u.correo_electronico, rol: u.nombre_rol, estado: u.estado_cuenta}; })));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/usuarios/admin?estado_cuenta=Activo&id_rol=3&correo=qa",
+          "host": ["{{base_url}}"], "path": ["usuarios", "admin"],
+          "query": [
+            { "key": "estado_cuenta", "value": "Activo" },
+            { "key": "id_rol", "value": "3" },
+            { "key": "correo", "value": "qa" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" }
+  ]
+}

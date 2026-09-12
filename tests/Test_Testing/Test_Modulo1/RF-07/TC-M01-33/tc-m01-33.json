@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "TC-M01-033",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+              "const jsonData = pm.response.json();",
+              "if (jsonData.token) { pm.collectionVariables.set('access_token', jsonData.token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Nueva#2027\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. TC-M01-033 - Nueva contrasena no cumple politica (esperado 400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-033: responde 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "const jsonData = pm.response.json();",
+              "pm.test('TC-M01-033: error_code VAL_ENTRADA', function () {",
+              "    pm.expect(jsonData.error_code).to.eql('VAL_ENTRADA');",
+              "});",
+              "pm.test('TC-M01-033: senala el campo nueva_contrasena', function () {",
+              "    pm.expect(jsonData.fields[0].field).to.eql('nueva_contrasena');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"Nueva#2027\",\n  \"nueva_contrasena\": \"clave123\",\n  \"confirmar_nueva_contrasena\": \"clave123\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "2. Variante sin mayuscula (esperado 400)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"Nueva#2027\",\n  \"nueva_contrasena\": \"clave#2027\",\n  \"confirmar_nueva_contrasena\": \"clave#2027\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "3. Variante sin numero (esperado 400)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"Nueva#2027\",\n  \"nueva_contrasena\": \"Clave#abcd\",\n  \"confirmar_nueva_contrasena\": \"Clave#abcd\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "4. Variante sin caracter especial (esperado 400)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"Nueva#2027\",\n  \"nueva_contrasena\": \"Clave2027\",\n  \"confirmar_nueva_contrasena\": \"Clave2027\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "5. Variante menos de 8 caracteres (esperado 400)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 400', function () { pm.response.to.have.status(400); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"Nueva#2027\",\n  \"nueva_contrasena\": \"Ab1#567\",\n  \"confirmar_nueva_contrasena\": \"Ab1#567\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    }
+  ]
+}

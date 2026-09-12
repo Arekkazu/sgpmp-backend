@@ -1,0 +1,46 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-018 Credenciales incorrectas, intento 1 de 5",
+    "description": "Coleccion para TC-M01-018: login con contrasena incorrecta sobre una cuenta activa (jmanuelgomen+tcm017@gmail.com, id_cuenta_usuario=54). Se espera HTTP 401. Precondicion: reiniciar intentos_fallidos a 0 antes de correr (ver UPDATE en la conversacion). Despues de correr esto, consultar la BD para confirmar que intentos_fallidos paso de 0 a 1.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-018 - Login con contrasena incorrecta (intento 1 de 5)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-018: HTTP 401 por credenciales incorrectas', function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "",
+              "console.log('Resultado obtenido: ' + pm.response.code + ' - ' + pm.response.text());",
+              "console.log('AHORA CONSULTA LA BD: intentos_fallidos de id_cuenta_usuario=54 debe haber pasado de 0 a 1.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"ClaveErronea1#\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

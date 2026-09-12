@@ -1,0 +1,170 @@
+{
+  "info": {
+    "name": "TC-M01-062 - Intentar acceder al historial de auditoria sin permisos de Administrador",
+    "description": "TC-M01-062 (RF-10, CU07): Usuario con rol diferente a Administrador (Veterinario, juan.carlos@email.com) inicia sesion correctamente y posteriormente intenta consultar GET /auditoria/. Se verifica que, aunque posee un token de autenticacion valido, el sistema rechace el acceso al historial general de auditoria por no contar con el permiso requerido.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Veterinario sin permiso de auditoria general",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token del usuario Veterinario almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con la prueba de acceso no autorizado a auditoria.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"juan.carlos@email.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-062 - Intentar consultar historial de auditoria sin permisos de Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-062: intento de acceso al historial de auditoria ---');",
+              "console.log('Usuario autenticado: rol Veterinario');",
+              "console.log('Endpoint solicitado: GET /auditoria/');",
+              "",
+              "console.log('--- Respuesta completa de TC-M01-062 ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M01-062: el acceso al historial de auditoria es rechazado con HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-062: la respuesta de rechazo tiene estructura de error', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('error_code');",
+              "    pm.expect(respuesta).to.have.property('message');",
+              "});",
+              "",
+              "pm.test('TC-M01-062: la respuesta no expone el historial de auditoria', function () {",
+              "    pm.expect(respuesta).to.not.have.property('items');",
+              "    pm.expect(respuesta).to.not.have.property('total');",
+              "});",
+              "",
+              "pm.test('TC-M01-062: el mensaje indica que el acceso fue denegado o que faltan permisos', function () {",
+              "    const mensaje = (respuesta && respuesta.message ? respuesta.message : '').toLowerCase();",
+              "    pm.expect(",
+              "        mensaje.includes('permiso') ||",
+              "        mensaje.includes('autoriz') ||",
+              "        mensaje.includes('forbidden') ||",
+              "        mensaje.includes('acceso') ||",
+              "        mensaje.includes('deneg')",
+              "    ).to.equal(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?pagina=1&tamano=20",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}

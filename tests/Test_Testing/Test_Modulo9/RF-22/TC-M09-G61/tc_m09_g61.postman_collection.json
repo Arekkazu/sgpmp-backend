@@ -1,0 +1,367 @@
+{
+  "info": {
+    "name": "TC-M09-G61 (TC-M09-117) - Asociacion exitosa de un sensor a un area productiva activa",
+    "description": "TC-M09-G61 (RF-22, CU-05 Gestionar Dispositivos IoT, Flujo B), equivalente a TC-M09-117: verifica el camino feliz de POST /configuracion/sensores/{id_sensor}/asociar (AsociarSensorAreaUseCase) - asociar correctamente un sensor existente (perteneciente a un dispositivo IoT existente) a un area productiva activa. Resultado esperado: la asociacion debe quedar almacenada correctamente.\n\nLa coleccion es autocontenida: registra su propio dispositivo IoT (RF-21) y su propio sensor sobre ese dispositivo (RF-22 precondicion) en vez de depender de un sensor preexistente sin asociaciones previas, y reutiliza un area productiva activa ya existente en TEST (finca_id=1). Verifica la asociacion tanto en la respuesta de creacion como en el historial GET /configuracion/sensores/{id_sensor}/asociaciones (evidencia independiente).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas funcionales - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: creacion de asociacion validada por API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa', respuesta.items[0].id_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura + ' (' + respuesta.items[0].nombre_infraestructura + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar un dispositivo IoT de prueba (RF-21)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro del dispositivo IoT de prueba ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: el registro del dispositivo IoT responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_iot', respuesta.id_dispositivo_iot);",
+              "    console.log('id_dispositivo_iot creado: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G61-{{run_id}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G61 (precondicion RF-21)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar un sensor sobre ese dispositivo (RF-22)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro del sensor sobre el dispositivo de prueba ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: el registro del sensor responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor', respuesta.id_sensores);",
+              "    console.log('id_sensor creado: ' + respuesta.id_sensores + ' (nombre: ' + respuesta.nombre + ', categoria: ' + respuesta.categoria + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor TC-M09-G61 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_iot}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo_iot}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G61 - Asociar el sensor al area productiva activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Asociacion sensor-area (accion bajo prueba) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G61: la asociacion responde HTTP 201 (creada)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensores_area_asociada', respuesta.id_sensores_area_asociada);",
+              "",
+              "    pm.test('TC-M09-G61: la asociacion referencia el sensor correcto', function () {",
+              "        pm.expect(respuesta.id_sensor).to.equal(Number(pm.collectionVariables.get('id_sensor')));",
+              "    });",
+              "    pm.test('TC-M09-G61: la asociacion referencia el dispositivo IoT correcto', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.equal(Number(pm.collectionVariables.get('id_dispositivo_iot')));",
+              "    });",
+              "    pm.test('TC-M09-G61: la asociacion referencia el area productiva activa seleccionada', function () {",
+              "        pm.expect(respuesta.id_infraestructura).to.equal(Number(pm.collectionVariables.get('id_infraestructura_activa')));",
+              "    });",
+              "    pm.test('TC-M09-G61: el punto de instalacion enviado se almacena tal cual', function () {",
+              "        pm.expect(respuesta.punto_instalacion).to.equal('Columna central - TC-M09-G61');",
+              "    });",
+              "    pm.test('TC-M09-G61: la asociacion queda vigente (sin fecha de finalizacion)', function () {",
+              "        pm.expect(respuesta.fecha_finalizacion).to.equal(null);",
+              "    });",
+              "",
+              "    console.log('Asociacion creada: id_sensores_area_asociada=' + respuesta.id_sensores_area_asociada);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_iot}},\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"punto_instalacion\": \"Columna central - TC-M09-G61\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G61 - Verificar la asociacion en el historial del sensor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial de asociaciones del sensor (verificacion independiente) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G61: el historial de asociaciones responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const idAsociacion = Number(pm.collectionVariables.get('id_sensores_area_asociada'));",
+              "    const asociacion = (respuesta.items || []).find(function (a) { return a.id_sensores_area_asociada === idAsociacion; });",
+              "",
+              "    pm.test('TC-M09-G61: la asociacion creada aparece en el historial del sensor', function () {",
+              "        pm.expect(asociacion, 'no se encontro la asociacion ' + idAsociacion + ' en el historial').to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (asociacion) {",
+              "        pm.test('TC-M09-G61: el historial confirma el area productiva de la asociacion', function () {",
+              "            pm.expect(asociacion.id_infraestructura).to.equal(Number(pm.collectionVariables.get('id_infraestructura_activa')));",
+              "        });",
+              "        console.log('CONCLUSION: la asociacion sensor-area quedo correctamente almacenada y es consultable en el historial (' + JSON.stringify(asociacion) + ').');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociaciones",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociaciones" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_iot", "value": "" },
+    { "key": "id_sensor", "value": "" },
+    { "key": "id_sensores_area_asociada", "value": "" }
+  ]
+}

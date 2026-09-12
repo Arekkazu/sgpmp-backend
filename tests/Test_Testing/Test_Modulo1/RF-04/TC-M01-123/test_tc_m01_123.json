@@ -1,0 +1,342 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-123-asignar-permiso-duplicado",
+    "name": "TC-M01-123 - Intentar asignar un permiso duplicado",
+    "description": "Prueba negativa para verificar que el sistema no permita asignar dos veces el mismo permiso a un rol.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_rol",
+      "value": ""
+    },
+    {
+      "key": "nombre_rol",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Respuesta login:', pm.response.text());",
+              "",
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "console.log('Respuesta JSON login:', respuesta);",
+              "",
+              "pm.test('La respuesta debe contener un token de autenticación', function () {",
+              "    pm.expect(respuesta.token, 'No se encontró token en la respuesta').to.exist;",
+              "});",
+              "",
+              "if (respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token guardado correctamente');",
+              "} else {",
+              "    console.log('No se pudo guardar el token');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear rol temporal para la prueba",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var timestamp = Date.now();",
+              "var nombreRol = 'Auxiliar de Campo TC123 ' + timestamp;",
+              "pm.collectionVariables.set('nombre_rol', nombreRol);",
+              "console.log('Nombre del rol temporal:', nombreRol);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Respuesta creación rol:', pm.response.text());",
+              "",
+              "pm.test('Debe crear correctamente el rol temporal', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "console.log('Respuesta JSON creación rol:', respuesta);",
+              "",
+              "pm.test('La respuesta debe contener el identificador del rol creado', function () {",
+              "    pm.expect(respuesta.id_rol, 'No se encontró id_rol en la respuesta').to.exist;",
+              "});",
+              "",
+              "if (respuesta.id_rol) {",
+              "    pm.collectionVariables.set('id_rol', respuesta.id_rol);",
+              "    console.log('ID del rol creado:', respuesta.id_rol);",
+              "} else {",
+              "    console.log('No se pudo guardar el ID del rol');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"{{nombre_rol}}\",\n  \"descripcion\": \"Rol temporal creado automáticamente para la ejecución del caso de prueba TC-M01-123\",\n  \"permisos\": [\n    {\n      \"id_recurso\": 29,\n      \"id_accion\": 2\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Asignar permiso válido por primera vez",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Respuesta primera asignación:', pm.response.text());",
+              "",
+              "pm.test('Debe asignar correctamente el permiso por primera vez', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "console.log('Permiso creado:', respuesta);",
+              "",
+              "pm.test('La primera asignación debe devolver el permiso creado', function () {",
+              "    pm.expect(respuesta.id_permiso).to.exist;",
+              "    pm.expect(respuesta.id_recurso).to.equal(29);",
+              "    pm.expect(respuesta.id_accion).to.equal(3);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_recurso\": 29,\n  \"id_accion\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{id_rol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{id_rol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Intentar asignar el mismo permiso nuevamente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Respuesta asignación duplicada:', pm.response.text());",
+              "",
+              "var respuesta = pm.response.json();",
+              "console.log('Respuesta JSON duplicado:', respuesta);",
+              "",
+              "pm.test('Debe rechazar la asignación de un permiso duplicado', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 409, 422]);",
+              "});",
+              "",
+              "pm.test('La respuesta debe indicar que la operación no fue exitosa', function () {",
+              "    pm.expect(respuesta).to.be.an('object');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_recurso\": 29,\n  \"id_accion\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{id_rol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{id_rol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. Verificar que no existen permisos duplicados",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Respuesta permisos finales:', pm.response.text());",
+              "",
+              "pm.test('Debe consultar correctamente los permisos del rol', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "var permisos = pm.response.json();",
+              "console.log('Permisos finales:', permisos);",
+              "",
+              "pm.test('La respuesta debe contener una lista de permisos', function () {",
+              "    pm.expect(permisos).to.be.an('array');",
+              "});",
+              "",
+              "var permisosDuplicados = permisos.filter(function (permiso) {",
+              "    return permiso.id_recurso === 29 && permiso.id_accion === 3;",
+              "});",
+              "",
+              "console.log('Cantidad de permisos duplicados encontrados:', permisosDuplicados.length);",
+              "",
+              "pm.test('El permiso debe existir exactamente una sola vez', function () {",
+              "    pm.expect(permisosDuplicados.length).to.equal(1);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{id_rol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{id_rol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
