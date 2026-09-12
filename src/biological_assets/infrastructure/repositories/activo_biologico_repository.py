@@ -133,6 +133,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                     cantidad_inicial=dp.cantidad_inicial,
                     cantidad_actual=dp.cantidad_actual,
                     peso_promedio_inicial=dp.peso_promedio_inicial,
+                    densidad=dp.densidad,
                 ))
 
             self.db.add(HistorialInfraestructuraActivoModel(

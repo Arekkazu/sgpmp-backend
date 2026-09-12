@@ -193,6 +193,13 @@ class RegistrarActivoBiologicoUseCase:
         )
 
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
+        # INC-M02-37-G24 (TC-M02-048): la densidad (cantidad/superficie) es
+        # calculable desde el momento del registro, no solo tras el primer
+        # evento de crecimiento — sin esto un lote recién creado queda con
+        # densidad=null hasta su primera medición.
+        if activo.detalle_poblacional is not None and infra.superficie and infra.superficie > 0:
+            cantidad = Decimal(str(activo.detalle_poblacional.cantidad_actual))
+            activo.detalle_poblacional.densidad = cantidad / infra.superficie
 
         try:
             activo = self.repo.guardar(activo)
