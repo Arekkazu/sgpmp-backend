@@ -4,6 +4,9 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._event_validations import (
     validar_estado_permite_eventos,
     validar_fecha_evento,
@@ -14,7 +17,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 
 _CATEGORIAS_REQUIEREN_PADRE = {'servicio', 'inseminacion'}
 _CATEGORIAS_REQUIEREN_NUM_CRIAS = {'parto', 'aborto', 'nacimiento'}
@@ -35,6 +38,27 @@ class RegistrarEventoReproductivoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
+        self,
+        id_activo: int,
+        dto: RegistrarEventoReproductivoDTO,
+        usuario: UsuarioActual,
+    ) -> EventoActivo:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF42',
+            tipo_evento_rechazado='EVENTO_REPRODUCTIVO_RECHAZADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA',
+            tipos_por_codigo={
+                'SECUENCIA_REPRODUCTIVA_INVALIDA': 'SECUENCIA_REPRODUCTIVA_VIOLADA',
+            },
+        )
+
+    def _execute(
         self,
         id_activo: int,
         dto: RegistrarEventoReproductivoDTO,
@@ -142,6 +166,9 @@ class RegistrarEventoReproductivoUseCase:
         try:
             resultado = self.evento_repo.guardar(evento)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:

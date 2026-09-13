@@ -5,6 +5,9 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._event_validations import (
     validar_estado_permite_eventos,
     validar_fecha_evento,
@@ -16,7 +19,7 @@ from src.biological_assets.domain.repositories.evento_activo_repository import E
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.infrastructure.dto.registrar_evento_sanitario_dto import RegistrarEventoSanitarioDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 
 _TIPOS_REQUIEREN_DIAGNOSTICO = {'TRATAMIENTO', 'VACUNACION'}
 _MAPA_ESTADO = {'EN_TRATAMIENTO': 3, 'AISLADO': 4}
@@ -39,6 +42,27 @@ class RegistrarEventoSanitarioUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
+        self,
+        id_activo: int,
+        dto: RegistrarEventoSanitarioDTO,
+        usuario: UsuarioActual,
+    ) -> tuple[EventoActivo, Optional[HistoricoEstado]]:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF41',
+            tipo_evento_rechazado='EVENTO_SANITARIO_RECHAZADO',
+            clasificacion_biologica='SANITARIO',
+            tipos_por_codigo={
+                'DIAGNOSTICO_PREVIO_REQUERIDO': 'SECUENCIA_SANITARIA_VIOLADA',
+            },
+        )
+
+    def _execute(
         self,
         id_activo: int,
         dto: RegistrarEventoSanitarioDTO,
@@ -97,6 +121,9 @@ class RegistrarEventoSanitarioUseCase:
                     modulo_origen='modulo2',
                 )
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:

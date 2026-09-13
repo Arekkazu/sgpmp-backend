@@ -4,6 +4,9 @@ from datetime import date, datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -13,7 +16,7 @@ from src.biological_assets.domain.repositories.historico_estado_repository impor
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class CerrarCicloUseCase:
@@ -32,6 +35,19 @@ class CerrarCicloUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF38',
+            tipo_evento_rechazado='CIERRE_CICLO_RECHAZADO',
+            clasificacion_biologica='CONTROL_ESTADO',
+        )
+
+    def _execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
         # FA-01: activo debe existir
         activo = self.repo.obtener_por_id(id_activo)
         if activo is None:
@@ -108,6 +124,9 @@ class CerrarCicloUseCase:
                 modulo_origen='RF-38',
             )
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
             if self.bitacora_repo:
