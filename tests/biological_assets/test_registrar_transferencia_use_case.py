@@ -1,4 +1,11 @@
-"""RF-48: la fecha futura se rechaza como regla funcional con HTTP 422."""
+"""RF-48: la fecha futura se rechaza como regla funcional con HTTP 422.
+
+E-10 es la última validación del proceso (RF-48 paso 6f) — el control de
+concurrencia (E-01) es "paso previo a cualquier otra validación" según el
+propio RF, así que estos tests pasan primero por E-01..E-09 con fixtures
+válidos (mismo patrón que test_registrar_transferencia_e08_finca.py) antes
+de llegar a la fecha futura.
+"""
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -10,6 +17,9 @@ from fastapi.testclient import TestClient
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import (
     RegistrarTransferenciaUseCase,
 )
+from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, HistorialInfraestructura
+from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
+from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import (
     RegistrarTransferenciaDTO,
 )
@@ -22,7 +32,45 @@ from src.shared.errors import BusinessRuleError, ConflictError
 
 class ColaboradorNoInvocado:
     def __getattr__(self, nombre: str):
-        raise AssertionError(f'La fecha futura no debe invocar {nombre}.')
+        raise AssertionError(f'No debía invocarse {nombre} tras el rechazo.')
+
+
+class ActivoRepoFake:
+    def __init__(self, activo, asociacion) -> None:
+        self.activo = activo
+        self.asociacion = asociacion
+
+    def obtener_por_id(self, _id: int):
+        return self.activo
+
+    def obtener_asociacion_activa(self, _id: int):
+        return self.asociacion
+
+
+class TransferenciaRepoFake:
+    def hay_transferencia_en_progreso(self, _id: int) -> bool:
+        return False
+
+
+class InfraPortFake:
+    def __init__(self, infras: dict[int, InfraestructuraConsulta]) -> None:
+        self.infras = infras
+
+    def obtener_activa(self, id_infraestructura: int):
+        return self.infras.get(id_infraestructura)
+
+    def calcular_ocupacion(self, _id: int) -> int:
+        return 0
+
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        return True
+
+
+def _infra(id_infraestructura: int, id_finca: int) -> InfraestructuraConsulta:
+    return InfraestructuraConsulta(
+        id_infraestructura=id_infraestructura, nombre=f'Infra {id_infraestructura}',
+        tipo='Corral', es_activo=True, id_finca=id_finca,
+    )
 
 
 def _usuario() -> UsuarioActual:
@@ -38,15 +86,31 @@ def _dto(fecha_transferencia: date) -> RegistrarTransferenciaDTO:
     )
 
 
-def test_fecha_futura_es_regla_funcional_y_no_inicia_persistencia() -> None:
-    colaborador = ColaboradorNoInvocado()
-    caso_uso = RegistrarTransferenciaUseCase(
-        db=colaborador,
-        activo_repo=colaborador,
-        transferencia_repo=colaborador,
-        infra_port=colaborador,
-        bitacora_repo=colaborador,
+def _caso_uso_hasta_e10() -> RegistrarTransferenciaUseCase:
+    """Fixtures que pasan E-01..E-09 para que solo quede validar la fecha (E-10)."""
+    activo = ActivoBiologico(
+        id_especie=40, tipo='INDIVIDUAL', origen_financiero='PROPIO',
+        id_infraestructura=48, id_estado=EstadoActivo.ACTIVO, id_usuario=35,
+        id_activo_biologico=292, identificador='A-292',
     )
+    asociacion = HistorialInfraestructura(
+        id_historial=1, id_activo_biologico=292, id_infraestructura=48,
+        nombre_infraestructura='Infra 48', tipo_infraestructura='Corral',
+        fecha_inicio=None, fecha_fin=None,
+    )
+    return RegistrarTransferenciaUseCase(
+        db=ColaboradorNoInvocado(),
+        activo_repo=ActivoRepoFake(activo, asociacion),
+        transferencia_repo=TransferenciaRepoFake(),
+        infra_port=InfraPortFake({
+            48: _infra(48, id_finca=10),
+            51: _infra(51, id_finca=10),
+        }),
+    )
+
+
+def test_fecha_futura_es_regla_funcional_y_no_inicia_persistencia() -> None:
+    caso_uso = _caso_uso_hasta_e10()
 
     with pytest.raises(BusinessRuleError) as capturada:
         caso_uso.execute(292, _dto(date.today() + timedelta(days=5)), _usuario())
@@ -60,16 +124,33 @@ def test_fecha_futura_es_regla_funcional_y_no_inicia_persistencia() -> None:
 
 @pytest.fixture
 def cliente_transferencia(monkeypatch: pytest.MonkeyPatch):
-    colaborador = ColaboradorNoInvocado()
-    monkeypatch.setattr(router_module, 'SqlAlchemyActivoBiologicoRepository', lambda _db: colaborador)
-    monkeypatch.setattr(router_module, 'SqlAlchemyTransferenciaRepository', lambda _db: colaborador)
-    monkeypatch.setattr(router_module, 'InfraestructuraM09Adapter', lambda _db: colaborador)
-    monkeypatch.setattr(router_module, 'SqlAlchemyBitacoraAuditoriaRepository', lambda _db: colaborador)
+    activo = ActivoBiologico(
+        id_especie=40, tipo='INDIVIDUAL', origen_financiero='PROPIO',
+        id_infraestructura=48, id_estado=EstadoActivo.ACTIVO, id_usuario=35,
+        id_activo_biologico=292, identificador='A-292',
+    )
+    asociacion = HistorialInfraestructura(
+        id_historial=1, id_activo_biologico=292, id_infraestructura=48,
+        nombre_infraestructura='Infra 48', tipo_infraestructura='Corral',
+        fecha_inicio=None, fecha_fin=None,
+    )
+    activo_repo = ActivoRepoFake(activo, asociacion)
+    transferencia_repo = TransferenciaRepoFake()
+    infra_port = InfraPortFake({
+        48: _infra(48, id_finca=10),
+        51: _infra(51, id_finca=10),
+    })
+    monkeypatch.setattr(router_module, 'SqlAlchemyActivoBiologicoRepository', lambda _db: activo_repo)
+    monkeypatch.setattr(router_module, 'SqlAlchemyTransferenciaRepository', lambda _db: transferencia_repo)
+    monkeypatch.setattr(router_module, 'InfraestructuraM09Adapter', lambda _db: infra_port)
+    monkeypatch.setattr(
+        router_module, 'SqlAlchemyBitacoraAuditoriaRepository', lambda _db: ColaboradorNoInvocado()
+    )
 
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(router_module.router)
-    app.dependency_overrides[get_db] = lambda: colaborador
+    app.dependency_overrides[get_db] = lambda: ColaboradorNoInvocado()
     app.dependency_overrides[get_current_user] = _usuario
 
     ruta = next(

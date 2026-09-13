@@ -50,7 +50,11 @@ class ActivoBiologicoRepository(ABC):
 
     @abstractmethod
     def obtener_asociacion_activa(self, id_activo: int) -> Optional[HistorialInfraestructura]:
-        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL)."""
+        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL).
+
+        Incluye ``es_activo_infraestructura`` para detectar inconsistencia
+        jerárquica: una asociación vigente hacia una infraestructura inactiva.
+        """
 
     @abstractmethod
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
