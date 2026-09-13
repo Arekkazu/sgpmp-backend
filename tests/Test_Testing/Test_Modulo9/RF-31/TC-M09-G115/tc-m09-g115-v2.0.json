@@ -1,0 +1,130 @@
+{
+  "info": {
+    "_postman_id": "d2f1a6c0-7c3a-4e21-9b1a-tc09115v20",
+    "name": "TC-M09-G115 v2.0 - Auditoria de creacion exitosa o fallida de plantillas",
+    "description": "Retest de TC-M09-G115 (TC-M09-222). Verifica GET /configuracion/plantillas/auditoria contra los 2 escenarios que exige la ficha: creacion exitosa y creacion fallida. Cada asercion representa lo que la ficha EXIGE (RF-31): si el escenario ya esta corregido, sale en verde; si el defecto sigue presente, sale en rojo. Este mismo mecanismo de auditoria (tabla modulo9.auditorias_plantillas) ya se investigo a fondo en TC-M09-G109, donde se confirmo por codigo que registrar_plantilla_use_case.py solo llama a auditoria_repo.registrar(...) DESPUES de que todas las validaciones pasan (dentro del bloque try del commit) -- una creacion fallida nunca llega a ese punto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "total_auditoria_0", "value": "" },
+    { "key": "total_auditoria_1", "value": "" },
+    { "key": "id_plantilla_exitosa", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+        "if (body.items && body.items.length > 0) { pm.collectionVariables.set('id_especie', body.items[0].id_especie); }"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Baseline - total de entradas en /configuracion/plantillas/auditoria",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('1 - se puede consultar la auditoria de plantillas', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) {",
+        "    var data = pm.response.json();",
+        "    console.log('1 baseline total auditoria: ' + data.total);",
+        "    pm.collectionVariables.set('total_auditoria_0', data.total);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    },
+    {
+      "name": "2. Crear plantilla valida (TC-M09-222 - creacion exitosa)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREACION EXITOSA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('2 - la creacion con datos validos responde 201 Created', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_exitosa', pm.response.json().id_plantilla); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-AUDIT-G115-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. TC-M09-222 v2.0 - La creacion EXITOSA debe quedar registrada en auditoria",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var data = pm.response.json();",
+        "var total0 = parseInt(pm.collectionVariables.get('total_auditoria_0'));",
+        "var idPlantilla = parseInt(pm.collectionVariables.get('id_plantilla_exitosa'));",
+        "console.log('3: total auditoria ahora = ' + data.total + ' (antes: ' + total0 + ')');",
+        "pm.test('TC-M09-222 v2.0 - la creacion EXITOSA de una plantilla debe quedar registrada en auditoria', function () {",
+        "    pm.expect(data.total).to.eql(total0 + 1);",
+        "});",
+        "var entrada = (data.items || []).find(function(i) { return i.id_plantilla === idPlantilla; });",
+        "pm.test('3 - la entrada nueva corresponde a la plantilla recien creada, con tipo_operacion CREATE', function () {",
+        "    pm.expect(entrada, 'No se encontro una entrada de auditoria para id_plantilla=' + idPlantilla).to.not.be.undefined;",
+        "    pm.expect(entrada.tipo_operacion).to.eql('CREATE');",
+        "});",
+        "pm.collectionVariables.set('total_auditoria_1', data.total);"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    },
+    {
+      "name": "4. Intentar crear plantilla sin template_name (TC-M09-222 - creacion fallida)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREACION FALLIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('4 - falla como se espera (400, template_name requerido)', function () { pm.response.to.have.status(400); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5. TC-M09-222 v2.0 - La creacion FALLIDA debe quedar registrada en auditoria",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "var data = pm.response.json();",
+        "var total1 = parseInt(pm.collectionVariables.get('total_auditoria_1'));",
+        "console.log('5: total auditoria tras intento fallido = ' + data.total + ' (antes del intento: ' + total1 + ')');",
+        "pm.test('TC-M09-222 v2.0 - la creacion FALLIDA de una plantilla debe quedar registrada en auditoria', function () {",
+        "    pm.expect(data.total, 'El total de auditoria no aumento tras el intento fallido -- los fallos no se estan registrando').to.be.above(total1);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    }
+  ]
+}

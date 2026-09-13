@@ -1,0 +1,148 @@
+{
+  "info": {
+    "_postman_id": "b8d3f2a0-4c6e-4a89-9d21-tc09122v20",
+    "name": "TC-M09-G122 v2.0 - Validacion del estado de la plantilla a aplicar",
+    "description": "Retest de TC-M09-G122 (TC-235/236). La primera ejecucion (2026-09-05) confirmo TC-235 correcto (404 para id inexistente), pero TC-236 quedo no concluyente: el sistema no maneja un estado explicito 'DEPRECADA' (solo un numero de version), y ademas ni la version superada NI la vigente lograban aplicarse -- ambas fallaban con el mismo 500 ERROR_INTERNO transversal ya confirmado corregido en TC-M09-G116 (2026-09-12). Esta coleccion repite el mismo diseno (v1 superada vs v2 vigente sobre una especie limpia) para determinar, ahora que el 500 ya no bloquea todo, si existe o no una restriccion real sobre versiones no vigentes. La asercion de TC-236 expresa lo que pide la ficha (impedir la aplicacion de una version superada): si el sistema la permite igual (200), la asercion sale en rojo, documentando que esa regla de negocio simplemente no esta implementada (no es el defecto de bloqueo general, que ya esta corregido).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_origen", "value": "" },
+    { "key": "id_especie_destino", "value": "" },
+    { "key": "id_plantilla_v1", "value": "" },
+    { "key": "id_plantilla_v2", "value": "" },
+    { "key": "nombre_ciclo_v1", "value": "" },
+    { "key": "nombre_ciclo_v2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[LOGIN] status=' + pm.response.code);",
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      }
+    },
+    {
+      "name": "0B. Obtener 2 especies activas distintas (origen y destino)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "var body = pm.response.json();",
+        "pm.test('Hay al menos 2 especies activas', function () { pm.expect(body.items.length).to.be.above(1); });",
+        "if (body.items && body.items.length > 1) {",
+        "    pm.collectionVariables.set('id_especie_origen', body.items[0].id_especie);",
+        "    pm.collectionVariables.set('id_especie_destino', body.items[1].id_especie);",
+        "    var ts = Date.now();",
+        "    pm.collectionVariables.set('nombre_ciclo_v1', 'Etapa V1 Test G122 ' + ts);",
+        "    pm.collectionVariables.set('nombre_ciclo_v2', 'Etapa V2 Test G122 ' + ts);",
+        "}"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Crear plantilla v1 (version 1, sera superada)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CREAR V1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('1 - la plantilla v1 se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) { pm.collectionVariables.set('id_plantilla_v1', pm.response.json().id_plantilla); }"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"template_name\": \"QA-G122-{{$timestamp}}\",\n  \"id_especie\": {{id_especie_origen}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [\n      { \"nombre\": \"{{nombre_ciclo_v1}}\", \"duracion_dias\": 30 }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "2. Versionar la plantilla (crea version 2, vigente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[VERSIONAR -> V2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('2 - la version 2 se crea con 201', function () { pm.response.to.have.status(201); });",
+        "if (pm.response.code === 201) {",
+        "    var body = pm.response.json();",
+        "    pm.collectionVariables.set('id_plantilla_v2', body.id_plantilla);",
+        "    pm.test('2 - la nueva plantilla queda en version 2', function () { pm.expect(body.version).to.eql(2); });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"ciclos_biologicos\": [\n      { \"nombre\": \"{{nombre_ciclo_v2}}\", \"duracion_dias\": 45 }\n    ]\n  }\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/versiones"
+      }
+    },
+    {
+      "name": "3. TC-M09-235 v2.0 - Impedir aplicacion de una plantilla inexistente (404)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-235] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('TC-M09-235 v2.0 - aplicar un id de plantilla inexistente debe rechazarse con 404', function () {",
+        "    pm.response.to.have.status(404);",
+        "});",
+        "if (pm.response.code === 404) {",
+        "    var err = pm.response.json();",
+        "    pm.test('3 - el error trae el codigo PLANTILLA_NO_ENCONTRADA', function () {",
+        "        pm.expect(err.error_code).to.eql('PLANTILLA_NO_ENCONTRADA');",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/999999/aplicar"
+      }
+    },
+    {
+      "name": "4. TC-M09-236 v2.0 - Impedir aplicacion de la version SUPERADA (v1, no vigente)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[TC-236 - v1 superada] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "if (pm.response.code === 500) { console.log('OBSERVACION: 500 -- no seria un rechazo intencional, seria el defecto general (deberia estar corregido).'); }",
+        "if (pm.response.code === 200) { console.log('El sistema SI permitio aplicar la version superada (v1). No existe una restriccion de version vigente.'); }",
+        "pm.test('TC-M09-236 v2.0 - aplicar una version SUPERADA (no vigente) de una plantilla debe impedirse (no responder 200)', function () {",
+        "    pm.response.to.not.have.status(200);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v1}}/aplicar"
+      }
+    },
+    {
+      "name": "5. Control - aplicar la version VIGENTE (v2) sobre una especie limpia",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "console.log('[CONTROL - v2 vigente] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('5 (control) - aplicar la version vigente (v2) de la plantilla debe responder 200 OK', function () {",
+        "    pm.response.to.have.status(200);",
+        "});",
+        "if (pm.response.code === 200) {",
+        "    var b = pm.response.json();",
+        "    var nombres = (b.after_snapshot.ciclos_biologicos || []).map(function(c) { return c.nombre; });",
+        "    pm.test('5 - el after_snapshot refleja el ciclo de la version 2 (no el de la v1)', function () {",
+        "        pm.expect(nombres).to.include(pm.collectionVariables.get('nombre_ciclo_v2'));",
+        "    });",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "body": { "mode": "raw", "raw": "{\n  \"id_especie_destino\": {{id_especie_destino}},\n  \"fecha_actualizacion_especie_destino\": null\n}" },
+        "url": "{{base_url}}/configuracion/plantillas/{{id_plantilla_v2}}/aplicar"
+      }
+    }
+  ]
+}
