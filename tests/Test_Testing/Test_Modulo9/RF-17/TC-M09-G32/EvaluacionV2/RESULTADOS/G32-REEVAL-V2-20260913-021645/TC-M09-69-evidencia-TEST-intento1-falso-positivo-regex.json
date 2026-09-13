@@ -1,0 +1,234 @@
+{
+  "grupo": "TC-M09-G32",
+  "caso": "TC-M09-69",
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V2",
+  "runId": "G32-REEVAL-V2-20260913-021645",
+  "ambiente": "TEST",
+  "fecha": "2026-09-13T07:18:41.796Z",
+  "preflight": [
+    {
+      "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 404
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    }
+  ],
+  "actor": {
+    "correo": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "rol": "Administrador",
+    "estado": "Activo",
+    "permisosRF17_r20": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "permisosDashboard_r33": [
+      2
+    ],
+    "permisosHistorial_r34": [
+      2,
+      5
+    ],
+    "intentosLogin": [
+      {
+        "correo": "administador.dev@gmail.com",
+        "status": 200
+      }
+    ]
+  },
+  "RF17_BEFORE": {
+    "id_umbral_ambiental": 39,
+    "especie": {
+      "id": 10,
+      "nombre": "Tilapia",
+      "es_activo": true
+    },
+    "variable": {
+      "id": 1,
+      "nombre": "Temperatura del agua",
+      "unidad": "°C"
+    },
+    "valor_min": "18.00",
+    "valor_max": "27.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "18.00",
+        "limite_superior": "21.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "21.00",
+        "limite_superior": "24.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "24.00",
+        "limite_superior": "27.00"
+      }
+    ],
+    "es_activo": true,
+    "fecha_actualizacion": null,
+    "origen": "Umbral QA creado por TC-M09-G22 EvaluacionV2 (TC-M09-47, Tilapia + Temperatura del agua)"
+  },
+  "MONITORING_BEFORE": {
+    "dashboard": {
+      "status": 200,
+      "campos": [
+        "id_sensor",
+        "id_dispositivo_iot",
+        "nombre_sensor",
+        "tipo_variable",
+        "categoria_variable",
+        "ultimo_valor",
+        "ultima_unidad",
+        "ultimo_timestamp_captura",
+        "estado_semaforo",
+        "estado_calidad",
+        "estado_desviacion",
+        "estado_conectividad",
+        "tiempo_sin_reporte_min",
+        "dato_desactualizado",
+        "id_alerta",
+        "severidad_alerta",
+        "tendencia",
+        "id_infraestructura",
+        "nombre_infraestructura",
+        "id_finca",
+        "nombre_finca",
+        "nivel_bateria_pct",
+        "calidad_senal_rssi",
+        "calidad_senal_snr"
+      ]
+    },
+    "historial": {
+      "status": 200,
+      "campos": [
+        "id_telemetria",
+        "id_sensor",
+        "nombre_sensor",
+        "id_variable",
+        "tipo_variable",
+        "categoria_variable",
+        "valor",
+        "valor_ajustado",
+        "unidad_medida",
+        "timestamp_captura",
+        "estado_calidad",
+        "estado_semaforo_historico",
+        "origen_dato",
+        "id_infraestructura",
+        "infraestructura",
+        "finca",
+        "id_activo_biologico",
+        "especie",
+        "id_alerta",
+        "nivel_bateria_pct",
+        "calidad_senal_rssi",
+        "calidad_senal_snr"
+      ],
+      "semaforos": [
+        "GRIS"
+      ]
+    }
+  },
+  "correlacion": {
+    "monitoreoExponeConfiguracionRF17": true,
+    "dashboardExponeEspecie": false,
+    "semaforoHistoricoCalculado": false,
+    "RF17_BEFORE_igual_MONITORING_BEFORE": "No verificable: Monitoreo no expone rango, niveles ni referencia al umbral"
+  },
+  "updateEjecutado": false,
+  "motivoSinUpdate": "Checklist §140: API de Monitoreo sin configuracion efectiva correlacionable (items 11, 12 y 15 = No)",
+  "RF17_AFTER": null,
+  "MONITORING_AFTER": null,
+  "versionOCorrelacion": null,
+  "probeValue": null,
+  "clasificacion": null,
+  "tiempoPropagacion": null,
+  "codigo": {
+    "rama": "qa/juan-esteban-re-evaluacion-M02",
+    "head": "ff5f6c9f6161e46c94d3d6f325a7d07d80d84aa0",
+    "originDev": "5d39b366ffccfad93153cb86e7081f1be742da24",
+    "diffSrcHeadVsOriginDev": "(sin diferencias)",
+    "umbralHistoricoM09Adapter": [
+      "class UmbralHistoricoM09Adapter(UmbralHistoricoPort):",
+      "\"\"\"Stub: M09 aún no expone umbrales versionados con vigencia temporal (RF-59 Restricción 16).",
+      "Mientras tanto todos los semáforos históricos quedan en GRIS.",
+      "return None"
+    ],
+    "lecturasDeTablasRF17FueraDeConfiguration": [],
+    "fuenteSemaforoDashboard": [
+      "origin/dev:src/telemetry/infrastructure/repositories/monitoreo_repository.py:38:FROM modulo3.estados_actuales_sensores eas",
+      "origin/dev:src/telemetry/infrastructure/repositories/monitoreo_repository.py:71:FROM modulo3.estados_actuales_sensores eas",
+      "origin/dev:src/telemetry/infrastructure/repositories/monitoreo_repository.py:113:FROM modulo3.estados_actuales_sensores eas"
+    ]
+  },
+  "newman": {
+    "html": "newman/newman-TC-M09-69-v2-TEST.html",
+    "assertions": {
+      "total": 10,
+      "pending": 0,
+      "failed": 2
+    },
+    "aserciones": [
+      {
+        "request": "Actor RF-17",
+        "test": "Precondicion: /usuarios/me 200",
+        "ok": true
+      },
+      {
+        "request": "Actor RF-17",
+        "test": "Precondicion: actor Administrador o Veterinario activo",
+        "ok": true
+      },
+      {
+        "request": "RF17_BEFORE",
+        "test": "Precondicion: GET RF-17 200",
+        "ok": true
+      },
+      {
+        "request": "RF17_BEFORE",
+        "test": "Precondicion: configuracion RF-17 existente y activa",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_BEFORE dashboard",
+        "test": "Precondicion: API Monitoreo dashboard 200",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_BEFORE dashboard",
+        "test": "Oraculo TC-69: el dashboard expone la configuracion RF-17 efectiva (id_umbral / valor_min / valor_max / niveles)",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_BEFORE dashboard",
+        "test": "Oraculo TC-69: el dashboard permite correlacionar especie de la configuracion",
+        "ok": false,
+        "detalle": "campos: id_sensor,id_dispositivo_iot,nombre_sensor,tipo_variable,categoria_variable,ultimo_valor,ultima_unidad,ultimo_timestamp_captura,estado_semaforo,estado_calidad,estado_desviacion,estado_conectividad,tiempo_sin_reporte_min,dato_desactualizado,id_alerta,severidad_alerta,tendencia,id_infraestruct"
+      },
+      {
+        "request": "MONITORING_BEFORE historial",
+        "test": "Precondicion: API Monitoreo historial 200",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_BEFORE historial",
+        "test": "Oraculo TC-69: el historial expone la configuracion RF-17 aplicada",
+        "ok": true
+      },
+      {
+        "request": "MONITORING_BEFORE historial",
+        "test": "Oraculo TC-69: el semaforo historico se calcula con un umbral (no todo GRIS)",
+        "ok": false,
+        "detalle": "semaforos: GRIS: expected false to deeply equal true"
+      }
+    ]
+  }
+}

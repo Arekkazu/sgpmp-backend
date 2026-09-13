@@ -1,0 +1,262 @@
+{
+  "grupo": "TC-M09-G29",
+  "casos": [
+    "TC-M09-62",
+    "TC-M09-63"
+  ],
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V2",
+  "runId": "G29-REEVAL-V2-20260913-014534",
+  "fechaInicio": "2026-09-13T06:46:57.340699+00:00",
+  "ambienteDecisorio": "DEV",
+  "naturaleza": "verificacion de implementacion read-only (contrato desplegado + codigo origin/dev + GET autenticado DEV); sin escrituras",
+  "git": {
+    "rama": "qa/juan-esteban-re-evaluacion-M02",
+    "head": "ff5f6c9f6161e46c94d3d6f325a7d07d80d84aa0",
+    "originDev": "5d39b366ffccfad93153cb86e7081f1be742da24",
+    "originDevUltimoCommit": "5d39b366 2026-09-11 chore(release): 1.0.0-rc.37 [skip ci]",
+    "diffSrcHeadVsOriginDev": "(sin diferencias)"
+  },
+  "clienteMqtt": {
+    "paho_mqtt": false,
+    "mosquitto_sub": false,
+    "mosquitto_pub": false,
+    "mqttx": false,
+    "mqtt_cli": false
+  },
+  "contratos": {
+    "DEV": {
+      "base": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+      "health": 200,
+      "openapi": 200,
+      "operacionesRF17": {
+        "POST /configuracion/umbrales": [
+          "201",
+          "401",
+          "403",
+          "404",
+          "409",
+          "422"
+        ],
+        "GET /configuracion/umbrales": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ],
+        "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "412",
+          "422"
+        ]
+      },
+      "umbralAmbientalResponse": [
+        "id_umbral_ambiental",
+        "id_especie",
+        "id_variable_ambiental",
+        "unidad_medida",
+        "valor_min",
+        "valor_max",
+        "es_activo",
+        "fecha_actualizacion",
+        "niveles"
+      ],
+      "rutasUmbrales": [
+        "/configuracion/umbrales",
+        "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+        "/configuracion/umbrales/{id_umbral_ambiental}",
+        "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+      ],
+      "rutasSincronizacionEdgeMqtt": [
+        "/iot/eventos-edge"
+      ]
+    },
+    "TEST_suministrada": {
+      "base": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "health": 404,
+      "openapi": 404
+    },
+    "TEST_https": {
+      "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "health": 200,
+      "openapi": 200,
+      "operacionesRF17": {
+        "POST /configuracion/umbrales": [
+          "201",
+          "401",
+          "403",
+          "404",
+          "409",
+          "422"
+        ],
+        "GET /configuracion/umbrales": [
+          "200",
+          "401",
+          "403",
+          "422"
+        ],
+        "PATCH /configuracion/umbrales/{id_umbral_ambiental}": [
+          "200",
+          "401",
+          "403",
+          "404",
+          "412",
+          "422"
+        ]
+      },
+      "umbralAmbientalResponse": [
+        "id_umbral_ambiental",
+        "id_especie",
+        "id_variable_ambiental",
+        "unidad_medida",
+        "valor_min",
+        "valor_max",
+        "es_activo",
+        "fecha_actualizacion",
+        "niveles"
+      ],
+      "rutasUmbrales": [
+        "/configuracion/umbrales",
+        "/configuracion/umbrales/{id_umbral_ambiental}/auditoria",
+        "/configuracion/umbrales/{id_umbral_ambiental}",
+        "/configuracion/umbrales/{id_umbral_ambiental}/desactivar"
+      ],
+      "rutasSincronizacionEdgeMqtt": [
+        "/iot/eventos-edge"
+      ]
+    }
+  },
+  "devRuntime": {
+    "actor": {
+      "correo": "admin.general@pecuaria.co",
+      "rol": "Administrador",
+      "estado": "Activo",
+      "permisosRecurso20": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    "especiesActivas": 5,
+    "muestrasUmbrales": [
+      {
+        "id_especie": 4,
+        "especie": "Cachama Blanca",
+        "status": 200,
+        "total": 2,
+        "camposItem": [
+          "es_activo",
+          "fecha_actualizacion",
+          "id_especie",
+          "id_umbral_ambiental",
+          "id_variable_ambiental",
+          "niveles",
+          "unidad_medida",
+          "valor_max",
+          "valor_min"
+        ],
+        "ejemplo": {
+          "id_umbral_ambiental": 10,
+          "id_variable_ambiental": 1,
+          "valor_min": "0.00",
+          "valor_max": "100.00",
+          "es_activo": true,
+          "fecha_actualizacion": null
+        },
+        "auditoriaStatus": 200,
+        "auditoriaCampos": [
+          "items",
+          "total"
+        ]
+      },
+      {
+        "id_especie": 3,
+        "especie": "Camarón Blanco",
+        "status": 200,
+        "total": 3,
+        "camposItem": [
+          "es_activo",
+          "fecha_actualizacion",
+          "id_especie",
+          "id_umbral_ambiental",
+          "id_variable_ambiental",
+          "niveles",
+          "unidad_medida",
+          "valor_max",
+          "valor_min"
+        ],
+        "ejemplo": {
+          "id_umbral_ambiental": 7,
+          "id_variable_ambiental": 1,
+          "valor_min": "0.00",
+          "valor_max": "100.00",
+          "es_activo": true,
+          "fecha_actualizacion": null
+        }
+      }
+    ],
+    "tokenPersistido": false
+  },
+  "desfaseTestDev": {
+    "operacionesRF17": false,
+    "umbralAmbientalResponse": false,
+    "rutasUmbrales": false
+  },
+  "codigoOriginDev": {
+    "archivosRF17": [
+      "src/configuration/application/use_cases/umbrales/registrar_umbral_use_case.py",
+      "src/configuration/application/use_cases/umbrales/editar_umbral_use_case.py",
+      "src/configuration/infrastructure/routers/umbral_router.py",
+      "src/configuration/infrastructure/schema/umbral_schema.py",
+      "src/configuration/domain/entities/umbral_ambiental.py"
+    ],
+    "referenciasIntegracionEnRF17": {
+      "src/configuration/application/use_cases/umbrales/registrar_umbral_use_case.py": [],
+      "src/configuration/application/use_cases/umbrales/editar_umbral_use_case.py": [],
+      "src/configuration/infrastructure/routers/umbral_router.py": [],
+      "src/configuration/infrastructure/schema/umbral_schema.py": [],
+      "src/configuration/domain/entities/umbral_ambiental.py": []
+    },
+    "consumidoresMqttPort": [
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:17:from src.configuration.domain.repositories.mqtt_port import MqttPort",
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:32:        mqtt_port: MqttPort,",
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:94:        resultado = self.mqtt_port.enviar_configuracion(",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:31:from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),"
+    ],
+    "usosNodoEdgePort": [
+      "origin/dev:src/prediction/application/use_cases/motor_ia/configurar_motor_use_case.py:10:from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort",
+      "origin/dev:src/prediction/application/use_cases/motor_ia/configurar_motor_use_case.py:28:        nodo_edge_port: NodoEdgePort,",
+      "origin/dev:src/prediction/domain/repositories/nodo_edge_port.py:6:class NodoEdgePort(ABC):",
+      "origin/dev:src/prediction/infrastructure/adapters/nodo_edge_stub_adapter.py:3:from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort",
+      "origin/dev:src/prediction/infrastructure/adapters/nodo_edge_stub_adapter.py:6:class NodoEdgeStubAdapter(NodoEdgePort):",
+      "origin/dev:src/prediction/infrastructure/routers/motor_ia_router.py:21:from src.prediction.infrastructure.adapters.nodo_edge_stub_adapter import NodoEdgeStubAdapter",
+      "origin/dev:src/prediction/infrastructure/routers/motor_ia_router.py:63:        nodo_edge_port=NodoEdgeStubAdapter(),"
+    ],
+    "nodoEdgeStub": [
+      "from __future__ import annotations",
+      "from src.prediction.domain.repositories.nodo_edge_port import NodoEdgePort",
+      "class NodoEdgeStubAdapter(NodoEdgePort):",
+      "\"\"\"Stub temporal — IoT/IA gestiona el registro y disponibilidad de nodos Edge.\"\"\"",
+      "def hay_nodos_activos(self, tipo_modelo: str) -> bool:",
+      "return True"
+    ]
+  },
+  "oraculo": {
+    "rf17InvocaIntegracion": false,
+    "estadoSincronizacion": {
+      "contrato": [],
+      "runtime": []
+    },
+    "operacionesCon500": {},
+    "edgeObservable": {
+      "rutas": [],
+      "nodoEdgeEsStub": true
+    }
+  },
+  "fechaFin": "2026-09-13T06:47:05.812662+00:00"
+}
