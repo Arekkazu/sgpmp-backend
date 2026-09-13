@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.1.1...v1.1.2) (2026-09-13)
+
+### Bug Fixes
+
+* **deploy:** usa dokploy-network en vez de sgpmp-network externa en PROD ([b9e828a](https://github.com/Arekkazu/sgpmp-backend/commit/b9e828a436d2bd6062e118c58a1257eebc15cfe5))
+
 ## [1.1.1](https://github.com/Arekkazu/sgpmp-backend/compare/v1.1.0...v1.1.1) (2026-09-12)
 
 ### Bug Fixes
