@@ -12,8 +12,11 @@
 # `docker compose config` falle de forma legible cuando falta una variable
 # obligatoria, en vez de levantar un contenedor mal configurado.
 #
-# Prerrequisito: la red `sgpmp-network` es externa y debe existir antes de
-# levantar el stack -> docker network create sgpmp-network
+# Red: se usa `dokploy-network`, la red compartida que Dokploy ya crea en el
+# servidor durante su instalacion. NO requiere `docker network create` ni
+# acceso SSH: existe antes de cualquier deploy. Reemplaza a la antigua
+# `sgpmp-network` (external), que fallaba con "network sgpmp-network not found"
+# porque nadie la habia creado en el host. Ver el bloque `networks:` al final.
 # ==============================================================
 
 # Nombre de proyecto explicito: sin esto Compose lo deriva del nombre del
@@ -52,10 +55,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatoria en PROD (la provee el DBA)}
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB es obligatoria en PROD (nombre de la base)}
     # SIN `ports:` — esta es la diferencia central con DEV y TEST. En PROD la
-    # base de datos NO se expone al host: el único consumidor es el backend,
-    # que la alcanza por el hostname interno a través de `sgpmp-network`.
-    # Publicar 5432 (o cualquier otro puerto) en un servidor con IP pública lo
-    # deja expuesto a barridos automatizados y a fuerza bruta.
+    # base de datos NO se expone al host: sus consumidores (el backend y, mas
+    # adelante, el gateway Broker/AIoT) la alcanzan por su hostname interno
+    # `${POSTGRES_DB}-db:5432` dentro de `dokploy-network`. Estar en una red
+    # Docker NO es publicar un puerto: el 5432 sigue sin ser accesible desde el
+    # host ni desde Internet. Publicar 5432 (o cualquier otro puerto) en un
+    # servidor con IP pública lo dejaría expuesto a barridos y fuerza bruta.
     # Si Despliegue llegara a necesitar acceso directo para mantenimiento, la
     # forma correcta NO es agregar un mapeo abierto aquí: debe habilitarse con
     # restricción de firewall a IPs conocidas del equipo, nunca a 0.0.0.0/0.
@@ -89,7 +94,7 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - sgpmp-network
+      - dokploy-network
 
   backend:
     build:
@@ -187,18 +192,29 @@ services:
         max-size: "10m"
         max-file: "3"
     networks:
-      - sgpmp-network
+      - dokploy-network
 
-# Red externa compartida entre stacks. Corrige el incidente del 7 de
-# septiembre: el gateway AIoT devolvía 500 en DEV porque vive en otro stack de
-# Compose y no podía resolver el hostname interno de PostgreSQL
-# (socket.gaierror: Temporary failure in name resolution). Con una red externa
-# compartida el gateway resuelve el hostname interno y, además, deja de ser
-# necesario publicar el puerto de la base.
-# Al ser `external: true`, la red debe existir antes de levantar el stack:
-#   docker network create sgpmp-network
+# Red compartida entre stacks. Corrige el incidente del 7 de septiembre: el
+# gateway AIoT devolvía 500 en DEV porque vive en otro stack de Compose y no
+# podía resolver el hostname interno de PostgreSQL (socket.gaierror: Temporary
+# failure in name resolution). Con una red compartida el gateway resuelve el
+# hostname interno y, además, deja de ser necesario publicar el puerto de la base.
+#
+# Se usa `dokploy-network` en vez de una `sgpmp-network` propia: Dokploy la crea
+# durante su instalación, así que YA EXISTE en el host y no hay que ejecutar
+# `docker network create` (imposible sin acceso SSH al servidor). Es la causa
+# del error "network sgpmp-network not found" al desplegar Main. Cualquier otro
+# stack de este proyecto (Broker/AIoT) se une a esta misma red y resuelve el
+# hostname `${POSTGRES_DB}-db` de la base sin exponerla al host.
+#
+# Nota de seguridad: `dokploy-network` es compartida por todos los proyectos del
+# host, así que el alcance de red de la base es más amplio que el de una red
+# dedicada. La base sigue exigiendo contraseña y NO está publicada al host ni a
+# Internet. Cuando el equipo disponga de acceso SSH, la mejora es crear una red
+# dedicada (`docker network create sgpmp-network`) y volver a apuntar aquí; el
+# cambio sería solo este bloque y las dos referencias de servicio.
 networks:
-  sgpmp-network:
+  dokploy-network:
     external: true
 
 volumes:
