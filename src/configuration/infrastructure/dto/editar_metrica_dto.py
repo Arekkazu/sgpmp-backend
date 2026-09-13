@@ -10,6 +10,7 @@ from typing import Optional
 
 from pydantic import field_validator
 
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.shared.base_dto import BaseDTO
 
 _NOMBRE_METRICA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 \-()/]*$")
@@ -23,6 +24,8 @@ class EditarMetricaDTO(BaseDTO):
     unidad_medida: str
     tipo_medicion: str
     aplica_a_tipo_activo: str
+    tipo_dato: Optional[str] = None
+    es_obligatorio: Optional[bool] = None
     fecha_actualizacion: Optional[datetime] = None
 
     @field_validator("nombre")
@@ -62,3 +65,10 @@ class EditarMetricaDTO(BaseDTO):
         if v not in _APLICA_VALIDOS:
             raise ValueError(f"El valor de aplica_a_tipo_activo debe ser uno de: {', '.join(sorted(_APLICA_VALIDOS))}.")
         return v
+
+    @field_validator("tipo_dato")
+    @classmethod
+    def validar_tipo_dato(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return TipoDatoAtributo.desde_string(v).value

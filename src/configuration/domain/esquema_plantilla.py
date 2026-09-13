@@ -28,10 +28,11 @@ from typing import Any, Callable
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.shared.errors import BusinessRuleError
 
-SCHEMA_VERSION_ACTUAL = 1
+SCHEMA_VERSION_ACTUAL = 2
 
 #: Categorías que el RF-30 autoriza dentro de una plantilla.
 CATEGORIAS: tuple[str, ...] = (
@@ -78,6 +79,10 @@ def _es_numero(valor: Any) -> bool:
         return False
 
 
+def _es_booleano(valor: Any) -> bool:
+    return isinstance(valor, bool)
+
+
 def _uno_de(*opciones: str) -> Regla:
     return (f"uno de {list(opciones)}", lambda valor: valor in opciones)
 
@@ -85,6 +90,7 @@ def _uno_de(*opciones: str) -> Regla:
 TEXTO: Regla = ("texto no vacío", _es_texto)
 ENTERO_POSITIVO: Regla = ("entero positivo", _es_entero_positivo)
 NUMERO: Regla = ("número", _es_numero)
+BOOLEANO: Regla = ("booleano", _es_booleano)
 
 #: Campos obligatorios de cada ítem, con su tipo. Son los que
 #: `*_desde_snapshot` de los repositorios lee sin `.get()` y convierte con
@@ -112,6 +118,19 @@ CAMPOS_REQUERIDOS: dict[str, dict[str, Regla]] = {
     },
 }
 
+#: Campos opcionales de cada ítem: si vienen se valida su tipo, si faltan el
+#: repositorio aplica el valor por defecto (`guardar_desde_snapshot` infiere
+#: `tipo_dato` desde `tipo_medicion` y asume `es_obligatorio=False`). No van en
+#: `CAMPOS_REQUERIDOS` para no romper la creación de plantillas nuevas desde
+#: clientes que todavía no envían estos dos campos (#208 solo agregó metadata
+#: a RF-16/RF-33, no volvió estos campos obligatorios en RF-30).
+CAMPOS_OPCIONALES: dict[str, dict[str, Regla]] = {
+    "metricas_produccion": {
+        "tipo_dato": _uno_de(*(t.value for t in TipoDatoAtributo)),
+        "es_obligatorio": BOOLEANO,
+    },
+}
+
 #: Forma de cada elemento de `umbrales_ambientales[].niveles`. La clave
 #: `niveles` es opcional (el repositorio usa `.get('niveles', [])`), pero si
 #: viene, sus elementos se leen por índice y se convierten a `Decimal`.
@@ -125,6 +144,19 @@ CAMPOS_NIVEL_ALERTA: dict[str, Regla] = {
 #: antigua. `compatible_con` lista los `schema_version` que esta versión del
 #: sistema todavía sabe aplicar.
 CHANGELOG: tuple[dict[str, Any], ...] = (
+    {
+        "version": 2,
+        "fecha": "2026-09-09",
+        "compatible_con": (1, 2),
+        "cambios": (
+            "Las métricas productivas admiten tipo_dato y es_obligatorio para los atributos dinámicos.",
+            "Ambos campos son opcionales en el snapshot: si vienen, tipo_dato debe ser uno de "
+            "NUMERICO, ENTERO, TEXTO o BOOLEANO, y es_obligatorio debe ser booleano.",
+            "Si no vienen, se infiere tipo_dato desde tipo_medicion y es_obligatorio queda en False "
+            "— así una plantilla nueva creada por un cliente que aún no los envía sigue siendo válida.",
+            "Las plantillas de versión 1 siguen siendo aplicables con el mismo criterio de inferencia.",
+        ),
+    },
     {
         "version": 1,
         "fecha": "2026-06-21",
@@ -198,6 +230,16 @@ def _validar_item(item: dict[str, Any], reglas: dict[str, Regla], ubicacion: str
         if valor is not None and not es_valido(valor):
             errores.append(f"{ubicacion}.{campo} debe ser {descripcion}; llegó {valor!r}.")
 
+    return errores
+
+
+def _validar_opcionales(item: dict[str, Any], reglas: dict[str, Regla], ubicacion: str) -> list[str]:
+    """Valida el tipo de campos opcionales solo cuando vienen informados."""
+    errores: list[str] = []
+    for campo, (descripcion, es_valido) in reglas.items():
+        valor = item.get(campo)
+        if valor is not None and not es_valido(valor):
+            errores.append(f"{ubicacion}.{campo} debe ser {descripcion}; llegó {valor!r}.")
     return errores
 
 
@@ -276,6 +318,7 @@ def validar_snapshot(snapshot: dict[str, Any]) -> list[str]:
                 errores.append(f"{ubicacion} debe ser un objeto.")
                 continue
             errores.extend(_validar_item(item, CAMPOS_REQUERIDOS[categoria], ubicacion))
+            errores.extend(_validar_opcionales(item, CAMPOS_OPCIONALES.get(categoria, {}), ubicacion))
             if categoria == "umbrales_ambientales":
                 errores.extend(_validar_niveles(item, ubicacion))
 

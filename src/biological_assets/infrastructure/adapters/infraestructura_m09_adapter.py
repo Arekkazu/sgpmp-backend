@@ -84,3 +84,28 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
             )
             for row in rows
         ]
+
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        total_reglas = self.db.execute(
+            text(
+                'SELECT COUNT(*) FROM modulo9.compatibilidades_tipo_area_especie c '
+                'JOIN modulo9.tipos_area ta ON ta.id_tipo_area = c.id_tipo_area '
+                'WHERE ta.nombre = :tipo'
+            ),
+            {'tipo': tipo_infraestructura},
+        ).scalar()
+        if not total_reglas:
+            return True  # sin regla configurada para este tipo -> sin restriccion todavia
+
+        return bool(
+            self.db.execute(
+                text(
+                    'SELECT EXISTS ('
+                    '  SELECT 1 FROM modulo9.compatibilidades_tipo_area_especie c '
+                    '  JOIN modulo9.tipos_area ta ON ta.id_tipo_area = c.id_tipo_area '
+                    '  WHERE ta.nombre = :tipo AND c.id_especie = :id_especie'
+                    ')'
+                ),
+                {'tipo': tipo_infraestructura, 'id_especie': id_especie},
+            ).scalar()
+        )

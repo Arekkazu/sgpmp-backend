@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from datetime import date
 
+import pytest
+
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import (
     RegistrarEventoBajaUseCase,
 )
@@ -51,13 +53,16 @@ class ActivoRepoFake:
 
 
 class EventoRepoFake:
-    def __init__(self) -> None:
+    def __init__(self, orden: list[str] | None = None) -> None:
         self.guardado: EventoActivo | None = None
+        self.orden = orden
 
     def obtener_ultima_fecha(self, _id: int):
         return None
 
     def guardar(self, evento: EventoActivo) -> EventoActivo:
+        if self.orden is not None:
+            self.orden.append('evento')
         self.guardado = evento
         return evento
 
@@ -68,10 +73,13 @@ class InfraPortFake:
 
 
 class HistoricoRepoFake:
-    def __init__(self) -> None:
+    def __init__(self, orden: list[str] | None = None) -> None:
         self.registros: list[dict] = []
+        self.orden = orden
 
     def registrar(self, **kwargs) -> HistoricoEstado:
+        if self.orden is not None:
+            self.orden.append('estado')
         self.registros.append(kwargs)
         return HistoricoEstado(
             id_activo_biologico=kwargs['id_activo'],
@@ -138,8 +146,9 @@ def _uc(db, activo, evento_repo, historico) -> RegistrarEventoBajaUseCase:
 def test_baja_individual_total_delega_y_registra_origen_rf45() -> None:
     db = DbFake()
     activo = _activo_individual(id_estado=EstadoActivo.ACTIVO)
-    evento_repo = EventoRepoFake()
-    historico = HistoricoRepoFake()
+    orden: list[str] = []
+    evento_repo = EventoRepoFake(orden)
+    historico = HistoricoRepoFake(orden)
     uc = _uc(db, activo, evento_repo, historico)
 
     uc.execute(10, _dto(), _usuario())
@@ -149,14 +158,16 @@ def test_baja_individual_total_delega_y_registra_origen_rf45() -> None:
     assert historico.registros[0]['id_estado_nuevo'] == EstadoActivo.BAJA
     assert evento_repo.guardado is not None
     assert evento_repo.guardado.baja.cantidad_afectada == 1
+    assert orden == ['evento', 'estado']
     assert db.commits == 1
 
 
 def test_baja_lote_total_delega_y_registra_origen_rf45() -> None:
     db = DbFake()
     activo = _activo_lote(id_estado=EstadoActivo.ACTIVO, cantidad_actual=5)
-    evento_repo = EventoRepoFake()
-    historico = HistoricoRepoFake()
+    orden: list[str] = []
+    evento_repo = EventoRepoFake(orden)
+    historico = HistoricoRepoFake(orden)
     uc = _uc(db, activo, evento_repo, historico)
 
     uc.execute(10, _dto(cantidad_afectada=None), _usuario())
@@ -164,6 +175,7 @@ def test_baja_lote_total_delega_y_registra_origen_rf45() -> None:
     assert activo.detalle_poblacional.cantidad_actual == 0
     assert activo.id_estado == EstadoActivo.BAJA
     assert historico.registros[0]['modulo_origen'] == 'RF-45'
+    assert orden == ['evento', 'estado']
     assert db.commits == 1
 
 
@@ -180,3 +192,21 @@ def test_baja_lote_parcial_no_cambia_estado() -> None:
     assert activo.id_estado == EstadoActivo.ACTIVO
     assert historico.registros == []
     assert db.commits == 1
+
+
+def test_fallo_al_cambiar_estado_despues_del_evento_revierte_la_transaccion() -> None:
+    class HistoricoRepoFallido(HistoricoRepoFake):
+        def registrar(self, **kwargs) -> HistoricoEstado:
+            raise RuntimeError('fallo simulado al registrar el estado')
+
+    db = DbFake()
+    activo = _activo_individual(id_estado=EstadoActivo.ACTIVO)
+    evento_repo = EventoRepoFake()
+    uc = _uc(db, activo, evento_repo, HistoricoRepoFallido())
+
+    with pytest.raises(RuntimeError, match='fallo simulado'):
+        uc.execute(10, _dto(), _usuario())
+
+    assert evento_repo.guardado is not None
+    assert db.commits == 0
+    assert db.rollbacks == 1

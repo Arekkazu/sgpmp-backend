@@ -19,6 +19,8 @@ def _a_parametro(r: MetricaProduccionModel) -> ParametroEspecie:
         nombre=r.nombre,
         tipo_medicion=r.tipo_medicion,
         aplica_a_tipo_activo=r.aplica_a_tipo_activo,
+        tipo_dato=r.tipo_dato,
+        es_obligatorio=r.es_obligatorio,
         valor_min=r.valor_min,
         valor_max=r.valor_max,
     )
