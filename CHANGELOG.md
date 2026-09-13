@@ -1,3 +1,12 @@
+## [1.0.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.39...v1.0.0-rc.40) (2026-09-13)
+
+### Bug Fixes
+
+* **rf37-rf38:** enviar usuario al cerrar la fase anterior ([2470531](https://github.com/Arekkazu/sgpmp-backend/commit/24705314a9aa7a12fed4e2fd789a64b92f6e17a9))
+* **rf39:** permitir consultar eventos de activos individuales ([9ba5f91](https://github.com/Arekkazu/sgpmp-backend/commit/9ba5f91ac7754168198a594933b2c35987f61b8c))
+* **rf45:** corregir enum en triggers de baja ([d0573aa](https://github.com/Arekkazu/sgpmp-backend/commit/d0573aa1dffe6b08c9322d809a3be20187fc7a43))
+* **rf48:** devolver 422 para fecha futura ([875732f](https://github.com/Arekkazu/sgpmp-backend/commit/875732f8f985ccb3d2f71ae5f3bcb62560e751bb))
+
 ## [1.0.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.38...v1.0.0-rc.39) (2026-09-13)
 
 ### Bug Fixes
