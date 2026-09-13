@@ -36,3 +36,12 @@ class InfraestructuraConsultaPort(ABC):
     @abstractmethod
     def listar_sensores_activos(self, id_infraestructura: int) -> list[SensorEnInfraestructura]:
         """Retorna los sensores con asociación de área activa en la infraestructura (enriquecimiento RF-22)."""
+
+    @abstractmethod
+    def es_tipo_compatible(self, tipo_infraestructura: str, id_especie: int) -> bool:
+        """C2 (RF-48): compatibilidad entre el tipo de infraestructura y la especie del activo.
+
+        Si no hay ninguna regla configurada para ``tipo_infraestructura``, es
+        compatible por defecto (sin restricción todavía definida para ese tipo).
+        Si hay al menos una regla, solo son compatibles las especies listadas.
+        """

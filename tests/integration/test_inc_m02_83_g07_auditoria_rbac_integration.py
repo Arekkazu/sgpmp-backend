@@ -24,6 +24,7 @@ from src.shared.error_handlers import register_error_handlers
 
 def test_tc_m02_249_403_rbac_incrementa_bitacora_rf43(
     db_session: Session,
+    crear_usuario_db,
 ) -> None:
     # Precondición de QA: el rol Contador no tiene C sobre activos biológicos.
     # El ID se resuelve del catálogo real; los roles no se tratan como fijos.
@@ -43,11 +44,11 @@ def test_tc_m02_249_403_rbac_incrementa_bitacora_rf43(
         .first()
     )
     assert permiso is None
-    usuario_contador = (
-        db_session.query(Usuarios)
-        .filter(Usuarios.id_rol == rol_contador.id_rol)
-        .first()
-    )
+    # `pruebas` no trae datos transaccionales precargados (ver
+    # scripts/provisionar_pruebas.sh): el usuario se crea en la propia
+    # transacción de la prueba en vez de asumir uno ya existente.
+    datos_usuario = crear_usuario_db(id_rol=rol_contador.id_rol)
+    usuario_contador = db_session.get(Usuarios, datos_usuario["id_usuario"])
     assert usuario_contador is not None
 
     app = FastAPI()
