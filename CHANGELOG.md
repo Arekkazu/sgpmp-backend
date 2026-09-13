@@ -1,3 +1,10 @@
+## [1.0.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.38...v1.0.0-rc.39) (2026-09-13)
+
+### Bug Fixes
+
+* **email:** acotar el timeout de smtplib para no bloquear indefinidamente ([cc9d9f9](https://github.com/Arekkazu/sgpmp-backend/commit/cc9d9f9035e76e3084416fcbd54ea32c78c2b782))
+* **sesiones:** despachar la notificacion de login en segundo plano ([8718983](https://github.com/Arekkazu/sgpmp-backend/commit/8718983af4883e9d18019d645b2e02014d4c9138))
+
 ## [1.0.0-rc.38](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.37...v1.0.0-rc.38) (2026-09-13)
 
 ### Features
