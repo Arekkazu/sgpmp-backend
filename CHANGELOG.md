@@ -1,3 +1,9 @@
+## [1.0.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.42...v1.0.0-rc.43) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** dejar de descartar en silencio los fallos de auditoria (SEG-M02-01) ([2f22d28](https://github.com/Arekkazu/sgpmp-backend/commit/2f22d28069f0ac219dd14a95074a84a875e47998)), closes [#265](https://github.com/Arekkazu/sgpmp-backend/issues/265)
+
 ## [1.0.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.41...v1.0.0-rc.42) (2026-09-13)
 
 ### Bug Fixes
