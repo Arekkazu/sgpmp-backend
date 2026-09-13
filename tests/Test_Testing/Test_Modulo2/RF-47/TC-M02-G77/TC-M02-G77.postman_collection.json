@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "TC-M02-G77 - Consolidacion de la ficha integral del activo",
+    "description": "CU10B - Ficha Integral del Activo Biologico - RF-47. Agrupa TC-M02-127 (ficha completa, 8 secciones), TC-M02-128 (seccion vacia), TC-M02-129 (fallo parcial de modulo fuente) y TC-M02-130 (advertencia de inconsistencia sin bloquear). Usa datos reales ya existentes en TEST para 127/128/130 (activos 5, 10 y 8) en vez de crear datos nuevos, porque el escenario de 130 (estado CERRADO/BAJA con fase aun activa) ya existe de forma natural en el entorno compartido. TC-M02-129 no se pudo forzar en vivo sin arriesgar romper una vista compartida para todos los usuarios de TEST -- ver README.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_activo_completo", "value": "5" },
+    { "key": "id_activo_sin_sanitarios", "value": "10" },
+    { "key": "id_activo_inconsistente", "value": "8" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "1. TC-M02-127 - Consultar ficha integral completa (activo con datos en varios modulos)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_completo}}/ficha-integral"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-127] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('La ficha integral responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('Secciones 1-4 y 7 presentes (identificacion, estado/fase, ubicacion, biologicos)', function () {",
+        "  pm.expect(body.identificador).to.exist;",
+        "  pm.expect(body.tipo).to.exist;",
+        "  pm.expect(body.especie).to.exist;",
+        "  pm.expect(body.estado_actual).to.exist;",
+        "  pm.expect(body.fase_productiva_activa).to.exist;",
+        "  pm.expect(body.infraestructura_asociada).to.exist;",
+        "  pm.expect(body.raza).to.exist;",
+        "  pm.expect(body.peso_actual).to.exist;",
+        "});",
+        "pm.test('Seccion 5 (eventos recientes) presente', function () {",
+        "  pm.expect(body.eventos_sanitarios).to.be.an('array');",
+        "  pm.expect(body.eventos_crecimiento).to.be.an('array');",
+        "});",
+        "pm.test('Seccion 6 (indicadores) presente como campo, aunque este vacio', function () {",
+        "  pm.expect(body.indicadores).to.be.an('array');",
+        "});",
+        "pm.test('RF-47: debe existir la Seccion 8 (accesos directos)', function () {",
+        "  pm.expect(body).to.have.property('accesos_directos');",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "2. TC-M02-128 - Seccion sin datos (activo sin eventos sanitarios)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_sin_sanitarios}}/ficha-integral"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-128] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('La ficha responde 200 (sin error por seccion vacia)', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('eventos_sanitarios es un arreglo vacio, no un error ni una seccion omitida', function () {",
+        "  pm.expect(body).to.have.property('eventos_sanitarios');",
+        "  pm.expect(body.eventos_sanitarios).to.be.an('array').that.is.empty;",
+        "});",
+        "pm.test('El resto de la ficha se cargo con normalidad', function () {",
+        "  pm.expect(body.identificador).to.exist;",
+        "  pm.expect(body.tipo).to.exist;",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3. TC-M02-130 - Advertencia de inconsistencia sin bloquear la ficha (CERRADO con fase activa)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_inconsistente}}/ficha-integral"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-130] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('La ficha se muestra completa, sin bloquear la visualizacion (200)', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('El estado es CERRADO/BAJA con una fase productiva aun activa', function () {",
+        "  pm.expect(['CERRADO','BAJA']).to.include(body.estado_actual);",
+        "  pm.expect(body.fase_productiva_activa).to.not.be.null;",
+        "});",
+        "pm.test('Aparece la advertencia de inconsistencia', function () {",
+        "  pm.expect(body.advertencias).to.be.an('array').that.is.not.empty;",
+        "  const texto = body.advertencias.join(' ').toLowerCase();",
+        "  pm.expect(texto).to.match(/inconsistencia/);",
+        "});",
+        "pm.test('El resto de secciones de la ficha siguen presentes (no bloqueada)', function () {",
+        "  pm.expect(body.identificador !== undefined || body.especie !== undefined).to.eql(true);",
+        "  pm.expect(body.eventos_crecimiento).to.be.an('array');",
+        "});"
+      ] } }]
+    }
+  ]
+}

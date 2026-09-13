@@ -14,6 +14,7 @@ from src.configuration.domain.repositories.especie_repository import EspecieRepo
 from src.configuration.domain.repositories.metrica_produccion_repository import MetricaProduccionRepository
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.dto.registrar_metrica_dto import RegistrarMetricaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -73,6 +74,10 @@ class RegistrarMetricaUseCase:
 
         nombre = NombreMetrica(dto.nombre)
         tipo_medicion = TipoMedicion.desde_string(dto.tipo_medicion)
+        tipo_dato = TipoDatoAtributo.desde_string(
+            dto.tipo_dato
+            or TipoDatoAtributo.inferir_desde_tipo_medicion(dto.tipo_medicion).value
+        )
         aplica = AplicaTipoActivo.desde_string(dto.aplica_a_tipo_activo)
 
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)
@@ -90,6 +95,8 @@ class RegistrarMetricaUseCase:
             unidad_medida=dto.unidad_medida.strip(),
             tipo_medicion=tipo_medicion,
             aplica_a_tipo_activo=aplica,
+            tipo_dato=tipo_dato,
+            es_obligatorio=dto.es_obligatorio,
             id_especie=dto.id_especie,
         )
 

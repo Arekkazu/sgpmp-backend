@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 
 
@@ -29,6 +30,8 @@ class MetricaProduccion:
     unidad_medida: str
     tipo_medicion: TipoMedicion
     aplica_a_tipo_activo: AplicaTipoActivo
+    tipo_dato: TipoDatoAtributo
+    es_obligatorio: bool
     id_especie: Optional[int]
     es_activo: bool
     id_metrica_produccion: Optional[int] = None
@@ -42,6 +45,8 @@ class MetricaProduccion:
         unidad_medida: str,
         tipo_medicion: TipoMedicion,
         aplica_a_tipo_activo: AplicaTipoActivo,
+        tipo_dato: TipoDatoAtributo,
+        es_obligatorio: bool,
         id_especie: Optional[int],
     ) -> MetricaProduccion:
         return cls(
@@ -49,6 +54,8 @@ class MetricaProduccion:
             unidad_medida=unidad_medida,
             tipo_medicion=tipo_medicion,
             aplica_a_tipo_activo=aplica_a_tipo_activo,
+            tipo_dato=tipo_dato,
+            es_obligatorio=es_obligatorio,
             id_especie=id_especie,
             es_activo=True,
         )
@@ -60,12 +67,16 @@ class MetricaProduccion:
         unidad_medida: str,
         tipo_medicion: TipoMedicion,
         aplica_a_tipo_activo: AplicaTipoActivo,
+        tipo_dato: TipoDatoAtributo,
+        es_obligatorio: bool,
         fecha_actualizacion: datetime,
     ) -> None:
         self.nombre = nombre
         self.unidad_medida = unidad_medida
         self.tipo_medicion = tipo_medicion
         self.aplica_a_tipo_activo = aplica_a_tipo_activo
+        self.tipo_dato = tipo_dato
+        self.es_obligatorio = es_obligatorio
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:
@@ -78,6 +89,8 @@ class MetricaProduccion:
             "unidad_medida": self.unidad_medida,
             "tipo_medicion": self.tipo_medicion.value,
             "aplica_a_tipo_activo": self.aplica_a_tipo_activo.value,
+            "tipo_dato": self.tipo_dato.value,
+            "es_obligatorio": self.es_obligatorio,
             "id_especie": self.id_especie,
             "es_activo": self.es_activo,
             "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,

@@ -1,0 +1,373 @@
+{
+  "info": {
+    "name": "TC-M02-G94 - RF-50 metodos de escritura y autenticacion servicio a servicio",
+    "description": "RF-50 / TC-M02-G94. TC-M02-164 (POST y PUT rechazados sobre la API de exposicion) y TC-M02-165 (GET sin credencial y con credencial invalida devuelven 401 sin exponer datos). TC-M02-158 se ejecuta con k6 y queda BLOQUEADO: exige M04 como consumidor autenticado y un segundo modulo de control, identidades que el sistema no implementa. La coleccion no define autenticacion heredable, para que la variante sin credencial sea realmente sin credencial.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI - metodos y codigos declarados",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/datos-consolidados';",
+                  "pm.test('El contrato declara la ruta de exposicion', () => pm.expect(spec.paths).to.have.property(ruta));",
+                  "pm.test('V14: el contrato declara UNICAMENTE el metodo GET, ninguna escritura', () => {",
+                  "  pm.expect(Object.keys(spec.paths[ruta])).to.eql(['get']);",
+                  "});",
+                  "const resp = Object.keys(spec.paths[ruta].get.responses);",
+                  "pm.collectionVariables.set('respuestas_declaradas', resp.join(','));",
+                  "pm.test('El contrato declara 401, exigido por TC-M02-165', () => pm.expect(resp).to.include('401'));",
+                  "pm.test('DISCREPANCIA DOCUMENTADA: el contrato no declara 429 pese a que RF-50 fija 100 req/min', () => {",
+                  "  pm.expect(resp, 'respuestas: ' + resp.join(',')).to.not.include('429');",
+                  "});",
+                  "pm.test('BLOQUEO TC-M02-158: el contrato no define esquemas de seguridad con identidad de modulo', () => {",
+                  "  pm.expect(spec.components.securitySchemes).to.eql(undefined);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login del consumidor con acceso de lectura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "pm.test('Login exitoso del consumidor', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_consumidor', t);",
+                  "pm.test('La credencial es valida y corresponde al usuario 35', () => pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('35'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "V9 - GET valido del mismo consumidor (acceso de lectura confirmado)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "pm.test('V9: el consumidor tiene acceso de lectura al recurso', () => pm.response.to.have.status(200));",
+                  "pm.test('El GET devuelve el activo 279', () => pm.expect(pm.response.json().id_activo_biologico).to.eql(279));",
+                  "pm.collectionVariables.set('get_lectura_ok', 'SI');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-TC-M02-164",
+      "item": [
+        {
+          "name": "TC-M02-164-A - POST rechazado sobre la API de exposicion",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qa_intento_escritura\": true,\n  \"caso\": \"TC-M02-164-A\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-164-A: el consumidor tiene acceso de lectura confirmado', () => pm.expect(pm.collectionVariables.get('get_lectura_ok')).to.eql('SI'));",
+                  "pm.test('TC-M02-164-A: la URL apunta a la API de exposicion', () => pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/279/datos-consolidados'));",
+                  "pm.test('TC-M02-164-A: POST es rechazado con 403 o 405', () => {",
+                  "  pm.expect([403, 405], 'HTTP ' + code).to.include(code);",
+                  "});",
+                  "pm.test('TC-M02-164-A: el rechazo es por metodo, no por validacion del body', () => {",
+                  "  pm.expect(code, 'un 400 o 422 indicaria que el metodo alcanzo la validacion de entrada').to.not.be.oneOf([400, 422]);",
+                  "  pm.expect(code, 'un 2xx significaria que la API acepta escrituras').to.not.be.within(200, 299);",
+                  "});",
+                  "if (code === 405) {",
+                  "  pm.test('TC-M02-164-A: la cabecera Allow confirma que solo se admite GET', () => {",
+                  "    pm.expect(String(pm.response.headers.get('Allow'))).to.include('GET');",
+                  "  });",
+                  "}",
+                  "sinExposicion('TC-M02-164-A');",
+                  "pm.collectionVariables.set('http_TC_M02_164_A', code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-164-B - PUT rechazado sobre la API de exposicion",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qa_intento_escritura\": true,\n  \"caso\": \"TC-M02-164-B\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-164-B: el consumidor tiene acceso de lectura confirmado', () => pm.expect(pm.collectionVariables.get('get_lectura_ok')).to.eql('SI'));",
+                  "pm.test('TC-M02-164-B: la URL apunta a la API de exposicion', () => pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/279/datos-consolidados'));",
+                  "pm.test('TC-M02-164-B: PUT es rechazado con 403 o 405', () => {",
+                  "  pm.expect([403, 405], 'HTTP ' + code).to.include(code);",
+                  "});",
+                  "pm.test('TC-M02-164-B: el rechazo es por metodo, no por validacion del body', () => {",
+                  "  pm.expect(code, 'un 400 o 422 indicaria que el metodo alcanzo la validacion de entrada').to.not.be.oneOf([400, 422]);",
+                  "  pm.expect(code, 'un 2xx significaria que la API acepta escrituras').to.not.be.within(200, 299);",
+                  "});",
+                  "if (code === 405) {",
+                  "  pm.test('TC-M02-164-B: la cabecera Allow confirma que solo se admite GET', () => {",
+                  "    pm.expect(String(pm.response.headers.get('Allow'))).to.include('GET');",
+                  "  });",
+                  "}",
+                  "sinExposicion('TC-M02-164-B');",
+                  "pm.collectionVariables.set('http_TC_M02_164_B', code);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-TC-M02-165",
+      "item": [
+        {
+          "name": "TC-M02-165-A - GET sin credencial",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-165-A: la peticion no lleva cabecera Authorization', () => {",
+                  "  pm.expect(pm.request.headers.get('Authorization'), 'se filtro una credencial heredada').to.eql(undefined);",
+                  "});",
+                  "pm.test('TC-M02-165-A: el request es valido en todo lo demas', () => {",
+                  "  pm.expect(pm.request.url.toString()).to.include('/activos-biologicos/279/datos-consolidados');",
+                  "  pm.expect(pm.request.url.toString()).to.include('tipo_dato=metricas');",
+                  "});",
+                  "pm.test('TC-M02-165-A: HTTP 401 segun la ficha', () => pm.expect(code).to.eql(401));",
+                  "pm.test('TC-M02-165-A: es un fallo de autenticacion, no de autorizacion', () => {",
+                  "  pm.expect(code, 'un 403 seria autorizacion y corresponde a G93').to.not.eql(403);",
+                  "  pm.expect(norm(cuerpo())).to.match(/token|autenticacion/);",
+                  "});",
+                  "sinExposicion('TC-M02-165-A');",
+                  "pm.collectionVariables.set('http_165a', code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-165-B - GET con credencial invalida",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer qa.credencial.invalida.tc-m02-165-b"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/datos-consolidados?tipo_dato=metricas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const cuerpo = () => { try { return JSON.stringify(pm.response.json()); } catch (e) { return pm.response.text(); } };",
+                  "const PROTEGIDOS = ['historial_eventos', 'historial_fases', 'historico_estados', 'metricas_actuales', 'infraestructura_asociada', 'fase_productiva_activa'];",
+                  "const sinExposicion = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone datos del activo', () => {",
+                  "    const b = (() => { try { return pm.response.json(); } catch (e) { return {}; } })();",
+                  "    PROTEGIDOS.forEach((c) => pm.expect(b, 'expone ' + c).to.not.have.property(c));",
+                  "    pm.expect(pm.response.text()).to.not.include('QAJE-CREC-OK');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-165-B: la peticion lleva una credencial inequivocamente invalida', () => {",
+                  "  pm.expect(String(pm.request.headers.get('Authorization'))).to.include('qa.credencial.invalida.tc-m02-165-b');",
+                  "});",
+                  "pm.test('TC-M02-165-B: HTTP 401 segun la ficha', () => pm.expect(code).to.eql(401));",
+                  "pm.test('TC-M02-165-B: es un fallo de autenticacion, no de autorizacion', () => {",
+                  "  pm.expect(code).to.not.eql(403);",
+                  "  pm.expect(norm(cuerpo())).to.match(/token|autenticacion/);",
+                  "});",
+                  "sinExposicion('TC-M02-165-B');",
+                  "pm.collectionVariables.set('http_165b', code);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03-DIAGNOSTICO",
+      "item": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "password",
+      "value": "Test1234!"
+    }
+  ]
+}

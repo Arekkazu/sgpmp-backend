@@ -1,0 +1,155 @@
+{
+  "info": {
+    "name": "TC-M02-G67 - Precondiciones y datos obligatorios para bajas (RF-45, CU09)",
+    "description": "TC-M02-G67 (RF-45, CU09), sub-casos TC-M02-114 y TC-M02-116.\n\nAmbos sub-casos se prueban en vivo, sin ningun bloqueo por los bugs ya documentados en TC-M02-G58/G61 (esos afectan la baja TOTAL/PARCIAL sobre un activo que SI llega a persistirse; aqui ambos casos se rechazan ANTES de llegar a esa capa):\n\nSub-caso 1 (TC-M02-114): activo YA en estado BAJA (`E-02` en registrar_evento_baja_use_case.py, `activo.id_estado == EstadoActivo.BAJA` chequeado en Python al inicio del execute(), antes de cualquier escritura) -> 409 ConflictError ACTIVO_YA_EN_BAJA. Se reutiliza el activo 80 (Cachama POBLACIONAL, ya BAJA en TEST desde sesiones anteriores, ver TC-M02-G61/G65) en vez de crear uno fresco, porque ninguna via actual produce un BAJA fresco por API (bugs ya documentados).\n\nSub-caso 2 (TC-M02-116): `tipo_baja` y `motivo_baja` son campos obligatorios en RegistrarEventoBajaDTO (Pydantic, sin default) -- si falta cualquiera de los dos, FastAPI lanza RequestValidationError ANTES de que el endpoint/use case se ejecute. El handler propio del backend (request_validation_error_handler, src/shared/error_handlers.py) lo traduce a HTTP 400 VAL_ENTRADA -- a diferencia de otras fichas de este RF (TC-M02-G62/G64), aqui la ficha SI acierta con el codigo HTTP esperado (400), asi que no hay discrepancia que documentar en este TC.\n\nLa coleccion usa el activo 80 (ya en BAJA) para ambos sub-casos, ya que la ausencia de campos obligatorios se detecta en el parseo del body, antes de siquiera resolver el activo -- no hace falta un activo ACTIVO para el sub-caso 2.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-114) - Rechazar baja sobre activo ya dado de baja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: activo 80 (Cachama POBLACIONAL, ya en BAJA en TEST) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: rechazado con HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio ACTIVO_YA_EN_BAJA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACTIVO_YA_EN_BAJA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-09\",\n  \"motivo_baja\": \"TC-M02-114 - intento de doble baja (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_baja}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2a (TC-M02-116) - Rechazar baja sin tipo_baja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2a: rechazado con HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2a: codigo VAL_ENTRADA con el campo tipo_baja senalado como faltante', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('tipo_baja');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_baja\": \"2026-09-09\",\n  \"motivo_baja\": \"TC-M02-116a - falta tipo_baja (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_baja}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2b (TC-M02-116) - Rechazar baja sin motivo_baja",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2b: rechazado con HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2b: codigo VAL_ENTRADA con el campo motivo_baja senalado como faltante', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('motivo_baja');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_baja}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_activo_baja", "value": "80" }
+  ]
+}

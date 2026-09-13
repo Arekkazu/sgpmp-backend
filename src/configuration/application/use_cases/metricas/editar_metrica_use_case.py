@@ -16,6 +16,7 @@ from src.configuration.domain.repositories.auditoria_metrica_repository import A
 from src.configuration.domain.repositories.metrica_produccion_repository import MetricaProduccionRepository
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.dto.editar_metrica_dto import EditarMetricaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -91,6 +92,16 @@ class EditarMetricaUseCase:
 
         nombre_nuevo = NombreMetrica(dto.nombre)
         tipo_medicion = TipoMedicion.desde_string(dto.tipo_medicion)
+        tipo_dato = (
+            metrica.tipo_dato
+            if dto.tipo_dato is None
+            else TipoDatoAtributo.desde_string(dto.tipo_dato)
+        )
+        es_obligatorio = (
+            metrica.es_obligatorio
+            if dto.es_obligatorio is None
+            else dto.es_obligatorio
+        )
         aplica = AplicaTipoActivo.desde_string(dto.aplica_a_tipo_activo)
 
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)
@@ -110,6 +121,8 @@ class EditarMetricaUseCase:
             unidad_medida=dto.unidad_medida.strip(),
             tipo_medicion=tipo_medicion,
             aplica_a_tipo_activo=aplica,
+            tipo_dato=tipo_dato,
+            es_obligatorio=es_obligatorio,
             fecha_actualizacion=datetime.now(timezone.utc),
         )
 

@@ -1,0 +1,355 @@
+{
+  "info": {
+    "name": "TC-M02-G53 - Registro exitoso de eventos reproductivos y trazabilidad (madre/padre/cria)",
+    "description": "TC-M02-G53 (RF-42, CU08 Gestionar eventos reproductivos), equivalente a TC-M02-098, TC-M02-099 y TC-M02-103 (camino feliz): 1. Registrar evento reproductivo (servicio) con activo_relacionado_id (padre) valido. 2. Registrar diagnostico de gestacion exitoso. 3. Registrar parto con numero_crias=3 (3 relaciones madre-cria).\n\nENDPOINT REAL BAJO PRUEBA: POST /activos-biologicos/{id_activo}/eventos/reproductivo (RegistrarEventoReproductivoUseCase, src/biological_assets/application/use_cases/gestion/registrar_evento_reproductivo_use_case.py). RBAC: recurso 29 (activos_biologicos), accion 1 (Crear).\n\nHALLAZGO CRITICO (confirmado en vivo el 2026-09-08, bug de backend no resuelto): el PRIMER paso de la secuencia -- registrar el evento 'servicio' (o 'inseminacion') con un id_padre valido -- responde SIEMPRE 500 ERROR_INTERNO ('Error inesperado en base de datos') en vez de 201, para un payload que pasa limpio TODAS las validaciones de Python del use case (existencia y estado del activo, existencia y estado ACTIVO del padre, tipo de activo, etc.). Esto no es un problema de datos de prueba: es reproducible con cualquier madre/padre validos.\n\nPor que esto bloquea TODO el flujo, no solo el primer paso: segun la logica de secuencia implementada en el propio use case (_event_validations.py + validaciones inline), 'servicio' e 'inseminacion' son las UNICAS categorias que se pueden registrar como primer evento reproductivo de un activo -- 'diagnostico' exige un servicio/inseminacion previo (error SECUENCIA_REPRODUCTIVA_INVALIDA si no existe), y 'parto'/'nacimiento'/'aborto' exigen ademas un diagnostico positivo previo. Como el primer paso nunca se completa (500), TODOS los pasos siguientes fallan en cascada con 422 SECUENCIA_REPRODUCTIVA_INVALIDA -- no existe ningun workaround por API para completar la secuencia reproductiva completa mientras este bug siga presente.\n\nInvestigacion de causa raiz (sin acceso a logs/DB en vivo, no confirmada al 100%): la tabla modulo2.eventos_reproductivos tiene 3 triggers de base de datos -- trg_auditoria (auditoria generica via to_jsonb(NEW)), trg_evento_reproductivo_secuencia (valida secuencia a nivel de BD, redundante con la validacion de Python) y trg_eventos_reproductivos_inmutable_* -- que usan 'RAISE EXCEPTION ... USING ERRCODE = P02xx' (codigos SQLSTATE personalizados de PL/pgSQL). raise_from_db_error() (src/shared/db_error_translator.py) solo traduce IntegrityError/DataError/OperationalError de psycopg2/SQLAlchemy a errores de dominio; una excepcion con un ERRCODE P0xxx personalizado no cae en ninguna de esas categorias y termina en el catch-all generico (InfrastructureError, 500, mensaje 'Error inesperado en base de datos'). Se descarto que sea trg_fn_evento_reproductivo_secuencia el causante directo para categoria='servicio' (sus ramas condicionales no se activan para esa categoria). No se pudo confirmar si el causante es trg_auditoria interactuando con la columna nativa tipo ENUM de PostgreSQL (categoria) u otra causa -- pendiente de diagnostico con acceso a logs del servidor.\n\nEsta coleccion se deja intencionalmente afirmando el comportamiento CORRECTO esperado por el RF (HTTP 201 en cada uno de los 3 sub-casos, con la trazabilidad madre/padre/cria completa) en vez de ajustarse al 500/422 actual: un Newman en rojo aqui es la evidencia documentada de este defecto que bloquea RF-42 por completo, mismo criterio aplicado en TC-M09-G64.\n\nLa coleccion es autocontenida: registra su propia hembra reproductora y su propio macho semental (activos INDIVIDUAL, especie Tilapia id=10) sobre un area productiva activa ya existente en TEST (finca_id=1, id_infraestructura=3), ambos en estado ACTIVO segun RF-33/34.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas funcionales. Herramienta: API - Postman (Newman). Nota del plan: 3 sub-caso(s) verificables por codigo/mensaje de respuesta del API o por consulta directa de datos (aqui: por codigo/mensaje de respuesta y por el historial de eventos del activo).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra reproductora (madre) ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la madre responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_madre', respuesta.id_activo_biologico);",
+              "    console.log('id_madre: ' + respuesta.id_activo_biologico + ' (estado=' + respuesta.nombre_estado + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-madre-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"MADRE-G53-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar macho semental (padre) ACTIVO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del padre responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_padre', respuesta.id_activo_biologico);",
+              "    console.log('id_padre: ' + respuesta.id_activo_biologico + ' (estado=' + respuesta.nombre_estado + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-padre-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"PADRE-G53-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.6\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-098) - Registrar servicio con activo_relacionado_id (padre) valido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: servicio con id_padre valido ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Sub-caso 1: el evento de servicio con padre valido se registra correctamente (HTTP 201) -- BUG CONFIRMADO: el backend responde 500 ERROR_INTERNO, ver info.description de la coleccion', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Sub-caso 1: el evento queda registrado en el historial reproductivo con el padre correcto', function () {",
+              "        pm.expect(respuesta.evento.reproductivo).to.not.equal(null);",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('servicio');",
+              "        pm.expect(respuesta.evento.reproductivo.id_padre).to.equal(Number(pm.collectionVariables.get('id_padre')));",
+              "    });",
+              "    pm.collectionVariables.set('id_evento_servicio', respuesta.evento.id_eventos);",
+              "    console.log('id_evento_servicio: ' + respuesta.evento.id_eventos);",
+              "} else {",
+              "    console.log('CONCLUSION sub-caso 1: registro FALLIDO. ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));",
+              "    console.log('Se continua la ejecucion de todas formas para documentar el efecto cascada sobre los sub-casos 2 y 3.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-099) - Registrar diagnostico de gestacion exitoso",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: diagnostico de gestacion exitoso (requiere el servicio del sub-caso 1) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Sub-caso 2: el diagnostico de gestacion exitoso se registra correctamente (HTTP 201) -- bloqueado en cascada por el bug del sub-caso 1 (sin servicio previo real, el use case rechaza con 422 SECUENCIA_REPRODUCTIVA_INVALIDA)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Sub-caso 2: el diagnostico queda registrado con resultado exitoso', function () {",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('diagnostico');",
+              "        pm.expect(respuesta.evento.reproductivo.resultado).to.equal('exitoso');",
+              "    });",
+              "} else {",
+              "    console.log('CONCLUSION sub-caso 2: registro FALLIDO (efecto cascada del sub-caso 1). ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"diagnostico\",\n  \"resultado\": \"exitoso\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M02-103) - Registrar parto con numero_crias=3 (3 relaciones madre-cria)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3: parto con numero_crias=3 (requiere el diagnostico positivo del sub-caso 2) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Sub-caso 3: el parto con 3 crias se registra correctamente (HTTP 201) -- bloqueado en cascada por el bug del sub-caso 1', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta && respuesta.evento) {",
+              "    pm.test('Sub-caso 3: se registran las 3 relaciones madre-cria (numero_cria=3) sobre la madre correcta', function () {",
+              "        pm.expect(respuesta.evento.reproductivo.categoria).to.equal('parto');",
+              "        pm.expect(respuesta.evento.reproductivo.numero_cria).to.equal(3);",
+              "        pm.expect(respuesta.evento.id_activo_biologico).to.equal(Number(pm.collectionVariables.get('id_madre')));",
+              "    });",
+              "} else {",
+              "    console.log('CONCLUSION sub-caso 3: registro FALLIDO (efecto cascada del sub-caso 1). ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_madre}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion final - Historial reproductivo completo del activo (madre)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial consolidado (RF-46) de la madre tras los 3 sub-casos ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Verificacion final: la consulta del historial consolidado responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const reproductivos = (respuesta.registros || []).filter(function (r) { return r.categoria === 'REPRODUCTIVO'; });",
+              "",
+              "    pm.test('Verificacion final: el historial reproductivo del activo contiene los 3 eventos esperados (servicio, diagnostico, parto) -- BLOQUEADO: el bug del sub-caso 1 impide que se registre ninguno', function () {",
+              "        pm.expect(reproductivos.length).to.equal(3);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION GENERAL TC-M02-G53: el activo madre termino con ' + reproductivos.length + ' evento(s) reproductivo(s) de los 3 esperados (servicio, diagnostico, parto con 3 crias). RF-42 esta bloqueado por el bug 500 confirmado en el sub-caso 1 -- ningun evento reproductivo puede completarse mientras no se corrija.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_madre}}/historial",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_madre}}", "historial" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_madre", "value": "" },
+    { "key": "id_padre", "value": "" },
+    { "key": "id_evento_servicio", "value": "" }
+  ]
+}

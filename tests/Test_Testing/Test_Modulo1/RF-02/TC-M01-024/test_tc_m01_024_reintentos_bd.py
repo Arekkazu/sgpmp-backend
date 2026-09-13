@@ -24,14 +24,17 @@ Este archivo prueba ese criterio en dos niveles:
    POST /sesiones/ con la BD caida efectivamente devuelve HTTP 503 al
    cliente, que es lo que la ficha exige en terminos de contrato HTTP.
 
-Estado conocido al momento de escribir este archivo: `get_db()` en
-src/shared/database.py NO implementa reintentos ni traduce el fallo a
-ServiceUnavailableError (a diferencia de src/shared/email.py, que si
-tiene _MAX_RETRIES=3). Por lo tanto se espera que AMBAS pruebas FALLEN
-hoy, documentando honestamente que TC-M01-024 esta REPROBADO: la
-excepcion cruda de SQLAlchemy queda sin manejar y el endpoint responde
-500 (no controlado), no 503. Esto debe reportarse como hallazgo
-(INC-M01-02-xxx), no interpretarse como un error de la prueba.
+Estado al momento de escribir este archivo (revision INC-M01-06-024):
+`get_db()` en src/shared/database.py ya implementa 3 reintentos internos
+via `_conectar_con_reintentos()` y traduce el fallo agotado a
+ServiceUnavailableError (503). El reintento ocurre sobre
+`Session.connection()` (el checkout real de conexion), no sobre
+`SessionLocal()` (que solo instancia el objeto Session, sin tocar la
+red) - por eso el primer test usa un doble de Session (`_SesionFalsa`)
+en vez de mockear `SessionLocal` con `side_effect`, que fallaria en la
+linea equivocada y reportaria 1 solo intento en vez de 3. Con el mock
+en el punto correcto, TC-M01-024 pasa: ambas pruebas de este archivo
+deben estar en verde.
 
 Por que local y no contra el backend TEST desplegado: simular una BD
 caida contra ese entorno exigiria o bien detener el contenedor de
@@ -61,25 +64,51 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
+from src.shared import database
 from src.shared.database import get_db
 from src.shared.errors import ServiceUnavailableError
+
+
+class _SesionFalsa:
+    """Doble minimo de Session que falla las primeras `fallos` tomas de
+    conexion y luego "conecta" con normalidad.
+
+    get_db() reintenta en `Session.connection()` (el checkout real contra la
+    red), no al instanciar `SessionLocal()`. Un doble que reemplaza la sesion
+    completa deja mockear justo ese punto sin tocar SQLAlchemy real.
+    """
+
+    def __init__(self, fallos: int):
+        self._fallos = fallos
+        self.intentos = 0
+
+    def connection(self):
+        self.intentos += 1
+        if self.intentos <= self._fallos:
+            raise OperationalError("conexion rechazada (simulada)", None, None)
+        return object()
+
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
 
 
 class TestTCM01024ReintentosBD:
     """Suite de pruebas para TC-M01-024."""
 
-    @patch("src.shared.database.SessionLocal")
     def test_get_db_reintenta_3_veces_y_traduce_a_service_unavailable(
-        self, mock_session_local
+        self, monkeypatch
     ):
         """
         RF-02: ante un fallo de conexion, get_db() debe reintentar 3 veces
         y, si los 3 fallan, lanzar ServiceUnavailableError (503) en vez de
         la excepcion cruda de SQLAlchemy.
         """
-        mock_session_local.side_effect = OperationalError(
-            "conexion rechazada (simulada)", None, None
-        )
+        monkeypatch.setattr(database, "_PAUSA_REINTENTO", 0)
+        sesion_falsa = _SesionFalsa(fallos=99)
+        monkeypatch.setattr(database, "SessionLocal", lambda: sesion_falsa)
 
         generador = get_db()
         try:
@@ -92,10 +121,9 @@ class TestTCM01024ReintentosBD:
             "Se esperaba que get_db() lanzara una excepcion ante el fallo "
             "de conexion simulado, pero no lanzo ninguna."
         )
-        assert mock_session_local.call_count == 3, (
+        assert sesion_falsa.intentos == 3, (
             f"RF-02 exige 3 intentos internos de conexion antes de fallar; "
-            f"get_db() intento conectar {mock_session_local.call_count} "
-            f"vez/veces."
+            f"get_db() intento conectar {sesion_falsa.intentos} vez/veces."
         )
         assert isinstance(excepcion_lanzada, ServiceUnavailableError), (
             f"RF-02 exige que, agotados los reintentos, se lance "

@@ -256,11 +256,35 @@ def test_enums_de_metrica_se_validan_contra_los_value_objects():
         "metricas_produccion": [{
             "nombre": "Peso promedio", "unidad_medida": "kg",
             "tipo_medicion": "INVENTADO", "aplica_a_tipo_activo": "ANIMAL",
+            "tipo_dato": "NUMERICO", "es_obligatorio": False,
         }],
     })
     assert len(errores) == 2
     assert all(m.value in errores[0] for m in TipoMedicion)
     assert all(a.value in errores[1] for a in AplicaTipoActivo)
+
+
+def test_metrica_sin_tipo_dato_ni_es_obligatorio_sigue_siendo_valida():
+    """#208 agregó tipo_dato/es_obligatorio como opcionales (schema v2): un
+    cliente que aún no los envía debe poder seguir creando plantillas."""
+    errores = validar_snapshot({
+        "metricas_produccion": [{
+            "nombre": "Peso promedio", "unidad_medida": "kg",
+            "tipo_medicion": "PESO", "aplica_a_tipo_activo": "INDIVIDUAL",
+        }],
+    })
+    assert errores == []
+
+
+def test_metrica_con_tipo_dato_invalido_se_rechaza_si_viene_informado():
+    errores = validar_snapshot({
+        "metricas_produccion": [{
+            "nombre": "Peso promedio", "unidad_medida": "kg",
+            "tipo_medicion": "PESO", "aplica_a_tipo_activo": "INDIVIDUAL",
+            "tipo_dato": "FECHA", "es_obligatorio": "si",
+        }],
+    })
+    assert len(errores) == 2
 
 
 def test_niveles_del_umbral_se_validan_aunque_la_clave_sea_opcional():

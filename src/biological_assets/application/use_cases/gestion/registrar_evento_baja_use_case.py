@@ -83,11 +83,12 @@ class RegistrarEventoBajaUseCase:
                 )
 
         cantidad_evento: int
+        requiere_cierre = False
 
         if activo.tipo == 'INDIVIDUAL':
             # Baja total: el activo individual sale definitivamente
             cantidad_evento = 1
-            self._procesar_baja_con_cierre(activo, id_activo, fecha_dt, dto.motivo_baja, usuario)
+            requiere_cierre = True
 
         else:
             # LOTE (POBLACIONAL)
@@ -128,7 +129,7 @@ class RegistrarEventoBajaUseCase:
 
             if dp.cantidad_actual == 0:
                 # Baja total: cierre automático del lote
-                self._procesar_baja_con_cierre(activo, id_activo, fecha_dt, dto.motivo_baja, usuario)
+                requiere_cierre = True
 
         evento = EventoActivo(
             id_activo_biologico=id_activo,
@@ -148,8 +149,13 @@ class RegistrarEventoBajaUseCase:
             if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional is not None:
                 self.activo_repo.actualizar_detalle_poblacional(activo)
 
-            # Si hay cierre, la gestión y el histórico ya fueron encolados (flush pendiente)
-            # El trigger sincroniza id_estado en activos_biologicos al commit
+            if requiere_cierre:
+                # El evento debe existir antes de pasar a BAJA: el trigger de
+                # eventos rechaza inserciones sobre estados terminales.
+                self._procesar_baja_con_cierre(
+                    activo, id_activo, fecha_dt, dto.motivo_baja, usuario
+                )
+
             self.db.commit()
         except Exception as exc:
             self.db.rollback()

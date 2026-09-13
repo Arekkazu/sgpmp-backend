@@ -1,0 +1,541 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g01-rf00",
+    "name": "TC-M02-G01 - Gestión general del catálogo de especies",
+    "description": "Prueba general del Módulo 02 para alta válida de especie y rechazo de nombres duplicados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "nombreNuevo",
+      "value": "Especie QA M02 20260910"
+    },
+    {
+      "key": "descripcionNueva",
+      "value": "Especie creada para prueba funcional TC-M02-001"
+    },
+    {
+      "key": "especieCreadaId",
+      "value": ""
+    },
+    {
+      "key": "bovinoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "pm.test('Respuesta contiene token', function () {",
+              "    pm.expect(json.token, 'token').to.exist;",
+              "});",
+              "",
+              "if (json.token) {",
+              "    pm.environment.set('token', json.token);",
+              "    pm.collectionVariables.set('token', json.token);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "02 - Consultar catalogo inicial",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "function obtenerRegistros(data) {",
+              "    if (Array.isArray(data)) return data;",
+              "    if (Array.isArray(data.registros)) return data.registros;",
+              "    if (Array.isArray(data.items)) return data.items;",
+              "    if (Array.isArray(data.data)) return data.data;",
+              "    if (Array.isArray(data.especies)) return data.especies;",
+              "    return [];",
+              "}",
+              "",
+              "const registros = obtenerRegistros(json);",
+              "",
+              "pm.test('Catalogo contiene registros', function () {",
+              "    pm.expect(registros.length).to.be.above(0);",
+              "});",
+              "",
+              "const bovino = registros.find(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === 'bovino';",
+              "});",
+              "",
+              "if (bovino) {",
+              "    pm.collectionVariables.set('bovinoId', String(bovino.id_especie ?? bovino.id ?? ''));",
+              "    pm.test('Existe la especie Bovino', function () {",
+              "        pm.expect(bovino).to.exist;",
+              "    });",
+              "} else {",
+              "    console.warn('PRECONDICION: No se encontro Bovino en el catalogo TEST.');",
+              "    pm.test('Existe la especie Bovino', function () {",
+              "        pm.expect.fail('No existe Bovino en el catalogo TEST.');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "03 - TC-M02-001 Registrar especie nueva valida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "const id = json.id_especie ?? json.id;",
+              "",
+              "pm.test('La respuesta contiene identificador de especie', function () {",
+              "    pm.expect(id).to.exist;",
+              "});",
+              "",
+              "pm.test('La respuesta contiene el nombre creado', function () {",
+              "    pm.expect(String(json.nombre || '').trim().toLowerCase()).to.eql(",
+              "        String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase()",
+              "    );",
+              "});",
+              "",
+              "if (id !== undefined && id !== null) {",
+              "    pm.collectionVariables.set('especieCreadaId', String(id));",
+              "}",
+              "",
+              "const estado = json.es_activo ?? json.estado ?? json.activo;",
+              "",
+              "if (estado !== undefined && estado !== null) {",
+              "    pm.test('La especie queda activa', function () {",
+              "        if (typeof estado === 'boolean') {",
+              "            pm.expect(estado).to.eql(true);",
+              "        } else {",
+              "            pm.expect(String(estado).toUpperCase()).to.be.oneOf(['ACTIVO', 'ACTIVE']);",
+              "        }",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreNuevo}}\",\n  \"descripcion\": \"{{descripcionNueva}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "04 - Verificar especie creada en catalogo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "function obtenerRegistros(data) {",
+              "    if (Array.isArray(data)) return data;",
+              "    if (Array.isArray(data.registros)) return data.registros;",
+              "    if (Array.isArray(data.items)) return data.items;",
+              "    if (Array.isArray(data.data)) return data.data;",
+              "    if (Array.isArray(data.especies)) return data.especies;",
+              "    return [];",
+              "}",
+              "",
+              "const registros = obtenerRegistros(json);",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "",
+              "const encontrados = registros.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "",
+              "pm.test('La especie nueva aparece en el catalogo', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});",
+              "",
+              "if (encontrados.length === 1) {",
+              "    const especie = encontrados[0];",
+              "    const estado = especie.es_activo ?? especie.estado ?? especie.activo;",
+              "",
+              "    if (estado !== undefined && estado !== null) {",
+              "        pm.test('La especie creada esta activa', function () {",
+              "            if (typeof estado === 'boolean') {",
+              "                pm.expect(estado).to.eql(true);",
+              "            } else {",
+              "                pm.expect(String(estado).toUpperCase()).to.be.oneOf(['ACTIVO', 'ACTIVE']);",
+              "            }",
+              "        });",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "05 - TC-M02-002 Rechazar nombre duplicado exacto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400, 409 o 422', function () {",
+              "    pm.expect([400, 409, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "const texto = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test('La respuesta indica duplicidad o existencia previa', function () {",
+              "    pm.expect(texto).to.match(/duplic|existe|ya.*registr|already|unique/);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombreNuevo}}\",\n  \"descripcion\": \"Intento de duplicado exacto TC-M02-002\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "06 - TC-M02-002 Rechazar Bovino existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400, 409 o 422', function () {",
+              "    pm.expect([400, 409, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "const texto = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test('La respuesta indica duplicidad o existencia previa', function () {",
+              "    pm.expect(texto).to.match(/duplic|existe|ya.*registr|already|unique/);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Bovino\",\n  \"descripcion\": \"Intento de duplicado de especie existente\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 - TC-M02-002 Rechazar Bovino en minusculas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 400, 409 o 422', function () {",
+              "    pm.expect([400, 409, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "const texto = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test('La respuesta indica duplicidad o existencia previa', function () {",
+              "    pm.expect(texto).to.match(/duplic|existe|ya.*registr|already|unique/);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"bovino\",\n  \"descripcion\": \"Intento de duplicado ignorando mayusculas y minusculas\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    },
+    {
+      "name": "08 - Verificacion final sin duplicar especie nueva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "}",
+              "",
+              "function obtenerRegistros(data) {",
+              "    if (Array.isArray(data)) return data;",
+              "    if (Array.isArray(data.registros)) return data.registros;",
+              "    if (Array.isArray(data.items)) return data.items;",
+              "    if (Array.isArray(data.data)) return data.data;",
+              "    if (Array.isArray(data.especies)) return data.especies;",
+              "    return [];",
+              "}",
+              "",
+              "const registros = obtenerRegistros(json);",
+              "const nombre = String(pm.collectionVariables.get('nombreNuevo')).trim().toLowerCase();",
+              "",
+              "const encontrados = registros.filter(function (e) {",
+              "    return String(e.nombre || '').trim().toLowerCase() === nombre;",
+              "});",
+              "",
+              "pm.test('Existe exactamente un registro de la especie creada', function () {",
+              "    pm.expect(encontrados.length).to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      }
+    }
+  ]
+}

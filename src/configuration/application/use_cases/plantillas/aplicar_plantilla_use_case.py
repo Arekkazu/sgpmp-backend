@@ -157,6 +157,8 @@ class AplicarPlantillaUseCase:
                     "unidad_medida": m.unidad_medida,
                     "tipo_medicion": m.tipo_medicion.value,
                     "aplica_a_tipo_activo": m.aplica_a_tipo_activo.value,
+                    "tipo_dato": m.tipo_dato.value,
+                    "es_obligatorio": m.es_obligatorio,
                 }
                 for m in metricas
             ],

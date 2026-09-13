@@ -1,0 +1,824 @@
+{
+  "info": {
+    "_postman_id": "785c4a09-f5ce-4e65-937d-7cc972ea4bf3",
+    "name": "TC-M02-G49 - Registro de eventos sanitarios y generacion automatica de estado via RF-44",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login Admin - admin.test (autorizado explicitamente por Daniela)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin_test}}\",\n  \"contrasena\": \"{{contrasena_admin_test}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A admin.test login: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('0A - login admin.test responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1. Admin crea una finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Prueba QA {{sufijo_finca_g49}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ceiba\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 10.5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var suf = '';",
+              "for (var i = 0; i < 8; i++) { suf += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_finca_g49', suf);",
+              ""
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-1 finca: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-1 - finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_finca_creada_g49', pm.response.json().id_finca); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2. Admin crea una infraestructura dentro de esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"QA-G49-Infra-{{$timestamp}}\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 500.0,\n  \"finca_id\": \"{{id_finca_creada_g49}}\",\n  \"descripcion_infraestructura\": \"Infraestructura de prueba QA TC-M02-G49\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-2 infra: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-2 - infraestructura creada (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_infraestructura_creada_g49', pm.response.json().id_infraestructura); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3. Admin registra el activo de prueba (INDIVIDUAL, especie Cachama Blanca)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": \"{{id_infraestructura_creada_g49}}\",\n  \"identificador\": \"QA-G49-Activo-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-3 activo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-3 - activo creado en estado ACTIVO (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_g49', pm.response.json().id_activo_biologico); }",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4. Registrar un DIAGNOSTICO previo (precondicion real del codigo para VACUNACION y TRATAMIENTO)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"DIAGNOSTICO\",\n  \"diagnostico\": \"Evaluacion clinica inicial - hallazgos compatibles con proceso infeccioso leve - QA G49\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('SETUP-4 diagnostico previo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('SETUP-4 - el diagnostico se registra (201)', function () { pm.response.to.have.status(201); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-090a. Registrar evento sanitario VACUNACION con medicamento y dosis",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"VACUNACION\",\n  \"medicamento\": \"Vacuna QA-Aeromonas\",\n  \"dosis\": 2.5,\n  \"unidad_dosis\": \"ml\",\n  \"observaciones\": \"Vacunacion de rutina - QA G49\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-090a vacunacion: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-090a - la vacunacion se registra correctamente (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var b = pm.response.json();",
+              "    pm.test('TC-090a - el evento queda guardado como tipo VACUNACION', function () { pm.expect(b.evento.sanitario.tipo).to.eql('VACUNACION'); });",
+              "    pm.test('TC-090a - el medicamento y la dosis quedan guardados', function () {",
+              "        pm.expect(b.evento.sanitario.medicamento).to.eql('Vacuna QA-Aeromonas');",
+              "        pm.expect(Number(b.evento.sanitario.dosis)).to.eql(2.5);",
+              "    });",
+              "    pm.test('TC-090a - no se solicito ningun cambio de estado (cambio_estado nulo)', function () {",
+              "        pm.expect(b.cambio_estado).to.eql(null);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-090b. Control: VACUNACION sin dosis debe rechazarse",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"VACUNACION\",\n  \"medicamento\": \"Vacuna QA-Aeromonas\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-090b vacunacion sin dosis: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-090b - se rechaza con 400 (dosis obligatoria para VACUNACION)', function () { pm.response.to.have.status(400); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091a. Registrar evento sanitario TRATAMIENTO con medicamento, dosis, frecuencia y duracion",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antibiotico QA-Oxitetraciclina\",\n  \"dosis\": 10,\n  \"unidad_dosis\": \"mg/kg\",\n  \"frecuencia\": 2,\n  \"duracion\": 5,\n  \"observaciones\": \"Tratamiento estandar por proceso infeccioso leve - QA G49\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-091a tratamiento completo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-091a - el tratamiento se registra correctamente (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var b = pm.response.json();",
+              "    pm.test('TC-091a - el evento queda guardado como tipo TRATAMIENTO', function () { pm.expect(b.evento.sanitario.tipo).to.eql('TRATAMIENTO'); });",
+              "    pm.test('TC-091a - medicamento, dosis, frecuencia y duracion quedan guardados', function () {",
+              "        pm.expect(b.evento.sanitario.medicamento).to.eql('Antibiotico QA-Oxitetraciclina');",
+              "        pm.expect(b.evento.sanitario.frecuencia).to.eql(2);",
+              "        pm.expect(b.evento.sanitario.duracion).to.eql(5);",
+              "    });",
+              "    pm.test('TC-091a - no se solicito cambio de estado en este sub-caso (cambio_estado nulo)', function () {",
+              "        pm.expect(b.cambio_estado).to.eql(null);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091b. Control: TRATAMIENTO sin frecuencia debe rechazarse",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antibiotico QA-Oxitetraciclina\",\n  \"dosis\": 10,\n  \"duracion\": 5\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-091b tratamiento sin frecuencia: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-091b - se rechaza con 400 (frecuencia y duracion obligatorias para TRATAMIENTO)', function () { pm.response.to.have.status(400); });",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-091c. Confirmar por consulta directa que el activo sigue ACTIVO (ningun evento anterior solicito cambio de estado)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-091c estado del activo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-091c - se puede consultar el activo (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-091c - el activo sigue en estado ACTIVO', function () { pm.expect(pm.response.json().nombre_estado).to.eql('ACTIVO'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095a. Registrar TRATAMIENTO solicitando el cambio de estado a EN_TRATAMIENTO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"TRATAMIENTO\",\n  \"medicamento\": \"Antibiotico QA-Enrofloxacina\",\n  \"dosis\": 5,\n  \"unidad_dosis\": \"mg/kg\",\n  \"frecuencia\": 1,\n  \"duracion\": 7,\n  \"observaciones\": \"Proceso infeccioso que amerita tratamiento sostenido - QA G49\",\n  \"solicitar_estado\": \"EN_TRATAMIENTO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095a tratamiento con solicitud de estado EN_TRATAMIENTO: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-095a - el evento se registra correctamente (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var b = pm.response.json();",
+              "    pm.test('TC-095a - se genero un cambio de estado (cambio_estado no nulo)', function () { pm.expect(b.cambio_estado).to.not.eql(null); });",
+              "    if (b.cambio_estado) {",
+              "        pm.test('TC-095a - el estado anterior era ACTIVO (1)', function () { pm.expect(b.cambio_estado.id_estado_anterior).to.eql(1); });",
+              "        pm.test('TC-095a - el estado nuevo es EN_TRATAMIENTO (3)', function () { pm.expect(b.cambio_estado.id_estado_nuevo).to.eql(3); });",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095b. Confirmar por consulta directa que el activo quedo en EN_TRATAMIENTO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095b estado tras TC-095a: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-095b - se puede consultar el activo (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-095b - el activo quedo en estado EN_TRATAMIENTO', function () { pm.expect(pm.response.json().nombre_estado).to.eql('EN_TRATAMIENTO'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095c. Registrar CONTROL_PREVENTIVO solicitando el cambio de estado a AISLADO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}/eventos/sanitario",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}",
+            "eventos",
+            "sanitario"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"El activo no responde favorablemente al tratamiento; se decide aislar para evitar contagio - QA G49\",\n  \"solicitar_estado\": \"AISLADO\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095c control preventivo con solicitud de estado AISLADO: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-095c - el evento se registra correctamente (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var b = pm.response.json();",
+              "    pm.test('TC-095c - se genero un cambio de estado (cambio_estado no nulo)', function () { pm.expect(b.cambio_estado).to.not.eql(null); });",
+              "    if (b.cambio_estado) {",
+              "        pm.test('TC-095c - el estado anterior era EN_TRATAMIENTO (3)', function () { pm.expect(b.cambio_estado.id_estado_anterior).to.eql(3); });",
+              "        pm.test('TC-095c - el estado nuevo es AISLADO (4)', function () { pm.expect(b.cambio_estado.id_estado_nuevo).to.eql(4); });",
+              "        pm.test('TC-095c - el historico registra modulo_origen (ver nota tecnica sobre el valor real)', function () {",
+              "            pm.expect(b.cambio_estado.modulo_origen).to.not.eql(undefined);",
+              "        });",
+              "    }",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095d. Confirmar por consulta directa que el activo quedo en AISLADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g49}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_activo_g49}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095d estado tras TC-095c: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-095d - se puede consultar el activo (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    pm.test('TC-095d - el activo quedo en estado AISLADO', function () { pm.expect(pm.response.json().nombre_estado).to.eql('AISLADO'); });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095e. Consultar la bitacora de auditoria filtrando por rf_origen=RF41 para el activo de prueba",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095e bitacora RF41: ' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-095e - la consulta de bitacora responde 200', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var b = pm.response.json();",
+              "    var registros = (b.registros || []).filter(function (r) { return r.id_activo_biologico == pm.collectionVariables.get('id_activo_g49'); });",
+              "    pm.test('TC-095e - existen registros EVENTO_SANITARIO_REGISTRADO exitosos para este activo', function () {",
+              "        var encontrados = registros.filter(function (r) { return r.tipo_evento === 'EVENTO_SANITARIO_REGISTRADO' && r.resultado === 'EXITOSO'; });",
+              "        pm.expect(encontrados.length).to.be.above(0);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-095f. Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-095f health: ' + pm.response.code);",
+              "pm.test('TC-095f - el servicio responde 200 OK', function () { pm.response.to.have.status(200); });",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin_test",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin_test",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "sufijo_finca_g49",
+      "value": ""
+    },
+    {
+      "key": "id_finca_creada_g49",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura_creada_g49",
+      "value": ""
+    },
+    {
+      "key": "id_activo_g49",
+      "value": ""
+    }
+  ]
+}

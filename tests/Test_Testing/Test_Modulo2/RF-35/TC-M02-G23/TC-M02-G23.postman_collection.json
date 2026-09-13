@@ -1,0 +1,179 @@
+{
+  "info": {
+    "name": "TC-M02-G23 - Control de acceso y proteccion del historial inmutable (OWASP API1/API5/API3)",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35/RF-37. Agrupa TC-M02-045 (BOLA al actualizar activo de otra finca), TC-M02-046 (funcion restringida por rol) y TC-M02-047 (intento de alterar historial inmutable de fases). Las assertions codifican el comportamiento QUE EXIGE el RF, no lo observado, para que Newman reporte FAIL de forma honesta mientras el gap exista. Detalle completo, incluyendo el bloqueo de precondicion de TC-M02-047, en RESULTADOS/.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "correo_productor_a", "value": "tc015b.qa@sgpmp-test.com" },
+    { "key": "correo_veterinario", "value": "tc020.qa@sgpmp-test.com" },
+    { "key": "contrasena_qa_compartida", "value": "Abcd12#3" },
+    { "key": "token_productor_a", "value": "" },
+    { "key": "token_veterinario", "value": "" },
+    { "key": "id_activo_propio_a", "value": "199" },
+    { "key": "id_activo_ajeno_b", "value": "200" },
+    { "key": "raza_original_ajeno", "value": "Camaron victima finca B" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login admin exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0B. Login Productor A (usuario reactivado de QA, finca propia limitada)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_productor_a}}\",\n  \"contrasena\": \"{{contrasena_qa_compartida}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login Productor A exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_productor_a', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0C. Login Veterinario (rol sin permiso de escritura sobre activos_biologicos)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_veterinario}}\",\n  \"contrasena\": \"{{contrasena_qa_compartida}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login Veterinario exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_veterinario', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "1a. TC-M02-045 - [Control positivo] Productor A actualiza su propio activo",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor_a}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Camaron propio - control positivo\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[CONTROL POSITIVO] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Productor A SI puede editar su propio activo (200)', function () { pm.response.to.have.status(200); });"
+      ] } }]
+    },
+    {
+      "name": "1b. TC-M02-045 - [BOLA] Productor A intenta GET sobre activo de otra finca",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor_a}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[BOLA GET] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-25/GET: no revela el activo de otra finca (404, correctamente aislado)', function () { pm.response.to.have.status(404); });"
+      ] } }]
+    },
+    {
+      "name": "1c. TC-M02-045 - [BOLA CRITICO] Productor A intenta PATCH sobre activo de otra finca",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor_a}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"MODIFICADO por Productor A via BOLA - finca ajena\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[BOLA PATCH] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-35: el sistema DEBE rechazar el BOLA (403 Forbidden)', function () { pm.response.to.have.status(403); });"
+      ] } }]
+    },
+    {
+      "name": "1d. TC-M02-045 - Verificar (como admin) que el activo ajeno NO cambio",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[VERIFICACION ADMIN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Verificacion admin responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "pm.test('RF-35: la raza del activo ajeno NO debio cambiar', function () {",
+        "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_original_ajeno'));",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "2. TC-M02-046 - [Funcion restringida] Veterinario (solo lectura en este recurso) intenta PATCH",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_veterinario}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Intento de veterinario sin permiso de escritura\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[FUNCION RESTRINGIDA] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-35: rol sin permiso de escritura -> 403 Forbidden', function () { pm.response.to.have.status(403); });",
+        "const body = pm.response.json();",
+        "pm.test('El codigo de error identifica falta de autorizacion', function () {",
+        "  pm.expect(body.error_code).to.eql('ACCESO_DENEGADO');",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3a. TC-M02-047 - [Precondicion, BLOQUEADA] Intentar la primera fase del ciclo del activo propio",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": 2,\n  \"motivo_cambio\": \"QA-G23: primera fase (bloqueada, ver NOTA_BLOQUEO.md)\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[PRECONDICION FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: cambiar de fase deberia funcionar (201)', function () { pm.response.to.have.status(201); });",
+        "// BLOQUEADO: ver RESULTADOS/NOTA_BLOQUEO.md - cambiar_fase_use_case.py llama",
+        "// repo.cerrar_gestion_activa() con 3 argumentos pero el metodo exige 4",
+        "// (falta usuario_id) -> TypeError -> 500 en cualquier cambio de fase, para cualquier activo."
+      ] } }]
+    },
+    {
+      "name": "3b. TC-M02-047 - No existe un endpoint para editar directamente un registro de fase",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}/fases/1",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_finalizacion\": \"2020-01-01T00:00:00Z\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[SIN ENDPOINT DE EDICION] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('No existe ruta para PATCH directo sobre una fase (404/405, confirma append-only estructural)', function () {",
+        "  pm.expect([404, 405]).to.include(pm.response.code);",
+        "});"
+      ] } }]
+    }
+  ]
+}

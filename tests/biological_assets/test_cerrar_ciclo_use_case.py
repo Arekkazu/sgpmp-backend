@@ -15,6 +15,7 @@ from src.biological_assets.domain.entities.activo_biologico import ActivoBiologi
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import ConflictError
 
 
 class DbFake:
@@ -119,3 +120,23 @@ def test_cierre_rechazado_sin_fase_activa() -> None:
 
     assert activo.id_estado == EstadoActivo.ACTIVO
     assert db.rollbacks == 0
+
+
+def test_cierre_sobre_activo_en_baja_se_rechaza_antes_de_validar_fase() -> None:
+    db = DbFake()
+    activo = _activo(id_estado=EstadoActivo.BAJA)
+    repo = ActivoRepoFake(activo)
+    uc = CerrarCicloUseCase(
+        db=db,
+        repo=repo,
+        evento_repo=EventoRepoFake(),
+        historico_repo=HistoricoRepoFake(),
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        uc.execute(10, _dto(), _usuario())
+
+    assert exc_info.value.status_code == 409
+    assert exc_info.value.code == 'ESTADO_INVALIDO_PARA_CIERRE'
+    assert repo.cierres == 0
+    assert db.commits == 0
