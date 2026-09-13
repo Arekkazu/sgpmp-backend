@@ -1,3 +1,9 @@
+## [1.0.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.40...v1.0.0-rc.41) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** restringir auditoría por rol y propiedad ([97e9ef6](https://github.com/Arekkazu/sgpmp-backend/commit/97e9ef6a9bc966a93002586b72e68e70cd368a90))
+
 ## [1.0.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.39...v1.0.0-rc.40) (2026-09-13)
 
 ### Bug Fixes
