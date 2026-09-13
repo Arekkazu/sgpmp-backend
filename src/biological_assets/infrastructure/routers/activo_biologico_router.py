@@ -129,7 +129,6 @@ from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -1176,7 +1175,7 @@ def asociar_sensor_iot(
     '/{id_activo}/sensores/{id_asociacion}',
     response_model=AsociacionSensorActivoResponse,
     status_code=200,
-    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 3))],
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 3, rf_origen='RF49'))],
     responses={
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
