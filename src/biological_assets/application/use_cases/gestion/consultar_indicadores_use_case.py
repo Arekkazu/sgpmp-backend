@@ -1,17 +1,28 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, ResultadoIndicadores
+from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, ResultadoIndicadores
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
+from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
+from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
+
+_ESTADOS_TERMINALES = {EstadoActivo.BAJA: 'baja', EstadoActivo.CERRADO: 'cierre'}
+
+# ponytail: RF-51 no define un catálogo indicador-especie/sexo (INC-M02-98-G96
+# lo señala como inexistente). PRODUCCION en este sistema mide salida productiva
+# tipo lactancia/postura, biológicamente exclusiva de hembras en todas las
+# especies que trackea el módulo — se bloquea a nivel de sexo, no de especie.
+# Si en el futuro se necesita granularidad por especie, subir a un catálogo real.
+_INDICADORES_SOLO_HEMBRA = {'PRODUCCION'}
 
 
 class ConsultarIndicadoresUseCase:
@@ -21,11 +32,13 @@ class ConsultarIndicadoresUseCase:
         db: Session,
         activo_repo: ActivoBiologicoRepository,
         indicadores_repo: IndicadoresRepository,
+        historico_repo: HistoricoEstadoRepository,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
         self.indicadores_repo = indicadores_repo
+        self.historico_repo = historico_repo
         self.bitacora_repo = bitacora_repo
 
     def execute(
@@ -43,6 +56,9 @@ class ConsultarIndicadoresUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe en los registros del sistema.',
             )
 
+        self._validar_rango_dentro_del_ciclo_de_vida(activo, dto.fecha_inicio, dto.fecha_fin)
+        self._validar_compatibilidad_biologica(activo, dto.tipo_indicador)
+
         resultado = self.indicadores_repo.calcular_indicadores(
             id_activo=id_activo,
             tipo_activo=activo.tipo,
@@ -50,6 +66,12 @@ class ConsultarIndicadoresUseCase:
             fecha_fin=dto.fecha_fin,
             tipo_indicador=dto.tipo_indicador,
         )
+
+        if dto.tipo_indicador != 'TODOS' and not any(ind.disponible for ind in resultado.indicadores):
+            motivo = resultado.advertencias[0] if resultado.advertencias else (
+                'No fue posible calcular el indicador solicitado con los datos disponibles.'
+            )
+            raise BusinessRuleError(code='INDICADOR_NO_DISPONIBLE', message=motivo)
 
         if self.bitacora_repo:
             try:
@@ -66,3 +88,63 @@ class ConsultarIndicadoresUseCase:
                 pass
 
         return resultado
+
+    def _validar_compatibilidad_biologica(self, activo: ActivoBiologico, tipo_indicador: str) -> None:
+        if tipo_indicador not in _INDICADORES_SOLO_HEMBRA:
+            return
+        if activo.detalle_individual is None:
+            return
+        if activo.detalle_individual.sexo == 'Macho':
+            raise ValidationError(
+                code='INDICADOR_NO_APLICABLE_SEXO',
+                message=(
+                    f"El indicador '{tipo_indicador}' no aplica biológicamente a un activo de sexo "
+                    "Macho."
+                ),
+                field='tipo_indicador',
+            )
+
+    def _validar_rango_dentro_del_ciclo_de_vida(
+        self,
+        activo: ActivoBiologico,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+    ) -> None:
+        if fecha_inicio is not None:
+            if activo.detalle_individual is not None:
+                nacimiento = activo.detalle_individual.fecha_nacimiento
+                nacimiento_fecha = nacimiento.date() if isinstance(nacimiento, datetime) else nacimiento
+                if nacimiento_fecha is not None and fecha_inicio < nacimiento_fecha:
+                    raise ValidationError(
+                        code='RANGO_FUERA_DE_CICLO_VIDA',
+                        message=(
+                            f'La fecha de inicio ({fecha_inicio.isoformat()}) es anterior a la fecha de '
+                            f'nacimiento del activo ({nacimiento_fecha.isoformat()}).'
+                        ),
+                        field='fecha_inicio',
+                    )
+            if activo.fecha_inicio_ciclo is not None and fecha_inicio < activo.fecha_inicio_ciclo:
+                raise ValidationError(
+                    code='RANGO_FUERA_DE_CICLO_VIDA',
+                    message=(
+                        f'La fecha de inicio ({fecha_inicio.isoformat()}) es anterior al inicio de '
+                        f'ciclo del activo ({activo.fecha_inicio_ciclo.isoformat()}).'
+                    ),
+                    field='fecha_inicio',
+                )
+
+        etiqueta_estado = _ESTADOS_TERMINALES.get(activo.id_estado)
+        if fecha_fin is not None and etiqueta_estado is not None:
+            ultimo_cambio = self.historico_repo.obtener_ultimo_cambio(activo.id_activo_biologico)
+            if ultimo_cambio is not None:
+                fecha_limite = ultimo_cambio.fecha_cambio
+                fecha_limite_fecha = fecha_limite.date() if isinstance(fecha_limite, datetime) else fecha_limite
+                if fecha_fin > fecha_limite_fecha:
+                    raise ValidationError(
+                        code='RANGO_FUERA_DE_CICLO_VIDA',
+                        message=(
+                            f'La fecha de fin ({fecha_fin.isoformat()}) es posterior a la fecha de '
+                            f'{etiqueta_estado} del activo ({fecha_limite_fecha.isoformat()}).'
+                        ),
+                        field='fecha_fin',
+                    )

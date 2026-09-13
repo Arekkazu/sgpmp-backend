@@ -104,6 +104,20 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 
 ## Errores posibles
 
+### FA-01 — Activo biológico inexistente (422)
+
+Antes de INC-M02-63-G88 este caso respondía `404 ACTIVO_NO_ENCONTRADO`. El
+Flujo Alterno "Activo Biológico No Válido" del CU11 agrupa inexistente y BAJA
+bajo la misma respuesta — `422`, no `404` — y `ACTIVO_EN_BAJA` (abajo) ya lo
+hacía bien; solo faltaba alinear este caso con su vecino.
+
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "No existe un activo biológico con id 99999."
+}
+```
+
 ### FA-02 — Activo en BAJA (422)
 
 ```json
@@ -176,11 +190,94 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 }
 ```
 
+### FA-05b — Sensor POBLACIONAL ya activo en otro lote (409, INC-M02-64-G88)
+
+Restricción 4 del RF-49: un sensor POBLACIONAL solo puede estar activo en un
+único lote a la vez. Simétrico al caso anterior (ese valida por activo, este
+por sensor).
+
+```json
+{
+  "code": "SENSOR_YA_ASOCIADO_A_OTRO_LOTE",
+  "message": "El sensor 1 ya está asociado con tipo POBLACIONAL al activo 20. Un sensor solo puede estar activo en un único lote a la vez. Desactive esa asociación primero."
+}
+```
+
 ### FA-06 — Sin permiso (403)
 
 ```json
 {
   "code": "AUTHORIZATION_ERROR",
   "message": "No tienes permiso para realizar esta acción."
+}
+```
+
+---
+
+## PATCH /activos-biologicos/{id_activo}/sensores/{id_asociacion}
+
+**INC-M02-65-G89 (RF-49):** no existía ningún endpoint para gestionar el ciclo
+de vida de una asociación una vez creada — todo intento devolvía 404 por falta
+de ruta, incluida la transición inválida que debía rechazarse explícitamente.
+
+Transiciones manuales permitidas: `ACTIVA → INACTIVA` (desactivación),
+`INACTIVA → ACTIVA` (reactivación). `SUPERADA` es terminal y exclusivamente
+system-managed (la asigna `AsociarSensorActivoUseCase` al reemplazar una
+asociación) — no es alcanzable desde este endpoint bajo ninguna transición.
+
+### Desactivar una asociación ACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "INACTIVA", "motivo": "Sensor retirado para mantenimiento"}'
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_asociacion_activo_sensor": 1,
+  "estado_asociacion": "INACTIVA",
+  "fecha_fin": "2026-09-12T12:00:00Z",
+  "motivo": "Sensor retirado para mantenimiento",
+  "...": "resto de campos igual que en POST"
+}
+```
+
+### Reactivar una asociación INACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "ACTIVA"}'
+```
+
+**Resultado**: `fecha_fin` vuelve a `null`.
+
+### Errores
+
+**Transición inválida — ej. intentar fijar SUPERADA manualmente (422):**
+```json
+{
+  "error_code": "TRANSICION_INVALIDA",
+  "message": "La transición INACTIVA → SUPERADA no está permitida. Transiciones válidas desde INACTIVA: ACTIVA."
+}
+```
+
+**Estado redundante — ya está en el estado solicitado (409):**
+```json
+{
+  "error_code": "ESTADO_REDUNDANTE",
+  "message": "La asociación ya se encuentra en estado ACTIVA."
+}
+```
+
+**Asociación inexistente, o de otro activo (404):**
+```json
+{
+  "error_code": "ASOCIACION_NO_ENCONTRADA",
+  "message": "No existe una asociación con id 999 para el activo 1."
 }
 ```
