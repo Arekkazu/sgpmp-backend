@@ -1,0 +1,187 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-203-auditoria-crecimiento",
+    "name": "TC-M02-203 - Registro de auditoría tras evento CRECIMIENTO válido (RF-36 / RF-52)",
+    "description": "Prueba de aceptación para RF-36 y RF-52: Registrar un evento de crecimiento válido y verificar la generación de la entrada de auditoría correspondiente con resultado EXITOSO.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Registrar evento de crecimiento válido (TC-M02-203)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-09T03:00:00Z\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/crecimiento",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "crecimiento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK o 201 Created (Evento de crecimiento registrado)', function () {",
+              "    pm.expect([200, 201]).to.include(pm.response.code);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar bitácora de auditoría y verificar registro de CRECIMIENTO (RF-52)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/auditoria?id_activo_biologico={{id_lote}}&rf_origen=RF40&resultado=EXITOSO&pagina=1&page_size=10",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "auditoria"
+          ],
+          "query": [
+            {
+              "key": "id_activo_biologico",
+              "value": "{{id_lote}}"
+            },
+            {
+              "key": "rf_origen",
+              "value": "RF40"
+            },
+            {
+              "key": "resultado",
+              "value": "EXITOSO"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "page_size",
+              "value": "10"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar auditoría', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Existe al menos un registro de auditoría para el evento de crecimiento', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.total_registros).to.be.above(0);",
+              "    pm.expect(res.registros).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "pm.test('El registro de auditoría contiene rf_origen RF40, tipo_evento CRECIMIENTO y resultado EXITOSO', function () {",
+              "    var res = pm.response.json();",
+              "    var audit = res.registros[0];",
+              "    pm.expect(audit.rf_origen).to.eql('RF40');",
+              "    pm.expect(audit.tipo_evento).to.include('CRECIMIENTO');",
+              "    pm.expect(audit.resultado).to.eql('EXITOSO');",
+              "    pm.expect(audit.id_usuario_responsable).to.eql(1);",
+              "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.collectionVariables.get('id_lote')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

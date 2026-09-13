@@ -1,0 +1,814 @@
+{
+  "info": {
+    "name": "TC-M02-G43 — RF-40 Registro exitoso de crecimiento",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Ejecución HTTPS. SETUP solo consulta OpenAPI; el caso principal autentica y registra exactamente PESO=250 kg en activos existentes 279, 311 y 312."
+  },
+  "variable": [
+    {
+      "key": "password",
+      "value": ""
+    },
+    {
+      "key": "engineer_password",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-SETUP",
+      "item": [
+        {
+          "name": "Contrato vivo OpenAPI por HTTPS",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"OpenAPI HTTPS 200\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "Productor",
+          "item": [
+            {
+              "name": "Login — Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                      "pm.environment.set('token_productor', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Acceso legítimo y estado — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: activo 279 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(279); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Fase activa — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/fases"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ANTES — historial de crecimiento — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.environment.set('conteo_antes_productor', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                      "pm.test(\"ANTES: conteo de crecimiento capturado para activo 279\", function () { pm.expect(Number(pm.environment.get('conteo_antes_productor'))).to.be.at.least(0); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST crecimiento PESO 250 kg — Productor",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:01:00Z\",\n  \"descripcion\": \"TC-M02-G43 Productor: PESO 250 kg\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(279); });",
+                      "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:01:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                      "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(35); });",
+                      "pm.environment.set('evento_productor', pm.response.json().evento.id_eventos);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "DESPUÉS — persistencia e historial por API — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:01:00Z' && x.descripcion === 'TC-M02-G43 Productor: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                      "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_productor')) + 1); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Historial cronológico — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:01:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Auditoría RF-40 — Productor",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/auditoria?rf_origen=RF40&id_activo_biologico=279&resultado=EXITOSO&page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V6 — auditoría registra el crecimiento y actor\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.tipo_evento === 'EVENTO_CRECIMIENTO_REGISTRADO' && x.id_usuario_responsable === 35; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Veterinario",
+          "item": [
+            {
+              "name": "Login — Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"juan.carlos.qa133@sgpmp-test.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                      "pm.environment.set('token_veterinario', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Acceso legítimo y estado — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: activo 311 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(311); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Fase activa — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/fases"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ANTES — historial de crecimiento — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.environment.set('conteo_antes_veterinario', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                      "pm.test(\"ANTES: conteo de crecimiento capturado para activo 311\", function () { pm.expect(Number(pm.environment.get('conteo_antes_veterinario'))).to.be.at.least(0); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST crecimiento PESO 250 kg — Veterinario",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:01:00Z\",\n  \"descripcion\": \"TC-M02-G43 Veterinario: PESO 250 kg\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(311); });",
+                      "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:01:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                      "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(3); });",
+                      "pm.environment.set('evento_veterinario', pm.response.json().evento.id_eventos);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "DESPUÉS — persistencia e historial por API — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:01:00Z' && x.descripcion === 'TC-M02-G43 Veterinario: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                      "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_veterinario')) + 1); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Historial cronológico — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/311/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:01:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Auditoría RF-40 — Veterinario",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/auditoria?rf_origen=RF40&id_activo_biologico=311&resultado=EXITOSO&page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V6 — auditoría registra el crecimiento y actor\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.tipo_evento === 'EVENTO_CRECIMIENTO_REGISTRADO' && x.id_usuario_responsable === 3; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ingeniero de campo",
+          "item": [
+            {
+              "name": "Login — Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{engineer_password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"Login 200 y JWT presente\", function () { pm.response.to.have.status(200); pm.expect(pm.response.json().token).to.be.a(\"string\").and.not.empty; });",
+                      "pm.environment.set('token_ingeniero_de_campo', pm.response.json().token);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Acceso legítimo y estado — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: activo 312 accesible y ACTIVO\", function () { const b=pm.response.json(); pm.expect(b.id_activo_biologico).to.eql(312); pm.expect(b.nombre_estado).to.eql('ACTIVO'); pm.expect(b.tipo).to.eql('INDIVIDUAL'); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Fase activa — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/fases"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"Precondición: fase productiva activa\", function () { pm.expect(pm.response.json().fases.some(function (f) { return f.es_activa === true; })).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "ANTES — historial de crecimiento — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.environment.set('conteo_antes_ingeniero_de_campo', pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length);",
+                      "pm.test(\"ANTES: conteo de crecimiento capturado para activo 312\", function () { pm.expect(Number(pm.environment.get('conteo_antes_ingeniero_de_campo'))).to.be.at.least(0); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "POST crecimiento PESO 250 kg — Ingeniero de campo",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 250,\n  \"unidad_medida\": \"kg\",\n  \"fecha\": \"2026-09-09T23:01:00Z\",\n  \"descripcion\": \"TC-M02-G43 Ingeniero de campo: PESO 250 kg\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201 definido por OpenAPI\", function () { pm.response.to.have.status(201); });",
+                      "pm.test(\"V1 — evento creado con identificador\", function () { const e=pm.response.json().evento; pm.expect(e.id_eventos).to.be.a('number'); pm.expect(e.id_activo_biologico).to.eql(312); });",
+                      "pm.test(\"V2 — respuesta conserva PESO, 250, kg y fecha\", function () { const e=pm.response.json().evento; pm.expect(e.fecha).to.eql('2026-09-09T23:01:00Z'); pm.expect(e.crecimiento.tipo_medicion).to.eql('PESO'); pm.expect(Number(e.crecimiento.valor_medicion)).to.eql(250); pm.expect(e.crecimiento.unidad_medida).to.eql('kg'); });",
+                      "pm.test(\"V5 — respuesta asocia al actor correcto\", function () { pm.expect(pm.response.json().evento.id_usuario).to.eql(4); });",
+                      "pm.environment.set('evento_ingeniero_de_campo', pm.response.json().evento.id_eventos);"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "DESPUÉS — persistencia e historial por API — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V2 y V3 — historial contiene PESO 250 kg persistido\", function () { const e=pm.response.json().registros.find(function (x) { return x.categoria === 'CRECIMIENTO' && x.fecha_evento === '2026-09-09T23:01:00Z' && x.descripcion === 'TC-M02-G43 Ingeniero de campo: PESO 250 kg'; }); pm.expect(e).to.exist; pm.expect(e.detalle_especifico.detalle_1).to.eql('PESO'); pm.expect(e.detalle_especifico.detalle_2).to.eql('250.00 kg'); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });",
+                      "pm.test(\"V7 — API muestra incremento individual +1\", function () { const despues=pm.response.json().registros.filter(function (x) { return x.categoria === 'CRECIMIENTO'; }).length; pm.expect(despues).to.eql(Number(pm.environment.get('conteo_antes_ingeniero_de_campo')) + 1); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Historial cronológico — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/312/historial?page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", function () { pm.response.to.have.status(200); });",
+                      "pm.test(\"V3 — evento de crecimiento aparece en historial\", function () { const r=pm.response.json().registros; pm.expect(r.some(function (x) { return x.fecha_evento === '2026-09-09T23:01:00Z' && x.categoria === 'CRECIMIENTO'; })).to.eql(true); });",
+                      "pm.test(\"V4 — historial ordenado cronológicamente\", function () { const fechas=pm.response.json().registros.map(function (x) { return new Date(x.fecha_evento).getTime(); }); const asc=fechas.slice().sort(function(a,b){return a-b;}); const desc=fechas.slice().sort(function(a,b){return b-a;}); pm.expect(fechas.join(\",\")==asc.join(\",\") || fechas.join(\",\")==desc.join(\",\")).to.eql(true); });"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Auditoría RF-40 — Ingeniero de campo",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_ingeniero_de_campo}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/auditoria?rf_origen=RF40&id_activo_biologico=312&resultado=EXITOSO&page_size=100"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"RF-52: la bitácora se protege con permiso independiente\", function () { pm.response.to.have.status(403); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "description": "Vacía salvo desviaciones que requieran investigación.",
+      "item": [
+        {
+          "name": "Login observador de auditoría — Administrador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login observador 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.environment.set(\"token_observador\", pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Diagnóstico V6 — bitácora del Ingeniero",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_observador}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/auditoria?rf_origen=RF40&id_activo_biologico=312&resultado=EXITOSO&page_size=100"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Bitácora 200\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Evento del Ingeniero auditado\", function () { pm.expect(pm.response.json().registros.some(function (x) { return x.tipo_evento === \"EVENTO_CRECIMIENTO_REGISTRADO\" && x.id_usuario_responsable === 4; })).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

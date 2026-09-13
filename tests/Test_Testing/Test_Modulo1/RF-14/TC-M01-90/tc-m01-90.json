@@ -1,0 +1,121 @@
+{
+  "info": {
+    "name": "TC-M01-090",
+    "description": "Verifica que el evento LOGIN_FALLIDO genere una notificacion interna. IMPORTANTE: la notificacion no se dispara en cada intento fallido individual, sino especificamente en el 5to intento (el que activa el bloqueo de 15 min de la cuenta) - los pasos 2 a 5 (intentos 1-4) esperan que NO haya notificacion nueva, y el paso 6 (intento 5) espera que SI aparezca una con tipo_evento=4. ADVERTENCIA: esta coleccion bloquea la cuenta usada por 15 minutos como efecto colateral esperado (es la propia condicion que se esta probando).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "correo_objetivo", "value": "u20212200102@usco.edu.co" },
+    { "key": "contrasena_correcta", "value": "Recuperada#30" },
+    { "key": "token_valido", "value": "" },
+    { "key": "baseline_total", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login exitoso para obtener token y linea base de notificaciones",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('token_valido', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_correcta}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "0b. Notificaciones - linea base",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('baseline_total', pm.response.json().total);"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_valido}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=1"
+      }
+    },
+    {
+      "name": "1. Intento fallido 1 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#001\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. Intento fallido 2 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#002\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "3. Intento fallido 3 de 5",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#003\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. Intento fallido 4 de 5 + verificar que AUN no hay notificacion nueva",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#004\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "5. Intento fallido 5 de 5 - dispara el bloqueo de 15 min",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 o 423 (bloqueo)', function () {",
+        "    pm.expect(pm.response.code).to.be.oneOf([401, 423]);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#005\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "6. Verificar que el 5to intento SI genero notificacion interna (tipo_evento 4)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "const generadas = b.total - parseInt(pm.collectionVariables.get('baseline_total'));",
+        "pm.test('TC-M01-090: se genero al menos 1 notificacion nueva tras el 5to intento fallido', function () {",
+        "    pm.expect(generadas).to.be.at.least(1);",
+        "});",
+        "pm.test('TC-M01-090: existe una notificacion de tipo_evento 4 (login fallido)', function () {",
+        "    pm.expect(b.items.some(n => n.tipo_evento === 4)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_valido}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    }
+  ]
+}

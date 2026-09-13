@@ -1,0 +1,86 @@
+{
+  "info": {
+    "name": "TC-M01-039",
+    "description": "Prueba automatizada. Para correr, usar: newman run tc-m01-39.json --iteration-data tc-m01-39-data.json -n 10 -r htmlextra --reporter-htmlextra-export resultado-039.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "tiempos_json", "value": "[]" }
+  ],
+  "item": [
+    {
+      "name": "1. Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+              "const jsonData = pm.response.json();",
+              "if (jsonData.token) { pm.collectionVariables.set('access_token', jsonData.token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"{{actual}}\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. TC-M01-039 - Cambiar contrasena (medir tiempo, esperado <2s)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Cambio responde 200', function () { pm.response.to.have.status(200); });",
+              "",
+              "pm.test('Responde en menos de 2000 ms', function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+              "});",
+              "",
+              "let tiempos = JSON.parse(pm.collectionVariables.get('tiempos_json') || '[]');",
+              "tiempos.push(pm.response.responseTime);",
+              "pm.collectionVariables.set('tiempos_json', JSON.stringify(tiempos));",
+              "",
+              "if (pm.info.iteration === pm.info.iterationCount - 1) {",
+              "    const promedio = tiempos.reduce((a, b) => a + b, 0) / tiempos.length;",
+              "    const maximo = Math.max(...tiempos);",
+              "    const minimo = Math.min(...tiempos);",
+              "    console.log('--- TC-M01-039: resumen de ' + tiempos.length + ' repeticiones ---');",
+              "    console.log('Tiempos (ms): ' + JSON.stringify(tiempos));",
+              "    console.log('Promedio: ' + promedio.toFixed(2) + ' ms');",
+              "    console.log('Minimo: ' + minimo + ' ms | Maximo: ' + maximo + ' ms');",
+              "    pm.test('TC-M01-039: promedio de ' + tiempos.length + ' repeticiones bajo 2000 ms (promedio=' + promedio.toFixed(2) + 'ms)', function () {",
+              "        pm.expect(promedio).to.be.below(2000);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"{{actual}}\",\n  \"nueva_contrasena\": \"{{nueva}}\",\n  \"confirmar_nueva_contrasena\": \"{{nueva}}\"\n}"
+        },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    }
+  ]
+}
+

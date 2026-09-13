@@ -1,0 +1,203 @@
+{
+  "info": {
+    "name": "RF-19 - TC-M09-G46 Indisponibilidad de finca inactiva en procesos dependientes",
+    "description": "Automatiza TC-M09-94: registra una finca, la desactiva, y confirma que queda indisponible en los dos procesos que dependen de ella: (1) no puede seleccionarse para registrar infraestructura (POST /configuracion/infraestructuras rechaza con 422 FINCA_INACTIVA, FA-03) y (2) desaparece del listado de fincas activas usado para selectores (GET /configuracion/fincas?solo_activas=true), aunque sigue existiendo y siendo consultable por su propio detalle.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_finca", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Registrar finca de prueba y desactivarla",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca', json.id_finca);",
+              "console.log('Finca de prueba creada: id=' + json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Inactiva Dependencias {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Desactivar la finca de prueba",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Queda inactiva', function () { pm.expect(json.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca}}", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-94a - No disponible para registrar infraestructura (proceso dependiente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo FINCA_INACTIVA', function () {",
+              "    pm.expect(json.error_code).to.eql('FINCA_INACTIVA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area en finca inactiva\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"No deberia poder crearse\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-94b - No aparece en el listado de fincas activas (proceso de seleccion)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const ids = json.items.map(f => f.id_finca);",
+              "console.log('Fincas activas: ' + JSON.stringify(ids));",
+              "pm.test('La finca inactiva NO esta en el listado de solo activas', function () {",
+              "    pm.expect(ids).to.not.include(pm.collectionVariables.get('id_finca'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas?solo_activas=true",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas"],
+          "query": [{ "key": "solo_activas", "value": "true" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 6 - Confirma que la finca sigue existiendo (solo queda indisponible, no borrada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle sigue accesible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Sigue existiendo, marcada inactiva', function () {",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(json.es_activo).to.eql(false);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{id_finca}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{id_finca}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

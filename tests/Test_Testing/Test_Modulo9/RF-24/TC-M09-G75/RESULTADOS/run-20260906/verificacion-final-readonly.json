@@ -1,0 +1,71 @@
+{
+  "grupo": "TC-M09-G75",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T04:30:02.254Z",
+  "sensor": {
+    "id_sensores": 6,
+    "nombre": "Sensor temperatura alevinera-01",
+    "id_dispositivo_iot": 3,
+    "es_activo": true,
+    "categoria": "TEMPERATURA"
+  },
+  "asociacionVigente": [
+    {
+      "id_sensores_area_asociada": 6,
+      "id_sensor": 6,
+      "id_dispositivo_iot": 3,
+      "id_infraestructura": 3,
+      "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+      "tiene_estado": true,
+      "fecha_asociacion": "2026-04-28T14:42:28.213141Z",
+      "fecha_finalizacion": null,
+      "id_usuario": 2
+    }
+  ],
+  "rangoTecnicoActual": {
+    "categoria": "TEMPERATURA",
+    "valor_min": "0.0000",
+    "valor_max": "45.0000"
+  },
+  "rangoSinCambios": true,
+  "historialInicial": {
+    "total": 0,
+    "ids": []
+  },
+  "historialFinal": {
+    "total": 2,
+    "items": [
+      {
+        "id_calibracion": 11,
+        "valor_referencia": "45.0000",
+        "ganancia": "1.0000",
+        "offset": "45.0000",
+        "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-143 G75 run-20260906"
+      },
+      {
+        "id_calibracion": 10,
+        "valor_referencia": "0.0000",
+        "ganancia": "1.0000",
+        "offset": "0.0000",
+        "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+        "id_usuario": 4,
+        "observaciones": "QA TC-M09-142 G75 run-20260906"
+      }
+    ]
+  },
+  "calibracionVigenteParaProcesamiento": {
+    "id_calibracion": 11,
+    "valor_referencia": "45.0000",
+    "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+    "criterio": "fecha_calibracion mas reciente, que es el criterio del adaptador de telemetria"
+  },
+  "soloLectura": true,
+  "sqlEjecutado": "ninguno"
+}

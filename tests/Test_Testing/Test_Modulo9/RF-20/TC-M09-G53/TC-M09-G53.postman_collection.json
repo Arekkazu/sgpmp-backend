@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G53 Auditoria de operaciones sobre infraestructura productiva",
+    "description": "Automatiza TC-M09-105: consulta (GET) y desactiva un area productiva real y confirma por API todo lo observable (200, valores reflejados). RF-20 audita ademas las lecturas (tipo_operacion='GET'), mas trazabilidad que RF-18/RF-19. Nota de alcance: modulo9.auditorias_infraestructuras no tiene endpoint REST propio (mismo gap que TC-M09-G37/TC-M09-G47); la verificacion puntual de las filas de auditoria se hizo con SELECT directo en BD tras esta corrida (ver TC-M09-G53-resultados.md). CREATE y UPDATE no se pudieron ejercitar en vivo en esta corrida porque ambos flujos estan bloqueados por el gap de modulo9.tipos_area (ver TC-M09-G48/NOTA_BLOQUEO.md); se verificaron en su lugar 2 filas CREATE historicas ya existentes en el entorno como evidencia estructural.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_usuario_admin", "value": "" },
+    { "key": "id_infraestructura", "value": "11" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);",
+              "const payload = JSON.parse(atob(json.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+              "pm.collectionVariables.set('id_usuario_admin', String(payload.sub));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-105a - GET: listar areas de la finca (debe auditarse, no asi el detalle individual)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Listado: ' + JSON.stringify(json));",
+              "pm.test('Incluye el area de prueba', function () {",
+              "    pm.expect(json.items.some(a => a.id_infraestructura === parseInt(pm.collectionVariables.get('id_infraestructura'), 10))).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=5",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras"],
+          "query": [{ "key": "finca_id", "value": "5" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-105b - DEACTIVATE: desactivar el area (debe auditarse)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Idempotente: en una relectura, el area ya puede estar inactiva de una",
+              "// corrida anterior de esta misma coleccion -sigue siendo evidencia valida,",
+              "// solo que la fila DEACTIVATE en auditoria ya se genero antes-.",
+              "pm.test('Desactivacion aceptada, o ya estaba inactiva (200 o 422)', function () {",
+              "    pm.expect([200, 422]).to.include(pm.response.code);",
+              "});",
+              "const json = pm.response.json();",
+              "if (pm.response.code === 200) {",
+              "    pm.test('Queda inactiva', function () { pm.expect(json.es_activo).to.eql(false); });",
+              "} else {",
+              "    pm.test('Codigo correcto de ya inactiva', function () { pm.expect(json.error_code).to.eql('INFRAESTRUCTURA_YA_INACTIVA'); });",
+              "}",
+              "console.log('NOTA DE ALCANCE (gap): modulo9.auditorias_infraestructuras no tiene endpoint REST. Verificacion manual con:');",
+              "console.log(\"SELECT tipo_operacion, id_usuario, fecha_gestion FROM modulo9.auditorias_infraestructuras WHERE id_infraestructura = \" + pm.collectionVariables.get('id_infraestructura') + \" ORDER BY fecha_gestion DESC LIMIT 3;\");",
+              "console.log('CREATE y UPDATE no se pudieron ejercitar en vivo en esta corrida (bloqueados por el gap de tipos_area, ver TC-M09-G48).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}", "desactivar"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

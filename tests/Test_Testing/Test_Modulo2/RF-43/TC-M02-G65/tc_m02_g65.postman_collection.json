@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "TC-M02-G65 - Rechazo por estado/fase y rollback transaccional (RF-43, CU09)",
+    "description": "TC-M02-G65 (RF-43, CU09), sub-casos TC-M02-244, TC-M02-245 y TC-M02-246.\n\nSub-caso 1 (TC-M02-244, E-01, activo CERRADO/BAJA) se prueba en vivo contra un activo YA existente en TEST en estado BAJA (id_activo_biologico=80, Cachama POBLACIONAL) -- no autocontenido a proposito, porque llevar un activo fresco a estado BAJA requeriria antes una baja exitosa, y TC-M02-G61 ya documento que la baja TOTAL individual falla con 500 (bug de orden de operaciones) y que incluso la baja PARCIAL de lote falla con 400 (bug nuevo, causa raiz no confirmada) -- ninguna via produce hoy un activo BAJA fresco por API. Se reutiliza uno ya existente de una sesion anterior en vez de intentar crear uno nuevo.\n\nSub-caso 2 (TC-M02-245, E-02, sin fase productiva activa) se prueba en vivo con un activo recien creado -- por el bug de RF-37 ya documentado en TC-M02-G61 (POST .../fases siempre responde 500), CUALQUIER activo recien creado esta garantizado a no tener fase activa, asi que este sub-caso en particular es trivialmente reproducible (de hecho es el mismo mecanismo detras del bloqueo de TC-M02-106/238 en sesiones anteriores).\n\nSub-caso 3 (TC-M02-246, E-09, rollback ante fallo transaccional) NO se puede probar contra el backend real: no hay forma de forzar una caida de conexion a BD a mitad de transaccion desde un cliente HTTP negro. Se verifica con Pytest, simulando el fallo con un doble de prueba en evento_repo.guardar() (test_tc_m02_246_rollback_fallo_transaccional.py) -- confirma que RegistrarEventoProductivoUseCase.execute() SI hace db.rollback() y SI registra el intento fallido en la bitacora de auditoria (RF-52, tipo_evento=EVENTO_PRODUCTIVO_FALLIDO, resultado=FALLIDO) antes de relanzar la excepcion, tal como exige el RF.\n\nLa coleccion registra su propio activo INDIVIDUAL de Cachama Blanca fresco solo para el sub-caso 2 (id_especie=4, unica especie con metrica de catalogo seedeada: PESO/kg) sobre id_infraestructura=6; el sub-caso 1 depende del activo 80 ya existente.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion / Funcional. Herramienta: API - Postman (Newman) [parte 1 de 2].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-244) - Rechazar evento productivo sobre activo BAJA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: activo 80 (Cachama POBLACIONAL, ya en estado BAJA en TEST) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: rechazado con HTTP 409', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio ESTADO_NO_ACTIVO (E-01), mensaje menciona el estado BAJA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ESTADO_NO_ACTIVO');",
+              "    pm.expect(respuesta.message).to.include('BAJA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_baja}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion sub-caso 2 - Registrar activo INDIVIDUAL Cachama fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g65', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cg65-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG65-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-245) - Rechazar evento productivo sin fase activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio SIN_FASE_PRODUCTIVA_ACTIVA (E-02)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SIN_FASE_PRODUCTIVA_ACTIVA');",
+              "});",
+              "console.log('Nota: este es el mismo mecanismo detras del bloqueo de TC-M02-106/238 -- ningun activo fresco puede tener fase activa hoy porque RF-37 (POST .../fases) esta roto (ver TC-M02-G61). Aqui es exactamente el comportamiento que la ficha pide probar, asi que no hace falta nada mas.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g65}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g65}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo_baja", "value": "80" },
+    { "key": "id_activo_g65", "value": "" }
+  ]
+}

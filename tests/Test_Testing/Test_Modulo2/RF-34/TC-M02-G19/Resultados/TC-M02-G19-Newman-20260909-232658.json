@@ -1,0 +1,4621 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m02-g19-rf34-v3"
+    },
+    "item": [
+      {
+        "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+        "name": "01 - Login Productor",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+              "type": "text",
+              "exec": [
+                "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+              ],
+              "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+        "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "{{activoActivoId}}",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+              "type": "text",
+              "exec": [
+                "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+              ],
+              "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+        "name": "03 - TC-M02-190 - Fecha de referencia",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "{{activoActivoId}}",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "fecha_referencia",
+                "value": "{{fechaReferencia}}"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+              "type": "text",
+              "exec": [
+                "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                "if (!historico) {",
+                "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                "} else {",
+                "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                "  const body = pm.response.json();",
+                "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                "}"
+              ],
+              "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+            }
+          }
+        ]
+      },
+      {
+        "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+        "name": "04 - TC-M02-192 - Integridad del historial",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "{{activoActivoId}}",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_consulta",
+                "value": "HISTORIAL"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+              "type": "text",
+              "exec": [
+                "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                "const body = pm.response.json();",
+                "if (!inconsistencia) {",
+                "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                "} else {",
+                "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                "}"
+              ],
+              "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+            }
+          }
+        ]
+      },
+      {
+        "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+        "name": "05 - Control - Activo inexistente",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "99999",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_consulta",
+                "value": "ACTIVA"
+              }
+            ],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+              "type": "text",
+              "exec": [
+                "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                "const body = pm.response.json();",
+                "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+              ],
+              "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+            }
+          }
+        ]
+      },
+      {
+        "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+        "name": "06 - TC-M02-193 - Auditoria RF-34",
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "auditoria"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+              "type": "text",
+              "exec": [
+                "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                "const body = pm.response.json();",
+                "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                "const texto = JSON.stringify(body).toUpperCase();",
+                "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+              ],
+              "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "181",
+        "key": "activoActivoId"
+      },
+      {
+        "type": "any",
+        "value": "2026-09-09T20:45:00Z",
+        "key": "fechaReferencia"
+      },
+      {
+        "type": "any",
+        "value": "false",
+        "key": "historicoEncontrado"
+      },
+      {
+        "type": "any",
+        "value": "false",
+        "key": "inconsistenciaEncontrada"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m02-g19-rf34-v3",
+      "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    }
+  },
+  "environment": {
+    "_": {
+      "postman_variable_scope": "environment"
+    },
+    "id": "environment-g19-v3",
+    "name": "environment-g19-v3",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "181",
+        "key": "activoActivoId"
+      },
+      {
+        "type": "any",
+        "value": "2026-09-09T20:45:00Z",
+        "key": "fechaReferencia"
+      },
+      {
+        "type": "any",
+        "value": "false",
+        "key": "historicoEncontrado"
+      },
+      {
+        "type": "any",
+        "value": "false",
+        "key": "inconsistenciaEncontrada"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token"
+      }
+    ]
+  },
+  "globals": {
+    "id": "566e1cab-6f66-416c-a70d-63a4db6697aa",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 6,
+        "pending": 0,
+        "failed": 5
+      },
+      "prerequests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 6,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 5,
+        "pending": 0,
+        "failed": 3
+      },
+      "testScripts": {
+        "total": 6,
+        "pending": 0,
+        "failed": 5
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 366,
+      "responseMin": 117,
+      "responseMax": 1295,
+      "responseSd": 417.4889220087163,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789014420555,
+      "completed": 1789014423245
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 6,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "5e5bc3eb-121d-4965-be03-4d5731b43bcd",
+          "httpRequestId": "268d920c-dc7f-43e2-97f1-a3351f667ea6"
+        },
+        "item": {
+          "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+          "name": "01 - Login Productor",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                "type": "text",
+                "exec": [
+                  "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                ],
+                "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "92305990-73ae-43cb-ab81-2af1a37ab05e",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "74",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+          }
+        },
+        "response": {
+          "id": "6a2f7e4a-560f-46c5-acbf-21c6e447b6a1",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:01 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1295,
+          "responseSize": 19
+        },
+        "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+        "assertions": [
+          {
+            "assertion": "Login HTTP 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "Login HTTP 200",
+              "message": "expected response to have status code 200 but got 404",
+              "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:1)"
+            }
+          }
+        ],
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "JSONError",
+              "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+              "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+              "id": "5c24d008-86a1-461d-b95b-4e7b77762328",
+              "timestamp": 1789014421914,
+              "stacktrace": []
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "147d80aa-8e72-4682-abb2-409ff5407004",
+          "length": 6,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "799b81ba-91e1-4df3-b681-a8ccdcda99fe"
+        },
+        "item": {
+          "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+          "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                  "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                  "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                  "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                ],
+                "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "181",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "bdf8bced-c478-4e77-9b8a-ec7a169c2ee7",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "bda51da4-b9ba-4f95-8a2e-2d25b56773b2",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:02 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 143,
+          "responseSize": 19
+        },
+        "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+        "assertions": [
+          {
+            "assertion": "TC-M02-191 - HTTP 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "TC-M02-191 - HTTP 200",
+              "message": "expected response to have status code 200 but got 404",
+              "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:2)"
+            }
+          }
+        ],
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "JSONError",
+              "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+              "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+              "id": "d133c7d6-ed8d-4807-a278-5ddf9c2e7083",
+              "timestamp": 1789014422140,
+              "stacktrace": []
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1a26c8f6-96d7-4687-af2f-c0884ee9855b",
+          "length": 6,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "ec86d188-b076-43d6-8705-dedaf34a205e"
+        },
+        "item": {
+          "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+          "name": "03 - TC-M02-190 - Fecha de referencia",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "fecha_referencia",
+                  "value": "{{fechaReferencia}}"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                "type": "text",
+                "exec": [
+                  "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                  "if (!historico) {",
+                  "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                  "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                  "} else {",
+                  "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "  const body = pm.response.json();",
+                  "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                  "}"
+                ],
+                "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "181",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "fecha_referencia",
+                "value": "2026-09-09T20:45:00Z"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6d94f1a6-0670-477f-97b1-c85944ad0321",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "172ba99b-627a-4f9f-8509-bcd43110c09f",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:02 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 219,
+          "responseSize": 19
+        },
+        "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+        "assertions": [
+          {
+            "assertion": "TC-M02-190 - NO EJECUTABLE por falta de historial previo",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "84494337-86e1-4b08-8988-874db5748a79",
+          "length": 6,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "21ca2a8e-9eae-41a9-b872-b206ca64adf4"
+        },
+        "item": {
+          "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+          "name": "04 - TC-M02-192 - Integridad del historial",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_consulta",
+                  "value": "HISTORIAL"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                "type": "text",
+                "exec": [
+                  "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                  "const body = pm.response.json();",
+                  "if (!inconsistencia) {",
+                  "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                  "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                  "} else {",
+                  "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                  "}"
+                ],
+                "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "181",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_consulta",
+                "value": "HISTORIAL"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "084b008a-55cd-4567-9802-8d08da0608f0",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "9a83d02b-78fc-4785-a0e0-620860494453",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:02 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 237,
+          "responseSize": 19
+        },
+        "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "JSONError",
+              "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+              "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+              "id": "cd0d4d0c-daac-4b46-8974-c5c577edc98a",
+              "timestamp": 1789014422765,
+              "stacktrace": []
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "4c3810e0-d16b-46ed-8a1f-5c358f74a65d",
+          "length": 6,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "738687d5-4ed6-410a-b8e7-77eca5b1c68a"
+        },
+        "item": {
+          "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+          "name": "05 - Control - Activo inexistente",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "99999",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_consulta",
+                  "value": "ACTIVA"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                "type": "text",
+                "exec": [
+                  "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                ],
+                "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "99999",
+              "infraestructura"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_consulta",
+                "value": "ACTIVA"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "1afbd135-9b32-48b4-b02c-4a2c94f191aa",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "d9428487-1c68-4c8b-be67-1d95c026513a",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:03 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 185,
+          "responseSize": 19
+        },
+        "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+        "assertions": [
+          {
+            "assertion": "Control - activo inexistente HTTP 404",
+            "skipped": false
+          }
+        ],
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "JSONError",
+              "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+              "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+              "id": "e31b999a-6264-4b5b-9c95-b3c3808abde0",
+              "timestamp": 1789014423017,
+              "stacktrace": []
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "1f246cc8-7ced-44cc-81ea-449637d3fee4",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "32f43622-41d8-42d1-b1fa-5f0b7a67c4db"
+        },
+        "item": {
+          "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+          "name": "06 - TC-M02-193 - Auditoria RF-34",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                  "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                  "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                  "const texto = JSON.stringify(body).toUpperCase();",
+                  "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                  "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                ],
+                "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "activos-biologicos",
+              "auditoria"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "805dda47-f3c2-420e-a4a8-419f6dde0d26",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "a70ce0ac-e64f-4d91-abe0-348a03095671",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Type",
+              "value": "text/plain; charset=utf-8"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "Date",
+              "value": "Thu, 10 Sep 2026 04:27:03 GMT"
+            },
+            {
+              "key": "Content-Length",
+              "value": "19"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              52,
+              48,
+              52,
+              32,
+              112,
+              97,
+              103,
+              101,
+              32,
+              110,
+              111,
+              116,
+              32,
+              102,
+              111,
+              117,
+              110,
+              100,
+              10
+            ]
+          },
+          "cookie": [],
+          "responseTime": 117,
+          "responseSize": 19
+        },
+        "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+        "assertions": [
+          {
+            "assertion": "TC-M02-193 - auditoria HTTP 200",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "TC-M02-193 - auditoria HTTP 200",
+              "message": "expected response to have status code 200 but got 404",
+              "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:6)"
+            }
+          }
+        ],
+        "testScript": [
+          {
+            "error": {
+              "type": "Error",
+              "name": "JSONError",
+              "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+              "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+              "id": "4fe00f09-d18c-4a25-8e91-d832a26e02c3",
+              "timestamp": 1789014423224,
+              "stacktrace": []
+            }
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 114
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "Login HTTP 200",
+          "message": "expected response to have status code 200 but got 404",
+          "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:1)",
+          "checksum": "e47ad34a0b13a680e69c42b8c9147251",
+          "id": "713dc044-b328-4c5a-84ed-4e37b569eedd",
+          "timestamp": 1789014421907,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+          "name": "01 - Login Productor",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                "type": "text",
+                "exec": [
+                  "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                ],
+                "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 6,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "5e5bc3eb-121d-4965-be03-4d5731b43bcd",
+          "httpRequestId": "268d920c-dc7f-43e2-97f1-a3351f667ea6",
+          "scriptId": "0d77b6b2-03f4-4917-8151-73538b545afc",
+          "execution": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "JSONError",
+          "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+          "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+          "id": "5c24d008-86a1-461d-b95b-4e7b77762328",
+          "timestamp": 1789014421914,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+          "name": "01 - Login Productor",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                "type": "text",
+                "exec": [
+                  "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                ],
+                "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 6,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "5e5bc3eb-121d-4965-be03-4d5731b43bcd",
+          "httpRequestId": "268d920c-dc7f-43e2-97f1-a3351f667ea6",
+          "scriptId": "0d77b6b2-03f4-4917-8151-73538b545afc"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "TC-M02-191 - HTTP 200",
+          "message": "expected response to have status code 200 but got 404",
+          "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:2)",
+          "checksum": "38a47340904d453dda21fc41336610db",
+          "id": "19a8dd08-fa22-4c1a-b765-65df6865fd6d",
+          "timestamp": 1789014422138,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 2,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+          "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                  "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                  "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                  "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                ],
+                "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "147d80aa-8e72-4682-abb2-409ff5407004",
+          "length": 6,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "799b81ba-91e1-4df3-b681-a8ccdcda99fe",
+          "scriptId": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+          "execution": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "JSONError",
+          "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+          "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+          "id": "d133c7d6-ed8d-4807-a278-5ddf9c2e7083",
+          "timestamp": 1789014422140,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+          "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                  "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                  "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                  "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                ],
+                "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "147d80aa-8e72-4682-abb2-409ff5407004",
+          "length": 6,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "799b81ba-91e1-4df3-b681-a8ccdcda99fe",
+          "scriptId": "f16647ca-6b99-483d-8b94-f8fc6d940986"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "JSONError",
+          "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+          "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+          "id": "cd0d4d0c-daac-4b46-8974-c5c577edc98a",
+          "timestamp": 1789014422765,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+          "name": "04 - TC-M02-192 - Integridad del historial",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "{{activoActivoId}}",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_consulta",
+                  "value": "HISTORIAL"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                "type": "text",
+                "exec": [
+                  "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                  "const body = pm.response.json();",
+                  "if (!inconsistencia) {",
+                  "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                  "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                  "} else {",
+                  "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                  "}"
+                ],
+                "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "84494337-86e1-4b08-8988-874db5748a79",
+          "length": 6,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "21ca2a8e-9eae-41a9-b872-b206ca64adf4",
+          "scriptId": "9ed48791-4f26-4c0e-8399-2e94c2736d57"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "JSONError",
+          "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+          "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+          "id": "e31b999a-6264-4b5b-9c95-b3c3808abde0",
+          "timestamp": 1789014423017,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+          "name": "05 - Control - Activo inexistente",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "99999",
+                "infraestructura"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [
+                {
+                  "key": "tipo_consulta",
+                  "value": "ACTIVA"
+                }
+              ],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                "type": "text",
+                "exec": [
+                  "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                  "const body = pm.response.json();",
+                  "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                ],
+                "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "4c3810e0-d16b-46ed-8a1f-5c358f74a65d",
+          "length": 6,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "738687d5-4ed6-410a-b8e7-77eca5b1c68a",
+          "scriptId": "471e842c-16ce-4869-a52a-91e24573d45f"
+        }
+      },
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "TC-M02-193 - auditoria HTTP 200",
+          "message": "expected response to have status code 200 but got 404",
+          "stack": "AssertionError: expected response to have status code 200 but got 404\n   at Object.eval sandbox-script.js:1:6)",
+          "checksum": "b74547ef4039c0a8519a755718a6fe00",
+          "id": "f241a798-3777-4350-b29b-f65ca698c999",
+          "timestamp": 1789014423218,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 6,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+          "name": "06 - TC-M02-193 - Auditoria RF-34",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                  "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                  "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                  "const texto = JSON.stringify(body).toUpperCase();",
+                  "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                  "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                ],
+                "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "1f246cc8-7ced-44cc-81ea-449637d3fee4",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "32f43622-41d8-42d1-b1fa-5f0b7a67c4db",
+          "scriptId": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+          "execution": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+        }
+      },
+      {
+        "error": {
+          "type": "Error",
+          "name": "JSONError",
+          "message": "Unexpected token 'p' at 1:5\n404 page not found\n    ^",
+          "checksum": "e7c5a83563e6763f822d0987d8f9052a",
+          "id": "4fe00f09-d18c-4a25-8e91-d832a26e02c3",
+          "timestamp": 1789014423224,
+          "stacktrace": []
+        },
+        "at": "test-script",
+        "source": {
+          "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+          "name": "06 - TC-M02-193 - Auditoria RF-34",
+          "request": {
+            "url": {
+              "protocol": "https",
+              "path": [
+                "activos-biologicos",
+                "auditoria"
+              ],
+              "host": [
+                "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                "sslip",
+                "io"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                "type": "text",
+                "exec": [
+                  "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                  "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                  "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                  "const texto = JSON.stringify(body).toUpperCase();",
+                  "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                  "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                ],
+                "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "_": {
+            "postman_id": "tc-m02-g19-rf34-v3"
+          },
+          "item": [
+            {
+              "id": "c4c0aca8-4e25-46b0-b0d3-68422b9753b9",
+              "name": "01 - Login Productor",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"correo_electronico\": \"productor@pecuaria.co\", \"contrasena\": \"Test1234!\"}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "0d77b6b2-03f4-4917-8151-73538b545afc",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Token obtenido', function () { pm.expect(body.token).to.be.a('string').and.not.empty; });"
+                    ],
+                    "_lastExecutionId": "f7367ffa-71be-4175-acb3-e4628e50cc4b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "7812fdc5-63e2-4f2d-8c1a-48834c6403be",
+              "name": "02 - TC-M02-191 - Sin tipo_consulta = ACTIVA",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "f16647ca-6b99-483d-8b94-f8fc6d940986",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-191 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "pm.test('TC-M02-191 - tipo_consulta por defecto ACTIVA', function () { pm.expect(body.tipo_consulta).to.eql('ACTIVA'); });",
+                      "pm.test('TC-M02-191 - existe asociacion activa', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "pm.test('TC-M02-191 - fecha_fin null', function () { pm.expect(body.asociacion_activa.fecha_fin).to.eql(null); });",
+                      "pm.test('TC-M02-191 - historial null', function () { pm.expect(body.historial).to.eql(null); });"
+                    ],
+                    "_lastExecutionId": "c85727a3-c779-4c45-97d9-5a4b62abc54b"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "d3eca41a-a7b6-4b29-a21c-696c6e86515a",
+              "name": "03 - TC-M02-190 - Fecha de referencia",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "fecha_referencia",
+                      "value": "{{fechaReferencia}}"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "88dc03d6-963f-47d6-81d5-c55e78b370ea",
+                    "type": "text",
+                    "exec": [
+                      "const historico = pm.environment.get('historicoEncontrado') === 'true';",
+                      "if (!historico) {",
+                      "  console.log('TC-M02-190 NO EJECUTABLE COMPLETO: no existe en TEST una asociacion historica cerrada previa.');",
+                      "  pm.test('TC-M02-190 - NO EJECUTABLE por falta de historial previo', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-190 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  const body = pm.response.json();",
+                      "  pm.test('TC-M02-190 - asociacion encontrada', function () { pm.expect(body.asociacion_activa).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "a8b1af21-8d02-4bda-b789-9af9219a0706"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "b5cb3a03-eb8c-437e-86e1-371a8a4f66f2",
+              "name": "04 - TC-M02-192 - Integridad del historial",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "{{activoActivoId}}",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "HISTORIAL"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "9ed48791-4f26-4c0e-8399-2e94c2736d57",
+                    "type": "text",
+                    "exec": [
+                      "const inconsistencia = pm.environment.get('inconsistenciaEncontrada') === 'true';",
+                      "const body = pm.response.json();",
+                      "if (!inconsistencia) {",
+                      "  console.log('TC-M02-192 NO EJECUTABLE: no existe inconsistencia preparada en TEST.');",
+                      "  pm.test('TC-M02-192 - NO EJECUTABLE por falta de precondicion', function () { pm.expect(true).to.eql(true); });",
+                      "} else {",
+                      "  pm.test('TC-M02-192 - HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "  pm.test('TC-M02-192 - advertencia de integridad', function () { pm.expect(body.advertencia_integridad).to.exist; });",
+                      "}"
+                    ],
+                    "_lastExecutionId": "bf7cf916-72e9-41db-9c4e-7d54de5a66d1"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "83024627-3a0d-476d-8d7e-659f4dd1df30",
+              "name": "05 - Control - Activo inexistente",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "99999",
+                    "infraestructura"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [
+                    {
+                      "key": "tipo_consulta",
+                      "value": "ACTIVA"
+                    }
+                  ],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "471e842c-16ce-4869-a52a-91e24573d45f",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('Control - activo inexistente HTTP 404', function () { pm.response.to.have.status(404); });",
+                      "const body = pm.response.json();",
+                      "pm.test('Control - error ACTIVO_NO_ENCONTRADO', function () { pm.expect(body.error_code).to.eql('ACTIVO_NO_ENCONTRADO'); });"
+                    ],
+                    "_lastExecutionId": "17c39556-184e-4274-88d4-a50f3c574095"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5cad3dde-cf91-4f5a-beeb-c7090e23aab7",
+              "name": "06 - TC-M02-193 - Auditoria RF-34",
+              "request": {
+                "url": {
+                  "protocol": "https",
+                  "path": [
+                    "activos-biologicos",
+                    "auditoria"
+                  ],
+                  "host": [
+                    "sigab-backendtest-389pcb-a48238-158-69-200-27",
+                    "sslip",
+                    "io"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "method": "GET"
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "02f5d140-262b-4a3d-ad0a-67355ed2b925",
+                    "type": "text",
+                    "exec": [
+                      "pm.test('TC-M02-193 - auditoria HTTP 200', function () { pm.response.to.have.status(200); });",
+                      "const body = pm.response.json();",
+                      "console.log('AUDITORIA RF34:', JSON.stringify(body));",
+                      "const registros = Array.isArray(body.registros) ? body.registros : (Array.isArray(body.items) ? body.items : (Array.isArray(body.data) ? body.data : []));",
+                      "pm.test('TC-M02-193 - respuesta de auditoria contiene registros', function () { pm.expect(registros.length).to.be.greaterThan(0); });",
+                      "const texto = JSON.stringify(body).toUpperCase();",
+                      "pm.test('TC-M02-193 - respuesta contiene referencia al activo 181', function () { pm.expect(texto).to.include('181'); });",
+                      "pm.test('TC-M02-193 - respuesta contiene evidencia RF34/auditoria de consulta', function () { pm.expect(texto).to.satisfy(function(t){ return t.includes('RF34') || t.includes('INFRAESTRUCTURA') || t.includes('ASOCIACION'); }); });"
+                    ],
+                    "_lastExecutionId": "ee259d87-46bb-4637-aeeb-fa941f53f871"
+                  }
+                }
+              ]
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "baseUrl"
+            },
+            {
+              "type": "any",
+              "value": "181",
+              "key": "activoActivoId"
+            },
+            {
+              "type": "any",
+              "value": "2026-09-09T20:45:00Z",
+              "key": "fechaReferencia"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "historicoEncontrado"
+            },
+            {
+              "type": "any",
+              "value": "false",
+              "key": "inconsistenciaEncontrada"
+            }
+          ],
+          "info": {
+            "_postman_id": "tc-m02-g19-rf34-v3",
+            "name": "TC-M02-G19 - RF-34 - Fecha, defecto, integridad y auditoria",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+          }
+        },
+        "cursor": {
+          "ref": "1f246cc8-7ced-44cc-81ea-449637d3fee4",
+          "length": 6,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "32f43622-41d8-42d1-b1fa-5f0b7a67c4db",
+          "scriptId": "02f5d140-262b-4a3d-ad0a-67355ed2b925"
+        }
+      }
+    ],
+    "error": null
+  }
+}

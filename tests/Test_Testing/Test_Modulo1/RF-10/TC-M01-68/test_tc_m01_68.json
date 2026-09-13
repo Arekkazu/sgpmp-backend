@@ -1,0 +1,372 @@
+{
+  "info": {
+    "name": "TC-M01-068 - Consultar auditoria utilizando filtro por tipo de evento",
+    "description": "TC-M01-068 (RF-10, CU07): Se valida la consulta de registros de auditoria utilizando el filtro por tipo de evento. La prueba genera un intento de inicio de sesion fallido, identifica dinamicamente el tipo_evento numerico registrado y consulta posteriormente la auditoria utilizando dicho filtro.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Generar intento de inicio de sesion fallido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Generacion de evento de autenticacion fallida ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('Precondicion: el intento de inicio de sesion invalido es rechazado', function () {",
+              "    pm.expect([400, 401, 403, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "console.log('Se genero un intento de autenticacion fallida para buscar su registro en auditoria.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"usuario.invalido.tc068@sgpmp-test.com\",\n  \"contrasena\": \"CredencialIncorrecta123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('Precondicion cumplida: inicio de sesion como Administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La respuesta del Administrador contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta del login Administrador ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    console.log('Token del Administrador almacenado correctamente.');",
+              "} else {",
+              "    console.log('No fue posible obtener el token del Administrador.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Evidencia - Consultar eventos de autenticacion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Consulta de auditoria categoria AUTENTICACION ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('La consulta de auditoria es exitosa', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta contiene la lista de eventos de auditoria', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "});",
+              "",
+              "const items = respuesta && Array.isArray(respuesta.items) ? respuesta.items : [];",
+              "",
+              "console.log('Cantidad de eventos recuperados:', items.length);",
+              "",
+              "let eventoFallido = null;",
+              "",
+              "for (let i = 0; i < items.length; i++) {",
+              "    const evento = items[i];",
+              "",
+              "    const textoEvento = [",
+              "        evento.resultado,",
+              "        evento.detalle,",
+              "        evento.descripcion,",
+              "        evento.estado,",
+              "        evento.modulo",
+              "    ]",
+              "        .filter(function (valor) { return valor !== null && valor !== undefined; })",
+              "        .join(' ')",
+              "        .toLowerCase();",
+              "",
+              "    if (textoEvento.includes('login_fallido') ||",
+              "        textoEvento.includes('login fallido') ||",
+              "        textoEvento.includes('inicio de sesion fallido') ||",
+              "        textoEvento.includes('inicio sesión fallido') ||",
+              "        textoEvento.includes('autenticacion fallida') ||",
+              "        textoEvento.includes('autenticación fallida') ||",
+              "        textoEvento.includes('fallid')) {",
+              "",
+              "        eventoFallido = evento;",
+              "        break;",
+              "    }",
+              "}",
+              "",
+              "pm.test('Se encontro un evento correspondiente a autenticacion fallida', function () {",
+              "    pm.expect(eventoFallido).to.not.equal(null);",
+              "});",
+              "",
+              "if (eventoFallido) {",
+              "    pm.test('El evento encontrado contiene un tipo_evento numerico', function () {",
+              "        pm.expect(eventoFallido).to.have.property('tipo_evento');",
+              "        pm.expect(eventoFallido.tipo_evento).to.not.equal(null);",
+              "        pm.expect(Number.isFinite(Number(eventoFallido.tipo_evento))).to.equal(true);",
+              "    });",
+              "",
+              "    pm.collectionVariables.set('tipo_evento_login_fallido', String(eventoFallido.tipo_evento));",
+              "    pm.collectionVariables.set('evento_referencia', JSON.stringify(eventoFallido));",
+              "",
+              "    console.log('--- Evento de autenticacion fallida encontrado ---');",
+              "    console.log(JSON.stringify(eventoFallido));",
+              "    console.log('tipo_evento identificado:', eventoFallido.tipo_evento);",
+              "} else {",
+              "    console.log('No se encontro un evento de autenticacion fallida en los resultados disponibles.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?categoria=AUTENTICACION&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "categoria",
+              "value": "AUTENTICACION"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-068 - Consultar auditoria filtrando por tipo_evento",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-068: consulta filtrada por tipo de evento ---');",
+              "console.log('tipo_evento utilizado:', pm.collectionVariables.get('tipo_evento_login_fallido'));",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M01-068: la consulta filtrada responde exitosamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-068: la respuesta contiene la estructura esperada', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "});",
+              "",
+              "const tipoEventoEsperado = Number(pm.collectionVariables.get('tipo_evento_login_fallido'));",
+              "const items = respuesta && Array.isArray(respuesta.items) ? respuesta.items : [];",
+              "",
+              "pm.test('TC-M01-068: se obtienen registros para el tipo de evento filtrado', function () {",
+              "    pm.expect(items.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('TC-M01-068: todos los registros corresponden al tipo_evento solicitado', function () {",
+              "    items.forEach(function (evento) {",
+              "        pm.expect(Number(evento.tipo_evento)).to.equal(tipoEventoEsperado);",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-068: los registros filtrados pertenecen a la categoria AUTENTICACION', function () {",
+              "    items.forEach(function (evento) {",
+              "        pm.expect(String(evento.categoria).toUpperCase()).to.equal('AUTENTICACION');",
+              "    });",
+              "});",
+              "",
+              "pm.collectionVariables.set('resultado_filtro_tipo_evento', pm.response.text());",
+              "",
+              "console.log('Cantidad de registros obtenidos con el filtro:', items.length);",
+              "console.log('TC-M01-068 ejecutado correctamente.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?tipo_evento={{tipo_evento_login_fallido}}&categoria=AUTENTICACION&pagina=1&tamano=50",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "tipo_evento",
+              "value": "{{tipo_evento_login_fallido}}"
+            },
+            {
+              "key": "categoria",
+              "value": "AUTENTICACION"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "tipo_evento_login_fallido",
+      "value": ""
+    },
+    {
+      "key": "evento_referencia",
+      "value": ""
+    },
+    {
+      "key": "resultado_filtro_tipo_evento",
+      "value": ""
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "info": {
+    "name": "TC-M01-058",
+    "description": "Verifica el bloqueo tras 5 intentos fallidos consecutivos con token invalido sobre POST /contrasena/restablecer. DEFECTO CONOCIDO: el bloqueo no existe, la asercion del intento 5 fallara intencionalmente hasta que se corrija. Ver TC-M01-058_evidencia.md.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Intento 1 (token invalido, contrasena valida)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 TOKEN_INVALIDO', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"token-invalido-tc058-1\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Intento 2 (token invalido, contrasena valida)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 TOKEN_INVALIDO', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"token-invalido-tc058-2\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Intento 3 (token invalido, contrasena valida)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 TOKEN_INVALIDO', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"token-invalido-tc058-3\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Intento 4 (token invalido, contrasena valida)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 TOKEN_INVALIDO', function () { pm.response.to.have.status(401); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"token-invalido-tc058-4\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "Intento 5 - deberia disparar bloqueo (esperado 423; DEFECTO: responde 401)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('TC-M01-058: responde 423 CUENTA/OPERACION_BLOQUEADA tras el 5to intento', function () {",
+        "    pm.response.to.have.status(423);",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"token-invalido-tc058-5\",\n  \"nueva_contrasena\": \"Valida#123\",\n  \"confirmar_contrasena\": \"Valida#123\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    }
+  ]
+}

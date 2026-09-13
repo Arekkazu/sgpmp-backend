@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "RF-12 - TC-M01-081 Detalle de usuario con ID enmascarada (v2)",
+    "description": "Paso 1: otorga al rol Productor (id_rol=2) el permiso de LEER usuarios (id_recurso=1, id_accion=2), via la API oficial de roles. Paso 2: login con una cuenta Productor conocida. Paso 3: GET /usuarios/84/detalle. Se espera 200 (puede ver el detalle) con numero_identificacion enmascarado (Productor NO tiene el permiso separado ejecutar_identificacion_completa, que solo tiene Administrador).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token_admin', json.token);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Otorgar permiso de LEER usuarios al rol Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Paso 2: permiso asignado (200/201) o ya existia (409/400)', function () {",
+            "    pm.expect([200, 201, 400, 409]).to.include(pm.response.code);",
+            "});",
+            "console.log('Paso 2: ' + pm.response.code + ' - ' + pm.response.text());"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"id_recurso\": 1,\n  \"id_accion\": 2\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/roles/2/permisos", "host": ["{{base_url}}"], "path": ["roles", "2", "permisos"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Login cuenta Productor conocida",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('Paso 3: login exitoso (200)', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('token_productor', json.token);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"jmanuelgomen+tcm017@gmail.com\",\n  \"contrasena\": \"Abcd12#3\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-081 - GET /usuarios/84/detalle con Productor (ID debe estar enmascarada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": { "type": "text/javascript", "exec": [
+            "pm.test('TC-M01-081: acceso permitido al detalle (200)', function () { pm.response.to.have.status(200); });",
+            "",
+            "const json = pm.response.json();",
+            "console.log('Respuesta completa: ' + JSON.stringify(json));",
+            "",
+            "pm.test('TC-M01-081: numero_identificacion NO es el valor real completo', function () {",
+            "    pm.expect(json.numero_identificacion).to.not.eql('178827644930184');",
+            "});",
+            "",
+            "pm.test('TC-M01-081: numero_identificacion esta enmascarado', function () {",
+            "    pm.expect(json.numero_identificacion).to.satisfy(function (v) {",
+            "        return typeof v === 'string' && (v.includes('*') || v.includes('X') || v.length < '178827644930184'.length);",
+            "    });",
+            "});",
+            "",
+            "console.log('numero_identificacion recibido: ' + json.numero_identificacion);"
+          ]}
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/84/detalle", "host": ["{{base_url}}"], "path": ["usuarios", "84", "detalle"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" }
+  ]
+}

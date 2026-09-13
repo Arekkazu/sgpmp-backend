@@ -1,0 +1,113 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-126-rbac-denegar-eliminacion-activo",
+    "name": "TC-M01-126 - Denegar eliminación/desactivación de activo a usuario sin permiso RBAC",
+    "description": "Validar mediante prueba de contrato API que un usuario con rol Revisor Fiscal (revisor.fiscal.test@pecuaria.co, id_usuario=31, id_rol=8) sin el permiso activos_biologicos:eliminar (id_recurso=29, id_accion=4) recibe una denegación de acceso HTTP 403 ACCESO_DENEGADO al solicitar POST /activos-biologicos/12/cierre.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenUsuario",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión con usuario dedicado Revisor Fiscal (sin permiso 29, 4)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"revisor.fiscal.test@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M01-126: Iniciar sesión correctamente con usuario Revisor Fiscal', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.expect(response.token).to.be.a('string');",
+              "    pm.collectionVariables.set('tokenUsuario', response.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Solicitar cierre de activo biológico sin el permiso requerido (RBAC Denegado)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"fecha_cierre\": \"2026-09-03\",\n  \"motivo_cierre\": \"finalizacion_lote\",\n  \"descripcion_cierre\": \"Prueba de denegacion de acceso RBAC TC-M01-126\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/12/cierre",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "12",
+            "cierre"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-M01-126: Respuesta debe ser HTTP 403 Forbidden', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('TC-M01-126: Estructura del cuerpo JSON corresponde a error de autorización ACCESO_DENEGADO', function () {",
+              "    const response = pm.response.json();",
+              "    pm.expect(response.error_code).to.equal('ACCESO_DENEGADO');",
+              "    pm.expect(response.message).to.include('Acceso denegado');",
+              "    pm.expect(response.fields).to.be.an('array').that.is.empty;",
+              "    pm.expect(response.timestamp).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

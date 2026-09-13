@@ -1,0 +1,6321 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m09-g16-rbac-rf16"
+    },
+    "item": [
+      {
+        "id": "75db0cb8-ff6a-47ac-ab85-2cc8f63a04df",
+        "name": "Paso 0a: Autenticación Productor",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "18b84d56-9116-4804-8d54-89d3a116de4b",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Paso 0a: Login exitoso Productor - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                "    pm.collectionVariables.set('token_productor', jsonData.token);",
+                "});"
+              ],
+              "_lastExecutionId": "0d1bd3fb-eae5-4b1e-9f05-213cf3903f53"
+            }
+          }
+        ]
+      },
+      {
+        "id": "0d6a39b6-d862-4315-8946-2df01e44fd8e",
+        "name": "Paso 0b: Autenticación Ingeniero de Campo",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "57b4a077-39e3-4053-88c8-8427810a2109",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Paso 0b: Login exitoso Ingeniero de Campo - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                "    pm.collectionVariables.set('token_ingeniero', jsonData.token);",
+                "});"
+              ],
+              "_lastExecutionId": "d1c3ca55-6f19-4807-86b6-e6a0b29ca4a2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ddff9af0-a9a5-4dfd-8397-559f0a6c397b",
+        "name": "Paso 1 (TC-M09-39-A1): Productor - Intento POST /configuracion/ciclos",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Productor QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Productor\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "a7e29459-96da-49c4-b414-3a3add0f6dbf",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A1: Productor crear etapa es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "14e51aaf-1c49-40fa-86c9-8f520710c875"
+            }
+          }
+        ]
+      },
+      {
+        "id": "08833d92-b053-4342-ba87-5a1181aa3742",
+        "name": "Paso 2 (TC-M09-39-A2): Productor - Intento PATCH /configuracion/ciclos/10/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos",
+              "10",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "4aad27cb-60ee-4984-826f-306d8151a3e4",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A2: Productor desactivar etapa es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "717daec0-3a84-45f0-96d3-b10d30df9d76"
+            }
+          }
+        ]
+      },
+      {
+        "id": "c4e43ffd-da59-42dd-b7a5-71e363626066",
+        "name": "Paso 3 (TC-M09-39-A3): Productor - Intento POST /configuracion/patologias",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Productor QA\",\n  \"descripcion\": \"Intento no autorizado por Productor\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "1f987a9b-acce-4208-83b0-3de70ecaf722",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A3: Productor crear patología es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "dc841eae-92c7-4391-81ca-9bca2b156230"
+            }
+          }
+        ]
+      },
+      {
+        "id": "a2eca461-af04-407b-8ba3-5c2c824b00ef",
+        "name": "Paso 4 (TC-M09-39-A4): Productor - Intento PATCH /configuracion/patologias/1/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "2b31d9a0-1f6d-4d27-9760-ff4f1e69cdbd",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A4: Productor desactivar patología es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "51a294d0-b59e-44de-a495-07855d158428"
+            }
+          }
+        ]
+      },
+      {
+        "id": "4e4eb173-0e8b-48c8-ab59-3ded88ed0b41",
+        "name": "Paso 5 (TC-M09-39-A5): Productor - Intento POST /configuracion/metricas",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Productor QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "f4730a0f-f58e-4674-a031-6c7cea1447f4",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A5: Productor crear métrica es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "0b58f349-0396-4b5b-9ba6-8a3eb2c1122f"
+            }
+          }
+        ]
+      },
+      {
+        "id": "c08de080-6641-4ca5-98e8-e3adff0a717b",
+        "name": "Paso 6 (TC-M09-39-A6): Productor - Intento PATCH /configuracion/metricas/1/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_productor}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "6fbc52d0-d433-401f-9b60-f9c80e55803d",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-A6: Productor desactivar métrica es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "24bff050-bc84-45cc-9375-ebe3cdbc742a"
+            }
+          }
+        ]
+      },
+      {
+        "id": "8eafcc65-3183-42d8-ae8a-f7f2241859af",
+        "name": "Paso 7 (TC-M09-39-B1): Ingeniero - Intento POST /configuracion/ciclos",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Ingeniero QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Ingeniero\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "0a7d18ae-f028-4af3-9178-7fa550279f47",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B1: Ingeniero crear etapa es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "e963779a-d1eb-4b0b-ba16-0b5e7b6c3311"
+            }
+          }
+        ]
+      },
+      {
+        "id": "19026a0e-54ca-4a45-ae9d-4775c5fe4090",
+        "name": "Paso 8 (TC-M09-39-B2): Ingeniero - Intento PATCH /configuracion/ciclos/10/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos",
+              "10",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "f9763322-1147-4ef0-a942-ae3697648064",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B2: Ingeniero desactivar etapa es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "ce7fa69b-9c51-4be0-9735-e72e20bbf0e2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "41728102-2b43-4d25-ad74-ba86bf32fc42",
+        "name": "Paso 9 (TC-M09-39-B3): Ingeniero - Intento POST /configuracion/patologias",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Ingeniero QA\",\n  \"descripcion\": \"Intento no autorizado por Ingeniero\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "6e2e6723-de4d-4b99-93a3-206efc3e6ed2",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B3: Ingeniero crear patología es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "75c6c2be-c1aa-4bfc-80f7-9d6ea2f3fcb2"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fcf5582d-2eb3-410b-a0d1-da678429428a",
+        "name": "Paso 10 (TC-M09-39-B4): Ingeniero - Intento PATCH /configuracion/patologias/1/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "patologias",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "2f9aec40-348b-4984-bdbf-06f034e07c2d",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B4: Ingeniero desactivar patología es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "79a7ce90-125d-4cd9-ad2c-77c627d12478"
+            }
+          }
+        ]
+      },
+      {
+        "id": "063d846f-9068-4405-9607-70ab6c857652",
+        "name": "Paso 11 (TC-M09-39-B5): Ingeniero - Intento POST /configuracion/metricas",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Ingeniero QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "d791aea6-6540-4b70-a194-ee7292bad6dc",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B5: Ingeniero crear métrica es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "ed59b15f-f9f3-4810-a30e-c5a7a416bf29"
+            }
+          }
+        ]
+      },
+      {
+        "id": "98c8be02-aed6-4eba-8f50-ec234b5ba7ef",
+        "name": "Paso 12 (TC-M09-39-B6): Ingeniero - Intento PATCH /configuracion/metricas/1/desactivar",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_ingeniero}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "b7c2deec-e06e-4da1-a981-0d4ecf4eefc7",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('TC-M09-39-B6: Ingeniero desactivar métrica es rechazado - HTTP 403', function () {",
+                "    pm.response.to.have.status(403);",
+                "    var jsonData = pm.response.json();",
+                "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                "});"
+              ],
+              "_lastExecutionId": "ee3f5969-b53c-405c-a816-7493111f523d"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_productor"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_ingeniero"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m09-g16-rbac-rf16",
+      "name": "TC-M09-G16 - Restricción de permisos RBAC para Productor e Ingeniero sobre RF-16",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Suite E2E para TC-M09-G16 (sub-caso TC-M09-39, OWASP A01). Verifica que usuarios con rol Productor e Ingeniero de Campo no puedan crear ni desactivar etapas, patologías ni métricas productivas por especie en /configuracion/, retornando HTTP 403 ACCESO_DENEGADO en las 12 combinaciones.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "06e15dac-d3ef-4f9f-b148-18c6edf88d23",
+    "values": []
+  },
+  "globals": {
+    "id": "c25a83d2-2911-4b35-b48c-74d6fb72668f",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 14,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 222.07142857142858,
+      "responseMin": 111,
+      "responseMax": 1131,
+      "responseSd": 261.6774088960119,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1788598401904,
+      "completed": 1788598406167
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 14,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "092f7b73-2f1e-4be5-a483-db469db1dd7c",
+          "httpRequestId": "3f2dc65e-54bb-4c33-8768-1a1c5065bbd9"
+        },
+        "item": {
+          "id": "75db0cb8-ff6a-47ac-ab85-2cc8f63a04df",
+          "name": "Paso 0a: Autenticación Productor",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "18b84d56-9116-4804-8d54-89d3a116de4b",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Paso 0a: Login exitoso Productor - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                  "    pm.collectionVariables.set('token_productor', jsonData.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "0d1bd3fb-eae5-4b1e-9f05-213cf3903f53"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "6012389c-63cd-4889-a083-338ce3baa05a",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "80",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "79874063-5d3b-450f-963c-7c8ae6de0d9d",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:20 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=1Hk_Rd66GmO5aql6M7SvtmZfJED2nwOns7-JcmG7G60; HttpOnly; Max-Age=604799; Path=/; SameSite=none; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "9bda95d7-ae5c-4e3b-a3e9-a1e95f4138d2"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              121,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              77,
+              120,
+              79,
+              84,
+              65,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              73,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              68,
+              89,
+              121,
+              78,
+              122,
+              73,
+              119,
+              77,
+              83,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              52,
+              78,
+              84,
+              107,
+              52,
+              78,
+              68,
+              65,
+              120,
+              102,
+              81,
+              46,
+              120,
+              111,
+              65,
+              111,
+              70,
+              101,
+              53,
+              100,
+              117,
+              72,
+              117,
+              106,
+              97,
+              53,
+              98,
+              89,
+              78,
+              82,
+              54,
+              104,
+              85,
+              81,
+              88,
+              80,
+              66,
+              106,
+              100,
+              57,
+              88,
+              85,
+              76,
+              105,
+              66,
+              106,
+              53,
+              111,
+              51,
+              70,
+              110,
+              103,
+              103,
+              120,
+              73,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1131,
+          "responseSize": 404
+        },
+        "id": "75db0cb8-ff6a-47ac-ab85-2cc8f63a04df",
+        "assertions": [
+          {
+            "assertion": "Paso 0a: Login exitoso Productor - HTTP 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "25f7133f-497b-4174-8d2a-9205ca10c974",
+          "length": 14,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "9344c5f9-66df-46eb-b20d-f1f509ca7267"
+        },
+        "item": {
+          "id": "0d6a39b6-d862-4315-8946-2df01e44fd8e",
+          "name": "Paso 0b: Autenticación Ingeniero de Campo",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "57b4a077-39e3-4053-88c8-8427810a2109",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Paso 0b: Login exitoso Ingeniero de Campo - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.token).to.be.a('string').that.is.not.empty;",
+                  "    pm.collectionVariables.set('token_ingeniero', jsonData.token);",
+                  "});"
+                ],
+                "_lastExecutionId": "d1c3ca55-6f19-4807-86b6-e6a0b29ca4a2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "3332d243-95af-4cbd-87fc-f8a1f9cf3d0a",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "81",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=1Hk_Rd66GmO5aql6M7SvtmZfJED2nwOns7-JcmG7G60",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Pruebas12#\"\n}"
+          }
+        },
+        "response": {
+          "id": "37cdc0e7-fbb5-4a7c-82b3-d6662dfecccf",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:20 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4; HttpOnly; Max-Age=604799; Path=/; SameSite=none; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "b0c262f5-c20a-4ad1-89f2-ec352f6e5b70"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              48,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              77,
+              120,
+              79,
+              84,
+              73,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              81,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              68,
+              89,
+              121,
+              78,
+              122,
+              73,
+              119,
+              77,
+              83,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              52,
+              78,
+              84,
+              107,
+              52,
+              78,
+              68,
+              65,
+              120,
+              102,
+              81,
+              46,
+              121,
+              117,
+              111,
+              122,
+              69,
+              85,
+              106,
+              84,
+              83,
+              83,
+              87,
+              112,
+              50,
+              80,
+              95,
+              104,
+              82,
+              110,
+              86,
+              98,
+              50,
+              87,
+              51,
+              56,
+              51,
+              79,
+              103,
+              84,
+              49,
+              107,
+              50,
+              112,
+              116,
+              120,
+              118,
+              107,
+              55,
+              57,
+              90,
+              103,
+              49,
+              81,
+              111,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 378,
+          "responseSize": 404
+        },
+        "id": "0d6a39b6-d862-4315-8946-2df01e44fd8e",
+        "assertions": [
+          {
+            "assertion": "Paso 0b: Login exitoso Ingeniero de Campo - HTTP 200",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "72ee7f3c-ca5c-4295-811e-514c4988b4f6",
+          "length": 14,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "879c786e-27d5-42b5-be62-f1b61e7b4aad"
+        },
+        "item": {
+          "id": "ddff9af0-a9a5-4dfd-8397-559f0a6c397b",
+          "name": "Paso 1 (TC-M09-39-A1): Productor - Intento POST /configuracion/ciclos",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Productor QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Productor\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "a7e29459-96da-49c4-b414-3a3add0f6dbf",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A1: Productor crear etapa es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "14e51aaf-1c49-40fa-86c9-8f520710c875"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "194c15b7-94f8-4d5d-9956-0a9c3becf5a2",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "169",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Productor QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Productor\"\n}"
+          }
+        },
+        "response": {
+          "id": "8f8ace5f-14d3-4735-888a-c034e19ad467",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "cb47e498-28b4-4297-863d-d5039d59bb1a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              50,
+              46,
+              48,
+              57,
+              55,
+              52,
+              49,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 112,
+          "responseSize": 176
+        },
+        "id": "ddff9af0-a9a5-4dfd-8397-559f0a6c397b",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A1: Productor crear etapa es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a1efd6c9-572b-453f-b003-e3f29b2b876d",
+          "length": 14,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "ce27fe18-8805-41c2-994a-107c815e7f95"
+        },
+        "item": {
+          "id": "08833d92-b053-4342-ba87-5a1181aa3742",
+          "name": "Paso 2 (TC-M09-39-A2): Productor - Intento PATCH /configuracion/ciclos/10/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos",
+                "10",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "4aad27cb-60ee-4984-826f-306d8151a3e4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A2: Productor desactivar etapa es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "717daec0-3a84-45f0-96d3-b10d30df9d76"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos",
+              "10",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "2dea7946-2cee-48e0-a11a-bfc512579a82",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "5b055508-1da2-4c22-85ef-113832e1c2a4",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "63291474-81db-4f1e-926a-652b5369f42b"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              50,
+              46,
+              51,
+              48,
+              51,
+              51,
+              57,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 117,
+          "responseSize": 176
+        },
+        "id": "08833d92-b053-4342-ba87-5a1181aa3742",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A2: Productor desactivar etapa es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "8a446c98-67de-4b88-b48f-b4a15117b812",
+          "length": 14,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "b770b401-dfff-4d0f-8fcd-ddf917629aa2"
+        },
+        "item": {
+          "id": "c4e43ffd-da59-42dd-b7a5-71e363626066",
+          "name": "Paso 3 (TC-M09-39-A3): Productor - Intento POST /configuracion/patologias",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Productor QA\",\n  \"descripcion\": \"Intento no autorizado por Productor\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1f987a9b-acce-4208-83b0-3de70ecaf722",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A3: Productor crear patología es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "dc841eae-92c7-4391-81ca-9bca2b156230"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "a5a00d2c-c4ae-4fae-92ee-6e1e4e971428",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "129",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Productor QA\",\n  \"descripcion\": \"Intento no autorizado por Productor\"\n}"
+          }
+        },
+        "response": {
+          "id": "64062487-effd-4c68-b923-f72d074800aa",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d69b475a-b0d0-4175-b565-2e02ee0dc5c8"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              50,
+              46,
+              53,
+              48,
+              50,
+              56,
+              52,
+              49,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 112,
+          "responseSize": 176
+        },
+        "id": "c4e43ffd-da59-42dd-b7a5-71e363626066",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A3: Productor crear patología es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "d5fbbdc9-bc12-48c0-8d69-88879cae274f",
+          "length": 14,
+          "cycles": 1,
+          "position": 5,
+          "iteration": 0,
+          "httpRequestId": "6d6ac6f3-b716-4b14-9818-d207333837b8"
+        },
+        "item": {
+          "id": "a2eca461-af04-407b-8ba3-5c2c824b00ef",
+          "name": "Paso 4 (TC-M09-39-A4): Productor - Intento PATCH /configuracion/patologias/1/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias",
+                "1",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2b31d9a0-1f6d-4d27-9760-ff4f1e69cdbd",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A4: Productor desactivar patología es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "51a294d0-b59e-44de-a495-07855d158428"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ff06b63f-4c9d-4b26-8da4-1f419ce6dc9f",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "d32e71b4-4e7b-4388-b870-294f7d2901c1",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "e3fa1937-9b58-4f4d-b9a6-96d78cf9cd6e"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              50,
+              46,
+              55,
+              49,
+              48,
+              48,
+              57,
+              49,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 120,
+          "responseSize": 176
+        },
+        "id": "a2eca461-af04-407b-8ba3-5c2c824b00ef",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A4: Productor desactivar patología es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "88ffbaf6-b019-4301-abc6-ff5fd5725bde",
+          "length": 14,
+          "cycles": 1,
+          "position": 6,
+          "iteration": 0,
+          "httpRequestId": "8684f6b0-63c2-44c0-993d-bb587ec6ead7"
+        },
+        "item": {
+          "id": "4e4eb173-0e8b-48c8-ab59-3ded88ed0b41",
+          "name": "Paso 5 (TC-M09-39-A5): Productor - Intento POST /configuracion/metricas",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Productor QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f4730a0f-f58e-4674-a031-6c7cea1447f4",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A5: Productor crear métrica es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "0b58f349-0396-4b5b-9ba6-8a3eb2c1122f"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "919c28d3-148b-481d-bc17-23f4d7faddf4",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "158",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Productor QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "a81f1550-7912-4aa2-80a5-cd5b488cde4e",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:21 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "75f90ca8-2097-4a06-9765-a13909574b5e"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              50,
+              46,
+              57,
+              48,
+              53,
+              51,
+              50,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 111,
+          "responseSize": 176
+        },
+        "id": "4e4eb173-0e8b-48c8-ab59-3ded88ed0b41",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A5: Productor crear métrica es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "22730f80-d4d8-47aa-b467-c6b3eb0f829c",
+          "length": 14,
+          "cycles": 1,
+          "position": 7,
+          "iteration": 0,
+          "httpRequestId": "fbc3c83a-37af-49d1-b88b-42b2d8da7a7e"
+        },
+        "item": {
+          "id": "c08de080-6641-4ca5-98e8-e3adff0a717b",
+          "name": "Paso 6 (TC-M09-39-A6): Productor - Intento PATCH /configuracion/metricas/1/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas",
+                "1",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_productor}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6fbc52d0-d433-401f-9b60-f9c80e55803d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-A6: Productor desactivar métrica es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "24bff050-bc84-45cc-9375-ebe3cdbc742a"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwianRpIjoiMTMxOTAiLCJyb2wiOjIsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.xoAoFe5duHuja5bYNR6hUQXPBjd9XULiBj5o3FnggxI"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "03ecb2d2-5aaf-4ba2-8773-07583d9b1012",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "cb9759c1-74bd-4cea-83ae-c8d7a2f2bb45",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "78e0a778-d4dd-4193-838c-bf4e31938fb5"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              51,
+              46,
+              49,
+              48,
+              52,
+              54,
+              55,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 191,
+          "responseSize": 176
+        },
+        "id": "c08de080-6641-4ca5-98e8-e3adff0a717b",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-A6: Productor desactivar métrica es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "0f3b6ccf-6d89-4bc7-9264-27d748cc5365",
+          "length": 14,
+          "cycles": 1,
+          "position": 8,
+          "iteration": 0,
+          "httpRequestId": "c3c544b2-7a90-4963-9bd9-a57aac777034"
+        },
+        "item": {
+          "id": "8eafcc65-3183-42d8-ae8a-f7f2241859af",
+          "name": "Paso 7 (TC-M09-39-B1): Ingeniero - Intento POST /configuracion/ciclos",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Ingeniero QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Ingeniero\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "0a7d18ae-f028-4af3-9178-7fa550279f47",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B1: Ingeniero crear etapa es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "e963779a-d1eb-4b0b-ba16-0b5e7b6c3311"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "40946394-8e8f-427c-802d-4fd865366a53",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "169",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa No Autorizada Ingeniero QA\",\n  \"duracion_dias\": 30,\n  \"descripcion\": \"Intento no autorizado de creacion de etapa por Ingeniero\"\n}"
+          }
+        },
+        "response": {
+          "id": "0e1cc7ff-270e-4679-883c-89241ff55fbe",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "248f0a3c-5200-4988-8464-fec3d1519d9d"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              51,
+              46,
+              51,
+              57,
+              54,
+              53,
+              53,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 124,
+          "responseSize": 176
+        },
+        "id": "8eafcc65-3183-42d8-ae8a-f7f2241859af",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B1: Ingeniero crear etapa es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "e9d752ba-44da-48c3-9957-a0405afc7ee3",
+          "length": 14,
+          "cycles": 1,
+          "position": 9,
+          "iteration": 0,
+          "httpRequestId": "2bf7636b-a2dd-4e2d-b74a-49d856a424a9"
+        },
+        "item": {
+          "id": "19026a0e-54ca-4a45-ae9d-4775c5fe4090",
+          "name": "Paso 8 (TC-M09-39-B2): Ingeniero - Intento PATCH /configuracion/ciclos/10/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos",
+                "10",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "f9763322-1147-4ef0-a942-ae3697648064",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B2: Ingeniero desactivar etapa es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "ce7fa69b-9c51-4be0-9735-e72e20bbf0e2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos",
+              "10",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ddc44962-7715-47c0-b14b-b32222f2ae85",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "e7ef77a7-f273-4a71-b70e-6c634a355eb8",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "69e9e367-4957-4125-80cb-4f4f2db67df9"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              51,
+              46,
+              54,
+              49,
+              56,
+              49,
+              56,
+              56,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 126,
+          "responseSize": 176
+        },
+        "id": "19026a0e-54ca-4a45-ae9d-4775c5fe4090",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B2: Ingeniero desactivar etapa es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "62832588-761a-49aa-b5bc-9fe6c3d8af61",
+          "length": 14,
+          "cycles": 1,
+          "position": 10,
+          "iteration": 0,
+          "httpRequestId": "6b24286a-2054-4259-af17-7e7caffc8cc6"
+        },
+        "item": {
+          "id": "41728102-2b43-4d25-ad74-ba86bf32fc42",
+          "name": "Paso 9 (TC-M09-39-B3): Ingeniero - Intento POST /configuracion/patologias",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Ingeniero QA\",\n  \"descripcion\": \"Intento no autorizado por Ingeniero\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "6e2e6723-de4d-4b99-93a3-206efc3e6ed2",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B3: Ingeniero crear patología es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "75c6c2be-c1aa-4bfc-80f7-9d6ea2f3fcb2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "13aa9dba-fbb2-4c02-a670-c7a71c7a50b9",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "129",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia No Autorizada Ingeniero QA\",\n  \"descripcion\": \"Intento no autorizado por Ingeniero\"\n}"
+          }
+        },
+        "response": {
+          "id": "e8896b6f-504f-4a33-a926-7562b9da7609",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:22 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "0bc51f51-acfc-49dc-8ac2-adbe3d4be516"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              51,
+              46,
+              56,
+              49,
+              50,
+              49,
+              53,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 117,
+          "responseSize": 176
+        },
+        "id": "41728102-2b43-4d25-ad74-ba86bf32fc42",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B3: Ingeniero crear patología es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "c3c94e24-204b-4892-b9a1-b7e274389655",
+          "length": 14,
+          "cycles": 1,
+          "position": 11,
+          "iteration": 0,
+          "httpRequestId": "c17ec5a5-c234-478d-abd0-fa0037c2ccac"
+        },
+        "item": {
+          "id": "fcf5582d-2eb3-410b-a0d1-da678429428a",
+          "name": "Paso 10 (TC-M09-39-B4): Ingeniero - Intento PATCH /configuracion/patologias/1/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "patologias",
+                "1",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "2f9aec40-348b-4984-bdbf-06f034e07c2d",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B4: Ingeniero desactivar patología es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "79a7ce90-125d-4cd9-ad2c-77c627d12478"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "patologias",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "74ec1330-bb07-4c36-9058-0a96900233cd",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "5c2984c0-ded5-4ed6-8fa5-c88a05cb196c",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "07f6f70a-6b37-4f9f-bbda-03e3b84626ab"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              52,
+              46,
+              48,
+              49,
+              53,
+              55,
+              51,
+              50,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 221,
+          "responseSize": 176
+        },
+        "id": "fcf5582d-2eb3-410b-a0d1-da678429428a",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B4: Ingeniero desactivar patología es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f9c7cbe7-366d-48b9-87c3-c89a368b7a6a",
+          "length": 14,
+          "cycles": 1,
+          "position": 12,
+          "iteration": 0,
+          "httpRequestId": "18fb2c39-d8cf-4306-93d5-f558f5e2c0b4"
+        },
+        "item": {
+          "id": "063d846f-9068-4405-9607-70ab6c857652",
+          "name": "Paso 11 (TC-M09-39-B5): Ingeniero - Intento POST /configuracion/metricas",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Ingeniero QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "d791aea6-6540-4b70-a194-ee7292bad6dc",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B5: Ingeniero crear métrica es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "ed59b15f-f9f3-4810-a30e-c5a7a416bf29"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "0e6fc3e0-c707-4887-bd62-f9b7b1b3c758",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "158",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Metrica No Autorizada Ingeniero QA\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\"\n}"
+          }
+        },
+        "response": {
+          "id": "8b91ce03-44d1-48ea-aa37-1738cfde5232",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1ee9057c-4529-4314-9cd0-7b7341142b35"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              52,
+              46,
+              51,
+              52,
+              52,
+              48,
+              55,
+              53,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 136,
+          "responseSize": 176
+        },
+        "id": "063d846f-9068-4405-9607-70ab6c857652",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B5: Ingeniero crear métrica es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "b60dcefd-e522-4b1f-8b09-ae5f12a83228",
+          "length": 14,
+          "cycles": 1,
+          "position": 13,
+          "iteration": 0,
+          "httpRequestId": "d8b810a8-5a04-4bdd-88b0-e40cfd6bdf43"
+        },
+        "item": {
+          "id": "98c8be02-aed6-4eba-8f50-ec234b5ba7ef",
+          "name": "Paso 12 (TC-M09-39-B6): Ingeniero - Intento PATCH /configuracion/metricas/1/desactivar",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas",
+                "1",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_ingeniero}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "b7c2deec-e06e-4da1-a981-0d4ecf4eefc7",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('TC-M09-39-B6: Ingeniero desactivar métrica es rechazado - HTTP 403', function () {",
+                  "    pm.response.to.have.status(403);",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql('ACCESO_DENEGADO');",
+                  "});"
+                ],
+                "_lastExecutionId": "ee3f5969-b53c-405c-a816-7493111f523d"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas",
+              "1",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0IiwianRpIjoiMTMxOTIiLCJyb2wiOjQsImV4cCI6MTc4ODYyNzIwMSwiaWF0IjoxNzg4NTk4NDAxfQ.yuozEUjTSSWp2P_hRnVb2W383OgT1k2ptxvk79Zg1Qo"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "84c46a0b-d423-4cde-885a-68b71192b99b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WHPuiV0ZmHhsQNXA4oucjiipybuYN2d8SDLcVy3gSw4",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "ca37044c-3f6b-4671-bf15-53b06c075cb6",
+          "status": "Forbidden",
+          "code": 403,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "176"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 08:53:23 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "1ce493b9-7fe5-4ee0-8f33-8d45262fae96"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              67,
+              69,
+              83,
+              79,
+              95,
+              68,
+              69,
+              78,
+              69,
+              71,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              65,
+              99,
+              99,
+              101,
+              115,
+              111,
+              32,
+              100,
+              101,
+              110,
+              101,
+              103,
+              97,
+              100,
+              111,
+              46,
+              32,
+              83,
+              117,
+              32,
+              114,
+              111,
+              108,
+              32,
+              110,
+              111,
+              32,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              112,
+              101,
+              114,
+              109,
+              105,
+              115,
+              111,
+              115,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              114,
+              101,
+              97,
+              108,
+              105,
+              122,
+              97,
+              114,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              111,
+              112,
+              101,
+              114,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              56,
+              58,
+              53,
+              51,
+              58,
+              50,
+              52,
+              46,
+              53,
+              50,
+              50,
+              51,
+              48,
+              48,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 113,
+          "responseSize": 176
+        },
+        "id": "98c8be02-aed6-4eba-8f50-ec234b5ba7ef",
+        "assertions": [
+          {
+            "assertion": "TC-M09-39-B6: Ingeniero desactivar métrica es rechazado - HTTP 403",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 2920
+    },
+    "failures": [],
+    "error": null
+  }
+}

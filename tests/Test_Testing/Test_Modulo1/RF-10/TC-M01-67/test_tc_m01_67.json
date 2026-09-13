@@ -1,0 +1,353 @@
+{
+  "info": {
+    "name": "TC-M01-067 - Consultar auditoria utilizando filtro por usuario",
+    "description": "TC-M01-067 (RF-10, CU07): Se valida el filtro de auditoria por usuario utilizando un usuario real proporcionado por Desarrollo. Debido a que la API de auditoria expone el filtro id_usuario y no correo electronico, se obtiene dinamicamente el id_usuario mediante el endpoint /usuarios/me y posteriormente se consulta la auditoria con dicho identificador.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como usuario objetivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion del usuario objetivo exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token valido', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Login usuario objetivo ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "if (respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_usuario_objetivo', respuesta.token);",
+              "    console.log('Token del usuario objetivo almacenado correctamente.');",
+              "} else {",
+              "    console.log('No fue posible obtener el token del usuario objetivo.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"juan.carlos@email.com\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Obtener datos del usuario objetivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('La consulta del perfil del usuario objetivo es exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let perfil;",
+              "",
+              "try {",
+              "    perfil = pm.response.json();",
+              "} catch (error) {",
+              "    perfil = null;",
+              "}",
+              "",
+              "pm.test('El perfil contiene id_usuario', function () {",
+              "    pm.expect(perfil).to.not.equal(null);",
+              "    pm.expect(perfil).to.have.property('id_usuario');",
+              "    pm.expect(perfil.id_usuario).to.not.equal(null);",
+              "});",
+              "",
+              "pm.test('El perfil contiene correo electronico', function () {",
+              "    pm.expect(perfil).to.have.property('correo_electronico');",
+              "    pm.expect(perfil.correo_electronico).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Datos del usuario objetivo ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "if (perfil && perfil.id_usuario !== undefined) {",
+              "    pm.collectionVariables.set('id_usuario_objetivo', String(perfil.id_usuario));",
+              "    pm.collectionVariables.set('correo_usuario_objetivo', perfil.correo_electronico || '');",
+              "    pm.collectionVariables.set('nombre_usuario_objetivo', perfil.nombre || '');",
+              "",
+              "    console.log('ID del usuario objetivo:', perfil.id_usuario);",
+              "    console.log('Correo del usuario objetivo:', perfil.correo_electronico);",
+              "    console.log('Nombre del usuario objetivo:', perfil.nombre || 'No disponible');",
+              "} else {",
+              "    console.log('No fue posible obtener el id_usuario. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_usuario_objetivo}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/usuarios/me",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion del Administrador exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login del Administrador contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Login Administrador ---');",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log(pm.response.text());",
+              "",
+              "if (respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    console.log('Token del Administrador almacenado correctamente.');",
+              "} else {",
+              "    console.log('No fue posible obtener el token del Administrador.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-067 - Consultar auditoria filtrando por usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- TC-M01-067: consulta de auditoria filtrada por usuario ---');",
+              "console.log('Usuario objetivo:', pm.collectionVariables.get('correo_usuario_objetivo'));",
+              "console.log('ID usuario objetivo:', pm.collectionVariables.get('id_usuario_objetivo'));",
+              "console.log('HTTP Status:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M01-067: la consulta de auditoria responde exitosamente', function () {",
+              "    pm.expect([200, 206]).to.include(pm.response.code);",
+              "});",
+              "",
+              "let respuesta;",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('TC-M01-067: la respuesta tiene formato JSON valido', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "});",
+              "",
+              "pm.test('TC-M01-067: la respuesta contiene la estructura esperada de auditoria', function () {",
+              "    pm.expect(respuesta).to.have.property('items');",
+              "    pm.expect(respuesta.items).to.be.an('array');",
+              "    pm.expect(respuesta).to.have.property('pagina');",
+              "    pm.expect(respuesta).to.have.property('tamano');",
+              "});",
+              "",
+              "const idObjetivo = Number(pm.collectionVariables.get('id_usuario_objetivo'));",
+              "",
+              "if (respuesta && Array.isArray(respuesta.items) && respuesta.items.length > 0) {",
+              "    pm.test('TC-M01-067: todos los registros obtenidos corresponden al usuario filtrado', function () {",
+              "        respuesta.items.forEach(function (registro) {",
+              "            pm.expect(registro).to.have.property('id_usuario');",
+              "            pm.expect(Number(registro.id_usuario)).to.equal(idObjetivo);",
+              "        });",
+              "    });",
+              "",
+              "    console.log('Cantidad de registros obtenidos:', respuesta.items.length);",
+              "    console.log('Todos los registros devueltos corresponden al id_usuario:', idObjetivo);",
+              "} else {",
+              "    pm.test('TC-M01-067: el filtro se procesa correctamente aunque no existan registros para el usuario', function () {",
+              "        pm.expect(respuesta.items).to.be.an('array');",
+              "        pm.expect(respuesta.items.length).to.equal(0);",
+              "    });",
+              "",
+              "    console.log('No se encontraron registros de auditoria para el usuario filtrado. La consulta fue procesada correctamente.');",
+              "}",
+              "",
+              "pm.collectionVariables.set('respuesta_auditoria_filtrada', pm.response.text());",
+              "",
+              "console.log('TC-M01-067 finalizado. Los parametros y resultados fueron registrados como evidencia en Newman.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario={{id_usuario_objetivo}}&pagina=1&tamano=20",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "id_usuario",
+              "value": "{{id_usuario_objetivo}}"
+            },
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "20"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_usuario_objetivo",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_objetivo",
+      "value": ""
+    },
+    {
+      "key": "correo_usuario_objetivo",
+      "value": ""
+    },
+    {
+      "key": "nombre_usuario_objetivo",
+      "value": ""
+    },
+    {
+      "key": "respuesta_auditoria_filtrada",
+      "value": ""
+    }
+  ]
+}

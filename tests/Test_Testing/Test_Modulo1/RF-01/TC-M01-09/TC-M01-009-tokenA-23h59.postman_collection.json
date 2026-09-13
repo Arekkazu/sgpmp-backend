@@ -1,0 +1,40 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-009 Token A (23h59min, debe ser aceptado)",
+    "description": "Verifica que un token de activacion generado hace 23 horas 59 minutos (justo antes del limite de 24h) todavia sea aceptado. Precondicion: correr el UPDATE que retrasa fecha_cambio_estado 23h59min para la cuenta jmanuelgomen+@gmail.com antes de correr esto.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-009 A - Activar con token de 23h59min (debe aceptar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-009 A: se acepta el token a las 23h59min (200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "console.log('Resultado obtenido en el extremo 23h59min: ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/tm2bDo94whrefGIRsH-sVnSVZx9gBcN3ZN6FiDP_loo",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "tm2bDo94whrefGIRsH-sVnSVZx9gBcN3ZN6FiDP_loo"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

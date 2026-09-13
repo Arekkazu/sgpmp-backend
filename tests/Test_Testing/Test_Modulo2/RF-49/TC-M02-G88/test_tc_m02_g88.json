@@ -1,0 +1,368 @@
+{
+  "info": {
+    "_postman_id": "993a4bc1-2098-4b71-b0e2-76fa9b45e998",
+    "name": "TC-M02-G88: Validaciones Ampliadas de Existencia y Exclusividad por Tipo de Asociación",
+    "description": "Suite de pruebas automatizadas en Newman para el caso agrupado TC-M02-G88 (RF-49 / CU11). Entorno: TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "adminPassword",
+      "value": "Test1234!"
+    },
+    {
+      "key": "bearerToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-213",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"[Auth] Autenticación exitosa (200 OK)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": ["{{baseUrl}}"],
+              "path": ["sesiones", ""]
+            }
+          }
+        },
+        {
+          "name": "01 - Rechazar asociación a activo inexistente 99999",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Código HTTP es 422 Unprocessable Entity (RF-49 Flujo Alterno)\", function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test(\"Cuerpo de respuesta contiene error descriptivo\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('error_code');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/99999/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "99999", "sensores"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-214",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"[Auth] Autenticación exitosa (200 OK)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": ["{{baseUrl}}"],
+              "path": ["sesiones", ""]
+            }
+          }
+        },
+        {
+          "name": "01 - Setup Asociación Inicial Lote 20 (POBLACIONAL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Setup: Código HTTP es 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Setup: Asociación está ACTIVA y asignada a Sensor 1\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.estado_asociacion).to.eql(\"ACTIVA\");",
+                  "    pm.expect(jsonData.sensor_id).to.eql(1);",
+                  "    pm.expect(jsonData.id_activo_biologico).to.eql(20);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"LOTE\",\n  \"tipo_asociacion\": \"POBLACIONAL\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/20/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "20", "sensores"]
+            }
+          }
+        },
+        {
+          "name": "02 - Intento de Asociación Duplicada Lote 53 (POBLACIONAL)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Código HTTP es 409 Conflict (RF-49 Restricción 4)\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test(\"Código de error es SENSOR_YA_VINCULADO\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.error_code).to.eql(\"SENSOR_YA_VINCULADO\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"LOTE\",\n  \"tipo_asociacion\": \"POBLACIONAL\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/53/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "53", "sensores"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-215",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"[Auth] Autenticación exitosa (200 OK)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "const jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"bearerToken\", jsonData.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": ["{{baseUrl}}"],
+              "path": ["sesiones", ""]
+            }
+          }
+        },
+        {
+          "name": "01 - Asociar Sensor DIRECTA 1 (Sensor 2 en Activo 19)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Paso 01: Código HTTP es 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Paso 01: Asociación ACTIVA para Sensor 2\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.estado_asociacion).to.eql(\"ACTIVA\");",
+                  "    pm.expect(jsonData.sensor_id).to.eql(2);",
+                  "    pm.expect(jsonData.id_activo_biologico).to.eql(19);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "19", "sensores"]
+            }
+          }
+        },
+        {
+          "name": "02 - Asociar Sensor DIRECTA 2 (Sensor 3 en Activo 19)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Paso 02: Código HTTP es 201 Created (Multi-sensor permitido)\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test(\"Paso 02: Asociación ACTIVA para Sensor 3 en el mismo Activo 19\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.estado_asociacion).to.eql(\"ACTIVA\");",
+                  "    pm.expect(jsonData.sensor_id).to.eql(3);",
+                  "    pm.expect(jsonData.id_activo_biologico).to.eql(19);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 3,\n  \"id_infraestructura\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "19", "sensores"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

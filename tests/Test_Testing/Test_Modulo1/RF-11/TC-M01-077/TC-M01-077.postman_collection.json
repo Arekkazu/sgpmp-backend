@@ -1,0 +1,124 @@
+{
+  "info": {
+    "name": "RF-11 - TC-M01-077 Limite de 50 registros por pagina",
+    "description": "Coleccion para TC-M01-077: verifica el limite de paginacion del endpoint GET /usuarios/admin. El parametro 'tamano' declara maximum=50 en el contrato OpenAPI. Se prueban 3 escenarios: tamano=50 (limite exacto, debe aceptar), tamano=51 (un valor arriba del limite, debe rechazar o limitar), y sin parametro (debe usar el default de 20).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 - tamano=50 (limite exacto, debe aceptar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: HTTP 200 con tamano=50', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Escenario 1: items.length no supera 50', function () {",
+              "    pm.expect(json.items.length).to.be.at.most(50);",
+              "});",
+              "pm.test('Escenario 1: el campo tamano de la respuesta es 50', function () {",
+              "    pm.expect(json.tamano).to.eql(50);",
+              "});",
+              "console.log('Escenario 1 (tamano=50): total=' + json.total + ', items devueltos=' + json.items.length);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/admin?tamano=50", "host": ["{{base_url}}"], "path": ["usuarios", "admin"], "query": [{ "key": "tamano", "value": "50" }] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - tamano=51 (excede el limite, debe rechazar o limitar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: HTTP 400 (rechazado por validacion) o 200 con items limitados a 50', function () {",
+              "    pm.expect([200, 400]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    pm.test('Escenario 2: si acepto 200, items.length no supera 50 de todas formas', function () {",
+              "        pm.expect(json.items.length).to.be.at.most(50);",
+              "    });",
+              "    console.log('Escenario 2 (tamano=51): ACEPTADO con 200. items devueltos=' + json.items.length + '. El backend pudo haber limitado silenciosamente a 50.');",
+              "} else {",
+              "    console.log('Escenario 2 (tamano=51): RECHAZADO con 422, tal como declara el contrato (maximum:50). ' + pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/admin?tamano=51", "host": ["{{base_url}}"], "path": ["usuarios", "admin"], "query": [{ "key": "tamano", "value": "51" }] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3 - sin parametro tamano (debe usar default 20)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 3: HTTP 200 sin parametro tamano', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Escenario 3: el default de tamano es 20', function () {",
+              "    pm.expect(json.tamano).to.eql(20);",
+              "});",
+              "pm.test('Escenario 3: items.length no supera 20', function () {",
+              "    pm.expect(json.items.length).to.be.at.most(20);",
+              "});",
+              "console.log('Escenario 3 (sin tamano): tamano por defecto=' + json.tamano + ', items devueltos=' + json.items.length);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/admin", "host": ["{{base_url}}"], "path": ["usuarios", "admin"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" }
+  ]
+}

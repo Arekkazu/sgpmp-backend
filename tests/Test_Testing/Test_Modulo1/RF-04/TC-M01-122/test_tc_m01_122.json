@@ -1,0 +1,390 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-122-asignar-permiso-valido",
+    "name": "TC-M01-122 - Asignar un permiso válido a un rol",
+    "description": "Caso de prueba para verificar la asignación de un permiso válido a un rol.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idRol",
+      "value": ""
+    },
+    {
+      "key": "nombreRolTemporal",
+      "value": ""
+    },
+    {
+      "key": "idRecurso",
+      "value": "29"
+    },
+    {
+      "key": "idAccionInicial",
+      "value": "2"
+    },
+    {
+      "key": "idAccionNuevo",
+      "value": "3"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta login:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe iniciar sesión correctamente como administrador\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "console.log(\"Respuesta JSON login:\", json);",
+              "",
+              "pm.test(\"La respuesta debe contener un token de autenticación\", function () {",
+              "    pm.expect(json).to.be.an(\"object\");",
+              "    pm.expect(json.token || json.access_token || json.accessToken).to.exist;",
+              "});",
+              "",
+              "var token = json.token || json.access_token || json.accessToken;",
+              "pm.collectionVariables.set(\"token\", token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Crear rol temporal para la prueba",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var timestamp = Date.now();",
+              "var nombreRol = \"Auxiliar de Campo TC122 \" + timestamp;",
+              "pm.collectionVariables.set(\"nombreRolTemporal\", nombreRol);",
+              "",
+              "console.log(\"Nombre del rol temporal:\", nombreRol);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe crear correctamente el rol temporal\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "console.log(\"Respuesta JSON:\", json);",
+              "",
+              "var idRol = json.id_rol || json.id || json.data && (json.data.id_rol || json.data.id);",
+              "",
+              "pm.test(\"La respuesta debe contener el identificador del rol creado\", function () {",
+              "    pm.expect(idRol).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"idRol\", idRol);",
+              "console.log(\"ID del rol creado:\", idRol);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"{{nombreRolTemporal}}\",\n  \"descripcion\": \"Rol temporal creado automáticamente para la ejecución del caso de prueba TC-M01-122\",\n  \"es_protegido\": false,\n  \"permisos\": [\n    {\n      \"id_recurso\": {{idRecurso}},\n      \"id_accion\": {{idAccionInicial}}\n    }\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Consultar permisos iniciales del rol",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta permisos iniciales:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe consultar correctamente los permisos iniciales\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var permisos = pm.response.json();",
+              "console.log(\"Permisos iniciales:\", permisos);",
+              "",
+              "pm.test(\"La respuesta debe contener una lista de permisos\", function () {",
+              "    pm.expect(permisos).to.be.an(\"array\");",
+              "});",
+              "",
+              "pm.test(\"El rol debe tener el permiso inicial\", function () {",
+              "    var permisoInicial = permisos.find(function (p) {",
+              "        return Number(p.id_recurso) === Number(pm.collectionVariables.get(\"idRecurso\")) &&",
+              "               Number(p.id_accion) === Number(pm.collectionVariables.get(\"idAccionInicial\"));",
+              "    });",
+              "",
+              "    pm.expect(permisoInicial).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Asignar permiso válido al rol",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_recurso\": {{idRecurso}},\n  \"id_accion\": {{idAccionNuevo}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta asignación:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe asignar correctamente el permiso válido\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "console.log(\"Respuesta JSON asignación:\", json);",
+              "",
+              "pm.test(\"La respuesta debe contener los datos del permiso creado\", function () {",
+              "    pm.expect(json).to.be.an(\"object\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Verificar el permiso asignado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRol}}/permisos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRol}}",
+            "permisos"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta verificación permisos:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe consultar correctamente los permisos después de la asignación\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var permisos = pm.response.json();",
+              "console.log(\"Permisos después de asignación:\", permisos);",
+              "",
+              "pm.test(\"La respuesta debe contener una lista de permisos\", function () {",
+              "    pm.expect(permisos).to.be.an(\"array\");",
+              "});",
+              "",
+              "pm.test(\"Debe existir el permiso válido asignado\", function () {",
+              "    var permisoAsignado = permisos.find(function (p) {",
+              "        return Number(p.id_recurso) === Number(pm.collectionVariables.get(\"idRecurso\")) &&",
+              "               Number(p.id_accion) === Number(pm.collectionVariables.get(\"idAccionNuevo\"));",
+              "    });",
+              "",
+              "    pm.expect(permisoAsignado).to.exist;",
+              "    pm.expect(permisoAsignado.es_activo).to.equal(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificar configuración final del rol",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRol}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRol}}"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log(\"Respuesta configuración final:\", pm.response.text());",
+              "",
+              "pm.test(\"Debe conservar una configuración válida del rol\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var rol = pm.response.json();",
+              "console.log(\"Rol final:\", rol);",
+              "",
+              "pm.test(\"Debe contener el rol creado durante la prueba\", function () {",
+              "    pm.expect(rol.nombre_rol).to.equal(pm.collectionVariables.get(\"nombreRolTemporal\"));",
+              "});",
+              "",
+              "pm.test(\"El rol debe contener una lista de permisos\", function () {",
+              "    pm.expect(rol.permisos).to.be.an(\"array\");",
+              "});",
+              "",
+              "pm.test(\"El rol debe conservar el permiso inicial\", function () {",
+              "    var permisoInicial = rol.permisos.find(function (p) {",
+              "        return Number(p.id_recurso) === Number(pm.collectionVariables.get(\"idRecurso\")) &&",
+              "               Number(p.id_accion) === Number(pm.collectionVariables.get(\"idAccionInicial\"));",
+              "    });",
+              "",
+              "    pm.expect(permisoInicial).to.exist;",
+              "});",
+              "",
+              "pm.test(\"El rol debe tener el nuevo permiso válido asignado\", function () {",
+              "    var permisoNuevo = rol.permisos.find(function (p) {",
+              "        return Number(p.id_recurso) === Number(pm.collectionVariables.get(\"idRecurso\")) &&",
+              "               Number(p.id_accion) === Number(pm.collectionVariables.get(\"idAccionNuevo\"));",
+              "    });",
+              "",
+              "    pm.expect(permisoNuevo).to.exist;",
+              "    pm.expect(permisoNuevo.es_activo).to.equal(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

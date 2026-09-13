@@ -1,0 +1,461 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g84-asociacion-sensores-rf49",
+    "name": "TC-M02-G84 - Asociación exitosa de sensores IoT y manejo de advertencia por dispositivo desconectado (RF-49)",
+    "description": "Caso agrupado TC-M02-G84 (RF-49, CU11): Pruebas de integración para POST /activos-biologicos/{id_activo}/sensores evaluando tipos de asociación (DIRECTA, AMBIENTAL, POBLACIONAL) y advertencia por dispositivo desconectado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-143",
+      "description": "Subcaso TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-143] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor DIRECTA a activo individual",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 38,\n  \"sensor_id\": 22,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Monitoreo biometrico individual TC-M02-143\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/108/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "108",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-143] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-143] Estructura de respuesta contiene identificadores correctos', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(108);",
+                  "    pm.expect(data.sensor_id).to.eql(22);",
+                  "    pm.expect(data.dispositivo_iot_id).to.eql(38);",
+                  "    pm.expect(data.id_infraestructura).to.eql(3);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-143] Estado de asociación es ACTIVA y tipo es directa', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('directa');",
+                  "    pm.expect(data.tipo_activo).to.eql('INDIVIDUAL');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-144",
+      "description": "Subcaso TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-144] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor AMBIENTAL a activo en infraestructura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"AMBIENTAL\",\n  \"dispositivo_iot_id\": 39,\n  \"sensor_id\": 23,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Monitoreo ambiental compartido infraestructura TC-M02-144\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/109/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "109",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-144] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-144] Asociación ambiental vinculada a infraestructura correctamente', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(109);",
+                  "    pm.expect(data.sensor_id).to.eql(23);",
+                  "    pm.expect(data.id_infraestructura).to.eql(3);",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('ambiental');",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-145",
+      "description": "Subcaso TC-M02-145: Asociar sensor POBLACIONAL a lote",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-145] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor POBLACIONAL a lote activo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"LOTE\",\n  \"tipo_asociacion\": \"POBLACIONAL\",\n  \"dispositivo_iot_id\": 40,\n  \"sensor_id\": 24,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Monitoreo poblacional lote TC-M02-145\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/83/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "83",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-145] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-145] Asociación POBLACIONAL vinculada a lote correctamente', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(83);",
+                  "    pm.expect(data.sensor_id).to.eql(24);",
+                  "    pm.expect(data.tipo_activo).to.eql('LOTE');",
+                  "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('poblacional');",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-150",
+      "description": "Subcaso TC-M02-150: Advertencia por dispositivo IoT desconectado",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-150] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Asociar sensor con dispositivo desconectado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 3,\n  \"sensor_id\": 6,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Verificacion advertencia dispositivo desconectado TC-M02-150\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/110/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "110",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-150] Código HTTP es 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-150] Asociación registrada exitosamente como ACTIVA', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('id_asociacion_activo_sensor');",
+                  "    pm.expect(data.id_asociacion_activo_sensor).to.be.a('number');",
+                  "    pm.expect(data.id_activo_biologico).to.eql(110);",
+                  "    pm.expect(data.sensor_id).to.eql(6);",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-150] Respuesta incluye advertencia informativa de dispositivo desconectado', function () {",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('advertencia');",
+                  "    pm.expect(data.advertencia).to.not.be.null;",
+                  "    pm.expect(data.advertencia.toLowerCase()).to.include('desconectado');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

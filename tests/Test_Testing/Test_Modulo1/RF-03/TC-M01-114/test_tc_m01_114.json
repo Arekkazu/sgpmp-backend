@@ -1,0 +1,379 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-114-crear-rol-permiso-minimo",
+    "name": "TC-M01-114 - Crear un nuevo rol con al menos un permiso válido",
+    "description": "Validación funcional y de contrato de API para la creación de un rol con el mínimo válido de un permiso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idRol",
+      "value": ""
+    },
+    {
+      "key": "nombreRol",
+      "value": ""
+    },
+    {
+      "key": "idRecurso",
+      "value": ""
+    },
+    {
+      "key": "idAccion",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"correo_electronico\": \"admin@pecuaria.co\",\n    \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('Debe retornar un token válido', function () {",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.expect(response.token).to.be.a('string');",
+              "    pm.expect(response.token.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', response.token);",
+              "pm.expect(response.tipo).to.eql('Bearer');",
+              "",
+              "console.log('Administrador autenticado correctamente');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar catálogo de recursos",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/catalogo/recursos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "catalogo",
+            "recursos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente los recursos disponibles', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const recursos = pm.response.json();",
+              "",
+              "pm.test('La respuesta debe ser una lista de recursos', function () {",
+              "    pm.expect(recursos).to.be.an('array');",
+              "});",
+              "",
+              "const recurso = recursos.find(r => r.nombre_recurso === 'activos_biologicos');",
+              "",
+              "pm.test('Debe encontrar el recurso activos_biologicos', function () {",
+              "    pm.expect(recurso).to.exist;",
+              "    pm.expect(recurso.id_recurso).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set('idRecurso', recurso.id_recurso);",
+              "",
+              "console.log('Recurso seleccionado:', recurso.nombre_recurso, 'ID:', recurso.id_recurso);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Consultar catálogo de acciones",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/catalogo/acciones",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "catalogo",
+            "acciones"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente las acciones disponibles', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const acciones = pm.response.json();",
+              "",
+              "pm.test('La respuesta debe ser una lista de acciones', function () {",
+              "    pm.expect(acciones).to.be.an('array');",
+              "});",
+              "",
+              "const accion = acciones.find(a => a.codigo === 'R');",
+              "",
+              "pm.test('Debe encontrar la acción Leer', function () {",
+              "    pm.expect(accion).to.exist;",
+              "    pm.expect(accion.id_accion).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set('idAccion', accion.id_accion);",
+              "",
+              "console.log('Acción seleccionada:', accion.descripcion, 'ID:', accion.id_accion);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Crear rol con mínimo un permiso válido",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const timestamp = Date.now();",
+              "const nombreRol = `Auxiliar de Campo TC114 ${timestamp}`;",
+              "pm.collectionVariables.set('nombreRol', nombreRol);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe crear correctamente el nuevo rol', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const response = pm.response.json();",
+              "",
+              "pm.test('La respuesta debe contener el ID del rol creado', function () {",
+              "    pm.expect(response.id_rol).to.exist;",
+              "    pm.expect(response.id_rol).to.be.a('number');",
+              "});",
+              "",
+              "pm.test('El nombre del rol debe coincidir con el enviado', function () {",
+              "    pm.expect(response.nombre_rol).to.eql(pm.collectionVariables.get('nombreRol'));",
+              "});",
+              "",
+              "pm.collectionVariables.set('idRol', response.id_rol);",
+              "",
+              "console.log('Rol creado correctamente. ID:', response.id_rol);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"nombre_rol\": \"{{nombreRol}}\",\n    \"descripcion\": \"Rol creado automáticamente para la ejecución del caso de prueba TC-M01-114\",\n    \"permisos\": [\n        {\n            \"id_recurso\": {{idRecurso}},\n            \"id_accion\": {{idAccion}}\n        }\n    ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "5. Consultar detalle del rol creado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRol}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRol}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente el detalle del rol creado', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const rol = pm.response.json();",
+              "const idRecurso = Number(pm.collectionVariables.get('idRecurso'));",
+              "const idAccion = Number(pm.collectionVariables.get('idAccion'));",
+              "",
+              "pm.test('El detalle debe corresponder al rol creado', function () {",
+              "    pm.expect(rol.id_rol).to.eql(Number(pm.collectionVariables.get('idRol')));",
+              "    pm.expect(rol.nombre_rol).to.eql(pm.collectionVariables.get('nombreRol'));",
+              "});",
+              "",
+              "pm.test('El rol debe tener al menos un permiso', function () {",
+              "    pm.expect(rol.permisos).to.be.an('array');",
+              "    pm.expect(rol.permisos.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "const permiso = rol.permisos.find(p =>",
+              "    p.id_recurso === idRecurso && p.id_accion === idAccion",
+              ");",
+              "",
+              "pm.test('Debe tener asignado el permiso válido solicitado', function () {",
+              "    pm.expect(permiso).to.exist;",
+              "    pm.expect(permiso.es_activo).to.eql(true);",
+              "});",
+              "",
+              "console.log('Permiso verificado correctamente:', permiso);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificar que el rol aparece en el listado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe listar correctamente los roles', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const roles = pm.response.json();",
+              "const idRol = Number(pm.collectionVariables.get('idRol'));",
+              "",
+              "pm.test('La respuesta debe ser una lista', function () {",
+              "    pm.expect(roles).to.be.an('array');",
+              "});",
+              "",
+              "const rolCreado = roles.find(r => r.id_rol === idRol);",
+              "",
+              "pm.test('Debe aparecer el rol creado en el listado', function () {",
+              "    pm.expect(rolCreado).to.exist;",
+              "    pm.expect(rolCreado.nombre_rol).to.eql(pm.collectionVariables.get('nombreRol'));",
+              "});",
+              "",
+              "pm.test('El rol listado debe conservar al menos un permiso', function () {",
+              "    pm.expect(rolCreado.permisos).to.be.an('array');",
+              "    pm.expect(rolCreado.permisos.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "console.log('TC-M01-114 finalizado correctamente');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

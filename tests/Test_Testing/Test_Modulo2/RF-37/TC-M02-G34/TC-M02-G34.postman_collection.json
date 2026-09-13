@@ -1,0 +1,135 @@
+{
+  "info": {
+    "name": "TC-M02-G34 - Validacion de fechas, secuencia y solapamiento en cambios de fase",
+    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-040 (fecha invalida), TC-M02-041 (salto sin confirmacion), TC-M02-043 (solapamiento) y TC-M02-044 (activo CERRADO/BAJA). Los 4 sub-casos estan bloqueados por INC-M02-37-01 (cambiar_fase crashea siempre); TC-M02-044 tiene ademas un bloqueo propio en su precondicion (ver NOTA_BLOQUEO.md). Las assertions codifican el comportamiento QUE EXIGE el RF.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "2" },
+    { "key": "id_infraestructura", "value": "1" },
+    { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "id_activo_fecha", "value": "" },
+    { "key": "id_activo_baja", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+        "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+      ] } }]
+    },
+    {
+      "name": "0B. Setup - Activo A (para TC-M02-040, 041, 043)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_a}}\",\n  \"raza\": \"Trucha QA-G34-A\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 0.25\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('identificador_a', 'G34A-' + Date.now());",
+          "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Activo A creado (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fecha', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "1. TC-M02-040 - Rechazar fecha de cambio de fase invalida (futura)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fecha}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 fecha futura\",\n  \"fecha_inicio\": \"2027-01-01T00:00:00Z\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-040] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: fecha futura debe rechazarse (400)', function () { pm.response.to.have.status(400); });"
+      ] } }]
+    },
+    {
+      "name": "2. TC-M02-041 - Rechazar transicion no estandar sin confirmacion (409)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fecha}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 salto sin confirmar\",\n  \"fase_destino_id\": 9999\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-041] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: salto fuera de secuencia sin confirmar debe rechazarse (409)', function () { pm.response.to.have.status(409); });",
+        "// No testable de forma literal: el DTO no declara fase_destino_id, no hay forma de EXPRESAR un salto (ver INC-M02-37-02)."
+      ] } }]
+    },
+    {
+      "name": "3. TC-M02-043 - [Precondicion, bloqueada] Registrar la primera fase (para luego forzar solapamiento)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fecha}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 primera fase para solapamiento\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-043 precondicion] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: la primera fase deberia crearse para poder forzar el solapamiento despues (201)', function () { pm.response.to.have.status(201); });",
+        "// BLOQUEADO por INC-M02-37-01: sin poder crear la primera fase, es imposible construir el solapamiento."
+      ] } }]
+    },
+    {
+      "name": "4A. Setup - Activo B (para TC-M02-044, sin fase para no disparar INC-M02-37-01 al darlo de baja)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_b}}\",\n  \"raza\": \"Trucha QA-G34-B\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 0.25\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [ "pm.collectionVariables.set('identificador_b', 'G34B-' + Date.now()); " ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Activo B creado (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_baja', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "4B. [Precondicion, bloqueada] Registrar BAJA sobre el activo B",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/eventos/baja",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"QA-G34 preparar activo BAJA\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[PRECONDICION TC-M02-044] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-45: el activo deberia quedar en BAJA (201)', function () { pm.response.to.have.status(201); });",
+        "// BLOQUEADO: ver NOTA_BLOQUEO.md - sospecha de CHECK de modulo_origen desactualizado tras el refactor RF-38/44/45."
+      ] } }]
+    },
+    {
+      "name": "4C. TC-M02-044 - Rechazar cambio de fase en activo CERRADO/BAJA",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_baja}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 intento sobre activo BAJA\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TC-M02-044] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: no debe permitir cambiar de fase un activo BAJA (409)', function () { pm.response.to.have.status(409); });"
+      ] } }]
+    }
+  ]
+}

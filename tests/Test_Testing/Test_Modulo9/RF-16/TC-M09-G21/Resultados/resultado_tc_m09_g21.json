@@ -1,0 +1,217 @@
+{
+    "metrics": {
+        "http_req_sending": {
+            "avg": 0.06028064516129032,
+            "min": 0,
+            "med": 0,
+            "max": 0.5955,
+            "p(90)": 0.3676,
+            "p(95)": 0.4528
+        },
+        "data_received": {
+            "count": 53840,
+            "rate": 11949.545485587558
+        },
+        "http_req_duration": {
+            "min": 101.9834,
+            "med": 114.5337,
+            "max": 398.9641,
+            "p(90)": 122.5786,
+            "p(95)": 126.67065,
+            "avg": 123.31450000000001,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_connecting": {
+            "avg": 6.869419354838709,
+            "min": 0,
+            "med": 0,
+            "max": 111.6695,
+            "p(90)": 0,
+            "p(95)": 50.64125
+        },
+        "iterations": {
+            "count": 10,
+            "rate": 2.219454956461285
+        },
+        "http_req_waiting": {
+            "min": 101.9834,
+            "med": 114.3679,
+            "max": 397.9291,
+            "p(90)": 122.5786,
+            "p(95)": 126.09424999999999,
+            "avg": 123.07610645161289
+        },
+        "duracion_metricas": {
+            "avg": 114.38761,
+            "min": 101.9834,
+            "med": 115.0218,
+            "max": 123.0476,
+            "p(90)": 119.35003999999999,
+            "p(95)": 121.19882,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "data_sent": {
+            "count": 5496,
+            "rate": 1219.8124440711222
+        },
+        "vus": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "vus_max": {
+            "value": 1,
+            "min": 1,
+            "max": 1
+        },
+        "duracion_patologias": {
+            "avg": 113.38390999999999,
+            "min": 104.0716,
+            "med": 110.9033,
+            "max": 130.2937,
+            "p(90)": 119.52906999999999,
+            "p(95)": 124.91138499999998,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_reqs": {
+            "count": 31,
+            "rate": 6.880310365029984
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 123.31450000000001,
+            "min": 101.9834,
+            "med": 114.5337,
+            "max": 398.9641,
+            "p(90)": 122.5786,
+            "p(95)": 126.67065
+        },
+        "http_req_tls_handshaking": {
+            "avg": 9.031799999999999,
+            "min": 0,
+            "med": 0,
+            "max": 161.8716,
+            "p(90)": 0,
+            "p(95)": 59.0571
+        },
+        "checks": {
+            "passes": 61,
+            "fails": 0,
+            "value": 1
+        },
+        "duracion_ciclos": {
+            "p(90)": 119.75062,
+            "p(95)": 121.16461,
+            "avg": 114.60701999999999,
+            "min": 102.3312,
+            "med": 115.85745,
+            "max": 122.5786,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_failed": {
+            "fails": 31,
+            "passes": 0,
+            "value": 0
+        },
+        "http_req_blocked": {
+            "p(90)": 0,
+            "p(95)": 109.69835,
+            "avg": 21.62574516129032,
+            "min": 0,
+            "med": 0,
+            "max": 451.0014
+        },
+        "http_req_receiving": {
+            "max": 1.8965,
+            "p(90)": 0.9518,
+            "p(95)": 1.0802,
+            "avg": 0.17811290322580645,
+            "min": 0,
+            "med": 0
+        },
+        "iteration_duration": {
+            "max": 579.9264,
+            "p(90)": 377.27834999999993,
+            "p(95)": 478.6023749999997,
+            "avg": 365.39668,
+            "min": 327.9946,
+            "med": 340.96439999999996
+        }
+    },
+    "setup_data": {
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMyNzAiLCJyb2wiOjEsImV4cCI6MTc4ODY0NDY3NCwiaWF0IjoxNzg4NjE1ODc0fQ.MYh1eVSfuRqITKAwUV9ZI3d700NdlF9yBHm9Y-Pu-_Y"
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "setup": {
+                "name": "setup",
+                "path": "::setup",
+                "id": "5c0f8025f7e0b6654089e5b00e950f1a",
+                "groups": {},
+                "checks": {
+                        "Setup Login Admin exitoso (HTTP 200)": {
+                            "passes": 1,
+                            "fails": 0,
+                            "name": "Setup Login Admin exitoso (HTTP 200)",
+                            "path": "::setup::Setup Login Admin exitoso (HTTP 200)",
+                            "id": "8f3f750e30bc23eec40483595873d030"
+                        }
+                    }
+            }
+        },
+        "checks": {
+            "Etapas HTTP 200 OK": {
+                "name": "Etapas HTTP 200 OK",
+                "path": "::Etapas HTTP 200 OK",
+                "id": "1fd25796f375b716ed92d011d141696e",
+                "passes": 10,
+                "fails": 0
+            },
+            "Etapas latencia < 5000ms": {
+                "path": "::Etapas latencia < 5000ms",
+                "id": "edc4bb57329e0244c1cdd628c7464bce",
+                "passes": 10,
+                "fails": 0,
+                "name": "Etapas latencia < 5000ms"
+            },
+            "Patologías HTTP 200 OK": {
+                "path": "::Patologías HTTP 200 OK",
+                "id": "61f1f33109b17ef4d3e00e366fdac61e",
+                "passes": 10,
+                "fails": 0,
+                "name": "Patologías HTTP 200 OK"
+            },
+            "Patologías latencia < 5000ms": {
+                "name": "Patologías latencia < 5000ms",
+                "path": "::Patologías latencia < 5000ms",
+                "id": "75c0aa551ac710070b78ae046ba3b2fe",
+                "passes": 10,
+                "fails": 0
+            },
+            "Métricas HTTP 200 OK": {
+                "name": "Métricas HTTP 200 OK",
+                "path": "::Métricas HTTP 200 OK",
+                "id": "cad7481b7127c4c4adc28663491b8394",
+                "passes": 10,
+                "fails": 0
+            },
+            "Métricas latencia < 5000ms": {
+                "name": "Métricas latencia < 5000ms",
+                "path": "::Métricas latencia < 5000ms",
+                "id": "4034a333c86ed57eaecb4f874b2d2a8f",
+                "passes": 10,
+                "fails": 0
+            }
+        }
+    }
+}

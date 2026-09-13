@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "TC-M09-G59 (TC-M09-115) - Conflicto de serial durante la sincronizacion offline de un dispositivo",
+    "description": "TC-M09-G59 (RF-21, CU-05 Gestionar Dispositivos IoT), equivalente a TC-M09-115: verifica el manejo del conflicto cuando un registro de dispositivo IoT hecho SIN CONEXION (encolado en el cliente) finalmente sincroniza con el backend y su serial ya fue tomado por otro registro mientras tanto (ej. otro tecnico de campo registro el mismo serial durante la ventana sin conexion).\n\nAlcance de esta coleccion (parte Newman del TC combinado 'Cypress + Newman'): la simulacion de la cola offline en el cliente (interceptar red, encolar en IndexedDB/localStorage, reintentar al reconectar) es responsabilidad de un test Cypress del lado del frontend, fuera de este repo. Esta coleccion valida el contrato real del backend para ese escenario: reproduce la secuencia de eventos que el cliente offline experimentaria al sincronizar - (1) mientras el dispositivo A estaba desconectado, alguien mas registro EN LINEA un dispositivo B con el mismo serial que A tenia en su cola; (2) cuando A reconecta y su cola intenta sincronizar ese registro pendiente (= la misma llamada POST /configuracion/dispositivos-iot que hizo en su momento, ahora repetida contra el backend), el conflicto debe detectarse y reportarse (409 SERIAL_DUPLICADO), sin crear un duplicado; (3) el resultado final de la sincronizacion es que la fila conflictiva NO se crea, y solo al corregir el serial (flujo de resolucion de conflictos del cliente) la sincronizacion se completa con exito.\n\nResponsable: Juan Pablo. Prioridad: Media. Tipo: Pruebas de integracion - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman (complementa el Cypress de frontend). Nota: escenario de sincronizacion offline.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa', respuesta.items[0].id_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1 - Registro EN LINEA que toma el serial mientras el cliente offline estaba desconectado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 1: otro dispositivo/tecnico registra en linea el serial en disputa ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Paso 1: el registro en linea responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_online', respuesta.id_dispositivo_iot);",
+              "    console.log('Dispositivo registrado EN LINEA: id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ', serial=' + respuesta.serial + ' (este serial es el que el cliente offline tenia encolado).');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G59-{{run_id}}\",\n  \"descripcion\": \"Dispositivo registrado en linea (toma el serial que el cliente offline tenia en cola) - TC-M09-G59\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - El cliente offline reconecta y su registro encolado sincroniza (conflicto esperado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 2: sincronizacion del registro que quedo en cola offline (mismo serial) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Paso 2: la sincronizacion del registro offline detecta el conflicto (HTTP 409)', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Paso 2: el conflicto detectado se reporta como SERIAL_DUPLICADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SERIAL_DUPLICADO');",
+              "});",
+              "",
+              "if (respuesta) {",
+              "    console.log('CONFLICTO DETECTADO al sincronizar: ' + respuesta.message);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G59-{{run_id}}\",\n  \"descripcion\": \"Sincronizacion del registro que quedo encolado sin conexion - TC-M09-G59\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3 - Confirmar que el conflicto NO genero un dispositivo duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 3: verificar que solo existe UN dispositivo con el serial en disputa ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Paso 3: el listado de dispositivos IoT responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const serialEnDisputa = 'TC-M09-G59-' + pm.collectionVariables.get('run_id');",
+              "    const coincidencias = (respuesta.items || []).filter(function (d) { return d.serial === serialEnDisputa; });",
+              "",
+              "    pm.test('Paso 3: existe exactamente UN dispositivo con ese serial (el conflicto no duplico el registro)', function () {",
+              "        pm.expect(coincidencias.length).to.equal(1);",
+              "    });",
+              "",
+              "    if (coincidencias.length === 1) {",
+              "        pm.test('Paso 3: el unico dispositivo con ese serial es el que se registro EN LINEA en el paso 1', function () {",
+              "            pm.expect(coincidencias[0].id_dispositivo_iot).to.equal(Number(pm.collectionVariables.get('id_dispositivo_online')));",
+              "        });",
+              "    }",
+              "",
+              "    console.log('Coincidencias encontradas para el serial \"' + serialEnDisputa + '\": ' + JSON.stringify(coincidencias));",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Resolucion del conflicto: el cliente corrige el serial y reintenta sincronizar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Paso 4: reintento de sincronizacion con serial corregido tras resolver el conflicto ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Paso 4: al corregir el serial, la sincronizacion se completa con exito (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.test('Paso 4: el dispositivo resuelto queda con un id_dispositivo_iot distinto al del dispositivo en linea original', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.not.equal(Number(pm.collectionVariables.get('id_dispositivo_online')));",
+              "    });",
+              "    console.log('CONCLUSION: resultado final de la sincronizacion -> conflicto detectado y bloqueado en el paso 2 (sin duplicados, paso 3), y tras corregir el serial la sincronizacion del registro offline se completo con exito (id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ').');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G59-RESUELTO-{{run_id}}\",\n  \"descripcion\": \"Reintento de sincronizacion tras resolver el conflicto de serial - TC-M09-G59\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_online", "value": "" }
+  ]
+}

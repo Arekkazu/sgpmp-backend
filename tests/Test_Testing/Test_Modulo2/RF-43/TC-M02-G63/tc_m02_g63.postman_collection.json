@@ -1,0 +1,154 @@
+{
+  "info": {
+    "name": "TC-M02-G63 - Evento productivo valido y rechazos de catalogo/fase (RF-43, CU09)",
+    "description": "TC-M02-G63 (RF-43, CU09), sub-casos TC-M02-238, TC-M02-239 y TC-M02-240.\n\nNOTA: esta ficha es un duplicado literal de trabajo ya cubierto en sesiones anteriores -- TC-M02-238 (evento productivo valido) es el mismo escenario que TC-M02-106 de TC-M02-G61; TC-M02-239 (tipo_producto='QUESO' fuera de catalogo) es el mismo escenario que TC-M02-107 de TC-M02-G62; TC-M02-240 (LECHE en fase Levante) es el mismo escenario que TC-M02-108 de TC-M02-G62. Se construye de todas formas como artefacto propio de TC-M02-G63 a pedido explicito del usuario (2026-09-09), reutilizando los mismos hallazgos ya confirmados.\n\nSub-caso 2 (TC-M02-239, E-03 catalogo) se prueba en vivo con Newman -- ocurre ANTES del chequeo de fase activa en registrar_evento_productivo_use_case.py, asi que no depende del bug de RF-37.\n\nSub-casos 1 y 3 (TC-M02-238 camino feliz, TC-M02-240 producto no habilitado para la fase, E-04) SI requieren una fase productiva activa real -- bloqueados por el mismo bug ya documentado en TC-M02-G61: POST /activos-biologicos/{id}/fases (RF-37) responde 500 siempre (cambiar_fase_use_case.py:72, falta el argumento usuario_id en cerrar_gestion_activa). Se verifican aparte con Pytest y dobles de prueba (test_tc_m02_238_240_camino_feliz_y_fase.py).\n\nLa coleccion es autocontenida: registra su propio activo INDIVIDUAL de Cachama Blanca (id_especie=4, unica especie con metrica de catalogo seedeada: PESO/kg) sobre id_infraestructura=6.\n\nResponsable: Juan Pablo. Prioridad: Media. Tipo: Funcional / Validacion. Herramienta: API - Postman (Newman) [parte 1 de 2].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar activo INDIVIDUAL Cachama fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g63', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cg63-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG63-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-238) - Evento productivo SIN fase activa (bloqueado por bug RF-37)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: mismo escenario que TC-M02-106 (TC-M02-G61) -- catalogo valido (PESO/kg Cachama) pero sin fase activa, porque RF-37 (POST .../fases) esta roto ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: rechazado con HTTP 422 (no hay fase productiva activa -- ver TC-M02-G61 para el detalle del bug de RF-37 que impide satisfacer esta precondicion)', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: codigo de negocio SIN_FASE_PRODUCTIVA_ACTIVA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SIN_FASE_PRODUCTIVA_ACTIVA');",
+              "});",
+              "console.log('El camino feliz (HTTP 201) de este sub-caso se verifica aparte con Pytest y dobles de prueba (test_tc_m02_238_240_camino_feliz_y_fase.py), simulando la fase activa que RF-37 deberia poder crear.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g63}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g63}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-239) - Rechazar tipo_producto fuera de catalogo (QUESO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio TIPO_PRODUCTO_NO_CATALOGADO (E-03)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('TIPO_PRODUCTO_NO_CATALOGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"QUESO\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g63}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g63}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo_g63", "value": "" }
+  ]
+}

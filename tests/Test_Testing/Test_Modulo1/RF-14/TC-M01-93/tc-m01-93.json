@@ -1,0 +1,131 @@
+{
+  "info": {
+    "name": "TC-M01-093",
+    "description": "Verifica que un usuario en estado INACTIVO no reciba notificaciones. Requiere que access_token pertenezca a una cuenta con rol Administrador. Usa id_usuario=45 (Maria) como cuenta objetivo y la restaura a Activo al final.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "admin_correo", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "admin_contrasena", "value": "Restaurada#43" },
+    { "key": "objetivo_correo", "value": "u20212200102@usco.edu.co" },
+    { "key": "objetivo_contrasena", "value": "Recuperada#30" },
+    { "key": "baseline_total", "value": "" },
+    { "key": "maria_token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login como Administrador (Daniela) - necesario para los pasos 2 y 4",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('access_token', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1. Login del objetivo (Maria) - linea base de notificaciones",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('maria_token', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\",\n  \"contrasena\": \"{{objetivo_contrasena}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "1b. Notificaciones - linea base",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('baseline_total', pm.response.json().total);"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{maria_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=1"
+      }
+    },
+    {
+      "name": "2. Admin: desactivar la cuenta objetivo (estado INACTIVO)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"inactivar\",\n  \"motivo_accion\": \"TC-M01-093 - generar evento de login fallido sobre cuenta INACTIVA\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/gestionar"
+      }
+    },
+    {
+      "name": "3. EVENTO: login fallido sobre la cuenta ya INACTIVA (esperado 403 CUENTA_DESHABILITADA)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 403', function () { pm.response.to.have.status(403); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. Admin: reactivar la cuenta objetivo",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 - cuenta reactivada', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Restaurar tras TC-M01-093\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/45/gestionar"
+      }
+    },
+    {
+      "name": "5. Login del objetivo ya reactivado (esta SI genera notificacion tipo 3)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('maria_token', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{objetivo_correo}}\",\n  \"contrasena\": \"{{objetivo_contrasena}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "6. Verificar que el intento fallido en estado INACTIVO NO genero notificacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+        "const b = pm.response.json();",
+        "const generadas = b.total - parseInt(pm.collectionVariables.get('baseline_total'));",
+        "pm.test('TC-M01-093: a lo sumo 1 notificacion nueva (la del login final; puede ser 0 si la anti-spam de 5 min la suprime por duplicada) - NUNCA la del intento fallido en INACTIVO', function () {",
+        "    pm.expect(generadas).to.be.within(0, 1);",
+        "});",
+        "pm.test('TC-M01-093: no existe ninguna notificacion tipo login fallido en este rango', function () {",
+        "    const huboLoginFallido = b.items.some(n => n.tipo_evento === 4);",
+        "    pm.expect(huboLoginFallido).to.be.false;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{maria_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    }
+  ]
+}

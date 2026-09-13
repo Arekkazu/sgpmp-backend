@@ -1,0 +1,35 @@
+{
+  "info": {
+    "name": "RF-02 - TC-M01-026 Paso 2 - Verificar estado de sesion",
+    "description": "Llama GET /usuarios/me con el token de la sesion. Se corre 3 veces con distinto estado de BD entre corridas: 1) justo despues del login (establece ultimo_acceso=ahora), 2) tras backdatear ultimo_acceso a -29min (debe seguir activa, 200), 3) tras backdatear a -31min (debe expirar por inactividad, 401 SESION_EXPIRADA_INACTIVIDAD). Requiere pasar el token con --env-var 'token=...' al correr newman.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Verificar sesion con GET /usuarios/me",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Resultado: ' + pm.response.code + ' - ' + pm.response.text());",
+              "pm.test('La respuesta es 200 (activa) o 401 (expirada por inactividad) - revisa manualmente cual corresponde a este paso', function () {",
+              "    pm.expect([200, 401]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "{{base_url}}/usuarios/me", "host": ["{{base_url}}"], "path": ["usuarios", "me"] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

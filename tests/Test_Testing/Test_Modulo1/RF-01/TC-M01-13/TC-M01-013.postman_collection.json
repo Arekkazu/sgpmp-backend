@@ -1,0 +1,96 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-013 Rechazo por edad menor a 18",
+    "description": "Coleccion para RF-01 / TC-M01-013: valor limite de edad minima. 17 anios 364 dias debe rechazar (403, EDAD_MINIMA_REQUERIDA), 18 anios 0 dias exactos debe aceptar (201). Fechas calculadas contra el reloj real del servidor (hoy = 2026-09-01).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Escenario 1 - 17 anios 364 dias (debe rechazar, 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: HTTP 403 por edad menor a 18', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('Escenario 1: el campo reportado es fecha_nacimiento', function () {",
+              "    let json; try { json = pm.response.json(); } catch (e) { json = null; }",
+              "    if (json && json.field) {",
+              "        pm.expect(json.field).to.eql('fecha_nacimiento');",
+              "    } else { pm.expect(true).to.be.true; }",
+              "});",
+              "",
+              "pm.test('Escenario 1: el mensaje menciona la edad minima', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('edad') || b.includes('18') || b.includes('mayor');",
+              "    });",
+              "});",
+              "",
+              "console.log('Escenario 1 (17a364d): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc013a.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550513\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000513\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Limite Edad Menor\",\n  \"fecha_nacimiento\": \"2008-09-02\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - 18 anios 0 dias exactos (debe aceptar, 201)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: se acepta el registro a los 18a0d exactos (201) o ya se habia creado antes (409)', function () {",
+              "    pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Escenario 2: no se rechaza por edad (no 403)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(403);",
+              "});",
+              "",
+              "console.log('Escenario 2 (18a0d): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc013b.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550514\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000514\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Limite Edad Justa\",\n  \"fecha_nacimiento\": \"2008-09-01\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

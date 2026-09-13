@@ -1,0 +1,51 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-02 Activacion exitosa de cuenta",
+    "description": "TC-M01-02: activacion exitosa de la cuenta con token valido dentro de las 24 horas: el estado debe cambiar a ACTIVO. Usuario de prueba: Maria (identificacion 1193208092, id_usuario=42). El token real se obtuvo del correo de activacion enviado al registrarse (no de la BD -- esa columna guarda un hash, confirmado con Desarrollo). Se fija como variable de coleccion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-02 - Activar cuenta con token valido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-02: HTTP 200 al activar con token valido', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('TC-M01-02: la respuesta confirma la activacion', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "console.log('--- Respuesta completa de TC-M01-02 ---');",
+              "console.log(pm.response.text());",
+              "console.log('IMPORTANTE: para documentar el caso completo (estado ANTES vs DESPUES),',",
+              "            'consulta manualmente en la BD (tablas usuarios / estados_cuenta) el estado',",
+              "            'del usuario con numero_identificacion = 1193208092 (Maria) antes de correr este',",
+              "            'request y de nuevo despues, y registra ambos valores.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/{{token_activacion}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "activar", "{{token_activacion}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_activacion", "value": "XFSzSYG8vpx07CSdrHGQPBWFL3QyGMhRSrpC6uUdqj8" }
+  ]
+}

@@ -1,0 +1,306 @@
+{
+  "info": {
+    "name": "TC-M09-G55 (Escenario 1 / TC-M09-107) - Registro exitoso de dispositivo IoT con serial unico y area valida",
+    "description": "TC-M09-G55, escenario 1 (equivalente a TC-M09-107) - RF-21, CU-05 Gestionar Dispositivos IoT: verifica el camino feliz de POST /configuracion/dispositivos-iot (RegistrarDispositivoIotUseCase) - registrar un dispositivo IoT usando un serial no registrado previamente y asociandolo a un area productiva existente y activa. Resultado esperado del RF: el dispositivo debe quedar asociado al area seleccionada.\n\nLa coleccion toma una finca y area productiva YA EXISTENTES y activas en el ambiente TEST (finca_id=1, con areas activas como 'Estanque-01') en vez de crearlas desde cero, y el primer tipo de dispositivo IoT del catalogo (RF-23, solo lectura). Con eso registra el dispositivo IoT con un serial unico basado en un run_id generado en el login, y verifica tanto en la respuesta de creacion como en el listado GET /configuracion/dispositivos-iot que el dispositivo quedo asociado exactamente al id_infraestructura elegido.\n\nNOTA IMPORTANTE (hallazgo durante la construccion de este TC): GET /configuracion/tipos-area devuelve 403 ACCESO_DENEGADO para el Administrador (admin@pecuaria.co) pese a que el docstring del router documenta 'Admin: C=1, R=2, D=4' sobre ese recurso (id_recurso=58) - el permiso de lectura no esta sembrado en modulo1.permisos para ese rol/recurso/accion en este ambiente TEST. Por eso esta coleccion evita ese endpoint y reutiliza un area ya existente en vez de crear una nueva (que hubiera requerido consultar el catalogo de tipos de area para obtener un 'tipo_area' valido).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas funcionales - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: creacion validada por API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente (RF-20)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Areas productivas activas de la finca ' + pm.collectionVariables.get('finca_id_referencia') + ' ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos un area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    const area = respuesta.items[0];",
+              "    pm.collectionVariables.set('id_infraestructura', area.id_infraestructura);",
+              "    console.log('Area productiva activa elegida: id_infraestructura=' + area.id_infraestructura + ' (' + area.nombre_infraestructura + ', tipo=' + area.tipo_area + ', activa=' + area.es_activo + ')');",
+              "",
+              "    pm.test('Precondicion: el area elegida esta efectivamente activa', function () {",
+              "        pm.expect(area.es_activo).to.equal(true);",
+              "    });",
+              "} else {",
+              "    console.log('No hay areas productivas activas disponibles. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id_referencia}}&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "{{finca_id_referencia}}" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT (RF-23)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Catalogo de tipos de dispositivo IoT ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos un tipo de dispositivo IoT en el catalogo', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    const idTipo = respuesta.items[0].id_tipo_dispositivo;",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', idTipo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + idTipo + ' (' + respuesta.items[0].nombre + ')');",
+              "} else {",
+              "    console.log('No hay tipos de dispositivo IoT disponibles. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G55 - Registrar dispositivo IoT con serial unico y area valida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const serialEsperado = 'TC-M09-G55-' + pm.collectionVariables.get('run_id');",
+              "const idInfraEsperado = Number(pm.collectionVariables.get('id_infraestructura'));",
+              "",
+              "console.log('--- Registro del dispositivo IoT (accion bajo prueba) ---');",
+              "console.log('serial utilizado: ' + serialEsperado);",
+              "console.log('id_infraestructura esperado: ' + idInfraEsperado);",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G55: el registro del dispositivo IoT responde HTTP 201 (creado)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_iot', respuesta.id_dispositivo_iot);",
+              "",
+              "    pm.test('TC-M09-G55: el dispositivo se crea con el serial unico enviado', function () {",
+              "        pm.expect(respuesta.serial).to.equal(serialEsperado);",
+              "    });",
+              "",
+              "    pm.test('TC-M09-G55: el dispositivo queda asociado al area productiva seleccionada', function () {",
+              "        pm.expect(respuesta.id_infraestructura).to.equal(idInfraEsperado);",
+              "    });",
+              "",
+              "    pm.test('TC-M09-G55: el dispositivo se crea activo por defecto', function () {",
+              "        pm.expect(respuesta.es_activo).to.equal(true);",
+              "    });",
+              "",
+              "    pm.test('TC-M09-G55: la respuesta incluye un id_dispositivo_iot valido', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.a('number');",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.above(0);",
+              "    });",
+              "",
+              "    console.log('Dispositivo IoT creado con id_dispositivo_iot: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G55-{{run_id}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G55 registrado por Newman\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-G55 - Verificar en el listado que el dispositivo quedo asociado al area",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Listado de dispositivos IoT activos (verificacion independiente) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-G55: el listado de dispositivos IoT responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const idDispositivo = Number(pm.collectionVariables.get('id_dispositivo_iot'));",
+              "    const idInfraEsperado = Number(pm.collectionVariables.get('id_infraestructura'));",
+              "",
+              "    const dispositivo = (respuesta.items || []).find(function (d) {",
+              "        return d.id_dispositivo_iot === idDispositivo;",
+              "    });",
+              "",
+              "    pm.test('TC-M09-G55: el dispositivo registrado aparece en el listado de dispositivos activos', function () {",
+              "        pm.expect(dispositivo, 'no se encontro el dispositivo id ' + idDispositivo + ' en el listado').to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (dispositivo) {",
+              "        console.log('Dispositivo encontrado en el listado: ' + JSON.stringify(dispositivo));",
+              "        pm.test('TC-M09-G55: el listado confirma la asociacion al area productiva seleccionada', function () {",
+              "            pm.expect(dispositivo.id_infraestructura).to.equal(idInfraEsperado);",
+              "        });",
+              "        console.log('CONCLUSION: el dispositivo IoT quedo registrado con serial unico y correctamente asociado al area productiva ' + idInfraEsperado + '.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot?solo_activos=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ],
+          "query": [
+            { "key": "solo_activos", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "finca_id_referencia", "value": "1" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_iot", "value": "" }
+  ]
+}

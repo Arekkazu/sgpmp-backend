@@ -1,0 +1,340 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g85-validaciones-asociacion-rf49",
+    "name": "TC-M02-G85 - Validación de estado del activo, pertenencia a la misma finca y compatibilidad de especie sensor-activo (RF-49)",
+    "description": "Caso agrupado TC-M02-G85 (RF-49, CU11): Pruebas de integración de reglas de rechazo y controles en POST /activos-biologicos/{id_activo}/sensores. Contiene TC-M02-146 (activo en BAJA), TC-M02-147 (fincas distintas) y TC-M02-148 (incompatibilidad de especie).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-146",
+      "description": "Subcaso TC-M02-146: Rechazar asociación a activo en BAJA/VENDIDO/FALLECIDO (HTTP 422)",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-146] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Rechazar asociación a activo en BAJA",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Validacion rechazo activo en BAJA TC-M02-146\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/10/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "10",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-146] Código HTTP es 422 Unprocessable Entity', function () {",
+                  "    pm.response.to.have.status(422);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-146] Código de error es ACTIVO_EN_BAJA', function () {",
+                  "    var data = pm.response.json();",
+                  "    var code = data.error_code || data.codigo || (data.detail && data.detail.code);",
+                  "    pm.expect(code).to.eql('ACTIVO_EN_BAJA');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-146] Mensaje indica que el activo está en estado BAJA', function () {",
+                  "    var data = pm.response.json();",
+                  "    var msg = data.message || data.mensaje || (data.detail && data.detail.message) || JSON.stringify(data);",
+                  "    pm.expect(msg.toLowerCase()).to.include('baja');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-147",
+      "description": "Subcaso TC-M02-147: Rechazar asociación entre fincas distintas (HTTP 409)",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-147] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Rechazar asociación entre fincas distintas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 4,\n  \"sensor_id\": 8,\n  \"id_infraestructura\": 4,\n  \"motivo\": \"Validacion rechazo fincas distintas TC-M02-147\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/108/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "108",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-147] Código HTTP es 409 Conflict', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-147] Código de error es INFRAESTRUCTURA_INCOMPATIBLE', function () {",
+                  "    var data = pm.response.json();",
+                  "    var code = data.error_code || data.codigo || (data.detail && data.detail.code);",
+                  "    pm.expect(code).to.eql('INFRAESTRUCTURA_INCOMPATIBLE');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-147] Mensaje indica restricción de unidad territorial', function () {",
+                  "    var data = pm.response.json();",
+                  "    var msg = data.message || data.mensaje || (data.detail && data.detail.message) || JSON.stringify(data);",
+                  "    pm.expect(msg.toLowerCase()).to.include('unidad territorial');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-148",
+      "description": "Subcaso TC-M02-148: Rechazar incompatibilidad de especie sensor-activo (HTTP 400 - Bloqueado por dependencia no implementada)",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-148] [Auth] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - Rechazar incompatibilidad de especie sensor-activo",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Validacion rechazo incompatibilidad especie sensor aves en activo bovino TC-M02-148\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/279/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "279",
+                "sensores"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-148] Código HTTP es 400 Bad Request', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-148] Mensaje indica incompatibilidad biológica de especie', function () {",
+                  "    var data = pm.response.json();",
+                  "    var msg = data.message || data.mensaje || (data.detail && data.detail.message) || JSON.stringify(data);",
+                  "    pm.expect(msg.toLowerCase()).to.include('incompatibilidad');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

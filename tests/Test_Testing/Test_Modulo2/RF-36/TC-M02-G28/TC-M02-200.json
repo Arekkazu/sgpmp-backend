@@ -1,0 +1,174 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-200-rechazar-transferencia-infraestructura-inactiva",
+    "name": "TC-M02-200 - Rechazar transferencia a infraestructura inactiva (RF-36 / RF-48)",
+    "description": "Prueba de aceptación para RF-36 y RF-48: Rechazar intento de transferencia de lote a una infraestructura que se encuentra inactiva.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_origen_id",
+      "value": "3",
+      "type": "string"
+    },
+    {
+      "key": "infraestructura_inactiva_id",
+      "value": "10",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Intentar transferencia a infraestructura inactiva (TC-M02-200)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_inactiva_id}},\n  \"fecha_transferencia\": \"2026-09-08\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura inactiva TC-M02-200\",\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "transferencias"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 400 Bad Request (o 422)', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Mensaje de error indica que la infraestructura no existe o no está activa', function () {",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var resText = pm.response.text();",
+              "    var isValid = resJson.error_code === 'INFRAESTRUCTURA_DESTINO_INVALIDA' ||",
+              "                  resText.includes('no existe o no está activa') ||",
+              "                  resText.includes('no activa') ||",
+              "                  resText.includes('inactiva');",
+              "    pm.expect(isValid).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Verificar que el lote no cambió de infraestructura",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('El lote permanece en su infraestructura original', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.id_infraestructura).to.eql(parseInt(pm.collectionVariables.get('infraestructura_origen_id')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

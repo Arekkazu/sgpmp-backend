@@ -1,0 +1,180 @@
+{
+  "info": {
+    "name": "TC-M02-G105 - Rechazo de consulta de bitacora fuera del alcance del rol, CA-8 (RF-52, CU13)",
+    "description": "TC-M02-G105 (RF-52, CU13, CA-8), sub-caso TC-M02-266: (a) un Productor no deberia poder consultar eventos ACCESO_DATOS de activos que no son suyos; (b) el Contador solo deberia tener acceso a clasificacion_biologica IN (TRANSFORMACION_BIOLOGICA, SANITARIO), no a GESTION_OPERATIVA ni CONTROL_ESTADO.\n\nBUG NUEVO / GAP DE DISENO confirmado en vivo: NINGUNA de las dos restricciones existe en el codigo. `ConsultarBitacoraUseCase` (consultar_bitacora_use_case.py) es un passthrough puro de filtros hacia el repositorio -- NI SIQUIERA RECIBE `usuario_actual` como parametro, asi que no tiene forma de aplicar ninguna regla dependiente del rol o del usuario que consulta. El router (`activo_biologico_router.py`) solo aplica `require_permission(_RECURSO_BITACORA=31, accion=2)` -- un gate plano de 'puede leer la bitacora si/no', sin ninguna restriccion fina por clasificacion ni por propiedad del activo. Confirmado en vivo: (a) el Productor `m2m.nuevo@ejemplo.com` consulta sin problema eventos ACCESO_DATOS de un activo creado por Admin (otro usuario) -- 200, no 403. (b) el Contador consulta sin problema tanto GESTION_OPERATIVA como CONTROL_ESTADO del mismo activo -- 200, no 403 en ningun caso. Tampoco existe ningun `tipo_evento=ACCESO_NO_AUTORIZADO`: no hay ninguna via de rechazo que pudiera generar ese registro.\n\nEsta coleccion deja los tests en rojo, afirmando el comportamiento CORRECTO que exige el RF (403 en ambos casos) en vez de ajustarse al comportamiento actual -- mismo criterio que TC-M02-G53/G55/G58/G60/etc.\n\nRBAC: confirmado que Productor SI tiene permiso de lectura sobre el recurso bitacora (31) -- no es un problema de permisos general, es la ausencia total de logica de alcance por rol/propietario dentro del use case.\n\nSe reutiliza el activo 240 (creado en TC-M02-G102, con eventos de las 5 clasificaciones ya generados) para no tener que rearmar el fixture completo.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion (a) - Iniciar sesion como Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: inicio de sesion del Productor exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_productor', respuesta.token);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (a) (TC-M02-266) - Productor rechazado al consultar ACCESO_DATOS de otro productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso (a): Productor consulta eventos ACCESO_DATOS de un activo que NO es suyo (creado por Admin, id_usuario=1) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('(BUG) Sub-caso (a): la consulta deberia rechazarse con HTTP 403, pero el sistema la permite (200) -- no existe ninguna restriccion de alcance por propietario del activo', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "console.log('CONCLUSION (a): ConsultarBitacoraUseCase no recibe usuario_actual -- no puede filtrar por propiedad del activo bajo ninguna circunstancia. Cualquier usuario con permiso de lectura sobre el recurso bitacora (31) puede leer la auditoria de CUALQUIER activo, sin importar quien lo creo u opero sobre el.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_productor}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_ajeno}}&clasificacion_biologica=ACCESO_DATOS&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_ajeno}}" },
+            { "key": "clasificacion_biologica", "value": "ACCESO_DATOS" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (b) - Iniciar sesion como Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: inicio de sesion del Contador exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_contador', respuesta.token);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{contador_correo}}\",\n  \"contrasena\": \"{{contador_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (b), intento 1/2 (TC-M02-266) - Contador rechazado al consultar GESTION_OPERATIVA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso (b), intento 1: Contador consulta GESTION_OPERATIVA (fuera de su alcance segun CA-8) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('(BUG) Sub-caso (b) GESTION_OPERATIVA: deberia rechazarse con HTTP 403, pero el sistema la permite (200)', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_contador}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_ajeno}}&clasificacion_biologica=GESTION_OPERATIVA&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_ajeno}}" },
+            { "key": "clasificacion_biologica", "value": "GESTION_OPERATIVA" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (b), intento 2/2 (TC-M02-266) - Contador rechazado al consultar CONTROL_ESTADO",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso (b), intento 2: Contador consulta CONTROL_ESTADO (fuera de su alcance segun CA-8) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('(BUG) Sub-caso (b) CONTROL_ESTADO: deberia rechazarse con HTTP 403, pero el sistema la permite (200)', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "console.log('CONCLUSION (b): el Contador puede leer TODAS las clasificaciones (confirmado tambien con TRANSFORMACION_BIOLOGICA/SANITARIO en TC-M02-G98), no solo las dos que exige CA-8. El unico gate real es require_permission(31, 2) -- binario, sin distincion de clasificacion.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token_contador}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?id_activo_biologico={{id_activo_ajeno}}&clasificacion_biologica=CONTROL_ESTADO&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "id_activo_biologico", "value": "{{id_activo_ajeno}}" },
+            { "key": "clasificacion_biologica", "value": "CONTROL_ESTADO" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "productor_correo", "value": "m2m.nuevo@ejemplo.com" },
+    { "key": "productor_contrasena", "value": "Test1234!" },
+    { "key": "contador_correo", "value": "contador@pecuaria.co" },
+    { "key": "contador_contrasena", "value": "Test1234!" },
+    { "key": "token_productor", "value": "" },
+    { "key": "token_contador", "value": "" },
+    { "key": "id_activo_ajeno", "value": "240" }
+  ]
+}

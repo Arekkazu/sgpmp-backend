@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-010 Token invalido, inexistente o ya utilizado",
+    "description": "Coleccion para RF-01 / TC-M01-010: rechazo de activacion con token invalido (HTTP 400) en tres escenarios: token inexistente en BD, token con formato invalido, y token ya utilizado previamente (cuenta ya activada). No requiere manipulacion de BD.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Escenario 1 - Token inexistente en BD",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: HTTP 400 por token inexistente', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "console.log('Escenario 1 (inexistente): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/a1b2c3d4-0000-0000-0000-000000000000",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "a1b2c3d4-0000-0000-0000-000000000000"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - Token con formato invalido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: HTTP 400 por formato de token invalido', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "console.log('Escenario 2 (formato invalido): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/formato-invalido-123",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "formato-invalido-123"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3 - Token ya utilizado previamente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 3: HTTP 400 por token ya usado', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "console.log('Escenario 3 (ya usado): ' + pm.response.code + ' - ' + pm.response.text());"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/usuarios/activar/tm2bDo94whrefGIRsH-sVnSVZx9gBcN3ZN6FiDP_loo",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", "activar", "tm2bDo94whrefGIRsH-sVnSVZx9gBcN3ZN6FiDP_loo"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

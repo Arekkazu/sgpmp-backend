@@ -1,0 +1,110 @@
+{
+  "info": {
+    "name": "TC-M01-040",
+    "description": "Flujo completo de recuperacion de contrasena: solicitud -> restablecimiento con token real recibido por correo -> verificacion de que la contrasena anterior queda invalidada y la nueva funciona -> verificacion de notificaciones (tipo_evento 7, 8 y 3). El paso 3 requiere pegar manualmente el token recibido por correo en la variable 'token_recuperacion' antes de correr la coleccion (Newman no tiene acceso al correo).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "adicion": "el paso 3 de la colección requiere pegar manualmente el token recibido por correo en la variable de colección token_recuperacion (Newman no tiene acceso a la bandeja de correo). Los pasos 1, 4, 5 y 6 sí se ejecutan de forma totalmente automática."
+  },
+  "variable": [
+    { "key": "correo", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "contrasena_anterior", "value": "Restaurada#43" },
+    { "key": "contrasena_nueva", "value": "Confirmada#44" },
+    { "key": "token_recuperacion", "value": "PEGAR_AQUI_EL_TOKEN_DEL_CORREO" },
+    { "key": "nuevo_token_sesion", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Solicitar recuperacion de contrasena",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 202 Accepted', function () { pm.response.to.have.status(202); });",
+        "pm.test('Mensaje generico, no revela si el correo existe', function () {",
+        "    const b = pm.response.json();",
+        "    pm.expect(b.message).to.include('Si el correo está registrado');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "2. (Manual) Revisar el correo y pegar el token en la variable token_recuperacion",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Recordatorio: la variable token_recuperacion debe contener el token real del correo antes de continuar', function () {",
+        "    pm.expect(pm.collectionVariables.get('token_recuperacion')).to.not.eql('PEGAR_AQUI_EL_TOKEN_DEL_CORREO');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+      }
+    },
+    {
+      "name": "3. Restablecer contrasena con el token real",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 OK', function () { pm.response.to.have.status(200); });",
+        "pm.test('Mensaje de exito', function () {",
+        "    pm.expect(pm.response.json().message).to.include('restablecida exitosamente');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva}}\",\n  \"confirmar_contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+      }
+    },
+    {
+      "name": "4. Verificar que la contrasena anterior ya NO funciona",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 401 CREDENCIALES_INVALIDAS', function () {",
+        "    pm.response.to.have.status(401);",
+        "    pm.expect(pm.response.json().error_code).to.eql('CREDENCIALES_INVALIDAS');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena_anterior}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "5. Verificar que la contrasena nueva SI funciona",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 OK', function () { pm.response.to.have.status(200); });",
+        "pm.collectionVariables.set('nuevo_token_sesion', pm.response.json().token);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena_nueva}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "6. Verificar notificaciones del flujo (recuperacion, restablecimiento, login)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Responde 200 OK', function () { pm.response.to.have.status(200); });",
+        "const items = pm.response.json().items;",
+        "pm.test('Existe notificacion tipo_evento 7 (recuperacion iniciada)', function () {",
+        "    pm.expect(items.some(n => n.tipo_evento === 7)).to.be.true;",
+        "});",
+        "pm.test('Existe notificacion tipo_evento 8 (restablecimiento exitoso)', function () {",
+        "    pm.expect(items.some(n => n.tipo_evento === 8)).to.be.true;",
+        "});",
+        "pm.test('Existe notificacion tipo_evento 3 (login exitoso)', function () {",
+        "    pm.expect(items.some(n => n.tipo_evento === 3)).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{nuevo_token_sesion}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "TC-M02-G54 - Validacion de secuencia logica reproductiva (NACIMIENTO sin inseminacion/diagnostico previo)",
+    "description": "TC-M02-G54 (RF-42, CU08 Gestionar eventos reproductivos), sub-casos TC-M02-100 y TC-M02-104.\n\nENDPOINT REAL BAJO PRUEBA: POST /activos-biologicos/{id_activo}/eventos/reproductivo (RegistrarEventoReproductivoUseCase, src/biological_assets/application/use_cases/gestion/registrar_evento_reproductivo_use_case.py). RBAC: recurso 29 (activos_biologicos), accion 1 (Crear).\n\nCORRECCION 2026-09-09: en la construccion original de este TC (2026-09-08) el 'Sub-caso 2' de esta coleccion se etiqueto por error como TC-M02-104, pero en realidad solo verificaba que el historial quedara vacio tras el sub-caso 1 -- no probaba el escenario real de TC-M02-104 ('Rechazar fase productiva incompatible con reproduccion', activo en fase Engorde/Finalizacion -> 409). Se renombra ese paso a 'Verificacion adicional' (sigue siendo utll, solo que no es TC-M02-104) y TC-M02-104 se cubre aparte con Pytest (test_tc_m02_104_fase_incompatible_reproduccion.py), porque RegistrarEventoReproductivoUseCase ni siquiera recibe un ciclo_port/fase-repo en su constructor -- no tiene forma de consultar la fase del activo en absoluto (hallazgo ya confirmado independientemente en TC-M02-G58: la clase nunca llama obtener_fase_activa()). RF-42 no valida compatibilidad de fase, ni en Python ni en trigger de BD.\n\nSub-caso 1 (TC-M02-100): intentar registrar directamente un evento reproductivo tipo NACIMIENTO sobre un activo sin ningun evento previo de inseminacion/servicio ni de diagnostico. A diferencia de TC-M02-G53, esta validacion de secuencia ocurre completamente en Python ANTES de llegar a la base de datos (lineas ~103-119 del use case): para un activo INDIVIDUAL, 'nacimiento' exige tanto tiene_servicio_o_inseminacion_previa() como tiene_diagnostico_positivo_previo(); si falta cualquiera de los dos, se lanza BusinessRuleError(code='SECUENCIA_REPRODUCTIVA_INVALIDA') -> HTTP 422, sin intentar ningun INSERT. Por eso este TC no deberia verse afectado por el bug 500 confirmado en TC-M02-G53 (ese bug esta en el camino de escritura de un evento valido, no en esta validacion previa).\n\nLa coleccion es autocontenida: registra su propia hembra reproductora (activo INDIVIDUAL, especie Tilapia id=10) sobre un area productiva activa ya existente en TEST (finca_id=1, id_infraestructura=3), en estado ACTIVO segun RF-33/34, sin registrarle ningun evento reproductivo previo -- precondicion exacta que pide el TC ('Activo sin eventos de inseminacion ni diagnostico').\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman) / Pytest.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra reproductora ACTIVO sin eventos previos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la hembra responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo', respuesta.id_activo_biologico);",
+              "    console.log('id_activo: ' + respuesta.id_activo_biologico + ' (estado=' + respuesta.nombre_estado + '), sin eventos reproductivos previos');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-hembra-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"HEMBRA-G54-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-100) - Intentar registrar NACIMIENTO directo, sin inseminacion/diagnostico previo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: NACIMIENTO directo sobre activo sin eventos reproductivos previos ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Sub-caso 1: el nacimiento sin secuencia previa es rechazado (HTTP 422)', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Sub-caso 1: el rechazo es por secuencia reproductiva invalida (code=SECUENCIA_REPRODUCTIVA_INVALIDA)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});",
+              "",
+              "console.log('CONCLUSION sub-caso 1: ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion adicional (NO es TC-M02-104) - Consultar historial: confirmar que no quedo ningun evento reproductivo registrado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificacion adicional al sub-caso 1: consulta directa de datos (historial RF-46). NO es TC-M02-104 -- ver descripcion de la coleccion. ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Verificacion adicional: la consulta del historial consolidado responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const reproductivos = (respuesta.registros || []).filter(function (r) { return r.categoria === 'REPRODUCTIVO'; });",
+              "",
+              "    pm.test('Verificacion adicional: el historial del activo no contiene ningun evento REPRODUCTIVO (el intento rechazado no dejo rastro)', function () {",
+              "        pm.expect(reproductivos.length).to.equal(0);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION verificacion adicional: ' + reproductivos.length + ' evento(s) REPRODUCTIVO(s) encontrados en el historial (se esperaba 0).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo}}/historial",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "{{id_activo}}", "historial" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_activo", "value": "" }
+  ]
+}

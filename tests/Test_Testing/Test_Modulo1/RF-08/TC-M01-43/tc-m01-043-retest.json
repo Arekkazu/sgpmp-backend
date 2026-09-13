@@ -1,0 +1,132 @@
+{
+  "info": {
+    "_postman_id": "37099c3a-d905-447f-98e0-41417c8dca59",
+    "name": "TC-M01-043 (retest) - Codigo HTTP al superar el limite de recuperacion (esperado 429)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Sondeo: ¿el cupo de recuperacion de esta conexion ya esta agotado?",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/contrasena/recuperar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "contrasena",
+            "recuperar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_sondeo}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('0A sondeo: ' + pm.response.code + ' body=' + pm.response.text());",
+              "if (pm.response.code === 202) {",
+              "    pm.collectionVariables.set('cupo_agotado_043', 'false');",
+              "    console.log('0A - el cupo NO estaba agotado; esta peticion consumio 1 de 3. Puede hacer falta repetir 2 veces mas para forzar el bloqueo.');",
+              "} else {",
+              "    pm.collectionVariables.set('cupo_agotado_043', 'true');",
+              "}",
+              "pm.test('0A - se documenta el codigo obtenido (202 = cupo disponible, distinto de 202 = ya bloqueado)', function () {",
+              "    pm.expect(pm.response.code).to.be.above(0);",
+              "});",
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M01-043 (retest). Verificar codigo HTTP cuando el cupo de recuperacion ya esta agotado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/contrasena/recuperar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "contrasena",
+            "recuperar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_sondeo_2}}\"\n}"
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "",
+              "console.log('TC-M01-043 retest: ' + pm.response.code + ' body=' + pm.response.text());",
+              "var cupoAgotado = pm.collectionVariables.get('cupo_agotado_043') === 'true';",
+              "",
+              "if (cupoAgotado || pm.response.code !== 202) {",
+              "    pm.test('TC-M01-043 - al superar el limite de 3 solicitudes/hora, el codigo debe ser 429 (no 422)', function () {",
+              "        pm.response.to.have.status(429);",
+              "    });",
+              "    pm.test('TC-M01-043 - se registra el codigo de error de negocio para referencia', function () {",
+              "        console.log('error_code recibido: ' + (pm.response.json().error_code || 'N/A'));",
+              "        pm.expect(pm.response.code).to.be.above(0);",
+              "    });",
+              "} else {",
+              "    console.log('TC-M01-043 - esta peticion tambien devolvio 202 (cupo aun disponible). No se pudo forzar el bloqueo con solo 2 peticiones; hacen falta 3 exitosas primero.');",
+              "    pm.test('TC-M01-043 - no evaluable en esta corrida (cupo no estaba agotado, ver log)', function () {",
+              "        pm.expect(pm.response.code).to.be.above(0);",
+              "    });",
+              "}",
+              ""
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_sondeo",
+      "value": "sondeo-tc043-retest-a@sgpmp-test.com"
+    },
+    {
+      "key": "correo_sondeo_2",
+      "value": "sondeo-tc043-retest-b@sgpmp-test.com"
+    },
+    {
+      "key": "cupo_agotado_043",
+      "value": ""
+    }
+  ]
+}

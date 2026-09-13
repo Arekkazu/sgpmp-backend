@@ -1,0 +1,395 @@
+{
+  "info": {
+    "name": "TC-M01-096 (reformulado)",
+    "description": "Prueba de la ventana anti-spam (5 min) de notificaciones para el evento LOGIN_FALLIDO, usando el evento originalmente especificado por la ficha (sin sustituirlo). Tecnica: cada tanda de 5 intentos fallidos dispara bloqueo + notificacion; inmediatamente despues, una cuenta Administrador reactiva la cuenta objetivo (POST /usuarios/{id}/gestionar, accion_cuenta:'activar'), lo que permite lanzar la siguiente tanda en el momento exacto deseado sin esperar los 15 minutos naturales de bloqueo. La coleccion esta dividida en 3 FASES (carpetas) que deben ejecutarse por SEPARADO, respetando los tiempos de espera reales indicados entre cada una - Newman no puede pausar varios minutos de forma nativa. IMPORTANTE: cada fase bloquea temporalmente la cuenta objetivo como efecto colateral esperado (se reactiva automaticamente dentro de la misma fase).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "contrasena_admin", "value": "Verificada#45" },
+    { "key": "id_usuario_objetivo", "value": "68" },
+    { "key": "correo_objetivo", "value": "daniiella.vargass@gmail.com" },
+    { "key": "contrasena_objetivo", "value": "@Daniela1" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_objetivo", "value": "" },
+    { "key": "id_notif_fase1", "value": "" },
+    { "key": "fecha_notif_fase1", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Fase 1 - Notificacion base",
+      "item": [
+        {
+          "name": "1. Login admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "2. Intento fallido 1 de 5 (objetivo)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F1A\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "3. Intento fallido 2 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F1B\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "4. Intento fallido 3 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F1C\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "5. Intento fallido 4 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F1D\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "6. Intento fallido 5 de 5 - dispara bloqueo + notificacion base",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401 o 423 (bloqueo)', function () { pm.expect(pm.response.code).to.be.oneOf([401, 423]); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F1E\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "7. Admin reactiva la cuenta objetivo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"TC-M01-096 - reactivacion controlada entre fases\"\n}" },
+            "url": "{{base_url}}/usuarios/{{id_usuario_objetivo}}/gestionar"
+          }
+        },
+        {
+          "name": "8. Login objetivo (confirma reactivacion)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_objetivo', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_objetivo}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "9. Verificar notificacion base (tipo_evento 4) y guardar su id",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "const b = pm.response.json();",
+            "const notif4 = b.items.find(n => n.tipo_evento === 4);",
+            "pm.test('TC-M01-096 Fase 1: existe notificacion tipo_evento 4', function () { pm.expect(notif4).to.not.be.undefined; });",
+            "if (notif4) {",
+            "  pm.collectionVariables.set('id_notif_fase1', String(notif4.id_notificacion));",
+            "  pm.collectionVariables.set('fecha_notif_fase1', notif4.fecha_envio);",
+            "  console.log('Notificacion base guardada: id=' + notif4.id_notificacion + ' fecha=' + notif4.fecha_envio);",
+            "}"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_objetivo}}" }],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=5"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fase 2 - Dentro de la ventana (~4 min)",
+      "item": [
+        {
+          "name": "1. Login admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "2. Intento fallido 1 de 5 (objetivo)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F2A\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "3. Intento fallido 2 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F2B\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "4. Intento fallido 3 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F2C\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "5. Intento fallido 4 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F2D\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "6. Intento fallido 5 de 5 - deberia estar DENTRO de la ventana anti-spam",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401 o 423 (bloqueo)', function () { pm.expect(pm.response.code).to.be.oneOf([401, 423]); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F2E\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "7. Admin reactiva la cuenta objetivo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"TC-M01-096 - reactivacion controlada entre fases\"\n}" },
+            "url": "{{base_url}}/usuarios/{{id_usuario_objetivo}}/gestionar"
+          }
+        },
+        {
+          "name": "8. Login objetivo (confirma reactivacion)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_objetivo', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_objetivo}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "9. TC-M01-096 Fase 2: verificar SUPRESION (no debe haber notificacion nueva)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "const b = pm.response.json();",
+            "const notif4 = b.items.find(n => n.tipo_evento === 4);",
+            "const idBase = pm.collectionVariables.get('id_notif_fase1');",
+            "pm.test('TC-M01-096 Fase 2: NO debe generarse notificacion nueva (dentro de ~4 min de la ventana anti-spam)', function () {",
+            "    pm.expect(notif4).to.not.be.undefined;",
+            "    pm.expect(String(notif4.id_notificacion)).to.eql(idBase, 'Se esperaba que siguiera siendo la notificacion de la Fase 1 (id ' + idBase + '), pero aparecio una nueva (id ' + notif4.id_notificacion + ') - revisar el tiempo real transcurrido, pudo haberse pasado de los 5 min.');",
+            "});"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_objetivo}}" }],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=5"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fase 3 - Fuera de la ventana (~5:30 min)",
+      "item": [
+        {
+          "name": "1. Login admin",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "2. Intento fallido 1 de 5 (objetivo)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F3A\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "3. Intento fallido 2 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F3B\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "4. Intento fallido 3 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F3C\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "5. Intento fallido 4 de 5",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F3D\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "6. Intento fallido 5 de 5 - deberia estar FUERA de la ventana anti-spam",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 401 o 423 (bloqueo)', function () { pm.expect(pm.response.code).to.be.oneOf([401, 423]); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"ClaveMala#F3E\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "7. Admin reactiva la cuenta objetivo",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"TC-M01-096 - reactivacion controlada entre fases\"\n}" },
+            "url": "{{base_url}}/usuarios/{{id_usuario_objetivo}}/gestionar"
+          }
+        },
+        {
+          "name": "8. Login objetivo (confirma reactivacion)",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "pm.collectionVariables.set('token_objetivo', pm.response.json().token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_objetivo}}\",\n  \"contrasena\": \"{{contrasena_objetivo}}\"\n}" },
+            "url": "{{base_url}}/sesiones/"
+          }
+        },
+        {
+          "name": "9. TC-M01-096 Fase 3: verificar GENERACION de notificacion nueva",
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+            "const b = pm.response.json();",
+            "const notif4 = b.items.find(n => n.tipo_evento === 4);",
+            "const idBase = pm.collectionVariables.get('id_notif_fase1');",
+            "pm.test('TC-M01-096 Fase 3: SI debe generarse una notificacion nueva (fuera de la ventana anti-spam de 5 min)', function () {",
+            "    pm.expect(notif4).to.not.be.undefined;",
+            "    pm.expect(String(notif4.id_notificacion)).to.not.eql(idBase, 'Se esperaba una notificacion NUEVA distinta a la de la Fase 1 (id ' + idBase + '), pero sigue siendo la misma - revisar si realmente paso mas de 5 min desde la Fase 1.');",
+            "});",
+            "if (notif4) { console.log('Notificacion nueva confirmada: id=' + notif4.id_notificacion + ' fecha=' + notif4.fecha_envio + ' (base fue id=' + idBase + ' fecha=' + pm.collectionVariables.get('fecha_notif_fase1') + ')'); }"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token_objetivo}}" }],
+            "url": "{{base_url}}/notificaciones?pagina=1&tamano=5"
+          }
+        }
+      ]
+    }
+  ]
+}

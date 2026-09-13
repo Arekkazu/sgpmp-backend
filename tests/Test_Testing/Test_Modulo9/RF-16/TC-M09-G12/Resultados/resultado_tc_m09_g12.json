@@ -1,0 +1,75 @@
+{
+  "caso_id": "TC-M09-G12",
+  "subcasos": ["TC-M09-22", "TC-M09-23", "TC-M09-24", "TC-M09-25a", "TC-M09-25b", "TC-M09-26"],
+  "nombre": "Validación de campos de Etapa productiva (longitud, duración, duplicado)",
+  "requisito_funcional": "RF-16",
+  "caso_de_uso": "CU-02",
+  "especie_base": {
+    "id_especie": 4,
+    "nombre": "Cachama Blanca"
+  },
+  "resumen_ejecucion": {
+    "total_requests": 11,
+    "requests_exitosas": 11,
+    "total_assertions": 15,
+    "assertions_pasadas": 15,
+    "assertions_falladas": 0,
+    "veredicto_global": "OK (ÉXITO TOTAL 100%)"
+  },
+  "detalle_subcasos": [
+    {
+      "subcaso": "TC-M09-22",
+      "descripcion": "Nombre de exactamente 3 caracteres ('Cri')",
+      "status_code": 201,
+      "resultado_esperado": "HTTP 201 Created",
+      "veredicto": "OK",
+      "id_etapa_creada": 16
+    },
+    {
+      "subcaso": "TC-M09-23",
+      "descripcion": "Nombre de exactamente 50 caracteres ('Etapa Con Nombre Exacto De Cincuenta Caracteres QA')",
+      "longitud_verificada": 50,
+      "status_code": 201,
+      "resultado_esperado": "HTTP 201 Created",
+      "veredicto": "OK",
+      "id_etapa_creada": 17
+    },
+    {
+      "subcaso": "TC-M09-24",
+      "descripcion": "Rechazar duracion_dias = 0",
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "mensaje_real": "Value error, La duración estimada debe ser un número entero positivo mayor a 0. Valor recibido: 0.",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-25a",
+      "descripcion": "Rechazar duracion_dias negativa (-5)",
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "mensaje_real": "Value error, La duración estimada debe ser un número entero positivo mayor a 0. Valor recibido: -5.",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-25b",
+      "descripcion": "Rechazar duracion_dias decimal (10.5)",
+      "status_code": 400,
+      "error_code_real": "VAL_ENTRADA",
+      "mensaje_real": "Input should be a valid integer, got a number with a fractional part",
+      "veredicto": "OK"
+    },
+    {
+      "subcaso": "TC-M09-26",
+      "descripcion": "Rechazar duplicado case-insensitive ('Engorde' vs 'ENGORDE')",
+      "status_code": 409,
+      "error_code_real": "ETAPA_DUPLICADA",
+      "mensaje_real": "Ya existe una etapa con el nombre 'ENGORDE' para esta especie.",
+      "veredicto": "OK",
+      "id_etapa_base": 18
+    }
+  ],
+  "limpieza": {
+    "etapas_desactivadas": [16, 17, 18],
+    "resultado": "Limpieza completada con HTTP 200 OK en las 3 etapas"
+  }
+}

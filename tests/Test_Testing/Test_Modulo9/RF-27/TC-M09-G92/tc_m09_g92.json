@@ -1,0 +1,288 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g92-rf27",
+    "name": "TC-M09-G92 - Rechazo de identificador de tema fuera del rango permitido",
+    "description": "Validación de theme_mode fuera del rango permitido. Se prueban los valores 0, 4 y -1. Los valores válidos definidos por RF-27 son 1, 2 y 3.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "theme_original",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json.token).to.exist;",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Obtener tema actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de tema actual exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json).to.have.property('theme_mode');",
+              "pm.expect([1, 2, 3]).to.include(json.theme_mode);",
+              "pm.collectionVariables.set('theme_original', String(json.theme_mode));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Rechazar theme_mode = 0",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 0\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('theme_mode=0 es rechazado con HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json).to.be.an('object');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Rechazar theme_mode = 4",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": 4\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('theme_mode=4 es rechazado con HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json).to.be.an('object');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Rechazar theme_mode = -1",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"theme_mode\": -1\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('theme_mode=-1 es rechazado con HTTP 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.expect(json).to.be.an('object');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Verificar que el tema válido no fue modificado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/tema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "tema"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta final del tema exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var json = pm.response.json();",
+              "pm.test('El tema final sigue siendo un valor válido 1-3', function () {",
+              "    pm.expect([1, 2, 3]).to.include(json.theme_mode);",
+              "});",
+              "",
+              "pm.test('El tema no cambió después de enviar valores inválidos', function () {",
+              "    pm.expect(String(json.theme_mode)).to.eql(pm.collectionVariables.get('theme_original'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "info": {
+    "name": "TC-M01-037",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token_a", "value": "" },
+    { "key": "token_b", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "1. Login - sesion A",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login A responde 200', function () { pm.response.to.have.status(200); });",
+          "const jsonData = pm.response.json();",
+          "if (jsonData.token) { pm.collectionVariables.set('token_a', jsonData.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Cambio#2028\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. GET /usuarios/me con token A (esperado 200)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Token A valido antes de la 2da sesion', function () { pm.response.to.have.status(200); });"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      }
+    },
+    {
+      "name": "3. Login - sesion B (debe revocar A)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login B responde 200', function () { pm.response.to.have.status(200); });",
+          "const jsonData = pm.response.json();",
+          "if (jsonData.token) { pm.collectionVariables.set('token_b', jsonData.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Cambio#2028\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. GET /usuarios/me con token A tras login B (esperado 401)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Token A revocado por politica de sesion unica', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_a}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      }
+    },
+    {
+      "name": "5. Cambiar contrasena con token B",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Cambio de contrasena responde 200', function () { pm.response.to.have.status(200); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_b}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"Cambio#2028\",\n  \"nueva_contrasena\": \"Rotada#2029\",\n  \"confirmar_nueva_contrasena\": \"Rotada#2029\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    },
+    {
+      "name": "6. GET /usuarios/me con token B tras el cambio (esperado 401)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('TC-M01-037: token B revocado tras cambio de contrasena', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_b}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me"
+      }
+    },
+    {
+      "name": "7. Login con la contrasena rotada (para poder revertirla)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login con Rotada#2029 responde 200', function () { pm.response.to.have.status(200); });",
+          "const jsonData = pm.response.json();",
+          "if (jsonData.token) { pm.collectionVariables.set('token_b', jsonData.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"u20212200102@usco.edu.co\",\n  \"contrasena\": \"Rotada#2029\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "8. Revertir la contrasena a Cambio#2028 (dejar el ambiente como estaba)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Reversion responde 200', function () { pm.response.to.have.status(200); });"
+        ] } }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_b}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"contrasena_actual\": \"Rotada#2029\",\n  \"nueva_contrasena\": \"Cambio#2028\",\n  \"confirmar_nueva_contrasena\": \"Cambio#2028\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/usuarios/45"
+      }
+    }
+  ]
+}

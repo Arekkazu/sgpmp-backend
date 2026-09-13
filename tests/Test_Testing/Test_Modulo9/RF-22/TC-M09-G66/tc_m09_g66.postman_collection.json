@@ -1,0 +1,471 @@
+{
+  "info": {
+    "name": "TC-M09-G66 - Consulta de una asociacion de sensor y contextualizacion de sus datos por area",
+    "description": "TC-M09-G66 (RF-22, CU-05 Gestionar Dispositivos IoT), equivalente a TC-M09-127 y TC-M09-128:\n\n1. (TC-M09-127) Verificar que una asociacion de sensor registrada pueda ser consultada posteriormente.\n2. (TC-M09-128) Verificar que los datos generados por un sensor queden relacionados con el area productiva correspondiente despues de su asociacion.\n\nMecanismo real verificado en el codigo:\n- La consulta de la asociacion (TC-M09-127) usa GET /configuracion/sensores/{id_sensor}/asociaciones (ConsultarAsociacionesUseCase, src/configuration/application/use_cases/sensores/asociar_sensor_area_use_case.py), que devuelve el historial completo de asociaciones del sensor (tabla modulo9.sensores_areas_asociadas).\n- La contextualizacion de datos por area (TC-M09-128) ocurre en el historial de telemetria: GET /iot/monitoreo/historial (ConsultarHistorialUseCase + SqlAlchemyHistorialTelemetriaRepository, src/telemetry/infrastructure/repositories/historial_telemetria_repository.py). Esa consulta resuelve el area de cada lectura con un JOIN LATERAL contra modulo9.sensores_areas_asociadas filtrando por 'saa2.id_sensor = t.id_sensor AND saa2.fecha_asociacion <= t.timestamp_captura AND (saa2.fecha_finalizacion IS NULL OR saa2.fecha_finalizacion > t.timestamp_captura)': es decir, la asociacion RF-22 vigente en el momento exacto de la captura es la que determina el 'id_infraestructura' (y por tanto 'finca') con el que queda contextualizada la lectura, no un campo fijo en la telemetria.\n- La ingesta de la lectura de prueba usa POST /iot/telemetria (IngerirTelemetriaUseCase). Este endpoint no usa JWT: la identidad se valida con 'access_key' = serial del dispositivo IoT dueno del sensor (DispositivoM09Adapter.obtener_dispositivo_activo).\n\nLa coleccion es autocontenida: registra su propio dispositivo IoT y sensor sobre un area productiva activa ya existente en TEST (finca_id=1), asocia el sensor a esa area (RF-22), ingiere una lectura de telemetria real para ese sensor despues de la asociacion, y luego verifica en el historial de telemetria (RF-59) que la lectura quedo contextualizada exactamente con esa area/finca.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional / Integracion. Herramienta: Newman. Ambas son consultas/verificaciones simples via API, segun la nota del plan de pruebas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0, 10));",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente (finca_id=1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos 1 area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length >= 1) {",
+              "    pm.collectionVariables.set('id_infraestructura', respuesta.items[0].id_infraestructura);",
+              "    pm.collectionVariables.set('nombre_infraestructura', respuesta.items[0].nombre_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura + ' (' + respuesta.items[0].nombre_infraestructura + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT sobre el area elegida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "    pm.collectionVariables.set('serial_dispositivo', respuesta.serial);",
+              "    console.log('id_dispositivo: ' + respuesta.id_dispositivo_iot + ', serial: ' + respuesta.serial);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G66-{{run_id}}\",\n  \"descripcion\": \"Dispositivo de prueba TC-M09-G66 (consulta de asociacion y contextualizacion de datos)\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar el sensor de prueba sobre el dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del sensor responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor', respuesta.id_sensores);",
+              "    console.log('id_sensor: ' + respuesta.id_sensores);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor TC-M09-G66 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-127 (paso 1) - Registrar la asociacion del sensor al area productiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro de la asociacion sensor-area a consultar ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-127: el registro de la asociacion responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensores_area_asociada', respuesta.id_sensores_area_asociada);",
+              "    pm.collectionVariables.set('fecha_asociacion', respuesta.fecha_asociacion);",
+              "    console.log('Asociacion creada: id_sensores_area_asociada=' + respuesta.id_sensores_area_asociada + ', fecha_asociacion=' + respuesta.fecha_asociacion);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo}},\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"punto_instalacion\": \"Asociacion de prueba - TC-M09-G66\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-127 (paso 2) - Consultar la asociacion registrada en el historial del sensor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Consulta posterior de la asociacion (GET historial) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-127: la consulta del historial de asociaciones responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('TC-M09-127: el historial contiene al menos 1 asociacion', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items) {",
+              "    const idBuscado = Number(pm.collectionVariables.get('id_sensores_area_asociada'));",
+              "    const encontrada = respuesta.items.find(function (a) { return a.id_sensores_area_asociada === idBuscado; });",
+              "",
+              "    pm.test('TC-M09-127: la asociacion registrada en el paso anterior puede ser consultada (misma info)', function () {",
+              "        pm.expect(encontrada, 'no se encontro la asociacion id=' + idBuscado + ' en el historial devuelto').to.not.equal(undefined);",
+              "        pm.expect(encontrada.id_sensor).to.equal(Number(pm.collectionVariables.get('id_sensor')));",
+              "        pm.expect(encontrada.id_infraestructura).to.equal(Number(pm.collectionVariables.get('id_infraestructura')));",
+              "        pm.expect(encontrada.fecha_finalizacion).to.equal(null);",
+              "    });",
+              "",
+              "    if (encontrada) {",
+              "        console.log('CONCLUSION TC-M09-127: la asociacion id=' + idBuscado + ' registrada previamente se recupera correctamente en la consulta posterior, con la misma area (id_infraestructura=' + encontrada.id_infraestructura + ') y vigente.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociaciones",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociaciones" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-128 (paso 1) - Ingerir una lectura de telemetria del sensor ya asociado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Ingesta de telemetria posterior a la asociacion ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-128: la ingesta de la lectura responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_telemetria', respuesta.id_telemetria);",
+              "    console.log('Lectura generada: id_telemetria=' + respuesta.id_telemetria + ', estado_calidad=' + respuesta.estado_calidad);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{id_dispositivo}},\n  \"sensor_id\": {{id_sensor}},\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 24.5,\n  \"unidad\": \"°C\",\n  \"timestamp_captura\": \"{{$isoTimestamp}}\",\n  \"access_key\": \"{{serial_dispositivo}}\",\n  \"origen\": \"TIEMPO_REAL\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/iot/telemetria",
+          "host": [ "{{base_url}}" ],
+          "path": [ "iot", "telemetria" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-128 (paso 2) - Verificar que la lectura quedo contextualizada con el area productiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial de telemetria filtrado por el area asociada ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-128: la consulta del historial de telemetria responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('TC-M09-128: el historial filtrado por area contiene al menos 1 lectura', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items) {",
+              "    const idTelemetriaBuscado = Number(pm.collectionVariables.get('id_telemetria'));",
+              "    const lectura = respuesta.items.find(function (l) { return l.id_telemetria === idTelemetriaBuscado; });",
+              "",
+              "    pm.test('TC-M09-128: la lectura generada aparece en el historial de ESA area productiva', function () {",
+              "        pm.expect(lectura, 'no se encontro id_telemetria=' + idTelemetriaBuscado + ' filtrando por id_infraestructura=' + pm.collectionVariables.get('id_infraestructura')).to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (lectura) {",
+              "        pm.test('TC-M09-128: la lectura quedo relacionada exactamente con el area y la finca correspondientes', function () {",
+              "            pm.expect(lectura.id_sensor).to.equal(Number(pm.collectionVariables.get('id_sensor')));",
+              "            pm.expect(lectura.id_infraestructura).to.equal(Number(pm.collectionVariables.get('id_infraestructura')));",
+              "            pm.expect(lectura.infraestructura).to.equal(pm.collectionVariables.get('nombre_infraestructura'));",
+              "            pm.expect(lectura.finca).to.not.equal(null);",
+              "        });",
+              "",
+              "        console.log('CONCLUSION TC-M09-128: la lectura id_telemetria=' + lectura.id_telemetria + ' generada por el sensor quedo contextualizada con id_infraestructura=' + lectura.id_infraestructura + ' (' + lectura.infraestructura + ', finca=' + lectura.finca + '), tal como determina la asociacion RF-22 vigente al momento de la captura.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/monitoreo/historial?fecha_inicio={{fecha_hoy}}&fecha_fin={{fecha_hoy}}&id_infraestructura={{id_infraestructura}}&sensor_id={{id_sensor}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "iot", "monitoreo", "historial" ],
+          "query": [
+            { "key": "fecha_inicio", "value": "{{fecha_hoy}}" },
+            { "key": "fecha_fin", "value": "{{fecha_hoy}}" },
+            { "key": "id_infraestructura", "value": "{{id_infraestructura}}" },
+            { "key": "sensor_id", "value": "{{id_sensor}}" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "fecha_hoy", "value": "" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "nombre_infraestructura", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo", "value": "" },
+    { "key": "serial_dispositivo", "value": "" },
+    { "key": "id_sensor", "value": "" },
+    { "key": "id_sensores_area_asociada", "value": "" },
+    { "key": "fecha_asociacion", "value": "" },
+    { "key": "id_telemetria", "value": "" }
+  ]
+}

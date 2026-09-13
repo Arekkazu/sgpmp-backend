@@ -1,0 +1,95 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-03 Registro identificacion duplicada",
+    "description": "Colección para RF-01 / TC-M01-03: rechazo del registro cuando el numero_identificacion ya existe (HTTP 409). Incluye como paso previo el registro base (equivalente a TC-M01-01) para garantizar la precondición.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Registrar usuario base (equivalente TC-M01-01)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: usuario creado (201) o ya existia de una corrida anterior (409)', function () {",
+              "    pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    console.log('Usuario base creado exitosamente para la precondicion de TC-M01-03.');",
+              "} else if (pm.response.code === 409) {",
+              "    console.log('El usuario base ya existia (numero_identificacion 1075334521) - precondicion ya estaba cumplida.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ana.martinez.qa1@sgpmp-test.com\",\n  \"telefono\": \"3125557890\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"1075334521\",\n  \"nombre\": \"Ana Sofía\",\n  \"apellidos\": \"Martínez Rojas\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba#2026\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-03 - Rechazo por numero_identificacion duplicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-03: HTTP 409 por identificacion duplicada', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "pm.test('TC-M01-03: el mensaje de error menciona la duplicidad', function () {",
+              "    const body = pm.response.text().toLowerCase();",
+              "    pm.expect(body).to.satisfy(function (b) {",
+              "        return b.includes('identificacion') || b.includes('identificación') || b.includes('duplicad') || b.includes('existe');",
+              "    });",
+              "});",
+              "",
+              "pm.test('TC-M01-03: no se creo una cuenta nueva (no 201)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(201);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ana.duplicado.qa@sgpmp-test.com\",\n  \"telefono\": \"3125557891\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"1075334521\",\n  \"nombre\": \"Ana Sofía\",\n  \"apellidos\": \"Martínez Rojas\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Prueba#2026\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "usuarios", "" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "grupo": "TC-M09-G26",
+  "rf": "RF-17",
+  "cu": "CU-03",
+  "rol": "Administrador",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T00:26:55.105Z",
+  "caso": "TC-M09-57",
+  "variante": "inactiva",
+  "resultado": "PASS",
+  "metodo": "POST",
+  "endpoint": "/configuracion/umbrales",
+  "especie": {
+    "id": 11,
+    "nombre": "Miguel",
+    "existe": true,
+    "es_activo": false
+  },
+  "variable": {
+    "id": 10,
+    "nombre": "Humedad Relativa",
+    "unidad": "%",
+    "catalogoActivo": true,
+    "fisicoMin": 0,
+    "fisicoMax": 100
+  },
+  "evidenciaEspecie": {
+    "metodo": "catalogo completo de especies",
+    "es_activo": false,
+    "umbralesPrevios": []
+  },
+  "invalidezIntencional": "id_especie=11 existe pero es_activo=false",
+  "payloadEnviado": {
+    "id_especie": 11,
+    "id_variable_ambiental": 10,
+    "valor_min": 20,
+    "valor_max": 80,
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": 20,
+        "limite_superior": 40
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": 40,
+        "limite_superior": 60
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": 60,
+        "limite_superior": 80
+      }
+    ]
+  },
+  "umbralesPrevios": [],
+  "status": 422,
+  "errorCode": "ESPECIE_INACTIVA",
+  "respuesta": {
+    "error_code": "ESPECIE_INACTIVA",
+    "message": "No se pueden configurar umbrales para una especie inactiva o inexistente.",
+    "fields": [
+      {
+        "field": "id_especie",
+        "message": "No se pueden configurar umbrales para una especie inactiva o inexistente."
+      }
+    ],
+    "timestamp": "2026-09-06T00:26:54.047641+00:00"
+  },
+  "eventos": [
+    {
+      "caso": "TC-M09-57",
+      "variante": "inactiva",
+      "metodo": "POST",
+      "url": "/api-sgpmp-test/configuracion/umbrales",
+      "status": 422,
+      "payload": {
+        "id_especie": 11,
+        "id_variable_ambiental": 10,
+        "valor_min": 20,
+        "valor_max": 80,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": 20,
+            "limite_superior": 40
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": 40,
+            "limite_superior": 60
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": 60,
+            "limite_superior": 80
+          }
+        ]
+      },
+      "respuesta": {
+        "error_code": "ESPECIE_INACTIVA",
+        "message": "No se pueden configurar umbrales para una especie inactiva o inexistente.",
+        "fields": [
+          {
+            "field": "id_especie",
+            "message": "No se pueden configurar umbrales para una especie inactiva o inexistente."
+          }
+        ],
+        "timestamp": "2026-09-06T00:26:54.047641+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "caso": "TC-M09-57",
+      "variante": "inactiva",
+      "metodo": "GET",
+      "url": "/api-sgpmp-test/configuracion/umbrales",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "getPosterior": {
+    "status": 200,
+    "total": 0,
+    "ids": []
+  },
+  "persistencia": {
+    "umbralesDeLaCombinacion": 0,
+    "esperado": 0,
+    "registrosNuevos": [],
+    "catalogoVariablesDespues": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ],
+    "variableInvalidaCreada": false
+  },
+  "STOP_ALL": false,
+  "assertions": {
+    "total": 13,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-57-inactiva.html"
+}

@@ -1,0 +1,338 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-141-invalidacion-jwt-v2",
+    "name": "TC-M01-141 - Validar invalidación del JWT después de bloquear una cuenta",
+    "description": "Validar que el JWT de un usuario sea invalidado después de bloquear su cuenta y medir que ocurra dentro de 5 segundos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "idUsuario",
+      "value": "4"
+    },
+    {
+      "key": "correoUsuario",
+      "value": "ingeniero@pecuaria.co"
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "tokenUsuario",
+      "value": ""
+    },
+    {
+      "key": "inicioInvalidacion",
+      "value": ""
+    },
+    {
+      "key": "tiempoInvalidacionMs",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const adminLoginBody = pm.response.json();",
+              "",
+              "pm.test(\"Se obtiene el JWT del administrador\", function () {",
+              "    pm.expect(adminLoginBody.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", adminLoginBody.token);",
+              "console.log(\"Token administrador guardado correctamente\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Preparar cuenta objetivo en ACTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"activar\",\n  \"motivo_accion\": \"Preparación TC-M01-141\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(\"Respuesta preparación:\", pm.response.text());",
+              "",
+              "pm.test(\"La preparación de la cuenta responde correctamente\", function () {",
+              "    pm.expect([200, 400]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Iniciar sesión como usuario objetivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correoUsuario}}\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Usuario objetivo inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const userLoginBody = pm.response.json();",
+              "",
+              "pm.test(\"Se obtiene el JWT del usuario objetivo\", function () {",
+              "    pm.expect(userLoginBody.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenUsuario\", userLoginBody.token);",
+              "console.log(\"Token del usuario objetivo guardado correctamente\");"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Confirmar JWT válido antes del bloqueo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          }
+        ],
+        "url": "{{baseUrl}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const beforeBlockBody = pm.response.json();",
+              "",
+              "pm.test(\"El JWT es válido antes del bloqueo\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El perfil corresponde al usuario objetivo\", function () {",
+              "    pm.expect(beforeBlockBody.id_usuario).to.eql(4);",
+              "    pm.expect(beforeBlockBody.correo_electronico).to.eql(\"ingeniero@pecuaria.co\");",
+              "});",
+              "",
+              "pm.test(\"La cuenta está activa antes del bloqueo\", function () {",
+              "    pm.expect(beforeBlockBody.estado_cuenta).to.eql(\"Activo\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Bloquear cuenta e iniciar medición",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"accion_cuenta\": \"bloquear\",\n  \"motivo_accion\": \"Prueba TC-M01-141 - invalidación JWT\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{baseUrl}}/usuarios/{{idUsuario}}/gestionar"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"La cuenta fue bloqueada correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const inicio = Date.now();",
+              "pm.collectionVariables.set(\"inicioInvalidacion\", String(inicio));",
+              "console.log(\"Inicio de medición:\", new Date(inicio).toISOString());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Verificar invalidación del JWT",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          }
+        ],
+        "url": "{{baseUrl}}/usuarios/me"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const fin = Date.now();",
+              "const inicio = Number(pm.collectionVariables.get(\"inicioInvalidacion\"));",
+              "const tiempoMs = fin - inicio;",
+              "const invalidationBody = pm.response.json();",
+              "",
+              "pm.collectionVariables.set(\"tiempoInvalidacionMs\", String(tiempoMs));",
+              "",
+              "console.log(\"Fin de medición:\", new Date(fin).toISOString());",
+              "console.log(\"Tiempo de invalidación:\", tiempoMs + \" ms\");",
+              "console.log(\"Respuesta JWT:\", invalidationBody);",
+              "",
+              "pm.test(\"El JWT fue invalidado\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});",
+              "",
+              "pm.test(\"El acceso fue rechazado\", function () {",
+              "    pm.expect([\"TOKEN_INVALIDO\", \"TOKEN_REVOCADO\", \"CUENTA_BLOQUEADA\"]).to.include(invalidationBody.error_code);",
+              "});",
+              "",
+              "pm.test(\"La invalidación ocurrió dentro de 5 segundos\", function () {",
+              "    pm.expect(tiempoMs).to.be.at.most(5000);",
+              "});",
+              "",
+              "pm.test(\"Resultado de la medición\", function () {",
+              "    console.log(tiempoMs <= 5000 ? \"APROBADO: <= 5 segundos\" : \"FALLIDO: > 5 segundos\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Confirmar estado BLOQUEADO",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": "{{baseUrl}}/usuarios/admin?correo={{correoUsuario}}&pagina=1&tamano=20"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const finalAdminBody = pm.response.json();",
+              "",
+              "pm.test(\"Consulta administrativa exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Existe exactamente un usuario objetivo\", function () {",
+              "    pm.expect(finalAdminBody.total).to.eql(1);",
+              "    pm.expect(finalAdminBody.items).to.have.lengthOf(1);",
+              "});",
+              "",
+              "pm.test(\"La cuenta quedó Bloqueada\", function () {",
+              "    pm.expect(finalAdminBody.items[0].estado_cuenta).to.eql(\"Bloqueado\");",
+              "});",
+              "",
+              "console.log(\"Tiempo de invalidación:\", pm.collectionVariables.get(\"tiempoInvalidacionMs\") + \" ms\");",
+              "console.log(\"Estado final:\", finalAdminBody.items[0].estado_cuenta);"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

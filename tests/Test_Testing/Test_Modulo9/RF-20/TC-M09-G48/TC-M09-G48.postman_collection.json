@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G48 Registro exitoso de area productiva (camino feliz)",
+    "description": "Automatiza TC-M09-96: registra una finca activa y luego un area productiva valida asociada a ella (nombre valido, tipo_area permitido, superficie positiva), y confirma que la respuesta refleja exactamente esos datos y la asociacion con la finca (creacion validada por API).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_finca", "value": "" },
+    { "key": "id_infraestructura", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Registrar finca activa para asociar el area",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_unico', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Finca nace activa', function () { pm.expect(json.es_activo).to.eql(true); });",
+              "pm.collectionVariables.set('id_finca', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Area Productiva {{sufijo_unico}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"50.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-96 - Registrar area productiva valida asociada a la finca (camino feliz)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "",
+              "const json = pm.response.json();",
+              "console.log('Respuesta completa: ' + JSON.stringify(json));",
+              "",
+              "pm.test('id_infraestructura generado', function () {",
+              "    pm.expect(json.id_infraestructura).to.be.a('number');",
+              "});",
+              "pm.test('nombre_infraestructura almacenado tal cual', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Galpon Principal ' + pm.collectionVariables.get('sufijo_unico'));",
+              "});",
+              "pm.test('tipo_area almacenado tal cual', function () {",
+              "    pm.expect(json.tipo_area).to.eql('galpon');",
+              "});",
+              "pm.test('superficie positiva almacenada correctamente', function () {",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(2500);",
+              "});",
+              "pm.test('queda asociada a la finca correcta', function () {",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "});",
+              "pm.test('el area queda activa por defecto', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});",
+              "",
+              "pm.collectionVariables.set('id_infraestructura', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Principal {{sufijo_unico}}\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Confirmar almacenamiento con una relectura independiente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle de area disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Los datos y la asociacion a la finca persisten identicos tras un GET independiente', function () {",
+              "    pm.expect(json.id_infraestructura).to.eql(pm.collectionVariables.get('id_infraestructura'));",
+              "    pm.expect(json.id_finca).to.eql(pm.collectionVariables.get('id_finca'));",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(2500);",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

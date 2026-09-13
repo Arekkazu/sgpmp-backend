@@ -1,0 +1,330 @@
+{
+  "info": {
+    "name": "TC-M02-G61 - Eventos productivos y bajas (RF-43/RF-45, CU09)",
+    "description": "TC-M02-G61 (RF-43/RF-45, CU09), sub-casos TC-M02-106, TC-M02-112 y TC-M02-113.\n\nSub-caso 1 (TC-M02-106, registrar evento productivo valido): la precondicion de la ficha ('Activo ACTIVO en fase que habilita el tipo de producto') exige haber llamado antes POST /activos-biologicos/{id}/fases (RF-37). Confirmado en vivo (dos activos, dos ciclos distintos) que ESE ENDPOINT SIEMPRE responde 500 -- bug nuevo en cambiar_fase_use_case.py:72, falta el argumento id_usuario en la llamada a cerrar_gestion_activa (TypeError de Python, no un trigger de BD). Esta coleccion documenta esa cadena completa: (paso 2) sin fase activa, el endpoint de evento productivo responde correctamente 422 SIN_FASE_PRODUCTIVA_ACTIVA (esto SI es el comportamiento esperado, no un bug); (paso 3) el intento de satisfacer esa precondicion via RF-37 responde 500 (esto SI es el bug, y es bloqueante: ningun activo de ninguna especie puede llegar a tener una fase activa hoy en TEST). La logica propia de RF-43 en aislamiento (una vez simulada la fase activa con dobles de prueba) se verifica aparte en test_tc_m02_106_evento_productivo_valido.py.\n\nSe usa especie Cachama Blanca (id_especie=4) porque es la unica especie con una metrica de catalogo RF-16 ya seedeada en TEST (id_metrica_produccion=16, tipo_medicion=PESO, unidad_medida=kg, aplica_a_tipo_activo=AMBOS) -- Tilapia (id_especie=10) no tiene ninguna metrica seedeada, asi que ni siquiera llegaria al chequeo de fase.\n\nSub-caso 2 (TC-M02-112, baja TOTAL de activo individual): se sabe (TC-M02-G58) que esto responde 500 por un bug de orden de operaciones (_procesar_baja_con_cierre cierra el estado del activo a BAJA ANTES de insertar el evento, y el trigger trg_evento_activo_estado_valido rechaza el INSERT del evento sobre un activo ya en BAJA). Se repite aqui con tipo_baja=muerte (en vez de venta, ya usado en TC-M02-G58) para reforzar que el bug no es especifico de un tipo_baja -- es cualquier baja TOTAL.\n\nSub-caso 3 (TC-M02-113, baja PARCIAL de lote): no depende de RF-37 ni cae en el bug de cierre de TC-M02-G58 (cantidad_actual no llega a 0, nunca se llama _procesar_baja_con_cierre) -- se esperaba camino feliz (201), pero se encontro un BUG NUEVO independiente: el endpoint responde 400 VALOR_FUERA_DE_RANGO (DataError) de forma 100% reproducible, confirmado en dos lotes distintos. Detalle y triggers descartados en el paso 2 del sub-caso 3 dentro de la coleccion.\n\nHALLAZGO NUEVO (de infraestructura de pruebas, distinto al bug de arriba) (encontrado armando este sub-caso): el trigger modulo2.trg_fn_evento_fecha_coherente (BEFORE INSERT en eventos_activos) rechaza cualquier evento cuya fecha sea anterior al fecha_creacion EXACTO (con hora) del activo. Como RegistrarEventoBajaDTO.fecha_baja (y RegistrarEventoProductivoDTO.fecha_evento) son de tipo date (sin hora), el valor se trunca a medianoche UTC -- y medianoche de HOY es SIEMPRE anterior al fecha_creacion de un activo creado hoy mismo (que ya tiene una hora avanzada). Una fecha futura, por su parte, cae en FECHA_BAJA_FUTURA/FECHA_FUTURA (validacion en Python). Consecuencia: NO EXISTE ninguna fecha_baja/fecha_evento valida para un activo creado el mismo dia -- confirmado en vivo (500 'Error inesperado en base de datos', ERRCODE P0215 sin mapear en db_error_translator.py). Por eso el sub-caso 3 usa un lote PRE-EXISTENTE de un dia anterior (id_activo_g113=60, Cachama POBLACIONAL, fecha_creacion 2026-09-04, cantidad_actual=500 al momento de escribir esto) en vez de crear uno fresco -- los pasos 1 y 3 comparan cantidad_actual antes/despues (diferencia de 50) en vez de asumir un valor absoluto, para tolerar que otras sesiones de QA tambien lo usen. Este hallazgo tambien explica, con mas precision que las teorias previas, por que CUALQUIER primer evento con fecha explicita sobre un activo recien creado el mismo dia falla con 500 en este modulo.\n\nLa coleccion es autocontenida para los sub-casos 1 y 2 (registra sus propios activos INDIVIDUAL de Cachama Blanca sobre id_infraestructura=6); el sub-caso 3 depende del activo 60 ya existente en TEST por la razon explicada arriba.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Funcional. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 1/3 (TC-M02-106) - Registrar activo INDIVIDUAL Cachama fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g106', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cachama-g106-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG106-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 2/3 (TC-M02-106) - Evento productivo SIN fase activa (validacion correcta)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 2: catalogo RF-16 valido (PESO/kg para Cachama) pero sin fase activa ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 paso 2: rechazado con HTTP 422 (no hay fase productiva activa)', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1 paso 2: codigo de negocio SIN_FASE_PRODUCTIVA_ACTIVA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SIN_FASE_PRODUCTIVA_ACTIVA');",
+              "});",
+              "console.log('CONCLUSION paso 2: el catalogo RF-16 y la validacion de unidad de medida funcionan correctamente; el bloqueo real esta en como llegar a tener una fase activa (ver paso 3).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g106}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g106}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 3/3 (TC-M02-106) - Asignar fase via RF-37 (BUG BLOQUEANTE)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 3: intento de satisfacer la precondicion de fase activa via RF-37 ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 paso 3 (BUG): RF-37 responde 500 en vez de 201 -- bloquea por completo el camino feliz de RF-43', function () {",
+              "    pm.expect(pm.response.code).to.equal(500);",
+              "});",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log('CONCLUSION paso 3: cambiar_fase_use_case.py:72 llama cerrar_gestion_activa(id_activo, ahora, motivo) con 3 argumentos; el puerto y su implementacion SQLAlchemy exigen 4 (falta id_usuario). TypeError de Python no capturado, cae al catch-all -> 500 ERROR_INTERNO. Confirmado 100% reproducible con dos activos/especies distintas en esta sesion. Bloquea TODO RF-37, y por extension, la precondicion de fase activa que RF-43 exige para su camino feliz.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productivo_cachama}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g106}}/fases",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g106}}", "fases" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/2 (TC-M02-112) - Registrar activo INDIVIDUAL fresco para baja total",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g112', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cachama-g112-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG112-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/2 (TC-M02-112) - Baja TOTAL de activo individual (BUG ya conocido, tipo_baja=muerte)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: baja total individual, tipo_baja=muerte (TC-M02-G58 ya lo confirmo con tipo_baja=venta) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2 (BUG): la baja total responde 500 en vez de 201 -- confirma que el bug de TC-M02-G58 no es especifico de un tipo_baja', function () {",
+              "    pm.expect(pm.response.code).to.equal(500);",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: registrar_evento_baja_use_case.py cierra el estado del activo a BAJA (historico_repo.registrar) ANTES de insertar el evento de baja; el trigger trg_evento_activo_estado_valido rechaza el INSERT del evento porque el activo YA esta en BAJA. El propio evento que documenta la baja se autobloquea. Bug de orden de operaciones + gap de db_error_translator.py (no mapea el ERRCODE P02xx del trigger).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"2026-09-09\",\n  \"motivo_baja\": \"TC-M02-112 - baja total por muerte natural (prueba QA)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g112}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g112}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, paso 1/3 (TC-M02-113) - Capturar cantidad_actual base de un lote existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3, paso 1: se usa un lote POBLACIONAL PRE-EXISTENTE (id_activo_g113, creado en una sesion anterior) en vez de crear uno fresco. ---');",
+              "console.log('Motivo: trg_fn_evento_fecha_coherente (modulo2.eventos_activos) rechaza cualquier evento cuya fecha (truncada a medianoche UTC, porque fecha_baja es tipo date sin hora) sea anterior al fecha_creacion EXACTO del activo (con hora). Un activo recien creado en esta misma sesion siempre tiene fecha_creacion de HOY con una hora ya avanzada -> medianoche de HOY siempre es anterior a eso -> 500 ERROR_INTERNO garantizado (confirmado en vivo). Y una fecha futura cae en FECHA_BAJA_FUTURA. No existe ninguna fecha_baja valida para un activo creado el mismo dia. Por eso se usa un lote creado en un dia anterior.');",
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el lote de referencia existe y responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Precondicion: el activo es POBLACIONAL, esta ACTIVO y tiene existencia suficiente para la baja parcial', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.tipo).to.equal('POBLACIONAL');",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.be.above(50);",
+              "});",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.collectionVariables.set('cantidad_actual_antes_g113', respuesta.detalle_poblacional.cantidad_actual);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, paso 2/3 (TC-M02-113) - Baja PARCIAL de lote (cantidad_afectada=50)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3 (BUG NUEVO): baja parcial de lote, cantidad_afectada=50, sobre un activo de un dia anterior (sin el problema de fecha_coherente) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 3 paso 2 (BUG): la baja parcial responde 400 VALOR_FUERA_DE_RANGO en vez de 201 -- confirmado 100% reproducible en dos lotes distintos (id_activo_g113 y activo 61) en esta sesion', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 3 paso 2 (BUG): codigo de negocio VALOR_FUERA_DE_RANGO (DataError sin especificar campo)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VALOR_FUERA_DE_RANGO');",
+              "});",
+              "console.log('CONCLUSION sub-caso 3: el mensaje exacto (\"El valor excede el tamano o formato permitido por la base de datos\") viene especificamente de raise_from_db_error() para DataError -- se origina dentro de SqlAlchemyEventoActivoRepository.guardar() (evento_activo_repository.py, unico lugar que produce ese mensaje exacto), es decir en el INSERT de eventos_activos+eventos_bajas o en un trigger disparado por ese INSERT, NO en actualizar_detalle_poblacional (que no tiene try/except y hubiera dado el mensaje generico distinto \"Ocurrio un error interno...\"). Se descartaron por analisis de esquema: los triggers trg_baja_cantidad_valida/trg_baja_actualizar_cantidad_lote (comparan v_tipo_activo=zpoblacionalz en minuscula contra el enum real POBLACIONAL en mayuscula -- nunca coinciden, son no-op, otro bug menor independiente), trg_evento_activo_estado_valido (activo sigue ACTIVO, pasa), trg_evento_fecha_coherente (fecha del lote de referencia es de un dia anterior, pasa), trg_fn_poblacional_cantidad_inmutable (cantidad_actual resultante >=0, pasa), y el trigger de auditoria generico (columnas destino son text/jsonb sin limite). Causa raiz exacta no confirmada sin acceso a logs del servidor o DB esta sesion -- vale la pena revisarla con logs en mano.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-09\",\n  \"motivo_baja\": \"TC-M02-113 - venta parcial del lote (prueba QA)\",\n  \"cantidad_afectada\": 50\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3, paso 3/3 (TC-M02-113) - Verificar que la transaccion fallida no dejo cantidad_actual inconsistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 3, paso 3: consulta directa del activo tras el intento fallido de baja parcial ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 3 paso 3: la consulta del activo responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 3 paso 3: cantidad_actual NO cambio (el rollback de la transaccion fallida preservo la integridad de los datos)', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('cantidad_actual_antes_g113'), 10);",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.equal(antes);",
+              "});",
+              "pm.test('Sub-caso 3 paso 3: el lote sigue en estado ACTIVO', function () {",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "    pm.expect(respuesta.nombre_estado).to.equal('ACTIVO');",
+              "});",
+              "console.log('CONCLUSION sub-caso 3: aunque la baja parcial FALLA (bug), el rollback funciona correctamente -- no queda un estado inconsistente a medio aplicar. El camino feliz de RF-45 para bajas parciales de lote esta bloqueado hoy en TEST.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g113}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g113}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_ciclo_productivo_cachama", "value": "4" },
+    { "key": "id_activo_g106", "value": "" },
+    { "key": "id_activo_g112", "value": "" },
+    { "key": "id_activo_g113", "value": "60" },
+    { "key": "cantidad_actual_antes_g113", "value": "" }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "info": {
+    "name": "TC-M01-049",
+    "description": "Rendimiento: POST /contrasena/recuperar debe responder en menos de 1 segundo. Mide EXTREMO A EXTREMO (incluye el envio real de correo), asi que consume 1 solicitud de tu cupo de 3/hora POR CADA repeticion -- corre solo con las que tengas disponibles ahora mismo (ver instrucciones). Ejecutar con: newman run tc-m01-049.json -n <numero_de_repeticiones_disponibles> --reporters \"cli,htmlextra\" --reporter-htmlextra-export resultado-049-newman.html",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_cuenta", "value": "danielacastillovargas09@gmail.com" },
+    { "key": "tiempos_acumulados", "value": "[]" }
+  ],
+  "item": [
+    {
+      "name": "Solicitar recuperacion (medir tiempo de respuesta)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "// Acumula el tiempo de esta repeticion en una lista guardada como variable de coleccion",
+        "var tiempos = JSON.parse(pm.collectionVariables.get('tiempos_acumulados') || '[]');",
+        "tiempos.push(pm.response.responseTime);",
+        "pm.collectionVariables.set('tiempos_acumulados', JSON.stringify(tiempos));",
+        "",
+        "console.log('[Iteracion ' + (pm.info.iteration + 1) + '/' + pm.info.iterationCount + '] status=' + pm.response.code + ' tiempo=' + pm.response.responseTime + 'ms');",
+        "",
+        "pm.test('Responde 202 Accepted (si sale 422, ya se agoto el cupo de 3/hora)', function () {",
+        "    pm.response.to.have.status(202);",
+        "});",
+        "",
+        "pm.test('TC-M01-049: la peticion completa (incluye envio de correo) responde en menos de 1000ms', function () {",
+        "    pm.expect(pm.response.responseTime, ",
+        "        'Tiempo de respuesta: ' + pm.response.responseTime + 'ms. Si esto falla, revisar si es por ' +",
+        "        'el envio sincronico de correo (send_email se llama dentro del mismo request en ' +",
+        "        'solicitar_recuperacion_use_case.py) y no por la generacion del token en si -- ver el ' +",
+        "        'archivo Pytest tc_m01_049_tiempo_generacion_token.py, que mide SOLO la generacion del ' +",
+        "        'token de forma aislada, sin el correo, para comparar.'",
+        "    ).to.be.below(1000);",
+        "});",
+        "",
+        "// En la ultima iteracion, calcula e imprime el promedio de todas las repeticiones",
+        "if (pm.info.iteration === pm.info.iterationCount - 1) {",
+        "    var suma = tiempos.reduce(function (a, b) { return a + b; }, 0);",
+        "    var promedio = suma / tiempos.length;",
+        "    console.log('=== RESUMEN TC-M01-049 (Newman, extremo a extremo) ===');",
+        "    console.log('Repeticiones reales ejecutadas: ' + tiempos.length + ' (la ficha pide 10; si es menos, fue por el limite de 3/hora)');",
+        "    console.log('Tiempos individuales (ms): ' + JSON.stringify(tiempos));",
+        "    console.log('Promedio: ' + promedio.toFixed(1) + ' ms');",
+        "    console.log('Minimo: ' + Math.min.apply(null, tiempos) + ' ms | Maximo: ' + Math.max.apply(null, tiempos) + ' ms');",
+        "}"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_cuenta}}\"\n}" },
+        "url": "{{base_url}}/contrasena/recuperar"
+      }
+    }
+  ]
+}

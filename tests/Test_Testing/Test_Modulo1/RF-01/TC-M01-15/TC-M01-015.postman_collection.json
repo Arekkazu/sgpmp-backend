@@ -1,0 +1,78 @@
+{
+  "info": {
+    "name": "RF-01/RF-03 - TC-M01-015 Rol no forzable por el usuario",
+    "description": "Coleccion para TC-M01-015: el sistema debe ignorar cualquier valor de rol enviado en el payload de registro y asignar siempre el rol por defecto (Productor). Prueba dos variantes de inyeccion: campo 'rol' (string) y campo 'id_rol' (numerico, intentando forzar el id del rol Administrador). Despues de correr esto, consultar la BD para confirmar el id_rol real asignado a ambas cuentas.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Escenario 1 - Payload con campo 'rol': 'ADMINISTRADOR'",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 1: el registro no falla por el campo extra rol (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "console.log('Escenario 1: ' + pm.response.code + ' - ' + pm.response.text());",
+              "console.log('AHORA CONSULTA LA BD: correo tc015a.qa@sgpmp-test.com debe tener id_rol de PRODUCTOR, no Administrador.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc015a.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550518\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000518\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Rol Forzado String\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\",\n  \"rol\": \"ADMINISTRADOR\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 - Payload con campo 'id_rol': 1 (intentando forzar Administrador)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Escenario 2: el registro no falla por el campo extra id_rol (201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "console.log('Escenario 2: ' + pm.response.code + ' - ' + pm.response.text());",
+              "console.log('AHORA CONSULTA LA BD: correo tc015b.qa@sgpmp-test.com debe tener id_rol de PRODUCTOR (no 1, que es Administrador).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc015b.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550519\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000519\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Rol Forzado Numerico\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"confirmar_contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\",\n  \"id_rol\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

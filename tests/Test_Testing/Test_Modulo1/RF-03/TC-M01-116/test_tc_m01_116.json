@@ -1,0 +1,125 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-116-consultar-roles",
+    "name": "TC-M01-116 - Consultar los roles registrados en el sistema",
+    "description": "Validar mediante prueba de contrato API que un usuario administrador puede consultar correctamente los roles registrados en el sistema.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.expect(response.token).to.be.a('string');",
+              "",
+              "    pm.collectionVariables.set('tokenAdmin', response.token);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar los roles registrados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/roles/",
+          "protocol": "https",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe consultar correctamente los roles registrados', function () {",
+              "    pm.response.to.have.status(200);",
+              "",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response).to.be.an('array');",
+              "});",
+              "",
+              "pm.test('Debe devolver al menos un rol registrado', function () {",
+              "    const response = pm.response.json();",
+              "",
+              "    pm.expect(response.length).to.be.greaterThan(0);",
+              "});",
+              "",
+              "pm.test('Cada rol debe contener los campos esperados', function () {",
+              "    const response = pm.response.json();",
+              "",
+              "    response.forEach(function (rol) {",
+              "        pm.expect(rol).to.have.property('id_rol');",
+              "        pm.expect(rol).to.have.property('nombre_rol');",
+              "        pm.expect(rol).to.have.property('descripcion');",
+              "        pm.expect(rol).to.have.property('es_protegido');",
+              "        pm.expect(rol).to.have.property('permisos');",
+              "",
+              "        pm.expect(rol.id_rol).to.be.a('number');",
+              "        pm.expect(rol.nombre_rol).to.be.a('string');",
+              "        pm.expect(rol.es_protegido).to.be.a('boolean');",
+              "        pm.expect(rol.permisos).to.be.an('array');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,254 @@
+{
+  "info": {
+    "name": "TC-M09-G24 - niveles de alerta (fuera de rango, solapamiento, continuidad)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-52",
+      "item": [
+        {
+          "name": "TC-M09-52 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "const fuera=p.niveles.filter(n=>num(n.limite_inferior)<num(p.valor_min)||num(n.limite_superior)>num(p.valor_max));",
+                  "pm.test('Payload valido salvo un unico nivel fuera del rango padre',()=>{pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max));p.niveles.forEach(n=>pm.expect(num(n.limite_inferior)).to.be.below(num(n.limite_superior)));pm.expect(fuera).to.have.lengthOf(1);pm.expect(fuera[0].nivel).to.eql('critico');pm.expect(num(fuera[0].limite_superior)).to.be.above(num(p.valor_max));});",
+                  "pm.test('HTTP exactamente 400',()=>pm.response.to.have.status(400));",
+                  "pm.test('Respuesta indica nivel fuera del rango general',()=>{pm.expect(b.error_code).to.eql('NIVEL_FUERA_DE_RANGO');pm.expect(b.message).to.include('cae fuera del rango general');pm.expect(b.message).to.include(fuera[0].nivel);});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-52 GET verificacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const idVar=Number(pm.environment.get('id_variable'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Combinacion no persistida (activa ni inactiva)',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===idVar)).to.have.lengthOf(0);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-53",
+      "item": [
+        {
+          "name": "TC-M09-53 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "const o=ord(p.niveles);const solapes=[];for(let i=0;i<o.length-1;i++)if(num(o[i].limite_superior)>num(o[i+1].limite_inferior))solapes.push([o[i].nivel,o[i+1].nivel,num(o[i+1].limite_inferior),num(o[i].limite_superior)]);",
+                  "pm.test('Payload valido salvo un unico solapamiento intencional',()=>{pm.expect(p.niveles).to.have.lengthOf(3);pm.expect(num(p.valor_min)).to.be.below(num(p.valor_max));p.niveles.forEach(n=>{pm.expect(num(n.limite_inferior)).to.be.below(num(n.limite_superior));pm.expect(num(n.limite_inferior)).to.be.at.least(num(p.valor_min));pm.expect(num(n.limite_superior)).to.be.at.most(num(p.valor_max));});pm.expect(num(o[0].limite_inferior)).to.eql(num(p.valor_min));pm.expect(num(o[2].limite_superior)).to.eql(num(p.valor_max));pm.expect(solapes,'un unico solapamiento y ningun hueco').to.have.lengthOf(1);});",
+                  "pm.test('HTTP exactamente 422 (BusinessRuleError SOLAPAMIENTO_NIVELES, contrato real de RF-17)',()=>pm.response.to.have.status(422));",
+                  "pm.test('Respuesta identifica el solapamiento probado y no otra regla',()=>{pm.expect(b.error_code).to.eql('SOLAPAMIENTO_NIVELES');pm.expect(b.message).to.include('sin huecos ni solapamientos');pm.expect(b.message).to.include(solapes[0][0]);pm.expect(b.message).to.include(String(solapes[0][2]));});",
+                  "pm.test('Sin ID creado',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b).not.to.have.property('id');});",
+                  "pm.test('Sin estado de creacion exitosa',()=>{pm.expect(b.es_activo).not.to.eql(true);pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.eql(201);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-53 GET verificacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const idVar=Number(pm.environment.get('id_variable'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Combinacion no persistida (activa ni inactiva)',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_variable_ambiental===idVar)).to.have.lengthOf(0);});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-54",
+      "item": [
+        {
+          "name": "TC-M09-54 POST umbral",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": {
+              "mode": "raw",
+              "raw": "{{payload}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "pm.test('POST enviado y respondido por el servidor',()=>{pm.expect(pm.response.code).to.be.a('number');pm.expect(pm.response.responseTime).to.be.a('number');});",
+                  "pm.test('HTTP exactamente 201',()=>pm.response.to.have.status(201));",
+                  "pm.test('ID creado positivo',()=>{pm.expect(b.id_umbral_ambiental).to.be.a('number');pm.expect(b.id_umbral_ambiental).to.be.above(0);pm.environment.set('id_creado',String(b.id_umbral_ambiental));});",
+                  "pm.test('Especie y variable correctas',()=>{pm.expect(b.id_especie).to.eql(p.id_especie);pm.expect(b.id_variable_ambiental).to.eql(p.id_variable_ambiental);});",
+                  "pm.test('Estado activo',()=>pm.expect(b.es_activo).to.eql(true));",
+                  "pm.test('valor_min y valor_max correctos',()=>{pm.expect(num(b.valor_min)).to.eql(num(p.valor_min));pm.expect(num(b.valor_max)).to.eql(num(p.valor_max));});",
+                  "pm.test('Exactamente tres niveles',()=>pm.expect(b.niveles).to.have.lengthOf(3));",
+                  "pm.test('Niveles esperados',()=>{p.niveles.forEach(esp=>{const real=b.niveles.find(n=>n.nivel===esp.nivel);pm.expect(real,esp.nivel).to.not.be.undefined;pm.expect(num(real.limite_inferior)).to.eql(num(esp.limite_inferior));pm.expect(num(real.limite_superior)).to.eql(num(esp.limite_superior));});});",
+                  "pm.test('Continuidad matematica de los niveles',()=>{const o=ord(b.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel+' inferior<superior').to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior),'nivel1.inferior==valor_min').to.eql(num(b.valor_min));pm.expect(num(o[0].limite_superior),'nivel1.superior==nivel2.inferior').to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior),'nivel2.superior==nivel3.inferior').to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior),'nivel3.superior==valor_max').to.eql(num(b.valor_max));});",
+                  "pm.test('Ausencia de solapamiento',()=>{const o=ord(b.niveles);for(let i=0;i<o.length-1;i++)pm.expect(num(o[i].limite_superior),'sin solapamiento').to.be.at.most(num(o[i+1].limite_inferior));});",
+                  "pm.test('Cobertura completa del rango padre',()=>{const o=ord(b.niveles);const suma=o.reduce((acc,n)=>acc+(num(n.limite_superior)-num(n.limite_inferior)),0);pm.expect(Math.round(suma*100)/100,'cobertura completa sin huecos').to.eql(Math.round((num(b.valor_max)-num(b.valor_min))*100)/100);});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M09-54 GET verificacion",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const b=pm.response.json();",
+                  "const p=JSON.parse(pm.environment.get('payload'));",
+                  "const num=x=>Number(x);",
+                  "const ord=ns=>[...ns].sort((x,y)=>num(x.limite_inferior)-num(y.limite_inferior));",
+                  "const id=Number(pm.environment.get('id_creado'));",
+                  "pm.test('GET posterior HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('Registro creado presente exactamente una vez',()=>{pm.expect(b.items).to.be.an('array');pm.expect(b.items.filter(u=>u.id_umbral_ambiental===id)).to.have.lengthOf(1);pm.expect(b.items.filter(u=>u.id_variable_ambiental===p.id_variable_ambiental)).to.have.lengthOf(1);});",
+                  "pm.test('Valores persistidos conservados',()=>{const u=b.items.find(x=>x.id_umbral_ambiental===id);pm.expect(u.id_especie).to.eql(p.id_especie);pm.expect(u.id_variable_ambiental).to.eql(p.id_variable_ambiental);pm.expect(u.es_activo).to.eql(true);pm.expect(num(u.valor_min)).to.eql(num(p.valor_min));pm.expect(num(u.valor_max)).to.eql(num(p.valor_max));pm.expect(u.niveles).to.have.lengthOf(3);p.niveles.forEach(esp=>{const real=u.niveles.find(n=>n.nivel===esp.nivel);pm.expect(real,esp.nivel).to.not.be.undefined;pm.expect(num(real.limite_inferior)).to.eql(num(esp.limite_inferior));pm.expect(num(real.limite_superior)).to.eql(num(esp.limite_superior));});});",
+                  "pm.test('Continuidad persistida sin huecos ni solapamientos',()=>{const u=b.items.find(x=>x.id_umbral_ambiental===id);{const o=ord(u.niveles);o.forEach(n=>pm.expect(num(n.limite_inferior),n.nivel+' inferior<superior').to.be.below(num(n.limite_superior)));pm.expect(num(o[0].limite_inferior),'nivel1.inferior==valor_min').to.eql(num(u.valor_min));pm.expect(num(o[0].limite_superior),'nivel1.superior==nivel2.inferior').to.eql(num(o[1].limite_inferior));pm.expect(num(o[1].limite_superior),'nivel2.superior==nivel3.inferior').to.eql(num(o[2].limite_inferior));pm.expect(num(o[2].limite_superior),'nivel3.superior==valor_max').to.eql(num(u.valor_max));}{const o=ord(u.niveles);for(let i=0;i<o.length-1;i++)pm.expect(num(o[i].limite_superior),'sin solapamiento').to.be.at.most(num(o[i+1].limite_inferior));}{const o=ord(u.niveles);const suma=o.reduce((acc,n)=>acc+(num(n.limite_superior)-num(n.limite_inferior)),0);pm.expect(Math.round(suma*100)/100,'cobertura completa sin huecos').to.eql(Math.round((num(u.valor_max)-num(u.valor_min))*100)/100);}});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

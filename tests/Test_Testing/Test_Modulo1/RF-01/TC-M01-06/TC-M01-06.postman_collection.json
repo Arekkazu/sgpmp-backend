@@ -1,0 +1,57 @@
+{
+  "info": {
+    "name": "RF-01 - TC-M01-06 Contrasena limite inferior aceptada",
+    "description": "Coleccion para RF-01 / TC-M01-06: contrasena de exactamente 8 caracteres cumpliendo mayuscula, numero y caracter especial debe ser aceptada (registro exitoso). Valor limite inferior. Disenada para ejecutarse junto a TC-M01-07 (limite inferior no aceptado, 7 caracteres).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M01-06 - Contrasena de 8 caracteres (limite inferior) debe ser aceptada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-06: se acepta el registro (201) o ya se habia creado en una corrida anterior (409)', function () {",
+              "    pm.expect([201, 409]).to.include(pm.response.code);",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    pm.test('TC-M01-06: el 201 devuelve informacion del usuario creado', function () {",
+              "        let json = pm.response.json();",
+              "        pm.expect(json).to.not.be.null;",
+              "    });",
+              "    console.log('Registro exitoso con contrasena de 8 caracteres (limite inferior). Resultado esperado: ACEPTADO.');",
+              "} else if (pm.response.code === 409) {",
+              "    console.log('El usuario tc0506.qa@sgpmp-test.com ya existia de una corrida anterior. La contrasena de 8 caracteres SI fue aceptada en su momento (por eso llego a validar duplicados). Resultado: ACEPTADO (evidencia indirecta).');",
+              "}",
+              "",
+              "pm.test('TC-M01-06: no se rechaza por HTTP 400 (validacion de contrasena)', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(400);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"tc0506.qa@sgpmp-test.com\",\n  \"telefono\": \"3125550506\",\n  \"tipo_identificacion\": \"CC\",\n  \"numero_identificacion\": \"990000506\",\n  \"nombre\": \"Prueba\",\n  \"apellidos\": \"Limite Inferior\",\n  \"fecha_nacimiento\": \"1998-04-12\",\n  \"genero\": \"F\",\n  \"contrasena\": \"Abcd12#3\",\n  \"direccion\": \"Cl 10 #8-20, Neiva\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/usuarios/",
+          "host": ["{{base_url}}"],
+          "path": ["usuarios", ""]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" }
+  ]
+}

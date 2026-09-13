@@ -1,0 +1,139 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-125-rbac-activos-biologicos",
+    "name": "TC-M01-125 - Acceder a un recurso con un permiso autorizado",
+    "description": "Caso de prueba de autorización RBAC. La documentación inicial del caso indicaba solicitar GET /activos para validar el permiso activos:ver. Durante la verificación contra la especificación OpenAPI oficial del backend desplegado en TEST se confirmó que la ruta /activos no existe y que el recurso equivalente registrado es GET /activos-biologicos. Por esta razón, el caso se ejecuta contra la ruta oficial /activos-biologicos para validar correctamente el acceso autorizado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Iniciar sesión con usuario autorizado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        },
+        "description": "Se inicia sesión con un usuario de pruebas proporcionado por desarrollo y se obtiene el token de autenticación."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Respuesta login:', pm.response.text());",
+              "",
+              "pm.test('Debe iniciar sesión correctamente con el usuario autorizado', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "var jsonData = pm.response.json();",
+              "console.log('Respuesta JSON login:', jsonData);",
+              "",
+              "pm.test('La respuesta debe contener un token de autenticación', function () {",
+              "    pm.expect(jsonData.token).to.exist;",
+              "    pm.expect(jsonData.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', jsonData.token);",
+              "console.log('Token guardado correctamente');"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Acceder al recurso Activos Biológicos con permiso autorizado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        },
+        "description": "CORRECCIÓN DOCUMENTADA: El caso de prueba original indicaba GET /activos. Durante la verificación de la especificación OpenAPI oficial del backend TEST se confirmó que /activos no existe. El endpoint oficial registrado para listar el recurso es GET /activos-biologicos, por lo que se utiliza esta ruta para ejecutar correctamente la validación de autorización."
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('Ruta utilizada para la prueba: GET /activos-biologicos');",
+              "console.log('Corrección aplicada: la documentación inicial indicaba GET /activos, pero la especificación OpenAPI oficial registra GET /activos-biologicos.');",
+              "console.log('Respuesta acceso a Activos Biológicos:', pm.response.text());",
+              "",
+              "pm.test('Debe permitir el acceso al recurso Activos Biológicos', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "pm.test('El acceso no debe ser rechazado por falta de autenticación o autorización', function () {",
+              "    pm.expect(pm.response.code).to.not.equal(401);",
+              "    pm.expect(pm.response.code).to.not.equal(403);",
+              "});",
+              "",
+              "var jsonData;",
+              "",
+              "try {",
+              "    jsonData = pm.response.json();",
+              "    console.log('Respuesta JSON Activos Biológicos:', jsonData);",
+              "} catch (error) {",
+              "    console.log('La respuesta no pudo interpretarse como JSON:', pm.response.text());",
+              "    throw error;",
+              "}",
+              "",
+              "pm.test('La respuesta debe contener contenido', function () {",
+              "    pm.expect(jsonData).to.exist;",
+              "});",
+              "",
+              "pm.test('La respuesta debe corresponder a una estructura válida de listado', function () {",
+              "    pm.expect(jsonData).to.be.an('object');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}

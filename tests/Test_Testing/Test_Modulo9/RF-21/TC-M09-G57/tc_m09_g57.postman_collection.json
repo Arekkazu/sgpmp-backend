@@ -1,0 +1,457 @@
+{
+  "info": {
+    "name": "TC-M09-G57 - Identificador interno unico y consulta de dispositivos IoT registrados",
+    "description": "TC-M09-G57 (RF-21, CU-05 Gestionar Dispositivos IoT) agrupa 2 escenarios, equivalentes a TC-M09-112 y TC-M09-114:\n\n1. El sistema genera automaticamente un identificador interno unico (id_dispositivo_iot) para cada dispositivo registrado. Se registran 3 dispositivos con seriales validos y distintos, y se confirma que el id que asigna el backend a cada uno es distinto de los demas (sin repetirse).\n2. El sistema permite consultar los dispositivos IoT registrados: se consulta el listado GET /configuracion/dispositivos-iot y se confirma que incluye los 3 dispositivos recien creados, y se consulta el detalle GET /configuracion/dispositivos-iot/{id} de uno de ellos confirmando que devuelve exactamente los datos con los que fue creado.\n\nReutiliza un area productiva activa ya existente en TEST (finca_id=1) y el primer tipo de dispositivo del catalogo (RF-23, solo lectura) - ninguno de los dos forma parte de lo que este TC verifica.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas de integracion - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: ambas son verificaciones simples via API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos un area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').that.is.not.empty;",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa', respuesta.items[0].id_infraestructura);",
+              "    console.log('Area activa elegida: id_infraestructura=' + respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-112) - Registrar dispositivo A y capturar su identificador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro dispositivo A ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Dispositivo A: el registro responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.test('Dispositivo A: el backend asigna un id_dispositivo_iot numerico valido', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.a('number');",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.above(0);",
+              "    });",
+              "    pm.collectionVariables.set('id_dispositivo_a', respuesta.id_dispositivo_iot);",
+              "    pm.collectionVariables.set('serial_a', respuesta.serial);",
+              "    console.log('Dispositivo A creado: id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ', serial=' + respuesta.serial);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G57-A-{{run_id}}\",\n  \"descripcion\": \"Dispositivo A de prueba TC-M09-G57 (identificador unico)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-112) - Registrar dispositivo B y comparar identificador contra A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro dispositivo B ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Dispositivo B: el registro responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    const idA = Number(pm.collectionVariables.get('id_dispositivo_a'));",
+              "",
+              "    pm.test('Dispositivo B: el backend asigna un id_dispositivo_iot numerico valido', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.a('number');",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.be.above(0);",
+              "    });",
+              "",
+              "    pm.test('Dispositivo B: su identificador es distinto del asignado al dispositivo A', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.not.equal(idA);",
+              "    });",
+              "",
+              "    pm.collectionVariables.set('id_dispositivo_b', respuesta.id_dispositivo_iot);",
+              "    pm.collectionVariables.set('serial_b', respuesta.serial);",
+              "    console.log('Dispositivo B creado: id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ', serial=' + respuesta.serial);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G57-B-{{run_id}}\",\n  \"descripcion\": \"Dispositivo B de prueba TC-M09-G57 (identificador unico)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-112) - Registrar dispositivo C y confirmar unicidad contra A y B",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Registro dispositivo C ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Dispositivo C: el registro responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    const idA = Number(pm.collectionVariables.get('id_dispositivo_a'));",
+              "    const idB = Number(pm.collectionVariables.get('id_dispositivo_b'));",
+              "    const idC = respuesta.id_dispositivo_iot;",
+              "",
+              "    pm.test('Dispositivo C: el backend asigna un id_dispositivo_iot numerico valido', function () {",
+              "        pm.expect(idC).to.be.a('number');",
+              "        pm.expect(idC).to.be.above(0);",
+              "    });",
+              "",
+              "    pm.test('Dispositivo C: su identificador es distinto de los asignados a A y B', function () {",
+              "        pm.expect(idC).to.not.equal(idA);",
+              "        pm.expect(idC).to.not.equal(idB);",
+              "    });",
+              "",
+              "    pm.collectionVariables.set('id_dispositivo_c', idC);",
+              "    pm.collectionVariables.set('serial_c', respuesta.serial);",
+              "",
+              "    const idsGenerados = [idA, idB, idC];",
+              "    const idsUnicos = new Set(idsGenerados);",
+              "    console.log('Identificadores generados en esta corrida: ' + JSON.stringify(idsGenerados));",
+              "",
+              "    pm.test('CONCLUSION escenario 1: los 3 identificadores generados son unicos entre si (sin repetirse)', function () {",
+              "        pm.expect(idsUnicos.size).to.equal(idsGenerados.length);",
+              "    });",
+              "",
+              "    console.log('Dispositivo C creado: id_dispositivo_iot=' + idC + ', serial=' + respuesta.serial);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G57-C-{{run_id}}\",\n  \"descripcion\": \"Dispositivo C de prueba TC-M09-G57 (identificador unico)\",\n  \"id_infraestructura\": {{id_infraestructura_activa}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (TC-M09-114) - Consultar el listado y confirmar que incluye A, B y C",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Listado de dispositivos IoT activos ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2: el listado de dispositivos IoT responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const idA = Number(pm.collectionVariables.get('id_dispositivo_a'));",
+              "    const idB = Number(pm.collectionVariables.get('id_dispositivo_b'));",
+              "    const idC = Number(pm.collectionVariables.get('id_dispositivo_c'));",
+              "    const idsEnListado = (respuesta.items || []).map(function (d) { return d.id_dispositivo_iot; });",
+              "",
+              "    pm.test('Escenario 2: el listado incluye el dispositivo A recien creado', function () {",
+              "        pm.expect(idsEnListado).to.include(idA);",
+              "    });",
+              "    pm.test('Escenario 2: el listado incluye el dispositivo B recien creado', function () {",
+              "        pm.expect(idsEnListado).to.include(idB);",
+              "    });",
+              "    pm.test('Escenario 2: el listado incluye el dispositivo C recien creado', function () {",
+              "        pm.expect(idsEnListado).to.include(idC);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION escenario 2 (listado): los 3 dispositivos registrados en esta corrida son consultables via GET /configuracion/dispositivos-iot.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot?solo_activos=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ],
+          "query": [
+            { "key": "solo_activos", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (TC-M09-114) - Consultar el detalle del dispositivo A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Detalle del dispositivo A (id ' + pm.collectionVariables.get('id_dispositivo_a') + ') ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2: la consulta de detalle del dispositivo A responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const idA = Number(pm.collectionVariables.get('id_dispositivo_a'));",
+              "    const serialA = pm.collectionVariables.get('serial_a');",
+              "    const idInfraEsperado = Number(pm.collectionVariables.get('id_infraestructura_activa'));",
+              "",
+              "    pm.test('Escenario 2: el detalle devuelve el mismo id_dispositivo_iot consultado', function () {",
+              "        pm.expect(respuesta.id_dispositivo_iot).to.equal(idA);",
+              "    });",
+              "    pm.test('Escenario 2: el detalle devuelve el serial con el que se creo el dispositivo A', function () {",
+              "        pm.expect(respuesta.serial).to.equal(serialA);",
+              "    });",
+              "    pm.test('Escenario 2: el detalle confirma la asociacion al area productiva original', function () {",
+              "        pm.expect(respuesta.id_infraestructura).to.equal(idInfraEsperado);",
+              "    });",
+              "",
+              "    console.log('CONCLUSION escenario 2 (detalle): GET /configuracion/dispositivos-iot/{id} devuelve exactamente los datos del dispositivo creado.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_a}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo_a}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura_activa", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_a", "value": "" },
+    { "key": "id_dispositivo_b", "value": "" },
+    { "key": "id_dispositivo_c", "value": "" },
+    { "key": "serial_a", "value": "" },
+    { "key": "serial_b", "value": "" },
+    { "key": "serial_c", "value": "" }
+  ]
+}

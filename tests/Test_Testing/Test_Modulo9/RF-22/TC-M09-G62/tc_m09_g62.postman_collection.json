@@ -1,0 +1,767 @@
+{
+  "info": {
+    "name": "TC-M09-G62 - Validaciones de integridad al asociar sensores a areas productivas",
+    "description": "TC-M09-G62 (RF-22, CU-05 Gestionar Dispositivos IoT) agrupa 5 escenarios de validacion/rechazo sobre POST /configuracion/sensores/{id_sensor}/asociar (AsociarSensorAreaUseCase), equivalentes a TC-M09-118, 119, 120, 121 y 123:\n\n1. Existencia de sensor y dispositivo antes de asociar.\n2. Solo se puede asociar un sensor con el dispositivo al que realmente pertenece.\n3. El area debe existir y estar activa (inexistente / inactiva).\n4. No se permite una asociacion duplicada ya vigente (mismo sensor + misma area).\n5. Un sensor no puede tener mas de una asociacion activa simultanea (reasignar a otra area exige confirmar=true).\n\nContrato real verificado en el codigo (AsociarSensorAreaUseCase.execute(), src/configuration/application/use_cases/sensores/asociar_sensor_area_use_case.py):\n- Sensor inexistente -> NotFoundError, HTTP 404, error_code SENSOR_NO_ENCONTRADO.\n- IMPORTANTE (hallazgo de esta prueba): el use case NO recibe un repositorio de dispositivos IoT y por lo tanto NO valida por separado que id_dispositivo_iot exista - solo compara sensor.id_dispositivo_iot != dto.id_dispositivo_iot. Un id_dispositivo_iot inventado (que no coincide con el dispositivo real del sensor) cae en el MISMO error que un dispositivo real pero equivocado: BusinessRuleError, HTTP 422, error_code SENSOR_DISPOSITIVO_INVALIDO. No existe un error distinto tipo 'DISPOSITIVO_NO_ENCONTRADO' en este endpoint. El enunciado 'debe validar la existencia del dispositivo' se cumple entonces de forma indirecta, a traves de la relacion sensor-dispositivo, no con una busqueda propia del dispositivo.\n- Area inexistente -> NotFoundError, HTTP 404, error_code AREA_NO_ENCONTRADA.\n- Area inactiva -> BusinessRuleError, HTTP 422, error_code AREA_NO_DISPONIBLE.\n- Asociacion duplicada (mismo sensor + misma area ya vigente) -> ConflictError, HTTP 409, error_code ASOCIACION_DUPLICADA.\n- Reasignacion a otra area sin confirmar=true -> ConflictError, HTTP 409, error_code REASIGNACION_REQUIERE_CONFIRMACION (esto es lo que impone 'maximo una asociacion activa por sensor': la unica forma de tener una segunda asociacion es confirmar explicitamente que termina la anterior).\n\nLa coleccion es autocontenida: registra sus propios dispositivos (A y B) y un sensor sobre el dispositivo A, reutiliza dos areas productivas activas ya existentes en TEST (finca_id=1) para el escenario 5, y reutiliza el area manualmente desactivada en BD para TC-M09-G56 (modulo9.infraestructuras id=12, 'Area Test Gap') para el escenario 3b - ver esa coleccion para el detalle de por que se preparo asi (POST /configuracion/infraestructuras esta roto, 500, no se puede crear+desactivar una nueva).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas de integracion - Prueba de contrato de API (peticion/respuesta) sobre el backend desplegado en TEST. Herramienta: Newman. Nota: mismo patron de rechazo por reglas de integridad sobre la entidad 'asociacion', repetido en distintas condiciones.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar areas productivas activas existentes (al menos 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existen al menos 2 areas productivas activas disponibles', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(2);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length >= 2) {",
+              "    pm.collectionVariables.set('id_infraestructura_activa_1', respuesta.items[0].id_infraestructura);",
+              "    pm.collectionVariables.set('id_infraestructura_activa_2', respuesta.items[1].id_infraestructura);",
+              "    console.log('Area activa 1: id_infraestructura=' + respuesta.items[0].id_infraestructura + ' (' + respuesta.items[0].nombre_infraestructura + ')');",
+              "    console.log('Area activa 2: id_infraestructura=' + respuesta.items[1].id_infraestructura + ' (' + respuesta.items[1].nombre_infraestructura + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Confirmar que el area de referencia inactiva sigue inactiva (BD, ver TC-M09-G56)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificando area inactiva de referencia (id=' + pm.collectionVariables.get('id_infraestructura_inactiva') + ') ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: la consulta del area inactiva de referencia responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta) {",
+              "    pm.test('Precondicion: el area de referencia sigue inactiva (preparada manualmente en BD para TC-M09-G56)', function () {",
+              "        pm.expect(respuesta.es_activo, 'el area ' + respuesta.id_infraestructura + ' (' + respuesta.nombre_infraestructura + ') ya no esta inactiva - reactivarla en BD si el equipo lo necesito para otra cosa').to.equal(false);",
+              "    });",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura_inactiva}}",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras", "{{id_infraestructura_inactiva}}" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    pm.collectionVariables.set('id_tipo_dispositivo', respuesta.items[0].id_tipo_dispositivo);",
+              "    console.log('id_tipo_dispositivo elegido: ' + respuesta.items[0].id_tipo_dispositivo);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT A (dueno real del sensor)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo A responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_a', respuesta.id_dispositivo_iot);",
+              "    console.log('id_dispositivo_a: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G62-A-{{run_id}}\",\n  \"descripcion\": \"Dispositivo A (dueno del sensor de prueba) - TC-M09-G62\",\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT B (distinto, para el escenario 2)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo B responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo_b', respuesta.id_dispositivo_iot);",
+              "    console.log('id_dispositivo_b: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G62-B-{{run_id}}\",\n  \"descripcion\": \"Dispositivo B (distinto, no dueno del sensor) - TC-M09-G62\",\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar el sensor de prueba sobre el dispositivo A",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del sensor responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensor', respuesta.id_sensores);",
+              "    console.log('id_sensor: ' + respuesta.id_sensores + ' (pertenece a id_dispositivo_iot=' + respuesta.id_dispositivo_iot + ')');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sensor TC-M09-G62 {{run_id}}\",\n  \"categoria\": \"TEMPERATURA\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo_a}}/sensores",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo_a}}", "sensores" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 (TC-M09-118) - Rechazar asociacion con sensor inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 1: id_sensor inexistente (999999) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 1: la asociacion con sensor inexistente responde HTTP 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 1: el error indica SENSOR_NO_ENCONTRADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SENSOR_NO_ENCONTRADO');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 1: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"punto_instalacion\": \"Prueba escenario 1 - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/999999/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "999999", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1b (TC-M09-118) - id_dispositivo_iot inventado (no existe ninguno con ese ID)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 1b: sensor real, id_dispositivo_iot inventado (999999) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 1b: la asociacion con id_dispositivo_iot inventado responde HTTP 422 (no 404 - ver NOTA en la descripcion de la coleccion)', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 1b: el error indica SENSOR_DISPOSITIVO_INVALIDO (el use case no busca el dispositivo por separado)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SENSOR_DISPOSITIVO_INVALIDO');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 1b: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": 999999,\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"punto_instalacion\": \"Prueba escenario 1b - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (TC-M09-119) - Rechazar asociacion cuando el sensor no pertenece al dispositivo indicado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2: sensor pertenece a A, se envia dispositivo B (real, distinto) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 2: la asociacion con el dispositivo equivocado responde HTTP 422', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 2: el error indica SENSOR_DISPOSITIVO_INVALIDO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SENSOR_DISPOSITIVO_INVALIDO');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 2: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_b}},\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"punto_instalacion\": \"Prueba escenario 2 - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3a (TC-M09-120) - Rechazar asociacion con area inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 3a: area inexistente (999999) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 3a: la asociacion con area inexistente responde HTTP 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 3a: el error indica AREA_NO_ENCONTRADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('AREA_NO_ENCONTRADA');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 3a: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": 999999,\n  \"punto_instalacion\": \"Prueba escenario 3a - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 3b (TC-M09-120) - Rechazar asociacion con area inactiva",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 3b: area inactiva (id=' + pm.collectionVariables.get('id_infraestructura_inactiva') + ') ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 3b: la asociacion con area inactiva responde HTTP 422', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 3b: el error indica AREA_NO_DISPONIBLE', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('AREA_NO_DISPONIBLE');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 3b: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": {{id_infraestructura_inactiva}},\n  \"punto_instalacion\": \"Prueba escenario 3b - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion escenarios 4 y 5 - Crear la asociacion vigente (area activa 1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Asociacion vigente base (para probar duplicado y max. una activa) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: la asociacion vigente base responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_sensores_area_asociada_base', respuesta.id_sensores_area_asociada);",
+              "    console.log('Asociacion vigente creada: id_sensores_area_asociada=' + respuesta.id_sensores_area_asociada + ', area=' + respuesta.id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"punto_instalacion\": \"Asociacion vigente base - TC-M09-G62\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 4 (TC-M09-121) - Rechazar la misma asociacion duplicada (mismo sensor, misma area)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 4: reintento de la misma asociacion (mismo sensor + misma area) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 4: la asociacion duplicada responde HTTP 409', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 4: el error indica ASOCIACION_DUPLICADA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ASOCIACION_DUPLICADA');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 4: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": {{id_infraestructura_activa_1}},\n  \"punto_instalacion\": \"Reintento duplicado - TC-M09-G62 escenario 4\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 5 (TC-M09-123) - Rechazar segunda asociacion activa simultanea (otra area, sin confirmar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 5: intento de asociar el mismo sensor a otra area, sin confirmar ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Escenario 5: el intento de segunda asociacion activa responde HTTP 409', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Escenario 5: el error indica REASIGNACION_REQUIERE_CONFIRMACION (asi se impone maximo 1 asociacion activa por sensor)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('REASIGNACION_REQUIERE_CONFIRMACION');",
+              "});",
+              "",
+              "if (respuesta) { console.log('CONCLUSION escenario 5: ' + respuesta.message); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_dispositivo_iot\": {{id_dispositivo_a}},\n  \"id_infraestructura\": {{id_infraestructura_activa_2}},\n  \"punto_instalacion\": \"Intento de segunda asociacion activa - TC-M09-G62 escenario 5\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion final - Confirmar que el sensor sigue con exactamente 1 asociacion activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial de asociaciones del sensor tras todos los intentos rechazados ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Verificacion final: el historial de asociaciones responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    const activas = (respuesta.items || []).filter(function (a) { return a.fecha_finalizacion === null; });",
+              "",
+              "    pm.test('Verificacion final: el sensor tiene exactamente 1 asociacion activa vigente (restriccion aplicada por sensor)', function () {",
+              "        pm.expect(activas.length).to.equal(1);",
+              "    });",
+              "",
+              "    if (activas.length === 1) {",
+              "        pm.test('Verificacion final: la unica asociacion activa es la creada en la precondicion de los escenarios 4 y 5', function () {",
+              "            pm.expect(activas[0].id_sensores_area_asociada).to.equal(Number(pm.collectionVariables.get('id_sensores_area_asociada_base')));",
+              "            pm.expect(activas[0].id_infraestructura).to.equal(Number(pm.collectionVariables.get('id_infraestructura_activa_1')));",
+              "        });",
+              "    }",
+              "",
+              "    console.log('CONCLUSION GENERAL TC-M09-G62: todas las validaciones de integridad de la asociacion sensor-area se aplicaron correctamente; el sensor termino con ' + activas.length + ' asociacion(es) activa(s).');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/asociaciones",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "sensores", "{{id_sensor}}", "asociaciones" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura_activa_1", "value": "" },
+    { "key": "id_infraestructura_activa_2", "value": "" },
+    { "key": "id_infraestructura_inactiva", "value": "12" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo_a", "value": "" },
+    { "key": "id_dispositivo_b", "value": "" },
+    { "key": "id_sensor", "value": "" },
+    { "key": "id_sensores_area_asociada_base", "value": "" }
+  ]
+}

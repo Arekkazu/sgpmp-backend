@@ -1,0 +1,331 @@
+{
+  "info": {
+    "name": "TC-M09-G68 - Configuracion exitosa de un dispositivo IoT conectado con parametros validos",
+    "description": "TC-M09-G68 (RF-23, CU-05 Gestionar Dispositivos IoT), equivalente a TC-M09-130 (camino feliz): configurar remotamente un dispositivo IoT con parametros dentro del rango configurable (frecuencia_captura=10 min, intervalo_transmision=20 min).\n\nDato de prueba de la ficha: 'dispositivo=101; frecuencia=10 min; intervalo=20 min; protocolo=MQTT'. Notas sobre el contrato real verificado en el codigo (ConfigurarRemotamenteUseCase, src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py y ConfigurarRemotamenteDTO):\n- No existe un campo 'protocolo' en el DTO ni en el endpoint: el sistema siempre publica la configuracion via MQTT (BROKER-MQTT-SGPMP) de forma interna, no es una opcion seleccionable por el cliente. El dato 'protocolo=MQTT' de la ficha describe el mecanismo interno, no un parametro de la peticion.\n- 'dispositivo=101' es el ID de ejemplo de la ficha; esta coleccion registra su propio dispositivo IoT fresco (mismo patron que el resto de TCs de M09) en vez de depender de un ID fijo que podria no existir en TEST.\n- IMPORTANTE (hallazgo de esta prueba, confirmado en vivo): el entorno TEST no tiene un broker MQTT real configurado (variables MQTT_BROKER_URL / MQTT_BROKER_TOKEN vacias). Por diseno (ver docstring de MqttHttpAdapter.enviar_configuracion), esto NO es un error: el adaptador nunca lanza excepcion y degrada de forma inmediata (sin espera de ~35s) a estado PENDIENTE, HTTP 202, con el mensaje 'No se pudo contactar al broker MQTT. La configuracion quedara pendiente.' Por eso el 'camino feliz' verificable en este entorno es: parametros validos -> configuracion ACEPTADA y ALMACENADA correctamente (HTTP 202, estado PENDIENTE), no un ACK real de HTTP 200/APLICADA (eso requeriria un dispositivo fisico o un simulador de broker conectado, que no existe en TEST). La coleccion documenta y verifica exactamente esto: la peticion se acepta, los parametros quedan guardados tal cual se enviaron, y la configuracion aparece en el historial del dispositivo.\n\nRBAC verificado: POST /{id}/configurar exige recurso 11 (dispositivos_iot), accion 3 (Actualizar) -- Administrador la tiene.\n\nLa coleccion es autocontenida: registra su propio dispositivo IoT (tipo GENERICO, rango de frecuencia/intervalo 1-1440 min, dentro del cual caen 10 y 20) sobre un area productiva activa ya existente en TEST (finca_id=1).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Pruebas funcionales. Herramienta: Newman. Nota del plan: configuracion via API con verificacion de respuesta y ACK (ver aclaracion arriba sobre el ACK en este entorno).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else {",
+              "    console.log('El login fallo. Se detiene la ejecucion.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar un area productiva activa existente (finca_id=1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta de areas productivas responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Precondicion: existe al menos 1 area productiva activa disponible', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length >= 1) {",
+              "    pm.collectionVariables.set('id_infraestructura', respuesta.items[0].id_infraestructura);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "infraestructuras" ],
+          "query": [
+            { "key": "finca_id", "value": "1" },
+            { "key": "solo_activas", "value": "true" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Consultar catalogo de tipos de dispositivo IoT (rango 10/20 min debe caber)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Precondicion: consulta del catalogo de tipos de dispositivo responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "if (respuesta && respuesta.items && respuesta.items.length > 0) {",
+              "    const compatible = respuesta.items.find(function (t) {",
+              "        return t.frecuencia_captura_min <= 10 && 10 <= t.frecuencia_captura_max &&",
+              "               t.intervalo_transmision_min <= 20 && 20 <= t.intervalo_transmision_max;",
+              "    });",
+              "",
+              "    pm.test('Precondicion: existe un tipo de dispositivo cuyo rango admite frecuencia=10 min e intervalo=20 min', function () {",
+              "        pm.expect(compatible, 'ningun tipo de dispositivo del catalogo admite frecuencia=10/intervalo=20').to.not.equal(undefined);",
+              "    });",
+              "",
+              "    if (compatible) {",
+              "        pm.collectionVariables.set('id_tipo_dispositivo', compatible.id_tipo_dispositivo);",
+              "        console.log('id_tipo_dispositivo elegido: ' + compatible.id_tipo_dispositivo + ' (' + compatible.nombre + ')');",
+              "    } else {",
+              "        postman.setNextRequest(null);",
+              "    }",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/tipos-dispositivo-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "tipos-dispositivo-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT conectado de prueba",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "    console.log('id_dispositivo: ' + respuesta.id_dispositivo_iot);",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"TC-M09-G68-{{run_id}}\",\n  \"descripcion\": \"Dispositivo conectado de prueba TC-M09-G68 (configuracion remota con parametros validos)\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-130 - Configurar el dispositivo con parametros validos (frecuencia=10, intervalo=20)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Configuracion remota con parametros validos ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('TC-M09-130: la configuracion con parametros validos es ACEPTADA (HTTP 202 - ver nota de la coleccion sobre el broker MQTT no disponible en TEST)', function () {",
+              "    pm.response.to.have.status(202);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('TC-M09-130: la respuesta refleja exactamente los parametros enviados y el dispositivo correcto', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.id_dispositivo_iot).to.equal(Number(pm.collectionVariables.get('id_dispositivo')));",
+              "    pm.expect(respuesta.frecuencia_captura).to.equal(10);",
+              "    pm.expect(respuesta.intervalo_transmision).to.equal(20);",
+              "});",
+              "",
+              "pm.test('TC-M09-130: la configuracion queda registrada con un ID y estado PENDIENTE (aceptada, a la espera del dispositivo/broker)', function () {",
+              "    pm.expect(respuesta.id_configuracion_remota).to.be.a('number');",
+              "    pm.expect(respuesta.estado).to.equal('PENDIENTE');",
+              "    pm.expect(respuesta.mensaje).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (pm.response.code === 202 && respuesta) {",
+              "    pm.collectionVariables.set('id_configuracion_remota', respuesta.id_configuracion_remota);",
+              "    console.log('CONCLUSION TC-M09-130: parametros validos (frecuencia=10, intervalo=20) fueron aceptados y almacenados como id_configuracion_remota=' + respuesta.id_configuracion_remota + '; estado=' + respuesta.estado + ' porque TEST no tiene un broker MQTT real conectado (comportamiento documentado del adaptador, no un fallo).');",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 20\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion final - La configuracion aplicada queda almacenada en el historial del dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Historial de configuraciones remotas del dispositivo ---');",
+              "console.log(pm.response.text());",
+              "",
+              "pm.test('Verificacion final: la consulta del historial de configuraciones responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('Verificacion final: el historial contiene al menos 1 configuracion', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.items).to.be.an('array').with.length.of.at.least(1);",
+              "});",
+              "",
+              "if (respuesta && respuesta.items) {",
+              "    const idBuscado = Number(pm.collectionVariables.get('id_configuracion_remota'));",
+              "    const encontrada = respuesta.items.find(function (c) { return c.id_configuracion_remota === idBuscado; });",
+              "",
+              "    pm.test('Verificacion final: la configuracion registrada en el paso anterior quedo correctamente almacenada', function () {",
+              "        pm.expect(encontrada, 'no se encontro id_configuracion_remota=' + idBuscado + ' en el historial').to.not.equal(undefined);",
+              "        pm.expect(encontrada.frecuencia_captura).to.equal(10);",
+              "        pm.expect(encontrada.intervalo_transmision).to.equal(20);",
+              "        pm.expect(encontrada.estado).to.equal('PENDIENTE');",
+              "    });",
+              "",
+              "    if (encontrada) {",
+              "        console.log('CONCLUSION GENERAL TC-M09-G68: la configuracion con parametros validos (frecuencia=10, intervalo=20) quedo correctamente almacenada y consultable en el historial del dispositivo.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configuraciones",
+          "host": [ "{{base_url}}" ],
+          "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configuraciones" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "id_tipo_dispositivo", "value": "" },
+    { "key": "id_dispositivo", "value": "" },
+    { "key": "id_configuracion_remota", "value": "" }
+  ]
+}

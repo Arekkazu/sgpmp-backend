@@ -1,0 +1,167 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-054-evento-sanitario-no-descuenta-cantidad",
+    "name": "TC-M02-054 - Evento sanitario con muertes no descuenta cantidad automáticamente (RF-36)",
+    "description": "Prueba de aceptación para RF-36 (Módulo 2): Registrar evento SANITARIO con reporte de afectación/mortalidad. El evento es informativo; cantidad_actual NO debe modificarse hasta registrar un evento BAJA formal.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "cantidad_previa",
+      "value": "5",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Registrar evento sanitario informativo (TC-M02-054)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"DIAGNOSTICO\",\n  \"diagnostico\": \"Sospecha de bacteriosis con reporte de 5 individuos afectados\",\n  \"observaciones\": \"Se observan 5 ejemplares afectados con sintomatología clínica, pendientes de evento formal de BAJA\",\n  \"descripcion\": \"Reporte clínico preliminar de afectación\",\n  \"fecha\": \"2026-09-09T02:30:00Z\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/sanitario",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "sanitario"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 201 Created (evento sanitario registrado)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "pm.test('El evento sanitario se registra con tipo DIAGNOSTICO', function () {",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.evento).to.be.an('object');",
+              "    pm.expect(res.evento.sanitario).to.be.an('object');",
+              "    pm.expect(res.evento.sanitario.tipo).to.eql('DIAGNOSTICO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar activo biológico y verificar preservación de cantidad_actual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 200 OK al consultar activo', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('cantidad_actual NO se descontó automáticamente (permanece intacta)', function () {",
+              "    var res = pm.response.json();",
+              "    var cantidadActual = res.cantidad_actual || (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual);",
+              "    pm.expect(cantidadActual).to.eql(parseInt(pm.collectionVariables.get('cantidad_previa')));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

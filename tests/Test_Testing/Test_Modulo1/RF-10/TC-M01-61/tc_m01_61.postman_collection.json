@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "TC-M01-61 - Consultar historial de auditoria con Administrador autorizado",
+    "description": "TC-M01-61 (RF-10, CU07): Administrador con permiso ver_auditoria (Carlos Rodriguez Perez, admin@pecuaria.co, id_usuario=1) consulta GET /auditoria. Se aplica el filtro categoria=AUTENTICACION para registrar evidencia de que el filtrado funciona correctamente (todos los items devueltos deben pertenecer a esa categoria), incluyendo el propio evento de login generado por esta misma coleccion. Se registra el resultado, el filtro utilizado y evidencia del historial.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador (Carlos Rodriguez Perez)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "console.log('--- Respuesta completa del login ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    console.log('Token de autenticacion almacenado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo. No se continuara con la consulta de auditoria.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M01-61 - Consultar historial de auditoria con filtro categoria=AUTENTICACION",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Filtro utilizado en esta consulta ---');",
+              "console.log('categoria=AUTENTICACION, pagina=1, tamano=20');",
+              "",
+              "pm.test('TC-M01-61: la consulta de auditoria responde HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "let respuesta;",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = null;",
+              "}",
+              "",
+              "console.log('--- Respuesta completa de TC-M01-61 (evidencia del historial) ---');",
+              "console.log(pm.response.text());",
+              "",
+              "if (pm.response.code === 200 && respuesta) {",
+              "",
+              "    pm.test('TC-M01-61: la respuesta contiene la estructura esperada (total, pagina, tamano, items)', function () {",
+              "        pm.expect(respuesta).to.have.property('total');",
+              "        pm.expect(respuesta).to.have.property('pagina');",
+              "        pm.expect(respuesta).to.have.property('tamano');",
+              "        pm.expect(respuesta).to.have.property('items');",
+              "        pm.expect(respuesta.items).to.be.an('array');",
+              "    });",
+              "",
+              "    if (Array.isArray(respuesta.items) && respuesta.items.length > 0) {",
+              "",
+              "        pm.test('TC-M01-61: cada registro del historial trae los campos minimos esperados', function () {",
+              "            respuesta.items.forEach(function (registro) {",
+              "                pm.expect(registro).to.have.property('id_evento');",
+              "                pm.expect(registro).to.have.property('tipo_evento');",
+              "                pm.expect(registro).to.have.property('fecha_evento');",
+              "                pm.expect(registro).to.have.property('categoria');",
+              "                pm.expect(registro).to.have.property('resultado');",
+              "                pm.expect(registro).to.have.property('nombre_usuario');",
+              "                pm.expect(registro).to.have.property('descripcion');",
+              "            });",
+              "        });",
+              "",
+              "        pm.test('TC-M01-61: el filtro categoria=AUTENTICACION se aplico correctamente (todos los registros son de esa categoria)', function () {",
+              "            respuesta.items.forEach(function (registro) {",
+              "                pm.expect(registro.categoria).to.equal('AUTENTICACION');",
+              "            });",
+              "        });",
+              "",
+              "        pm.test('TC-M01-61: el historial incluye el propio evento de login generado por esta ejecucion', function () {",
+              "            const incluyeLoginActual = respuesta.items.some(function (registro) {",
+              "                return registro.nombre_usuario && registro.nombre_usuario.toLowerCase().indexOf('carlos') !== -1;",
+              "            });",
+              "            pm.expect(incluyeLoginActual).to.equal(true);",
+              "        });",
+              "    } else {",
+              "        console.log('ADVERTENCIA: el historial filtrado por categoria=AUTENTICACION no devolvio registros. Revisar si el filtro es correcto o si no hay eventos de ese tipo aun.');",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?categoria=AUTENTICACION&pagina=1&tamano=20",
+          "host": [ "{{base_url}}" ],
+          "path": [ "auditoria", "" ],
+          "query": [
+            { "key": "categoria", "value": "AUTENTICACION" },
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "20" }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token", "value": "" }
+  ]
+}

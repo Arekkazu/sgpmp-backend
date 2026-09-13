@@ -1,0 +1,188 @@
+{
+  "info": {
+    "name": "TC-M02-G64 - Rechazo por cantidad, unidad y duplicidad (RF-43, CU09)",
+    "description": "TC-M02-G64 (RF-43, CU09), sub-casos TC-M02-241, TC-M02-242 y TC-M02-243.\n\nNOTA: ficha duplicada de TC-M02-G62 (TC-M02-109/110/111, mismos escenarios de cantidad invalida / unidad incompatible / duplicado). Se construye de todas formas como artefacto propio de TC-M02-G64 a pedido explicito del usuario, reutilizando los mismos hallazgos ya confirmados.\n\nSub-caso 1 (TC-M02-241, cantidad_producida invalida) y sub-caso 2 (TC-M02-242, unidad_medida incompatible) se prueban en vivo -- ambos ocurren ANTES del chequeo de fase activa (E-02) en registrar_evento_productivo_use_case.py, asi que no dependen del bug de RF-37 (TC-M02-G61).\n\nHALLAZGO (igual que en TC-M02-G62, no es un bug): la ficha espera HTTP 422 para ambos, pero el codigo real devuelve HTTP 400 -- `cantidad_producida` es una validacion de Pydantic en el DTO (`RequestValidationError` -> 400 `VAL_ENTRADA`) y `unidad_medida` incompatible es un `ValidationError` de dominio (-> 400), no un `BusinessRuleError` (-> 422). Ver CLAUDE.md del backend, tabla de jerarquia de errores.\n\nSub-caso 3 (TC-M02-243, evento duplicado, E-08) SI requiere una fase productiva activa real para llegar a ese chequeo -- bloqueado por el mismo bug de RF-37 documentado en TC-M02-G61. Se verifica aparte con Pytest y dobles de prueba (test_tc_m02_243_evento_duplicado.py).\n\nLa coleccion es autocontenida: registra su propio activo INDIVIDUAL de Cachama Blanca (id_especie=4, unica especie con metrica de catalogo seedeada: PESO/kg) sobre id_infraestructura=6.\n\nResponsable: Juan Pablo. Prioridad: Media. Tipo: Validacion. Herramienta: API - Postman (Newman) [parte 1 de 2].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar activo INDIVIDUAL Cachama fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del activo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_activo_g64', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"factura-cg64-{{run_id}}.pdf\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"CG64-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-06-01T00:00:00Z\",\n  \"peso_inicial\": 0.3\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1a (TC-M02-241) - Rechazar cantidad_producida=0",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1a: rechazado con HTTP 400 (validacion Pydantic del DTO, NO 422 como dice la ficha -- ver descripcion de la coleccion)', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1a: codigo VAL_ENTRADA con el campo cantidad_producida senalado', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('cantidad_producida');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 0,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g64}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g64}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1b (TC-M02-241) - Rechazar cantidad_producida=-5",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1b: rechazado con HTTP 400 (validacion Pydantic del DTO, NO 422 como dice la ficha)', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1b: codigo VAL_ENTRADA con el campo cantidad_producida senalado', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('cantidad_producida');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": -5,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g64}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g64}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-242) - Rechazar unidad_medida incompatible (litros para PESO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 400 (ValidationError de dominio, NO 422 como dice la ficha)', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: codigo de negocio UNIDAD_MEDIDA_INCOMPATIBLE (E-07)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('UNIDAD_MEDIDA_INCOMPATIBLE');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_producto\": \"peso\",\n  \"cantidad_producida\": 20,\n  \"unidad_medida\": \"litros\",\n  \"fecha_evento\": \"2026-09-09\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g64}}/eventos/productivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g64}}", "eventos", "productivo" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo_g64", "value": "" }
+  ]
+}

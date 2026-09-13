@@ -1,0 +1,307 @@
+{
+  "info": {
+    "name": "TC-M02-G46 — coherencia temporal y fase productiva",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "RF-40. Ejecutar mediante runner con SELECT antes/despues. Tokens externos de actores verificados; nunca crear precondiciones. fecha_evento de ficha se representa con fecha date-time del contrato."
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI HTTPS",
+          "request": {
+            "method": "GET",
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('HTTPS disponible',()=>pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "Productor",
+          "item": [
+            {
+              "name": "TC-M02-087 Productor activo 291",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/291/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-08-10T10:00:00Z\", \"descripcion\": \"TC-M02-087 Productor\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fecha|cronolog|anterior|ultimo/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-08-10T10:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-088 Productor activo 297",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Productor}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/297/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-10T08:00:00Z\", \"descripcion\": \"TC-M02-088 Productor\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fase/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-09-10T08:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Veterinario",
+          "item": [
+            {
+              "name": "TC-M02-087 Veterinario activo 325",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/325/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-08-10T10:00:00Z\", \"descripcion\": \"TC-M02-087 Veterinario\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fecha|cronolog|anterior|ultimo/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-08-10T10:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-088 Veterinario activo 330",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Veterinario}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/330/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-10T08:00:00Z\", \"descripcion\": \"TC-M02-088 Veterinario\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fase/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-09-10T08:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Ingeniero",
+          "item": [
+            {
+              "name": "TC-M02-087 Ingeniero activo 332",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/332/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-08-10T10:00:00Z\", \"descripcion\": \"TC-M02-087 Ingeniero\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fecha|cronolog|anterior|ultimo/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-08-10T10:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "TC-M02-088 Ingeniero activo 331",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_Ingeniero}}"
+                  }
+                ],
+                "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/331/eventos/crecimiento",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"tipo_medicion\": \"PESO\", \"valor_medicion\": 250, \"unidad_medida\": \"kg\", \"fecha\": \"2026-09-10T08:00:00Z\", \"descripcion\": \"TC-M02-088 Ingeniero\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Rechazo funcional 4xx',()=>pm.expect(pm.response.code).to.be.within(400,499));",
+                      "pm.test('No es un fallo de autenticacion o acceso',()=>pm.expect([401,403,404]).not.to.include(pm.response.code));",
+                      "const text=pm.response.text().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').toLowerCase();",
+                      "pm.test('Motivo corresponde a la regla',()=>pm.expect(text).to.match(/fase/));",
+                      "pm.test('Fecha oficial en campo contractual fecha',()=>pm.expect(JSON.parse(pm.request.body.raw).fecha).to.eql('2026-09-10T08:00:00Z'));",
+                      "pm.test('Medicion valida y sin agregacion para INDIVIDUAL',()=>{const b=JSON.parse(pm.request.body.raw);pm.expect(b.tipo_medicion).to.eql('PESO');pm.expect(b.valor_medicion).to.eql(250);pm.expect(b.unidad_medida).to.eql('kg');pm.expect(b).not.to.have.property('tipo_agregacion');});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": []
+    }
+  ]
+}

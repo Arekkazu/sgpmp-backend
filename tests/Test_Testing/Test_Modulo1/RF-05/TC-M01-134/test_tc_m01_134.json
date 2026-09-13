@@ -1,0 +1,435 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-134-concurrencia",
+    "name": "TC-M01-134 - Detectar una modificación concurrente de los datos del usuario",
+    "description": "Validar el control de concurrencia optimista mediante el campo version.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tokenUsuario",
+      "value": ""
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
+    },
+    {
+      "key": "idUsuario",
+      "value": ""
+    },
+    {
+      "key": "versionOriginal",
+      "value": ""
+    },
+    {
+      "key": "versionDespuesPrimera",
+      "value": ""
+    },
+    {
+      "key": "versionFinal",
+      "value": ""
+    },
+    {
+      "key": "nombreUsuario",
+      "value": ""
+    },
+    {
+      "key": "apellidosUsuario",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como usuario objetivo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Usuario objetivo inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del usuario objetivo\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenUsuario\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Obtener datos y versión del usuario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenUsuario}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/me",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta del perfil exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El correo corresponde al usuario objetivo\", function () {",
+              "    pm.expect(response.correo_electronico).to.eql(\"contador@pecuaria.co\");",
+              "});",
+              "",
+              "pm.test(\"Se obtuvo el ID del usuario\", function () {",
+              "    pm.expect(response.id_usuario).to.exist;",
+              "});",
+              "",
+              "pm.test(\"Se obtuvo la versión actual\", function () {",
+              "    pm.expect(response.version).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"idUsuario\", response.id_usuario);",
+              "pm.collectionVariables.set(\"versionOriginal\", response.version);",
+              "pm.collectionVariables.set(\"nombreUsuario\", response.nombre);",
+              "pm.collectionVariables.set(\"apellidosUsuario\", response.apellidos);",
+              "",
+              "console.log(\"ID usuario objetivo:\", response.id_usuario);",
+              "console.log(\"Versión original:\", response.version);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Administrador inicia sesión correctamente\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Se obtiene el token del administrador\", function () {",
+              "    pm.expect(response.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"tokenAdmin\", response.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Primera actualización con versión actual",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Miguel\",\n  \"apellidos\": \"Vargas Ospina Prueba\",\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"version\": {{versionOriginal}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta primera actualización:\", response);",
+              "",
+              "pm.test(\"Primera actualización aceptada\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La respuesta contiene una versión\", function () {",
+              "    pm.expect(response.version).to.exist;",
+              "});",
+              "",
+              "pm.test(\"La primera actualización fue aplicada\", function () {",
+              "    pm.expect(response.apellidos).to.eql(\"Vargas Ospina Prueba\");",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"versionDespuesPrimera\", response.version);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Segunda actualización con versión desactualizada",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Miguel\",\n  \"apellidos\": \"Vargas Ospina Conflicto\",\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"version\": {{versionOriginal}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta conflicto:\", response);",
+              "",
+              "pm.test(\"La segunda actualización es rechazada\", function () {",
+              "    pm.response.to.have.status(412);",
+              "});",
+              "",
+              "pm.test(\"El backend reporta conflicto de concurrencia\", function () {",
+              "    pm.expect(response.error_code).to.eql(\"CONFLICTO_CONCURRENCIA\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Verificar que prevalece la primera actualización",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}/detalle",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}",
+            "detalle"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "pm.test(\"Consulta posterior exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"La primera actualización permanece aplicada\", function () {",
+              "    pm.expect(response.apellidos).to.eql(\"Vargas Ospina Prueba\");",
+              "});",
+              "",
+              "pm.test(\"La segunda actualización no fue aplicada\", function () {",
+              "    pm.expect(response.apellidos).to.not.eql(\"Vargas Ospina Conflicto\");",
+              "});",
+              "",
+              "pm.test(\"La versión se mantiene válida\", function () {",
+              "    pm.expect(response.version).to.eql(Number(pm.collectionVariables.get(\"versionDespuesPrimera\")));",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"versionFinal\", response.version);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Restaurar datos originales",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tokenAdmin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Miguel\",\n  \"apellidos\": \"Vargas Ospina\",\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"version\": {{versionFinal}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/{{idUsuario}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "usuarios",
+            "{{idUsuario}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const response = pm.response.json();",
+              "",
+              "console.log(\"Respuesta restauración:\", response);",
+              "",
+              "pm.test(\"Datos originales restaurados\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"El apellido original fue restaurado\", function () {",
+              "    pm.expect(response.apellidos).to.eql(\"Vargas Ospina\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

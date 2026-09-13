@@ -1,0 +1,11 @@
+{
+  "info": {"name":"TC-M09-G27 — RBAC modificación de umbral","schema":"https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "item":[{"name":"TC-M09-59","item":[{"name":"PATCH de modificación por actor no autorizado","request":{"method":"PATCH","header":[{"key":"Authorization","value":"Bearer {{token}}"},{"key":"Content-Type","value":"application/json"}],"url":"{{base_url}}/configuracion/umbrales/{{id_umbral}}","body":{"mode":"raw","raw":"{{payload}}","options":{"raw":{"language":"json"}}}},"event":[{"listen":"test","script":{"type":"text/javascript","exec":[
+    "const b=pm.response.json();",
+    "const p=JSON.parse(pm.environment.get('payload'));",
+    "pm.test('PATCH real con payload funcionalmente válido y cambio no-op evitado',()=>{pm.expect(Number(p.valor_min)).to.be.below(Number(p.valor_max));pm.expect(p.niveles).to.have.lengthOf(3);const n=[...p.niveles].sort((a,b)=>Number(a.limite_inferior)-Number(b.limite_inferior));n.forEach(x=>pm.expect(Number(x.limite_inferior)).to.be.below(Number(x.limite_superior)));pm.expect(Number(n[0].limite_inferior)).to.eql(Number(p.valor_min));pm.expect(Number(n[2].limite_superior)).to.eql(Number(p.valor_max));pm.expect(Number(n[0].limite_superior)).to.eql(Number(n[1].limite_inferior));pm.expect(Number(n[1].limite_superior)).to.eql(Number(n[2].limite_inferior));});",
+    "pm.test('HTTP exactamente 403',()=>pm.response.to.have.status(403));",
+    "pm.test('Respuesta de RBAC ACCESO_DENEGADO',()=>{pm.expect(b.error_code).to.eql('ACCESO_DENEGADO');pm.expect(String(b.message)).to.include('Acceso denegado');pm.expect(String(b.message)).to.match(/rol.*permisos/i);});",
+    "pm.test('Sin respuesta funcional exitosa',()=>{pm.expect(b).not.to.have.property('id_umbral_ambiental');pm.expect(b.success).not.to.eql(true);pm.expect(pm.response.code).not.to.be.oneOf([200,201,204]);});"
+  ]}}]}]}]
+}

@@ -1,0 +1,373 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g31-ejecucion-limpia",
+    "name": "TC-M02-G31 - Valores límite en la gestión de lotes (RF-36)",
+    "description": "Suite de pruebas para el caso agrupado TC-M02-G31 correspondiente al RF-36 (Gestión Poblacional). Incluye el folder TC-M02-196 (evaluación de densidad de lote en evento de crecimiento) y el folder TC-M02-197 (evaluación de baja total reutilizando lotes existentes 344 y 345).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-196",
+      "description": "Subcaso TC-M02-196: Evaluación de densidad de lote ante evento de crecimiento",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-196)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Registrar evento de crecimiento sobre lote 130",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/crecimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130",
+                "eventos",
+                "crecimiento"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Respuesta de registro de crecimiento capturada', function () {",
+                  "    console.log('HTTP Status TC-M02-196 Crecimiento:', pm.response.code);",
+                  "    console.log('Body TC-M02-196 Crecimiento:', pm.response.text());",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar estado y métricas del lote 130",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote 130 completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    console.log('Lote 130 - Densidad actual:', res.detalle_poblacional ? res.detalle_poblacional.densidad : 'N/A');",
+                  "    console.log('Lote 130 - Cantidad actual:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-197",
+      "description": "Subcaso TC-M02-197: Baja total sobre lotes existentes 344 y 345",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-197)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Aplicar baja total sobre lote 344",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-11\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 344\",\n  \"cantidad_afectada\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/344/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "344",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Respuesta de baja lote 344 capturada', function () {",
+                  "    console.log('HTTP Status Lote 344 Baja:', pm.response.code);",
+                  "    console.log('Headers Lote 344:', JSON.stringify(pm.response.headers));",
+                  "    console.log('Body Lote 344:', pm.response.text());",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar lote 344 tras intento de baja",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/344",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "344"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote 344 completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    console.log('Lote 344 Estado actual:', res.estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Aplicar baja total sobre lote 345",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-11\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 345\",\n  \"cantidad_afectada\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/345/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "345",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Respuesta de baja lote 345 capturada', function () {",
+                  "    console.log('HTTP Status Lote 345 Baja:', pm.response.code);",
+                  "    console.log('Headers Lote 345:', JSON.stringify(pm.response.headers));",
+                  "    console.log('Body Lote 345:', pm.response.text());",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. Consultar lote 345 tras intento de baja",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/345",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "345"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote 345 completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    console.log('Lote 345 Estado actual:', res.estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

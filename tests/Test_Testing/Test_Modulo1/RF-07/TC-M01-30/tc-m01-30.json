@@ -1,0 +1,112 @@
+{
+  "info": {
+    "name": "RF-07 - TC-M01-30 Cambio de contrasena",
+    "description": "TC-M01-30: cambio exitoso de contrasena de un usuario autenticado. Usuario de prueba: Maria Garcia (identificacion 1192208093, id_usuario=45, correo u20212200102@usco.edu.co). Paso 1: login para obtener el token. Paso 2: PUT para cambiar la contrasena usando el token obtenido.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Iniciar sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login: HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La respuesta del login es JSON', function () {",
+              "    pm.response.to.be.json;",
+              "});",
+              "",
+              "let loginResponse = {};",
+              "try {",
+              "    loginResponse = pm.response.json();",
+              "} catch (e) {",
+              "    console.log('No se pudo parsear la respuesta como JSON');",
+              "}",
+              "",
+              "console.log('Respuesta del login:', pm.response.text());",
+              "console.log('Campos disponibles en la respuesta:', Object.keys(loginResponse));",
+              "",
+              "const token = loginResponse.token || loginResponse.access_token || loginResponse.jwt;",
+              "",
+              "if (pm.response.code === 200 && token) {",
+              "    pm.collectionVariables.set('auth_token', token);",
+              "    console.log('Token guardado correctamente.');",
+              "} else {",
+              "    console.log('El login fallo o no se encontro un campo de token reconocido. No se continuara con el cambio de contrasena.');",
+              "    postman.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{qa_email}}\",\n  \"contrasena\": \"{{qa_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [ "{{base_url}}" ],
+          "path": [ "sesiones", "" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. TC-M01-30 - Cambio de contrasena",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M01-30: HTTP 200 al cambiar la contrasena', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "console.log('--- Respuesta completa de TC-M01-30 ---');",
+              "console.log(pm.response.text());",
+              "console.log('IMPORTANTE: si esta ejecucion fue exitosa, la contrasena real del usuario',",
+              "            'id_usuario=45 (Maria Garcia) ahora es el valor de la variable new_password,',",
+              "            'no la contrasena original. Actualiza qa_password antes de volver a correr esta',",
+              "            'coleccion, o usa la nueva contrasena para iniciar sesion en pruebas futuras.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{auth_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"contrasena_actual\": \"{{qa_password}}\",\n  \"nueva_contrasena\": \"{{new_password}}\",\n  \"confirmar_nueva_contrasena\": \"{{new_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/contrasena/usuarios/45",
+          "host": [ "{{base_url}}" ],
+          "path": [ "contrasena", "usuarios", "45" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "qa_email", "value": "u20212200102@usco.edu.co" },
+    { "key": "qa_password", "value": "Mgarcia180#" },
+    { "key": "new_password", "value": "Nueva#2027" },
+    { "key": "auth_token", "value": "" }
+  ]
+}

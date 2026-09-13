@@ -1,0 +1,236 @@
+{
+  "info": {
+    "name": "TC-M02-G22 - Reglas de flujo: cambio de estado directo y eventos pendientes",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35. Agrupa TC-M02-037 (rechazar cambio de estado_activo directo, debe redirigir a RF-44) y TC-M02-038 (bloquear la operacion si hay eventos pendientes sin cerrar). Las assertions codifican el comportamiento QUE EXIGE el RF (no el comportamiento observado), para que el reporte de Newman muestre FAIL de forma honesta si el sistema no lo cumple. El detalle de cada resultado (incluyendo por que falla y un bloqueo de precondicion en RF-41) esta en RESULTADOS/.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo_admin", "value": "admin.test@sgpmp.com.co" },
+    { "key": "contrasena_admin", "value": "Administrador123#" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie", "value": "3" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "identificador_activo", "value": "" },
+    { "key": "id_activo", "value": "" },
+    { "key": "id_activo_pendiente", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "0B. Setup - Registrar activo INDIVIDUAL de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_activo}}\",\n  \"raza\": \"Camaron QA-G22 original\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.500\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "pm.collectionVariables.set('identificador_activo', 'QA-G22-' + Date.now());",
+              "pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[SETUP] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Se crea el activo INDIVIDUAL de prueba (201)', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo', pm.response.json().id_activo_biologico); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1a. TC-M02-037 - PATCH solo estado_activo (sin campos editables) -> el RF exige 400 con mensaje RF-44",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": { "mode": "raw", "raw": "{\n  \"estado_activo\": \"BAJA\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-037a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-35: 400 BAD REQUEST', function () { pm.response.to.have.status(400); });",
+              "const body = pm.response.json();",
+              "pm.test(\"RF-35: mensaje exige redirigir a RF-44 ('gestion de estados')\", function () {",
+              "  const msg = JSON.stringify(body).toLowerCase();",
+              "  pm.expect(msg).to.match(/gesti[oó]n de estados|rf-?44/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1b. TC-M02-037 - PATCH estado_activo + campo valido -> el RF exige que TAMBIEN se rechace con 400",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": { "mode": "raw", "raw": "{\n  \"estado_activo\": \"BAJA\",\n  \"raza\": \"Camaron QA-G22 raza cambiada\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-037b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-35: 400 BAD REQUEST incluso si viene acompanado de un campo valido', function () { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Precondicion TC-M02-038 (bloqueada) - Registrar evento sanitario CONTROL_PREVENTIVO",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/eventos/sanitario",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo\": \"CONTROL_PREVENTIVO\",\n  \"observaciones\": \"QA-G22: precondicion evento pendiente sin cerrar\",\n  \"solicitar_estado\": \"EN_TRATAMIENTO\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[PRECONDICION TC-M02-038] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-41: el evento sanitario deberia registrarse (201)', function () { pm.response.to.have.status(201); });",
+              "// BLOQUEADO: ver RESULTADOS/NOTA_BLOQUEO.md - este endpoint responde 500",
+              "// (ERROR_INTERNO) para CONTROL_PREVENTIVO y DIAGNOSTICO en este entorno TEST,",
+              "// lo que hace imposible crear un 'evento sanitario pendiente' real por esta via."
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Workaround - Poner el activo en EN_TRATAMIENTO via RF-44 (no via RF-41, bloqueado)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"motivo_cambio\": \"QA-G22: simular evento pendiente sin cerrar (workaround por bloqueo RF-41)\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "exec": ["pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[WORKAROUND EN_TRATAMIENTO] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-44: el cambio de estado a EN_TRATAMIENTO se acepta (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. TC-M02-038 (adaptado) - PATCH normal mientras el activo esta EN_TRATAMIENTO -> el RF exige 409",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Camaron QA-G22 actualizado con proceso abierto\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[TC-M02-038 adaptado] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('RF-35: 409 CONFLICT por eventos/estado pendiente sin cerrar', function () { pm.response.to.have.status(409); });",
+              "const body = pm.response.json();",
+              "pm.test(\"RF-35: mensaje exige mencionar 'eventos pendientes'\", function () {",
+              "  const msg = JSON.stringify(body).toLowerCase();",
+              "  pm.expect(msg).to.match(/pendiente/);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Verificacion final - GET del activo",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[VERIFICACION FINAL] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('La consulta final responde 200', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

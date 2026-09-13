@@ -1,0 +1,207 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-132",
+    "name": "TC-M01-132 - Intentar modificar el propio rol siendo Administrador",
+    "description": "Prueba negativa de seguridad/RBAC. Un administrador intenta modificar su propio rol.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"correo_electronico\": \"admin@pecuaria.co\",\n    \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+          "protocol": "http",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var respuesta = pm.response.json();",
+              "",
+              "pm.test(\"Token obtenido correctamente\", function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"token\", respuesta.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar perfil del administrador autenticado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/me",
+          "protocol": "http",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "usuarios",
+            "me"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"Consulta del perfil exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var usuario = pm.response.json();",
+              "",
+              "pm.test(\"Se obtuvo el identificador del usuario\", function () {",
+              "    pm.expect(usuario.id_usuario).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set(\"id_usuario\", usuario.id_usuario);",
+              "pm.collectionVariables.set(\"nombre\", usuario.nombre);",
+              "pm.collectionVariables.set(\"apellidos\", usuario.apellidos);",
+              "pm.collectionVariables.set(\"correo_electronico\", usuario.correo_electronico);",
+              "pm.collectionVariables.set(\"telefono\", usuario.telefono || \"\");",
+              "pm.collectionVariables.set(\"direccion\", usuario.direccion || \"\");",
+              "pm.collectionVariables.set(\"version\", usuario.version);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Intentar modificar el propio rol a Veterinario",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"nombre\": \"{{nombre}}\",\n    \"apellidos\": \"{{apellidos}}\",\n    \"correo_electronico\": \"{{correo_electronico}}\",\n    \"telefono\": \"{{telefono}}\",\n    \"direccion\": \"{{direccion}}\",\n    \"version\": {{version}},\n    \"id_rol\": 8\n}"
+        },
+        "url": {
+          "raw": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/usuarios/{{id_usuario}}",
+          "protocol": "http",
+          "host": [
+            "sigab-backendtest-389pcb-a48238-158-69-200-27",
+            "sslip",
+            "io"
+          ],
+          "path": [
+            "api-sgpmp-test",
+            "usuarios",
+            "{{id_usuario}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"La operación de modificar el propio rol es rechazada\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 409]);",
+              "});",
+              "",
+              "var respuesta = {};",
+              "",
+              "try {",
+              "    respuesta = pm.response.json();",
+              "} catch (error) {",
+              "    respuesta = {};",
+              "}",
+              "",
+              "pm.test(\"La respuesta indica el rechazo de la operación\", function () {",
+              "    pm.expect(respuesta).to.be.an(\"object\");",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_usuario",
+      "value": ""
+    },
+    {
+      "key": "nombre",
+      "value": ""
+    },
+    {
+      "key": "apellidos",
+      "value": ""
+    },
+    {
+      "key": "correo_electronico",
+      "value": ""
+    },
+    {
+      "key": "telefono",
+      "value": ""
+    },
+    {
+      "key": "direccion",
+      "value": ""
+    },
+    {
+      "key": "version",
+      "value": ""
+    }
+  ]
+}

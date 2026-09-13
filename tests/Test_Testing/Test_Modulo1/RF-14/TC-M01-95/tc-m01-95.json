@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "TC-M01-095 (politica anti-spam: no duplicar notificaciones en la ventana de 5 min)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "contrasena_actual", "value": "Vigilada#42" },
+    { "key": "baseline_total", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Login (para poder leer el buzon de notificaciones propio)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Login responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "if (b.token) { pm.collectionVariables.set('access_token', b.token); }"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "0b. Notificaciones - linea base",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "pm.collectionVariables.set('baseline_total', b.total);"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    },
+    {
+      "name": "1. Evento LOGIN_FALLIDO 1/5 (mismo tipo+usuario+canal)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "2. Evento LOGIN_FALLIDO 2/5",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "3. Evento LOGIN_FALLIDO 3/5",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "4. Evento LOGIN_FALLIDO 4/5",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 401', function () { pm.response.to.have.status(401); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "5. Evento LOGIN_FALLIDO 5/5 (todos en menos de 5 min)",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 423 (bloqueo esperado al 5to intento)', function () { pm.response.to.have.status(423); });"
+        ] } }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"danielacastillovargas09@gmail.com\",\n  \"contrasena\": \"ClaveMala#000\"\n}" },
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+      }
+    },
+    {
+      "name": "6. Verificar que NO se generaron notificaciones duplicadas",
+      "event": [
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+          "const b = pm.response.json();",
+          "const generadas = b.total - parseInt(pm.collectionVariables.get('baseline_total'));",
+          "pm.test('TC-M01-095: los 5 eventos del mismo tipo+usuario+canal generaron como maximo 1 notificacion (sin duplicados)', function () {",
+          "    pm.expect(generadas).to.be.at.most(1);",
+          "});"
+        ] } }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{access_token}}" }],
+        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+      }
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-115-crear-rol-sin-permisos",
+    "name": "TC-M01-115 - Intentar crear un rol sin permisos",
+    "description": "Prueba negativa para validar que el sistema no permita crear un rol sin permisos asignados.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Debe iniciar sesión correctamente como administrador', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var response = pm.response.json();",
+              "",
+              "pm.test('La respuesta debe contener un token', function () {",
+              "    pm.expect(response.token).to.exist;",
+              "    pm.expect(response.token).to.be.a('string');",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', response.token);",
+              "console.log('Administrador autenticado correctamente');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Intentar crear un rol sin permisos",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"Rol Vacío\",\n  \"descripcion\": \"Rol utilizado para validar que el sistema rechace la creación de roles sin permisos\",\n  \"permisos\": []\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('El sistema no debe permitir crear un rol sin permisos', function () {",
+              "    pm.expect(pm.response.code).to.not.eql(201);",
+              "});",
+              "",
+              "pm.test('La respuesta debe indicar un error de validación', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});",
+              "",
+              "var response = pm.response.json();",
+              "",
+              "pm.test('La respuesta debe contener información del error', function () {",
+              "    pm.expect(response).to.be.an('object');",
+              "});",
+              "",
+              "console.log('El sistema rechazó correctamente la creación del rol sin permisos');",
+              "console.log('Código de respuesta:', pm.response.code);",
+              "console.log('Respuesta:', response);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

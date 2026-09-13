@@ -1,0 +1,336 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g96-rf28",
+    "name": "TC-M09-G96 - Validación grilla y widgets dashboard",
+    "description": "Caso ejecutable único para validar grilla 4x3, máximo 12 widgets, rechazo del widget 13, solapamiento y span fuera de grilla.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token', json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96 - Obtener widgets disponibles",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard/widgets",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard",
+            "widgets"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Catálogo de widgets disponible', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const widgets = Array.isArray(json) ? json : (json.widgets || json.data || []);",
+              "",
+              "pm.test('El catálogo contiene al menos 13 widgets', function () {",
+              "    pm.expect(widgets.length).to.be.at.least(13);",
+              "});",
+              "",
+              "console.log('Catálogo de widgets:', JSON.stringify(widgets, null, 2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96-181 - Utilizar grilla completa 4x3",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 1,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 1\n    },\n    {\n      \"id_widget\": 2,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 2\n    },\n    {\n      \"id_widget\": 3,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 3\n    },\n    {\n      \"id_widget\": 4,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 4\n    },\n    {\n      \"id_widget\": 5,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 5\n    },\n    {\n      \"id_widget\": 6,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 6\n    },\n    {\n      \"id_widget\": 7,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 7\n    },\n    {\n      \"id_widget\": 8,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 8\n    },\n    {\n      \"id_widget\": 9,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 9\n    },\n    {\n      \"id_widget\": 10,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 10\n    },\n    {\n      \"id_widget\": 11,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 11\n    },\n    {\n      \"id_widget\": 12,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 12\n    }\n  ],\n  \"active_widget\": [\n    \"temp_galpon\",\n    \"hum_galpon\",\n    \"ph_estanque\",\n    \"co2_galpon\",\n    \"temp_corral\",\n    \"estado_iot\",\n    \"cal_sensores\",\n    \"alertas\",\n    \"alertas_crit\",\n    \"hist_temp\",\n    \"hist_hum\",\n    \"prod_aves\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('G96-181 STATUS:', pm.response.code);",
+              "console.log('G96-181 RESPONSE:', pm.response.text());",
+              "",
+              "pm.test('G96-181 - Grilla completa 4x3 aceptada', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96-182 - Registrar exactamente 12 widgets",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 1,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 1\n    },\n    {\n      \"id_widget\": 2,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 2\n    },\n    {\n      \"id_widget\": 3,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 3\n    },\n    {\n      \"id_widget\": 4,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 4\n    },\n    {\n      \"id_widget\": 5,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 5\n    },\n    {\n      \"id_widget\": 6,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 6\n    },\n    {\n      \"id_widget\": 7,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 7\n    },\n    {\n      \"id_widget\": 8,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 8\n    },\n    {\n      \"id_widget\": 9,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 9\n    },\n    {\n      \"id_widget\": 10,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 10\n    },\n    {\n      \"id_widget\": 11,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 11\n    },\n    {\n      \"id_widget\": 12,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 12\n    }\n  ],\n  \"active_widget\": [\n    \"temp_galpon\",\n    \"hum_galpon\",\n    \"ph_estanque\",\n    \"co2_galpon\",\n    \"temp_corral\",\n    \"estado_iot\",\n    \"cal_sensores\",\n    \"alertas\",\n    \"alertas_crit\",\n    \"hist_temp\",\n    \"hist_hum\",\n    \"prod_aves\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('G96-182 STATUS:', pm.response.code);",
+              "console.log('G96-182 RESPONSE:', pm.response.text());",
+              "",
+              "pm.test('G96-182 - Exactamente 12 widgets aceptados', function () {",
+              "    pm.expect([200, 204]).to.include(pm.response.code);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96-183 - Rechazar widget 13",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 1,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 1\n    },\n    {\n      \"id_widget\": 2,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 2\n    },\n    {\n      \"id_widget\": 3,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 3\n    },\n    {\n      \"id_widget\": 4,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 4\n    },\n    {\n      \"id_widget\": 5,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 5\n    },\n    {\n      \"id_widget\": 6,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 6\n    },\n    {\n      \"id_widget\": 7,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 7\n    },\n    {\n      \"id_widget\": 8,\n      \"posicion_fila\": 2,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 8\n    },\n    {\n      \"id_widget\": 9,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 9\n    },\n    {\n      \"id_widget\": 10,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 2,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 10\n    },\n    {\n      \"id_widget\": 11,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 3,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 11\n    },\n    {\n      \"id_widget\": 12,\n      \"posicion_fila\": 3,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 12\n    },\n    {\n      \"id_widget\": 13,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 13\n    }\n  ],\n  \"active_widget\": [\n    \"temp_galpon\",\n    \"hum_galpon\",\n    \"ph_estanque\",\n    \"co2_galpon\",\n    \"temp_corral\",\n    \"estado_iot\",\n    \"cal_sensores\",\n    \"alertas\",\n    \"alertas_crit\",\n    \"hist_temp\",\n    \"hist_hum\",\n    \"prod_aves\",\n    \"prod_bovinos\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('G96-183 STATUS:', pm.response.code);",
+              "console.log('G96-183 RESPONSE:', pm.response.text());",
+              "",
+              "pm.test('G96-183 - Widget 13 rechazado', function () {",
+              "    pm.expect(pm.response.code).to.equal(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96-184 - Rechazar posición solapada",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 1,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 1\n    },\n    {\n      \"id_widget\": 2,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 2\n    }\n  ],\n  \"active_widget\": [\n    \"temp_galpon\",\n    \"hum_galpon\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('G96-184 STATUS:', pm.response.code);",
+              "console.log('G96-184 RESPONSE:', pm.response.text());",
+              "",
+              "pm.test('G96-184 - Posición solapada rechazada', function () {",
+              "    pm.expect(pm.response.code).to.equal(409);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "G96-185 - Rechazar span fuera de grilla",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 1,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 4,\n      \"span_columnas\": 2,\n      \"visible\": true,\n      \"orden\": 1\n    }\n  ],\n  \"active_widget\": [\n    \"temp_galpon\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('G96-185 STATUS:', pm.response.code);",
+              "console.log('G96-185 RESPONSE:', pm.response.text());",
+              "",
+              "pm.test('G96-185 - Span fuera de grilla rechazado', function () {",
+              "    pm.expect(pm.response.code).to.equal(400);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

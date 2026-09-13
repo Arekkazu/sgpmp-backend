@@ -1,0 +1,187 @@
+{
+  "info": {
+    "name": "TC-M02-G59 (parte Postman) - Rechazo de secuencia invalida (PARTO/DIAGNOSTICO)",
+    "description": "TC-M02-G59 (RF-42, CU08), sub-casos TC-M02-232 y TC-M02-233. El sub-caso TC-M02-234 (evento sobre activo CERRADO/BAJA) se prueba aparte con Pytest (test_tc_m02_234_estado_no_permite_eventos.py): reproducir un activo real en estado CERRADO por API requiere primero asignarle una fase productiva (POST /activos-biologicos/{id}/fases, RF-37), que a su vez exige un id_ciclo_productiva de modulo9.ciclos_productivos -- tabla sin ningun endpoint de catalogo/listado expuesto (solo se administra por seed/DB directa), y la ruta alternativa (estado BAJA via POST .../eventos/baja) esta confirmada rota con 500 (ver TC-M02-G58). La validacion bajo prueba (validar_estado_permite_eventos en _event_validations.py) es Python puro sin dependencias de infraestructura, por lo que un test con dobles de prueba la verifica igual de bien sin necesitar ese monaje.\n\nENDPOINT REAL BAJO PRUEBA: POST /activos-biologicos/{id_activo}/eventos/reproductivo.\n\nAmbos sub-casos son validaciones que ocurren enteramente en Python ANTES de cualquier INSERT en modulo2.eventos_reproductivos, asi que no deberian verse afectados por el bug de TC-M02-G53/G55/G57 (ese bug esta en el camino de escritura de un evento valido, no en estas validaciones previas):\n\nSub-caso 1 (TC-M02-232): registrar PARTO directamente sobre un activo sin diagnostico positivo previo -> se espera 422 SECUENCIA_REPRODUCTIVA_INVALIDA. La validacion (evento_repo.tiene_diagnostico_positivo_previo) solo verifica la existencia de un diagnostico exitoso, sin importar si hubo o no un servicio/inseminacion previo -- por eso no hace falta que ese paso haya tenido exito para que esta validacion se dispare igual sobre un activo recien creado.\n\nSub-caso 2 (TC-M02-233): registrar DIAGNOSTICO directamente sobre un activo sin servicio/inseminacion previa -> se espera 422 SECUENCIA_REPRODUCTIVA_INVALIDA.\n\nLa coleccion es autocontenida: registra dos hembras INDIVIDUAL frescas (especie Tilapia id=10) sobre id_infraestructura=3 (finca 1).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion. Herramienta: API - Postman (Newman) [parte 1 de 2 de TC-M02-G59].",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra 1 (para sub-caso 232, PARTO sin diagnostico)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la hembra 1 responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_hembra1', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-h1-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"H1-G59-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M02-232) - Rechazar PARTO sin diagnostico de gestacion previo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1: parto directo sobre activo sin diagnostico previo ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: code=SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_hembra1}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_hembra1}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar hembra 2 (para sub-caso 233, DIAGNOSTICO sin servicio previo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro de la hembra 2 responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_hembra2', respuesta.id_activo_biologico);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-h2-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"H2-G59-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M02-233) - Rechazar DIAGNOSTICO sin servicio/inseminacion previa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: diagnostico directo sobre activo sin servicio/inseminacion previa ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 2: rechazado con HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 2: code=SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: ' + (respuesta ? (respuesta.error_code + ' - ' + respuesta.message) : pm.response.text()));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"categoria\": \"diagnostico\",\n  \"resultado\": \"exitoso\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_hembra2}}/eventos/reproductivo",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_hembra2}}", "eventos", "reproductivo" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_hembra1", "value": "" },
+    { "key": "id_hembra2", "value": "" }
+  ]
+}

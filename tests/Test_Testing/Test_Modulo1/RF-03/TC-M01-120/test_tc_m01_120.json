@@ -1,0 +1,198 @@
+{
+  "info": {
+    "_postman_id": "tc-m01-120-rbac-delete-role-with-users",
+    "name": "TC-M01-120 - Intentar eliminar un rol con usuarios asociados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idRolVeterinario",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Inicio de sesión exitoso', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const respuesta = pm.response.json();",
+              "",
+              "pm.test('El token existe', function () {",
+              "    pm.expect(respuesta.token).to.exist;",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', respuesta.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Consultar roles registrados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de roles exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const roles = pm.response.json();",
+              "const rolVeterinario = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Veterinario';",
+              "});",
+              "",
+              "pm.test('El rol Veterinario existe', function () {",
+              "    pm.expect(rolVeterinario).to.exist;",
+              "});",
+              "",
+              "if (rolVeterinario) {",
+              "    pm.collectionVariables.set('idRolVeterinario', rolVeterinario.id_rol);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Intentar eliminar el rol Veterinario con usuarios asociados",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/{{idRolVeterinario}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            "{{idRolVeterinario}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('El sistema rechaza la eliminación del rol con usuarios asociados', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 409, 422]);",
+              "});",
+              "",
+              "pm.test('La respuesta comunica que la operación fue rechazada', function () {",
+              "    const texto = pm.response.text();",
+              "    pm.expect(texto.length).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Verificar que el rol Veterinario continúa existiendo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "roles",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Consulta de roles posterior al intento de eliminación exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const roles = pm.response.json();",
+              "const rolVeterinario = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Veterinario';",
+              "});",
+              "",
+              "pm.test('El rol Veterinario continúa existiendo', function () {",
+              "    pm.expect(rolVeterinario).to.exist;",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
