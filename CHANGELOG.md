@@ -1,3 +1,31 @@
+## [1.0.0-rc.38](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.37...v1.0.0-rc.38) (2026-09-13)
+
+### Features
+
+* **rf49:** PATCH para ciclo de vida de asociaciones sensor-activo ([c1eaf76](https://github.com/Arekkazu/sgpmp-backend/commit/c1eaf765b6fca1f476f5093ddbe122dee9f01b6e))
+
+### Bug Fixes
+
+* **rf33-rf46:** mostrar el snapshot inicial de RF-33 en el historial de RF-46 ([bf0b0b0](https://github.com/Arekkazu/sgpmp-backend/commit/bf0b0b0fa1af92dd2da232240865a0ef09d17e81)), closes [#204](https://github.com/Arekkazu/sgpmp-backend/issues/204) [#206](https://github.com/Arekkazu/sgpmp-backend/issues/206)
+* **rf33:** calcular densidad inicial de un lote al registrarlo ([2408f6a](https://github.com/Arekkazu/sgpmp-backend/commit/2408f6aba3d6980c5082d2de44af6504af9beb99)), closes [#254](https://github.com/Arekkazu/sgpmp-backend/issues/254) [#195](https://github.com/Arekkazu/sgpmp-backend/issues/195)
+* **rf36-m02:** auditar en bitacora_auditoria_m02 los 400 de validacion ([9c5f3b6](https://github.com/Arekkazu/sgpmp-backend/commit/9c5f3b635e86a8bce8048511bf3b88ce8d994b10)), closes [#203](https://github.com/Arekkazu/sgpmp-backend/issues/203)
+* **rf40:** aplicar alcance por finca en registro de eventos de crecimiento ([05a8002](https://github.com/Arekkazu/sgpmp-backend/commit/05a8002f93e2011714d3dfb2d26211f26c6083ce))
+* **rf42:** mapear ERRCODE P0220 del trigger de evento reproductivo a 422 ([ca5b2f2](https://github.com/Arekkazu/sgpmp-backend/commit/ca5b2f2c51d845b3c0b21d969a688cb9d9eddf36))
+* **rf42:** usar clock_timestamp() en vez de now() para fecha de eventos ([648cdfa](https://github.com/Arekkazu/sgpmp-backend/commit/648cdfaf5b442ea1ad0090fa9bb43cccdee58727))
+* **rf48:** crear modelo de compatibilidad tipo-infraestructura/especie (C2) ([074e5c1](https://github.com/Arekkazu/sgpmp-backend/commit/074e5c14455c760f80449c8ef642840ca8bd4d35))
+* **rf48:** filtrar destinos disponibles por finca, especie y capacidad ([917e843](https://github.com/Arekkazu/sgpmp-backend/commit/917e8432dac97b913bc239968085bd01aec35708))
+* **rf48:** responder 422 en vez de 400 para DESTINO_IGUAL_ORIGEN ([6a91542](https://github.com/Arekkazu/sgpmp-backend/commit/6a9154241fcff2f907687c6add80ee3c77bde2bf))
+* **rf48:** validar alcance por finca tambien en el POST de transferencia ([df73a16](https://github.com/Arekkazu/sgpmp-backend/commit/df73a16d3dec48a7db0b87fe3ad176e117252d79))
+* **rf49:** otorgar permiso de creacion al Productor sobre asociacion_sensor_activo ([fd95b58](https://github.com/Arekkazu/sgpmp-backend/commit/fd95b58cd280b0f959cbfa8b19c17cb9c082b31f))
+* **rf49:** rechazar sensor POBLACIONAL ya activo en otro lote ([2f9ed7c](https://github.com/Arekkazu/sgpmp-backend/commit/2f9ed7c826313beb5e9615f6694d6aa75a1a4358))
+* **rf49:** responder 422 en vez de 404 para activo inexistente en asociar sensor ([7da605c](https://github.com/Arekkazu/sgpmp-backend/commit/7da605cce7644b039beccdb249589e743d1ba887))
+* **rf50:** aplicar rate limiting a datos-consolidados y documentar 429 ([ac9c520](https://github.com/Arekkazu/sgpmp-backend/commit/ac9c520fca949554d00d5a71a5b95951ec88e4e4))
+* **rf50:** rechazar datos consolidados si el activo tiene inconsistencia jerarquica ([a42cf8d](https://github.com/Arekkazu/sgpmp-backend/commit/a42cf8d0adfbc80fded1f4e524b06978aae3f1c4))
+* **rf50:** rechazar rango de fechas futuro en datos-consolidados ([a2d5837](https://github.com/Arekkazu/sgpmp-backend/commit/a2d583758efeab20b12d6a7ebc1306c0eb643559))
+* **rf51:** evitar UnboundLocalError en produccion_promedio si Decimal falla ([eff4453](https://github.com/Arekkazu/sgpmp-backend/commit/eff44539c4b0ae7dca75c3f3f388d200a78aaf57))
+* **rf51:** rechazar outliers e indicadores no aplicables en RF-51 ([0579410](https://github.com/Arekkazu/sgpmp-backend/commit/057941024231f00379004172d3cfbf7a1b52489d))
+* **rf51:** validar rango de indicadores contra el ciclo de vida del activo ([ca2409a](https://github.com/Arekkazu/sgpmp-backend/commit/ca2409a3e2508b45c2c64b51fb9515bc36c20948))
+
 ## [1.0.0-rc.37](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.36...v1.0.0-rc.37) (2026-09-11)
 
 ### Bug Fixes
