@@ -224,3 +224,25 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_ACTIVO}/eventos/crecim
   "field": null
 }
 ```
+
+---
+
+## FA-09 — Activo fuera del alcance de finca del usuario (INC-M02-71-G48)
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/{ID_ACTIVO_OTRA_FINCA}/eventos/crecimiento \
+  -H "Authorization: Bearer {TOKEN_PRODUCTOR}" \
+  -H "Content-Type: application/json" \
+  -d '{ "tipo_medicion": "PESO", "valor_medicion": 5.0, "unidad_medida": "kg" }'
+```
+
+**Respuesta esperada (404)** — igual que el resto de operaciones de este módulo,
+un activo fuera del alcance de finca del usuario se trata como inexistente
+(no se revela su existencia a quien no tiene acceso, en vez de responder 403):
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "El activo biológico con id {ID_ACTIVO_OTRA_FINCA} no existe.",
+  "field": null
+}
+```

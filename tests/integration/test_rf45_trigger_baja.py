@@ -26,19 +26,12 @@ def _nombre_temporal(prefijo: str) -> str:
 
 
 def _crear_contexto(db_session, crear_usuario_db) -> tuple[int, int]:
+    # `pruebas` no trae datos transaccionales precargados (ver
+    # scripts/provisionar_pruebas.sh): se usa un tipo fijo en vez de copiar
+    # una infraestructura existente que puede no haber.
+    tipo_infraestructura = 'Corral'
     usuario = crear_usuario_db()
     sid = _id_temporal()
-    tipo_infraestructura = db_session.execute(
-        text(
-            """
-            SELECT tipo::text
-            FROM modulo9.infraestructuras
-            WHERE es_activo = true
-            ORDER BY id_infraestructura
-            LIMIT 1
-            """
-        )
-    ).scalar_one()
     db_session.execute(
         text('SET LOCAL app.usuario_id = :uid'),
         {'uid': usuario['id_usuario']},

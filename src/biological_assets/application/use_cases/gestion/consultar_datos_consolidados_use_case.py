@@ -11,7 +11,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import ConflictError, NotFoundError
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -41,6 +41,17 @@ class ConsultarDatosConsolidadosUseCase:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',
                 message=f'El activo biológico con ID {id_activo} no existe en los registros del sistema.',
+            )
+
+        asociacion_activa = self.activo_repo.obtener_asociacion_activa(id_activo)
+        if asociacion_activa is not None and not asociacion_activa.es_activo_infraestructura:
+            raise ConflictError(
+                code='INCONSISTENCIA_JERARQUICA',
+                message=(
+                    f'El activo mantiene una asociación vigente con la infraestructura '
+                    f'"{asociacion_activa.nombre_infraestructura}", la cual está inactiva. '
+                    f'Regulariza la jerarquía del activo antes de consultar datos consolidados.'
+                ),
             )
 
         resultado = self.indicadores_repo.obtener_datos_consolidados(

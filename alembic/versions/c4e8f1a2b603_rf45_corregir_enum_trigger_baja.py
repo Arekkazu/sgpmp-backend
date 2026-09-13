@@ -1,7 +1,7 @@
 """RF-45: corregir el enum usado al actualizar la cantidad de un lote.
 
 Revision ID: c4e8f1a2b603
-Revises: b92f7e1a4c63
+Revises: e83264b0b9cd
 Create Date: 2026-09-11
 
 ``enum_activo_biologico_tipo`` usa valores en mayúsculas. Las funciones del
@@ -16,7 +16,7 @@ from alembic import op
 
 
 revision: str = 'c4e8f1a2b603'
-down_revision: Union[str, Sequence[str], None] = 'b92f7e1a4c63'
+down_revision: Union[str, Sequence[str], None] = 'e83264b0b9cd'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
