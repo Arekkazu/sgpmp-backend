@@ -42,10 +42,14 @@ class RegistrarEventoCrecimientoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
-        self, id_activo: int, dto: RegistrarEventoCrecimientoDTO, usuario: UsuarioActual
+        self,
+        id_activo: int,
+        dto: RegistrarEventoCrecimientoDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> tuple[EventoActivo, bool]:
         return ejecutar_con_auditoria_de_rechazo(
-            lambda: self._execute(id_activo, dto, usuario),
+            lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
             db=self.db,
             bitacora_repo=self.bitacora_repo,
             obtener_activo=self.activo_repo.obtener_por_id,
@@ -57,9 +61,13 @@ class RegistrarEventoCrecimientoUseCase:
         )
 
     def _execute(
-        self, id_activo: int, dto: RegistrarEventoCrecimientoDTO, usuario: UsuarioActual
+        self,
+        id_activo: int,
+        dto: RegistrarEventoCrecimientoDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> tuple[EventoActivo, bool]:
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(code='ACTIVO_NO_ENCONTRADO', message=f'El activo biológico con id {id_activo} no existe.')
 

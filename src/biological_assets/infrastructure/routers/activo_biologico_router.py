@@ -68,7 +68,13 @@ from src.biological_assets.infrastructure.dto.consultar_historial_dto import Con
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.application.use_cases.gestion.cambiar_estado_asociacion_sensor_use_case import (
+    CambiarEstadoAsociacionSensorUseCase,
+)
 from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
+from src.biological_assets.infrastructure.dto.cambiar_estado_asociacion_sensor_dto import (
+    CambiarEstadoAsociacionSensorDTO,
+)
 from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_repository import (
     SqlAlchemyAsociacionSensorActivoRepository,
 )
@@ -121,6 +127,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
+from src.shared.rate_limit import rate_limit
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -129,6 +136,12 @@ router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 _RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+
+# INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
+# 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
+# por-usuario que ofrece hoy este helper) queda bloqueado por INC-M02-90-G92
+# (no existe todavia una identidad de modulo autenticable).
+_LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
 
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
@@ -691,7 +704,10 @@ def registrar_evento_crecimiento(
         ciclo_port=CicloProductivoM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    evento, fase_avanzada = use_case.execute(id_activo, dto, usuario_actual)
+    evento, fase_avanzada = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return RegistrarEventoCrecimientoResponse(
         evento=_evento_to_response(evento),
         fase_avanzada=fase_avanzada,
@@ -1155,6 +1171,46 @@ def asociar_sensor_iot(
     )
 
 
+@router.patch(
+    '/{id_activo}/sensores/{id_asociacion}',
+    response_model=AsociacionSensorActivoResponse,
+    status_code=200,
+    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 3))],
+    responses={
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Cambiar estado (activar/desactivar) de una asociación sensor-activo (RF-49)',
+)
+def cambiar_estado_asociacion_sensor(
+    id_activo: int,
+    id_asociacion: int,
+    dto: CambiarEstadoAsociacionSensorDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> AsociacionSensorActivoResponse:
+    use_case = CambiarEstadoAsociacionSensorUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+    )
+    resultado = use_case.execute(id_activo, id_asociacion, dto, usuario_actual)
+    return AsociacionSensorActivoResponse(
+        id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
+        id_activo_biologico=resultado.id_activo_biologico,
+        tipo_activo=resultado.tipo_activo,
+        tipo_asociacion=resultado.tipo_asociacion,
+        dispositivo_iot_id=resultado.dispositivo_iot_id,
+        sensor_id=resultado.sensor_id,
+        id_infraestructura=resultado.id_infraestructura,
+        fecha_inicio=resultado.fecha_inicio,
+        fecha_fin=resultado.fecha_fin,
+        estado_asociacion=resultado.estado_asociacion,
+        motivo=resultado.motivo,
+        advertencia=None,
+    )
+
+
 # ── CU12 RF-51 — Consultar indicadores zootécnicos ───────────────────────────
 
 @router.get(
@@ -1198,6 +1254,7 @@ def consultar_indicadores(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(
@@ -1229,12 +1286,16 @@ def consultar_indicadores(
 @router.get(
     '/{id_activo}/datos-consolidados',
     response_model=DatosConsolidadosResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[
+        Depends(require_permission(_RECURSO, 2)),
+        Depends(_LIMITE_DATOS_CONSOLIDADOS),
+    ],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        429: {'model': ErrorResponse},
     },
     summary='Exponer datos consolidados del activo biológico para módulos analíticos (CU12 - RF-50)',
 )
