@@ -1,3 +1,11 @@
+## [1.0.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.41...v1.0.0-rc.42) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** auditar también el PATCH de ciclo de vida de sensores ([f91989f](https://github.com/Arekkazu/sgpmp-backend/commit/f91989fc2feb62847ebbfd7d9e486b3c2da00f80))
+* **rf52:** registrar rechazos RBAC en auditoría ([17ae99b](https://github.com/Arekkazu/sgpmp-backend/commit/17ae99bcb61650caa44fd01af89a3daadbde56d4))
+* **rf52:** registrar rechazos tempranos en auditoría ([05c5ed0](https://github.com/Arekkazu/sgpmp-backend/commit/05c5ed0185b3abd51782448c138d919b54057b8e))
+
 ## [1.0.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.40...v1.0.0-rc.41) (2026-09-13)
 
 ### Bug Fixes
