@@ -52,10 +52,13 @@ class AsociarSensorActivoUseCase:
         dto: AsociarSensorActivoDTO,
         usuario_actual: UsuarioActual,
     ) -> AsociacionSensorActivo:
-        # V1 — Activo existe
+        # V1 — Activo existe (CU11 Flujo Alterno "Activo Biológico No Válido":
+        # inexistente o BAJA comparten el mismo flujo -> BusinessRuleError/422,
+        # no NotFoundError/404. V2 abajo ya usa BusinessRuleError para el caso
+        # BAJA; esto solo alinea el caso "inexistente" con esa misma regla.
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
-            raise NotFoundError(
+            raise BusinessRuleError(
                 code='ACTIVO_NO_ENCONTRADO',
                 message=f'No existe un activo biológico con id {id_activo}.',
             )
@@ -154,6 +157,25 @@ class AsociarSensorActivoUseCase:
                     message=(
                         f'El activo {id_activo} ya tiene el sensor {conflicto_pob.sensor_id} '
                         'con asociación POBLACIONAL activa. Desactívelo primero.'
+                    ),
+                )
+
+            # V8c — Restricción 4 (RF-49): un sensor POBLACIONAL solo puede estar
+            # activo en un único lote a la vez. V8b solo valida por activo (que el
+            # LOTE no tenga ya otro sensor); esta es la simétrica por SENSOR (que
+            # el sensor no esté ya activo en otro lote), ausente hasta ahora.
+            activas_sensor_pob = self.repo.listar_activas_por_sensor(dto.sensor_id, 'poblacional')
+            conflicto_sensor = next(
+                (a for a in activas_sensor_pob if a.id_activo_biologico != id_activo),
+                None,
+            )
+            if conflicto_sensor:
+                raise ConflictError(
+                    code='SENSOR_YA_ASOCIADO_A_OTRO_LOTE',
+                    message=(
+                        f'El sensor {dto.sensor_id} ya está asociado con tipo POBLACIONAL '
+                        f'al activo {conflicto_sensor.id_activo_biologico}. Un sensor solo puede '
+                        'estar activo en un único lote a la vez. Desactive esa asociación primero.'
                     ),
                 )
 
