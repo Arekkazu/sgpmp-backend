@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "TC-M09-G71 - Restriccion de autorizacion en configuracion remota (RF-23, OWASP A01, CU-05)",
+    "description": "TC-M09-G71 (RF-23, OWASP A01, CU-05 Gestionar Dispositivos IoT), sub-casos TC-M09-136 y TC-M09-137. Armada contra DEV (https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp).\n\nSub-caso 1 (TC-M09-136, rol sin privilegios): confirmado en vivo -- Productor (m2m.nuevo@ejemplo.com) y Veterinario (juan.carlos@email.com) reciben 403 ACCESO_DENEGADO al intentar POST /configuracion/dispositivos-iot/{id}/configurar. El RBAC por rol (require_permission, recurso 11 'dispositivos_iot', accion 3 Actualizar) funciona correctamente para estos dos roles.\n\nSub-caso 2 (TC-M09-137, BUG -- BOLA/OWASP A01): la ficha pide que un usuario autorizado sobre el recurso pero SIN relacion con la estructura/finca del dispositivo (\"usuario autorizado sobre dispositivo=101 intenta modificar dispositivo=999\") sea rechazado. Confirmado en vivo que **NO existe ninguna verificacion de propiedad/alcance por finca** en ConfigurarRemotamenteUseCase (src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py) -- usuario_actual solo se usa para dejar constancia de quien pidio el cambio (id_usuario en la fila de configuracion), nunca se compara contra la finca/infraestructura del dispositivo. El rol Ingeniero de Campo (ingeniero@pecuaria.co, id_usuario=4, sin ninguna finca ni activo asociado a la finca 1) configura sin ningun problema (HTTP 202, estado PENDIENTE) un dispositivo fresco registrado en infraestructura de la finca 1 -- exactamente el escenario \"usuario autorizado sobre OTRO dispositivo intenta modificar uno que no es suyo\" que describe la ficha, y el sistema lo permite en vez de rechazarlo. Mismo patron de gap de alcance por finca ya documentado para RF-20/RF-22 en TC-M09-G126 -- el fix de RF-25 (alcance por finca) no cubrio esta ruta de escritura de RF-23.\n\nNOTA: no se pudo usar una cuenta Productor 'dueña' de una finca especifica para el sub-caso 2 porque ninguna de las cuentas de prueba disponibles (m2m.nuevo@ejemplo.com) posee ninguna finca en DEV (GET /configuracion/fincas devuelve total:0 para ella) -- se uso en su lugar Ingeniero de Campo, que si tiene el permiso RBAC de accion sobre el recurso (a diferencia del Productor, bloqueado ya en el sub-caso 1), lo cual permite aislar limpiamente la pregunta de alcance por finca de la pregunta de permiso por rol.\n\nLa coleccion registra su propio dispositivo fresco en infraestructura de la finca 1 (id_infraestructura=3) para el sub-caso 2, evitando reutilizar dispositivos con configuraciones pendientes previas (CONFIG_PENDIENTE_EXISTENTE) de sesiones anteriores.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Seguridad. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token_admin', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo fresco en finca 1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"G71-{{run_id}}\",\n  \"descripcion\": \"Prueba TC-M09-G71 - restriccion de autorizacion\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot", "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: login del Productor exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_productor', respuesta.token); }",
+              "else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1a (TC-M09-136) - Productor rechazado al intentar configurar remotamente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1a: rechazado con HTTP 403', function () { pm.response.to.have.status(403); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1a: codigo ACCESO_DENEGADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_productor}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 15\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Veterinario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: login del Veterinario exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_veterinario', respuesta.token); }",
+              "else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{veterinario_correo}}\",\n  \"contrasena\": \"{{veterinario_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1b (TC-M09-136) - Veterinario rechazado al intentar configurar remotamente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1b: rechazado con HTTP 403', function () { pm.response.to.have.status(403); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1b: codigo ACCESO_DENEGADO', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ACCESO_DENEGADO');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_veterinario}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 15\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Iniciar sesion como Ingeniero de Campo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion: login del Ingeniero exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token_ingeniero', respuesta.token); }",
+              "else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{ingeniero_correo}}\",\n  \"contrasena\": \"{{ingeniero_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M09-137, BUG BOLA) - Ingeniero SIN relacion con la finca configura el dispositivo de todas formas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: Ingeniero de Campo (sin ninguna finca/activo asociado a la finca 1) intenta configurar un dispositivo de la finca 1 -- deberia rechazarse por falta de alcance ---');",
+              "console.log(pm.response.text());",
+              "pm.test('(BUG BOLA) Sub-caso 2: deberia rechazarse (403/404), pero el sistema lo permite -- no existe ninguna verificacion de alcance por finca/estructura', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "console.log('CONCLUSION: ConfigurarRemotamenteUseCase nunca compara la finca/infraestructura del dispositivo contra el usuario solicitante -- cualquier usuario con el permiso RBAC generico sobre el recurso 11 (dispositivos_iot) puede configurar CUALQUIER dispositivo del sistema, sin importar a que finca pertenezca. Mismo patron ya documentado en TC-M09-G126 para RF-20/RF-22.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_ingeniero}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 15\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "productor_correo", "value": "m2m.nuevo@ejemplo.com" },
+    { "key": "productor_contrasena", "value": "Test1234!" },
+    { "key": "veterinario_correo", "value": "juan.carlos@email.com" },
+    { "key": "veterinario_contrasena", "value": "Test1234!" },
+    { "key": "ingeniero_correo", "value": "ingeniero@pecuaria.co" },
+    { "key": "ingeniero_contrasena", "value": "Test1234!" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" },
+    { "key": "token_veterinario", "value": "" },
+    { "key": "token_ingeniero", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_tipo_dispositivo", "value": "1" },
+    { "key": "id_dispositivo", "value": "" }
+  ]
+}
