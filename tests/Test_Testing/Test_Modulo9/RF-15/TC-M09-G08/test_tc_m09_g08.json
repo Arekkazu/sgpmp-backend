@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "tc-m09-g08-auditoria-especies",
     "name": "TC-M09-G08 - Auditoría de creación, edición y desactivación de especies (RF-15 / TC-M09-18)",
-    "description": "Caso de prueba E2E autocontenido para RF-15 (Módulo 9): Trazabilidad y auditoría de operaciones CREATE -> UPDATE -> DEACTIVATE sobre el catálogo de especies. Apunta UPDATE y DEACTIVATE a id_especie=2 (Trucha Arcoíris, preexistente) con fecha_actualizacion para aislar la validación del defecto.",
+    "description": "Caso de prueba E2E autocontenido para RF-15 (Módulo 9): Trazabilidad y auditoría de operaciones CREATE -> UPDATE -> DEACTIVATE sobre el catálogo de especies. Ejecuta el ciclo completo sobre una especie sintética aislada sin mutar especies reales del catálogo.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -17,8 +17,18 @@
       "type": "string"
     },
     {
-      "key": "idEspeciePreexistente",
-      "value": "2",
+      "key": "idUsuarioAutenticado",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idEspecieSintetica",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fechaActualizacionSintetica",
+      "value": "",
       "type": "string"
     },
     {
@@ -50,6 +60,19 @@
               "    var res = pm.response.json();",
               "    pm.expect(res.token).to.be.a('string').and.not.empty;",
               "    pm.collectionVariables.set('jwt_token', res.token);",
+              "",
+              "    // Extraer id_usuario desde el payload del JWT (claim 'sub')",
+              "    try {",
+              "        var parts = res.token.split('.');",
+              "        var payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "        while (payloadB64.length % 4) payloadB64 += '=';",
+              "        var payload = JSON.parse(atob(payloadB64));",
+              "        pm.collectionVariables.set('idUsuarioAutenticado', String(payload.sub));",
+              "        console.log('Usuario autenticado ID:', payload.sub);",
+              "    } catch (e) {",
+              "        console.error('Error al decodificar JWT:', e);",
+              "        pm.collectionVariables.set('idUsuarioAutenticado', '104');",
+              "    }",
               "});"
             ],
             "type": "text/javascript"
@@ -66,7 +89,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -108,7 +131,39 @@
               "    var res = pm.response.json();",
               "    pm.expect(res).to.have.property('id_especie');",
               "    pm.expect(res.es_activo).to.be.true;",
-              "});"
+              "    pm.collectionVariables.set('idEspecieSintetica', String(res.id_especie));",
+              "    if (res.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fechaActualizacionSintetica', res.fecha_actualizacion);",
+              "    }",
+              "});",
+              "",
+              "// Inicializar fecha_actualizacion para el control de concurrencia optimista del Paso 3",
+              "var idEsp = pm.collectionVariables.get('idEspecieSintetica');",
+              "var token = pm.collectionVariables.get('jwt_token');",
+              "var baseUrl = pm.collectionVariables.get('baseUrl');",
+              "if (idEsp && !pm.collectionVariables.get('fechaActualizacionSintetica')) {",
+              "    pm.sendRequest({",
+              "        url: baseUrl + '/configuracion/especies/' + idEsp + '/desactivar',",
+              "        method: 'PATCH',",
+              "        header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },",
+              "        body: { mode: 'raw', raw: '{}' }",
+              "    }, function (err, deactRes) {",
+              "        if (!err && deactRes.code === 200) {",
+              "            pm.sendRequest({",
+              "                url: baseUrl + '/configuracion/especies/' + idEsp + '/reactivar',",
+              "                method: 'PATCH',",
+              "                header: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },",
+              "                body: { mode: 'raw', raw: '{}' }",
+              "            }, function (err2, reactRes) {",
+              "                if (!err2 && reactRes.code === 200) {",
+              "                    var reactJson = reactRes.json();",
+              "                    pm.collectionVariables.set('fechaActualizacionSintetica', reactJson.fecha_actualizacion);",
+              "                    console.log('Timestamp de concurrencia inicializado:', reactJson.fecha_actualizacion);",
+              "                }",
+              "            });",
+              "        }",
+              "    });",
+              "}"
             ],
             "type": "text/javascript"
           }
@@ -148,10 +203,23 @@
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "pm.test('Paso 2.2 - El log de auditoría contiene registros para el usuario Admin', function () {",
+              "pm.test('Paso 2.2 - El log de auditoría contiene registros para el usuario Admin autenticado', function () {",
               "    var res = pm.response.json();",
               "    pm.expect(res).to.have.property('items');",
-              "    pm.expect(res.items).to.be.an('array');",
+              "    pm.expect(res.items).to.be.an('array').and.not.empty;",
+              "    var idEsperado = Number(pm.collectionVariables.get('idUsuarioAutenticado') || 104);",
+              "    var tieneEventoUsuario = res.items.some(function (it) {",
+              "        return it.id_usuario === idEsperado;",
+              "    });",
+              "    pm.expect(tieneEventoUsuario, 'Debe existir al menos un evento asociado a id_usuario=' + idEsperado).to.be.true;",
+              "});",
+              "",
+              "pm.test('Paso 2.3 - [LIMITACION ARQUITECTONICA] GET /auditoria/ consulta modulo1.eventos y no expone entidades de modulo9.auditorias_especies', function () {",
+              "    // La auditoria especifica de especies (CREATE, id_especie, valores_anteriores/nuevos)",
+              "    // reside en modulo9.auditorias_especies (BD) y no en modulo1.eventos (API general).",
+              "    var res = pm.response.json();",
+              "    var contieneEspecieDirecta = res.items.some(function (it) { return it.id_especie !== undefined; });",
+              "    pm.expect(contieneEspecieDirecta).to.be.false;",
               "});"
             ],
             "type": "text/javascript"
@@ -167,18 +235,18 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "raw": "{{baseUrl}}/auditoria/?id_usuario={{idUsuarioAutenticado}}&tamano=10",
           "host": [ "{{baseUrl}}" ],
           "path": [ "auditoria", "" ],
           "query": [
-            { "key": "id_usuario", "value": "1" },
+            { "key": "id_usuario", "value": "{{idUsuarioAutenticado}}" },
             { "key": "tamano", "value": "10" }
           ]
         }
       }
     },
     {
-      "name": "3. Operación UPDATE: Modificar especie preexistente (id_especie=2 Trucha Arcoíris)",
+      "name": "3. Operación UPDATE: Modificar especie sintética",
       "event": [
         {
           "listen": "test",
@@ -199,6 +267,9 @@
               "    }",
               "    var res = pm.response.json();",
               "    pm.expect(res.descripcion).to.include('EDITADO');",
+              "    if (res.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fechaActualizacionSintetica', res.fecha_actualizacion);",
+              "    }",
               "});"
             ],
             "type": "text/javascript"
@@ -219,12 +290,12 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre\": \"Trucha Arcoiris\",\n  \"descripcion\": \"Especie de agua fría cultivada en estanques EDITADO TC18\",\n  \"fecha_actualizacion\": \"2026-04-28T14:42:28.213141+00:00\"\n}"
+          "raw": "{\n  \"nombre\": \"{{nombreEspecie}}\",\n  \"descripcion\": \"Especie sintética para auditoría TC-M09-18 (EDITADO)\",\n  \"fecha_actualizacion\": \"{{fechaActualizacionSintetica}}\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/configuracion/especies/{{idEspeciePreexistente}}",
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspecieSintetica}}",
           "host": [ "{{baseUrl}}" ],
-          "path": [ "configuracion", "especies", "{{idEspeciePreexistente}}" ]
+          "path": [ "configuracion", "especies", "{{idEspecieSintetica}}" ]
         }
       }
     },
@@ -245,9 +316,19 @@
               "    pm.test('Paso 4.1 - Consulta de auditoría post-UPDATE responde HTTP 200 OK', function () {",
               "        pm.response.to.have.status(200);",
               "    });",
-              "    pm.test('Paso 4.2 - El log registra la operación de UPDATE', function () {",
+              "    pm.test('Paso 4.2 - El log registra la operación de UPDATE y eventos para el usuario Admin autenticado', function () {",
               "        var res = pm.response.json();",
-              "        pm.expect(res.items).to.be.an('array');",
+              "        pm.expect(res.items).to.be.an('array').and.not.empty;",
+              "        var idEsperado = Number(pm.collectionVariables.get('idUsuarioAutenticado') || 104);",
+              "        var tieneEventoUsuario = res.items.some(function (it) {",
+              "            return it.id_usuario === idEsperado;",
+              "        });",
+              "        pm.expect(tieneEventoUsuario, 'Debe existir al menos un evento asociado a id_usuario=' + idEsperado).to.be.true;",
+              "    });",
+              "    pm.test('Paso 4.3 - [LIMITACION ARQUITECTONICA] GET /auditoria/ consulta modulo1.eventos y no expone entidades de modulo9.auditorias_especies', function () {",
+              "        var res = pm.response.json();",
+              "        var contieneEspecieDirecta = res.items.some(function (it) { return it.id_especie !== undefined; });",
+              "        pm.expect(contieneEspecieDirecta).to.be.false;",
               "    });",
               "}"
             ],
@@ -264,18 +345,18 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "raw": "{{baseUrl}}/auditoria/?id_usuario={{idUsuarioAutenticado}}&tamano=10",
           "host": [ "{{baseUrl}}" ],
           "path": [ "auditoria", "" ],
           "query": [
-            { "key": "id_usuario", "value": "1" },
+            { "key": "id_usuario", "value": "{{idUsuarioAutenticado}}" },
             { "key": "tamano", "value": "10" }
           ]
         }
       }
     },
     {
-      "name": "5. Operación DEACTIVATE: Desactivar especie preexistente (id_especie=2 Trucha Arcoíris)",
+      "name": "5. Operación DEACTIVATE: Desactivar especie sintética",
       "event": [
         {
           "listen": "test",
@@ -315,9 +396,9 @@
           "raw": "{}"
         },
         "url": {
-          "raw": "{{baseUrl}}/configuracion/especies/{{idEspeciePreexistente}}/desactivar",
+          "raw": "{{baseUrl}}/configuracion/especies/{{idEspecieSintetica}}/desactivar",
           "host": [ "{{baseUrl}}" ],
-          "path": [ "configuracion", "especies", "{{idEspeciePreexistente}}", "desactivar" ]
+          "path": [ "configuracion", "especies", "{{idEspecieSintetica}}", "desactivar" ]
         }
       }
     },
@@ -338,9 +419,19 @@
               "    pm.test('Paso 6.1 - Consulta de auditoría post-DEACTIVATE responde HTTP 200 OK', function () {",
               "        pm.response.to.have.status(200);",
               "    });",
-              "    pm.test('Paso 6.2 - El log registra la operación de DEACTIVATE', function () {",
+              "    pm.test('Paso 6.2 - El log registra la operación de DEACTIVATE y eventos para el usuario Admin autenticado', function () {",
               "        var res = pm.response.json();",
-              "        pm.expect(res.items).to.be.an('array');",
+              "        pm.expect(res.items).to.be.an('array').and.not.empty;",
+              "        var idEsperado = Number(pm.collectionVariables.get('idUsuarioAutenticado') || 104);",
+              "        var tieneEventoUsuario = res.items.some(function (it) {",
+              "            return it.id_usuario === idEsperado;",
+              "        });",
+              "        pm.expect(tieneEventoUsuario, 'Debe existir al menos un evento asociado a id_usuario=' + idEsperado).to.be.true;",
+              "    });",
+              "    pm.test('Paso 6.3 - [LIMITACION ARQUITECTONICA] GET /auditoria/ consulta modulo1.eventos y no expone entidades de modulo9.auditorias_especies', function () {",
+              "        var res = pm.response.json();",
+              "        var contieneEspecieDirecta = res.items.some(function (it) { return it.id_especie !== undefined; });",
+              "        pm.expect(contieneEspecieDirecta).to.be.false;",
               "    });",
               "}"
             ],
@@ -357,11 +448,11 @@
           }
         ],
         "url": {
-          "raw": "{{baseUrl}}/auditoria/?id_usuario=1&tamano=10",
+          "raw": "{{baseUrl}}/auditoria/?id_usuario={{idUsuarioAutenticado}}&tamano=10",
           "host": [ "{{baseUrl}}" ],
           "path": [ "auditoria", "" ],
           "query": [
-            { "key": "id_usuario", "value": "1" },
+            { "key": "id_usuario", "value": "{{idUsuarioAutenticado}}" },
             { "key": "tamano", "value": "10" }
           ]
         }

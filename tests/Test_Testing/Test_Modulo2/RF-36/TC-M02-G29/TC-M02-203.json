@@ -81,7 +81,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-09T03:00:00Z\"\n}"
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 58.0,\n  \"unidad_medida\": \"gr\",\n  \"nuevo_peso_promedio\": 58.0,\n  \"cantidad_medida\": 5,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"{{fecha_evento_actual}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/crecimiento",
@@ -97,6 +97,16 @@
         }
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Corrección 2026-09-11: se reemplaza fecha estática por fecha dinámica para evitar rechazo por validación cronológica del historial del lote (ver resultado_tc_m02_g29_reevaluacion.md).",
+              "pm.collectionVariables.set('fecha_evento_actual', new Date().toISOString());"
+            ],
+            "type": "text/javascript"
+          }
+        },
         {
           "listen": "test",
           "script": {

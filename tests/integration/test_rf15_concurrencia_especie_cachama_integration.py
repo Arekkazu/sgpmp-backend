@@ -1,4 +1,4 @@
-﻿"""Prueba de integracion con PostgreSQL TEST para TC-M09-G06 / SC-16 (RF-15 / CU-01).
+"""Prueba de integracion con PostgreSQL TEST para TC-M09-G06 / SC-16 (RF-15 / CU-01).
 
 Sub-caso: TC-M09-16 - Concurrencia optimista en edicion de especie.
 Especie fixture: Cachama Blanca (id_especie=4)
@@ -12,25 +12,30 @@ Credencial de ejecucion:
     (privilegios DML excesivos en cuenta QA sobre modulo9).
 
 Mecanismo de concurrencia real:
-    ThreadPoolExecutor (2 workers) + threading.Barrier(2).
+    ThreadPoolExecutor (2 workers) + threading.Barrier(2) con sesiones independientes
+    de SQLAlchemy conectadas directamente mediante integration_engine.
 
-Arbol de decision INC-M09-02:
+Arbol de decision:
     - exc_a con mensaje de trigger (app.usuario_id) -> pytest.skip BLOQUEADO
     - exc_a es None y exc_b es PreconditionFailedError(412) -> PASA
     - exc_a es None y exc_b es None -> FALLA real de concurrencia
 
-Teardown condicional:
-    Solo restaura si A tuvo exito real. Si SKIP, rollback automatico del Use Case
-    ya garantizo integridad -- se verifica por lectura antes de cualquier escritura.
+Teardown:
+    Restaura el nombre original y descripcion usando EditarEspecieUseCase en una
+    sesion nueva e independiente, utilizando el timestamp actualizado post-commit de A.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import logging
 import sys
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from sqlalchemy import Engine, text
+from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.especies.editar_especie_use_case import EditarEspecieUseCase
 from src.configuration.infrastructure.dto.editar_especie_dto import EditarEspecieDTO
@@ -38,7 +43,6 @@ from src.configuration.infrastructure.repositories.auditoria_especie_repository 
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import InfrastructureError, PreconditionFailedError
-from sqlalchemy import text
 
 ID_CACHAMA = 4
 NOMBRE_ORIGINAL = "Cachama Blanca"
@@ -50,10 +54,10 @@ USUARIO_B = UsuarioActual(id_usuario=2, id_token=11, id_rol=1)
 logger = logging.getLogger(__name__)
 
 
-def _leer_bd(db_session, id_especie: int) -> dict:
+def _leer_bd(session: Session, id_especie: int) -> dict:
     """Lectura directa SQL del estado actual (sin ORM, mas confiable post-rollback)."""
     try:
-        row = db_session.execute(
+        row = session.execute(
             text("""
                 SELECT nombre, descripcion, es_activo, fecha_actualizacion
                 FROM modulo9.especies WHERE id_especie = :id
@@ -66,27 +70,26 @@ def _leer_bd(db_session, id_especie: int) -> dict:
 
 
 @pytest.mark.integration
-def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
+def test_concurrencia_optimista_edicion_especie_cachama_integration(integration_engine: Engine):
     """TC-M09-G06 / SC-16: Concurrencia optimista sobre Cachama Blanca (id=4).
 
-    Veredicto proyectado: SKIP/BLOQUEADO por INC-M09-02.
-    Si PASA: INC-M09-02 fue corregido -- reportar como hallazgo positivo.
+    Utiliza sesiones independientes conectadas al motor integration_engine para
+    permitir concurrencia real entre hilos contra PostgreSQL TEST.
     """
-    especies_repo = SqlAlchemyEspecieRepository(db_session)
-    auditoria_repo = SqlAlchemyAuditoriaEspecieRepository(db_session)
+    # --- 0. Lectura inicial para referencia de teardown (sesion 0) -----------
+    with Session(integration_engine) as session_init:
+        especies_repo_init = SqlAlchemyEspecieRepository(session_init)
+        especie_original = especies_repo_init.obtener_por_id(ID_CACHAMA)
+        assert especie_original is not None, (
+            f"Cachama Blanca (id={ID_CACHAMA}) no existe en BD TEST. Verificar seed."
+        )
+        assert especie_original.es_activo, (
+            f"Cachama Blanca (id={ID_CACHAMA}) esta inactiva. Fixture corrompido."
+        )
 
-    # --- 0. Lectura inicial para referencia de teardown ----------------------
-    especie_original = especies_repo.obtener_por_id(ID_CACHAMA)
-    assert especie_original is not None, (
-        f"Cachama Blanca (id={ID_CACHAMA}) no existe en BD TEST. Verificar seed."
-    )
-    assert especie_original.es_activo, (
-        f"Cachama Blanca (id={ID_CACHAMA}) esta inactiva. Fixture corrompido."
-    )
-
-    nombre_antes = especie_original.nombre.valor
-    descripcion_antes = especie_original.descripcion
-    ts_v0 = especie_original.fecha_actualizacion
+        nombre_antes = especie_original.nombre.valor
+        descripcion_antes = especie_original.descripcion
+        ts_v0 = especie_original.fecha_actualizacion
 
     assert ts_v0 is not None, (
         f"Cachama Blanca no tiene fecha_actualizacion. Control optimista no puede operar."
@@ -99,42 +102,53 @@ def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
     resultado_b = None
 
     try:
-        # --- 1. Concurrencia real con Barrier --------------------------------
-        barrier = threading.Barrier(2, timeout=10)
+        # --- 1. Concurrencia optimista determinista con señalización por Event -
+        commit_a_completado = threading.Event()
 
         def editar_como_a():
-            barrier.wait()
-            uc = EditarEspecieUseCase(
-                db=db_session,
-                especies_repo=SqlAlchemyEspecieRepository(db_session),
-                auditoria_repo=SqlAlchemyAuditoriaEspecieRepository(db_session),
-            )
-            return uc.execute(
-                ID_CACHAMA,
-                EditarEspecieDTO(
-                    nombre="Cachama Blanca TC-G06-A",
-                    descripcion="Modificacion Usuario A concurrencia TC-M09-G06",
-                    fecha_actualizacion=ts_v0,
-                ),
-                USUARIO_A,
-            )
+            logger.info("[HILO A] Iniciando edición concurrente de Cachama Blanca con ts_v0...")
+            with Session(integration_engine) as session_a:
+                uc = EditarEspecieUseCase(
+                    db=session_a,
+                    especies_repo=SqlAlchemyEspecieRepository(session_a),
+                    auditoria_repo=SqlAlchemyAuditoriaEspecieRepository(session_a),
+                )
+                res = uc.execute(
+                    ID_CACHAMA,
+                    EditarEspecieDTO(
+                        nombre="Cachama Blanca Edit A",
+                        descripcion="Modificacion Usuario A concurrencia TC-M09-G06",
+                        fecha_actualizacion=ts_v0,
+                    ),
+                    USUARIO_A,
+                )
+                session_a.commit()
+                logger.info("[HILO A] Commit exitoso. Señalizando commit_a_completado a Hilo B.")
+                commit_a_completado.set()
+                return res
 
         def editar_como_b():
-            barrier.wait()
-            uc = EditarEspecieUseCase(
-                db=db_session,
-                especies_repo=SqlAlchemyEspecieRepository(db_session),
-                auditoria_repo=SqlAlchemyAuditoriaEspecieRepository(db_session),
-            )
-            return uc.execute(
-                ID_CACHAMA,
-                EditarEspecieDTO(
-                    nombre="Cachama Blanca TC-G06-B",
-                    descripcion="Modificacion Usuario B concurrencia TC-M09-G06",
-                    fecha_actualizacion=ts_v0,  # ts obsoleto para forzar conflicto
-                ),
-                USUARIO_B,
-            )
+            logger.info("[HILO B] Esperando que Hilo A complete su commit...")
+            senial_recibida = commit_a_completado.wait(timeout=15)
+            assert senial_recibida, "Timeout: Hilo A no completó su commit dentro de los 15s esperados"
+            logger.info("[HILO B] Señal recibida. Enviando DTO con ts_v0 obsoleto tras commit de A...")
+            with Session(integration_engine) as session_b:
+                uc = EditarEspecieUseCase(
+                    db=session_b,
+                    especies_repo=SqlAlchemyEspecieRepository(session_b),
+                    auditoria_repo=SqlAlchemyAuditoriaEspecieRepository(session_b),
+                )
+                res = uc.execute(
+                    ID_CACHAMA,
+                    EditarEspecieDTO(
+                        nombre="Cachama Blanca Edit B",
+                        descripcion="Modificacion Usuario B concurrencia TC-M09-G06",
+                        fecha_actualizacion=ts_v0,  # ts_v0 obsoleto post-commit de A
+                    ),
+                    USUARIO_B,
+                )
+                session_b.commit()
+                return res
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             fut_a = pool.submit(editar_como_a)
@@ -161,7 +175,8 @@ def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
             )
 
             if es_trigger:
-                estado_post = _leer_bd(db_session, ID_CACHAMA)
+                with Session(integration_engine) as session_chk:
+                    estado_post = _leer_bd(session_chk, ID_CACHAMA)
                 nombre_post = estado_post.get("nombre", "?")
                 ts_post = estado_post.get("fecha_actualizacion")
                 rollback_ok = (nombre_post == NOMBRE_ORIGINAL)
@@ -191,7 +206,7 @@ def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
         assert ts_v1 != ts_v0, (
             f"CP-02 FALLA: fecha_actualizacion no cambio. ts_v0={ts_v0}"
         )
-        assert resultado_a.nombre.valor == "Cachama Blanca TC-G06-A", (
+        assert resultado_a.nombre.valor == "Cachama Blanca Edit A", (
             f"CP-02 FALLA: nombre de A incorrecto: {resultado_a.nombre.valor}"
         )
 
@@ -208,16 +223,18 @@ def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
                 f"CP-03 FALLA: status_code={exc_b.status_code}, esperado 412"
             )
 
-            # CP-04: Verificar en BD que prevalece A
-            especie_bd = especies_repo.obtener_por_id(ID_CACHAMA)
-            assert especie_bd.nombre.valor == "Cachama Blanca TC-G06-A", (
-                f"CP-04 FALLA: en BD prevalece B. nombre={especie_bd.nombre.valor}"
-            )
+            # CP-04: Verificar en BD (sesion independiente) que prevalece A
+            with Session(integration_engine) as session_verif:
+                repo_verif = SqlAlchemyEspecieRepository(session_verif)
+                especie_bd = repo_verif.obtener_por_id(ID_CACHAMA)
+                assert especie_bd.nombre.valor == "Cachama Blanca Edit A", (
+                    f"CP-04 FALLA: en BD prevalece B. nombre={especie_bd.nombre.valor}"
+                )
 
-            # CP-05: timestamp incremento exactamente 1 vez
-            assert especie_bd.fecha_actualizacion == ts_v1, (
-                f"CP-05 FALLA: ts en BD={especie_bd.fecha_actualizacion}, ts_v1={ts_v1}"
-            )
+                # CP-05: timestamp incremento exactamente 1 vez
+                assert especie_bd.fecha_actualizacion == ts_v1, (
+                    f"CP-05 FALLA: ts en BD={especie_bd.fecha_actualizacion}, ts_v1={ts_v1}"
+                )
         else:
             # Ambos tuvieron exito: FALLA REAL del control de concurrencia
             pytest.fail(
@@ -229,51 +246,49 @@ def test_concurrencia_optimista_edicion_especie_cachama_integration(db_session):
         edicion_a_exitosa = True
 
     finally:
-        # --- Teardown condicional --------------------------------------------
-        estado_actual = _leer_bd(db_session, ID_CACHAMA)
-        nombre_actual = estado_actual.get("nombre", "?")
-        ts_actual = estado_actual.get("fecha_actualizacion")
+        # --- Teardown determinista con sesion independiente -------------------
+        with Session(integration_engine) as session_td:
+            estado_actual = _leer_bd(session_td, ID_CACHAMA)
+            nombre_actual = estado_actual.get("nombre", "?")
+            ts_actual = estado_actual.get("fecha_actualizacion")
+            logger.info(f"[TEARDOWN] Verificación en BD: nombre='{nombre_actual}', ts={ts_actual}")
 
-        if not edicion_a_exitosa:
-            # A fue bloqueada: rollback automatico ya restauro la BD
-            logger.info(
-                "[TEARDOWN] A fue bloqueada (INC-M09-02). Sin escritura de restauracion. "
-                f"Cachama Blanca: nombre='{nombre_actual}', ts={ts_actual}. "
-                f"Intacta: {nombre_actual == NOMBRE_ORIGINAL}"
-            )
-            return
+            if nombre_actual != NOMBRE_ORIGINAL:
+                logger.info(f"[TEARDOWN] Nombre difiere de '{NOMBRE_ORIGINAL}'. Ejecutando restauración...")
+                try:
+                    repo_td = SqlAlchemyEspecieRepository(session_td)
+                    audit_td = SqlAlchemyAuditoriaEspecieRepository(session_td)
+                    uc_r = EditarEspecieUseCase(
+                        db=session_td,
+                        especies_repo=repo_td,
+                        auditoria_repo=audit_td,
+                    )
+                    especie_post = repo_td.obtener_por_id(ID_CACHAMA)
+                    especie_restaurada = uc_r.execute(
+                        ID_CACHAMA,
+                        EditarEspecieDTO(
+                            nombre=NOMBRE_ORIGINAL,
+                            descripcion=descripcion_antes,
+                            fecha_actualizacion=especie_post.fecha_actualizacion,
+                        ),
+                        USUARIO_A,
+                    )
+                    session_td.commit()
+                    assert especie_restaurada.nombre.valor == NOMBRE_ORIGINAL, (
+                        f"[TEARDOWN] Restauracion fallida: nombre={especie_restaurada.nombre.valor}"
+                    )
+                    logger.info(f"[TEARDOWN] Cachama Blanca restaurada exitosamente a '{NOMBRE_ORIGINAL}'.")
+                except Exception as e_td:
+                    msg_critico = (
+                        f"[FALLO CRITICO DE RESTAURACION] No se pudo restaurar Cachama Blanca "
+                        f"(id={ID_CACHAMA}) a '{NOMBRE_ORIGINAL}'. Error: {e_td}. "
+                        f"Estado BD: nombre='{nombre_actual}', ts={ts_actual}. "
+                        "ACCION REQUERIDA: restaurar manualmente con member_qa."
+                    )
+                    logging.critical(msg_critico)
+                    print(f"\n{msg_critico}", file=sys.stderr)
+                    raise RuntimeError(msg_critico) from e_td
+            else:
+                logger.info(f"[TEARDOWN] La especie ya tiene su nombre original '{NOMBRE_ORIGINAL}'.")
 
-        if nombre_actual == NOMBRE_ORIGINAL:
-            logger.info("[TEARDOWN] Especie ya tiene nombre original. Sin restauracion necesaria.")
-            return
 
-        try:
-            especie_post = especies_repo.obtener_por_id(ID_CACHAMA)
-            uc_r = EditarEspecieUseCase(
-                db=db_session,
-                especies_repo=especies_repo,
-                auditoria_repo=auditoria_repo,
-            )
-            especie_restaurada = uc_r.execute(
-                ID_CACHAMA,
-                EditarEspecieDTO(
-                    nombre=NOMBRE_ORIGINAL,
-                    descripcion=descripcion_antes,
-                    fecha_actualizacion=especie_post.fecha_actualizacion,
-                ),
-                USUARIO_A,
-            )
-            assert especie_restaurada.nombre.valor == NOMBRE_ORIGINAL, (
-                f"[TEARDOWN] Restauracion fallida: nombre={especie_restaurada.nombre.valor}"
-            )
-            logger.info(f"[TEARDOWN] Cachama Blanca restaurada a '{NOMBRE_ORIGINAL}'.")
-        except Exception as e_td:
-            msg_critico = (
-                f"[FALLO CRITICO DE RESTAURACION] No se pudo restaurar Cachama Blanca "
-                f"(id={ID_CACHAMA}) a '{NOMBRE_ORIGINAL}'. Error: {e_td}. "
-                f"Estado BD: nombre='{nombre_actual}', ts={ts_actual}. "
-                "ACCION REQUERIDA: restaurar manualmente con member_qa."
-            )
-            logging.critical(msg_critico)
-            print(f"\n{msg_critico}", file=sys.stderr)
-            raise RuntimeError(msg_critico) from e_td

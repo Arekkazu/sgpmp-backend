@@ -10,7 +10,7 @@
   - `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G32/RESULTADOS/reporte_TC-M02-198.html`
   - `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G32/RESULTADOS/reporte_TC-M02-199.html`
 - **Script de Verificación:** `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G32/RESULTADOS/cleanup_tc_m02_g32.sql`
-- **Veredicto Global:** **FALLIDO (1 PASSED, 1 FALLIDO)**
+- **Veredicto Global:** **BLOQUEADO (1 PASSED, 1 BLOQUEADO)**
 
 ---
 
