@@ -1,3 +1,9 @@
+## [1.0.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.43...v1.0.0-rc.44) (2026-09-13)
+
+### Bug Fixes
+
+* **rbac:** retirar escalada de privilegios del rol Supervisor (SEG-M01-01) ([530a5b7](https://github.com/Arekkazu/sgpmp-backend/commit/530a5b75ff199028b9e4f48fdaaf1cd4fb053e63)), closes [#289](https://github.com/Arekkazu/sgpmp-backend/issues/289)
+
 ## [1.0.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.42...v1.0.0-rc.43) (2026-09-13)
 
 ### Bug Fixes
