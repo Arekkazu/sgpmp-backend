@@ -1,6 +1,8 @@
 """Integración RF-52 CA-8 con filtros SQL y rollback exterior."""
 from __future__ import annotations
 
+import random
+import string
 import uuid
 from datetime import datetime, timezone
 
@@ -24,6 +26,10 @@ from src.shared.errors import AuthorizationError
 pytestmark = pytest.mark.integration
 
 
+def _letras(n: int = 10) -> str:
+    return ''.join(random.choices(string.ascii_letters, k=n))
+
+
 def _id_rol(db: Session, nombre: str) -> int:
     fila = db.execute(
         text('SELECT id_rol FROM modulo1.roles WHERE lower(nombre_rol) = lower(:nombre)'),
@@ -35,35 +41,62 @@ def _id_rol(db: Session, nombre: str) -> int:
 
 
 def _crear_activo_desde_fixture(db: Session, id_usuario: int) -> int:
-    identificador = f'G105-{uuid.uuid4().hex[:12]}'
+    # `pruebas` no trae datos transaccionales precargados (ver
+    # scripts/provisionar_pruebas.sh): se crea finca/infraestructura/activo
+    # propios en vez de copiar una fila existente, igual que
+    # test_inc_m02_75_g53_evento_fecha_race.py.
+    sid = uuid.uuid4().int % (10**9)
     db.execute(text("SELECT set_config('app.usuario_id', :usuario, true)"), {'usuario': str(id_usuario)})
+    db.execute(
+        text(
+            """
+            INSERT INTO modulo9.fincas (id_finca, nombre, ubicacion, tamano_h,
+                fecha_actualizacion, fecha_creacion, es_activo)
+            VALUES (:id, :nombre, '{}', 10, now(), now(), TRUE)
+            """
+        ),
+        {'id': sid, 'nombre': f'Finca Integracion {_letras()}'},
+    )
+    db.execute(
+        text(
+            """
+            INSERT INTO modulo9.infraestructuras (id_infraestructura, nombre, id_finca,
+                superficie, es_activo, tipo)
+            VALUES (:id, :nombre, :id_finca, 100, TRUE, 'Estanque')
+            """
+        ),
+        {'id': sid, 'nombre': f'Infra Integracion {_letras()}', 'id_finca': sid},
+    )
+    db.execute(
+        text(
+            """
+            INSERT INTO modulo2.estados_activos_biologicos (id_estado_activo_biologico, nombre)
+            VALUES (1, 'ACTIVO')
+            ON CONFLICT (id_estado_activo_biologico) DO NOTHING
+            """
+        ),
+    )
+    identificador = f'G105-{uuid.uuid4().hex[:12]}'
     fila = db.execute(
         text(
             """
             INSERT INTO modulo2.activos_biologicos (
-                id_especie, identificador, id_infraestructura, tipo,
+                id_activo_biologico, id_especie, identificador, id_infraestructura, tipo,
                 fecha_inicio_ciclo, id_estado, descripcion, origen_financiero,
                 costo_adquisicion, atributos_dinamicos, id_usuario,
                 fecha_creacion, id_dispositivo_iot, soporte_documental,
                 detalles_procedencia
+            ) VALUES (
+                :id, 2, :identificador, :id, 'INDIVIDUAL',
+                current_date, 1, 'Fixture RF-52 CA-8',
+                CAST('compra' AS modulo2.enum_activo_biologico_origen_financiero),
+                100, '{}', :id_usuario, now(), 0, 'doc', ''
             )
-            SELECT
-                id_especie, :identificador, id_infraestructura, tipo,
-                current_date, id_estado, 'Fixture RF-52 CA-8',
-                CAST('nacimiento' AS modulo2.enum_activo_biologico_origen_financiero),
-                NULL, atributos_dinamicos,
-                :id_usuario, now(), NULL, NULL,
-                detalles_procedencia
-            FROM modulo2.activos_biologicos
-            ORDER BY id_activo_biologico
-            LIMIT 1
             RETURNING id_activo_biologico
             """
         ),
-        {'identificador': identificador, 'id_usuario': id_usuario},
+        {'id': sid, 'identificador': identificador, 'id_usuario': id_usuario},
     ).first()
-    if fila is None:
-        pytest.skip('Se requiere un activo base para construir el fixture de RF-52.')
     return fila.id_activo_biologico
 
 

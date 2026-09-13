@@ -13,6 +13,7 @@ from src.shared.errors import AuthorizationError
 
 
 _CLASIFICACIONES_CONTADOR = {'TRANSFORMACION_BIOLOGICA', 'SANITARIO'}
+_RF_ORIGENES_VETERINARIO = {'RF40', 'RF41', 'RF42'}
 _ACCESO_DATOS = 'ACCESO_DATOS'
 
 
@@ -41,21 +42,45 @@ class ConsultarBitacoraUseCase:
             else None
         )
 
+        rf_origen = dto.rf_origen.strip().upper() if dto.rf_origen else None
+
         clasificaciones_permitidas = None
+        rf_origenes_permitidos = None
         id_propietario_acceso_datos = None
 
-        if nombre_rol == 'contador':
+        if nombre_rol in {'contador', 'revisor fiscal'}:
+            # RF-52 precondición 3 agrupa Contador y Revisor Fiscal en el mismo
+            # nivel de acceso ("eventos relacionados con transformación
+            # biológica y valoración NIC 41").
             if clasificacion is not None and clasificacion not in _CLASIFICACIONES_CONTADOR:
                 self._denegar(
                     usuario_actual,
                     dto,
-                    nombre_rol='Contador',
+                    nombre_rol=rol.nombre_rol if rol else nombre_rol,
                     motivo=(
-                        'El rol Contador solo puede consultar eventos de clasificación '
+                        'Este rol solo puede consultar eventos de clasificación '
                         'TRANSFORMACION_BIOLOGICA o SANITARIO.'
                     ),
                 )
             clasificaciones_permitidas = _CLASIFICACIONES_CONTADOR
+
+        elif nombre_rol == 'veterinario':
+            # RF-52 precondición 3: Veterinario ve "eventos sanitarios,
+            # reproductivos y de crecimiento" -> RF-41, RF-42, RF-40. La
+            # clasificacion_biologica no distingue reproductivo/crecimiento de
+            # productivo o fase (todos caen en TRANSFORMACION_BIOLOGICA), así
+            # que el alcance se filtra por rf_origen, no por clasificación.
+            if rf_origen is not None and rf_origen not in _RF_ORIGENES_VETERINARIO:
+                self._denegar(
+                    usuario_actual,
+                    dto,
+                    nombre_rol=rol.nombre_rol if rol else nombre_rol,
+                    motivo=(
+                        'El rol Veterinario solo puede consultar eventos de '
+                        'RF-40 (crecimiento), RF-41 (sanitario) o RF-42 (reproductivo).'
+                    ),
+                )
+            rf_origenes_permitidos = _RF_ORIGENES_VETERINARIO
 
         elif nombre_rol == 'productor':
             if (
@@ -81,7 +106,7 @@ class ConsultarBitacoraUseCase:
                 id_propietario_acceso_datos = usuario_actual.id_usuario
 
         return self.bitacora_repo.consultar(
-            rf_origen=dto.rf_origen,
+            rf_origen=rf_origen,
             tipo_evento=dto.tipo_evento,
             id_activo_biologico=dto.id_activo_biologico,
             clasificacion_biologica=clasificacion,
@@ -92,6 +117,7 @@ class ConsultarBitacoraUseCase:
             pagina=dto.pagina,
             page_size=dto.page_size,
             clasificaciones_permitidas=clasificaciones_permitidas,
+            rf_origenes_permitidos=rf_origenes_permitidos,
             id_propietario_acceso_datos=id_propietario_acceso_datos,
         )
 
@@ -117,6 +143,7 @@ class ConsultarBitacoraUseCase:
                     detalle_tecnico={
                         'rol': nombre_rol,
                         'clasificacion_solicitada': dto.clasificacion_biologica,
+                        'rf_origen_solicitado': dto.rf_origen,
                     },
                     id_usuario_responsable=usuario_actual.id_usuario,
                 )

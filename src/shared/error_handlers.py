@@ -92,6 +92,72 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     return _respuesta_error(exc.status_code, exc.code, exc.message, fields)
 
 
+def _usuario_del_token(request: Request) -> int | None:
+    """Extrae `id_usuario` del Bearer token, sin lanzar si no es válido.
+
+    Un `RequestValidationError` de body solo puede ocurrir después de que
+    `get_current_user` ya resolvió el token exitosamente (FastAPI resuelve
+    las sub-dependencias del endpoint antes que el body) — así que en la
+    práctica esto siempre decodifica un token válido. Se revalida aquí en
+    vez de leer `request.state` porque `get_current_user` no publica nada
+    ahí; si algo cambia esa garantía, el peor caso es no poder identificar
+    al usuario responsable del evento de auditoría, nunca un 500.
+    """
+    authorization = request.headers.get("authorization", "")
+    if not authorization.startswith("Bearer "):
+        return None
+    try:
+        from src.shared.jwt import verify_token
+
+        payload = verify_token(authorization.removeprefix("Bearer "))
+        return int(payload["sub"])
+    except Exception:
+        return None
+
+
+def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> None:
+    """RF-36/RF-52: deja constancia en `bitacora_auditoria_m02` de un 400 rechazado.
+
+    Solo aplica a `/activos-biologicos` — el resto de módulos no comparte esa
+    bitácora. Nunca debe hacer fallar la respuesta 400 que ya se le va a dar
+    al cliente: cualquier error aquí se traga en silencio.
+    """
+    if not request.url.path.startswith("/activos-biologicos"):
+        return
+
+    from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
+    from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+        SqlAlchemyBitacoraAuditoriaRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    id_activo_raw = request.path_params.get("id_activo")
+    try:
+        id_activo = int(id_activo_raw) if id_activo_raw is not None else None
+    except (TypeError, ValueError):
+        id_activo = None
+
+    db = SessionLocal()
+    try:
+        SqlAlchemyBitacoraAuditoriaRepository(db).registrar(EventoAuditoria(
+            rf_origen="RF36",
+            tipo_evento="VALIDACION_RECHAZADA",
+            clasificacion_biologica="GESTION_OPERATIVA",
+            resultado="FALLIDO",
+            severidad_log="WARNING",
+            timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            descripcion=f"{request.method} {request.url.path} rechazado por validación de entrada (400)",
+            detalle_tecnico={"fields": fields},
+            id_usuario_responsable=_usuario_del_token(request),
+        ))
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+
 async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     """Handler para errores de validación de Pydantic en el request body o parámetros.
 
@@ -109,6 +175,10 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
         loc = error.get("loc", ())
         field = ".".join(str(l) for l in loc[1:]) if len(loc) > 1 else None
         fields.append({"field": field, "message": error.get("msg", "Error de validacion")})
+
+    # INC-M02-43-G29 / RF-36: las operaciones rechazadas antes de llegar al
+    # use case (400 de Pydantic) también deben quedar en la bitácora de M02.
+    _auditar_validacion_rechazada_m02(request, fields)
 
     return _respuesta_error(400, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
 

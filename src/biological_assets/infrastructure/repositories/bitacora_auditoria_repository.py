@@ -74,6 +74,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         page_size: int,
         *,
         clasificaciones_permitidas: Optional[set[str]] = None,
+        rf_origenes_permitidos: Optional[set[str]] = None,
         id_propietario_acceso_datos: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
@@ -94,6 +95,9 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             q = q.filter(
                 BitacoraAuditoriaM02Model.clasificacion_biologica.in_(clasificaciones_permitidas)
             )
+
+        if rf_origenes_permitidos is not None:
+            q = q.filter(BitacoraAuditoriaM02Model.rf_origen.in_(rf_origenes_permitidos))
 
         if rf_origen is not None:
             q = q.filter(BitacoraAuditoriaM02Model.rf_origen == rf_origen)

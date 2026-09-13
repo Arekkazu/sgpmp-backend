@@ -167,12 +167,78 @@ def test_contador_sin_filtro_solo_recibe_clasificaciones_autorizadas() -> None:
     }
 
 
+@pytest.mark.parametrize('clasificacion', ['GESTION_OPERATIVA', 'CONTROL_ESTADO'])
+def test_revisor_fiscal_recibe_403_igual_que_contador(clasificacion: str) -> None:
+    caso, db, repo = _caso('Revisor Fiscal')
+
+    with pytest.raises(AuthorizationError) as capturada:
+        caso.execute(
+            ConsultarBitacoraDTO(clasificacion_biologica=clasificacion),
+            _usuario(id_usuario=11, id_rol=8),
+        )
+
+    assert capturada.value.status_code == 403
+    assert repo.consulta is None
+    assert db.commits == 1
+
+
+def test_revisor_fiscal_conserva_acceso_a_clasificaciones_autorizadas() -> None:
+    caso, _db, repo = _caso('Revisor Fiscal')
+
+    caso.execute(
+        ConsultarBitacoraDTO(clasificacion_biologica='SANITARIO'),
+        _usuario(id_usuario=11, id_rol=8),
+    )
+
+    assert repo.consulta['clasificaciones_permitidas'] == {
+        'TRANSFORMACION_BIOLOGICA',
+        'SANITARIO',
+    }
+
+
+@pytest.mark.parametrize('rf_origen', ['RF33', 'RF43', 'RF48'])
+def test_veterinario_recibe_403_fuera_de_su_alcance(rf_origen: str) -> None:
+    caso, db, repo = _caso('Veterinario')
+
+    with pytest.raises(AuthorizationError) as capturada:
+        caso.execute(
+            ConsultarBitacoraDTO(rf_origen=rf_origen),
+            _usuario(id_usuario=7, id_rol=3),
+        )
+
+    assert capturada.value.status_code == 403
+    assert repo.consulta is None
+    assert db.commits == 1
+    assert repo.registrados[0].detalle_tecnico['rf_origen_solicitado'] == rf_origen
+
+
+@pytest.mark.parametrize('rf_origen', ['RF40', 'RF41', 'RF42'])
+def test_veterinario_conserva_acceso_a_su_alcance(rf_origen: str) -> None:
+    caso, _db, repo = _caso('Veterinario')
+
+    caso.execute(
+        ConsultarBitacoraDTO(rf_origen=rf_origen),
+        _usuario(id_usuario=7, id_rol=3),
+    )
+
+    assert repo.consulta['rf_origenes_permitidos'] == {'RF40', 'RF41', 'RF42'}
+
+
+def test_veterinario_sin_filtro_solo_recibe_su_alcance() -> None:
+    caso, _db, repo = _caso('Veterinario')
+
+    caso.execute(ConsultarBitacoraDTO(), _usuario(id_usuario=7, id_rol=3))
+
+    assert repo.consulta['rf_origenes_permitidos'] == {'RF40', 'RF41', 'RF42'}
+
+
 def test_administrador_conserva_consulta_global_sin_filtros_adicionales() -> None:
     caso, _db, repo = _caso('Administrador')
 
     caso.execute(ConsultarBitacoraDTO(), _usuario(id_usuario=1, id_rol=1))
 
     assert repo.consulta['clasificaciones_permitidas'] is None
+    assert repo.consulta['rf_origenes_permitidos'] is None
     assert repo.consulta['id_propietario_acceso_datos'] is None
 
 
