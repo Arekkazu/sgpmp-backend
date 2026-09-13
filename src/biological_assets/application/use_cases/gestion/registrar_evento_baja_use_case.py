@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
@@ -178,35 +179,25 @@ class RegistrarEventoBajaUseCase:
             raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF45', tipo_evento='BAJA_REGISTRO_FALLIDO',
-                        clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'tipo_baja': dto.tipo_baja},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF45', tipo_evento='BAJA_REGISTRO_FALLIDO',
+                clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'tipo_baja': dto.tipo_baja},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF45', tipo_evento='BAJA_REGISTRADA',
-                    clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Baja registrada: {dto.tipo_baja} — {dto.motivo_baja}',
-                    detalle_tecnico={'tipo_baja': dto.tipo_baja, 'motivo': dto.motivo_baja},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF45', tipo_evento='BAJA_REGISTRADA',
+            clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Baja registrada: {dto.tipo_baja} — {dto.motivo_baja}',
+            detalle_tecnico={'tipo_baja': dto.tipo_baja, 'motivo': dto.motivo_baja},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado
 

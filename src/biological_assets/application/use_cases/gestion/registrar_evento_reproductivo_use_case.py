@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
@@ -171,34 +172,24 @@ class RegistrarEventoReproductivoUseCase:
             raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF42', tipo_evento='EVENTO_REPRODUCTIVO_FALLIDO',
-                        clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'categoria': dto.categoria},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF42', tipo_evento='EVENTO_REPRODUCTIVO_FALLIDO',
+                clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'categoria': dto.categoria},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF42', tipo_evento='EVENTO_REPRODUCTIVO_REGISTRADO',
-                    clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Evento reproductivo registrado: {dto.categoria}',
-                    detalle_tecnico={'categoria': dto.categoria},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF42', tipo_evento='EVENTO_REPRODUCTIVO_REGISTRADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Evento reproductivo registrado: {dto.categoria}',
+            detalle_tecnico={'categoria': dto.categoria},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado
