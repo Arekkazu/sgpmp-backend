@@ -101,7 +101,7 @@ resolver antes de aceptar · ❌ No conforme — requiere corrección y reejecuc
 | Incidencia | RF | Caso(s) | Severidad | Estado | Descripción | Documento de análisis |
 |---|---|---|---|---|---|---|
 | **INC-M01-03-119** | RF-03 | TC-M01-119 | Crítico | Corregido en `dev` (PR #62, migración `c4a19e7d2b63`) — **retest pendiente** | `DELETE /roles/{id}` devuelve 500 para cualquier rol no protegido; el rol y sus permisos permanecen en BD | `inc_m01_03_119_eliminar_rol.md`, `inc_m01_03_119_ci_alembic_test_db.md` |
-| **INC-M01-06-024** | RF-02 | TC-M01-024 | Severo | Abierto (rama `fix/inc-m01-06-024-reintentos-bd`) | `get_db()` no reintenta la conexión a PostgreSQL 3× ni traduce el fallo; ante caída de BD responde **500** en vez de **503** | `inc_m01_06_024_errores_bd.md` |
+| **INC-M01-06-024** | RF-02 | TC-M01-024 | Severo | Corregido (rama `fix/inc-m01-06-024-reintentos-bd`) — **retest exitoso 2026-09-11** | `get_db()` no reintentaba la conexión a PostgreSQL 3× ni traducía el fallo; ante caída de BD respondía **500** en vez de **503**. Ahora reintenta 3 veces y traduce a 503 `BD_NO_DISPONIBLE` | `inc_m01_06_024_errores_bd.md` |
 | **INC-M01-21-041** | RF-08 | TC-M01-041 | Medio | Abierto | Canal lateral temporal: el envío SMTP síncrono para correos **existentes** añade ~3.8 s, permitiendo inferir si un correo está registrado | `inc_m01_21_041_rf08_tiempo_recuperacion.md` |
 | **INC-M01-05-035** | RF-07 | TC-M01-035 | Medio | Abierto | `PUT /contrasena/usuarios/{id}` acepta como nueva contraseña la **actual** (200) en vez de rechazarla (409); falta la migración del trigger de no-reutilización | `inc_m01_05_035_rf07_reutilizacion_contrasena.md` |
 | **INC-M01-08-38** | RF-07 | TC-M01-038 | Medio | Abierto | El `rollback` ante fallo de invalidación de sesiones deshace también el cambio de contraseña ya aplicado (RF-07 exige conservarlo); la excepción se propaga sin 500 controlado | `inc_m01_08_38_rf07_fallo_invalidacion.md` |
@@ -157,7 +157,7 @@ resolver antes de aceptar · ❌ No conforme — requiere corrección y reejecuc
    análisis con causa raíz; los hallazgos de 4.B requieren una reunión de triage
    para confirmar clasificación, severidad y responsable.
 2. **Prioridad sugerida de corrección:**
-   - **Alta:** INC-M01-03-119 (retest), INC-M01-06-024, TC-M01-087/089 (RF-13
+   - **Alta:** INC-M01-03-119 (retest), TC-M01-087/089 (RF-13
      frontend), conjunto RF-08 (INC-M01-07-43, INC-M01-09-043, INC-M01-21-041,
      TC-M01-044).
    - **Media:** INC-M01-05-035, INC-M01-08-38, INC-M01-16-057, INC-M01-02-71,
