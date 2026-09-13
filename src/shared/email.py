@@ -27,6 +27,10 @@ _SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 _MAX_RETRIES = 3
 _RETRY_DELAY = 5
+# QA M01 2.2: smtplib.SMTP() sin timeout bloquea indefinidamente si el host
+# no responde (no hay limite de socket por defecto). Acotado bien por debajo
+# de los 15s que el frontend espera antes de abortar la request.
+_SMTP_TIMEOUT = 8
 
 
 def send_email(to: str, subject: str, html_body: str) -> None:
@@ -55,7 +59,7 @@ def send_email(to: str, subject: str, html_body: str) -> None:
 
     for attempt in range(1, _MAX_RETRIES + 1):
         try:
-            with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT) as server:
+            with smtplib.SMTP(_SMTP_HOST, _SMTP_PORT, timeout=_SMTP_TIMEOUT) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()

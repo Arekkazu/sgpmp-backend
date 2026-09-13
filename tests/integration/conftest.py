@@ -174,6 +174,9 @@ def client(
     from src.identity_access.infrastructure.adapters import (
         correo_recuperacion_background_adapter,
     )
+    from src.identity_access.infrastructure.adapters import (
+        notificacion_sesion_background_adapter,
+    )
     from src.shared import jwt as jwt_module
     from src.shared.database import get_db
     from src.identity_access.infrastructure.routers.usuarios_routers import (
@@ -211,6 +214,11 @@ def client(
     )
     monkeypatch.setattr(
         correo_recuperacion_background_adapter,
+        "SessionLocal",
+        crear_sesion_background,
+    )
+    monkeypatch.setattr(
+        notificacion_sesion_background_adapter,
         "SessionLocal",
         crear_sesion_background,
     )

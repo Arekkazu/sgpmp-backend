@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
@@ -14,11 +14,13 @@ from src.identity_access.application.use_cases.sesiones.logout_use_case import L
 from src.identity_access.application.use_cases.sesiones.refresh_token_use_case import RefreshTokenUseCase
 from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
 from src.identity_access.infrastructure.adapters.agrofusion_sso_adapter import AgroFusionSsoAdapter
+from src.identity_access.infrastructure.adapters.notificacion_sesion_background_adapter import (
+    NotificacionSesionBackgroundAdapter,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
-from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
@@ -26,7 +28,6 @@ from src.identity_access.infrastructure.schema.permisos_schema import PermisoRes
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError, ServiceUnavailableError
-from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
@@ -94,7 +95,13 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+def iniciar_sesion(
+    dto: LoginDTO,
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
 
@@ -104,7 +111,7 @@ def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Sess
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
     jwt_str, fecha_expiracion, sesion_previa_cerrada, _, refresh_raw, fecha_expiracion_refresco = use_case.execute(
         dto, ip, user_agent
@@ -132,7 +139,13 @@ def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Sess
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+def iniciar_sesion_sso(
+    dto: SsoLoginDTO,
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Login SSO vía handoff RS256 de AgroFusion (Mecanismo A).
 
     Sin `require_permission`: la confianza la da la firma RS256 verificada
@@ -155,7 +168,7 @@ def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, d
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
     (
         jwt_str,
