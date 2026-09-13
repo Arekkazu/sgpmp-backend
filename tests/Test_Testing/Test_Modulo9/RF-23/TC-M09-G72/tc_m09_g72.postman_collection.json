@@ -1,0 +1,151 @@
+{
+  "info": {
+    "name": "TC-M09-G72 - Auditoria de configuracion remota y fallos de comunicacion (RF-23, OWASP A09, CU-05)",
+    "description": "TC-M09-G72 (RF-23, OWASP A09 -- Security Logging and Monitoring Failures, CU-05), sub-caso TC-M09-139. Armada contra DEV.\n\nHALLAZGO PRINCIPAL (OWASP A09, no reportado antes): `ConfigurarRemotamenteUseCase` (src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py) NO recibe ni llama a ningun `auditoria_repo`/`AuditoriaDispositivoIotRepository` -- a diferencia de sus operaciones hermanas en el mismo router (registrar/editar/desactivar dispositivo IoT, ver registrar_dispositivo_iot_use_case.py:25,72), que SI auditan cada cambio. Ademas, el router de dispositivos_iot no expone NINGUN endpoint GET de tipo '/auditoria' (a diferencia de modulo 2, que si tiene GET /activos-biologicos/auditoria) -- confirmado listando todas las rutas del router: solo existen GET de lista/detalle de dispositivos, sensores y configuraciones, ninguna de auditoria generica. Es decir, incluso las operaciones que SI se auditan (registrar/editar/desactivar) no tienen forma de consultarse por API de todas formas.\n\nLa unica trazabilidad real y consultable por API para RF-23 es la propia tabla de configuraciones remotas (GET /{id}/configuraciones), que si guarda usuario, fecha, valores (frecuencia_captura/intervalo_transmision) y resultado (estado) por cada intento -- funciona razonablemente bien como registro del dominio, pero NO es un log de auditoria de seguridad propiamente dicho (no es inmutable via triggers como si lo es el mecanismo de modulo 1/modulo 2, y no queda unificado con el resto de eventos de seguridad del sistema).\n\nSub-caso 1 (TC-M09-139): se prueba en vivo lo que SI es observable -- que una configuracion exitosa (aceptada) queda trazada con usuario/fecha/valores/resultado en GET /{id}/configuraciones. El escenario 'timeout' de la ficha (comunicacion fallida, estado NO_CONF) no se pudo generar en vivo -- requiere un broker MQTT real que reciba el comando y no confirme a tiempo, mismo gap FUERA DE STACK ya documentado en TC-M09-G69/G70.\n\nLa coleccion registra su propio dispositivo fresco en infraestructura de la finca 1 (id_infraestructura=3).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Auditoria / Seguridad. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo fresco",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"G72-{{run_id}}\",\n  \"descripcion\": \"Prueba TC-M09-G72 - auditoria de configuracion\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot", "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 1/2 (TC-M09-139) - Registrar configuracion valida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1 paso 1: la configuracion se acepta (HTTP 202)', function () { pm.response.to.have.status(202); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (respuesta) { pm.collectionVariables.set('frecuencia_enviada', respuesta.frecuencia_captura); pm.collectionVariables.set('intervalo_enviado', respuesta.intervalo_transmision); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 20\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 2/2 (TC-M09-139) - Verificar trazabilidad: usuario, fecha, valores y resultado",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificando la unica trazabilidad consultable por API para RF-23: el historial de configuraciones del dispositivo ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta del historial responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "const items = (respuesta && respuesta.items) || [];",
+              "pm.test('Sub-caso 1: existe un registro con usuario responsable, fecha, valores enviados y resultado (estado)', function () {",
+              "    pm.expect(items.length).to.be.greaterThan(0);",
+              "    const ultimo = items[0];",
+              "    pm.expect(ultimo.id_usuario).to.not.equal(null);",
+              "    pm.expect(ultimo.fecha_creacion).to.not.equal(null);",
+              "    pm.expect(ultimo.frecuencia_captura).to.equal(parseInt(pm.collectionVariables.get('frecuencia_enviada'), 10));",
+              "    pm.expect(ultimo.intervalo_transmision).to.equal(parseInt(pm.collectionVariables.get('intervalo_enviado'), 10));",
+              "    pm.expect(ultimo.estado).to.not.equal(null);",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: la tabla de configuraciones remotas SI guarda usuario/fecha/valores/resultado, pero esto NO pasa por el mecanismo de auditoria generico del modulo (AuditoriaDispositivoIotRepository) -- ConfigurarRemotamenteUseCase no lo llama en absoluto, a diferencia de registrar/editar/desactivar dispositivo. Ademas, el router de dispositivos_iot no expone ningun endpoint GET /auditoria -- ni siquiera las operaciones que SI se auditan son consultables por API. Hallazgo OWASP A09 (Security Logging and Monitoring Failures): RF-23 carece de un log de auditoria de seguridad propiamente dicho, solo tiene el registro de dominio de su propia tabla.');",
+              "console.log('El escenario \"timeout\"/comunicacion fallida (estado NO_CONF) de la ficha no se pudo generar en vivo -- requiere un broker MQTT real, mismo gap FUERA DE STACK que TC-M09-G69/G70.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configuraciones",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configuraciones" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_tipo_dispositivo", "value": "1" },
+    { "key": "id_dispositivo", "value": "" },
+    { "key": "frecuencia_enviada", "value": "" },
+    { "key": "intervalo_enviado", "value": "" }
+  ]
+}
