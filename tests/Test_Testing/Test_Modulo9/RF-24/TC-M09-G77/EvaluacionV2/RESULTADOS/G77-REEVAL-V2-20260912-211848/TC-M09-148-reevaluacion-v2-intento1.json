@@ -1,0 +1,121 @@
+{
+  "caso": "TC-M09-148",
+  "grupo": "TC-M09-G77",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "tipo": "REEVALUACION V2",
+  "rama": "qa/juan-esteban-re-evaluacion-M02",
+  "entorno": "TEST",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G77-REEVAL-V2-20260912-211848",
+  "fecha": "2026-09-13T02:30:09.953Z",
+  "intento": 1,
+  "resultado": "PASS",
+  "actor": {
+    "correo_electronico": "m2m.nuevo@ejemplo.com",
+    "id_usuario": 35,
+    "nombre_rol": "Productor",
+    "estado_cuenta": "Activo",
+    "autenticado": true,
+    "permisosRecurso12": [
+      2
+    ]
+  },
+  "rolesAutorizadosRF24": [
+    "Administrador",
+    "Ingeniero de Campo"
+  ],
+  "autenticacion": {
+    "endpoint": "POST /sesiones/",
+    "status": 200,
+    "tokenPersistido": false
+  },
+  "dispositivo": {
+    "id_dispositivo_iot": 3,
+    "serial": "IOT-ALE01-HLA-003",
+    "es_activo": true,
+    "id_infraestructura": 1
+  },
+  "sensor": {
+    "id_sensores": 7,
+    "nombre": "Sensor oxígeno disuelto alevinera-01",
+    "categoria": "OXIGENO",
+    "es_activo": true,
+    "id_dispositivo_iot": 3
+  },
+  "area": {
+    "id_infraestructura": 3,
+    "id_asociacion": 7,
+    "punto_instalacion": "Zona de alevinaje, profundidad 20 cm",
+    "vigente": true
+  },
+  "rangoTecnico": {
+    "min": "0.0000",
+    "max": "20.0000"
+  },
+  "valorReferencia": "10.0000",
+  "endpoint": "POST /configuracion/sensores/7/calibrar",
+  "cuerpoEnviado": {
+    "id_dispositivo_iot": 3,
+    "id_infraestructura": 3,
+    "valor_referencia": "10.0000",
+    "ganancia": "1.0000",
+    "offset": "10.0000",
+    "fecha_calibracion": "2026-09-13T02:30:06.753Z",
+    "observaciones": "QA TC-M09-148 REEVALUACION V2 G77-REEVAL-V2-20260912-211848"
+  },
+  "status": 403,
+  "responseCodeFuncional": "ACCESO_DENEGADO",
+  "respuesta": {
+    "error_code": "ACCESO_DENEGADO",
+    "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+    "fields": [],
+    "timestamp": "2026-09-13T02:30:09.257602+00:00"
+  },
+  "origen403": "RBAC del endpoint (require_permission recurso 12 accion 1)",
+  "historyBefore": {
+    "actor": "Administrador (GET read-only)",
+    "total": 0,
+    "ids": [],
+    "items": []
+  },
+  "historyAfter": {
+    "actor": "Administrador (GET read-only)",
+    "total": 0,
+    "ids": [],
+    "items": []
+  },
+  "persistencia": {
+    "registrosNuevos": [],
+    "atribuiblesAlProductor": [],
+    "historicosAlterados": [],
+    "historicosDesaparecidos": [],
+    "idCalibracionCreado": null,
+    "persistio": false
+  },
+  "eventos": [
+    {
+      "metodo": "POST",
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/sensores/7/calibrar",
+      "status": 403,
+      "cuerpoEnviado": "{\"id_dispositivo_iot\":3,\"id_infraestructura\":3,\"valor_referencia\":\"10.0000\",\"ganancia\":\"1.0000\",\"offset\":\"10.0000\",\"fecha_calibracion\":\"2026-09-13T02:30:06.753Z\",\"observaciones\":\"QA TC-M09-148 REEVALUACION V2 G77-REEVAL-V2-20260912-211848\"}",
+      "respuesta": {
+        "error_code": "ACCESO_DENEGADO",
+        "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+        "fields": [],
+        "timestamp": "2026-09-13T02:30:09.257602+00:00"
+      },
+      "transportError": false
+    }
+  ],
+  "assertions": {
+    "total": 11,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-148-reevaluacion-v2-intento1.html",
+  "postEjecutados": 1
+}

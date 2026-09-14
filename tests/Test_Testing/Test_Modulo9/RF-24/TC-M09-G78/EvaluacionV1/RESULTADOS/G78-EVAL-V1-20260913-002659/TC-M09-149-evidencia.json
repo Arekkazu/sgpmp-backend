@@ -1,0 +1,171 @@
+{
+  "caso": "TC-M09-149",
+  "grupo": "TC-M09-G78",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "tipo": "PRIMERA EVALUACION",
+  "runId": "G78-EVAL-V1-20260913-002659",
+  "fechaInicio": "2026-09-13T05:28:23.624019+00:00",
+  "ambienteDecisorio": "DEV",
+  "naturalezaEvidencia": "verificacion de implementacion read-only (contrato desplegado + codigo origin/dev); sin POST",
+  "git": {
+    "rama": "qa/juan-esteban-re-evaluacion-M02",
+    "head": "ff5f6c9f6161e46c94d3d6f325a7d07d80d84aa0",
+    "originDev": "5d39b366ffccfad93153cb86e7081f1be742da24",
+    "originDevUltimoCommit": "5d39b366 2026-09-11 chore(release): 1.0.0-rc.37 [skip ci]",
+    "diffSrcHeadVsOriginDev": "(sin diferencias)"
+  },
+  "contratos": {
+    "DEV": {
+      "base": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp",
+      "health": 200,
+      "openapi": 200,
+      "endpointCalibrar": true,
+      "respuestasCalibrar": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ],
+      "calibracionResponse": [
+        "id_calibracion",
+        "id_dispositivo_iot",
+        "id_sensor",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "id_usuario",
+        "observaciones"
+      ],
+      "registrarCalibracionDTO": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "rutasCalibracion": [
+        "/configuracion/sensores/{id_sensor}/calibrar",
+        "/configuracion/sensores/rangos-calibracion",
+        "/configuracion/sensores/{id_sensor}/calibraciones"
+      ],
+      "rutasPropagacionORetryDeCalibracion": [],
+      "rutasMqttExistentes": [
+        "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configurar",
+        "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones"
+      ],
+      "schemasEstadoCalibracion": []
+    },
+    "TEST_suministrada": {
+      "base": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "health": 404,
+      "openapi": 404
+    },
+    "TEST_https": {
+      "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "health": 200,
+      "openapi": 200,
+      "endpointCalibrar": true,
+      "respuestasCalibrar": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ],
+      "calibracionResponse": [
+        "id_calibracion",
+        "id_dispositivo_iot",
+        "id_sensor",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "id_usuario",
+        "observaciones"
+      ],
+      "registrarCalibracionDTO": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "rutasCalibracion": [
+        "/configuracion/sensores/{id_sensor}/calibrar",
+        "/configuracion/sensores/rangos-calibracion",
+        "/configuracion/sensores/{id_sensor}/calibraciones"
+      ],
+      "rutasPropagacionORetryDeCalibracion": [],
+      "rutasMqttExistentes": [
+        "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configurar",
+        "/configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones"
+      ],
+      "schemasEstadoCalibracion": []
+    }
+  },
+  "desfaseTestDev": {
+    "endpointCalibrar": false,
+    "respuestasCalibrar": false,
+    "calibracionResponse": false,
+    "registrarCalibracionDTO": false,
+    "rutasCalibracion": false
+  },
+  "oraculo": {
+    "camposEstadoEnContrato": [],
+    "calibracionInvocaMqtt": false,
+    "estadoPendienteEnModelo": [],
+    "retryCalibracion": {
+      "rutas": [],
+      "codigo": []
+    }
+  },
+  "codigoOriginDev": {
+    "archivosRevisados": [
+      "src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py",
+      "src/configuration/domain/entities/calibracion.py",
+      "src/configuration/infrastructure/models/calibracion_model.py",
+      "src/configuration/infrastructure/schema/calibracion_schema.py",
+      "src/configuration/infrastructure/dto/registrar_calibracion_dto.py",
+      "src/configuration/infrastructure/routers/sensor_router.py"
+    ],
+    "referenciasMqttEnArchivosDeCalibracion": {
+      "src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py": [],
+      "src/configuration/domain/entities/calibracion.py": [],
+      "src/configuration/infrastructure/models/calibracion_model.py": [],
+      "src/configuration/infrastructure/schema/calibracion_schema.py": [],
+      "src/configuration/infrastructure/dto/registrar_calibracion_dto.py": [],
+      "src/configuration/infrastructure/routers/sensor_router.py": []
+    },
+    "consumidoresDeMqttPort": [
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:17:from src.configuration.domain.repositories.mqtt_port import MqttPort",
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:32:        mqtt_port: MqttPort,",
+      "origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:94:        resultado = self.mqtt_port.enviar_configuracion(",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:31:from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter",
+      "origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),"
+    ],
+    "lineasCalibracionConRetry": [],
+    "columnasModeloCalibracion": [
+      "id_calibracion",
+      "id_dispositivo_iot",
+      "id_sensor",
+      "fecha_calibracion",
+      "valor_referencia",
+      "ganancia",
+      "offset_calibracion",
+      "observaciones",
+      "id_usuario"
+    ]
+  },
+  "fechaFin": "2026-09-13T05:28:27.272317+00:00"
+}

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="9" time="3.690" timestamp="2026-09-13T00:28:23.584640-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_rama_obligatoria" time="0.130" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_dev_backend_accesible" time="3.127" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_dev_endpoint_calibracion_desplegado" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_codigo_local_equivale_a_origin_dev" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_test_y_dev_comparten_contrato_de_calibracion" time="0.000" /><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_oraculo_contrato_dev_expone_estado_de_propagacion" time="0.001"><failure message="AssertionError: CalibracionResponse/DTO en DEV no exponen estado de propagación: ['id_calibracion', 'id_dispositivo_iot', 'id_sensor', 'valor_referencia', 'ganancia', 'offset', 'fecha_calibracion', 'id_usuario', 'observaciones']&#10;assert []">contratos = {'DEV': {'base': 'https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp', 'calibracionResponse': ['i...'base': 'http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test', 'health': 404, 'openapi': 404}}
+
+    def test_oraculo_contrato_dev_expone_estado_de_propagacion(contratos):
+        """CALIBRACIÓN_PENDIENTE debe ser observable en el contrato (nombre semántico libre)."""
+        dev = contratos["DEV"]
+        campos = [c for c in dev["calibracionResponse"] + dev["registrarCalibracionDTO"] if PATRON_ESTADO.search(c)]
+        EVIDENCIA.setdefault("oraculo", {})["camposEstadoEnContrato"] = campos
+&gt;       assert campos, f"CalibracionResponse/DTO en DEV no exponen estado de propagación: {dev['calibracionResponse']}"
+E       AssertionError: CalibracionResponse/DTO en DEV no exponen estado de propagación: ['id_calibracion', 'id_dispositivo_iot', 'id_sensor', 'valor_referencia', 'ganancia', 'offset', 'fecha_calibracion', 'id_usuario', 'observaciones']
+E       assert []
+
+tests\Test_Testing\Test_Modulo9\RF-24\TC-M09-G78\EvaluacionV1\test_tc_m09_149.py:191: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_oraculo_calibracion_propaga_al_firmware_via_mqtt" time="0.267"><failure message="AssertionError: RegistrarCalibracionUseCase y sensor_router no invocan MqttPort/broker; únicos consumidores de MqttPort: ['origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:17:from src.configuration.domain.repositories.mqtt_port import MqttPort', 'origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:32:        mqtt_port: MqttPort,', 'origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:94:        resultado = self.mqtt_port.enviar_configuracion(', 'origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:31:from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter', 'origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),']&#10;assert False">codigo_dev = ({'src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py': '"""Caso de uso: Registrar cal.../dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], [])
+
+    def test_oraculo_calibracion_propaga_al_firmware_via_mqtt(codigo_dev):
+        fuentes, usos_mqtt, _ = codigo_dev
+        uso_caso = fuentes[ARCHIVOS_CALIBRACION[0]]
+        router = fuentes[ARCHIVOS_CALIBRACION[5]]
+        propaga = bool(PATRON_MQTT.search(uso_caso)) or bool(PATRON_MQTT.search(router))
+        EVIDENCIA.setdefault("oraculo", {})["calibracionInvocaMqtt"] = propaga
+&gt;       assert propaga, (
+            "RegistrarCalibracionUseCase y sensor_router no invocan MqttPort/broker; "
+            f"únicos consumidores de MqttPort: {usos_mqtt}"
+        )
+E       AssertionError: RegistrarCalibracionUseCase y sensor_router no invocan MqttPort/broker; únicos consumidores de MqttPort: ['origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:17:from src.configuration.domain.repositories.mqtt_port import MqttPort', 'origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:32:        mqtt_port: MqttPort,', 'origin/dev:src/configuration/application/use_cases/dispositivos_iot/configurar_remotamente_use_case.py:94:        resultado = self.mqtt_port.enviar_configuracion(', 'origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:31:from src.configuration.infrastructure.adapters.mqtt_http_adapter import MqttHttpAdapter', 'origin/dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),']
+E       assert False
+
+tests\Test_Testing\Test_Modulo9\RF-24\TC-M09-G78\EvaluacionV1\test_tc_m09_149.py:200: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_oraculo_calibracion_persiste_estado_pendiente" time="0.001"><failure message="AssertionError: modulo9.calibraciones no tiene columna/estado de propagación: ['id_calibracion', 'id_dispositivo_iot', 'id_sensor', 'fecha_calibracion', 'valor_referencia', 'ganancia', 'offset_calibracion', 'observaciones', 'id_usuario']&#10;assert []">codigo_dev = ({'src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py': '"""Caso de uso: Registrar cal.../dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], [])
+
+    def test_oraculo_calibracion_persiste_estado_pendiente(codigo_dev):
+        fuentes, _, _ = codigo_dev
+        columnas = EVIDENCIA["codigoOriginDev"]["columnasModeloCalibracion"]
+        entidad = fuentes[ARCHIVOS_CALIBRACION[1]]
+        estado = [c for c in columnas if PATRON_ESTADO.search(c)] or re.findall(r"PENDIENTE|PENDING", entidad)
+        EVIDENCIA.setdefault("oraculo", {})["estadoPendienteEnModelo"] = estado
+&gt;       assert estado, f"modulo9.calibraciones no tiene columna/estado de propagación: {columnas}"
+E       AssertionError: modulo9.calibraciones no tiene columna/estado de propagación: ['id_calibracion', 'id_dispositivo_iot', 'id_sensor', 'fecha_calibracion', 'valor_referencia', 'ganancia', 'offset_calibracion', 'observaciones', 'id_usuario']
+E       assert []
+
+tests\Test_Testing\Test_Modulo9\RF-24\TC-M09-G78\EvaluacionV1\test_tc_m09_149.py:212: AssertionError</failure></testcase><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G78.EvaluacionV1.test_tc_m09_149" name="test_oraculo_existe_reintento_automatico_de_calibraciones" time="0.001"><failure message="AssertionError: No existe ruta, worker ni scheduler de reintento para calibraciones en DEV&#10;assert ([] or [])">contratos = {'DEV': {'base': 'https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp', 'calibracionResponse': ['i...'base': 'http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test', 'health': 404, 'openapi': 404}}
+codigo_dev = ({'src/configuration/application/use_cases/sensores/registrar_calibracion_use_case.py': '"""Caso de uso: Registrar cal.../dev:src/configuration/infrastructure/routers/dispositivo_iot_router.py:272:        mqtt_port=MqttHttpAdapter(),'], [])
+
+    def test_oraculo_existe_reintento_automatico_de_calibraciones(contratos, codigo_dev):
+        _, _, calib_con_retry = codigo_dev
+        rutas = contratos["DEV"]["rutasPropagacionORetryDeCalibracion"]
+        EVIDENCIA.setdefault("oraculo", {})["retryCalibracion"] = {"rutas": rutas, "codigo": calib_con_retry}
+&gt;       assert rutas or calib_con_retry, "No existe ruta, worker ni scheduler de reintento para calibraciones en DEV"
+E       AssertionError: No existe ruta, worker ni scheduler de reintento para calibraciones en DEV
+E       assert ([] or [])
+
+tests\Test_Testing\Test_Modulo9\RF-24\TC-M09-G78\EvaluacionV1\test_tc_m09_149.py:219: AssertionError</failure></testcase></testsuite></testsuites>

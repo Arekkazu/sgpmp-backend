@@ -1,0 +1,117 @@
+{
+  "info": {
+    "name": "TC-M09-G30 REEVALUACION V2 — TC-M09-64 auditoria de creacion y modificacion de umbrales (RF-17)",
+    "description": "Cuatro fases ejecutadas por separado (una invocacion Newman por fase): create, audit-create, update, audit. Solo create y update escriben; audit-* son GET.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "create",
+      "item": [
+        {
+          "name": "TC-M09-64 CREATE umbral valido",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/configuracion/umbrales",
+            "body": { "mode": "raw", "raw": "{{payload_create}}", "options": { "raw": { "language": "json" } } }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const p=JSON.parse(pm.environment.get('payload_create')); const num=x=>Number(x);",
+            "pm.test('CREATE HTTP 201 segun contrato',()=>pm.response.to.have.status(201));",
+            "pm.test('ID de umbral creado',()=>{pm.expect(b.id_umbral_ambiental).to.be.a('number').and.above(0);pm.environment.set('id_umbral',String(b.id_umbral_ambiental));});",
+            "pm.test('Especie y variable del CREATE',()=>{pm.expect(b.id_especie).to.eql(p.id_especie);pm.expect(b.id_variable_ambiental).to.eql(p.id_variable_ambiental);});",
+            "pm.test('Valores CREATE almacenados',()=>{pm.expect(num(b.valor_min)).to.eql(num(p.valor_min));pm.expect(num(b.valor_max)).to.eql(num(p.valor_max));pm.expect(b.niveles).to.have.lengthOf(3);});"
+          ] } }]
+        },
+        {
+          "name": "TC-M09-64 GET persistencia CREATE",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral')); const p=JSON.parse(pm.environment.get('payload_create'));",
+            "pm.test('GET 200',()=>pm.response.to.have.status(200));",
+            "pm.test('Umbral creado persistido una vez con valores CREATE',()=>{const u=b.items.filter(x=>x.id_umbral_ambiental===id);pm.expect(u).to.have.lengthOf(1);pm.expect(Number(u[0].valor_min)).to.eql(Number(p.valor_min));pm.expect(Number(u[0].valor_max)).to.eql(Number(p.valor_max));pm.expect(b.items.filter(x=>x.id_variable_ambiental===p.id_variable_ambiental)).to.have.lengthOf(1);});"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "audit-create",
+      "item": [
+        {
+          "name": "TC-M09-64 GET auditoria tras CREATE",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales/{{id_umbral}}/auditoria" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral')); const uid=Number(pm.environment.get('id_usuario_actor')); const p=JSON.parse(pm.environment.get('payload_create'));",
+            "const t0=Date.parse(pm.environment.get('create_t0'))-5000, t1=Date.parse(pm.environment.get('create_t1'))+5000;",
+            "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+            "const ev=(b.items||[]).filter(e=>e.tipo_operacion==='CREATE');",
+            "pm.test('Exactamente un evento CREATE para el recurso',()=>{pm.expect(b.items).to.have.lengthOf(1);pm.expect(ev).to.have.lengthOf(1);});",
+            "pm.test('CREATE correlacionado con el recurso',()=>pm.expect(ev[0].id_umbral_ambiental).to.eql(id));",
+            "pm.test('CREATE usuario = actor que hizo el POST',()=>pm.expect(ev[0].id_usuario).to.eql(uid));",
+            "pm.test('CREATE fecha_gestion dentro de la ventana del POST (UTC, +-5 s)',()=>{const f=Date.parse(ev[0].fecha_gestion);pm.expect(f).to.be.within(t0,t1);});",
+            "pm.test('CREATE sin valores anteriores',()=>pm.expect(ev[0].valores_anteriores==null).to.eql(true));",
+            "pm.test('CREATE valores_nuevos = configuracion creada',()=>{const n=ev[0].valores_nuevos;pm.expect(n.id_umbral_ambiental).to.eql(id);pm.expect(n.id_especie).to.eql(p.id_especie);pm.expect(n.id_variable_ambiental).to.eql(p.id_variable_ambiental);pm.expect(Number(n.valor_min)).to.eql(Number(p.valor_min));pm.expect(Number(n.valor_max)).to.eql(Number(p.valor_max));p.niveles.forEach(x=>{const r=n.niveles.find(y=>y.nivel===x.nivel);pm.expect(r,x.nivel).to.not.be.undefined;pm.expect(Number(r.limite_inferior)).to.eql(Number(x.limite_inferior));pm.expect(Number(r.limite_superior)).to.eql(Number(x.limite_superior));});});",
+            "pm.test('Evento sin secretos',()=>{const s=JSON.stringify(b).toLowerCase();['password','contrasena','authorization','bearer','token','eyj'].forEach(k=>pm.expect(s,k).to.not.include(k));});"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "update",
+      "item": [
+        {
+          "name": "TC-M09-64 UPDATE mismo umbral",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_url}}/configuracion/umbrales/{{id_umbral}}",
+            "body": { "mode": "raw", "raw": "{{payload_update}}", "options": { "raw": { "language": "json" } } }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const p=JSON.parse(pm.environment.get('payload_update')); const id=Number(pm.environment.get('id_umbral')); const num=x=>Number(x);",
+            "pm.test('UPDATE HTTP 200 segun contrato',()=>pm.response.to.have.status(200));",
+            "pm.test('UPDATE sobre el mismo ID',()=>pm.expect(b.id_umbral_ambiental).to.eql(id));",
+            "pm.test('Valores UPDATE aplicados',()=>{pm.expect(num(b.valor_min)).to.eql(num(p.valor_min));pm.expect(num(b.valor_max)).to.eql(num(p.valor_max));p.niveles.forEach(x=>{const r=b.niveles.find(y=>y.nivel===x.nivel);pm.expect(num(r.limite_inferior)).to.eql(num(x.limite_inferior));pm.expect(num(r.limite_superior)).to.eql(num(x.limite_superior));});});"
+          ] } }]
+        },
+        {
+          "name": "TC-M09-64 GET persistencia UPDATE",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales?id_especie={{id_especie}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral')); const p=JSON.parse(pm.environment.get('payload_update')); const c=JSON.parse(pm.environment.get('payload_create'));",
+            "pm.test('GET 200',()=>pm.response.to.have.status(200));",
+            "pm.test('Mismo umbral con valores UPDATE persistidos, sin duplicado',()=>{const u=b.items.filter(x=>x.id_umbral_ambiental===id);pm.expect(u).to.have.lengthOf(1);pm.expect(Number(u[0].valor_min)).to.eql(Number(p.valor_min));pm.expect(Number(u[0].valor_max)).to.eql(Number(p.valor_max));pm.expect(b.items.filter(x=>x.id_variable_ambiental===c.id_variable_ambiental)).to.have.lengthOf(1);pm.expect(u[0].id_especie).to.eql(c.id_especie);pm.expect(u[0].id_variable_ambiental).to.eql(c.id_variable_ambiental);});"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "audit",
+      "item": [
+        {
+          "name": "TC-M09-64 GET auditoria CREATE + UPDATE",
+          "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }], "url": "{{base_url}}/configuracion/umbrales/{{id_umbral}}/auditoria" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const b=pm.response.json(); const id=Number(pm.environment.get('id_umbral')); const uid=Number(pm.environment.get('id_usuario_actor'));",
+            "const pc=JSON.parse(pm.environment.get('payload_create')); const pu=JSON.parse(pm.environment.get('payload_update')); const idCreate=Number(pm.environment.get('id_evento_create'));",
+            "const u0=Date.parse(pm.environment.get('update_t0'))-5000, u1=Date.parse(pm.environment.get('update_t1'))+5000;",
+            "const same=(snap,p)=>Number(snap.valor_min)===Number(p.valor_min)&&Number(snap.valor_max)===Number(p.valor_max)&&p.niveles.every(x=>{const r=snap.niveles.find(y=>y.nivel===x.nivel);return r&&Number(r.limite_inferior)===Number(x.limite_inferior)&&Number(r.limite_superior)===Number(x.limite_superior);});",
+            "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+            "const cr=(b.items||[]).filter(e=>e.tipo_operacion==='CREATE'); const up=(b.items||[]).filter(e=>e.tipo_operacion==='UPDATE');",
+            "pm.test('Dos eventos: un CREATE y un UPDATE',()=>{pm.expect(b.items).to.have.lengthOf(2);pm.expect(cr).to.have.lengthOf(1);pm.expect(up).to.have.lengthOf(1);});",
+            "pm.test('El CREATE sigue siendo el mismo evento (no reescrito)',()=>pm.expect(cr[0].id_auditoria_umbral).to.eql(idCreate));",
+            "pm.test('UPDATE es un evento distinto del CREATE',()=>{pm.expect(up[0].id_auditoria_umbral).to.not.eql(cr[0].id_auditoria_umbral);pm.expect(Date.parse(up[0].fecha_gestion)).to.be.at.least(Date.parse(cr[0].fecha_gestion));});",
+            "pm.test('UPDATE correlacionado con el mismo recurso',()=>{pm.expect(up[0].id_umbral_ambiental).to.eql(id);pm.expect(up[0].valores_nuevos.id_umbral_ambiental).to.eql(id);});",
+            "pm.test('UPDATE usuario = actor que hizo el PATCH',()=>pm.expect(up[0].id_usuario).to.eql(uid));",
+            "pm.test('UPDATE fecha_gestion dentro de la ventana del PATCH (UTC, +-5 s)',()=>pm.expect(Date.parse(up[0].fecha_gestion)).to.be.within(u0,u1));",
+            "pm.test('UPDATE valores_anteriores = valores CREATE',()=>pm.expect(same(up[0].valores_anteriores,pc)).to.eql(true));",
+            "pm.test('UPDATE valores_nuevos = valores UPDATE',()=>pm.expect(same(up[0].valores_nuevos,pu)).to.eql(true));",
+            "pm.test('Especie y variable sin cambio estructural',()=>{pm.expect(up[0].valores_nuevos.id_especie).to.eql(pc.id_especie);pm.expect(up[0].valores_nuevos.id_variable_ambiental).to.eql(pc.id_variable_ambiental);});",
+            "pm.test('Eventos sin secretos',()=>{const s=JSON.stringify(b).toLowerCase();['password','contrasena','authorization','bearer','token','eyj'].forEach(k=>pm.expect(s,k).to.not.include(k));});"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}
