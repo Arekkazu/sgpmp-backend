@@ -81,7 +81,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"tipo_baja\": \"VENTA\",\n  \"cantidad_afectada\": 1,\n  \"motivo_baja\": \"Prueba de auditoria TC-M02-204\",\n  \"fecha_baja\": \"2026-09-09\"\n}"
+          "raw": "{\n  \"tipo_baja\": \"VENTA\",\n  \"cantidad_afectada\": 1,\n  \"motivo_baja\": \"Prueba de auditoria TC-M02-204\",\n  \"fecha_baja\": \"{{fecha_baja_actual}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/baja",
@@ -97,6 +97,17 @@
         }
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Corrección 2026-09-11: se reemplaza fecha estática por fecha dinámica para evitar rechazo por validación cronológica del historial del lote (ver resultado_tc_m02_g29_reevaluacion.md).",
+              "var hoy = new Date().toISOString().split('T')[0];",
+              "pm.collectionVariables.set('fecha_baja_actual', hoy);"
+            ],
+            "type": "text/javascript"
+          }
+        },
         {
           "listen": "test",
           "script": {

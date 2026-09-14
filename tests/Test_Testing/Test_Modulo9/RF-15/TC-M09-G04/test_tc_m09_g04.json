@@ -40,7 +40,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -115,7 +115,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Patologia Test Cachama GCuatro\",\n  \"descripcion\": \"Patologia de prueba vinculada a Cachama Blanca antes de desactivar\"\n}"
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"{{nombrePatologiaTest}}\",\n  \"descripcion\": \"Patologia de prueba vinculada a Cachama Blanca antes de desactivar\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/configuracion/patologias",
@@ -124,6 +124,17 @@
         }
       },
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var suffix = Date.now().toString().slice(-6);",
+              "var nombreDinamico = 'Patologia QA ' + suffix;",
+              "pm.collectionVariables.set('nombrePatologiaTest', nombreDinamico);"
+            ],
+            "type": "text/javascript"
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -205,9 +216,10 @@
               "    pm.response.to.have.status(200);",
               "    var res = pm.response.json();",
               "    var targetId = pm.collectionVariables.get('idPatologiaTest');",
-              "    var found = res.items.find(function(p) { return p.id_especies_patologias === targetId; });",
+              "    var found = res.items.find(function(p) { return p.id_especies_patologias == targetId; });",
               "    pm.expect(found).to.not.be.undefined;",
-              "    pm.expect(found.nombre).to.eql('Patologia Test Cachama GCuatro');",
+              "    var expectedNombre = pm.collectionVariables.get('nombrePatologiaTest');",
+              "    pm.expect(found.nombre).to.eql(expectedNombre);",
               "});"
             ],
             "type": "text/javascript"
