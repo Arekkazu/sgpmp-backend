@@ -2,9 +2,31 @@
   "info": {
     "_postman_id": "tc-m01-119-eliminar-rol",
     "name": "TC-M01-119 - Eliminar un rol sin usuarios asociados",
-    "description": "Validar que el rol Auxiliar de Campo pueda eliminarse cuando no tiene usuarios asociados.",
+    "description": "RF-03. Segunda revisión: precondición, DELETE, validación y restauración del fixture Auxiliar de Campo en TEST.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "idRolAuxiliar",
+      "value": ""
+    },
+    {
+      "key": "permisosRestauracion",
+      "value": "[]"
+    },
+    {
+      "key": "idRolRestaurado",
+      "value": ""
+    }
+  ],
   "item": [
     {
       "name": "1. Iniciar sesión como Administrador",
@@ -22,13 +44,8 @@
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
         }
       },
       "event": [
@@ -37,18 +54,23 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Inicio de sesión exitoso\", function () {",
+              "pm.test('Inicio de sesión exitoso (HTTP 200)', function () {",
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "var respuesta = pm.response.json();",
+              "var respuesta = null;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
               "",
-              "pm.test(\"El token existe\", function () {",
+              "pm.test('El token existe', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
               "    pm.expect(respuesta.token).to.exist;",
+              "    pm.expect(respuesta.token).to.be.a('string').and.not.empty;",
               "});",
               "",
-              "if (respuesta.token) {",
-              "    pm.environment.set(\"token\", respuesta.token);",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "} else {",
+              "    pm.execution.setNextRequest(null);",
               "}"
             ]
           }
@@ -67,12 +89,79 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/roles/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "roles",
-            ""
+          "host": ["{{baseUrl}}"],
+          "path": ["roles", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta de roles exitosa (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "",
+              "pm.test('La respuesta contiene una lista de roles', function () {",
+              "    pm.expect(roles).to.be.an('array');",
+              "});",
+              "",
+              "var rolAuxiliar = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Auxiliar de Campo';",
+              "});",
+              "",
+              "pm.test('El rol Auxiliar de Campo existe', function () {",
+              "    pm.expect(rolAuxiliar).to.exist;",
+              "});",
+              "",
+              "if (!rolAuxiliar) {",
+              "    pm.execution.setNextRequest(null);",
+              "} else {",
+              "    pm.test('El rol no está protegido', function () {",
+              "        pm.expect(rolAuxiliar.es_protegido).to.eql(false);",
+              "    });",
+              "",
+              "    pm.collectionVariables.set('idRolAuxiliar', String(rolAuxiliar.id_rol));",
+              "",
+              "    var pares = [];",
+              "    if (Array.isArray(rolAuxiliar.permisos)) {",
+              "        pares = rolAuxiliar.permisos.map(function (p) {",
+              "            return { id_recurso: p.id_recurso, id_accion: p.id_accion };",
+              "        });",
+              "    }",
+              "    pm.collectionVariables.set('permisosRestauracion', JSON.stringify(pares));",
+              "",
+              "    pm.test('El rol tiene al menos un permiso para poder restaurarlo via POST /roles/', function () {",
+              "        pm.expect(pares.length).to.be.greaterThan(0);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Verificar que el rol no tiene usuarios asociados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/admin?id_rol={{idRolAuxiliar}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios", "admin"],
+          "query": [
+            {
+              "key": "id_rol",
+              "value": "{{idRolAuxiliar}}"
+            }
           ]
         }
       },
@@ -82,51 +171,22 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Consulta de roles exitosa\", function () {",
+              "pm.test('Consulta de usuarios por rol exitosa (HTTP 200)', function () {",
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "var roles = pm.response.json();",
+              "var respuesta = pm.response.json();",
               "",
-              "pm.test(\"La respuesta contiene una lista de roles\", function () {",
-              "    pm.expect(roles).to.be.an(\"array\");",
+              "pm.test('La respuesta incluye total de usuarios', function () {",
+              "    pm.expect(respuesta).to.have.property('total');",
               "});",
               "",
-              "var rolAuxiliar = roles.find(function (rol) {",
-              "    return rol.nombre_rol === \"Auxiliar de Campo\";",
+              "pm.test('El rol no tiene usuarios asociados (total = 0)', function () {",
+              "    pm.expect(respuesta.total).to.eql(0);",
               "});",
               "",
-              "pm.test(\"El rol Auxiliar de Campo existe\", function () {",
-              "    pm.expect(rolAuxiliar).to.exist;",
-              "});",
-              "",
-              "if (rolAuxiliar) {",
-              "    pm.environment.set(\"idRolAuxiliar\", rolAuxiliar.id_rol);",
-              "",
-              "    console.log(\"Rol encontrado:\", rolAuxiliar);",
-              "",
-              "    var tieneCampoUsuarios = false;",
-              "",
-              "    if (rolAuxiliar.usuarios_asociados !== undefined) {",
-              "        tieneCampoUsuarios = true;",
-              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
-              "            pm.expect(rolAuxiliar.usuarios_asociados).to.equal(0);",
-              "        });",
-              "    } else if (rolAuxiliar.cantidad_usuarios !== undefined) {",
-              "        tieneCampoUsuarios = true;",
-              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
-              "            pm.expect(rolAuxiliar.cantidad_usuarios).to.equal(0);",
-              "        });",
-              "    } else if (rolAuxiliar.numero_usuarios !== undefined) {",
-              "        tieneCampoUsuarios = true;",
-              "        pm.test(\"El rol no tiene usuarios asociados\", function () {",
-              "            pm.expect(rolAuxiliar.numero_usuarios).to.equal(0);",
-              "        });",
-              "    }",
-              "",
-              "    if (!tieneCampoUsuarios) {",
-              "        console.warn(\"La respuesta de /roles/ no contiene un atributo para verificar usuarios asociados. Se registra la limitación, sin inventar un campo.\");",
-              "    }",
+              "if (pm.response.code !== 200 || !respuesta || respuesta.total !== 0) {",
+              "    pm.execution.setNextRequest(null);",
               "}"
             ]
           }
@@ -134,7 +194,7 @@
       ]
     },
     {
-      "name": "3. Eliminar el rol Auxiliar de Campo",
+      "name": "4. Eliminar el rol Auxiliar de Campo",
       "request": {
         "method": "DELETE",
         "header": [
@@ -145,13 +205,8 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/roles/{{idRolAuxiliar}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "roles",
-            "{{idRolAuxiliar}}"
-          ]
+          "host": ["{{baseUrl}}"],
+          "path": ["roles", "{{idRolAuxiliar}}"]
         }
       },
       "event": [
@@ -160,16 +215,14 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Eliminación del rol exitosa\", function () {",
+              "pm.test('Eliminación del rol exitosa (HTTP 200)', function () {",
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "var contentType = pm.response.headers.get(\"Content-Type\");",
-              "",
-              "if (contentType && contentType.includes(\"application/json\")) {",
+              "var contentType = pm.response.headers.get('Content-Type') || '';",
+              "if (contentType.indexOf('application/json') !== -1) {",
               "    var respuesta = pm.response.json();",
-              "",
-              "    pm.test(\"La respuesta confirma la eliminación\", function () {",
+              "    pm.test('La respuesta JSON incluye message', function () {",
               "        pm.expect(respuesta.message).to.exist;",
               "    });",
               "}"
@@ -179,7 +232,7 @@
       ]
     },
     {
-      "name": "4. Verificar que el rol fue eliminado",
+      "name": "5. Verificar que el rol fue eliminado",
       "request": {
         "method": "GET",
         "header": [
@@ -190,12 +243,191 @@
         ],
         "url": {
           "raw": "{{baseUrl}}/roles/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "roles",
-            ""
+          "host": ["{{baseUrl}}"],
+          "path": ["roles", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta de roles posterior a la eliminación exitosa (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "",
+              "pm.test('La respuesta contiene una lista de roles', function () {",
+              "    pm.expect(roles).to.be.an('array');",
+              "});",
+              "",
+              "var rolEliminado = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Auxiliar de Campo';",
+              "});",
+              "",
+              "pm.test('El rol Auxiliar de Campo ya no existe', function () {",
+              "    pm.expect(rolEliminado).to.not.exist;",
+              "});",
+              "",
+              "if (rolEliminado) {",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Restaurar el rol Auxiliar de Campo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_rol\": \"Auxiliar de Campo\",\n  \"descripcion\": \"Rol creado para la ejecución del caso de prueba TC-M01-114\",\n  \"permisos\": {{permisosRestauracion}}\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": ["{{baseUrl}}"],
+          "path": ["roles", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Restauración del rol exitosa (HTTP 201)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "var respuesta = null;",
+              "try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "",
+              "pm.test('La respuesta incluye id_rol generado por el sistema', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.id_rol).to.exist;",
+              "    pm.expect(respuesta.id_rol).to.be.a('number');",
+              "});",
+              "",
+              "pm.test('El nombre restaurado es Auxiliar de Campo', function () {",
+              "    pm.expect(respuesta.nombre_rol).to.eql('Auxiliar de Campo');",
+              "});",
+              "",
+              "pm.test('La descripción restaurada coincide con el fixture', function () {",
+              "    pm.expect(respuesta.descripcion).to.eql('Rol creado para la ejecución del caso de prueba TC-M01-114');",
+              "});",
+              "",
+              "pm.test('El rol restaurado no está protegido', function () {",
+              "    pm.expect(respuesta.es_protegido).to.eql(false);",
+              "});",
+              "",
+              "if (pm.response.code === 201 && respuesta && respuesta.id_rol) {",
+              "    pm.collectionVariables.set('idRolRestaurado', String(respuesta.id_rol));",
+              "} else {",
+              "    pm.execution.setNextRequest(null);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Verificar que el rol restaurado aparece en el listado",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/roles/",
+          "host": ["{{baseUrl}}"],
+          "path": ["roles", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Consulta de roles posterior a la restauración exitosa (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "var roles = pm.response.json();",
+              "var restaurado = roles.find(function (rol) {",
+              "    return rol.nombre_rol === 'Auxiliar de Campo';",
+              "});",
+              "",
+              "pm.test('El rol Auxiliar de Campo existe nuevamente', function () {",
+              "    pm.expect(restaurado).to.exist;",
+              "});",
+              "",
+              "if (restaurado) {",
+              "    pm.collectionVariables.set('idRolRestaurado', String(restaurado.id_rol));",
+              "",
+              "    pm.test('La descripción restaurada coincide con el fixture', function () {",
+              "        pm.expect(restaurado.descripcion).to.eql('Rol creado para la ejecución del caso de prueba TC-M01-114');",
+              "    });",
+              "",
+              "    pm.test('es_protegido es false', function () {",
+              "        pm.expect(restaurado.es_protegido).to.eql(false);",
+              "    });",
+              "",
+              "    var paresEsperados = [];",
+              "    try { paresEsperados = JSON.parse(pm.collectionVariables.get('permisosRestauracion') || '[]'); } catch (e) { paresEsperados = []; }",
+              "",
+              "    pm.test('Los pares recurso/accion restaurados coinciden con los capturados antes del DELETE', function () {",
+              "        pm.expect(restaurado.permisos).to.be.an('array');",
+              "        pm.expect(restaurado.permisos.length).to.eql(paresEsperados.length);",
+              "        paresEsperados.forEach(function (par) {",
+              "            var encontrado = restaurado.permisos.find(function (p) {",
+              "                return p.id_recurso === par.id_recurso && p.id_accion === par.id_accion;",
+              "            });",
+              "            pm.expect(encontrado).to.exist;",
+              "        });",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Verificar que el rol restaurado no tiene usuarios asociados",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/usuarios/admin?id_rol={{idRolRestaurado}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["usuarios", "admin"],
+          "query": [
+            {
+              "key": "id_rol",
+              "value": "{{idRolRestaurado}}"
+            }
           ]
         }
       },
@@ -205,33 +437,19 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test(\"Consulta de roles posterior a la eliminación exitosa\", function () {",
+              "pm.test('Consulta de usuarios del rol restaurado exitosa (HTTP 200)', function () {",
               "    pm.response.to.have.status(200);",
               "});",
               "",
-              "var roles = pm.response.json();",
+              "var respuesta = pm.response.json();",
               "",
-              "pm.test(\"La respuesta contiene una lista de roles\", function () {",
-              "    pm.expect(roles).to.be.an(\"array\");",
-              "});",
-              "",
-              "var rolEliminado = roles.find(function (rol) {",
-              "    return rol.nombre_rol === \"Auxiliar de Campo\";",
-              "});",
-              "",
-              "pm.test(\"El rol Auxiliar de Campo ya no existe\", function () {",
-              "    pm.expect(rolEliminado).to.not.exist;",
+              "pm.test('El rol restaurado no tiene usuarios asociados (total = 0)', function () {",
+              "    pm.expect(respuesta.total).to.eql(0);",
               "});"
             ]
           }
         }
       ]
-    }
-  ],
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
     }
   ]
 }
