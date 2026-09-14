@@ -1,0 +1,54 @@
+TC-M09-G95 / TC-M09-180 — ejecución oficial rev1 DEV
+Fecha: 2026-09-14T07:49:37.443Z (inicio Cypress) — 2026-09-14T07:50:04.578Z (fin)
+Ambiente: DEV
+Frontend: https://sigab-frontenddev-pbw0py-757e2f-158-69-200-27.sslip.io
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Navegador: Electron 130 (Cypress 14.5.4 headless)
+Intentos de login: 1 (no se reintentó)
+
+Resultado Cypress: 1 test, 0 PASS, 1 FAIL, 0 pending.
+Clasificación del caso: BLOQUEADO
+
+Pasos ejecutados:
+1. Login UI DEV — PASS. POST /sesiones HTTP 200. URL /dashboard, no /login.
+2. Acceso a /configuracion — BLOQUEADO. cy.visit(/configuracion) cargó GET /configuracion/interfaz/contexto HTTP 200 y acto seguido POST /sesiones/refresh HTTP 500. La app redirigió a /login (pantalla Iniciar sesión).
+3. Dashboard Personalizable — no alcanzado.
+4. Grilla 4×3 — no alcanzado.
+5. Catálogo de Widgets — no alcanzado.
+6. GET /configuracion/personalizacion/dashboard — no ejecutado.
+7. GET /configuracion/personalizacion/dashboard/widgets — no ejecutado.
+8. Widget seleccionado — no ejecutado.
+9. Celda seleccionada — no ejecutado.
+10. Widget colocado — no ejecutado.
+11. PATCH guardar — no ejecutado.
+12. Mensaje de éxito — no ejecutado.
+13. Ausencia de recarga (marker/URL) — no aplicable: la sesión se perdió antes de personalizar. Sí hubo navegación a /login tras el refresh 500.
+14. Distribución final — no capturada.
+15. Restauración — no ejecutada (no se modificó layout; no se usó Restaurar predeterminado).
+
+HTTP:
+- POST /sesiones (login): 200
+- GET /configuracion/interfaz/contexto: 200
+- POST /sesiones/refresh: 500
+- GET dashboard layout: no llamado
+- GET widgets: no llamado
+- PATCH dashboard: no llamado
+- POST dashboard/restaurar: no llamado
+
+Distribución inicial: no capturada
+Distribución final: no capturada
+Restauración: no aplicable (no hubo cambio persistido)
+
+Assertion fallida (Cypress):
+Expected to find content: /Configuración/i within selector h1, h2, button (timeout 15000ms).
+Causa real observada: URL final https://sigab-frontenddev-...sslip.io/login tras POST /sesiones/refresh 500.
+
+Nota sobre G95-rev1-dev-ejecucion.txt previo del after() del spec:
+El after() escribió "APROBADO" porque notas.clasificacion = 'APROBADO' se asigna al definir el test (cola Cypress), no porque el flujo hubiera pasado. Este archivo corrige esa evidencia. No se reejecutó el login.
+
+Conclusión:
+BLOQUEADO por ambiente/sesión (refresh 500 al entrar a Configuración), el mismo incidente visto en G90.
+No es un defecto demostrado de colocación de widgets RF-28: esa UI no llegó a ejecutarse.
+No se modificó el spec tras la corrida. No se tocó código productivo. No se usó drag HTML5.
+No se incluye password, JWT ni cookies.

@@ -1,0 +1,105 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 0,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-09-14T07:49:37.443Z",
+    "end": "2026-09-14T07:50:04.578Z",
+    "duration": 27135,
+    "testsRegistered": 1,
+    "passPercent": 0,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "88a960a2-c039-4161-9c6d-7b4784d3aa64",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-28\\TC-M09-G95\\tc_m09_g95.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-28\\TC-M09-G95\\tc_m09_g95.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "a15e2120-f711-4fce-82be-3b2d91c9af93",
+          "title": "TC-M09-G95 - Personalización del dashboard con widgets válidos",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-180 - Personalización del dashboard con widgets válidos (camino feliz)",
+              "fullTitle": "TC-M09-G95 - Personalización del dashboard con widgets válidos TC-M09-180 - Personalización del dashboard con widgets válidos (camino feliz)",
+              "duration": 24060,
+              "state": "failed",
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "code": "const correo = Cypress.env('correo') || 'admin.dev@gmail.com';\nconst contrasena = Cypress.env('contrasena');\nexpect(contrasena, 'contrasena via Cypress.env (no hardcodear)').to.be.a('string').and.not.empty;\nnotas.usuario = correo;\ncy.intercept({\n  method: 'POST',\n  url: POST_LOGIN\n}).as('login');\ncy.intercept({\n  method: 'POST',\n  url: POST_REFRESH\n}).as('refreshSesion');\ncy.intercept({\n  method: 'GET',\n  url: GET_LAYOUT\n}).as('getLayout');\ncy.intercept({\n  method: 'PATCH',\n  url: PATCH_LAYOUT\n}).as('patchLayout');\ncy.intercept({\n  method: 'GET',\n  url: GET_WIDGETS\n}).as('getWidgets');\ncy.intercept({\n  method: 'POST',\n  url: POST_RESTAURAR\n}).as('postRestaurar');\nregistrarPaso('Abrir login DEV');\ncy.visit(`${DEV_FRONT}/login`);\ncy.get('input[type=\"email\"]').should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@login').then(interception => {\n  const status = interception.response && interception.response.statusCode;\n  notas.loginHttp = status;\n  registrarPaso(`Login POST /sesiones status=${status}`);\n  if (status === 401) {\n    fallar('BLOQUEADO', 'Login HTTP 401. Un solo intento; no se reintenta.');\n  }\n  expect(status, 'login HTTP').to.eq(200);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\nregistrarPaso('Dashboard accesible');\ncy.screenshot('G95-01-dashboard');\nregistrarPaso('Ir a Configuración (misma ruta observada en G88: /configuracion)');\ncy.visit(`${DEV_FRONT}/configuracion`);\ncy.url().then(url => {\n  if (url.includes('/login')) {\n    fallar('BLOQUEADO', `Tras visitar /configuracion la URL volvió a /login (${url}). Posible POST /sesiones/refresh fallido.`);\n  }\n});\ncy.contains('h1, h2, button', /Configuración/i, {\n  timeout: 15000\n}).should('exist');\ncy.contains('button', /^Personalización$/i).click({\n  force: true\n});\ncy.get('body').then($body => {\n  if (!/Dashboard Personalizable/i.test($body.text())) {\n    fallar('BLOQUEADO', 'No apareció la sección Dashboard Personalizable tras Personalización. No se simula la UI.');\n  }\n});\nregistrarPaso('Sección Dashboard Personalizable visible');\ncy.contains('h2', /Dashboard Personalizable/i, {\n  timeout: 15000\n}).should('exist');\ncy.contains(/Grilla del dashboard \\(4 columnas × 3 filas\\)/i).should('exist');\ncy.contains(/Catálogo de Widgets/i).should('exist');\ncy.contains(/Organiza los widgets en la grilla 4×3/i).should('exist');\ncy.wait('@getLayout', {\n  timeout: 20000\n}).then(interception => {\n  notas.getLayout = resumenIntercept(interception);\n  const status = notas.getLayout.status;\n  registrarPaso(`GET /configuracion/personalizacion/dashboard status=${status}`);\n  if (status !== 200) {\n    fallar('BLOQUEADO', `GET layout HTTP ${status}. No hay distribución inicial confiable.`);\n  }\n  notas.layoutInicial = cuerpoSinSecretos(interception.response.body);\n});\ncy.wait('@getWidgets', {\n  timeout: 20000\n}).then(interception => {\n  notas.getWidgets = resumenIntercept(interception);\n  const status = notas.getWidgets.status;\n  registrarPaso(`GET /configuracion/personalizacion/dashboard/widgets status=${status}`);\n  if (status !== 200) {\n    fallar('BLOQUEADO', `GET catálogo widgets HTTP ${status}.`);\n  }\n  const lista = interception.response.body;\n  if (!Array.isArray(lista) || lista.length === 0) {\n    fallar('BLOQUEADO', 'El catálogo de widgets del ambiente está vacío.');\n  }\n});\ncy.screenshot('G95-02-personalizacion-inicial');\ncy.get('body').then($body => {\n  const celdasVacias = [...$body.find('button[aria-label^=\"Celda vacía\"]')];\n  const celdasOcupadas = [...$body.find('button[aria-label^=\"Quitar \"]')];\n  registrarPaso(`Grilla visible: ${celdasVacias.length} celdas vacías, ${celdasOcupadas.length} ocupadas (span>1 no renderiza botón de ocupación)`);\n  const idsEnGrid = (notas.layoutInicial.grid || []).filter(w => w.visible).map(w => w.id_widget);\n  const catalogo = notas.getWidgets.responseBody || [];\n  const candidato = catalogo.find(w => !idsEnGrid.includes(w.id_widget));\n  if (celdasVacias.length === 0 && celdasOcupadas.length === 0) {\n    fallar('BLOQUEADO', 'No hay botones de celda con aria-label Celda vacía / Quitar.');\n  }\n  if (!candidato && celdasVacias.length === 0) {\n    fallar('BLOQUEADO', 'No hay posición disponible ni widget del catálogo fuera de la grilla para colocar uno válido.');\n  }\n  notas.widgetColocado = candidato ? candidato.nombre : null;\n  if (celdasVacias.length === 0) {\n    const ocupada = celdasOcupadas[0];\n    const aria = ocupada.getAttribute('aria-label');\n    registrarPaso(`Grilla llena: clic en ${aria} para liberar una posición (handler P quita)`);\n    cy.wrap(ocupada).click({\n      force: true\n    });\n  }\n});\ncy.then(() => {\n  const nombre = notas.widgetColocado;\n  if (!nombre) {\n    fallar('BLOQUEADO', 'No se eligió un widget válido del catálogo.');\n  }\n  registrarPaso(`Seleccionar widget del catálogo: ${nombre} (handler D, toggle de clave)`);\n  cy.get('button[type=\"button\"]').filter((_, el) => !el.getAttribute('aria-label') && el.innerText.includes(nombre)).filter(':visible').first().should('not.be.disabled').click({\n    force: true\n  });\n  cy.contains(/Widget seleccionado:/i, {\n    timeout: 10000\n  }).should('exist');\n  cy.contains(/Haz clic en una celda vacía de la grilla/i).should('exist');\n});\ncy.get('button[aria-label^=\"Celda vacía\"], button[aria-label^=\"Colocar \"]').filter(':visible').first().then($btn => {\n  const aria = $btn.attr('aria-label');\n  notas.celdaUsada = aria;\n  registrarPaso(`Colocar en celda: ${aria} (handler P)`);\n  cy.wrap($btn).click({\n    force: true\n  });\n});\ncy.then(() => {\n  const nombre = notas.widgetColocado;\n  cy.get(`button[aria-label=\"Quitar ${nombre}\"]`, {\n    timeout: 10000\n  }).should('exist');\n  registrarPaso(`La grilla muestra Quitar ${nombre} sin recargar`);\n});\ncy.window().then(win => {\n  win.__g95DocMarker = 'tc-m09-180';\n  notas.documentoIdAntes = win.__g95DocMarker;\n});\ncy.url().then(url => {\n  notas.urlAntesGuardar = url;\n});\nregistrarPaso('Guardar configuración (handler B → PATCH)');\ncy.contains('button', /^Guardar configuración$/i).click({\n  force: true\n});\ncy.wait('@patchLayout', {\n  timeout: 20000\n}).then(interception => {\n  notas.patchGuardar = resumenIntercept(interception);\n  const status = notas.patchGuardar.status;\n  registrarPaso(`PATCH /configuracion/personalizacion/dashboard status=${status}`);\n  expect(status, 'PATCH guardar layout').to.be.oneOf([200, 201]);\n  notas.layoutTrasColocar = cuerpoSinSecretos(interception.response.body);\n  const nombresActivos = (notas.layoutTrasColocar.active_widget || []).join(',');\n  registrarPaso(`active_widget tras guardar: ${nombresActivos}`);\n});\ncy.contains(/El layout del dashboard se actualizó correctamente/i, {\n  timeout: 10000\n}).should('exist');\ncy.url().then(url => {\n  notas.urlDespuesGuardar = url;\n  expect(url, 'URL tras guardar').to.include('/configuracion');\n  expect(url, 'no redirige a login').to.not.include('/login');\n});\ncy.window().then(win => {\n  notas.recargaDetectada = win.__g95DocMarker !== 'tc-m09-180';\n  expect(win.__g95DocMarker, 'mismo documento tras guardar (sin recarga)').to.eq('tc-m09-180');\n});\ncy.screenshot('G95-03-tras-guardar');\nregistrarPaso('Restaurar distribución inicial: quitar el widget colocado y volver a guardar');\ncy.then(() => {\n  const nombre = notas.widgetColocado;\n  cy.get(`button[aria-label=\"Quitar ${nombre}\"]`).click({\n    force: true\n  });\n});\ncy.contains('button', /^Guardar configuración$/i).click({\n  force: true\n});\ncy.wait('@patchLayout', {\n  timeout: 20000\n}).then(interception => {\n  notas.patchRestaurar = resumenIntercept(interception);\n  const status = notas.patchRestaurar.status;\n  registrarPaso(`PATCH restaurar status=${status}`);\n  expect(status, 'PATCH restaurar layout inicial').to.be.oneOf([200, 201]);\n  notas.layoutTrasRestaurar = cuerpoSinSecretos(interception.response.body);\n  const idsInicial = (notas.layoutInicial.grid || []).filter(w => w.visible).map(w => `${w.id_widget}@${w.posicion_fila},${w.posicion_columna}`).sort();\n  const idsRestaurados = (notas.layoutTrasRestaurar.grid || []).filter(w => w.visible).map(w => `${w.id_widget}@${w.posicion_fila},${w.posicion_columna}`).sort();\n  if (JSON.stringify(idsInicial) !== JSON.stringify(idsRestaurados)) {\n    notas.restauracion = 'NO coincidió con la distribución inicial';\n    notas.clasificacion = 'RECHAZADO';\n    notas.error = `Restauración distinta. inicial=${idsInicial.join('|')} restaurado=${idsRestaurados.join('|')}`;\n    escribirNotas();\n    expect(idsRestaurados, 'distribución restaurada').to.deep.eq(idsInicial);\n  } else {\n    notas.restauracion = 'OK: misma grilla visible que al inicio';\n  }\n});\ncy.get('@postRestaurar.all').then(calls => {\n  if (calls && calls.length) {\n    notas.postRestaurarUi = calls.map(resumenIntercept);\n    registrarPaso('POST /restaurar se disparó; no se usó como restauración exacta');\n  } else {\n    notas.postRestaurarUi = {\n      presente: false\n    };\n  }\n});\nnotas.clasificacion = 'APROBADO';\nregistrarPaso('Validaciones de camino feliz completadas');\ncy.screenshot('G95-04-tras-restaurar');",
+              "err": {
+                "message": "AssertionError: Timed out retrying after 15000ms: Expected to find content: '/Configuración/i' within the selector: 'h1, h2, button' but never did.",
+                "estack": "AssertionError: Timed out retrying after 15000ms: Expected to find content: '/Configuración/i' within the selector: 'h1, h2, button' but never did.\n    at Context.eval (webpack://sgpmp-backend/./tests/Test_Testing/Test_Modulo9/RF-28/TC-M09-G95/tc_m09_g95.cy.js:188:72)"
+              },
+              "uuid": "fefaf657-af41-45d4-a9fc-3fc195b841f3",
+              "parentUUID": "a15e2120-f711-4fce-82be-3b2d91c9af93",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [],
+          "failures": [
+            "fefaf657-af41-45d4-a9fc-3fc195b841f3"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 24060,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "mochawesome",
+        "saveHtml": true,
+        "saveJson": false,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "overwrite": true,
+        "html": true,
+        "json": false,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}
