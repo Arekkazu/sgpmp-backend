@@ -1,0 +1,21 @@
+TC-M09-G90 — ejecución oficial rev1 DEV
+Fecha: 2026-09-14
+Frontend: https://sigab-frontenddev-pbw0py-757e2f-158-69-200-27.sslip.io
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Navegador: Electron 130 (Cypress 14.5.4 headless)
+
+Resultado Cypress: 3 testsRegistered, 0 pass, 1 fail, 2 skipped.
+
+Causa: el before all hizo login (URL /dashboard OK) y luego cy.visit(/configuracion).
+La app emitió POST /sesiones/refresh → HTTP 500 y redirigió a /login.
+Expected: permanecer autenticado y ver Configuración.
+Actual: pantalla de Iniciar sesión; no se encontró h1/h2/button "Configuración".
+
+No se ejecutó PATCH de tema. No se capturó theme_mode inicial. after() no restauró porque no había estadoInicial.
+
+TC-M09-170 FAIL (hook)
+TC-M09-171 SKIPPED (hook)
+TC-M09-172 SKIPPED (hook) — no es BLOQUEADO por CDP; no se llegó a emular prefers-color-scheme.
+
+No se modificó el spec ni assertions tras ver el resultado.

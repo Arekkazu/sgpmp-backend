@@ -2,254 +2,439 @@
   "info": {
     "_postman_id": "tc-m09-g89-rf26",
     "name": "TC-M09-G89 - Auditoría de cambios de identidad visual",
-    "description": "Verificar que una modificación de identidad visual realizada por un Administrador quede registrada en auditoría con información de trazabilidad.",
+    "description": "TC-M09-169 DEV. PATCH identidad finca 6 (no finca 5). Auditoría de escritura: modulo9.auditorias_visuales (valor_anterior/valor_nuevo). Consulta pública: GET /auditoria/ es modulo1.eventos (RF-10), NO auditorias_visuales. No existe GET /configuracion/identidad-visual/auditoria (contraste: plantillas/auditoria). Contraseña por --env-var.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "baseUrl",
-      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
-    },
-    {
-      "key": "id_finca",
-      "value": "10"
-    },
-    {
-      "key": "token",
-      "value": ""
-    },
-    {
-      "key": "version",
-      "value": ""
-    }
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "correo", "value": "admin.dev@gmail.com" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "finca_id", "value": "6" },
+    { "key": "id_usuario", "value": "" },
+    { "key": "version", "value": "" },
+    { "key": "org_g89", "value": "" },
+    { "key": "restore_name", "value": "" },
+    { "key": "restore_primary", "value": "" },
+    { "key": "restore_secondary", "value": "" },
+    { "key": "restore_logo", "value": "" }
   ],
+  "event": [{
+    "listen": "prerequest",
+    "script": {
+      "exec": [
+        "if (!pm.collectionVariables.get('org_g89')) {",
+        "    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12);",
+        "    pm.collectionVariables.set('org_g89', ('QA G89 Aud ' + stamp).slice(0, 50));",
+        "}"
+      ]
+    }
+  }],
   "item": [
     {
-      "name": "01 - Login Administrador",
+      "name": "00 - Login Admin",
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
         },
-        "url": {
-          "raw": "{{baseUrl}}/sesiones/",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('JWT presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+            "if (json.token) { pm.collectionVariables.set('token', json.token); }",
+            "if (json.id_usuario != null) { pm.collectionVariables.set('id_usuario', String(json.id_usuario)); }"
           ]
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Login exitoso', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const json = pm.response.json();",
-              "",
-              "pm.test('Token recibido', function () {",
-              "    pm.expect(json.token).to.exist;",
-              "});",
-              "",
-              "pm.collectionVariables.set('token', json.token);"
-            ]
-          }
-        }
-      ]
+      }]
     },
     {
-      "name": "02 - Consultar identidad visual antes del cambio",
+      "name": "01 - GET baseline identidad finca 6",
       "request": {
         "method": "GET",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{id_finca}}"
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('GET identidad HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('Finca 6 tiene identidad (no POST; no finca 5)', function () {",
+            "    pm.expect(json).to.be.an('object');",
+            "    pm.expect(json.id_finca).to.eql(6);",
+            "    pm.expect(json.version).to.be.a('number');",
+            "});",
+            "if (json && json.version != null) {",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('id_identidad_visual', String(json.id_identidad_visual));",
+            "    pm.collectionVariables.set('restore_name', json.org_display_name || '');",
+            "    pm.collectionVariables.set('restore_primary', json.primary_color || '');",
+            "    pm.collectionVariables.set('restore_secondary', json.secondary_color || '');",
+            "    pm.collectionVariables.set('restore_logo', json.logo_path || '');",
+            "    if (json.id_usuario != null) { pm.collectionVariables.set('id_usuario_identidad', String(json.id_usuario)); }",
+            "}"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "02 - GET catálogo tipos evento auditoría M1",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/catalogo/tipos-evento",
+          "host": ["{{base_url}}"],
+          "path": ["auditoria", "catalogo", "tipos-evento"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Catálogo tipos HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "const blob = JSON.stringify(json).toLowerCase();",
+            "pm.test('Catálogo M1 no define tipo identidad visual RF-26', function () {",
+            "    pm.expect(blob).to.not.include('identidad visual');",
+            "    pm.expect(blob).to.not.include('identidad_visual');",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "03 - GET /auditoria/ baseline usuario admin",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario=50&pagina=1&tamano=50",
+          "host": ["{{base_url}}"],
+          "path": ["auditoria", ""],
+          "query": [
+            { "key": "id_usuario", "value": "50" },
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "50" }
           ]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Consulta de identidad visual exitosa', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const json = pm.response.json();",
-              "",
-              "if (json.version !== undefined && json.version !== null) {",
-              "    pm.collectionVariables.set('version', String(json.version));",
-              "    console.log('Versión anterior:', json.version);",
-              "}",
-              "",
-              "console.log('Identidad visual anterior:', JSON.stringify(json));"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('GET /auditoria/ HTTP 200 o 206', function () {",
+            "    pm.expect([200, 206]).to.include(pm.response.code);",
+            "});",
+            "const json = pm.response.json();",
+            "pm.test('Paginación total/pagina/tamano/items', function () {",
+            "    pm.expect(json).to.have.property('total');",
+            "    pm.expect(json).to.have.property('pagina');",
+            "    pm.expect(json).to.have.property('tamano');",
+            "    pm.expect(json.items).to.be.an('array');",
+            "});",
+            "pm.collectionVariables.set('audit_total_before', String(json.total));",
+            "pm.collectionVariables.set('audit_first_id_before', json.items[0] ? String(json.items[0].id_evento) : '');"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "03 - Modificar identidad visual",
+      "name": "04 - Probe GET identidad-visual/auditoria (no inventado como válido)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/auditoria",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "auditoria"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('No hay GET listado auditorias_visuales (400/404/405/422)', function () {",
+            "    pm.expect([400, 404, 405, 422]).to.include(pm.response.code);",
+            "});",
+            "if (pm.response.code === 400) {",
+            "    const j = pm.response.json();",
+            "    pm.test('400 es path id_finca no un listado de auditoría', function () {",
+            "        pm.expect(j.error_code).to.eql('VAL_ENTRADA');",
+            "    });",
+            "}"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "05 - Probe GET identidad-visual/{finca}/auditoria",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}/auditoria",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}", "auditoria"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('No hay GET auditoría por finca (404/405)', function () {",
+            "    pm.expect([404, 405]).to.include(pm.response.code);",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "06 - PATCH cambio controlado G89 (logo+color+nombre)",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          },
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
-          "mode": "raw",
-          "raw": "{\n  \"primary_color\": \"#224466\",\n  \"secondary_color\": \"#FFFFFF\",\n  \"org_display_name\": \"Organizacion Auditoria G89\",\n  \"version\": {{version}}\n}"
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "#C41E3A", "type": "text" },
+            { "key": "secondary_color", "value": "#FFFFFF", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_g89}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" },
+            { "key": "logo", "type": "file", "src": "logo.png" }
+          ]
         },
         "url": {
-          "raw": "{{baseUrl}}/configuracion/identidad-visual/{{id_finca}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{id_finca}}"
-          ]
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Modificación de identidad visual exitosa', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const json = pm.response.json();",
-              "",
-              "if (json.version !== undefined && json.version !== null) {",
-              "    pm.collectionVariables.set('version', String(json.version));",
-              "}",
-              "",
-              "console.log('Identidad visual modificada:', JSON.stringify(json));"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('PATCH G89 HTTP 200', function () { pm.response.to.have.status(200); });",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    const marker = pm.collectionVariables.get('org_g89');",
+            "    pm.test('Persistió marker G89 y color', function () {",
+            "        pm.expect(json.org_display_name).to.eql(marker);",
+            "        pm.expect(json.primary_color.toUpperCase()).to.eql('#C41E3A');",
+            "        pm.expect(json.id_finca).to.eql(6);",
+            "        pm.expect(json.logo_path).to.include('.png');",
+            "    });",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('patch_version', String(json.version));",
+            "}"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "04 - Consultar auditoría del cambio",
+      "name": "07 - GET persistencia cambio G89",
       "request": {
         "method": "GET",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "url": {
-          "raw": "{{baseUrl}}/auditoria/?pagina=1&tamano=50",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "auditoria",
-            ""
-          ],
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('GET confirma marker G89', function () {",
+            "    pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('org_g89'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "08 - GET /auditoria/ tras PATCH (pagina 1, usuario 50)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario=50&pagina=1&tamano=50",
+          "host": ["{{base_url}}"],
+          "path": ["auditoria", ""],
           "query": [
-            {
-              "key": "pagina",
-              "value": "1"
-            },
-            {
-              "key": "tamano",
-              "value": "50"
-            }
+            { "key": "id_usuario", "value": "50" },
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "50" }
           ]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Consulta de auditoría exitosa', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "const json = pm.response.json();",
-              "const items = Array.isArray(json.items) ? json.items : [];",
-              "",
-              "console.log('Total registros de auditoría:', json.total);",
-              "console.log('Registros consultados:', items.length);",
-              "",
-              "const relacionados = items.filter(item => {",
-              "    const texto = JSON.stringify(item).toLowerCase();",
-              "    return texto.includes('identidad') ||",
-              "           texto.includes('visual') ||",
-              "           texto.includes('configuracion');",
-              "});",
-              "",
-              "console.log('Registros relacionados con identidad/configuración:', relacionados.length);",
-              "console.log('Registros relacionados:', JSON.stringify(relacionados));",
-              "",
-              "pm.test('Existe registro de auditoría relacionado con identidad visual', function () {",
-              "    pm.expect(relacionados.length).to.be.greaterThan(0);",
-              "});",
-              "",
-              "if (relacionados.length > 0) {",
-              "    const evento = relacionados[0];",
-              "",
-              "    pm.test('Registro contiene fecha/hora', function () {",
-              "        pm.expect(evento.fecha_evento).to.exist;",
-              "    });",
-              "",
-              "    pm.test('Registro contiene usuario', function () {",
-              "        pm.expect(evento.id_usuario).to.exist;",
-              "    });",
-              "",
-              "    pm.test('Registro contiene resultado de operación', function () {",
-              "        pm.expect(evento.resultado).to.exist;",
-              "    });",
-              "",
-              "    pm.test('Registro contiene módulo o detalle', function () {",
-              "        pm.expect(evento.modulo || evento.detalle || evento.descripcion).to.exist;",
-              "    });",
-              "",
-              "    console.log('Evento de auditoría encontrado:', JSON.stringify(evento));",
-              "}"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('GET /auditoria/ post-PATCH 200/206', function () {",
+            "    pm.expect([200, 206]).to.include(pm.response.code);",
+            "});",
+            "const json = pm.response.json();",
+            "const marker = (pm.collectionVariables.get('org_g89') || '').toLowerCase();",
+            "const blob = JSON.stringify(json).toLowerCase();",
+            "const hit = blob.includes(marker) || blob.includes('identidad visual') || blob.includes('auditorias_visuales');",
+            "pm.test('Evento RF-26/G89 NO está en GET /auditoria/ (modulo1.eventos)', function () {",
+            "    pm.expect(hit).to.eql(false);",
+            "});",
+            "pm.test('Items tienen id_usuario, fecha_evento, tipo_evento (contrato M1)', function () {",
+            "    if (json.items && json.items.length) {",
+            "        pm.expect(json.items[0].id_usuario).to.exist;",
+            "        pm.expect(json.items[0].fecha_evento).to.exist;",
+            "        pm.expect(json.items[0].tipo_evento).to.exist;",
+            "    }",
+            "});"
+          ]
         }
-      ]
+      }]
+    },
+    {
+      "name": "09 - GET /auditoria/ pagina 2 por si el evento no está en p1",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/auditoria/?id_usuario=50&pagina=2&tamano=50",
+          "host": ["{{base_url}}"],
+          "path": ["auditoria", ""],
+          "query": [
+            { "key": "id_usuario", "value": "50" },
+            { "key": "pagina", "value": "2" },
+            { "key": "tamano", "value": "50" }
+          ]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "const marker = (pm.collectionVariables.get('org_g89') || '').toLowerCase();",
+            "const blob = JSON.stringify(json).toLowerCase();",
+            "pm.test('Página 2 tampoco contiene marker G89', function () {",
+            "    pm.expect(blob.includes(marker)).to.eql(false);",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "10 - PATCH restaurar baseline finca 6 (sin logo; conserva logo G89)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "{{restore_primary}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{restore_secondary}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{restore_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Restore PATCH HTTP 200', function () { pm.response.to.have.status(200); });",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    pm.test('Nombre restaurado', function () {",
+            "        pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('restore_name'));",
+            "        pm.expect(json.primary_color).to.eql(pm.collectionVariables.get('restore_primary'));",
+            "    });",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "}"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "11 - GET confirmar restauración",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('GET post-restore colores y nombre baseline', function () {",
+            "    pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('restore_name'));",
+            "    pm.expect(json.primary_color).to.eql(pm.collectionVariables.get('restore_primary'));",
+            "    pm.expect(json.org_display_name).to.not.eql(pm.collectionVariables.get('org_g89'));",
+            "});"
+          ]
+        }
+      }]
     }
   ]
 }

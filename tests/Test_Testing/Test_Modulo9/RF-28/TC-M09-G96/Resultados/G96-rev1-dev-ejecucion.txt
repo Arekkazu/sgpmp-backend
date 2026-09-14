@@ -1,0 +1,58 @@
+TC-M09-G96 — ejecución oficial rev1 DEV (Newman/API)
+Fecha: 2026-09-14
+Ambiente: DEV
+API: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Usuario: admin.dev@gmail.com
+Herramienta: Newman (colección tc_m09_g96_dev.json). Cypress no ejecutado.
+Login: un solo POST /sesiones exitoso HTTP 200. Sin reintento de credenciales.
+TLS: el primer arranque de Newman falló con "unable to verify the first certificate" (sin HTTP). Se relanzó con --insecure; no fue 401 ni segundo intento de password.
+
+Resultado Newman: 14 requests, 35 assertions, 0 fallos.
+
+Clasificación por subcaso (según assertions reales):
+TC-M09-181: APROBADO
+TC-M09-182: APROBADO
+TC-M09-183: APROBADO
+TC-M09-184: APROBADO
+TC-M09-185: APROBADO
+RESTORE: APROBADO (PATCH snapshot, no POST /restaurar)
+
+Resultado global G96: APROBADO
+
+PRECHECK
+- GET dashboard 200. Snapshot inicial (default admin):
+  grid 5 visibles: (6 @1,1 span2), (9 @1,3 span1), (15 @1,4 span1), (14 @2,1 span2), (7 @2,3 span1)
+  active_widget: estado_iot, alertas_crit, cfg_pendiente, fincas_estado, cal_sensores
+- GET widgets 200, catálogo no vacío. Widget usado: id=1 clave=temp_galpon (primer ítem del catálogo DEV).
+
+TC-M09-184 solapamiento
+- PATCH dos visibles en (1,1). HTTP 409. error_code SOLAPAMIENTO_WIDGETS.
+- GET posterior = snapshot. Sin persistencia.
+
+TC-M09-185 span fuera de grilla
+- PATCH fila=1 col=4 span=2. HTTP 400. error_code DESBORDE_HORIZONTAL.
+- GET posterior = snapshot. Sin persistencia.
+
+TC-M09-181 grilla 4×3
+- PATCH 12 visibles span=1, mismo id_widget=1 en las 12 celdas, active_widget=["temp_galpon"].
+- HTTP 200. 12 celdas únicas filas 1–3 columnas 1–4.
+
+TC-M09-182 exactamente 12
+- GET (sin PATCH extra). 12 visibles persistidos, cobertura 4×3, active_widget longitud 1 (≤12).
+
+TC-M09-183 widget 13
+- PATCH 12 celdas + 13.er visible (id 1 en 1,1). En 12 celdas el 13.º visible no puede evitar ocupar una celda; el dominio evalúa el límite antes del solape.
+- HTTP 400. error_code LIMITE_WIDGETS_ALCANZADO (no SOLAPAMIENTO_WIDGETS).
+- GET posterior: siguen 12 visibles.
+
+RESTORE
+- GET version_perfil actual.
+- PATCH layout_config=snapshot.grid + active_widget snapshot. HTTP 200.
+- GET: grid (id, fila, col, span, visible) y active_widget coinciden con el snapshot.
+- No se llamó POST /configuracion/personalizacion/dashboard/restaurar.
+
+Incidente ambiente (no RF-28): cadena TLS de sslip.io no verificable por Node/Newman sin --insecure.
+Incidente sesión frontend (ajeno a esta corrida): POST /sesiones/refresh 500 en G90/G95. Newman no usa refresh.
+
+No se incluye password, JWT ni cookies.
+No se sobrescribió tc_m09_g96.json ni Resultados/TC-M09-G96-Newman.html.
