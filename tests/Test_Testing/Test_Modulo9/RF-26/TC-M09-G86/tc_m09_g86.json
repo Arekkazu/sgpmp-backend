@@ -2,526 +2,604 @@
   "info": {
     "_postman_id": "tc-m09-g86-rf26",
     "name": "TC-M09-G86 - Validación de archivo de logotipo y campos de identidad visual",
-    "description": "Caso consolidado para validar formatos de logotipo, tamaño máximo, colores hexadecimales y longitud máxima del nombre de organización.",
+    "description": "RF-26 TC-M09-161 a 166. DEV finca_id=6 (identidad ya existente; no hay finca vacía y finca 5 es G85). 161/162 se ejecutan por PATCH con version capturada en GET. Contraseña por --env-var. Fixtures: logo.png, logo.svg, logo.webp, logo-over-2mb.png. Rechazos logo: 400 FORMATO_IMAGEN_NO_PERMITIDO / TAMANO_IMAGEN_EXCEDIDO (tras pasar version). Color/nombre: VAL_ENTRADA 400 (Form/Pydantic). PATCH exige version o 412 CONFLICTO_CONCURRENCIA. No POST sobre finca 5.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
-    },
-    {
-      "key": "token",
-      "value": ""
-    },
-    {
-      "key": "finca_id",
-      "value": "84"
-    },
-    {
-      "key": "version",
-      "value": "1"
-    }
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "token", "value": "" },
+    { "key": "correo", "value": "admin.dev@gmail.com" },
+    { "key": "contrasena", "value": "" },
+    { "key": "finca_id", "value": "6" },
+    { "key": "org_display_name", "value": "QA G86 Finca Gap" },
+    { "key": "primary_color", "value": "#3A7BD5" },
+    { "key": "secondary_color", "value": "#FFFFFF" },
+    { "key": "version", "value": "1" },
+    { "key": "logo_path_ok", "value": "" },
+    { "key": "nombre_ok", "value": "" }
   ],
   "item": [
     {
-      "name": "1. Login Administrador",
+      "name": "00 - Login Admin",
       "request": {
         "method": "POST",
         "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
         },
-        "url": {
-          "raw": "{{base_url}}/sesiones/",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "sesiones",
-            ""
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('JWT presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+            "if (json.token) { pm.collectionVariables.set('token', json.token); }"
           ]
         }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Login del Administrador exitoso', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "var json = pm.response.json();",
-              "pm.expect(json.token).to.exist;",
-              "pm.collectionVariables.set('token', json.token);"
-            ]
-          }
-        }
-      ]
+      }]
     },
     {
-      "name": "2. TC-M09-161 - Aceptar logotipo PNG válido",
+      "name": "00b - GET baseline identidad finca",
       "request": {
-        "method": "POST",
+        "method": "GET",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
-        "body": {
-          "mode": "formdata",
-          "formdata": [
-            {
-              "key": "id_finca",
-              "value": "84",
-              "type": "text"
-            },
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "Organizacion Prueba",
-              "type": "text"
-            },
-            {
-              "key": "logo",
-              "type": "file",
-              "src": "./logo.png"
-            }
-          ]
-        },
         "url": {
-          "raw": "{{base_url}}/configuracion/identidad-visual",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual"
-          ]
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('PNG válido aceptado', function () {",
-              "    pm.response.to.have.status(201);",
-              "});",
-              "",
-              "var json = pm.response.json();",
-              "pm.expect(json).to.have.property('id_identidad_visual');",
-              "pm.expect(json.id_finca).to.eql(84);",
-              "pm.expect(json.logo_path).to.exist;",
-              "pm.expect(json.primary_color).to.eql('#3A7BD5');",
-              "pm.expect(json.secondary_color).to.eql('#FFFFFF');",
-              "pm.expect(json.org_display_name).to.eql('Organizacion Prueba');",
-              "pm.collectionVariables.set('version', json.version);"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('GET baseline HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('Finca 6 tiene identidad aislable (no POST; fincas 1-5 ocupadas)', function () {",
+            "    pm.expect(json).to.be.an('object');",
+            "    pm.expect(json.id_finca).to.eql(parseInt(pm.collectionVariables.get('finca_id'), 10));",
+            "    pm.expect(json.version).to.be.a('number');",
+            "});",
+            "if (json && json.version != null) {",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('id_identidad_visual', String(json.id_identidad_visual));",
+            "    pm.collectionVariables.set('restore_logo', json.logo_path || '');",
+            "    pm.collectionVariables.set('restore_name', json.org_display_name || '');",
+            "    pm.collectionVariables.set('restore_primary', json.primary_color || '');",
+            "    pm.collectionVariables.set('restore_secondary', json.secondary_color || '');",
+            "    pm.collectionVariables.set('logo_path_ok', json.logo_path || '');",
+            "    pm.collectionVariables.set('nombre_ok', json.org_display_name || '');",
+            "}"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "3. TC-M09-162 - Aceptar logotipo SVG válido",
+      "name": "161 - PATCH PNG válido",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "Organizacion Prueba",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            },
-            {
-              "key": "logo",
-              "type": "file",
-              "src": "./logo.svg"
-            }
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_display_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" },
+            { "key": "logo", "type": "file", "src": "logo.png" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('SVG válido aceptado', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "var json = pm.response.json();",
-              "pm.expect(json.id_finca).to.eql(84);",
-              "pm.expect(json.logo_path).to.exist;",
-              "pm.collectionVariables.set('version', json.version);"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('161 PNG HTTP 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('161 sin traceback', function () {",
+            "    const b = pm.response.text().toLowerCase();",
+            "    pm.expect(b).to.not.include('traceback');",
+            "});",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    const idFinca = parseInt(pm.collectionVariables.get('finca_id'), 10);",
+            "    pm.test('161 campos y logo_path PNG', function () {",
+            "        pm.expect(json.id_identidad_visual).to.be.a('number');",
+            "        pm.expect(json.id_finca).to.eql(idFinca);",
+            "        pm.expect(json.primary_color).to.eql('#3A7BD5');",
+            "        pm.expect(json.secondary_color).to.eql('#FFFFFF');",
+            "        pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('org_display_name'));",
+            "        pm.expect(json.logo_path).to.be.a('string').and.include('.png');",
+            "    });",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('id_identidad_visual', String(json.id_identidad_visual));",
+            "    pm.collectionVariables.set('logo_path_ok', json.logo_path);",
+            "}"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "4. TC-M09-163 - Rechazar logotipo con formato no permitido",
+      "name": "161b - GET persistencia PNG",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('161 GET HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('161 GET persistió PNG y colores', function () {",
+            "    pm.expect(json).to.be.an('object');",
+            "    pm.expect(json.primary_color).to.eql('#3A7BD5');",
+            "    pm.expect(json.secondary_color).to.eql('#FFFFFF');",
+            "    pm.expect(json.logo_path).to.include('.png');",
+            "    pm.expect(json.id_finca).to.eql(parseInt(pm.collectionVariables.get('finca_id'), 10));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "162 - PATCH SVG válido",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "Organizacion Prueba",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            },
-            {
-              "key": "logo",
-              "type": "file",
-              "src": "./logo.webp"
-            }
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_display_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" },
+            { "key": "logo", "type": "file", "src": "logo.svg" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Formato no permitido rechazado', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([400, 415]);",
-              "});"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('162 SVG HTTP 200', function () { pm.response.to.have.status(200); });",
+            "pm.test('162 sin traceback', function () {",
+            "    pm.expect(pm.response.text().toLowerCase()).to.not.include('traceback');",
+            "});",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    pm.test('162 logo_path SVG', function () {",
+            "        pm.expect(json.logo_path).to.be.a('string').and.include('.svg');",
+            "        pm.expect(json.id_finca).to.eql(parseInt(pm.collectionVariables.get('finca_id'), 10));",
+            "    });",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('logo_path_ok', json.logo_path);",
+            "    pm.collectionVariables.set('nombre_ok', json.org_display_name);",
+            "}"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "5. TC-M09-164 - Rechazar archivo superior a 2 MB",
+      "name": "162b - GET persistencia SVG",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('162 GET HTTP 200', function () { pm.response.to.have.status(200); });",
+            "const json = pm.response.json();",
+            "pm.test('162 GET persistió SVG', function () {",
+            "    pm.expect(json.logo_path).to.include('.svg');",
+            "    pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('org_display_name'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "163 - PATCH formato WEBP no permitido",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "Organizacion Prueba",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            },
-            {
-              "key": "logo",
-              "type": "file",
-              "src": "./logo-2.1mb.png"
-            }
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_display_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" },
+            { "key": "logo", "type": "file", "src": "logo.webp" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Archivo superior a 2 MB rechazado', function () {",
-              "    pm.expect(pm.response.code).to.be.oneOf([400, 413, 415]);",
-              "});"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('163 HTTP 400', function () { pm.response.to.have.status(400); });",
+            "const json = pm.response.json();",
+            "pm.test('163 error_code FORMATO_IMAGEN_NO_PERMITIDO', function () {",
+            "    pm.expect(json.error_code).to.eql('FORMATO_IMAGEN_NO_PERMITIDO');",
+            "});"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "6. TC-M09-165 - Rechazar color hexadecimal inválido",
+      "name": "163b - GET sin cambio tras WEBP",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('163 GET configuración previa intacta', function () {",
+            "    pm.expect(json.logo_path).to.eql(pm.collectionVariables.get('logo_path_ok'));",
+            "    pm.expect(String(json.version)).to.eql(pm.collectionVariables.get('version'));",
+            "    pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('org_display_name'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "164 - PATCH PNG superior a 2 MB",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#ZZZ123",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "Organizacion Prueba",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            }
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_display_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" },
+            { "key": "logo", "type": "file", "src": "logo-over-2mb.png" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Color hexadecimal inválido rechazado', function () {",
-              "    pm.response.to.have.status(400);",
-              "});"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('164 HTTP 400', function () { pm.response.to.have.status(400); });",
+            "const json = pm.response.json();",
+            "pm.test('164 error_code TAMANO_IMAGEN_EXCEDIDO', function () {",
+            "    pm.expect(json.error_code).to.eql('TAMANO_IMAGEN_EXCEDIDO');",
+            "});"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "7. TC-M09-166 - Aceptar nombre de 50 caracteres",
+      "name": "164b - GET sin cambio tras PNG >2MB",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('164 GET configuración previa intacta', function () {",
+            "    pm.expect(json.logo_path).to.eql(pm.collectionVariables.get('logo_path_ok'));",
+            "    pm.expect(String(json.version)).to.eql(pm.collectionVariables.get('version'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "165 - PATCH color hexadecimal inválido",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "12345678901234567890123456789012345678901234567890",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            }
+            { "key": "primary_color", "value": "#ZZZ123", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{org_display_name}}", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Nombre de 50 caracteres aceptado', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "var json = pm.response.json();",
-              "pm.expect(json.org_display_name).to.have.lengthOf(50);",
-              "pm.collectionVariables.set('version', json.version);"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('165 inválido HTTP 400', function () { pm.response.to.have.status(400); });",
+            "const json = pm.response.json();",
+            "pm.test('165 error_code VAL_ENTRADA', function () {",
+            "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+            "});"
+          ]
         }
-      ]
+      }]
     },
     {
-      "name": "8. TC-M09-166 - Rechazar nombre de 51 caracteres",
+      "name": "165b - GET sin cambio tras color inválido",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('165 GET color previo intacto', function () {",
+            "    pm.expect(json.primary_color).to.eql('#3A7BD5');",
+            "    pm.expect(String(json.version)).to.eql(pm.collectionVariables.get('version'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "166 - PATCH nombre exactamente 50 caracteres",
       "request": {
         "method": "PATCH",
         "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{token}}"
-          }
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
         ],
         "body": {
           "mode": "formdata",
           "formdata": [
-            {
-              "key": "primary_color",
-              "value": "#3A7BD5",
-              "type": "text"
-            },
-            {
-              "key": "secondary_color",
-              "value": "#FFFFFF",
-              "type": "text"
-            },
-            {
-              "key": "org_display_name",
-              "value": "123456789012345678901234567890123456789012345678901",
-              "type": "text"
-            },
-            {
-              "key": "version",
-              "value": "{{version}}",
-              "type": "text"
-            }
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "12345678901234567890123456789012345678901234567890", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" }
           ]
         },
         "url": {
           "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
-          "host": [
-            "{{base_url}}"
-          ],
-          "path": [
-            "configuracion",
-            "identidad-visual",
-            "{{finca_id}}"
-          ]
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
         }
       },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test('Nombre de 51 caracteres rechazado', function () {",
-              "    pm.response.to.have.status(400);",
-              "});"
-            ]
-          }
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('166-50 HTTP 200', function () { pm.response.to.have.status(200); });",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    pm.test('166-50 longitud 50 persistida', function () {",
+            "        pm.expect(json.org_display_name).to.have.lengthOf(50);",
+            "    });",
+            "    pm.collectionVariables.set('version', String(json.version));",
+            "    pm.collectionVariables.set('nombre_ok', json.org_display_name);",
+            "}"
+          ]
         }
-      ]
+      }]
+    },
+    {
+      "name": "166b - GET persistencia nombre 50",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('166 GET nombre longitud 50', function () {",
+            "    pm.expect(json.org_display_name).to.have.lengthOf(50);",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "166c - PATCH nombre exactamente 51 caracteres",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "123456789012345678901234567890123456789012345678901", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('166-51 HTTP 400', function () { pm.response.to.have.status(400); });",
+            "const json = pm.response.json();",
+            "pm.test('166-51 error_code VAL_ENTRADA', function () {",
+            "    pm.expect(json.error_code).to.eql('VAL_ENTRADA');",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "166d - GET nombre no cambió con 51 caracteres",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const json = pm.response.json();",
+            "pm.test('166 GET sigue en 50 caracteres', function () {",
+            "    pm.expect(json.org_display_name).to.have.lengthOf(50);",
+            "    pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('nombre_ok'));",
+            "});"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "99 - Restaurar nombre legible QA G86",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "{{primary_color}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{secondary_color}}", "type": "text" },
+            { "key": "org_display_name", "value": "QA G86 Finca Para Test Gap", "type": "text" },
+            { "key": "version", "value": "{{version}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "pm.test('Restore nombre HTTP 200', function () { pm.response.to.have.status(200); });",
+            "if (pm.response.code === 200) {",
+            "    const json = pm.response.json();",
+            "    pm.test('Restore org_display_name', function () {",
+            "        pm.expect(json.org_display_name).to.eql('QA G86 Finca Para Test Gap');",
+            "        pm.expect(json.primary_color).to.eql('#3A7BD5');",
+            "    });",
+            "}"
+          ]
+        }
+      }]
     }
   ]
 }

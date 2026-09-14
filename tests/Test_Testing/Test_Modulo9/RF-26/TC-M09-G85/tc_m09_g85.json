@@ -1,0 +1,239 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g85-rf26",
+    "name": "TC-M09-G85 - Registro exitoso de identidad visual con datos válidos",
+    "description": "RF-26 / TC-M09-160. Camino feliz: POST multipart de identidad visual sobre una finca SIN identidad previa y GET de persistencia. Credencial por --env-var contrasena. Fixture logo.png en esta carpeta.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "correo",
+      "value": "admin.dev@gmail.com"
+    },
+    {
+      "key": "contrasena",
+      "value": ""
+    },
+    {
+      "key": "finca_id",
+      "value": "5"
+    },
+    {
+      "key": "org_display_name",
+      "value": "QA G85 Paraiso Norte"
+    },
+    {
+      "key": "primary_color",
+      "value": "#3A7BD5"
+    },
+    {
+      "key": "secondary_color",
+      "value": "#FFFFFF"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticación Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Autenticación HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('El login retorna un JWT', function () {",
+              "    pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "if (json.token) {",
+              "    pm.collectionVariables.set('token', json.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M09-160 POST identidad visual",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "id_finca",
+              "value": "{{finca_id}}",
+              "type": "text"
+            },
+            {
+              "key": "primary_color",
+              "value": "{{primary_color}}",
+              "type": "text"
+            },
+            {
+              "key": "secondary_color",
+              "value": "{{secondary_color}}",
+              "type": "text"
+            },
+            {
+              "key": "org_display_name",
+              "value": "{{org_display_name}}",
+              "type": "text"
+            },
+            {
+              "key": "logo",
+              "type": "file",
+              "src": "logo.png"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('POST identidad visual HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "",
+              "const bodyText = pm.response.text().toLowerCase();",
+              "pm.test('No expone traceback ni error interno', function () {",
+              "    pm.expect(bodyText).to.not.include('traceback');",
+              "    pm.expect(bodyText).to.not.include('stack trace');",
+              "    pm.expect(bodyText).to.not.include('internal server error');",
+              "});",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const json = pm.response.json();",
+              "    const idFinca = parseInt(pm.collectionVariables.get('finca_id'), 10);",
+              "    const nombre = pm.collectionVariables.get('org_display_name');",
+              "    const primario = pm.collectionVariables.get('primary_color');",
+              "    const secundario = pm.collectionVariables.get('secondary_color');",
+              "    pm.test('Devuelve id_identidad_visual', function () {",
+              "        pm.expect(json).to.have.property('id_identidad_visual');",
+              "        pm.expect(json.id_identidad_visual).to.be.a('number');",
+              "    });",
+              "    pm.test('Campos creados coinciden con lo enviado', function () {",
+              "        pm.expect(json.id_finca).to.eql(idFinca);",
+              "        pm.expect(json.primary_color).to.eql(primario);",
+              "        pm.expect(json.secondary_color).to.eql(secundario);",
+              "        pm.expect(json.org_display_name).to.eql(nombre);",
+              "    });",
+              "    pm.test('logo_path queda almacenado', function () {",
+              "        pm.expect(json.logo_path).to.be.a('string').and.not.empty;",
+              "    });",
+              "    if (json.id_identidad_visual) {",
+              "        pm.collectionVariables.set('id_identidad_visual', String(json.id_identidad_visual));",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - GET persistencia identidad visual",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('GET identidad visual HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.test('La identidad existe (no null)', function () {",
+              "    pm.expect(json).to.be.an('object');",
+              "    pm.expect(json).to.not.equal(null);",
+              "    pm.expect(json).to.have.property('id_identidad_visual');",
+              "});",
+              "",
+              "if (json && json.id_identidad_visual) {",
+              "    const idFinca = parseInt(pm.collectionVariables.get('finca_id'), 10);",
+              "    const nombre = pm.collectionVariables.get('org_display_name');",
+              "    const primario = pm.collectionVariables.get('primary_color');",
+              "    const secundario = pm.collectionVariables.get('secondary_color');",
+              "    pm.test('GET coincide con datos enviados y la finca', function () {",
+              "        pm.expect(json.id_finca).to.eql(idFinca);",
+              "        pm.expect(json.primary_color).to.eql(primario);",
+              "        pm.expect(json.secondary_color).to.eql(secundario);",
+              "        pm.expect(json.org_display_name).to.eql(nombre);",
+              "    });",
+              "    pm.test('GET conserva logo_path', function () {",
+              "        pm.expect(json.logo_path).to.be.a('string').and.not.empty;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
