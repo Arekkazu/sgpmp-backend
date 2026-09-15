@@ -691,6 +691,7 @@ def consultar_eventos(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Registrar evento de crecimiento del activo (CU06 - RF-40)',
