@@ -1,0 +1,124 @@
+TC-M02-G16 — primera evaluacion TEST
+Fecha UTC: 2026-09-15T06:20:59.414952+00:00
+Global: RECHAZADO
+
+Subcasos:
+- TC-M02-029: BLOQUEADO
+- TC-M02-030: BLOQUEADO
+- TC-M02-032: RECHAZADO
+
+{
+  "TC-M02-029": {
+    "resultado": "BLOQUEADO",
+    "endpoint": "POST /activos-biologicos",
+    "intentos": [
+      {
+        "payload": "BOV-1'; DROP TABLE activos;--",
+        "http": 500,
+        "content_type": "application/json",
+        "error_code": "ERROR_INTERNO",
+        "respuesta": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:21:03.054269+00:00\"}"
+      },
+      {
+        "payload": "BOV-1' OR '1'='1",
+        "http": 500,
+        "content_type": "application/json",
+        "error_code": "ERROR_INTERNO",
+        "respuesta": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:21:03.477250+00:00\"}"
+      },
+      {
+        "payload": "BOV-1\"; DROP TABLE activos;--",
+        "http": 500,
+        "content_type": "application/json",
+        "error_code": "ERROR_INTERNO",
+        "respuesta": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:21:03.886864+00:00\"}"
+      }
+    ],
+    "ids_creados": [],
+    "control": {
+      "identificador": "QA-G16-1789453262",
+      "http": 500,
+      "content_type": "application/json",
+      "error_code": "ERROR_INTERNO",
+      "respuesta": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:21:02.621152+00:00\"}"
+    },
+    "nosql_identificador_objeto": {
+      "http": 400,
+      "error_code": "VAL_ENTRADA",
+      "respuesta": "{\"error_code\": \"VAL_ENTRADA\", \"message\": \"Errores de validacion en la solicitud\", \"fields\": [{\"field\": \"identificador\", \"message\": \"Input should be a valid string\"}], \"timestamp\": \"2026-09-15T06:21:04.296427+00:00\"}"
+    },
+    "integridad_listado_http": 200,
+    "tabla_disponible": true,
+    "explicacion": "POST valido de control y POST con payloads de inyeccion responden HTTP 500 ERROR_INTERNO. No se puede atribuir el 500 al contenido malicioso ni declarar proteccion. Residuo: ninguno si no hubo 201."
+  },
+  "TC-M02-030": {
+    "resultado": "BLOQUEADO",
+    "endpoint": "POST /activos-biologicos",
+    "precondicion_texto": null,
+    "intentos": [],
+    "metricas_http_muestra": [
+      {
+        "id_especie": 41,
+        "http": 500
+      },
+      {
+        "id_especie": 39,
+        "http": 500
+      },
+      {
+        "id_especie": 40,
+        "http": 500
+      },
+      {
+        "id_especie": 4,
+        "http": 500
+      },
+      {
+        "id_especie": 3,
+        "http": 500
+      },
+      {
+        "id_especie": 43,
+        "http": 500
+      },
+      {
+        "id_especie": 42,
+        "http": 500
+      },
+      {
+        "id_especie": 44,
+        "http": 500
+      }
+    ],
+    "explicacion": "BLOQUEADO: no hay especie con metrica activa tipo TEXTO visible por GET /configuracion/metricas. Muestra HTTP=[{'id_especie': 41, 'http': 500}, {'id_especie': 39, 'http': 500}, {'id_especie': 40, 'http': 500}, {'id_especie': 4, 'http': 500}, {'id_especie': 3, 'http': 500}]. No se inventa la metrica ni se crea en M09."
+  },
+  "TC-M02-032": {
+    "resultado": "RECHAZADO",
+    "endpoint": "POST /activos-biologicos",
+    "criterio": ">100 solicitudes/minuto -> HTTP 429",
+    "k6_disponible": false,
+    "codigo_limitador_en_post": false,
+    "http_counts": {
+      "400": 101
+    },
+    "headers_cuota_muestra": {
+      "req_0": {
+        "http": 400,
+        "quota": {},
+        "error_code": "VAL_ENTRADA"
+      }
+    },
+    "n_enviados": 101,
+    "n_429": 0,
+    "segundos": 41.534,
+    "ultima": {
+      "http": 400,
+      "quota": {},
+      "body": "{\"error_code\": \"VAL_ENTRADA\", \"message\": \"Errores de validacion en la solicitud\", \"fields\": [{\"field\": \"tipo_activo\", \"message\": \"Field required\"}, {\"field\": \"id_especie\", \"message\": \"Field required\"}, {\"field\": \"fecha_inicio_ciclo\", \"message\": \"Field required\"}, {\"field\": \"origen_financiero\", \"message\": \"Field required\"}, {\"field\": \"id_infraestructura\", \"message\": \"Field required\"}], \"timestamp\":...[TRUNCATED]"
+    },
+    "dentro_de_un_minuto": true,
+    "explicacion": "101 POST invalidos en 41.5s sin ningun 429. Conteos={'400': 101}. POST /activos-biologicos no aplica rate_limit en codigo. k6 no estaba instalado; la rafaga se ejecuto en pytest. No se crearon activos (cuerpo vacio)."
+  }
+}
+
+Backend no modificado. Sin commit ni push. Primera evaluacion (no reevaluacion).

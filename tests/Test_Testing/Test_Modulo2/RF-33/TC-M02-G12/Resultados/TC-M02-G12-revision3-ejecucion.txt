@@ -1,0 +1,42 @@
+TC-M02-G12 revision3 RF-33 TEST - INC-M02-45-G12
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G12/tc_m02_g12_revision3.json
+Fecha UTC: 2026-09-15T01:48:14.8563393Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Login: admin@pecuaria.co (password via env)
+Newman --insecure. Exit code: 1
+Requests: 6 (014 omitido). Assertions: 14 ejecutadas, 4 fallidas.
+
+CODIGO (rama laura, sin cambios de backend en esta revision):
+- GET /configuracion/metricas lista por especie; DTO MetricaProduccionResponse NO incluye valor_min/valor_max.
+- No existe GET /configuracion/metricas/{id} para consultar rango.
+- POST registrar usa _validar_atributos_dinamicos: ATRIBUTO_INVALIDO (ValidationError HTTP 400) y ATRIBUTO_FUERA_DE_RANGO (BusinessRuleError HTTP 422).
+- SqlAlchemyMetricaProduccionRepository._a_entidad sigue usando TipoMedicion(orm.tipo_medicion). Eso PUEDE 500 si hay valores legado (p.ej. manual), pero TEST no devolvio stack: no se afirma causa.
+
+GET /configuracion/especies HTTP 200: id_especie=4 Cachama activa.
+
+GET /configuracion/metricas?id_especie=4&solo_activas=true
+HTTP 500 ERROR_INTERNO
+{"error_code":"ERROR_INTERNO","message":"Ocurrio un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.","fields":[],"timestamp":"2026-09-15T01:48:18.774353+00:00"}
+
+GET /configuracion/metricas?id_especie=4 (sin solo_activas)
+HTTP 500 ERROR_INTERNO
+timestamp: 2026-09-15T01:48:19.016623+00:00
+
+No hay items. No se puede ver peso_destete ni rango.
+
+Infra finca 1: id 3 Alevinera-01 (usada en 013), 1 Estanque-01, 2 Estanque-02.
+
+TC-M02-013 POST /activos-biologicos color_pelaje
+HTTP 500 ERROR_INTERNO
+timestamp: 2026-09-15T01:48:19.537494+00:00
+Sin id_activo_biologico.
+
+TC-M02-014 no ejecutado (peso_destete 20-40 no demostrable).
+
+INC-M02-45-G12 = NO VERIFICABLE / PENDIENTE (no CORREGIDO).
+El 500 NO es el hallazgo original (200 + solo Peso). Es el mismo comportamiento de la segunda evaluacion.
+No se crea un ID de incidente nuevo.
+
+TC-M02-013 = FAIL
+TC-M02-014 = BLOQUEADO / NO EJECUTABLE
+TC-M02-G12 = BLOQUEADO
