@@ -117,6 +117,44 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
         )
         return [self._a_entidad(o) for o in q.all()]
 
+    def obtener_activa_por_sensor_e_infraestructura(
+        self,
+        sensor_id: int,
+        id_infraestructura: int,
+    ) -> Optional[AsociacionSensorActivo]:
+        orm = (
+            self.db.query(AsociacionSensorActivoModel)
+            .filter(
+                AsociacionSensorActivoModel.id_sensor == sensor_id,
+                AsociacionSensorActivoModel.id_infraestructura == id_infraestructura,
+                AsociacionSensorActivoModel.id_activo_biologico.is_(None),
+                AsociacionSensorActivoModel.estado_asociacion == 'ACTIVA',
+                AsociacionSensorActivoModel.fecha_fin.is_(None),
+            )
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
+    def listar_activas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        q = self.db.query(AsociacionSensorActivoModel).filter(
+            AsociacionSensorActivoModel.id_infraestructura == id_infraestructura,
+            AsociacionSensorActivoModel.id_activo_biologico.is_(None),
+            AsociacionSensorActivoModel.estado_asociacion == 'ACTIVA',
+            AsociacionSensorActivoModel.fecha_fin.is_(None),
+        )
+        return [self._a_entidad(o) for o in q.all()]
+
+    def listar_todas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        q = (
+            self.db.query(AsociacionSensorActivoModel)
+            .filter(
+                AsociacionSensorActivoModel.id_infraestructura == id_infraestructura,
+                AsociacionSensorActivoModel.id_activo_biologico.is_(None),
+            )
+            .order_by(AsociacionSensorActivoModel.fecha_inicio.desc())
+        )
+        return [self._a_entidad(o) for o in q.all()]
+
     def actualizar_estado(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
         try:
             orm = self.db.get(AsociacionSensorActivoModel, entidad.id_asociacion_activo_sensor)

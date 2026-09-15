@@ -12,6 +12,11 @@ Method Not Allowed` — no existía ningún endpoint de lectura para las
 asociaciones sensor-activo, aunque se persistían correctamente en
 `modulo2.asociaciones_activos_sensores`. Consulta las asociaciones del activo.
 
+**INC-M02-66-G90 (#217):** el resultado incluye tanto las asociaciones propias
+del activo (`id_activo_biologico` = el activo consultado) como las
+asociaciones AMBIENTAL heredadas de su infraestructura (`id_activo_biologico:
+null`, creadas vía `POST /infraestructuras/{id}/sensores` — ver más abajo).
+
 ### Query params
 
 | Param | Tipo | Default | Notas |
@@ -131,7 +136,7 @@ curl -X POST http://localhost:8000/activos-biologicos/2/sensores \
   }'
 ```
 
-**Nota**: Para AMBIENTAL, el mismo sensor puede estar activo para múltiples activos en la misma infraestructura.
+**Nota**: este flujo liga la asociación AMBIENTAL a **este activo puntual** (`id_activo_biologico=2`). Para AMBIENTAL, el mismo sensor puede estar activo para múltiples activos, pero antes de `INC-M02-66-G90/#217` la única forma de cubrir todos los activos de una infraestructura era repetir esta llamada una vez por activo. Para que un sensor ambiental aplique automáticamente a **todos** los activos de la infraestructura (RF-49 Tipo B) usar `POST /infraestructuras/{id_infraestructura}/sensores` — ver más abajo.
 
 ---
 
@@ -282,6 +287,62 @@ por sensor).
   "message": "No tienes permiso para realizar esta acción."
 }
 ```
+
+---
+
+## POST /infraestructuras/{id_infraestructura}/sensores
+
+**INC-M02-66-G90 (issue #217, RF-49 Tipo B):** "Asociación Ambiental
+Compartida" — el sensor queda ligado a la infraestructura completa
+(`id_activo_biologico = NULL` en `modulo2.asociaciones_activos_sensores`), no
+a un activo puntual, y aplica automáticamente a todos los activos que residan
+en ella (cardinalidad 1 sensor → N activos, mediada por la infraestructura).
+`GET /activos-biologicos/{id_activo}/sensores` la refleja para cualquier
+activo de esta infraestructura (ver esa sección más arriba).
+
+No acepta `tipo_activo` ni `tipo_asociacion` en el body — solo crea
+asociaciones `AMBIENTAL`; `DIRECTA`/`POBLACIONAL` son inherentemente por
+activo y siguen usando `POST /activos-biologicos/{id_activo}/sensores`.
+Tampoco acepta `id_infraestructura` en el body — viene de la ruta.
+
+```bash
+curl -X POST http://localhost:8000/infraestructuras/1/sensores \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dispositivo_iot_id": 2,
+    "sensor_id": 3,
+    "motivo": "Monitoreo ambiental de todo el estanque"
+  }'
+```
+
+**Respuesta esperada (201):**
+```json
+{
+  "id_asociacion_activo_sensor": 30,
+  "id_activo_biologico": null,
+  "tipo_activo": null,
+  "tipo_asociacion": "ambiental",
+  "dispositivo_iot_id": 2,
+  "sensor_id": 3,
+  "id_infraestructura": 1,
+  "fecha_inicio": "2026-09-15T10:00:00Z",
+  "fecha_fin": null,
+  "estado_asociacion": "ACTIVA",
+  "motivo": "Monitoreo ambiental de todo el estanque",
+  "advertencia": null
+}
+```
+
+### Errores posibles
+
+- `422 INFRAESTRUCTURA_NO_ENCONTRADA` — la infraestructura no existe o no está activa
+- `404 SENSOR_NO_ENCONTRADO` — el sensor no existe
+- `422 SENSOR_INACTIVO` / `422 DISPOSITIVO_INACTIVO` — mismo criterio que el endpoint por activo
+- `422 SENSOR_SIN_AREA` — el sensor no tiene asociación activa a ninguna infraestructura (RF-22)
+- `409 INFRAESTRUCTURA_INCOMPATIBLE` — la infraestructura del sensor y la infraestructura destino están en fincas distintas
+- `409 ASOCIACION_AMBIENTAL_YA_EXISTE` — ya existe una asociación AMBIENTAL activa para este sensor sobre esta misma infraestructura (el índice único de BD no lo cubre: compara `id_activo_biologico`, y `NULL` nunca es igual a `NULL`)
+- `403` — sin permiso `C` sobre el recurso 30 (`asociacion_sensor_activo`), mismo recurso/acción que `POST /activos-biologicos/{id_activo}/sensores`
 
 ---
 
