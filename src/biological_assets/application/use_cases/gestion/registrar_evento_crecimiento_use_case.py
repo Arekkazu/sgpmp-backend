@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -157,6 +158,24 @@ class RegistrarEventoCrecimientoUseCase:
 
             infra = self.infra_port.obtener_activa(activo.id_infraestructura)
             superficie = infra.superficie if infra and infra.superficie else None
+
+            # RF-36 (INC-M02-38-G25): "densidad no debe superar la
+            # densidad_maxima_por_especie definida en M09". Esa densidad
+            # máxima se deriva de infraestructuras.capacidad_maxima / superficie
+            # (ya expuesto en InfraestructuraConsulta, sin usar hasta ahora en
+            # este flujo). La densidad se calcula sobre cantidad_actual, que un
+            # evento de crecimiento nunca modifica (RF-36: solo eventos de BAJA
+            # o ingresos la cambian) — se valida antes de mutar el detalle.
+            if infra and infra.capacidad_maxima and superficie and superficie > 0:
+                cantidad_actual = Decimal(str(activo.detalle_poblacional.cantidad_actual or 0))
+                densidad_actual = cantidad_actual / superficie
+                densidad_maxima = Decimal(infra.capacidad_maxima) / superficie
+                if densidad_actual > densidad_maxima:
+                    raise ConflictError(
+                        code='DENSIDAD_MAXIMA_SUPERADA',
+                        message='La densidad del lote supera el máximo permitido para la especie.',
+                    )
+
             activo.aplicar_evento_crecimiento(
                 nuevo_peso_promedio=dto.nuevo_peso_promedio,
                 superficie=superficie,

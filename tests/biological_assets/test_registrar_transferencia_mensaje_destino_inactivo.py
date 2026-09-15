@@ -17,7 +17,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ValidationError
+from src.shared.errors import BusinessRuleError
 
 
 class ActivoRepoFake:
@@ -85,7 +85,7 @@ def test_destino_inexistente_dice_no_existe():
         infra_port=InfraPortFake(activas={}, existentes=set()),
     )
 
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(BusinessRuleError) as exc:
         uc.execute(279, _dto(destino=99999), UsuarioActual(id_usuario=1, id_token=1, id_rol=1))
 
     assert exc.value.code == 'INFRAESTRUCTURA_DESTINO_INVALIDA'
@@ -101,7 +101,7 @@ def test_destino_inactivo_dice_se_encuentra_inactiva():
         infra_port=InfraPortFake(activas={}, existentes={50}),
     )
 
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(BusinessRuleError) as exc:
         uc.execute(279, _dto(destino=50), UsuarioActual(id_usuario=1, id_token=1, id_rol=1))
 
     assert exc.value.code == 'INFRAESTRUCTURA_DESTINO_INVALIDA'

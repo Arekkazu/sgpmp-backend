@@ -82,10 +82,13 @@ class RegistrarTransferenciaUseCase:
                 ),
             )
 
-        # E-04: el activo debe tener infraestructura origen activa
+        # E-04: el activo debe tener infraestructura origen activa (INC-M02-88-G83:
+        # regla de negocio -> 422, no 400 -- el DTO en sí es válido, lo que falla
+        # es el estado del activo, igual que ya corrigió INC-M02-73-G80 para
+        # DESTINO_IGUAL_ORIGEN)
         asociacion_actual = self.activo_repo.obtener_asociacion_activa(id_activo)
         if asociacion_actual is None:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='SIN_INFRAESTRUCTURA_ORIGEN',
                 message=(
                     f'El activo {activo.identificador} no tiene una infraestructura origen registrada. '
@@ -104,7 +107,7 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_origen_id',
             )
 
-        # E-05: infraestructura destino debe existir y estar activa
+        # E-05: infraestructura destino debe existir y estar activa (INC-M02-88-G83: 422, no 400)
         infra_destino = self.infra_port.obtener_activa(dto.infraestructura_destino_id)
         if infra_destino is None:
             # INC-M02-89-G83: distinguir "no existe" de "existe pero está
@@ -114,7 +117,7 @@ class RegistrarTransferenciaUseCase:
                 mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} se encuentra inactiva.'
             else:
                 mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} no existe.'
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='INFRAESTRUCTURA_DESTINO_INVALIDA',
                 message=mensaje,
                 field='infraestructura_destino_id',
@@ -255,6 +258,22 @@ class RegistrarTransferenciaUseCase:
                 ),
                 {'id': id_activo, 'id_infra': dto.infraestructura_destino_id},
             )
+
+            # c2) Recalcular densidad contra la superficie de la infraestructura
+            # destino (DEF-RF48-02 / INC-M02-40-G28): un lote poblacional que
+            # cambia de infraestructura cambia de superficie física; la
+            # densidad quedaba "congelada" con el valor de la infraestructura
+            # de origen si no se recalculaba aquí.
+            if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional:
+                activo.recalcular_densidad(infra_destino.superficie)
+                self.db.execute(
+                    text(
+                        'UPDATE modulo2.detalles_activos_biologicos_poblacionales '
+                        'SET densidad = :densidad '
+                        'WHERE id_activo_biologico = :id'
+                    ),
+                    {'id': id_activo, 'densidad': activo.detalle_poblacional.densidad},
+                )
 
             # d) Registrar evento en movimientos
             resultado = self.transferencia_repo.guardar(transferencia)
