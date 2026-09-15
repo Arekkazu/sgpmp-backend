@@ -351,3 +351,119 @@ ORDER BY id_bitacora DESC;
 | **TC-M02-204** | **FALLIDO (2/5)** | **NO CONFORME**. Falla en BD TEST por bug de enum en trigger `modulo2.trg_fn_baja_actualizar_cantidad_lote()` (`INC-M02-42-DB-TRIGGER`). Persiste activo. |
 | **TC-M02-205** | **FALLIDO (6/7)** | **NO CONFORME**. Rechazo `HTTP 400` de edición directa no genera entrada en bitácora de auditoría (`INC-M02-41-RF52`). Persiste activo. |
 
+---
+
+## 9. Tercera reevaluación: corrección del trigger por DBA (2026-09-13)
+
+### 9.1. Contexto y Verificación Previa de la Corrección
+El DBA del proyecto reportó haber corregido la función trigger `modulo2.trg_fn_baja_actualizar_cantidad_lote()`, sustituyendo la comparación en minúsculas `IF v_tipo_activo <> 'poblacional' THEN` por el valor en mayúsculas `IF v_tipo_activo <> 'POBLACIONAL' THEN`, correspondiente al tipo enum `modulo2.enum_activo_biologico_tipo`.
+
+Previamente a la ejecución, se verificó mediante consulta directa al catálogo del sistema (`pg_proc`) en PostgreSQL TEST que la función contiene efectivamente:
+```sql
+IF v_tipo_activo <> 'POBLACIONAL' THEN
+    RETURN NEW;
+END IF;
+```
+
+Asimismo, se ajustó la credencial de autenticación en las colecciones Newman a `administador.dev@gmail.com` / `Test1234!` (debido al error 500 conocido de `admin@pecuaria.co`) y se flexibilizó la aserción de usuario responsable para admitir tanto `1` como `104` (ID dinámico del administrador en TEST).
+
+---
+
+### 9.2. Resultados Newman de la Tercera Reevaluación
+
+#### Sub-caso TC-M02-204 (Verificación del Trigger de Baja)
+* **Colección**: `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G29/TC-M02-204.json`
+* **Reporte HTML**: `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G29/RESULTADOS/reporte_TC-M02-204.html`
+* **Resultado de Ejecución**: **5 / 5 Aserciones PASSED (100%) — Exit Code 0**
+* **Detalle de Peticiones y Aserciones**:
+  - `POST /sesiones/`: `HTTP 200 OK` (831 ms) $\rightarrow$ `[PASS]` Checkpoint 0 - Autenticación exitosa.
+  - `POST /activos-biologicos/130/eventos/baja`: **`HTTP 201 Created`** (143 ms) $\rightarrow$ `[PASS]` Código HTTP esperado: 200 OK o 201 Created (Baja registrada exitosamente).
+  - `GET /activos-biologicos/auditoria?id_activo_biologico=130&rf_origen=RF45&resultado=EXITOSO`: `HTTP 200 OK` (126 ms):
+    - `[PASS]` Código HTTP esperado: 200 OK al consultar auditoría.
+    - `[PASS]` Existe al menos un registro de auditoría para el evento de baja.
+    - `[PASS]` El registro de auditoría contiene rf_origen RF45, tipo_evento BAJA y resultado EXITOSO.
+
+#### Sub-caso TC-M02-205 (Auditoría de Rechazo HTTP 400)
+* **Colección**: `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G29/TC-M02-205.json`
+* **Reporte HTML**: `tests/Test_Testing/Test_Modulo2/RF-36/TC-M02-G29/RESULTADOS/reporte_TC-M02-205.html`
+* **Resultado de Ejecución**: **6 / 7 Aserciones Conformes (85.7%) — 1 Fallida (INC-M02-41-RF52)**
+* **Detalle de la Falla**:
+  - `PATCH /activos-biologicos/130`: `HTTP 400 Bad Request` (`VAL_ENTRADA` — *"Extra inputs are not permitted"*).
+  - `GET /activos-biologicos/auditoria`: Retorna `total_registros: 0` para eventos con `resultado: RECHAZADO` o `FALLIDO` y `rf_origen: RF35/RF36`.
+  - `AssertionError`: `DEFECTO INC-M02-41-RF52: El backend rechazó la petición con HTTP 400 pero no generó el registro de auditoría para la operación rechazada.`
+
+---
+
+### 9.3. Verificación Directa en Base de Datos PostgreSQL TEST
+
+#### A. Efecto de la Baja en Lote Poblacional 130 (`modulo2.detalles_activos_biologicos_poblacionales`):
+```sql
+SELECT id_activo_biologico, cantidad_actual, peso_promedio, biomasa_total, densidad
+FROM modulo2.detalles_activos_biologicos_poblacionales
+WHERE id_activo_biologico = 130;
+```
+* **Estado en BD**:
+  - `id_activo_biologico`: `130`
+  - `cantidad_actual`: **`4`** (descontada exactamente en 1 unidad desde 5 nominales tras la baja exitosa de TC-M02-204)
+  - `peso_promedio`: `58.00`
+  - `biomasa_total`: **`232.00`** (calculada automáticamente por el trigger: $4 \times 58.00 = 232.00$)
+  - `densidad`: `0.0016` (calculada automáticamente sobre la superficie de la infraestructura 1)
+
+#### B. Registro Exitoso en Bitácora de Auditoría (`modulo2.bitacora_auditoria_m02`):
+```sql
+SELECT id_bitacora, rf_origen, tipo_evento, resultado, timestamp_registro, id_usuario_responsable, descripcion
+FROM modulo2.bitacora_auditoria_m02
+WHERE id_activo_biologico = 130
+ORDER BY id_bitacora DESC LIMIT 3;
+```
+* **Registros Confirmados**:
+  - `id_bitacora: 1241` | `rf_origen: RF45` | `tipo_evento: BAJA_REGISTRADA` | `resultado: EXITOSO` | `id_usuario_responsable: 104` | `timestamp: 2026-09-13 20:46:15 UTC` | `descripcion: Baja registrada: venta — Prueba de auditoria TC-M02-204`
+
+#### C. Constatación del Fallo de Auditoría en TC-M02-205:
+```sql
+SELECT count(*)
+FROM modulo2.bitacora_auditoria_m02
+WHERE id_activo_biologico = 130 
+  AND (tipo_evento = 'VALIDACION_RECHAZADA' OR (resultado IN ('RECHAZADO', 'FALLIDO') AND rf_origen IN ('RF35', 'RF36')));
+```
+* **Resultado**: `0` registros. Confirmado que el rechazo HTTP 400 sigue sin persistir en la bitácora de auditoría.
+
+---
+
+### 9.4. Análisis Técnico Actualizado de `INC-M02-41-RF52` (Bug de Prefijo de Ruta)
+
+A diferencia del diagnóstico preliminar histórico (que presumía ausencia total de código), la investigación técnica del commit `9c5f3b63` (`fix(rf36-m02): auditar en bitacora_auditoria_m02 los 400 de validacion`) reveló lo siguiente:
+
+1. **Intento de Corrección Implementado**: En `src/shared/error_handlers.py`, se implementó la función `_auditar_validacion_rechazada_m02(request, fields)` invocada desde `request_validation_error_handler`.
+2. **Causa Raíz del Fallo en TEST (Bug de Prefijo)**:
+   - La función contiene la compuerta de validación:
+     ```python
+     if not request.url.path.startswith("/activos-biologicos"):
+         return
+     ```
+   - En el entorno TEST desplegado tras el reverse proxy / ingress, la URL de las peticiones es `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/130`.
+   - Por tanto, `request.url.path` es **`/api-sgpmp-test/activos-biologicos/130`**.
+   - Como dicha cadena **no inicia con `"/activos-biologicos"`**, la condición evalúa a `False` y retorna de forma silenciosa e inmediata sin ejecutar la inserción en `modulo2.bitacora_auditoria_m02`.
+3. **Acción Correctiva Requerida**:
+   Ajustar la validación en `src/shared/error_handlers.py` para normalizar la ruta o evaluar:
+   ```python
+   path = request.url.path.removeprefix(request.scope.get("root_path", ""))
+   if not ("/activos-biologicos" in request.url.path):
+       return
+   ```
+
+---
+
+### 9.5. Estado Consolidado y Dictamen Final del Caso Agrupado TC-M02-G29
+
+| Sub-caso | Resultado Anterior (2026-09-11) | Resultado Actual (2026-09-13) | Estado de Conformidad |
+| :--- | :---: | :---: | :--- |
+| **TC-M02-203** | **PASS (5/5)** | **PASS (5/5)** | ✅ **CONFORME**. Evento de crecimiento persistido y auditado exitosamente con fecha dinámica. |
+| **TC-M02-204** | **FAIL (2/5)** | **PASS (5/5)** | ✅ **CONFORME**. **DEFECTO INC-M02-42-DB-TRIGGER CORREGIDO**. Trigger `trg_fn_baja_actualizar_cantidad_lote` ejecuta sin error con `'POBLACIONAL'`. Descuento de lote y auditoría RF-45 exitosos. |
+| **TC-M02-205** | **FAIL (6/7)** | **FAIL (6/7)** | ❌ **NO CONFORME**. Rechazo `HTTP 400` no genera auditoría. **INC-M02-41-RF52**: Parcialmente corregido en código (`9c5f3b63`) / no efectivo en TEST por bug de prefijo de ruta (`/api-sgpmp-test/`). |
+
+#### Dictamen de Defectos:
+* **`INC-M02-42-DB-TRIGGER`**: **CORREGIDO Y VERIFICADO EN REEVALUACIÓN 2026-09-13**. El trigger en PostgreSQL TEST opera nominalmente.
+* **`INC-M02-41-RF52`**: **PARCIALMENTE CORREGIDO EN CÓDIGO / NO EFECTIVO EN TEST**. Requiere ajuste del prefijo de ruta en `_auditar_validacion_rechazada_m02()`.
+
+

@@ -15,6 +15,11 @@
       "key": "jwt_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "fecha_baja_dinamica",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -34,7 +39,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -65,7 +70,7 @@
           ]
         },
         {
-          "name": "1. Registrar evento de crecimiento sobre lote 130",
+          "name": "1. Registrar evento de crecimiento sobre lote 296",
           "request": {
             "method": "POST",
             "header": [
@@ -83,13 +88,13 @@
               "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/130/eventos/crecimiento",
+              "raw": "{{baseUrl}}/activos-biologicos/296/eventos/crecimiento",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "activos-biologicos",
-                "130",
+                "296",
                 "eventos",
                 "crecimiento"
               ]
@@ -112,7 +117,7 @@
           ]
         },
         {
-          "name": "2. Consultar estado y métricas del lote 130",
+          "name": "2. Consultar estado y métricas del lote 296",
           "request": {
             "method": "GET",
             "header": [
@@ -122,13 +127,13 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "raw": "{{baseUrl}}/activos-biologicos/296",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "activos-biologicos",
-                "130"
+                "296"
               ]
             }
           },
@@ -167,7 +172,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\",\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -213,7 +218,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-11\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 344\",\n  \"cantidad_afectada\": 10\n}"
+              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_baja_dinamica}}\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 344\",\n  \"cantidad_afectada\": 10\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/344/eventos/baja",
@@ -230,14 +235,25 @@
           },
           "event": [
             {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const safeDate = new Date(Date.now() - 60000).toISOString().split('T')[0];",
+                  "pm.collectionVariables.set('fecha_baja_dinamica', safeDate);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Respuesta de baja lote 344 capturada', function () {",
+                  "pm.test('Baja exitosa sobre lote 344 (HTTP 201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.be.an('object');",
                   "    console.log('HTTP Status Lote 344 Baja:', pm.response.code);",
-                  "    console.log('Headers Lote 344:', JSON.stringify(pm.response.headers));",
                   "    console.log('Body Lote 344:', pm.response.text());",
-                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -271,95 +287,13 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('Consulta de lote 344 completada', function () {",
+                  "pm.test('Consulta de lote 344 completada (HTTP 200)', function () {",
                   "    pm.response.to.have.status(200);",
                   "    var res = pm.response.json();",
-                  "    console.log('Lote 344 Estado actual:', res.estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "3. Aplicar baja total sobre lote 345",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"2026-09-11\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote 345\",\n  \"cantidad_afectada\": 10\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/345/eventos/baja",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "activos-biologicos",
-                "345",
-                "eventos",
-                "baja"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Respuesta de baja lote 345 capturada', function () {",
-                  "    console.log('HTTP Status Lote 345 Baja:', pm.response.code);",
-                  "    console.log('Headers Lote 345:', JSON.stringify(pm.response.headers));",
-                  "    console.log('Body Lote 345:', pm.response.text());",
-                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409, 422, 500]);",
-                  "});"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ]
-        },
-        {
-          "name": "4. Consultar lote 345 tras intento de baja",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/345",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "activos-biologicos",
-                "345"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "pm.test('Consulta de lote 345 completada', function () {",
-                  "    pm.response.to.have.status(200);",
-                  "    var res = pm.response.json();",
-                  "    console.log('Lote 345 Estado actual:', res.estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "    console.log('Lote 344 Estado actual:', res.nombre_estado, 'ID Estado:', res.id_estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                  "    pm.expect(res.id_estado).to.eql(6);",
+                  "    pm.expect(res.nombre_estado).to.eql('BAJA');",
                   "});"
                 ],
                 "type": "text/javascript"
