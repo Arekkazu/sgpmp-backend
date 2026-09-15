@@ -197,7 +197,7 @@ Errores posibles:
 - `409 TRANSFERENCIA_CONCURRENTE` — hay una transferencia en progreso para el mismo activo (FA-07)
 - `400 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo)
 - `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). Mismo caso que el anterior
-- `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior
+- `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior. Mensaje diferenciado desde INC-M02-89-G83: `"...no existe."` vs `"...se encuentra inactiva."` (antes un único mensaje genérico para ambos casos — mejora de usabilidad, no cambia el `error_code` ni el status)
 - `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
 - `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA` — el tipo de infraestructura destino no es compatible con la especie del activo (C2). Corregido en INC-M02-72-G80 (antes no existía ningún modelo de compatibilidad; un bovino se aceptaba en un Estanque) — ver `modulo9.compatibilidades_tipo_area_especie`; un tipo de infraestructura sin ninguna regla configurada sigue sin restricción
