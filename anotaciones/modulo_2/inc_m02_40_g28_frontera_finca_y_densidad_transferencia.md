@@ -4,6 +4,13 @@
 **Endpoint:** `POST /activos-biologicos/{id_activo}/transferencias`.
 **Caso QA:** `TC-M02-G28`, dos defectos (`DEF-RF48-01`, `DEF-RF48-02`).
 
+**Duplicado:** `INC-M02-41-G28` (issue #201) reporta exactamente `DEF-RF48-02`
+como ticket separado — mismo lote 130, misma transferencia (Alevinera-01 500 m²
+→ Estanque-01 2500 m²), mismo `TC-M02-202`. Ambos INC vienen del mismo informe
+de QA (`TC-M02-G28`), que documentó los dos defectos y luego se abrieron como
+issues individuales (#200 y #201). El fix de esta rama resuelve los dos; no se
+abre una rama ni un PR separado para `INC-M02-41-G28`.
+
 ## DEF-RF48-01 — Ausencia de validación de frontera de finca (ya resuelto en `dev`)
 
 **Qué reportó QA (`TC-M02-201`):** transferir el lote `130` de Alevinera-01 (Finca 1) a Canal-Trucha-01 (Finca 2) respondía `201 Created` en vez de rechazar el movimiento entre fincas distintas.
