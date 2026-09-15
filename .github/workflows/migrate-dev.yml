@@ -12,6 +12,9 @@ concurrency:
   group: alembic-migrate-dev
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   migrate:
     uses: ./.github/workflows/_migrate-template.yml

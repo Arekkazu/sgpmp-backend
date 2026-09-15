@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -37,17 +38,12 @@ class ConsultarActivoUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe.',
             )
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF35', tipo_evento='ACTIVO_INDIVIDUAL_CONSULTA',
-                    clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    id_usuario_responsable=usuario.id_usuario if usuario else None,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF35', tipo_evento='ACTIVO_INDIVIDUAL_CONSULTA',
+            clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            id_usuario_responsable=usuario.id_usuario if usuario else None,
+        ))
 
         return activo

@@ -18,6 +18,7 @@ from src.biological_assets.application.use_cases.gestion.registrar_evento_reprod
 from src.biological_assets.domain.entities.activo_biologico import (
     ActivoBiologico,
     EventoActivo,
+    EventoAuditoria,
 )
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import (
@@ -67,6 +68,17 @@ class EventoRepoFake:
         return evento
 
 
+class BitacoraRepoFake:
+    def __init__(self, falla: bool = False) -> None:
+        self.falla = falla
+        self.eventos: list[EventoAuditoria] = []
+
+    def registrar(self, evento: EventoAuditoria) -> None:
+        if self.falla:
+            raise RuntimeError('auditoría no disponible')
+        self.eventos.append(evento)
+
+
 def _activo(tipo: str, id_activo: int, id_estado: int = EstadoActivo.ACTIVO) -> ActivoBiologico:
     return ActivoBiologico(
         id_especie=1,
@@ -91,11 +103,12 @@ def _dto(categoria: str, **kwargs) -> RegistrarEventoReproductivoDTO:
     )
 
 
-def _uc(db, activo_repo, evento_repo) -> RegistrarEventoReproductivoUseCase:
+def _uc(db, activo_repo, evento_repo, bitacora_repo=None) -> RegistrarEventoReproductivoUseCase:
     return RegistrarEventoReproductivoUseCase(
         db=db,
         activo_repo=activo_repo,
         evento_repo=evento_repo,
+        bitacora_repo=bitacora_repo,
     )
 
 
@@ -154,3 +167,50 @@ def test_individual_alcanza_secuencia_y_no_el_error_de_lote() -> None:
 
     assert exc.value.code == 'SECUENCIA_REPRODUCTIVA_INVALIDA'
     assert evento_repo.guardado is None
+
+
+def test_ca10_audita_nacimiento_rechazado_fuera_de_secuencia() -> None:
+    db = DbFake()
+    activo_repo = ActivoRepoFake({10: _activo('INDIVIDUAL', 10)})
+    evento_repo = EventoRepoFake()
+    bitacora_repo = BitacoraRepoFake()
+    uc = _uc(db, activo_repo, evento_repo, bitacora_repo)
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(10, _dto('nacimiento', numero_crias=1), _usuario())
+
+    assert exc.value.code == 'SECUENCIA_REPRODUCTIVA_INVALIDA'
+    assert evento_repo.guardado is None
+    assert db.rollbacks == 1
+    assert db.commits == 1
+    assert len(bitacora_repo.eventos) == 1
+
+    auditoria = bitacora_repo.eventos[0]
+    assert auditoria.rf_origen == 'RF42'
+    assert auditoria.tipo_evento == 'SECUENCIA_REPRODUCTIVA_VIOLADA'
+    assert auditoria.resultado == 'RECHAZADO'
+    assert auditoria.severidad_log == 'WARNING'
+    assert auditoria.id_activo_biologico == 10
+    assert auditoria.tipo_activo == 'INDIVIDUAL'
+    assert auditoria.id_usuario_responsable == 7
+    assert auditoria.detalle_tecnico == {
+        'error_code': 'SECUENCIA_REPRODUCTIVA_INVALIDA',
+        'causa': (
+            'No se puede registrar un nacimiento sin eventos previos de '
+            'servicio o inseminación sobre este activo.'
+        ),
+        'id_activo_solicitado': 10,
+    }
+
+
+def test_ca10_fallo_de_auditoria_no_oculta_el_rechazo_funcional() -> None:
+    db = DbFake()
+    activo_repo = ActivoRepoFake({10: _activo('INDIVIDUAL', 10)})
+    uc = _uc(db, activo_repo, EventoRepoFake(), BitacoraRepoFake(falla=True))
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(10, _dto('nacimiento', numero_crias=1), _usuario())
+
+    assert exc.value.code == 'SECUENCIA_REPRODUCTIVA_INVALIDA'
+    assert db.commits == 0
+    assert db.rollbacks == 2

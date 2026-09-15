@@ -5,6 +5,10 @@ from decimal import Decimal, InvalidOperation
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -13,7 +17,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, ValidationError
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -155,6 +159,23 @@ class RegistrarActivoBiologicoUseCase:
         dto: RegistrarActivoBiologicoDTO,
         usuario: UsuarioActual,
     ) -> ActivoBiologico:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=None,
+            id_activo=None,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF33',
+            tipo_evento_rechazado='ACTIVO_REGISTRO_RECHAZADO',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
+        self,
+        dto: RegistrarActivoBiologicoDTO,
+        usuario: UsuarioActual,
+    ) -> ActivoBiologico:
         # FA-08: costo_adquisicion/soporte_documental coherentes con origen_financiero
         _validar_origen_financiero(dto)
 
@@ -193,6 +214,13 @@ class RegistrarActivoBiologicoUseCase:
         )
 
         activo = ActivoBiologico.crear(dto, usuario.id_usuario)
+        # INC-M02-37-G24 (TC-M02-048): la densidad (cantidad/superficie) es
+        # calculable desde el momento del registro, no solo tras el primer
+        # evento de crecimiento — sin esto un lote recién creado queda con
+        # densidad=null hasta su primera medición.
+        if activo.detalle_poblacional is not None and infra.superficie and infra.superficie > 0:
+            cantidad = Decimal(str(activo.detalle_poblacional.cantidad_actual))
+            activo.detalle_poblacional.densidad = cantidad / infra.superficie
 
         try:
             activo = self.repo.guardar(activo)
@@ -206,35 +234,28 @@ class RegistrarActivoBiologicoUseCase:
                 id_usuario=usuario.id_usuario,
             ))
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF33', tipo_evento='ACTIVO_REGISTRO_FALLIDO',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        detalle_tecnico={'error': str(exc)},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF33', tipo_evento='ACTIVO_REGISTRO_FALLIDO',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                detalle_tecnico={'error': str(exc)},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF33', tipo_evento='ACTIVO_REGISTRADO',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=activo.id_activo_biologico,
-                    tipo_activo=activo.tipo,
-                    descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF33', tipo_evento='ACTIVO_REGISTRADO',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=activo.id_activo_biologico,
+            tipo_activo=activo.tipo,
+            descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return activo

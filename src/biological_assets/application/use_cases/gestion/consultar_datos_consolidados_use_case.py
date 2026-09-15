@@ -5,13 +5,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import DatosConsolidados, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import ConflictError, NotFoundError
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -43,6 +44,17 @@ class ConsultarDatosConsolidadosUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe en los registros del sistema.',
             )
 
+        asociacion_activa = self.activo_repo.obtener_asociacion_activa(id_activo)
+        if asociacion_activa is not None and not asociacion_activa.es_activo_infraestructura:
+            raise ConflictError(
+                code='INCONSISTENCIA_JERARQUICA',
+                message=(
+                    f'El activo mantiene una asociación vigente con la infraestructura '
+                    f'"{asociacion_activa.nombre_infraestructura}", la cual está inactiva. '
+                    f'Regulariza la jerarquía del activo antes de consultar datos consolidados.'
+                ),
+            )
+
         resultado = self.indicadores_repo.obtener_datos_consolidados(
             id_activo=id_activo,
             tipo_dato=dto.tipo_dato,
@@ -52,18 +64,13 @@ class ConsultarDatosConsolidadosUseCase:
             page_size=dto.page_size,
         )
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF50', tipo_evento='DATOS_ANALITICOS_CONSULTADOS',
-                    clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo,
-                    detalle_tecnico={'tipo_dato': dto.tipo_dato},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF50', tipo_evento='DATOS_ANALITICOS_CONSULTADOS',
+            clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            detalle_tecnico={'tipo_dato': dto.tipo_dato},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado

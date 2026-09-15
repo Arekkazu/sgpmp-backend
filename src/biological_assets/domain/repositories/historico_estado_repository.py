@@ -20,3 +20,7 @@ class HistoricoEstadoRepository(ABC):
         modulo_origen: str,
     ) -> HistoricoEstado:
         """Inserta un registro inmutable de cambio de estado y retorna la entidad."""
+
+    @abstractmethod
+    def obtener_ultimo_cambio(self, id_activo: int) -> Optional[HistoricoEstado]:
+        """Retorna el cambio de estado más reciente del activo, o None si nunca cambió de estado."""
