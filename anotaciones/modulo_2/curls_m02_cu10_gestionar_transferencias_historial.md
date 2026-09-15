@@ -210,9 +210,9 @@ Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo no existe (FA-01)
 - `409 ACTIVO_NO_ACTIVO` — el activo no está en estado ACTIVO (FA-03)
 - `409 TRANSFERENCIA_CONCURRENTE` — hay una transferencia en progreso para el mismo activo (FA-07)
-- `400 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo)
-- `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). Mismo caso que el anterior
-- `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior
+- `422 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). Corregido en INC-M02-88-G83 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3/DESTINO_IGUAL_ORIGEN)
+- `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo) — no confirmado como defecto por QA, a diferencia de los dos anteriores
+- `422 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Corregido en INC-M02-88-G83 (antes respondía 400)
 - `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
 - `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA` — el tipo de infraestructura destino no es compatible con la especie del activo (C2). Corregido en INC-M02-72-G80 (antes no existía ningún modelo de compatibilidad; un bovino se aceptaba en un Estanque) — ver `modulo9.compatibilidades_tipo_area_especie`; un tipo de infraestructura sin ninguna regla configurada sigue sin restricción
@@ -222,9 +222,11 @@ Errores posibles:
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
 - `403` — rol sin permiso de ejecución sobre activos biológicos (solo admin y productor)
 
-> **Nota (INC-M02-73-G80):** `SIN_INFRAESTRUCTURA_ORIGEN`, `INFRAESTRUCTURA_ORIGEN_INCORRECTA`
-> e `INFRAESTRUCTURA_DESTINO_INVALIDA` usan `ValidationError` (400) igual que `DESTINO_IGUAL_ORIGEN`
-> usaba antes de este fix — el propio reporte de QA que originó este fix señala que podrían tener
-> el mismo defecto, pero explícitamente no lo confirma ("no deben considerarse defectos
-> funcionalmente confirmados con esta evidencia"). No se tocan aquí; quedan para un issue propio si
-> QA lo confirma.
+> **Nota (INC-M02-73-G80 → INC-M02-88-G83):** `SIN_INFRAESTRUCTURA_ORIGEN`,
+> `INFRAESTRUCTURA_ORIGEN_INCORRECTA` e `INFRAESTRUCTURA_DESTINO_INVALIDA` usaban
+> `ValidationError` (400) igual que `DESTINO_IGUAL_ORIGEN` usaba antes de `INC-M02-73-G80` —
+> ese fix señaló que podrían tener el mismo defecto, sin confirmarlo. `INC-M02-88-G83`
+> (`TC-M02-307`, `TC-M02-308-A/B`) confirmó y corrigió los dos primeros
+> (`SIN_INFRAESTRUCTURA_ORIGEN`, `INFRAESTRUCTURA_DESTINO_INVALIDA`) a `422`.
+> `INFRAESTRUCTURA_ORIGEN_INCORRECTA` sigue en `400` — QA no lo probó en este ticket, no se
+> toca hasta que se confirme igual que los otros.
