@@ -143,6 +143,16 @@ Errores posibles:
 
 ## CU10C — RF-48: Registrar transferencia interna
 
+**Definición funcional oficial (INC-M02-87-G81, issue #238):** una transferencia
+interna mueve **siempre el activo completo** — el individuo entero, o la
+totalidad de `cantidad_actual` de un lote poblacional — a la infraestructura
+destino. `RegistrarTransferenciaDTO` no declara ningún campo de cantidad
+(`cantidad`, `cantidad_transferida`, etc.) **a propósito**: no es un vacío del
+contrato, es el mecanismo que impide expresar una transferencia parcial. No
+existe "dividir un lote entre dos infraestructuras" como operación de RF-48.
+Ver `inc_m02_87_g81_transferencia_siempre_completa.md` para el detalle de esta
+decisión.
+
 ### GET /activos-biologicos/{id_activo}/transferencias/disponibles — Listar infraestructuras destino compatibles
 
 ```bash
