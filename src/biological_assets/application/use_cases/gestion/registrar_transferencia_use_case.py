@@ -82,10 +82,13 @@ class RegistrarTransferenciaUseCase:
                 ),
             )
 
-        # E-04: el activo debe tener infraestructura origen activa
+        # E-04: el activo debe tener infraestructura origen activa (INC-M02-88-G83:
+        # regla de negocio -> 422, no 400 -- el DTO en sí es válido, lo que falla
+        # es el estado del activo, igual que ya corrigió INC-M02-73-G80 para
+        # DESTINO_IGUAL_ORIGEN)
         asociacion_actual = self.activo_repo.obtener_asociacion_activa(id_activo)
         if asociacion_actual is None:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='SIN_INFRAESTRUCTURA_ORIGEN',
                 message=(
                     f'El activo {activo.identificador} no tiene una infraestructura origen registrada. '
@@ -104,10 +107,10 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_origen_id',
             )
 
-        # E-05: infraestructura destino debe existir y estar activa
+        # E-05: infraestructura destino debe existir y estar activa (INC-M02-88-G83: 422, no 400)
         infra_destino = self.infra_port.obtener_activa(dto.infraestructura_destino_id)
         if infra_destino is None:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='INFRAESTRUCTURA_DESTINO_INVALIDA',
                 message=f'La infraestructura con id {dto.infraestructura_destino_id} no existe o no está activa.',
                 field='infraestructura_destino_id',
