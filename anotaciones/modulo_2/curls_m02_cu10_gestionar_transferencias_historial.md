@@ -201,7 +201,7 @@ Errores posibles:
 - `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
 - `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA` — el tipo de infraestructura destino no es compatible con la especie del activo (C2). Corregido en INC-M02-72-G80 (antes no existía ningún modelo de compatibilidad; un bovino se aceptaba en un Estanque) — ver `modulo9.compatibilidades_tipo_area_especie`; un tipo de infraestructura sin ninguna regla configurada sigue sin restricción
-- `422 DESTINO_OTRA_FINCA` — la infra destino pertenece a una finca distinta a la del activo (alcance por finca). Corregido en INC-M02-74-G80 — antes solo se filtraba en el listado de `disponibles`, no en el POST
+- `422 DESTINO_OTRA_FINCA` — la infra destino pertenece a una finca distinta a la del activo (alcance por finca). Corregido en INC-M02-74-G80 (commit `df73a16d`, 2026-09-12) — antes solo se filtraba en el listado de `disponibles`, no en el POST. QA reportó el mismo defecto de nuevo en `INC-M02-40-G28`/`TC-M02-201` (2026-09-08/09, contra `sgpmp_test`) — el entorno de TEST corría una revisión anterior a este fix; verificado que ya está resuelto en `dev`
 - `422 CAPACIDAD_EXCEDIDA` — la infra destino no tiene capacidad suficiente (C3)
 - `422 FECHA_FUTURA` — fecha_transferencia es posterior al día actual
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
