@@ -891,9 +891,13 @@ def registrar_evento_reproductivo(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    evento = use_case.execute(id_activo, dto, usuario_actual)
+    evento = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
