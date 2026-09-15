@@ -14,6 +14,9 @@ on:
       database_url:
         required: true
 
+permissions:
+  contents: read
+
 jobs:
   migrate:
     name: Run Alembic upgrade (${{ inputs.environment_name }})
