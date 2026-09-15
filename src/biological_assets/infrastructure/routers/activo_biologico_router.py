@@ -68,6 +68,9 @@ from src.biological_assets.infrastructure.dto.consultar_historial_dto import Con
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_asociaciones_sensor_use_case import (
+    ConsultarAsociacionesSensorUseCase,
+)
 from src.biological_assets.application.use_cases.gestion.cambiar_estado_asociacion_sensor_use_case import (
     CambiarEstadoAsociacionSensorUseCase,
 )
@@ -88,11 +91,13 @@ from src.biological_assets.application.use_cases.gestion.consultar_bitacora_use_
 from src.biological_assets.infrastructure.dto.consultar_bitacora_dto import ConsultarBitacoraDTO
 from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import SqlAlchemyBitacoraAuditoriaRepository
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
+from src.biological_assets.infrastructure.rbac_auditoria import require_permission_m02
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
     AsociacionSensorActivoResponse,
+    ConsultaAsociacionesSensorResponse,
     CambioEstadoResponse,
     CierreActivoResponse,
     ConsultaAsociacionResponse,
@@ -124,11 +129,11 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -225,7 +230,7 @@ def _sensor_to_response(s: SensorEnInfraestructura) -> SensorEnInfraestructuraRe
     '',
     response_model=ActivoBiologicoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF33'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -255,7 +260,7 @@ def registrar_activo(
 @router.get(
     '',
     response_model=ActivosPaginadosResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF33'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -329,7 +334,7 @@ def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:
 @router.get(
     '/auditoria',
     response_model=BitacoraAuditoriaResponse,
-    dependencies=[Depends(require_permission(_RECURSO_BITACORA, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO_BITACORA, 2, rf_origen='RF52'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -375,8 +380,9 @@ def consultar_bitacora(
     use_case = ConsultarBitacoraUseCase(
         db=db,
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        rol_repo=SqlAlchemyRolRepository(db),
     )
-    registros, total = use_case.execute(dto)
+    registros, total = use_case.execute(dto, usuario_actual)
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return BitacoraAuditoriaResponse(
         total_registros=total,
@@ -406,7 +412,7 @@ def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
 @router.get(
     '/{id_activo}',
     response_model=ActivoBiologicoResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF35'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -435,7 +441,7 @@ def consultar_activo(
 @router.patch(
     '/{id_activo}',
     response_model=ActivoBiologicoResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 3, rf_origen='RF35'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -464,7 +470,7 @@ def actualizar_activo_individual(
     '/{id_activo}/fases',
     response_model=GestionFaseResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 5, rf_origen='RF37'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -493,7 +499,7 @@ def cambiar_fase(
 @router.get(
     '/{id_activo}/fases',
     response_model=HistorialFasesResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF37'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -517,7 +523,7 @@ def historial_fases(
 @router.get(
     '/{id_activo}/infraestructura',
     response_model=ConsultaAsociacionResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF34'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -648,7 +654,7 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
 @router.get(
     '/{id_activo}/eventos',
     response_model=HistorialEventosResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF39'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -679,7 +685,7 @@ def consultar_eventos(
     '/{id_activo}/eventos/crecimiento',
     response_model=RegistrarEventoCrecimientoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF40'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -718,7 +724,7 @@ def registrar_evento_crecimiento(
     '/{id_activo}/eventos/baja',
     response_model=EventoActivoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF45'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -751,7 +757,7 @@ def registrar_evento_baja(
     '/{id_activo}/eventos/sanitario',
     response_model=RegistrarEventoSanitarioResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF41'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -786,7 +792,7 @@ def registrar_evento_sanitario(
     '/{id_activo}/estado',
     response_model=CambioEstadoResponse,
     status_code=200,
-    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 5, rf_origen='RF44'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -831,7 +837,7 @@ def cambiar_estado(
     '/{id_activo}/cierre',
     response_model=CierreActivoResponse,
     status_code=200,
-    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 4, rf_origen='RF38'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -869,7 +875,7 @@ def cerrar_ciclo(
     '/{id_activo}/eventos/reproductivo',
     response_model=RegistrarEventoReproductivoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF42'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -889,9 +895,13 @@ def registrar_evento_reproductivo(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    evento = use_case.execute(id_activo, dto, usuario_actual)
+    evento = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
@@ -899,7 +909,7 @@ def registrar_evento_reproductivo(
     '/{id_activo}/eventos/productivo',
     response_model=EventoActivoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF43'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -933,7 +943,7 @@ def registrar_evento_productivo(
 @router.get(
     '/{id_activo}/historial',
     response_model=HistorialActivoResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF46'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -1003,7 +1013,7 @@ def consultar_historial(
 @router.get(
     '/{id_activo}/ficha-integral',
     response_model=FichaIntegralResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF47'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -1058,7 +1068,7 @@ def consultar_ficha_integral(
 @router.get(
     '/{id_activo}/transferencias/disponibles',
     response_model=list[InfraestructuraDisponibleResponse],
-    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 5, rf_origen='RF48'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -1086,7 +1096,7 @@ def listar_infraestructuras_disponibles(
     '/{id_activo}/transferencias',
     response_model=TransferenciaResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 5))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 5, rf_origen='RF48'))],
     responses={
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
@@ -1128,6 +1138,58 @@ def registrar_transferencia(
 
 # ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
 
+@router.get(
+    '/{id_activo}/sensores',
+    response_model=ConsultaAsociacionesSensorResponse,
+    responses={
+        404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Consultar asociaciones sensor-activo (RF-49, INC-M02-68-G91)',
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 2, rf_origen='RF49'))],
+)
+def consultar_asociaciones_sensor(
+    id_activo: int,
+    tipo_consulta: Literal['ACTIVA', 'HISTORIAL'] = Query(
+        'ACTIVA',
+        description="'ACTIVA' devuelve solo las asociaciones vigentes. 'HISTORIAL' devuelve todas (incluye INACTIVA y SUPERADA).",
+    ),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ConsultaAsociacionesSensorResponse:
+    use_case = ConsultarAsociacionesSensorUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    tipo_resultado, id_activo_resultado, asociaciones = use_case.execute(
+        id_activo, tipo_consulta, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
+    return ConsultaAsociacionesSensorResponse(
+        id_activo_biologico=id_activo_resultado,
+        tipo_consulta=tipo_resultado,
+        asociaciones=[
+            AsociacionSensorActivoResponse(
+                id_asociacion_activo_sensor=a.id_asociacion_activo_sensor,
+                id_activo_biologico=a.id_activo_biologico,
+                tipo_activo=a.tipo_activo,
+                tipo_asociacion=a.tipo_asociacion,
+                dispositivo_iot_id=a.dispositivo_iot_id,
+                sensor_id=a.sensor_id,
+                id_infraestructura=a.id_infraestructura,
+                fecha_inicio=a.fecha_inicio,
+                fecha_fin=a.fecha_fin,
+                estado_asociacion=a.estado_asociacion,
+                motivo=a.motivo,
+                advertencia=None,
+            )
+            for a in asociaciones
+        ],
+    )
+
+
 @router.post(
     '/{id_activo}/sensores',
     status_code=201,
@@ -1138,7 +1200,7 @@ def registrar_transferencia(
         422: {'model': ErrorResponse},
     },
     summary='Asociar sensor IoT a un activo biológico (RF-49)',
-    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 1))],
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 1, rf_origen='RF49'))],
 )
 def asociar_sensor_iot(
     id_activo: int,
@@ -1175,7 +1237,7 @@ def asociar_sensor_iot(
     '/{id_activo}/sensores/{id_asociacion}',
     response_model=AsociacionSensorActivoResponse,
     status_code=200,
-    dependencies=[Depends(require_permission(_RECURSO_SENSOR, 3))],
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 3, rf_origen='RF49'))],
     responses={
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
@@ -1216,7 +1278,7 @@ def cambiar_estado_asociacion_sensor(
 @router.get(
     '/{id_activo}/indicadores',
     response_model=IndicadoresActivoResponse,
-    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF51'))],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
@@ -1287,7 +1349,7 @@ def consultar_indicadores(
     '/{id_activo}/datos-consolidados',
     response_model=DatosConsolidadosResponse,
     dependencies=[
-        Depends(require_permission(_RECURSO, 2)),
+        Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF50')),
         Depends(_LIMITE_DATOS_CONSOLIDADOS),
     ],
     responses={

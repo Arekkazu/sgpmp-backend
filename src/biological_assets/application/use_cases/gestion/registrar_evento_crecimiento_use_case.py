@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._event_validations import validar_fecha_evento
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoCrecimiento, GestionFase
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -15,7 +19,7 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class RegistrarEventoCrecimientoUseCase:
@@ -39,6 +43,25 @@ class RegistrarEventoCrecimientoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
+        self,
+        id_activo: int,
+        dto: RegistrarEventoCrecimientoDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: list[int] | None = None,
+    ) -> tuple[EventoActivo, bool]:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF40',
+            tipo_evento_rechazado='EVENTO_CRECIMIENTO_RECHAZADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA',
+        )
+
+    def _execute(
         self,
         id_activo: int,
         dto: RegistrarEventoCrecimientoDTO,
@@ -160,37 +183,30 @@ class RegistrarEventoCrecimientoUseCase:
             if activo.tipo == 'POBLACIONAL':
                 self.activo_repo.actualizar_detalle_poblacional(activo)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF40', tipo_evento='EVENTO_CRECIMIENTO_FALLIDO',
-                        clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc)},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF40', tipo_evento='EVENTO_CRECIMIENTO_FALLIDO',
+                clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc)},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF40', tipo_evento='EVENTO_CRECIMIENTO_REGISTRADO',
-                    clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Evento de crecimiento: {dto.tipo_medicion} = {dto.valor_medicion} {dto.unidad_medida}',
-                    detalle_tecnico={'tipo_medicion': dto.tipo_medicion, 'valor': str(dto.valor_medicion)},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF40', tipo_evento='EVENTO_CRECIMIENTO_REGISTRADO',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Evento de crecimiento: {dto.tipo_medicion} = {dto.valor_medicion} {dto.unidad_medida}',
+            detalle_tecnico={'tipo_medicion': dto.tipo_medicion, 'valor': str(dto.valor_medicion)},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         # <<extend>> RF-37 (CU06): avance automático de fase cuando la duración configurada se cumple
         fase_avanzada = self._evaluar_avance_fase(id_activo, fase, fecha, usuario)

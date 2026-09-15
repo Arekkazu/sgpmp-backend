@@ -4,6 +4,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -11,7 +15,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import AppError, NotFoundError
 
 
 class CambiarEstadoUseCase:
@@ -28,6 +32,23 @@ class CambiarEstadoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: CambiarEstadoDTO, usuario: UsuarioActual) -> HistoricoEstado:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF44',
+            tipo_evento_rechazado='ESTADO_CAMBIO_RECHAZADO',
+            clasificacion_biologica='CONTROL_ESTADO',
+            tipos_por_codigo={
+                'ESTADO_REDUNDANTE': 'ESTADO_REDUNDANTE_DETECTADO',
+                'TRANSICION_INVALIDA': 'TRANSICION_NO_PERMITIDA',
+            },
+        )
+
+    def _execute(self, id_activo: int, dto: CambiarEstadoDTO, usuario: UsuarioActual) -> HistoricoEstado:
         activo = self.repo.obtener_por_id(id_activo)
         if activo is None:
             raise NotFoundError(
@@ -54,36 +75,29 @@ class CambiarEstadoUseCase:
                 modulo_origen='MANUAL',
             )
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF44', tipo_evento='ESTADO_CAMBIO_FALLIDO',
-                        clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo,
-                        detalle_tecnico={'error': str(exc), 'id_estado_nuevo': dto.id_estado_nuevo},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF44', tipo_evento='ESTADO_CAMBIO_FALLIDO',
+                clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo,
+                detalle_tecnico={'error': str(exc), 'id_estado_nuevo': dto.id_estado_nuevo},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF44', tipo_evento='ESTADO_CAMBIADO',
-                    clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo,
-                    descripcion=f'Estado cambiado: {id_estado_anterior} → {dto.id_estado_nuevo}',
-                    detalle_tecnico={'estado_anterior': id_estado_anterior, 'estado_nuevo': dto.id_estado_nuevo, 'motivo': dto.motivo_cambio},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF44', tipo_evento='ESTADO_CAMBIADO',
+            clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            descripcion=f'Estado cambiado: {id_estado_anterior} → {dto.id_estado_nuevo}',
+            detalle_tecnico={'estado_anterior': id_estado_anterior, 'estado_nuevo': dto.id_estado_nuevo, 'motivo': dto.motivo_cambio},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return historico

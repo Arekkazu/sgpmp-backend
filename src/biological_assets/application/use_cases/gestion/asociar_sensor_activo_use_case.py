@@ -5,6 +5,10 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import AsociacionSensorActivo, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.asociacion_sensor_activo_repository import (
@@ -14,7 +18,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsultaPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
 
 if TYPE_CHECKING:
     from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -47,6 +51,24 @@ class AsociarSensorActivoUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(
+        self,
+        id_activo: int,
+        dto: AsociarSensorActivoDTO,
+        usuario_actual: UsuarioActual,
+    ) -> AsociacionSensorActivo:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario_actual),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario_actual.id_usuario,
+            rf_origen='RF49',
+            tipo_evento_rechazado='ASOCIACION_IOT_RECHAZADA',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
         self,
         id_activo: int,
         dto: AsociarSensorActivoDTO,
@@ -242,36 +264,29 @@ class AsociarSensorActivoUseCase:
 
             self.db.commit()
 
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF49', tipo_evento='ASOCIACION_IOT_FALLIDA',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'sensor_id': dto.sensor_id},
-                        id_usuario_responsable=usuario_actual.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF49', tipo_evento='ASOCIACION_IOT_FALLIDA',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'sensor_id': dto.sensor_id},
+                id_usuario_responsable=usuario_actual.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF49', tipo_evento='ASOCIACION_IOT_CREADA',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Sensor {dto.sensor_id} asociado con tipo {dto.tipo_asociacion}',
-                    detalle_tecnico={'sensor_id': dto.sensor_id, 'tipo_asociacion': dto.tipo_asociacion},
-                    id_usuario_responsable=usuario_actual.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF49', tipo_evento='ASOCIACION_IOT_CREADA',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.datetime.now(datetime.timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Sensor {dto.sensor_id} asociado con tipo {dto.tipo_asociacion}',
+            detalle_tecnico={'sensor_id': dto.sensor_id, 'tipo_asociacion': dto.tipo_asociacion},
+            id_usuario_responsable=usuario_actual.id_usuario,
+        ))
 
         return nueva
