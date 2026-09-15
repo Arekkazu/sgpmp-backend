@@ -466,17 +466,7 @@ class ActivoBiologico:
         dp.peso_promedio = nuevo_peso_promedio
         cantidad_actual = Decimal(str(dp.cantidad_actual or 0))
         dp.biomasa_total = cantidad_actual * nuevo_peso_promedio
-        self.recalcular_densidad(superficie)
-
-    def recalcular_densidad(self, superficie: Optional[Decimal]) -> None:
-        """Recalcula `densidad = cantidad_actual / superficie` (RF-36) contra
-        la superficie de la infraestructura donde reside el lote. Sin
-        superficie configurada, la densidad queda como estaba -- no hay con
-        qué calcularla."""
-        self._validar_tipo_poblacional()
-        dp = self.detalle_poblacional
         if superficie and superficie > 0:
-            cantidad_actual = Decimal(str(dp.cantidad_actual or 0))
             dp.densidad = cantidad_actual / superficie
 
     def __eq__(self, other: object) -> bool:
