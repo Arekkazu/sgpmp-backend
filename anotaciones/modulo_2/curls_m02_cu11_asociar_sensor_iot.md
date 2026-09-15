@@ -5,6 +5,77 @@ Reemplazar `<TOKEN>` por el JWT de sesión activa.
 
 ---
 
+## GET /activos-biologicos/{id_activo}/sensores
+
+INC-M02-68-G91 / issue #218: antes de este fix, este método respondía `405
+Method Not Allowed` — no existía ningún endpoint de lectura para las
+asociaciones sensor-activo, aunque se persistían correctamente en
+`modulo2.asociaciones_activos_sensores`. Consulta las asociaciones del activo.
+
+### Query params
+
+| Param | Tipo | Default | Notas |
+|-------|------|---------|-------|
+| `tipo_consulta` | `ACTIVA \| HISTORIAL` | `ACTIVA` | `ACTIVA` devuelve solo las vigentes; `HISTORIAL` incluye `INACTIVA` y `SUPERADA` |
+
+### Flujo — Consultar asociaciones vigentes (default)
+
+```bash
+curl -X GET http://localhost:8000/activos-biologicos/1/sensores \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_activo_biologico": 1,
+  "tipo_consulta": "ACTIVA",
+  "asociaciones": [
+    {
+      "id_asociacion_activo_sensor": 1,
+      "id_activo_biologico": 1,
+      "tipo_activo": "INDIVIDUAL",
+      "tipo_asociacion": "directa",
+      "dispositivo_iot_id": 1,
+      "sensor_id": 1,
+      "id_infraestructura": 1,
+      "fecha_inicio": "2026-06-29T14:00:00Z",
+      "fecha_fin": null,
+      "estado_asociacion": "ACTIVA",
+      "motivo": null,
+      "advertencia": null
+    }
+  ]
+}
+```
+
+### Flujo — Historial completo (incluye superadas/inactivas)
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/1/sensores?tipo_consulta=HISTORIAL" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+### Errores posibles
+
+**Activo inexistente (404)**
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "No existe un activo biológico con id 999."
+}
+```
+
+**`tipo_consulta` inválido (400)**
+```json
+{
+  "code": "TIPO_CONSULTA_INVALIDO",
+  "message": "tipo_consulta debe ser 'ACTIVA' o 'HISTORIAL'."
+}
+```
+
+---
+
 ## POST /activos-biologicos/{id_activo}/sensores
 
 Asocia un sensor IoT registrado en M09 a un activo biológico de M02.

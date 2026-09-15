@@ -109,6 +109,14 @@ class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepositor
             q = q.filter(AsociacionSensorActivoModel.tipo == tipo_asociacion)
         return [self._a_entidad(o) for o in q.all()]
 
+    def listar_todas_por_activo(self, id_activo_biologico: int) -> list[AsociacionSensorActivo]:
+        q = (
+            self.db.query(AsociacionSensorActivoModel)
+            .filter(AsociacionSensorActivoModel.id_activo_biologico == id_activo_biologico)
+            .order_by(AsociacionSensorActivoModel.fecha_inicio.desc())
+        )
+        return [self._a_entidad(o) for o in q.all()]
+
     def actualizar_estado(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
         try:
             orm = self.db.get(AsociacionSensorActivoModel, entidad.id_asociacion_activo_sensor)
