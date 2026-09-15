@@ -70,3 +70,28 @@ relacionados, confirmados fallando igual en `origin/dev` sin este cambio).
 No se tocó `AsociarSensorActivoUseCase` ni `CambiarEstadoAsociacionSensorUseCase`
 — este fix es puramente de lectura, agregado sobre el puerto y el router
 existentes.
+
+## Adenda — informe TC-M02-G91 (QA)
+
+El caso agrupado `TC-M02-G91` cubre dos subcasos relacionados con este mismo
+router:
+
+- **TC-M02-223** (`INC-M02-G91-01`, el mismo defecto que este documento): `POST`
+  crea la asociación correctamente, pero `GET` respondía 405 — exactamente lo
+  que corrige este fix. La aserción de QA describe "cuerpo es un array"; se
+  decidió **mantener el objeto envolvente** (`{id_activo_biologico,
+  tipo_consulta, asociaciones: [...]}`) en vez de un array plano en la raíz,
+  por consistencia con `GET /{id_activo}/infraestructura` (mismo patrón
+  `ACTIVA`/`HISTORIAL` en este mismo router). Si el retest automatizado de QA
+  (`retest_tc_m02_223.ps1`) verifica literalmente que la raíz de la respuesta
+  sea un array, va a necesitar actualizarse para leer `response.asociaciones`
+  en vez de `response` directamente.
+- **TC-M02-222** (`OBS-M02-G91-01`, severidad baja, no bloqueante): `DELETE`
+  sobre una asociación puntual y sobre la ruta base deben seguir rechazándose
+  (Restricción 8, append-only). La aserción de QA acepta `404` o `405`
+  indistintamente. Verificado que agregar el `GET` no habilita `DELETE` en
+  ninguna de las dos rutas — sigue devolviendo `405` en ambas (test nuevo:
+  `test_inc_m02_68_g91_sensores_delete_no_permitido.py`). La sugerencia de
+  QA de exponer un error de negocio explícito para el `DELETE` (en vez de
+  404/405 genéricos) queda fuera de alcance de este fix — es una observación
+  de calidad de contrato, no del criterio de cierre de `INC-M02-G91-01`.
