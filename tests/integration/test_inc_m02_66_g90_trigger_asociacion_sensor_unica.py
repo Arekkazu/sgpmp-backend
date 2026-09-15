@@ -106,8 +106,8 @@ def _crear_sensor(db_session, id_infraestructura: int) -> int:
         text(
             """
             INSERT INTO modulo9.dispositivos_iot (id_dispositivo_iot, serial, descripcion,
-                es_activo, fecha_creacion, id_infraestructura)
-            VALUES (:id, :serial, 'Gateway integracion', TRUE, now(), :id_infra)
+                es_activo, fecha_creacion, id_infraestructura, id_tipo_dispositivo)
+            VALUES (:id, :serial, 'Gateway integracion', TRUE, now(), :id_infra, 1)
             """
         ),
         {"id": id_dispositivo, "serial": _letras(12), "id_infra": id_infraestructura},
@@ -160,6 +160,7 @@ def test_reemplazo_directa_sobre_el_mismo_activo_es_aceptado(
     sobre el mismo sensor y el mismo activo, dentro de la misma transacción
     -- exactamente la secuencia que ejecuta AsociarSensorActivoUseCase."""
     usuario = crear_usuario_db()
+    db_session.execute(text("SET app.usuario_id = :uid"), {"uid": str(usuario["id_usuario"])})
     id_infra = _crear_infraestructura(db_session)
     id_activo = _crear_activo_individual(db_session, usuario["id_usuario"], id_infra)
     id_sensor = _crear_sensor(db_session, id_infra)
@@ -214,6 +215,7 @@ def test_directa_en_otro_activo_sigue_siendo_rechazada(
     """El fix no debe desactivar la unicidad real: un sensor DIRECTA ya
     ACTIVA en OTRO activo sigue bloqueando la nueva asociación."""
     usuario = crear_usuario_db()
+    db_session.execute(text("SET app.usuario_id = :uid"), {"uid": str(usuario["id_usuario"])})
     id_infra = _crear_infraestructura(db_session)
     id_activo_a = _crear_activo_individual(db_session, usuario["id_usuario"], id_infra)
     id_activo_b = _crear_activo_individual(db_session, usuario["id_usuario"], id_infra)
