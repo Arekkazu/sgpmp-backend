@@ -1,5 +1,46 @@
 # TC-M02-G40 — Resultado de ejecución
 
+## 🟡 REEVALUACIÓN 2026-09-15 — mixto: TC-M02-075 sigue PASS, TC-M02-076 ahora bloqueado
+
+**Este caso es distinto a los anteriores porque no todo depende de crear un activo nuevo.** TC-M02-075 usa el
+activo **213**, que quedó dejado en estado CERRADO de forma persistente en TEST desde el 09-10 (no se recrea en
+cada corrida) — por eso **sigue pasando hoy sin ningún problema**, es la única prueba de esta ronda de reevaluación
+que no depende del endpoint de creación de activos. TC-M02-076 sí crea un activo fresco en cada ejecución, así que
+**hoy queda bloqueado** por la misma regresión de migración pendiente ya documentada (`INC-M02-100`).
+
+| Sub-caso | 09-10 | 15-09 (hoy) |
+|---|---|---|
+| TC-M02-075 (CERRADO no admite eventos) | PASS | **PASS — sigue igual, sin cambios** |
+| TC-M02-076 (fecha inválida) | PASS en negocio (422 vs. 400 documentado) | **Bloqueado — `500` al crear el activo de prueba** |
+
+```json
+// 2A. Setup - activo fresco para TC-M02-076
+// HTTP 500
+{
+  "error_code": "ERROR_INTERNO",
+  "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+  "fields": [],
+  "timestamp": "2026-09-15T06:23:21..."
+}
+```
+
+No se pudo re-confirmar hoy si la discrepancia de código HTTP (422 real vs. 400 documentado en la ficha) sigue
+igual, pero por revisión de código no hay ningún cambio en `_event_validations.py` que la afecte — sigue usando
+`BusinessRuleError` (422) para ambas validaciones de fecha, igual que el 09-10.
+
+**Nota sobre el activo 213 (precondición persistente):** sigue vivo y en estado CERRADO 6 días después, sin que
+nadie lo haya tocado — es un dato compartido en el entorno TEST, vale la pena tenerlo presente si alguien más lo
+usa o lo modifica sin saber que es precondición de este caso.
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY: `RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G40-HOY-2026-09-15.html` (el
+`newman-TC-M02-G40.html` sin fecha, en esta misma carpeta, es el original del 09-10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: TC-M02-075 PASS completo. TC-M02-076 PASS en comportamiento de negocio, con una discrepancia de
 código HTTP frente a la ficha (422 real vs. 400 documentado).** 9/11 assertions PASS vía Postman/Newman contra el
 backend TEST desplegado.

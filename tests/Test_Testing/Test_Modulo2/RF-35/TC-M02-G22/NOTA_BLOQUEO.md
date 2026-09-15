@@ -1,5 +1,11 @@
 # TC-M02-G22 (TC-M02-038) — BLOQUEO en la precondición: RF-41 no permite registrar eventos sanitarios en TEST
 
+> **Actualización 2026-09-15:** el fix descrito en "Cómo desbloquear" ya está escrito en el código (migración
+> `alembic/versions/68232a1efcc2_inc_m02_75_g53_trigger_fecha_evento_.py` + mapeo del SQLSTATE `P0215` en
+> `src/shared/db_error_translator.py`), pero **todavía no está desplegado en TEST** — esa migración depende de otra
+> que tampoco se aplicó ahí (ver `TC-M02-G20`/`TC-M02-G21`). El bloqueo sigue vigente en TEST hasta que se pongan al
+> día las migraciones pendientes.
+
 **RF-35 / CU-02.** No es un bug de RF-35 — es un defecto de RF-41 (`POST /activos-biologicos/{id}/eventos/sanitario`)
 que impide construir la precondición literal de TC-M02-038 ("Activo con eventos sanitarios/biológicos pendientes
 sin cerrar"). Se documenta aquí porque bloqueó el camino directo de la prueba, y porque es un hallazgo real e

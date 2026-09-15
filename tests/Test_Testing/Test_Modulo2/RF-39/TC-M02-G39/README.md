@@ -12,8 +12,12 @@
 
 ## ✅ Resultado: PASS — 13/13 assertions
 
-Los 3 estados operativos permiten registrar el evento, tal como exige el RF. Detalle completo en
-`RESULTADOS/TC-M02-G39_resultado.md`.
+**Reevaluado 2026-09-15: ahora FAIL.** El setup (crear el activo de prueba) responde `500` — la misma regresión de
+migración pendiente que ya afecta a TC-M02-G20/G21/G22/G33/G34 (`INC-M02-100`). Ver la sección "🔴 REEVALUACIÓN
+2026-09-15" en `RESULTADOS/TC-M02-G39_resultado.md`.
+
+**Estado original (2026-09-10):** los 3 estados operativos permitían registrar el evento, tal como exige el RF.
+Detalle completo en la sección histórica de `RESULTADOS/TC-M02-G39_resultado.md`.
 
 ### Dos adaptaciones necesarias, explicadas
 

@@ -16,8 +16,15 @@
 
 ## ⚠️ Resultado: BLOQUEADO — ambos sub-casos, mismo defecto ya identificado en TC-M02-G23 (RF-37)
 
-**Estado general: FAIL/BLOQUEADO. 3/6 assertions PASS en Postman/Newman.** Ver `NOTA_BLOQUEO.md` para la causa raíz
-(confirmada por código, no una hipótesis) y `RESULTADOS/TC-M02-G33_resultado.md` para el detalle completo.
+**Reevaluado 2026-09-15: sigue bloqueado, ahora por una tercera causa que actúa primero.** El setup (crear el activo
+de prueba) responde `500` — la misma regresión de migración pendiente que afecta a TC-M02-G20/G21/G22
+(`INC-M02-100`). Los 2 bloqueos originales de abajo (bug de `cambiar_fase` y gap de diseño de
+`confirmacion_no_estandar`) siguen ahí sin corregirse, solo que hoy ni se llega a intentarlos. Ver la sección "🔴
+REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G33_resultado.md`.
+
+**Estado original (2026-09-09/10): FAIL/BLOQUEADO. 3/6 assertions PASS en Postman/Newman.** Ver `NOTA_BLOQUEO.md`
+para la causa raíz (confirmada por código, no una hipótesis) y la sección histórica en
+`RESULTADOS/TC-M02-G33_resultado.md` para el detalle completo.
 
 `POST /activos-biologicos/{id}/fases` devuelve **500** para cualquier activo y cualquier ciclo productivo válido —
 el mismo defecto **INC-M02-37-01** ya documentado al intentar armar la precondición de TC-M02-047

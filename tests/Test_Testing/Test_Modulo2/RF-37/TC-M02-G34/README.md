@@ -12,10 +12,16 @@
 
 ## ⚠️ Resultado: BLOQUEADO en su totalidad — 5/8 assertions FAIL
 
-**Los 4 sub-casos dependen de `POST /fases`, que está roto para cualquier entrada (INC-M02-37-01, ya reportado
-desde TC-M02-G23).** Se re-confirmó con datos frescos y, además, se descubrió un **segundo defecto independiente**
-que bloquea específicamente la precondición de TC-M02-044. Detalle completo con evidencia en
-`RESULTADOS/TC-M02-G34_resultado.md` y causas raíz en `NOTA_BLOQUEO.md`.
+**Reevaluado 2026-09-15: sigue bloqueado, ahora por una cuarta causa que actúa primero.** Ni siquiera se pudo crear
+ningún activo de prueba hoy — mismo `500` de migración pendiente que TC-M02-G20/G21/G22/G33 (`INC-M02-100`). Los 3
+bloqueos de abajo siguen sin corregirse (confirmado por código), y se encontró que el fix del defecto de RF-45
+descrito abajo ya existe en el código pero también está atrapado detrás de la misma migración pendiente. Ver la
+sección "🔴 REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G34_resultado.md`.
+
+**Estado original (2026-09-10):** Los 4 sub-casos dependen de `POST /fases`, que está roto para cualquier entrada
+(INC-M02-37-01, ya reportado desde TC-M02-G23). Se re-confirmó con datos frescos y, además, se descubrió un
+**segundo defecto independiente** que bloquea específicamente la precondición de TC-M02-044. Detalle completo con
+evidencia en la sección histórica de `RESULTADOS/TC-M02-G34_resultado.md` y causas raíz en `NOTA_BLOQUEO.md`.
 
 ### GIVEN / WHEN / THEN
 

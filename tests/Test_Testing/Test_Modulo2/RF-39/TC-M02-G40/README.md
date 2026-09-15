@@ -12,7 +12,13 @@
 
 ## Resultado: TC-M02-075 PASS · TC-M02-076 PASS en negocio, discrepancia menor de código HTTP
 
-**9/11 assertions PASS.** Detalle completo en `RESULTADOS/TC-M02-G40_resultado.md`.
+**Reevaluado 2026-09-15: mixto.** TC-M02-075 usa un activo persistente (213, ya CERRADO desde el 09-10) y **sigue
+en PASS**, sin verse afectado por la regresión de migración pendiente. TC-M02-076 sí crea un activo nuevo cada vez
+y **hoy queda bloqueado** por esa misma regresión (`INC-M02-100`, ver TC-M02-G20 y siguientes). Ver la sección "🟡
+REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G40_resultado.md`.
+
+**Estado original (2026-09-09): 9/11 assertions PASS.** Detalle completo en la sección histórica de
+`RESULTADOS/TC-M02-G40_resultado.md`.
 
 ### Precondición de TC-M02-075 — cómo se preparó (autorizado explícitamente por el usuario)
 

@@ -17,12 +17,18 @@
 
 ## ⚠️ Resultado: FAIL en ambos sub-casos — gaps ya confirmados en código, ahora verificados en vivo
 
-**Estado general: FAIL — TC-M02-037 y TC-M02-038 no se comportan como exige el RF.** Esto no es una falla de esta
-prueba ni de datos mal preparados: es la primera vez que este proyecto verifica en vivo, contra el TEST desplegado,
-dos gaps que ya estaban documentados por lectura de código en `anotaciones/modulo_2/estado.md` (RF-35: *"No valida
-eventos pendientes... pese a que el RF lo exige explícitamente"*). Ver `RESULTADOS/TC-M02-G22_resultado.md` para el
-detalle completo, y `NOTA_BLOQUEO.md` para un defecto independiente de RF-41 que bloqueó la vía directa de armar la
-precondición de TC-M02-038.
+**Estado actual (reevaluación 2026-09-15): FAIL — bloqueado más arriba en la cadena.** El backend TEST ya ni
+siquiera crea el activo de prueba (`500`, misma regresión de migración pendiente que TC-M02-G20/G21), así que no se
+pudo re-confirmar en vivo si los 2 gaps de abajo siguen igual — por código, siguen sin corregirse. Además se
+encontró que el fix del bloqueo de RF-41 (`NOTA_BLOQUEO.md`) ya existe en el código pero tampoco está desplegado en
+TEST. Ver la sección "🔴 ESTADO ACTUAL" en `RESULTADOS/TC-M02-G22_resultado.md`.
+
+**Estado original (2026-09-09): FAIL — TC-M02-037 y TC-M02-038 no se comportaban como exige el RF.** Esto no fue una
+falla de esta prueba ni de datos mal preparados: fue la primera vez que este proyecto verificó en vivo, contra el
+TEST desplegado, dos gaps que ya estaban documentados por lectura de código en `anotaciones/modulo_2/estado_M02.md`
+(RF-35: *"No valida eventos pendientes... pese a que el RF lo exige explícitamente"*). Ver la sección histórica en
+`RESULTADOS/TC-M02-G22_resultado.md` para el detalle completo, y `NOTA_BLOQUEO.md` para el defecto independiente de
+RF-41 que bloqueó la vía directa de armar la precondición de TC-M02-038.
 
 La colección Postman (`TC-M02-G22.postman_collection.json`) codifica en sus assertions el comportamiento que **exige
 el RF** (no lo que el sistema realmente hace), a propósito: así el reporte de Newman muestra `FAIL` de forma honesta

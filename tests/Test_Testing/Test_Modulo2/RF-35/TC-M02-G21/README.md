@@ -28,10 +28,15 @@ comportamiento del endpoint (ignora el campo, nunca lo persiste) es el mismo en 
 
 ## Ejecución
 
-**Estado: PASS — 2/2 sub-casos, 16/16 assertions vía Postman/Newman contra el entorno TEST desplegado.** Ver
-`RESULTADOS/TC-M02-G21_resultado.md` para el detalle de evidencia y un hallazgo relevante sobre **cómo** el sistema
-rechaza el cambio (no es un único código de error — depende de si el intento va acompañado de un campo editable
-válido).
+**Estado actual (reevaluación 2026-09-15): FAIL — misma regresión que TC-M02-G20.** El backend TEST responde `500`
+al crear el activo de prueba (setup), así que ningún paso posterior se puede ejecutar. Causa raíz ya confirmada
+contra la BD de TEST: falta aplicar una migración pendiente. Ver la sección "🔴 ESTADO ACTUAL" en
+`RESULTADOS/TC-M02-G21_resultado.md`.
+
+Estado original (2026-09-09): PASS — 2/2 sub-casos, 16/16 assertions vía Postman/Newman contra el entorno TEST
+desplegado. Ver la sección histórica en `RESULTADOS/TC-M02-G21_resultado.md` para el detalle de evidencia de esa
+ejecución y un hallazgo relevante sobre **cómo** el sistema rechaza el cambio (no es un único código de error —
+depende de si el intento va acompañado de un campo editable válido).
 
 El caso crea su **propio** activo individual de prueba en el setup (especie_id=3, igual que pide la precondición),
 sin depender de datos de otros testers en el entorno compartido.

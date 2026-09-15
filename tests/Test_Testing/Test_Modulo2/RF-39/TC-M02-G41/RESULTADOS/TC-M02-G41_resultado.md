@@ -1,5 +1,51 @@
 # TC-M02-G41 — Resultado de ejecución
 
+## 🔴 REEVALUACIÓN 2026-09-15 — FAIL total, y con un hallazgo que AMPLÍA el alcance de INC-M02-100
+
+**Los 3 sub-casos fallan hoy — 9/10 assertions.** Dos de ellos (TC-M02-077, TC-M02-079) por la causa ya conocida
+(no se puede crear el activo/lote fresco que necesitan, `500` en `POST /activos-biologicos`). El tercero
+(TC-M02-078) es **el hallazgo importante de este caso**: no depende de crear ningún activo nuevo — usa el lote
+**130**, que ya existía desde antes — y aun así falla hoy con `500`, cuando el 09-10 devolvía correctamente `400
+NUEVO_PESO_REQUERIDO`.
+
+```json
+// POST /activos-biologicos/130/eventos/crecimiento (activo YA EXISTENTE, sin crear nada nuevo)
+// HTTP 500
+{
+  "error_code": "ERROR_INTERNO",
+  "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+  "fields": [],
+  "timestamp": "2026-09-15T06:26:49.314177+00:00"
+}
+```
+
+**Esto confirma que `INC-M02-100` (la migración pendiente en TEST) no solo bloquea crear activos — bloquea
+cualquier endpoint que consulte parámetros de especie/métricas de producción sobre un activo que YA existe.** Se
+revisó el código y hay exactamente 3 casos de uso que dependen de esa misma consulta (`ParametrosEspecieM09Adapter`,
+que hace `SELECT` sobre el modelo con las columnas `tipo_dato`/`es_obligatorio` que faltan en TEST):
+
+- `registrar_activo_use_case.py` (RF-33) — ya lo sabíamos, por TC-M02-G20/G21/G22/G33/G34/G39/G40.
+- `registrar_evento_crecimiento_use_case.py` (RF-40) — **confirmado hoy con este caso**, sobre un activo existente.
+- `registrar_evento_productivo_use_case.py` (RF-43) — mismo patrón de código; no se pudo confirmar en vivo en esta
+  sesión por falta de un caso de prueba disponible para RF-43, pero es altamente probable que falle igual.
+
+### Qué pasó con cada sub-caso
+
+| Sub-caso | Depende de crear un activo nuevo | 09-10 | 15-09 (hoy) |
+|---|---|---|---|
+| TC-M02-077 | Sí (activo 218 individual) | PASS | **Bloqueado — `500` al crear el activo** |
+| TC-M02-078 | **No** (usa el lote 130, ya existente) | PASS | **FAIL — `500` al registrar el evento, sin crear nada** |
+| TC-M02-079 | Sí (lote 219 fresco) | PASS | **Bloqueado — `500` al crear el lote** |
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY: `RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G41-HOY-2026-09-15.html` (el
+`newman-TC-M02-G41.html` sin fecha, en esta misma carpeta, es el original del 09-10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: PASS — 3/3 sub-casos, 12/12 assertions vía Postman/Newman contra el backend TEST desplegado.**
 
 | Campo | Valor |

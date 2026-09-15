@@ -1,5 +1,65 @@
 # TC-M02-G23 — Resultado de ejecución
 
+## 🔴 REEVALUACIÓN 2026-09-15 — el BOLA crítico SIGUE explotable hoy
+
+**Se re-ejecutaron las dos suites (Postman/Newman y Pytest) contra TEST, sin tocar la colección ni el script. Los 3
+resultados son iguales a los del 09-09 — nada mejoró, nada empeoró.** A diferencia de TC-M02-G20/G21/G22, este caso
+**no depende de crear un activo nuevo** (usa los activos 199/200 ya existentes), así que no lo afecta el problema de
+migración pendiente que bloquea esos otros casos — esto se probó de punta a punta, sin bloqueos externos.
+
+| Sub-caso | 09-09 | 15-09 (hoy) | Cambió? |
+|---|---|---|---|
+| TC-M02-045 (BOLA) | FAIL crítico | **FAIL crítico — igual** | No |
+| TC-M02-046 (rol restringido) | PASS | **PASS — igual** | No |
+| TC-M02-047 (historial fases) | Bloqueado (500) | **Bloqueado (500) — igual** | No, pero ver nota abajo |
+
+### TC-M02-045 — confirmado de nuevo, en vivo, hoy
+
+Mismo ataque, mismo resultado. Con el token de un Productor limitado a su propia finca:
+
+```
+PATCH /activos-biologicos/200   (activo de OTRA finca, no la del Productor)
+Body: {"raza": "MODIFICADO por Productor A via BOLA - pytest"}
+→ HTTP 200 OK — el RF exige 403
+```
+
+Verificación posterior como admin confirma que el cambio se guardó de verdad:
+
+```
+GET /activos-biologicos/200 → raza: "MODIFICADO por Productor A via BOLA - pytest"
+(el valor original era "Camaron victima finca B")
+```
+
+**Se revisó el código actual (incluyendo los commits nuevos traídos de `origin/dev`) y el bug sigue sin
+corregirse**: `ActualizarActivoIndividualUseCase` sigue llamando `self.repo.obtener_por_id(id_activo)` sin el
+parámetro de alcance por finca que sí usan los `GET` del mismo módulo. Ningún commit reciente toca esa línea.
+
+### TC-M02-046 — sigue bien
+
+Sin cambios: el Veterinario (sin permiso de escritura) sigue recibiendo `403 ACCESO_DENEGADO` correctamente.
+
+### TC-M02-047 — sigue bloqueado, pero con un dato nuevo importante
+
+`POST /activos-biologicos/199/fases` sigue respondiendo `500` — mismo síntoma exacto que el 09-09. Pero al traer los
+commits de `origin/dev` se descubrió algo relevante: **el bug exacto que documenta `NOTA_BLOQUEO.md` (faltaba el
+argumento `usuario_id` en `cambiar_fase_use_case.py`) ya está corregido en el código** — la línea 89 de ese archivo
+ya envía los 4 argumentos correctos. Sin embargo, el `500` en TEST **no cambió**. Esto sugiere que el servidor de
+aplicación en TEST está corriendo una versión de código más vieja que la que tenemos en el repositorio ahora mismo
+— no es solo la base de datos la que está desactualizada (como en TC-M02-G20/G21/G22), sino también el propio
+código desplegado. No se pudo confirmar el commit exacto que corre TEST (no expone ningún endpoint de versión), así
+que esto queda como la explicación más probable, no como un hecho verificado al 100%.
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY (los fallos de TC-M02-045 y TC-M02-047 salen en rojo, con nombre distinto al
+reporte del 09-09 para no confundirlos): `newman-TC-M02-G23-HOY-2026-09-15.html`, en la carpeta
+`reevaluacion_2026-09-15/` junto al JSON crudo de la misma corrida. El reporte `newman-TC-M02-G23.html` sin fecha
+(en esta misma carpeta) es el original del 09-09 — no se tocó.
+
+---
+
+## Histórico — ejecución 2026-09-09
+
 **Estado general: TC-M02-045 FAIL (BOLA crítico confirmado) · TC-M02-046 PASS · TC-M02-047 BLOQUEADO en precondición
 (bug independiente de RF-37).** Postman/Newman: 9/12 assertions PASS. Pytest: 5/7 PASS. Ambos contra el backend
 TEST desplegado, con datos reales.

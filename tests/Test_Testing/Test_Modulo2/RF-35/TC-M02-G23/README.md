@@ -16,10 +16,16 @@
 
 ## ⚠️ Resultado: BOLA CRÍTICO confirmado + 1 bloqueo de precondición (RF-37) ajeno a RF-35
 
-**Estado general: TC-M02-045 → FAIL crítico (vulnerabilidad real confirmada). TC-M02-046 → PASS. TC-M02-047 →
-BLOQUEADO en su precondición (bug de RF-37, ver `NOTA_BLOQUEO.md`), con verificación estructural parcial en PASS.**
-Postman/Newman: 9/12 assertions PASS. Pytest: 5/7 PASS. Ver `RESULTADOS/TC-M02-G23_resultado.md` para el detalle
-completo con evidencia.
+**Reevaluado 2026-09-15: sin cambios.** El BOLA crítico de TC-M02-045 se confirmó de nuevo, en vivo, explotable hoy
+tal cual el 09-09 — este caso no depende de crear un activo nuevo, así que no lo bloquea la migración pendiente que
+afecta a TC-M02-G20/G21/G22. TC-M02-046 sigue en PASS. TC-M02-047 sigue bloqueado con el mismo `500`, aunque el bug
+documentado ya tiene fix en el código — indicio de que el servidor de TEST corre una versión de la aplicación más
+vieja que la del repositorio. Ver la sección "🔴 REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G23_resultado.md`.
+
+**Estado original (2026-09-09): TC-M02-045 → FAIL crítico (vulnerabilidad real confirmada). TC-M02-046 → PASS.
+TC-M02-047 → BLOQUEADO en su precondición (bug de RF-37, ver `NOTA_BLOQUEO.md`), con verificación estructural
+parcial en PASS.** Postman/Newman: 9/12 assertions PASS. Pytest: 5/7 PASS. Ver la sección histórica en
+`RESULTADOS/TC-M02-G23_resultado.md` para el detalle completo con evidencia de esa ejecución.
 
 ### Adaptación de precondiciones al entorno real (por qué no es literalmente "el veterinario" ni "`activo_id=800`")
 

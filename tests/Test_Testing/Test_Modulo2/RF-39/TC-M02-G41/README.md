@@ -11,8 +11,14 @@
 
 ## ✅ Resultado: PASS — 12/12 assertions
 
-Los 3 sub-casos funcionan exactamente como exige el RF, con mensajes claros y específicos del campo faltante.
-Detalle completo en `RESULTADOS/TC-M02-G41_resultado.md`.
+**Reevaluado 2026-09-15: FAIL total.** Además de la regresión ya conocida (no se pueden crear activos nuevos), se
+encontró que `INC-M02-100` es más amplia de lo que se pensaba: también rompe el registro de eventos de
+**crecimiento** (RF-40) sobre un activo que **ya existía**, sin crear nada nuevo — probablemente también afecta a
+eventos **productivos** (RF-43) por el mismo patrón de código. Ver la sección "🔴 REEVALUACIÓN 2026-09-15" en
+`RESULTADOS/TC-M02-G41_resultado.md`.
+
+**Estado original (2026-09-10):** los 3 sub-casos funcionaban exactamente como exige el RF, con mensajes claros y
+específicos del campo faltante. Detalle completo en la sección histórica de `RESULTADOS/TC-M02-G41_resultado.md`.
 
 ### Nota sobre TC-M02-078 — por qué se usó el activo preexistente 130, no uno nuevo
 

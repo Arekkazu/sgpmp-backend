@@ -1,5 +1,28 @@
 # TC-M02-G77 — Resultado de ejecución
 
+## ✅ REEVALUACIÓN 2026-09-15 — sin cambios, mismo resultado exacto
+
+**13/14 assertions PASS, idéntico al 09-10.** Este caso solo hace `GET /ficha-integral` sobre activos que ya
+existían (5, 10, 8) — no crea ningún activo nuevo ni depende de la consulta de parámetros de especie rota por
+`INC-M02-100`, así que no se ve afectado por esa regresión (igual que TC-M02-G42 y la mitad de TC-M02-G40).
+
+- **TC-M02-127** sigue en FAIL por lo mismo: la Sección 8 (accesos directos) sigue sin existir — se confirmó por
+  código que `accesos_directos` no aparece en ningún lado de `src/biological_assets/`, ni en la entidad ni en el
+  schema. Sin cambios.
+- **TC-M02-128** y **TC-M02-130** siguen en PASS, mismas respuestas.
+- **TC-M02-129** sigue sin poder reproducirse en vivo por la misma razón (no se puede forzar la falla de la vista
+  de indicadores sin arriesgar un objeto de base de datos compartido). Se confirmó por código que `_indicadores()`
+  sigue sin ningún `try/except` propio — el gap persiste.
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY: `RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G77-HOY-2026-09-15.html` (el
+`newman-TC-M02-G77.html` sin fecha, en esta misma carpeta, es el original del 09-10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: 3/4 sub-casos con veredicto (2 PASS, 1 FAIL confirmado); 1 sub-caso no reproducible en vivo sin
 riesgo (gap confirmado por código). 13/14 assertions PASS** vía Postman/Newman contra el backend TEST desplegado,
 usando datos reales ya existentes.

@@ -1,5 +1,39 @@
 # TC-M02-G39 — Resultado de ejecución
 
+## 🔴 REEVALUACIÓN 2026-09-15 — de PASS a FAIL, misma causa que G20/G21/G22/G33/G34
+
+**Cambió de estado: ahora FAIL.** El 10 de septiembre pasó completo (13/13). Hoy el setup (crear el activo
+POBLACIONAL de prueba) responde `500 ERROR_INTERNO` — la misma regresión de migración pendiente ya documentada en
+varios casos anteriores (`INC-M02-100`). Al no crearse el activo, los 3 sub-casos (TC-M02-072/073/074) y las 2
+verificaciones finales quedan bloqueados en cascada (10/11 assertions fallidas).
+
+```json
+{
+  "error_code": "ERROR_INTERNO",
+  "message": "Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.",
+  "fields": [],
+  "timestamp": "2026-09-15T06:18:25.126676+00:00"
+}
+```
+
+**Sobre el "alcance no cubierto" señalado el 09-10** (RF-40/crecimiento y RF-43/productivo rechazan
+EN_TRATAMIENTO/AISLADO, violando lo que exige RF-39 para *todos* los tipos de evento): se revisó el código actual y
+**sigue exactamente igual** — `registrar_evento_crecimiento_use_case.py` y
+`registrar_evento_productivo_use_case.py` siguen exigiendo `id_estado == ACTIVO` explícitamente, sin usar el gate
+compartido `validar_estado_permite_eventos()` que sí usan sanitarios y reproductivos. Sigue siendo una violación
+real de RF-39 para esos dos tipos de evento, no demostrable en vivo hoy por el mismo bloqueo de siempre
+(`INC-M02-37-01`, que además ahora ni se puede alcanzar por `INC-M02-100`).
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY, con los fallos en rojo:
+`RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G39-HOY-2026-09-15.html` (el `newman-TC-M02-G39.html` sin fecha,
+en esta misma carpeta, es el original del 09-10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: PASS — 3/3 sub-casos, 13/13 assertions vía Postman/Newman contra el backend TEST desplegado.**
 
 | Campo | Valor |

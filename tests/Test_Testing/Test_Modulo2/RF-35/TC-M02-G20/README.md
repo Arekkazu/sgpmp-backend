@@ -17,7 +17,9 @@
 
 ## Ejecución
 
-**Estado: PASS — 2/2 sub-casos, ejecutados dos veces (Postman/Newman y Cypress) de forma independiente contra el mismo entorno TEST desplegado.** Ver `RESULTADOS/TC-M02-G20_resultado.md` para el detalle de evidencia (requests/responses reales, IDs generados, hallazgos).
+**Estado actual (reevaluación 2026-09-15): FAIL — regresión.** El backend TEST responde `500` al crear el activo de prueba, así que ningún paso posterior se puede ejecutar. Ver la sección "Reevaluación 2026-09-15" en `RESULTADOS/TC-M02-G20_resultado.md`.
+
+Estado original (2026-09-09): PASS — 2/2 sub-casos, ejecutados dos veces (Postman/Newman y Cypress) de forma independiente contra el mismo entorno TEST desplegado. Ver `RESULTADOS/TC-M02-G20_resultado.md` para el detalle de evidencia (requests/responses reales, IDs generados, hallazgos) de esa ejecución.
 
 Ambas suites crean su **propio** activo individual de prueba en el `before`/setup (no reutilizan datos de otros testers en el entorno compartido) y no requieren datos previos aparte de: una especie activa (`id_especie=4`, Cachama Blanca) y una infraestructura activa (`id_infraestructura=6`), ya usadas exitosamente por activos existentes en TEST antes de esta ejecución.
 

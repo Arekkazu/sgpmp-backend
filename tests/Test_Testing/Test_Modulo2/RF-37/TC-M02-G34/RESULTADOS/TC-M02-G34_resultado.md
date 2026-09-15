@@ -1,5 +1,37 @@
 # TC-M02-G34 — Resultado de ejecución
 
+## 🔴 REEVALUACIÓN 2026-09-15 — bloqueado aún más arriba en la cadena
+
+**Sigue en BLOQUEADO total, ahora por una cuarta causa que actúa antes que las 3 ya conocidas.** El 10 de
+septiembre los activos de prueba sí se creaban. Hoy no: ambos setups (`Activo A` y `Activo B`) responden `500` al
+crear el activo — la misma regresión de migración pendiente que bloquea TC-M02-G20/G21/G22/G33 (`INC-M02-100`). Sin
+poder crear ningún activo, no se pudo re-probar en vivo ninguno de los 4 sub-casos hoy.
+
+**Dato nuevo relevante, encontrado al revisar el código actual (con los commits traídos de `origin/dev`):** el bug
+de `trg_fn_baja_cantidad_valida` documentado abajo (sección "El defecto nuevo") **ya tiene fix escrito**, en la
+migración `alembic/versions/c4e8f1a2b603_rf45_corregir_enum_trigger_baja.py` — corrige exactamente el literal
+`'poblacional'` → `'POBLACIONAL'` que se diagnosticó el 10 de septiembre con acceso a la base de datos. Pero esa
+migración también está encadenada detrás de la migración pendiente de `INC-M02-100`, así que **tampoco está
+aplicada en TEST**. Esto confirma que TEST no tiene solo 1 o 2 migraciones atrasadas — tiene varias, y conviene
+tratarlas todas juntas al desbloquear `INC-M02-100`.
+
+| Causa | Bloquea | Estado hoy |
+|---|---|---|
+| `INC-M02-100` — migración pendiente en TEST (nueva, bloquea desde el setup) | Los 4 sub-casos completos | Confirmado hoy: `500` en ambos setups (Activo A y Activo B) |
+| `INC-M02-37-01` — bug de `cambiar_fase` (fix ya en código, ver `INC-M02-103`) | TC-M02-040, 041, 043 | No se pudo re-probar aquí; confirmado hoy mismo en TC-M02-G23 que sigue igual en vivo |
+| Gaps de diseño — sin validación de fecha; sin `fase_destino_id`/`confirmacion_no_estandar` | TC-M02-040, TC-M02-041 | Confirmado por código: sin cambios |
+| `trg_fn_baja_cantidad_valida` — literal `'poblacional'` en vez de `'POBLACIONAL'` | Precondición de TC-M02-044 (bloquea el 100% de las bajas de RF-45) | Fix ya existe en el código (migración `c4e8f1a2b603`), pero también pendiente de aplicar en TEST |
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY, con los fallos en rojo:
+`RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G34-HOY-2026-09-15.html` (el `newman-TC-M02-G34.html` sin fecha,
+en esta misma carpeta, es el original del 09-10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: BLOQUEADO — 0/4 sub-casos pudieron verificarse. 3/8 assertions PASS, 5/8 FAIL** vía Postman/Newman
 contra el backend TEST desplegado. Causas raíz documentadas en `NOTA_BLOQUEO.md`.
 

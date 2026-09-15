@@ -1,5 +1,30 @@
 # TC-M02-G33 — Resultado de ejecución
 
+## 🔴 REEVALUACIÓN 2026-09-15 — bloqueado más arriba en la cadena que antes
+
+**Sigue en BLOQUEADO, pero por una tercera causa que se suma a las 2 ya conocidas.** El 9/10 de septiembre el activo
+de prueba SÍ se creaba (solo fallaba al intentar la fase). Hoy ni siquiera llega ahí: el setup
+(`POST /activos-biologicos`) responde `500` — la misma regresión de migración pendiente ya documentada en
+TC-M02-G20/G21/G22 (`INC-M02-100`). Como el activo nunca se crea, no se pudo re-confirmar en vivo hoy el bug de
+`cambiar_fase` ni el gap de `confirmacion_no_estandar` — pero **ambos siguen exactamente igual por revisión de
+código**, y el primero ya se re-confirmó en vivo hoy mismo en un caso hermano (TC-M02-G23).
+
+| Causa | Bloquea | Estado hoy |
+|---|---|---|
+| `INC-M02-100` — migración pendiente en TEST (nueva, bloquea desde el setup) | TC-M02-039 y TC-M02-042 completos | Confirmado hoy: mismo `500 ERROR_INTERNO` en el setup |
+| `INC-M02-37-01` — falta `usuario_id` al cerrar la fase anterior (ya en código el fix, ver `INC-M02-103`) | TC-M02-039 | No se pudo re-probar aquí (bloqueado antes), pero se confirmó hoy mismo que sigue igual en TC-M02-G23 |
+| Gap de diseño — `CambiarFaseDTO` no tiene `confirmacion_no_estandar` ni `fase_destino_id` | TC-M02-042 | Confirmado por código: el DTO sigue sin esos campos, sin cambios |
+
+### Evidencia de esta reevaluación
+
+Reporte visual de Newman de HOY, con los fallos en rojo:
+`RESULTADOS/reevaluacion_2026-09-15/newman-TC-M02-G33-HOY-2026-09-15.html` (el `newman-TC-M02-G33.html` sin fecha,
+en esta misma carpeta, es el original del 09-09/10 — no se tocó).
+
+---
+
+## Histórico — ejecución 2026-09-09/10
+
 **Estado general: BLOQUEADO — 0/2 sub-casos pudieron completarse. 3/6 assertions PASS, 3/6 FAIL vía Postman/Newman
 contra el backend TEST desplegado.** Ambos bloqueos tienen causa raíz documentada — ver `NOTA_BLOQUEO.md`.
 
