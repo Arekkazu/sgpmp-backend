@@ -560,9 +560,26 @@ Sin query params. Excluye la infraestructura actual del activo; solo incluye inf
 
 | Método | Ruta | Permiso | Roles autorizados | Use Case |
 |--------|------|---------|--------------------|----------|
+| `GET` | `/{id_activo}/sensores` | `(30, R)` | Admin, Prod, Vet, Ing | `ConsultarAsociacionesSensorUseCase` |
 | `POST` | `/{id_activo}/sensores` | `(30, C)` | Admin, Ing | `AsociarSensorActivoUseCase` |
 
-> Solo lectura (`R`) para Productor y Veterinario sobre este recurso — no aparece ningún endpoint `GET` dedicado en este router para consultarlo directamente (la lectura de asociaciones de sensor se expone desde el módulo `configuration`).
+> **Corrección (INC-M02-68-G91 / issue #218):** este documento afirmaba antes que la lectura de
+> asociaciones de sensor se exponía desde el módulo `configuration` — eso nunca se implementó ahí
+> (`src/configuration/` no tiene ningún endpoint sobre `asociaciones_activos_sensores`), y el
+> permiso `R` que sí tenían sembrado Productor y Veterinario no tenía ningún endpoint detrás. Se
+> agregó el `GET` en este mismo router, que es donde vive el resto del CU11.
+
+#### `GET /activos-biologicos/{id_activo}/sensores` — Consultar asociaciones sensor-activo
+
+**Query params:**
+
+| Param | Tipo | Default | Notas |
+|-------|------|---------|-------|
+| `tipo_consulta` | `Literal['ACTIVA','HISTORIAL']` | `'ACTIVA'` | `ACTIVA` devuelve solo las vigentes; `HISTORIAL` incluye `INACTIVA` y `SUPERADA` |
+
+**Response `ConsultaAsociacionesSensorResponse`:** `id_activo_biologico: int, tipo_consulta: str, asociaciones: list[AsociacionSensorActivoResponse]`.
+
+---
 
 #### `POST /activos-biologicos/{id_activo}/sensores` — Asociar sensor IoT al activo
 

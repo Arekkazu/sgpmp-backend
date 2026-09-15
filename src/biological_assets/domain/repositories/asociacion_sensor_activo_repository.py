@@ -41,6 +41,11 @@ class AsociacionSensorActivoRepository(ABC):
         """Lista todas las asociaciones ACTIVA para el activo dado, opcionalmente filtradas por tipo."""
 
     @abstractmethod
+    def listar_todas_por_activo(self, id_activo_biologico: int) -> list[AsociacionSensorActivo]:
+        """RF-49 (INC-M02-68-G91): historial completo de asociaciones del activo,
+        sin filtrar por estado (incluye ACTIVA, INACTIVA y SUPERADA)."""
+
+    @abstractmethod
     def actualizar_estado(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
         """Actualiza estado, fecha_fin y motivo de una asociación existente."""
 
