@@ -1,0 +1,74 @@
+TC-M02-G15 rev3 — cierre bloqueos TEST
+Fecha UTC: 2026-09-15T06:01:23.772722+00:00
+Estado global: RECHAZADO
+
+{
+  "TC-M02-027": {
+    "resultado": "RECHAZADO",
+    "reejecutado": false,
+    "incidente": "INC-M02-G15-001",
+    "evidencia_previa": "TC-M02-G15-rev2.json TC-M02-027",
+    "conclusion_bola": "No se reejecuto BOLA. Permanece pendiente INC-M02-G15-001: PATCH HTTP 200 sobre activo 350 (finca 65) por Productor de finca 57. GET habia sido 404."
+  },
+  "TC-M02-028": {
+    "resultado": "BLOQUEADO",
+    "payload_campos_protegidos": {
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "http_post": 500,
+    "id_creado": null,
+    "estado_persistido": null,
+    "cantidad_actual_persistida": null,
+    "residuo": "ninguno (POST no creo ID)",
+    "conclusion_mass_assignment": "POST HTTP 500 ERROR_INTERNO. No se declara PASS ni vulnerabilidad de mass assignment. Impide comprobar persistencia de estado=CERRADO / cantidad_actual=9999.",
+    "payload": {
+      "tipo_activo": "POBLACIONAL",
+      "id_especie": 4,
+      "fecha_inicio_ciclo": "2026-09-09",
+      "origen_financiero": "nacimiento",
+      "id_infraestructura": 3,
+      "atributos_dinamicos": {},
+      "cantidad_inicial": 10,
+      "peso_promedio_inicial": 2.5,
+      "costo_adquisicion": null,
+      "soporte_documental": null,
+      "estado": "CERRADO",
+      "cantidad_actual": 9999
+    },
+    "respuesta_post": "{\"error_code\": \"ERROR_INTERNO\", \"message\": \"Ocurrió un error interno. Intenta de nuevo; si el problema persiste, contacta al equipo de soporte.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:01:27.264809+00:00\"}"
+  },
+  "TC-M02-031": {
+    "resultado": "BLOQUEADO",
+    "rol_utilizado": "ingeniero@pecuaria.co",
+    "rol_jwt": null,
+    "endpoint_historico": "GET /activos-biologicos/{id}",
+    "endpoint_listado": "GET /activos-biologicos",
+    "activo_objetivo": 350,
+    "campos_financieros_buscados": [
+      "costo_adquisicion",
+      "soporte_documental",
+      "soporte_documental_costo"
+    ],
+    "campos_en_respuesta": [],
+    "expuestos": [],
+    "http_get_objetivo": null,
+    "conclusion_exceso": "BLOQUEADO: login Ingeniero HTTP 423 error_code=CUENTA_BLOQUEADA. Un solo intento. No se evaluo exposicion.",
+    "codigo_respuesta_schema": "ActivoBiologicoResponse incluye costo_adquisicion y soporte_documental sin filtrar por rol. FichaIntegralResponse no incluye esos campos. El caso historico consulta GET /activos-biologicos/{id}, no ficha-integral.",
+    "login_ingeniero": {
+      "http": 423,
+      "ok": false,
+      "error_code": "CUENTA_BLOQUEADA",
+      "intentos": 1
+    }
+  }
+}
+
+{
+  "id": "INC-M02-G15-001",
+  "severidad": "CRITICO",
+  "estado": "PENDIENTE",
+  "nota": "BOLA de escritura confirmada en rev2: Productor m2m.nuevo@ejemplo.com finca 57 PATCH /activos-biologicos/350 (finca 65) HTTP 200 y persistio raza. Esta rev3 no reejecuta el escenario. Backend no validado como corregido."
+}
+Historico Newman y evidencias rev2 no modificados. Codigo productivo no modificado. Sin commit ni push. Un login por usuario en esta corrida.
+Password/JWT: [REDACTED]. Historico Newman y rev2 no modificados.

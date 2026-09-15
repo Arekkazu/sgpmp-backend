@@ -1,0 +1,30 @@
+TC-M02-G13 rev2 RF-33 TEST - INC-M02-46-G13
+Fecha UTC: 2026-09-15T03:41:20.8680214Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Login: admin@pecuaria.co (password via env). Newman --insecure. Exit 1.
+
+PRECHECK:
+- GET /configuracion/fincas -> 400 DEPARTAMENTO_REQUERIDO (TEST desplegado exige departamento; codigo laura GET no lo pide). Fallback finca_id=1 (catalogo infra ya observado en TEST G12).
+- GET especies solo_activas=true -> 200. especie_id=4 Cachama (preferida).
+- GET infra finca_id=1 -> 200. id_infraestructura=3 Alevinera-01.
+
+POST /activos-biologicos POBLACIONAL (estado extra INACTIVO): HTTP 500 ERROR_INTERNO
+timestamp: 2026-09-15T03:41:24.829031+00:00
+Sin ID. 015 GET y 020 historial no ejecutados.
+
+POST /activos-biologicos INDIVIDUAL compra costo=1000000: HTTP 500 ERROR_INTERNO
+timestamp: 2026-09-15T03:41:25.137821+00:00
+Sin ID. 021 PATCH/GET no ejecutados.
+
+CODIGO (inspeccion, no causa demostrada del 500):
+- Estado inicial: ActivoBiologico.crear asigna EstadoActivo.ACTIVO=1. DTO registro no tiene campo estado (extra se ignora).
+- Historial: registrar_historial version=1 tipo_evento=CREACION en la misma transaccion que guardar+commit.
+- GET historial: categoria=CREACION, detalle_especifico=json_snapshot. No expone version ni tipo_evento.
+- ConsultarHistorialDTO no lista CREACION como filtro; el GET sin filtro si incluye CREACION en el repo.
+- RF-35 PATCH ActualizarActivoIndividualDTO: raza, sexo, fecha_nacimiento, peso_inicial. NO costo_adquisicion.
+- PATCH /{id}/estado es RF-44 (cambio de estado), no edita costo.
+
+INC-M02-46-G13: NO VERIFICABLE (no hay 201 ni GET historial en esta corrida).
+No se declara CORREGIDO. No se confirma persistencia del historial vacio (no se reprodujo el 201+0 registros).
+
+Historico no modificado. Backend no modificado. Sin commit/push.

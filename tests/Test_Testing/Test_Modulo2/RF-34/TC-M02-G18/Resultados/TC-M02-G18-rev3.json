@@ -1,0 +1,314 @@
+{
+  "caso": "TC-M02-G18",
+  "revision": 3,
+  "rf": "RF-34",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-15T06:11:17.993799+00:00",
+  "verificacion_dba": {
+    "activo_10": {
+      "id": 10,
+      "get_activo_http": 200,
+      "error_code_activo": null,
+      "activo_existe": true,
+      "historial_http": 200,
+      "precondicion_sin_vigente": true,
+      "n": 1,
+      "n_vigentes": 0,
+      "n_cerradas": 1,
+      "vigentes": [],
+      "cerradas": [
+        {
+          "id_historial": 294,
+          "id_infraestructura": 7,
+          "nombre_infraestructura": "Piscina-Cam-02",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "registros": [
+        {
+          "id_historial": 294,
+          "id_infraestructura": 7,
+          "nombre_infraestructura": "Piscina-Cam-02",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "fechas_inicio": [
+        "2026-01-01T00:00:00Z"
+      ],
+      "orden": "N/A (menos de 2 fechas)",
+      "ordenado_asc": null,
+      "ordenado_desc": null,
+      "respuesta_activo": "{\"id_activo_biologico\": 10, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"BOV-006\", \"fecha_inicio_ciclo\": null, \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": \"Vaca Holstein — dada de baja por venta al mercado\", \"id_infraestructura\": 1, \"atributos_dinamicos\": {\"color\": \"rojo\", \"condicion_corporal\": 3.2}, \"id_estado\": 6, \"nombre_estado\": \"BAJA\", \"id_usuario\": 1, \"fecha_creacion\": \"2026-05-02T01:57:56.494479Z\", \"detalle_individual\": {\"id_detalle\": 6, \"raza\": \"Holstein\", \"sexo\": \"Hembra\", \"fecha_nacimiento\": \"2018-06-12T00:00:00Z\", \"peso_inicial\": \"41.000\", \"fecha_creacion\": \"2026-06-27T21:55:47.817029Z\"}, \"detalle_poblacional\": null}"
+    },
+    "activo_8": {
+      "id": 8,
+      "get_activo_http": 200,
+      "error_code_activo": null,
+      "activo_existe": true,
+      "historial_http": 200,
+      "precondicion_multiple": true,
+      "n": 3,
+      "n_vigentes": 1,
+      "n_cerradas": 2,
+      "vigentes": [
+        {
+          "id_historial": 299,
+          "id_infraestructura": 30,
+          "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+          "fecha_inicio": "2026-04-01T00:00:00Z",
+          "fecha_fin": null
+        }
+      ],
+      "cerradas": [
+        {
+          "id_historial": 298,
+          "id_infraestructura": 28,
+          "nombre_infraestructura": "QA-G51-Infra-1789016821",
+          "fecha_inicio": "2026-02-01T00:00:00Z",
+          "fecha_fin": "2026-04-01T00:00:00Z"
+        },
+        {
+          "id_historial": 297,
+          "id_infraestructura": 15,
+          "nombre_infraestructura": "QA-G23-Estanque-B",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-02-01T00:00:00Z"
+        }
+      ],
+      "registros": [
+        {
+          "id_historial": 299,
+          "id_infraestructura": 30,
+          "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+          "fecha_inicio": "2026-04-01T00:00:00Z",
+          "fecha_fin": null
+        },
+        {
+          "id_historial": 298,
+          "id_infraestructura": 28,
+          "nombre_infraestructura": "QA-G51-Infra-1789016821",
+          "fecha_inicio": "2026-02-01T00:00:00Z",
+          "fecha_fin": "2026-04-01T00:00:00Z"
+        },
+        {
+          "id_historial": 297,
+          "id_infraestructura": 15,
+          "nombre_infraestructura": "QA-G23-Estanque-B",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-02-01T00:00:00Z"
+        }
+      ],
+      "fechas_inicio": [
+        "2026-04-01T00:00:00Z",
+        "2026-02-01T00:00:00Z",
+        "2026-01-01T00:00:00Z"
+      ],
+      "orden": "DESC",
+      "ordenado_asc": false,
+      "ordenado_desc": true,
+      "respuesta_activo": "{\"id_activo_biologico\": 8, \"id_especie\": 3, \"tipo\": \"POBLACIONAL\", \"identificador\": null, \"fecha_inicio_ciclo\": null, \"detalles_procedencia\": null, \"origen_financiero\": \"compra\", \"costo_adquisicion\": \"980000.0000\", \"soporte_documental\": null, \"descripcion\": \"Lote de tilapia roja en estanque 1\", \"id_infraestructura\": 4, \"atributos_dinamicos\": {\"estanque\": \"E1\", \"tipo_agua\": \"dulce\", \"cantidad_inicial\": 1000, \"soporte_documental\": \"factura_LOTEPEC001.pdf\"}, \"id_estado\": 5, \"nombre_estado\": \"CERRADO\", \"id_usuario\": 1, \"fecha_creacion\": \"2026-05-02T01:57:56.494479Z\", \"detalle_individual\": null, \"detalle_poblacional\": {\"id_detalle\": 3, \"cantidad_inicial\": 8000, \"cantidad_actual\": 7650, \"peso_promedio_inicial\": null, \"peso_promedio\": \"0.480\", \"biomasa_total\": \"3672.000\", \"densidad\": \"25.000\"}}"
+    },
+    "activo_352": {
+      "id": 352,
+      "get_activo_http": 200,
+      "activo_existe": true,
+      "historial_http": 200,
+      "tiene_vigente": true,
+      "n": 1,
+      "n_vigentes": 1,
+      "n_cerradas": 0,
+      "vigentes": [
+        {
+          "id_historial": 308,
+          "id_infraestructura": 1,
+          "nombre_infraestructura": "Estanque-01",
+          "fecha_inicio": "2026-09-12T19:04:30.406435Z",
+          "fecha_fin": null
+        }
+      ]
+    },
+    "inexistente_100352": {
+      "get_activo_http": 404,
+      "error_code": "ACTIVO_NO_ENCONTRADO",
+      "respuesta": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"El activo biológico con ID 100352 no existe.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:11:22.435364+00:00\"}"
+    },
+    "codigo_orden": "activo_biologico_repository.obtener_historial_infraestructura order_by fecha_inicio.desc()"
+  },
+  "subcasos": {
+    "TC-M02-025": {
+      "resultado": "APROBADO",
+      "endpoint": "GET /activos-biologicos/10/infraestructura?tipo_consulta=ACTIVA",
+      "id_activo": 10,
+      "verificacion_previa": {
+        "activo_existe": true,
+        "get_activo_http": 200,
+        "n": 1,
+        "n_vigentes": 0,
+        "n_cerradas": 1,
+        "precondicion_sin_vigente": true,
+        "registros": [
+          {
+            "id_historial": 294,
+            "id_infraestructura": 7,
+            "nombre_infraestructura": "Piscina-Cam-02",
+            "fecha_inicio": "2026-01-01T00:00:00Z",
+            "fecha_fin": "2026-03-01T00:00:00Z"
+          }
+        ]
+      },
+      "http": 404,
+      "respuesta": "{\"error_code\": \"ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA\", \"message\": \"El activo 10 no tiene una asociación de infraestructura activa. Esto indica una inconsistencia: todo activo biológico debe tener una infraestructura vigente asignada.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:11:22.844533+00:00\"}",
+      "error_code": "ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA",
+      "message": "El activo 10 no tiene una asociación de infraestructura activa. Esto indica una inconsistencia: todo activo biológico debe tener una infraestructura vigente asignada.",
+      "auditoria_http": 200,
+      "auditoria_n": 1,
+      "auditoria_resultados": [
+        "EXITOSO"
+      ],
+      "auditoria_tipos": [
+        "INFRAESTRUCTURA_CONSULTADA"
+      ],
+      "alerta_advertencia": false,
+      "codigo_observado": "ConsultarAsociacionUseCase levanta NotFoundError ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA antes de registrar bitacora; la bitacora de consulta EXITOSA no corre en el 404. No hay endpoint de alerta admin dedicado en este flujo.",
+      "explicacion": "HTTP 404 ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA. Activo 10 existe. Auditoria ADVERTENCIA: False."
+    },
+    "TC-M02-023": {
+      "resultado": "RECHAZADO",
+      "endpoint": "GET /activos-biologicos/8/infraestructura?tipo_consulta=HISTORIAL",
+      "id_activo": 8,
+      "multiple_cerrada_y_vigente": true,
+      "verificacion_previa": {
+        "activo_existe": true,
+        "get_activo_http": 200,
+        "n": 3,
+        "n_vigentes": 1,
+        "n_cerradas": 2,
+        "precondicion_multiple": true,
+        "registros": [
+          {
+            "id_historial": 299,
+            "id_infraestructura": 30,
+            "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+            "fecha_inicio": "2026-04-01T00:00:00Z",
+            "fecha_fin": null
+          },
+          {
+            "id_historial": 298,
+            "id_infraestructura": 28,
+            "nombre_infraestructura": "QA-G51-Infra-1789016821",
+            "fecha_inicio": "2026-02-01T00:00:00Z",
+            "fecha_fin": "2026-04-01T00:00:00Z"
+          },
+          {
+            "id_historial": 297,
+            "id_infraestructura": 15,
+            "nombre_infraestructura": "QA-G23-Estanque-B",
+            "fecha_inicio": "2026-01-01T00:00:00Z",
+            "fecha_fin": "2026-02-01T00:00:00Z"
+          }
+        ],
+        "orden_verificacion": "DESC"
+      },
+      "http": 200,
+      "respuesta": "{\"tipo_consulta\": \"HISTORIAL\", \"id_activo_biologico\": 8, \"asociacion_activa\": null, \"historial\": [{\"id_historial\": 299, \"id_activo_biologico\": 8, \"id_infraestructura\": 30, \"nombre_infraestructura\": \"QA-DIAG-Infra-1789018109\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-04-01T00:00:00Z\", \"fecha_fin\": null}, {\"id_historial\": 298, \"id_activo_biologico\": 8, \"id_infraestructura\": 28, \"nombre_infraestructura\": \"QA-G51-Infra-1789016821\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-02-01T00:00:00Z\", \"fecha_fin\": \"2026-04-01T00:00:00Z\"}, {\"id_historial\": 297, \"id_activo_biologico\": 8, \"id_infraestructura\": 15, \"nombre_infraestructura\": \"QA-G23-Estanque-B\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-01-01T00:00:00Z\", \"fecha_fin\": \"2026-02-01T00:00:00Z\"}], \"sensores_en_infraestructura\": [], \"advertencia_integridad\": null}",
+      "n_registros": 3,
+      "n_vigentes": 1,
+      "n_cerradas": 2,
+      "registros": [
+        {
+          "id_historial": 299,
+          "id_infraestructura": 30,
+          "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+          "fecha_inicio": "2026-04-01T00:00:00Z",
+          "fecha_fin": null
+        },
+        {
+          "id_historial": 298,
+          "id_infraestructura": 28,
+          "nombre_infraestructura": "QA-G51-Infra-1789016821",
+          "fecha_inicio": "2026-02-01T00:00:00Z",
+          "fecha_fin": "2026-04-01T00:00:00Z"
+        },
+        {
+          "id_historial": 297,
+          "id_infraestructura": 15,
+          "nombre_infraestructura": "QA-G23-Estanque-B",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-02-01T00:00:00Z"
+        }
+      ],
+      "fechas_inicio": [
+        "2026-04-01T00:00:00Z",
+        "2026-02-01T00:00:00Z",
+        "2026-01-01T00:00:00Z"
+      ],
+      "orden": "DESC",
+      "ordenado_fecha_inicio_asc": false,
+      "ordenado_fecha_inicio_desc": true,
+      "advertencia_integridad": null,
+      "explicacion": "HTTP 200, 3 registros (cerradas=2, vigentes=1), orden real=DESC. El caso exige fecha_inicio ASC."
+    },
+    "TC-M02-022": {
+      "resultado": "APROBADO",
+      "endpoint": "GET /activos-biologicos/352/infraestructura?tipo_consulta=ACTIVA",
+      "id_activo": 352,
+      "verificacion_previa": {
+        "activo_existe": true,
+        "tiene_vigente": true,
+        "vigentes": [
+          {
+            "id_historial": 308,
+            "id_infraestructura": 1,
+            "nombre_infraestructura": "Estanque-01",
+            "fecha_inicio": "2026-09-12T19:04:30.406435Z",
+            "fecha_fin": null
+          }
+        ]
+      },
+      "http": 200,
+      "respuesta": "{\"tipo_consulta\": \"ACTIVA\", \"id_activo_biologico\": 352, \"asociacion_activa\": {\"id_historial\": 308, \"id_activo_biologico\": 352, \"id_infraestructura\": 1, \"nombre_infraestructura\": \"Estanque-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-12T19:04:30.406435Z\", \"fecha_fin\": null}, \"historial\": null, \"sensores_en_infraestructura\": [{\"id_sensor\": 1, \"nombre\": \"Sensor temperatura estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Entrada de agua, profundidad 30 cm\", \"categoria\": \"TEMPERATURA\"}, {\"id_sensor\": 2, \"nombre\": \"Sensor pH estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Centro del estanque, profundidad 50 cm\", \"categoria\": \"PH\"}, {\"id_sensor\": 3, \"nombre\": \"Sensor oxígeno disuelto estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Salida de agua, profundidad 40 cm\", \"categoria\": \"OXIGENO\"}, {\"id_sensor\": 21, \"nombre\": \"Sensor Temperatura Test\", \"id_dispositivo_iot\": 13, \"punto_instalacion\": \"Esquina noroeste, metro 1.5\", \"categoria\": \"TEMPERATURA\"}], \"advertencia_integridad\": null}",
+      "fecha_fin": null,
+      "id_infraestructura": 1,
+      "id_historial": 308,
+      "sensores_campo": true,
+      "n_sensores": 4,
+      "advertencia_integridad": null,
+      "explicacion": "HTTP 200, vigente fecha_fin=null, infra=1, sensores n=4, advertencia_integridad=None."
+    },
+    "TC-M02-024": {
+      "resultado": "APROBADO",
+      "endpoint": "GET /activos-biologicos/100352/infraestructura?tipo_consulta=ACTIVA",
+      "id_activo": 100352,
+      "get_activo_http": 404,
+      "http": 404,
+      "respuesta": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"No existe un activo biológico con id 100352.\", \"fields\": [], \"timestamp\": \"2026-09-15T06:11:24.681195+00:00\"}",
+      "error_code": "ACTIVO_NO_ENCONTRADO",
+      "explicacion": "GET activo e infraestructura HTTP 404 ACTIVO_NO_ENCONTRADO."
+    },
+    "TC-M02-026": {
+      "resultado": "APROBADO",
+      "endpoint": "PUT/PATCH /activos-biologicos/352/infraestructura",
+      "id_activo": 352,
+      "http_put": 405,
+      "http_patch": 405,
+      "put_body": "{\"detail\": \"Method Not Allowed\"}",
+      "patch_body": "{\"detail\": \"Method Not Allowed\"}",
+      "menciona_rf48": false,
+      "explicacion": "PUT y PATCH HTTP 405 (detalle FastAPI genérico). Mencion RF-48: False."
+    }
+  },
+  "estado_global": "RECHAZADO",
+  "inc_m02_48_g18": "SUPERADO",
+  "defecto_orden_desc": {
+    "id_seguimiento": "por asignar (rev2 G18, mismo hallazgo)",
+    "descripcion": "Historial ordenado por fecha_inicio DESC; el caso exige ASC.",
+    "codigo": "obtener_historial_infraestructura .order_by(fecha_inicio.desc())",
+    "estado": "CONTINUA",
+    "activo_evidencia": 8
+  },
+  "auditoria": "Historico Newman y rev2 no modificados. Backend no modificado. Sin commit ni push. Sin crear/cerrar/transferir asociaciones.",
+  "inc_m02_48_nota": "INC-M02-48 cubre falta de datos (multiples asociaciones y activo sin vigente). El orden DESC es seguimiento aparte (rev2, no duplicar). 023 datos=True resultado=RECHAZADO; 025 datos=True resultado=APROBADO."
+}
