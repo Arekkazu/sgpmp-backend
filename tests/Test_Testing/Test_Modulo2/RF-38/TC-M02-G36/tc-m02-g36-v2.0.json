@@ -1,0 +1,620 @@
+{
+  "info": {
+    "name": "TC-M02-G36 v2.0 - Precondiciones para el cierre del ciclo (RF-38/RF-45)",
+    "_postman_id": "tcm02g36v2-0000-0000-0000-000000000000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_email", "value": "argeni.vargas1230@gmail.com" },
+    { "key": "admin_password", "value": "@Daniela1" },
+    { "key": "token_admin", "value": "" },
+    { "key": "sufijo_random_letras", "value": "" },
+    { "key": "fecha_hoy", "value": "" },
+    { "key": "id_finca", "value": "" },
+    { "key": "id_infraestructura", "value": "" },
+    { "key": "id_especie", "value": "" },
+    { "key": "id_activo_a", "value": "" },
+    { "key": "id_activo_b", "value": "" },
+    { "key": "activo_a_disponible", "value": "" },
+    { "key": "activo_a_en_baja", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('0A - RESPUESTA DEL LOGIN ADMIN (no fue 200): ' + pm.response.text());",
+              "}",
+              "pm.test('0A - Login admin devuelve 200 y token', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var token = body.token || body.access_token || (body.data && body.data.token);",
+              "    pm.expect(token, 'debe existir un token de acceso').to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-1 - Crear finca de prueba",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/fincas",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Finca Prueba Cierre Ciclo {{sufijo_random_letras}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Huila\",\n    \"municipio\": \"Neiva\",\n    \"vereda\": \"La Ficha\",\n    \"latitud\": 2.9273,\n    \"longitud\": -75.2819\n  },\n  \"tamano_h\": 8.0\n}" }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "var letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "var sufijo = '';",
+              "for (var i = 0; i < 8; i++) { sufijo += letras.charAt(Math.floor(Math.random() * letras.length)); }",
+              "pm.collectionVariables.set('sufijo_random_letras', sufijo);",
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-1 - Crear finca de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-1 - Finca de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_finca, 'debe devolver id_finca').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_finca', String(body.id_finca));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-2 - Crear infraestructura de prueba en esa finca",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/configuracion/infraestructuras",
+        "body": { "mode": "raw", "raw": "{\n  \"nombre_infraestructura\": \"Area TC-M02-G36 v2.0\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": 200,\n  \"finca_id\": {{id_finca}}\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-2 - Crear infraestructura de prueba - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-2 - Infraestructura de prueba creada', function () {",
+              "    pm.response.to.have.status(201);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.id_infraestructura, 'debe devolver id_infraestructura').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_infraestructura', String(body.id_infraestructura));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-3 - Consultar catalogo de especies y ubicar una compatible con Estanque (Cachama Blanca)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/especies"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-3 - Consultar catalogo de especies - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-3 - Existe la especie Cachama Blanca en el catalogo (compatible con Estanque, RF-48)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var lista = Array.isArray(body) ? body : (body.items || []);",
+              "    var especie = lista.find(function (e) { return e.nombre === 'Cachama Blanca' && e.es_activo !== false; });",
+              "    pm.expect(especie, 'debe existir la especie Cachama Blanca activa en el catalogo').to.not.be.undefined;",
+              "    pm.collectionVariables.set('id_especie', String(especie.id_especie));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4 - Registrar activo A INDIVIDUAL (candidato para dar de baja)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"Factura de compra No. TC-M02-G36-V2-A\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"IND-G36A-{{sufijo_random_letras}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"MACHO\",\n  \"fecha_nacimiento\": \"2023-06-01T00:00:00Z\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-4 - Registrar activo A - RESPUESTA: ' + pm.response.text());",
+              "    pm.collectionVariables.set('id_activo_a', '');",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    pm.collectionVariables.set('id_activo_a', String(body.id_activo_biologico));",
+              "}",
+              "pm.test('SETUP-4 - Registro directo de activo A (informativo: si falla, se documenta como defecto separado y se usa workaround)', function () {",
+              "    pm.expect(true).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4B - Workaround: buscar activo INDIVIDUAL ACTIVO existente para el rol de activo A (si SETUP-4 fallo)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos?tipo=INDIVIDUAL&page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var idA = pm.collectionVariables.get('id_activo_a');",
+              "if (idA) {",
+              "    console.log('SETUP-4B - OMITIDO: SETUP-4 ya registro un activo A nuevo (id=' + idA + ').');",
+              "    pm.test('SETUP-4B - Paso informativo (omitido, SETUP-4 ya proveyo un activo nuevo)', function () { pm.expect(true).to.be.true; });",
+              "} else if (pm.response.code !== 200) {",
+              "    console.log('SETUP-4B - Buscar activo INDIVIDUAL existente - RESPUESTA: ' + pm.response.text());",
+              "    pm.collectionVariables.set('activo_a_disponible', 'false');",
+              "    pm.test('SETUP-4B - El catalogo de activos biologicos es consultable (workaround)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    var candidatos = (body.registros || []).filter(function (a) { return a.tipo === 'INDIVIDUAL' && a.nombre_estado === 'ACTIVO'; });",
+              "    console.log('SETUP-4B - candidatos INDIVIDUAL ACTIVO: ' + JSON.stringify(candidatos.map(function (a) { return a.id_activo_biologico; })));",
+              "    if (candidatos.length === 0) {",
+              "        pm.collectionVariables.set('activo_a_disponible', 'false');",
+              "        pm.test('SETUP-4B - No se encontro un activo INDIVIDUAL ACTIVO disponible para el rol de activo A', function () {",
+              "            pm.expect.fail('No hay activos INDIVIDUAL en estado ACTIVO en TEST y la creacion directa (SETUP-4) fallo. TC-060/SETUP-5 quedan bloqueados por el defecto de creacion (ver TC-M02-G52).');",
+              "        });",
+              "    } else {",
+              "        pm.collectionVariables.set('id_activo_a', String(candidatos[0].id_activo_biologico));",
+              "        pm.collectionVariables.set('activo_a_disponible', 'true');",
+              "        console.log('SETUP-4B - se usara el activo existente ' + candidatos[0].id_activo_biologico + ' como activo A (sera llevado a BAJA de forma permanente).');",
+              "        pm.test('SETUP-4B - Se encuentra un activo INDIVIDUAL ACTIVO existente para el rol de activo A (workaround por el defecto de creacion)', function () {",
+              "            pm.expect(candidatos[0].id_activo_biologico).to.be.a('number');",
+              "        });",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4C - Registrar activo B INDIVIDUAL (se mantiene ACTIVO sin fase, para pruebas de validacion)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 800000,\n  \"soporte_documental\": \"Factura de compra No. TC-M02-G36-V2-B\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"IND-G36B-{{sufijo_random_letras}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"HEMBRA\",\n  \"fecha_nacimiento\": \"2023-06-01T00:00:00Z\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-4C - Registrar activo B - RESPUESTA: ' + pm.response.text());",
+              "    pm.collectionVariables.set('id_activo_b', '');",
+              "} else {",
+              "    var body = pm.response.json();",
+              "    pm.collectionVariables.set('id_activo_b', String(body.id_activo_biologico));",
+              "}",
+              "pm.test('SETUP-4C - Registro directo de activo B (informativo)', function () { pm.expect(true).to.be.true; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-4D - Workaround: buscar activo INDIVIDUAL ACTIVO existente (distinto de A) para el rol de activo B",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos?tipo=INDIVIDUAL&page_size=100&pagina=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var idB = pm.collectionVariables.get('id_activo_b');",
+              "if (idB) {",
+              "    console.log('SETUP-4D - OMITIDO: SETUP-4C ya registro un activo B nuevo (id=' + idB + ').');",
+              "    pm.test('SETUP-4D - Paso informativo (omitido, SETUP-4C ya proveyo un activo nuevo)', function () { pm.expect(true).to.be.true; });",
+              "} else if (pm.response.code !== 200) {",
+              "    console.log('SETUP-4D - Buscar activo INDIVIDUAL existente - RESPUESTA: ' + pm.response.text());",
+              "    pm.test('SETUP-4D - El catalogo de activos biologicos es consultable (workaround)', function () { pm.response.to.have.status(200); });",
+              "} else {",
+              "    var idA = pm.collectionVariables.get('id_activo_a');",
+              "    var body = pm.response.json();",
+              "    var candidatos = (body.registros || []).filter(function (a) {",
+              "        return a.tipo === 'INDIVIDUAL' && a.nombre_estado === 'ACTIVO' && String(a.id_activo_biologico) !== String(idA);",
+              "    });",
+              "    console.log('SETUP-4D - candidatos INDIVIDUAL ACTIVO (excluyendo A): ' + JSON.stringify(candidatos.map(function (a) { return a.id_activo_biologico; })));",
+              "    if (candidatos.length === 0) {",
+              "        pm.test('SETUP-4D - No se encontro un segundo activo INDIVIDUAL ACTIVO disponible para el rol de activo B', function () {",
+              "            pm.expect.fail('No hay un segundo activo INDIVIDUAL en estado ACTIVO disponible en TEST (distinto del usado como activo A) y la creacion directa (SETUP-4C) fallo. TC-061/062/063 quedan bloqueados.');",
+              "        });",
+              "    } else {",
+              "        pm.collectionVariables.set('id_activo_b', String(candidatos[0].id_activo_biologico));",
+              "        console.log('SETUP-4D - se usara el activo existente ' + candidatos[0].id_activo_biologico + ' como activo B (solo lectura/validaciones, no se muta su estado).');",
+              "        pm.test('SETUP-4D - Se encuentra un activo INDIVIDUAL ACTIVO existente para el rol de activo B (workaround por el defecto de creacion)', function () {",
+              "            pm.expect(candidatos[0].id_activo_biologico).to.be.a('number');",
+              "        });",
+              "    }",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DIAG-1 - Confirmar el estado inicial del activo A (debe ser ACTIVO antes de la baja)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('DIAG-1 - Confirmar estado inicial de activo A - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('DIAG-1 - El activo A parte en estado ACTIVO', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "DIAG-2 - Confirmar el estado inicial del activo B (debe ser ACTIVO, sin fase)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('DIAG-2 - Confirmar estado inicial de activo B - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('DIAG-2 - El activo B parte en estado ACTIVO', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.nombre_estado).to.eql('ACTIVO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-5 - Dar de baja al activo A (retest del defecto original: 500 generico en POST /eventos/baja)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/eventos/baja",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_baja\": \"muerte\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"Baja de prueba TC-M02-G36 v2.0 - retest defecto ERROR_INTERNO\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 201) {",
+              "    console.log('SETUP-5 - Dar de baja al activo A - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('SETUP-5 - La baja del activo A se registra exitosamente (retest del defecto original ERROR_INTERNO)', function () {",
+              "    pm.response.to.have.status(201);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "SETUP-6 - Confirmar por consulta directa el estado del activo A",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('SETUP-6 - Confirmar estado de activo A - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "var enBaja = false;",
+              "if (pm.response.code === 200) {",
+              "    var body = pm.response.json();",
+              "    enBaja = body.nombre_estado === 'BAJA';",
+              "    console.log('SETUP-6 - estado actual del activo A: ' + body.nombre_estado);",
+              "}",
+              "pm.collectionVariables.set('activo_a_en_baja', String(enBaja));",
+              "pm.test('SETUP-6 - Verificacion de estado del activo A tras el intento de baja (informativo)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-060 - Rechazar cierre de un activo ya en estado terminal (BAJA)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_a}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\",\n  \"motivo_cierre\": \"venta\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var enBaja = pm.collectionVariables.get('activo_a_en_baja') === 'true';",
+              "if (pm.response.code !== 409) {",
+              "    console.log('TC-060 - Rechazar cierre de activo ya BAJA - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "if (!enBaja) {",
+              "    pm.test('TC-060 - No ejecutable: el activo A nunca llego a un estado terminal (BAJA) en SETUP-5/SETUP-6', function () {",
+              "        pm.expect.fail('El activo A no quedo en BAJA (ver SETUP-5/SETUP-6). No se pudo verificar el escenario real de TC-060 (rechazo de un segundo cierre sobre un activo terminal). Respuesta obtenida: ' + pm.response.code + ' ' + pm.response.text());",
+              "    });",
+              "} else {",
+              "    pm.test('TC-060 - Un segundo cierre sobre un activo ya en BAJA se rechaza con 409 ESTADO_INVALIDO_PARA_CIERRE', function () {",
+              "        pm.response.to.have.status(409);",
+              "        var body = pm.response.json();",
+              "        pm.expect(body.error_code).to.eql('ESTADO_INVALIDO_PARA_CIERRE');",
+              "    });",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-061a - Rechazar cierre con motivo de cierre vacio",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\",\n  \"motivo_cierre\": \"\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400) {",
+              "    console.log('TC-061a - Cierre con motivo vacio - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-061a - Cierre con motivo_cierre vacio se rechaza con 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-061b - Rechazar cierre sin motivo de cierre (campo ausente)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400) {",
+              "    console.log('TC-061b - Cierre sin motivo_cierre - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-061b - Cierre sin motivo_cierre se rechaza con 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-062a - Rechazar cierre con fecha de cierre futura",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"2027-12-31\",\n  \"motivo_cierre\": \"venta\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400) {",
+              "    console.log('TC-062a - Cierre con fecha futura - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-062a - Cierre con fecha_cierre futura se rechaza con 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-062b - Rechazar cierre con fecha de cierre invalida (anterior al ultimo evento / incoherente)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"2026-01-01\",\n  \"motivo_cierre\": \"venta\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 400 && pm.response.code !== 422) {",
+              "    console.log('TC-062b - Cierre con fecha invalida - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "var body = pm.response.json();",
+              "console.log('TC-062b - codigo obtenido: ' + pm.response.code + ' / error_code: ' + (body && body.error_code));",
+              "pm.test('TC-062b - Cierre con fecha invalida se rechaza (400 por incoherencia cronologica, o 422 SIN_FASE_ACTIVA por la precondicion de fase evaluada primero segun el orden documentado en G36 v1.0)', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-063 - Rechazar cierre sin fase productiva activa",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_b}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\",\n  \"motivo_cierre\": \"venta\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 422) {",
+              "    console.log('TC-063 - Cierre sin fase activa - RESPUESTA: ' + pm.response.text());",
+              "}",
+              "pm.test('TC-063 - Cierre de un activo sin fase productiva activa se rechaza con 422 SIN_FASE_ACTIVA', function () {",
+              "    pm.response.to.have.status(422);",
+              "    var body = pm.response.json();",
+              "    pm.expect(body.error_code).to.eql('SIN_FASE_ACTIVA');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "CLEANUP-1 - Verificacion de salud del servicio",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('CLEANUP-1 - Servicio saludable al cerrar la prueba', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
