@@ -1,3 +1,14 @@
+## [1.0.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.44...v1.0.0-rc.45) (2026-09-15)
+
+### Features
+
+* **m02:** exponer GET para consultar asociaciones sensor-activo (RF-49) ([2b3e377](https://github.com/Arekkazu/sgpmp-backend/commit/2b3e3772a9d9b3c66f4f3688c91a97d4b12e526a))
+
+### Bug Fixes
+
+* **m02:** validar alcance de finca de id_padre/id_madre y del activo (RF-42) ([f89faab](https://github.com/Arekkazu/sgpmp-backend/commit/f89faab51f3e5cab14bc79d37fc1fec0c078956f)), closes [#228](https://github.com/Arekkazu/sgpmp-backend/issues/228)
+* **shared:** localizar mensajes de validacion de Pydantic al espanol ([b803caa](https://github.com/Arekkazu/sgpmp-backend/commit/b803caa304c99a35fd09defb5bb6cfcad7ba80e1)), closes [#219](https://github.com/Arekkazu/sgpmp-backend/issues/219)
+
 ## [1.0.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.43...v1.0.0-rc.44) (2026-09-13)
 
 ### Bug Fixes
