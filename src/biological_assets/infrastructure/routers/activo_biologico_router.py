@@ -68,6 +68,9 @@ from src.biological_assets.infrastructure.dto.consultar_historial_dto import Con
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_asociaciones_sensor_use_case import (
+    ConsultarAsociacionesSensorUseCase,
+)
 from src.biological_assets.application.use_cases.gestion.cambiar_estado_asociacion_sensor_use_case import (
     CambiarEstadoAsociacionSensorUseCase,
 )
@@ -94,6 +97,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
     AsociacionSensorActivoResponse,
+    ConsultaAsociacionesSensorResponse,
     CambioEstadoResponse,
     CierreActivoResponse,
     ConsultaAsociacionResponse,
@@ -1129,6 +1133,58 @@ def registrar_transferencia(
 
 
 # ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
+
+@router.get(
+    '/{id_activo}/sensores',
+    response_model=ConsultaAsociacionesSensorResponse,
+    responses={
+        404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Consultar asociaciones sensor-activo (RF-49, INC-M02-68-G91)',
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 2, rf_origen='RF49'))],
+)
+def consultar_asociaciones_sensor(
+    id_activo: int,
+    tipo_consulta: Literal['ACTIVA', 'HISTORIAL'] = Query(
+        'ACTIVA',
+        description="'ACTIVA' devuelve solo las asociaciones vigentes. 'HISTORIAL' devuelve todas (incluye INACTIVA y SUPERADA).",
+    ),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ConsultaAsociacionesSensorResponse:
+    use_case = ConsultarAsociacionesSensorUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    tipo_resultado, id_activo_resultado, asociaciones = use_case.execute(
+        id_activo, tipo_consulta, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
+    return ConsultaAsociacionesSensorResponse(
+        id_activo_biologico=id_activo_resultado,
+        tipo_consulta=tipo_resultado,
+        asociaciones=[
+            AsociacionSensorActivoResponse(
+                id_asociacion_activo_sensor=a.id_asociacion_activo_sensor,
+                id_activo_biologico=a.id_activo_biologico,
+                tipo_activo=a.tipo_activo,
+                tipo_asociacion=a.tipo_asociacion,
+                dispositivo_iot_id=a.dispositivo_iot_id,
+                sensor_id=a.sensor_id,
+                id_infraestructura=a.id_infraestructura,
+                fecha_inicio=a.fecha_inicio,
+                fecha_fin=a.fecha_fin,
+                estado_asociacion=a.estado_asociacion,
+                motivo=a.motivo,
+                advertencia=None,
+            )
+            for a in asociaciones
+        ],
+    )
+
 
 @router.post(
     '/{id_activo}/sensores',

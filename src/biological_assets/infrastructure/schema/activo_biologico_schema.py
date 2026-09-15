@@ -325,6 +325,15 @@ class AsociacionSensorActivoResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class ConsultaAsociacionesSensorResponse(BaseModel):
+    """RF-49 (INC-M02-68-G91): GET /{id_activo}/sensores. `tipo_consulta='ACTIVA'`
+    (default) devuelve solo las asociaciones vigentes; `'HISTORIAL'` devuelve
+    todas, incluidas `INACTIVA` y `SUPERADA`."""
+    id_activo_biologico: int
+    tipo_consulta: str
+    asociaciones: list[AsociacionSensorActivoResponse]
+
+
 # ── Schemas CU12 (RF-50, RF-51) ──────────────────────────────────────────────
 
 class IndicadorZootecnicoResponse(BaseModel):
