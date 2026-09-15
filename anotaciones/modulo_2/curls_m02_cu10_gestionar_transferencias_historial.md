@@ -191,6 +191,11 @@ Respuesta esperada `201`:
 }
 ```
 
+Si el activo es `POBLACIONAL`, `GET /activos-biologicos/5` tras la transferencia refleja
+`densidad` recalculada contra la superficie de la infraestructura **destino**
+(`cantidad_actual / superficie`), no la de origen (DEF-RF48-02, INC-M02-41-G28).
+Sin superficie configurada en el destino, la densidad conserva el valor previo.
+
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo no existe (FA-01)
 - `409 ACTIVO_NO_ACTIVO` — el activo no está en estado ACTIVO (FA-03)

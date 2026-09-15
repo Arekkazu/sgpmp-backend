@@ -249,6 +249,22 @@ class RegistrarTransferenciaUseCase:
                 {'id': id_activo, 'id_infra': dto.infraestructura_destino_id},
             )
 
+            # c2) Recalcular densidad contra la superficie de la infraestructura
+            # destino (DEF-RF48-02 / INC-M02-40-G28): un lote poblacional que
+            # cambia de infraestructura cambia de superficie física; la
+            # densidad quedaba "congelada" con el valor de la infraestructura
+            # de origen si no se recalculaba aquí.
+            if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional:
+                activo.recalcular_densidad(infra_destino.superficie)
+                self.db.execute(
+                    text(
+                        'UPDATE modulo2.detalles_activos_biologicos_poblacionales '
+                        'SET densidad = :densidad '
+                        'WHERE id_activo_biologico = :id'
+                    ),
+                    {'id': id_activo, 'densidad': activo.detalle_poblacional.densidad},
+                )
+
             # d) Registrar evento en movimientos
             resultado = self.transferencia_repo.guardar(transferencia)
 
