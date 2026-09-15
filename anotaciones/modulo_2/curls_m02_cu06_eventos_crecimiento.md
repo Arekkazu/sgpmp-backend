@@ -246,3 +246,38 @@ un activo fuera del alcance de finca del usuario se trata como inexistente
   "field": null
 }
 ```
+
+---
+
+## FA-10 — Densidad del lote supera el máximo permitido para la especie (INC-M02-38-G25, POBLACIONAL)
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/crecimiento \
+  -H "Authorization: Bearer {TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo_medicion": "PESO",
+    "valor_medicion": 50,
+    "unidad_medida": "kg",
+    "nuevo_peso_promedio": 55,
+    "cantidad_medida": 250,
+    "tipo_agregacion": "PROMEDIO"
+  }'
+```
+
+**Respuesta esperada (409)** si `cantidad_actual / superficie` de la infraestructura
+supera `capacidad_maxima / superficie` de esa misma infraestructura:
+```json
+{
+  "code": "DENSIDAD_MAXIMA_SUPERADA",
+  "message": "La densidad del lote supera el máximo permitido para la especie.",
+  "field": null
+}
+```
+
+`cantidad_medida` es solo descriptivo del muestreo — no afecta esta validación
+ni `cantidad_actual` (RF-36: `cantidad_actual` solo cambia por eventos de BAJA
+o ingresos). Si `modulo9.infraestructuras.capacidad_maxima` no está
+configurada para la infraestructura del lote (`NULL`, el estado real de todas
+las infraestructuras en `sgpmp_dev` al momento de este fix), la validación no
+bloquea nada.
