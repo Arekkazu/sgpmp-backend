@@ -4,12 +4,17 @@
 **Endpoint:** `POST /activos-biologicos/{id_activo}/transferencias`.
 **Caso QA:** `TC-M02-G28`, dos defectos (`DEF-RF48-01`, `DEF-RF48-02`).
 
-**Duplicado:** `INC-M02-41-G28` (issue #201) reporta exactamente `DEF-RF48-02`
-como ticket separado — mismo lote 130, misma transferencia (Alevinera-01 500 m²
-→ Estanque-01 2500 m²), mismo `TC-M02-202`. Ambos INC vienen del mismo informe
-de QA (`TC-M02-G28`), que documentó los dos defectos y luego se abrieron como
-issues individuales (#200 y #201). El fix de esta rama resuelve los dos; no se
-abre una rama ni un PR separado para `INC-M02-41-G28`.
+**Relación con INC-M02-41-G28 (issue #201):** el mismo informe de QA
+(`TC-M02-G28`) documentó los dos defectos juntos, pero luego se abrieron como
+issues individuales — `#200` (`INC-M02-40-G28`) es específicamente
+`DEF-RF48-01` (frontera de finca) y `#201` (`INC-M02-41-G28`) es
+específicamente `DEF-RF48-02` (recálculo de densidad, mismo lote 130, misma
+transferencia Alevinera-01 500 m² → Estanque-01 2500 m², mismo `TC-M02-202`).
+No son el mismo defecto entre sí, pero esta rama ya resuelve ambos: `#200`
+queda confirmado como ya corregido en `dev` (sección DEF-RF48-01 arriba) y
+`#201` es el fix de código real de esta rama (sección DEF-RF48-02). No se
+abre una rama ni un PR separado para `INC-M02-41-G28`; el PR de esta rama
+cierra los dos issues.
 
 ## DEF-RF48-01 — Ausencia de validación de frontera de finca (ya resuelto en `dev`)
 
