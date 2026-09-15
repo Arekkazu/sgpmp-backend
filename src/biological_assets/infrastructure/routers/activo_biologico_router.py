@@ -881,6 +881,7 @@ def cerrar_ciclo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Registrar evento reproductivo del activo (CU08 - RF-42)',
