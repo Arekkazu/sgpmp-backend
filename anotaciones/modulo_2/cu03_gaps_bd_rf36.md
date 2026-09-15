@@ -40,11 +40,25 @@ Los modelos ORM, puertos, repositorios, use cases y endpoints fueron creados en 
 
 ## Decisiones de diseño
 
-### D-01: Validación de densidad máxima por especie omitida
+### D-01: Validación de densidad máxima por especie omitida — RESUELTO (INC-M02-38-G25, 2026-09-15)
 
-**Situación:** RF-36 menciona validar `densidad` contra `densidad_maxima_por_especie` definida en M09. El puerto `ParametrosEspeciePort` actual solo expone `nombre`, `tipo_medicion`, `aplica_a_tipo_activo` — no hay `valor_max` ni `densidad_maxima`.
+**Situación original:** RF-36 menciona validar `densidad` contra `densidad_maxima_por_especie` definida en M09. Se asumió que el dato viviría en `ParametrosEspeciePort` (que solo expone `nombre`, `tipo_medicion`, `aplica_a_tipo_activo`, sin `valor_max`/`densidad_maxima`), y se dejó como gap pendiente.
 
-**Decisión:** La validación se omite en esta iteración. La densidad se calcula y persiste, pero no se valida contra un máximo. Se deja como gap para cuando M09 exponga ese dato en `ParametrosEspeciePort`.
+**Resolución:** El dato no vive en `ParametrosEspeciePort` sino en
+`modulo9.infraestructuras.capacidad_maxima` (individuos), ya mapeado en
+`InfraestructuraConsulta` (`InfraestructuraConsultaPort`, ya inyectado en
+`RegistrarEventoCrecimientoUseCase` para obtener `superficie`) — no hizo
+falta ningún cambio de esquema ni de puerto. `densidad_maxima_por_especie` =
+`capacidad_maxima / superficie` de la infraestructura donde reside el lote
+(cada infraestructura ya está pensada para una especie vía su propio
+`id_especie`, aunque hoy esa columna esté sin poblar). Ver
+`inc_m02_38_g25_densidad_maxima_crecimiento.md` para el fix completo.
+
+**Nota de datos:** en `sgpmp_dev`, `capacidad_maxima` está en `NULL` para las
+12 infraestructuras reales — la validación no bloquea nada hasta que se
+pueble ese dato por infraestructura. Sembrar `capacidad_maxima` real por
+especie/infraestructura queda fuera de alcance de este fix (es una decisión
+operativa del equipo de M09/datos, no de este INC).
 
 ### D-02: Typo en nombre de tabla respetado
 

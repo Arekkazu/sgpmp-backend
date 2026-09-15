@@ -46,6 +46,26 @@ class AsociacionSensorActivoRepository(ABC):
         sin filtrar por estado (incluye ACTIVA, INACTIVA y SUPERADA)."""
 
     @abstractmethod
+    def obtener_activa_por_sensor_e_infraestructura(
+        self,
+        sensor_id: int,
+        id_infraestructura: int,
+    ) -> Optional[AsociacionSensorActivo]:
+        """RF-49 Tipo B (INC-M02-66-G90/#217): asociación AMBIENTAL vigente a
+        nivel de infraestructura (`id_activo_biologico IS NULL`) para el par
+        sensor+infraestructura, o None."""
+
+    @abstractmethod
+    def listar_activas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        """RF-49 Tipo B: asociaciones AMBIENTAL vigentes a nivel de
+        infraestructura (`id_activo_biologico IS NULL`) -- heredadas por todos
+        los activos de esa infraestructura."""
+
+    @abstractmethod
+    def listar_todas_por_infraestructura(self, id_infraestructura: int) -> list[AsociacionSensorActivo]:
+        """Historial completo (todos los estados) de asociaciones a nivel de infraestructura."""
+
+    @abstractmethod
     def actualizar_estado(self, entidad: AsociacionSensorActivo) -> AsociacionSensorActivo:
         """Actualiza estado, fecha_fin y motivo de una asociación existente."""
 
