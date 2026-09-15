@@ -61,8 +61,15 @@ class ConsultarAsociacionesSensorUseCase:
 
         if tipo_consulta == 'ACTIVA':
             asociaciones = self.repo.listar_activas_por_activo(id_activo)
+            heredadas = self.repo.listar_activas_por_infraestructura(activo.id_infraestructura)
         else:
             asociaciones = self.repo.listar_todas_por_activo(id_activo)
+            heredadas = self.repo.listar_todas_por_infraestructura(activo.id_infraestructura)
+
+        # RF-49 Tipo B (INC-M02-66-G90/#217): una asociación AMBIENTAL a nivel
+        # de infraestructura aplica a todos los activos que residan en ella --
+        # se refleja aquí aunque la fila no tenga id_activo_biologico propio.
+        asociaciones = [*asociaciones, *heredadas]
 
         registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
             rf_origen='RF49', tipo_evento='ASOCIACIONES_SENSOR_CONSULTADAS',

@@ -273,8 +273,12 @@ class DatosConsolidados:
 
 @dataclass
 class AsociacionSensorActivo:
-    id_activo_biologico: int
-    tipo_activo: str           # INDIVIDUAL | LOTE
+    # id_activo_biologico/tipo_activo son None para una asociación AMBIENTAL a
+    # nivel de infraestructura (RF-49 Tipo B, INC-M02-66-G90/#217): un único
+    # registro por sensor+infraestructura que aplica a todos los activos de
+    # esa infraestructura, en vez de una fila por activo.
+    id_activo_biologico: Optional[int]
+    tipo_activo: Optional[str]  # INDIVIDUAL | LOTE | None (asociación a nivel de infraestructura)
     tipo_asociacion: str       # directa | ambiental | poblacional
     dispositivo_iot_id: int
     sensor_id: int

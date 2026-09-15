@@ -28,15 +28,23 @@ class ActivoRepoFake:
 
 
 class AsociacionRepoFake:
-    def __init__(self, activas: list, todas: list) -> None:
+    def __init__(self, activas: list, todas: list, heredadas_activas=None, heredadas_todas=None) -> None:
         self.activas = activas
         self.todas = todas
+        self.heredadas_activas = heredadas_activas or []
+        self.heredadas_todas = heredadas_todas or []
 
     def listar_activas_por_activo(self, id_activo_biologico, tipo_asociacion=None):
         return self.activas
 
     def listar_todas_por_activo(self, id_activo_biologico):
         return self.todas
+
+    def listar_activas_por_infraestructura(self, id_infraestructura):
+        return self.heredadas_activas
+
+    def listar_todas_por_infraestructura(self, id_infraestructura):
+        return self.heredadas_todas
 
 
 class BitacoraRepoFake:
@@ -73,6 +81,23 @@ def _asociacion(estado: str, id_asociacion: int) -> AsociacionSensorActivo:
         id_usuario=7,
         fecha_inicio=datetime.now(timezone.utc),
         id_activo_biologico=10,
+        estado_asociacion=estado,
+    )
+
+
+def _asociacion_ambiental_infraestructura(estado: str, id_asociacion: int) -> AsociacionSensorActivo:
+    """RF-49 Tipo B (INC-M02-66-G90/#217): asociación a nivel de
+    infraestructura, sin activo puntual."""
+    return AsociacionSensorActivo(
+        id_asociacion_activo_sensor=id_asociacion,
+        id_activo_biologico=None,
+        tipo_activo=None,
+        tipo_asociacion='ambiental',
+        dispositivo_iot_id=1,
+        sensor_id=9,
+        id_infraestructura=1,
+        id_usuario=7,
+        fecha_inicio=datetime.now(timezone.utc),
         estado_asociacion=estado,
     )
 
@@ -162,6 +187,41 @@ def test_alcance_de_finca_se_propaga_al_repo_de_activos() -> None:
     uc.execute(10, 'ACTIVA', _usuario(), ids_fincas_permitidas=[1, 2])
 
     assert activo_repo.ids_fincas_recibidos == [1, 2]
+
+
+def test_incluye_asociaciones_ambientales_heredadas_de_la_infraestructura() -> None:
+    """RF-49 Tipo B (INC-M02-66-G90/#217): un sensor asociado a la
+    infraestructura del activo (id_activo_biologico=None) debe aparecer al
+    consultar cualquier activo que resida en esa infraestructura."""
+    propia = [_asociacion('ACTIVA', 1)]
+    heredada = [_asociacion_ambiental_infraestructura('ACTIVA', 2)]
+    uc = ConsultarAsociacionesSensorUseCase(
+        db=DbFake(),
+        repo=AsociacionRepoFake(propia, [], heredadas_activas=heredada),
+        activo_repo=ActivoRepoFake(_activo()),
+    )
+
+    _, _, resultado = uc.execute(10, 'ACTIVA', _usuario())
+
+    assert resultado == [*propia, *heredada]
+    assert any(a.id_activo_biologico is None and a.tipo_asociacion == 'ambiental' for a in resultado)
+
+
+def test_historial_incluye_heredadas_superadas_de_la_infraestructura() -> None:
+    todas = [_asociacion('ACTIVA', 1)]
+    heredadas_todas = [
+        _asociacion_ambiental_infraestructura('ACTIVA', 2),
+        _asociacion_ambiental_infraestructura('SUPERADA', 3),
+    ]
+    uc = ConsultarAsociacionesSensorUseCase(
+        db=DbFake(),
+        repo=AsociacionRepoFake([], todas, heredadas_todas=heredadas_todas),
+        activo_repo=ActivoRepoFake(_activo()),
+    )
+
+    _, _, resultado = uc.execute(10, 'HISTORIAL', _usuario())
+
+    assert resultado == [*todas, *heredadas_todas]
 
 
 def test_consulta_exitosa_queda_registrada_en_bitacora() -> None:
