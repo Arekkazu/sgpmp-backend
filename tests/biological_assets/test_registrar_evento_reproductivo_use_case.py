@@ -10,6 +10,8 @@ contrato de FA-04: POBLACIONAL solo puede registrar ``nacimiento``, con
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import pytest
 
 from src.biological_assets.application.use_cases.gestion.registrar_evento_reproductivo_use_case import (
@@ -19,6 +21,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     ActivoBiologico,
     EventoActivo,
     EventoAuditoria,
+    GestionFase,
 )
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
@@ -26,7 +29,7 @@ from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto 
     RegistrarEventoReproductivoDTO,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 CATEGORIAS_NO_PERMITIDAS_LOTE = ['servicio', 'inseminacion', 'diagnostico', 'parto', 'aborto']
 
@@ -44,8 +47,15 @@ class DbFake:
 
 
 class ActivoRepoFake:
-    def __init__(self, activos: dict[int, ActivoBiologico]) -> None:
+    def __init__(
+        self,
+        activos: dict[int, ActivoBiologico],
+        sin_fase_activa: set[int] | None = None,
+    ) -> None:
         self.activos = activos
+        # Por defecto todo activo conocido tiene una gestión de fase activa
+        # (RF-42/INC-M02-78-G58); listar aquí los que deben simular no tenerla.
+        self.sin_fase_activa = sin_fase_activa or set()
 
     def obtener_por_id(self, id_activo: int, *, ids_fincas_permitidas=None) -> ActivoBiologico | None:
         activo = self.activos.get(id_activo)
@@ -55,6 +65,18 @@ class ActivoRepoFake:
         if infra_a_finca.get(activo.id_infraestructura) not in ids_fincas_permitidas:
             return None
         return activo
+
+    def obtener_fase_activa(self, id_activo: int) -> GestionFase | None:
+        if id_activo not in self.activos or id_activo in self.sin_fase_activa:
+            return None
+        return GestionFase(
+            id_activo_biologico=id_activo,
+            id_ciclo_productiva=1,
+            nombre_ciclo='Ciclo de prueba',
+            fecha_inicio=datetime.now(timezone.utc),
+            es_activa=True,
+            id_usuario=1,
+        )
 
 
 class InfraPortFake:
@@ -331,3 +353,50 @@ def test_ca10_fallo_de_auditoria_no_oculta_el_rechazo_funcional() -> None:
     assert exc.value.code == 'SECUENCIA_REPRODUCTIVA_INVALIDA'
     assert db.commits == 0
     assert db.rollbacks == 2
+
+
+def test_sin_fase_activa_es_409_para_cualquier_categoria() -> None:
+    """INC-M02-78-G58 / issue #229: RF-42 exige "una fase productiva compatible
+    con reproducción" -- antes de este fix no se validaba en absoluto."""
+    db = DbFake()
+    activo_repo = ActivoRepoFake({10: _activo('INDIVIDUAL', 10)}, sin_fase_activa={10})
+    evento_repo = EventoRepoFake()
+    uc = _uc(db, activo_repo, evento_repo)
+
+    with pytest.raises(ConflictError) as exc:
+        uc.execute(10, _dto('diagnostico'), _usuario())
+
+    assert exc.value.code == 'FASE_NO_COMPATIBLE_REPRODUCCION'
+    assert exc.value.message == 'La fase productiva del activo no permite registrar este tipo de evento.'
+    assert evento_repo.guardado is None
+    assert db.commits == 0
+
+
+def test_sin_fase_activa_bloquea_incluso_poblacional_nacimiento() -> None:
+    """La validación de fase corre antes que cualquier lógica de secuencia o
+    de tipo de activo -- ningún camino la evade."""
+    db = DbFake()
+    activo_repo = ActivoRepoFake({10: _activo('POBLACIONAL', 10)}, sin_fase_activa={10})
+    evento_repo = EventoRepoFake()
+    uc = _uc(db, activo_repo, evento_repo)
+
+    with pytest.raises(ConflictError) as exc:
+        uc.execute(10, _dto('nacimiento', numero_crias=1), _usuario())
+
+    assert exc.value.code == 'FASE_NO_COMPATIBLE_REPRODUCCION'
+    assert evento_repo.guardado is None
+
+
+def test_con_fase_activa_el_evento_se_registra_normalmente() -> None:
+    """No regresión: el camino feliz existente sigue funcionando con la
+    gestión de fase activa que ActivoRepoFake da por defecto."""
+    db = DbFake()
+    activo_repo = ActivoRepoFake({10: _activo('INDIVIDUAL', 10)})
+    evento_repo = EventoRepoFake()
+    evento_repo.tiene_servicio_o_inseminacion_previa = lambda _id: True
+    uc = _uc(db, activo_repo, evento_repo)
+
+    resultado = uc.execute(10, _dto('diagnostico'), _usuario())
+
+    assert resultado is not None
+    assert db.commits == 1
