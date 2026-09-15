@@ -110,9 +110,16 @@ class RegistrarTransferenciaUseCase:
         # E-05: infraestructura destino debe existir y estar activa (INC-M02-88-G83: 422, no 400)
         infra_destino = self.infra_port.obtener_activa(dto.infraestructura_destino_id)
         if infra_destino is None:
+            # INC-M02-89-G83: distinguir "no existe" de "existe pero está
+            # inactiva" en el mensaje -- mejora de usabilidad, el error_code
+            # no cambia.
+            if self.infra_port.existe(dto.infraestructura_destino_id):
+                mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} se encuentra inactiva.'
+            else:
+                mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} no existe.'
             raise BusinessRuleError(
                 code='INFRAESTRUCTURA_DESTINO_INVALIDA',
-                message=f'La infraestructura con id {dto.infraestructura_destino_id} no existe o no está activa.',
+                message=mensaje,
                 field='infraestructura_destino_id',
             )
 

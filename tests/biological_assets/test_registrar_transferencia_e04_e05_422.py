@@ -48,6 +48,9 @@ class InfraPortFake:
     def obtener_activa(self, id_infraestructura: int):
         return self.infras.get(id_infraestructura)
 
+    def existe(self, id_infraestructura: int) -> bool:
+        return id_infraestructura in self.infras
+
     def calcular_ocupacion(self, _id: int) -> int:
         return 0
 
