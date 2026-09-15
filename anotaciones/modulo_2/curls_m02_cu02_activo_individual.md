@@ -41,7 +41,10 @@ Respuesta esperada `200`:
 ```
 
 Errores posibles:
-- `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe
+- `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe, **o pertenece a
+  una finca fuera del alcance del usuario** (RF-25, INC-M02-39-G27: se
+  responde igual que "no existe" para no revelar la existencia de activos
+  ajenos — BOLA, OWASP API1)
 - `403 ACCESO_DENEGADO` — sin permiso R sobre `activos_biologicos`
 
 ---
