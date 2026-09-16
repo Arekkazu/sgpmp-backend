@@ -25,7 +25,7 @@ from src.biological_assets.domain.repositories.evento_activo_repository import E
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
 
 _CATEGORIAS_REQUIEREN_PADRE = {'servicio', 'inseminacion'}
 _CATEGORIAS_REQUIEREN_NUM_CRIAS = {'parto', 'aborto', 'nacimiento'}
@@ -86,6 +86,19 @@ class RegistrarEventoReproductivoUseCase:
             )
 
         validar_estado_permite_eventos(activo)
+
+        # Precondición RF-42: "El activo debe estar en una fase productiva
+        # compatible con reproducción." No existe un catálogo de fases que
+        # distinga "reproductiva" de otra (los ciclos biológicos del sistema
+        # son etapas de crecimiento secuenciales: larval/juvenil/engorde) —
+        # la compatibilidad exigida es simplemente que exista una gestión de
+        # fase activa, igual que la E-02 de RF-43 (RegistrarEventoProductivoUseCase).
+        # INC-M02-78-G58: antes de este fix no se validaba en absoluto.
+        if self.activo_repo.obtener_fase_activa(id_activo) is None:
+            raise ConflictError(
+                code='FASE_NO_COMPATIBLE_REPRODUCCION',
+                message='La fase productiva del activo no permite registrar este tipo de evento.',
+            )
 
         fecha = dto.fecha or datetime.now(timezone.utc)
         validar_fecha_evento(fecha, activo, self.evento_repo)
