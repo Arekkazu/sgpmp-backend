@@ -1,3 +1,20 @@
+## [1.0.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.45...v1.0.0-rc.46) (2026-09-16)
+
+### Features
+
+* **m02:** asociacion ambiental compartida a nivel de infraestructura (RF-49) ([667bf69](https://github.com/Arekkazu/sgpmp-backend/commit/667bf698b940f0b9c8bc69c47d8804568f932295)), closes [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217)
+
+### Bug Fixes
+
+* **m02:** diferenciar mensaje de infraestructura destino inexistente vs inactiva (RF-48) ([5ee7151](https://github.com/Arekkazu/sgpmp-backend/commit/5ee715165baadfc3dcfa7715c17b318bc7351e84)), closes [#240](https://github.com/Arekkazu/sgpmp-backend/issues/240)
+* **m02:** formalizar correccion del trigger de unicidad de sensores directa (RF-49) ([eec0661](https://github.com/Arekkazu/sgpmp-backend/commit/eec066174e7c3e343e3f9908af5178bfcc6210ed)), closes [#216](https://github.com/Arekkazu/sgpmp-backend/issues/216)
+* **m02:** recalcular densidad poblacional al transferir de infraestructura (RF-36/RF-48) ([20f612e](https://github.com/Arekkazu/sgpmp-backend/commit/20f612ec20592509f355f40c13341e0b10615a73)), closes [#201](https://github.com/Arekkazu/sgpmp-backend/issues/201)
+* **m02:** recalcular densidad poblacional al transferir de infraestructura (RF-36/RF-48) ([412d37d](https://github.com/Arekkazu/sgpmp-backend/commit/412d37dd6116ead89348d01f76993c48b102d393))
+* **m02:** responder 422 en vez de 400 para E-04/E-05 de transferencia (RF-48) ([2caf467](https://github.com/Arekkazu/sgpmp-backend/commit/2caf467a4214e61f9c1b00d6352045aad7bbaf61)), closes [#239](https://github.com/Arekkazu/sgpmp-backend/issues/239)
+* **m02:** setear app.usuario_id en el test de integracion del trigger de sensores ([a6597e0](https://github.com/Arekkazu/sgpmp-backend/commit/a6597e0f1b2349ab2042fd61ebb6ff8c9e169851))
+* **m02:** validar densidad maxima por especie en eventos de crecimiento (RF-36) ([9cbb441](https://github.com/Arekkazu/sgpmp-backend/commit/9cbb4418119e8028e462240e1f85f33a4e2eaf29))
+* **m02:** validar fase productiva activa en eventos reproductivos (RF-42) ([7c56a4e](https://github.com/Arekkazu/sgpmp-backend/commit/7c56a4ec258e500e2ab9b106570e48ca09e96ab0))
+
 ## [1.0.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.44...v1.0.0-rc.45) (2026-09-15)
 
 ### Features
