@@ -88,22 +88,25 @@ existentes: honesto, nunca hubo intento de sincronización antes de este cambio)
 
 ## 🔴 Requiere aprobación de DBA
 
-Esta migración **no se pudo verificar contra una base real**: `member_dev` (la única credencial
-disponible en este entorno) no tiene permiso de lectura sobre `alembic_version`
-(`InsufficientPrivilege`), así que ni `alembic upgrade head` ni `alembic current` pudieron
-ejecutarse contra `sgpmp_dev`. Se validó únicamente la sintaxis generando el SQL en modo offline
-(`alembic upgrade ... --sql`, sin tocar ninguna base):
+`member_dev` (la credencial de aplicación) no tiene permiso de lectura sobre `alembic_version`
+(`InsufficientPrivilege`), así que la sintaxis se validó primero en modo offline
+(`alembic upgrade ... --sql`, sin tocar ninguna base). Después, con una credencial `dba`
+provista por el usuario, se verificó el round-trip completo contra `sgpmp_dev` real:
 
-```sql
-ALTER TABLE modulo9.umbrales_ambientales ADD COLUMN estado_sincronizacion VARCHAR(20) DEFAULT 'PENDIENTE'::character varying NOT NULL;
-ALTER TABLE modulo9.umbrales_ambientales ADD COLUMN fecha_ultima_sincronizacion TIMESTAMP WITH TIME ZONE;
-ALTER TABLE modulo9.umbrales_ambientales ADD COLUMN motivo_fallo_sincronizacion TEXT;
-ALTER TABLE modulo9.umbrales_ambientales ADD CONSTRAINT umbrales_ambientales_estado_sincronizacion_check CHECK (estado_sincronizacion IN ('PENDIENTE', 'APLICADA', 'NO_CONF'));
-```
+| Comprobación | Resultado |
+|---|---|
+| `alembic current` (antes) | `d014e2cc785d` |
+| `alembic upgrade head` | Aplicó limpio: `d014e2cc785d -> 424e8d205792` |
+| Columnas creadas | `estado_sincronizacion` (`varchar(20)`, `NOT NULL`, default `'PENDIENTE'`), `fecha_ultima_sincronizacion` (`timestamptz`, nullable), `motivo_fallo_sincronizacion` (`text`, nullable) |
+| `CHECK` constraint | `umbrales_ambientales_estado_sincronizacion_check` presente, sobre los 3 valores permitidos |
+| Backfill de filas existentes | 13 filas, todas en `PENDIENTE` (honesto: nunca hubo intento de sincronización antes de este cambio) |
+| `alembic downgrade d014e2cc785d` | Revirtió limpio: columnas y constraint eliminados |
+| `alembic current` (después) | `d014e2cc785d` — BD queda exactamente como antes de la verificación |
 
-El `downgrade()` es simétrico (genera el `DROP` inverso exacto, verificado igual en modo
-offline). El DBA debe correr `alembic upgrade head` con una credencial con permisos DDL antes de
-mergear, y confirmar el resultado contra `sgpmp_dev`/`sgpmp_test` reales.
+Esta verificación **no reemplaza la aprobación formal del DBA** — la migración fue revertida
+inmediatamente después de confirmar que corre limpio en ambas direcciones, siguiendo la política
+del equipo para este tipo de chequeo. El DBA debe correr `alembic upgrade head` de forma
+definitiva antes de mergear.
 
 ## Pruebas
 
