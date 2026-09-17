@@ -433,7 +433,9 @@ se reemplazó el stub por integración MQTT real vía `BROKER-MQTT-SGPMP` (repo 
 verificado end-to-end con backend + broker + Mosquitto reales. El 2026-08-24 (issue #1632) se
 agregaron los **rangos de configuración por tipo de dispositivo**, cerrando ese gap. Detalle
 del MVP en `anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md` y de los rangos por tipo en
-`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. Queda fuera de esta entrega el
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. El 2026-09-17 se cerró además el
+BOLA reportado en TC-M09-G71: configurar y consultar el historial validan el alcance por finca
+antes de acceder al dispositivo. Queda fuera de esta entrega el
 reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
@@ -458,7 +460,10 @@ reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver
   la migración Alembic `7e2d5f3bf17a_rf23_mqtt_integracion.py` (primera migración real del
   proyecto; hasta ahora los gaps de Paso 0 se aplicaban directo a la BD vía MCP postgres).
 - Historial de configuración por dispositivo consultable
-  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`).
+  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`). Tanto este historial como el
+  POST de configuración aplican el alcance de `AlcanceFincaAdapter`: Administrador global e
+  Ingeniero limitado a las fincas vinculadas a su usuario. Un ID ajeno se presenta como
+  `404 DISPOSITIVO_NO_ENCONTRADO`, sin persistencia ni publicación MQTT (TC-M09-G71/#300).
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
   `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
   `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
