@@ -276,6 +276,11 @@ Respuesta esperada `200`:
 
 Recurso `id_recurso=11`, acción U(3). Admin / Ing.
 
+El permiso RBAC habilita la acción, pero no concede alcance territorial. El Administrador
+conserva alcance global; el Ingeniero solo puede configurar dispositivos ubicados en fincas
+vinculadas a su usuario mediante `modulo9.fincas.id_usuario`. Un dispositivo inexistente o
+fuera de ese alcance responde igual (`404 DISPOSITIVO_NO_ENCONTRADO`) para evitar enumeración.
+
 Integración MQTT real vía `BROKER-MQTT-SGPMP` (ya no es un stub). El endpoint
 llama al broker, que publica el comando y espera hasta 30s (configurable,
 `MQTT_ACK_TIMEOUT_SECONDS` en el broker) el ACK del dispositivo antes de
@@ -350,7 +355,8 @@ Caso `NO_CONF` (dispositivo `ACTIVO`, sin ACK dentro de 30s) — `504`:
 ```
 
 Errores posibles:
-- `404` — dispositivo no existe (FA-02)
+- `404` — dispositivo no existe o está fuera del alcance por finca del usuario —
+  `DISPOSITIVO_NO_ENCONTRADO`
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
 - `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
@@ -363,6 +369,9 @@ Errores posibles:
 ---
 
 ### Historial de configuraciones del dispositivo
+
+Aplica el mismo alcance por finca que el POST. Un dispositivo inexistente o ajeno responde
+`404 DISPOSITIVO_NO_ENCONTRADO` sin consultar ni exponer su historial.
 
 ```bash
 curl -X GET http://localhost:8000/configuracion/dispositivos-iot/1/configuraciones \
