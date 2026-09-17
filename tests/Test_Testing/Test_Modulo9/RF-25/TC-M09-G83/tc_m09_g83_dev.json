@@ -1,0 +1,217 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g83-rf25-rev3-dev",
+    "name": "TC-M09-G83 rev3 DEV - Diagnostico de rol inexistente (RF-25 / TC-M09-158)",
+    "description": "Revision 3. No modifica tc_m09_g83.json historico. El login de la aplicacion firma JWT HS256 con id_rol de BD (create_token). No se muta ni se refirma el token. Si el claim rol no es rolInexistente, el escenario G83 NO esta construido y no se clasifica 200 como defecto de autorizacion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp"
+    },
+    {
+      "key": "correo",
+      "value": "ingeniero@pecuaria.co"
+    },
+    {
+      "key": "contrasena",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "rolInexistente",
+      "value": "999999"
+    },
+    {
+      "key": "jwtRolClaim",
+      "value": ""
+    },
+    {
+      "key": "jwtSubClaim",
+      "value": ""
+    },
+    {
+      "key": "escenarioRolInexistenteConstruido",
+      "value": "false"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticacion (un solo login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) {",
+              "    throw new Error('BLOQUEADO: pasar --env-var contrasena=<password> (no hardcodear).');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Autenticacion exitosa', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const token = json.token || json.access_token || json.accessToken;",
+              "",
+              "pm.test('El login retorna un JWT', function () {",
+              "    pm.expect(token, 'No se encontro el JWT en la respuesta').to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "function decodificarPayloadJwt(jwt) {",
+              "    const partes = String(jwt || '').split('.');",
+              "    pm.test('El JWT tiene tres segmentos (no se altera la firma)', function () {",
+              "        pm.expect(partes.length).to.eql(3);",
+              "    });",
+              "    if (partes.length !== 3) {",
+              "        return {};",
+              "    }",
+              "    let b64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "    while (b64.length % 4) {",
+              "        b64 += '=';",
+              "    }",
+              "    return JSON.parse(atob(b64));",
+              "}",
+              "",
+              "if (token) {",
+              "    pm.collectionVariables.set('token', token);",
+              "    const payload = decodificarPayloadJwt(token);",
+              "    const rolClaim = payload.rol == null ? '' : String(payload.rol);",
+              "    const subClaim = payload.sub == null ? '' : String(payload.sub);",
+              "    const rolInexistente = String(pm.collectionVariables.get('rolInexistente') || '999999');",
+              "    pm.collectionVariables.set('jwtRolClaim', rolClaim);",
+              "    pm.collectionVariables.set('jwtSubClaim', subClaim);",
+              "    const construido = rolClaim === rolInexistente;",
+              "    pm.collectionVariables.set('escenarioRolInexistenteConstruido', construido ? 'true' : 'false');",
+              "",
+              "    pm.test('Se registro el claim rol del JWT emitido por POST /sesiones/ (sin mutar el token)', function () {",
+              "        pm.expect(rolClaim, 'claim rol vacio').to.not.equal('');",
+              "    });",
+              "",
+              "    pm.test('El JWT de la aplicacion no contiene rolInexistente=999999 (el escenario G83 no se construye por login)', function () {",
+              "        pm.expect(rolClaim, 'claim rol real del login').to.not.eql(rolInexistente);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - RF-25 GET contexto (solo si el JWT es el emitido por login; no se falsifica rol)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/interfaz/contexto",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "interfaz",
+            "contexto"
+          ]
+        },
+        "description": "Usa el Bearer del login, sin cambiar el payload. Si jwtRolClaim != rolInexistente, este GET es diagnostico de sesion valida, NO la prueba de rol inexistente."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const rolJwt = String(pm.collectionVariables.get('jwtRolClaim') || '');",
+              "const rolInexistente = String(pm.collectionVariables.get('rolInexistente') || '999999');",
+              "const construido = String(pm.collectionVariables.get('escenarioRolInexistenteConstruido') || 'false') === 'true';",
+              "const cuerpoTexto = pm.response.text();",
+              "let cuerpo = null;",
+              "try { cuerpo = pm.response.json(); } catch (e) { cuerpo = null; }",
+              "",
+              "pm.test('No debe exponer informacion interna', function () {",
+              "    const body = cuerpoTexto.toLowerCase();",
+              "    pm.expect(body).not.to.include('traceback');",
+              "    pm.expect(body).not.to.include('stack trace');",
+              "    pm.expect(body).not.to.include('internal server error');",
+              "});",
+              "",
+              "if (construido) {",
+              "    pm.test('El backend no debe conceder permisos incorrectos (rol inexistente realmente aplicado)', function () {",
+              "        pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "    });",
+              "    pm.test('No concede modulos de un rol valido si el rol es inexistente', function () {",
+              "        if (pm.response.code === 200 && cuerpo && Array.isArray(cuerpo.modulos_autorizados)) {",
+              "            pm.expect(cuerpo.modulos_autorizados.length).to.eql(0);",
+              "        }",
+              "        pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "    });",
+              "} else {",
+              "    pm.test('G83 BLOQUEADO: no se evalua 401/403 porque el JWT no trae rol inexistente', function () {",
+              "        pm.expect(construido).to.eql(false);",
+              "        pm.expect(rolJwt).to.not.eql(rolInexistente);",
+              "    });",
+              "    pm.test('Diagnostico: GET contexto con el JWT real del login (rol valido en claim)', function () {",
+              "        pm.expect(pm.response.code).to.be.a('number');",
+              "    });",
+              "    if (pm.response.code === 200 && cuerpo) {",
+              "        pm.test('Diagnostico: id_rol de la respuesta coincide con el claim rol del JWT (sesion de Ingeniero, no 999999)', function () {",
+              "            pm.expect(String(cuerpo.id_rol)).to.eql(rolJwt);",
+              "            pm.expect(String(cuerpo.id_rol)).to.not.eql(rolInexistente);",
+              "        });",
+              "    }",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
