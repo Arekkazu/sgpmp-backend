@@ -51,9 +51,21 @@ Respuesta esperada `201`:
     { "nivel": "critico",    "limite_inferior": 15.0, "limite_superior": 18.0 },
     { "nivel": "normal",     "limite_inferior": 18.0, "limite_superior": 28.0 },
     { "nivel": "precaucion", "limite_inferior": 28.0, "limite_superior": 35.0 }
-  ]
+  ],
+  "estado_sincronizacion": "PENDIENTE",
+  "fecha_ultima_sincronizacion": null,
+  "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
 }
 ```
+
+**INC-M09-104-G29 (RF-17):** `estado_sincronizacion` refleja el intento de propagar la
+configuración hacia el Nodo Edge (`PENDIENTE` / `APLICADA` / `NO_CONF`). Hoy siempre
+responde `PENDIENTE` — el contrato real del broker MQTT para umbrales (destino, topic,
+payload, ACK) aún no está definido por el equipo de IoT; ver
+`anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`. Un fallo de
+sincronización **nunca** produce un `500`: el umbral ya quedó guardado correctamente
+en el sistema central, la propagación al Edge es un intento de mejor esfuerzo aparte
+(mismo patrón que `POST /dispositivos-iot/{id}/configurar`, RF-23).
 
 Errores posibles:
 - `422` — especie inactiva (FA-01)
@@ -129,6 +141,9 @@ Errores posibles:
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
 - `422` — solapamiento de niveles (FA-05)
+
+Igual que en el Flujo A, la respuesta `200` incluye `estado_sincronizacion` — la edición
+también dispara un intento de re-propagación hacia el Nodo Edge (INC-M09-104-G29).
 
 ---
 
