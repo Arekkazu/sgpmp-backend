@@ -298,7 +298,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 HistorialInfraestructuraActivoModel.id_infraestructura == InfraestructuraModel.id_infraestructura,
             )
             .filter(HistorialInfraestructuraActivoModel.id_activo_biologico == id_activo)
-            .order_by(HistorialInfraestructuraActivoModel.fecha_inicio.desc())
+            # TC-M02-023: cronologico, de la asociacion mas antigua a la vigente.
+            .order_by(HistorialInfraestructuraActivoModel.fecha_inicio.asc())
             .all()
         )
         return [
