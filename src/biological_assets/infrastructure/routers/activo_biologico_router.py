@@ -148,6 +148,10 @@ _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
 # (no existe todavia una identidad de modulo autenticable).
 _LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
 
+# TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
+# prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
+_LIMITE_REGISTRO_ACTIVO = rate_limit(100, 60, alcance="activos_registro")
+
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
     """Resuelve las fincas permitidas para el usuario (RF-25). ``None`` = global."""
@@ -230,13 +234,17 @@ def _sensor_to_response(s: SensorEnInfraestructura) -> SensorEnInfraestructuraRe
     '',
     response_model=ActivoBiologicoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF33'))],
+    dependencies=[
+        Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF33')),
+        Depends(_LIMITE_REGISTRO_ACTIVO),
+    ],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        429: {'model': ErrorResponse},
     },
     summary='Registrar activo biológico (RF-33)',
 )
