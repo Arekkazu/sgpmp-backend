@@ -36,18 +36,17 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Optional[DispositivoIot]:
-        orm = self.db.get(DispositivoIotModel, id_dispositivo_iot)
-        if orm is None:
-            return None
+        query = self.db.query(DispositivoIotModel).filter(
+            DispositivoIotModel.id_dispositivo_iot == id_dispositivo_iot
+        )
         if ids_fincas_permitidas is not None:
-            id_finca = (
-                self.db.query(InfraestructuraModel.id_finca)
-                .filter(InfraestructuraModel.id_infraestructura == orm.id_infraestructura)
-                .scalar()
-            )
-            if id_finca not in ids_fincas_permitidas:
-                return None
-        return self._a_entidad(orm)
+            query = query.join(
+                InfraestructuraModel,
+                DispositivoIotModel.id_infraestructura
+                == InfraestructuraModel.id_infraestructura,
+            ).filter(InfraestructuraModel.id_finca.in_(ids_fincas_permitidas))
+        orm = query.first()
+        return self._a_entidad(orm) if orm else None
 
     def obtener_por_serial(self, serial: str) -> Optional[DispositivoIot]:
         orm = (
