@@ -24,10 +24,11 @@ if TYPE_CHECKING:
     from src.identity_access.infrastructure.dependencies import UsuarioActual
     from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
 
-# Mapa de tipo_asociacion DTO (uppercase) → valor en DB (lowercase)
+# Mapa de tipo_asociacion DTO (uppercase) → valor en DB (lowercase).
+# AMBIENTAL no es alcanzable aquí -- el DTO ya la excluye del Literal (#351);
+# ese caso lo maneja AsociarSensorInfraestructuraUseCase.
 _TIPO_DB = {
     'DIRECTA': 'directa',
-    'AMBIENTAL': 'ambiental',
     'POBLACIONAL': 'poblacional',
 }
 
