@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.nivel_alerta_ambiental import NivelAlertaAmbiental
 from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 from src.configuration.domain.repositories.auditoria_umbral_repository import AuditoriaUmbralRepository
+from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
@@ -28,11 +29,13 @@ class EditarUmbralUseCase:
         umbral_repo: UmbralAmbientalRepository,
         variable_repo: VariableAmbientalRepository,
         auditoria_repo: AuditoriaUmbralRepository,
+        edge_port: EdgeSincronizacionPort,
     ) -> None:
         self.db = db
         self.umbral_repo = umbral_repo
         self.variable_repo = variable_repo
         self.auditoria_repo = auditoria_repo
+        self.edge_port = edge_port
 
     def execute(
         self,
@@ -98,6 +101,40 @@ class EditarUmbralUseCase:
                 valores_anteriores=snapshot_anterior,
                 valores_nuevos=umbral_actualizado._snapshot(),
             )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        # POST-commit (INC-M09-104-G29): re-propagar el umbral editado hacia
+        # el Nodo Edge. Nunca lanza -- ver RegistrarUmbralUseCase.
+        resultado = self.edge_port.propagar_umbral(
+            umbral_actualizado.id_especie,
+            umbral_actualizado.id_variable_ambiental,
+            {
+                'valor_min': str(umbral_actualizado.valor_min),
+                'valor_max': str(umbral_actualizado.valor_max),
+                'unidad_medida': umbral_actualizado.unidad_medida,
+                'niveles': [
+                    {
+                        'nivel': n.nivel.value,
+                        'limite_inferior': str(n.limite_inferior),
+                        'limite_superior': str(n.limite_superior),
+                    }
+                    for n in umbral_actualizado.niveles
+                ],
+            },
+        )
+
+        if resultado.estado == 'APLICADA':
+            umbral_actualizado.marcar_sincronizado(datetime.now(timezone.utc))
+        elif resultado.estado == 'PENDIENTE':
+            umbral_actualizado.marcar_pendiente_sincronizacion(resultado.mensaje)
+        else:
+            umbral_actualizado.marcar_fallo_sincronizacion(resultado.mensaje)
+
+        try:
+            umbral_actualizado = self.umbral_repo.actualizar_estado_sincronizacion(umbral_actualizado)
             self.db.commit()
         except Exception:
             self.db.rollback()
