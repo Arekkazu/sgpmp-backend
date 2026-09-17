@@ -47,8 +47,12 @@ class UmbralAmbientalModel(Base):
     nombre: Mapped[Optional[str]] = mapped_column(String)
     descripcion: Mapped[Optional[str]] = mapped_column(String)
     es_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    valor_min: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
-    valor_max: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    # INC-M09-103-G28: numeric(8,2) es la precisión/escala real de la columna
+    # en BD desde el diseño original (ver anotaciones/modulo_9/
+    # inc_m09_103_g28_precision_umbrales.md) -- el ORM no la declaraba
+    # explícitamente, dejando el contrato del modelo desalineado del físico.
+    valor_min: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    valor_max: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
 
     niveles: Mapped[List['NivelAlertaAmbientalModel']] = relationship(
