@@ -31,8 +31,11 @@ class NivelAlertaAmbientalModel(Base):
     )
     id_umbral_ambiental: Mapped[int] = mapped_column(nullable=False)
     nivel: Mapped[str] = mapped_column(String(20), nullable=False)
-    limite_inferior: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
-    limite_superior: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    # INC-M09-103-G28: numeric(8,2) real en BD, igual que valor_min/valor_max
+    # del umbral padre -- ver anotaciones/modulo_9/
+    # inc_m09_103_g28_precision_umbrales.md.
+    limite_inferior: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
+    limite_superior: Mapped[Decimal] = mapped_column(Numeric(8, 2), nullable=False)
 
     umbral: Mapped['UmbralAmbientalModel'] = relationship(
         'UmbralAmbientalModel',
