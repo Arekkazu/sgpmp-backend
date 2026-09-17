@@ -28,6 +28,12 @@ from sqlalchemy.orm import Session
 ROOT = Path(__file__).resolve().parents[2]
 JWT_SECRET_INTEGRACION = "sgpmp-integration-tests-only"
 BASES_PRUEBA_PERMITIDAS = {"pruebas", "pruebas-integrador"}
+DEV_OFICIAL = {
+    "host": "158.69.200.27",
+    "port": 5447,
+    "database": "sgpmp_dev",
+    "username": "member_dev",
+}
 TABLAS_MODULO1_REQUERIDAS = {
     "acciones",
     "cuentas_usuarios",
@@ -49,6 +55,23 @@ def _validar_url_pruebas(url: str) -> None:
     nombre = (parsed.database or "").lower()
     if not parsed.drivername.startswith("postgresql"):
         pytest.fail("TEST_DATABASE_URL debe apuntar a PostgreSQL.")
+
+    # La BD oficial de desarrollo solo se habilita de forma explícita y con
+    # destino exacto. ``db_session`` mantiene una transacción exterior que
+    # revierte incluso los commits ejecutados por los casos de uso.
+    if nombre == DEV_OFICIAL["database"]:
+        destino_exacto = (
+            parsed.host == DEV_OFICIAL["host"]
+            and (parsed.port or 5432) == DEV_OFICIAL["port"]
+            and parsed.username == DEV_OFICIAL["username"]
+        )
+        if os.getenv("ALLOW_SGPMP_DEV_INTEGRATION") != "1" or not destino_exacto:
+            pytest.fail(
+                "Protección de seguridad: sgpmp_dev solo puede usarse con "
+                "ALLOW_SGPMP_DEV_INTEGRATION=1 y el destino oficial exacto."
+            )
+        return
+
     if "test" not in nombre and nombre not in BASES_PRUEBA_PERMITIDAS:
         pytest.fail(
             "Protección de seguridad: la base indicada por TEST_DATABASE_URL "

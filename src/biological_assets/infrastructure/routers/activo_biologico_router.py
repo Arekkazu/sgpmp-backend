@@ -141,6 +141,7 @@ router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 _RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+_ROL_PRODUCTOR = 2
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
 # 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
@@ -158,6 +159,13 @@ def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
     return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario, usuario_actual.id_rol
     )
+
+
+def _ids_fincas_productor_rf49(db: Session, usuario_actual: UsuarioActual):
+    """Restringe al Productor sin alterar el alcance operativo de otros roles."""
+    if usuario_actual.id_rol != _ROL_PRODUCTOR:
+        return None
+    return _ids_fincas_alcance(db, usuario_actual)
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -1231,7 +1239,12 @@ def asociar_sensor_iot(
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    resultado = use_case.execute(
+        id_activo,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_productor_rf49(db, usuario_actual),
+    )
     return AsociacionSensorActivoResponse(
         id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
         id_activo_biologico=resultado.id_activo_biologico,
