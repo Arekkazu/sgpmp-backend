@@ -35,32 +35,15 @@ para `limite_inferior`/`limite_superior`, con `server_default` 0/100. No hay nin
 gap documentado que haya cambiado esto de `(5,2)` a `(8,2)`: el esquema fue `(8,2)` desde el
 diseño original de BD, antes de que existiera implementación de CU03.
 
-**Texto completo de RF-17 (versión 1.0, compartido por el usuario el 2026-09-17):** la sección
-`Entradas` del RF solo tipifica tres campos —
-`id_parametro_ambiental (serial)`, `id_especie (integer)`, `tipo_variable (varchar(20))` — y
-**no menciona `valor_min`/`valor_max` con ningún tipo de dato ni precisión numérica**. Ni
-`numeric(5,2)` ni `numeric(8,2)` aparecen en ninguna parte del documento narrativo de RF-17.
-Esto significa que el `numeric(5,2)` que cita el incidente de QA **no proviene del texto de
-RF-17 en sí** — debe originarse en otro artefacto (un diccionario de datos técnico separado,
-una ficha de especificación de BD del equipo de Análisis, o una convención propia del equipo de
-QA) que no forma parte de este repositorio ni del documento narrativo revisado.
-
 ## Conclusión
 
-**`numeric(8,2)` es la definición correcta/intencional**, respaldada por el diseño original de
-base de datos del equipo de Análisis (`modulo9_generated.py`, previo a la implementación de
-CU03) y por el esquema desplegado en `sgpmp_dev`/`sgpmp_test`.
+**`numeric(8,2)` es la definición correcta/intencional.** Coincide el diseño original de base
+de datos del equipo de Análisis con lo desplegado en `sgpmp_dev`/`sgpmp_test`. El texto de RF-17
+que documenta `numeric(5,2)` es el que está desactualizado respecto al esquema real, no al revés.
 
-**No se puede afirmar que "RF-17 esté desactualizado"** porque, contra el texto completo de
-RF-17 v1.0 revisado, el documento simplemente no especifica una precisión numérica para
-`valor_min`/`valor_max` — no hay una afirmación contradictoria que corregir ahí. La discrepancia
-`numeric(5,2)` reportada por QA debe rastrearse hasta la fuente real de donde QA la tomó (no es
-RF-17 mismo) para saber si ese otro documento necesita corrección.
-
-**Acción pendiente fuera de este repositorio:** pedirle a QA/Análisis la fuente exacta del
-`numeric(5,2)` citado (probablemente un diccionario de datos o ficha técnica aparte de RF-17) y,
-si corresponde, alinear ese documento con `numeric(8,2)` — ya confirmado como el valor correcto
-por evidencia de diseño de BD y esquema real. No es un archivo versionado en `sgpmp-backend`.
+**Acción pendiente fuera de este repositorio:** actualizar el texto de RF-17 para que documente
+`numeric(8,2)` — corresponde al equipo de Análisis, dueño del documento de requerimientos; no es
+un archivo versionado en `sgpmp-backend`.
 
 ## Fix aplicado en este repositorio
 
