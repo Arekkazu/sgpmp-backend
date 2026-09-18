@@ -173,6 +173,7 @@ def _consultar(
         tamano=resultado["tamano"],
         items=items,
         mensaje=resultado["mensaje"],
+        fecha_hasta=resultado["fecha_hasta"],
     )
 
 
@@ -192,7 +193,17 @@ def consultar_auditoria(
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
     fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_hasta: Optional[datetime] = Query(
+        None,
+        description=(
+            "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
+            "el ancla en el momento de la consulta y la devuelve en `fecha_hasta`: "
+            "reenvíe ese mismo valor al pedir las siguientes páginas para obtener "
+            "un conjunto estable (INC-M01-71 — sin ancla fija, eventos nuevos "
+            "insertados entre páginas, incluida la propia auditoría de esta "
+            "consulta, pueden repetir un registro entre página N y N+1)."
+        ),
+    ),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
@@ -230,7 +241,17 @@ def consultar_auditoria_archivada(
     tipo_evento: Optional[int] = Query(None),
     categoria: Optional[EventoCategoria] = Query(None),
     fecha_desde: Optional[datetime] = Query(None),
-    fecha_hasta: Optional[datetime] = Query(None),
+    fecha_hasta: Optional[datetime] = Query(
+        None,
+        description=(
+            "Fin del rango temporal (inclusive). Si se omite, la respuesta fija "
+            "el ancla en el momento de la consulta y la devuelve en `fecha_hasta`: "
+            "reenvíe ese mismo valor al pedir las siguientes páginas para obtener "
+            "un conjunto estable (INC-M01-71 — sin ancla fija, eventos nuevos "
+            "insertados entre páginas, incluida la propia auditoría de esta "
+            "consulta, pueden repetir un registro entre página N y N+1)."
+        ),
+    ),
     pagina: int = Query(1, ge=1),
     tamano: int = Query(20, ge=1, le=50),
     db: Session = Depends(get_db),
