@@ -120,6 +120,38 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 
 ---
 
+### Flujo alterno — Dispositivo IoT fuera de línea (INC-M02-35-G84 v2)
+
+Si el dispositivo IoT del sensor no ha enviado heartbeat en los últimos 30
+minutos (`modulo3.estados_dispositivos_iot.fecha_ultimo_contacto`), la
+asociación **igual se crea** (no bloquea la operación) pero la respuesta
+incluye `advertencia` con el aviso. Mismo request que el flujo principal;
+la diferencia está solo en el estado de conectividad del dispositivo.
+
+**Respuesta esperada (201 Created, con advertencia):**
+```json
+{
+  "id_asociacion_activo_sensor": 2,
+  "id_activo_biologico": 1,
+  "tipo_activo": "INDIVIDUAL",
+  "tipo_asociacion": "directa",
+  "dispositivo_iot_id": 4,
+  "sensor_id": 3,
+  "id_infraestructura": 1,
+  "fecha_inicio": "2026-09-18T15:00:00Z",
+  "fecha_fin": null,
+  "estado_asociacion": "ACTIVA",
+  "motivo": null,
+  "advertencia": "El dispositivo 4 se encuentra desconectado desde las 14:12:07. Las lecturas podrían no verse reflejadas de inmediato."
+}
+```
+
+Si M03 nunca evaluó el dispositivo (sin fila en `estados_dispositivos_iot`) o
+el último contacto está dentro de los 30 minutos, `advertencia` vuelve a ser
+`null` — mismo comportamiento que el flujo principal.
+
+---
+
 ### Flujo — Asociación AMBIENTAL (sensor compartido por infraestructura)
 
 ```bash

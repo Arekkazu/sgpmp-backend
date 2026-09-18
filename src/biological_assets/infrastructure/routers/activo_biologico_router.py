@@ -25,6 +25,9 @@ from src.biological_assets.domain.entities.activo_biologico import (
     SensorEnInfraestructura,
 )
 from src.biological_assets.infrastructure.adapters.ciclo_productivo_m09_adapter import CicloProductivoM09Adapter
+from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_adapter import (
+    DispositivoIotEstadoM03Adapter,
+)
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
@@ -1239,6 +1242,7 @@ def asociar_sensor_iot(
         sensor_port=SensorM09Adapter(db),
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        dispositivo_estado_port=DispositivoIotEstadoM03Adapter(db),
     )
     resultado = use_case.execute(
         id_activo,
@@ -1258,7 +1262,7 @@ def asociar_sensor_iot(
         fecha_fin=resultado.fecha_fin,
         estado_asociacion=resultado.estado_asociacion,
         motivo=resultado.motivo,
-        advertencia=None,
+        advertencia=resultado.advertencia,
     )
 
 
