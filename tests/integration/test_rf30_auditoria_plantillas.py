@@ -162,6 +162,43 @@ def test_auditoria_registra_creacion_fallida_por_nombre_duplicado(
     assert fallidos_creacion[0]["id_plantilla"] is None
 
 
+def test_auditoria_registra_creacion_fallida_por_especie_inactiva(
+    config_client, crear_usuario_db, crear_auth_headers, db_session, especie_activa: int
+) -> None:
+    """INC-M09-02-115 (#318): la creación fallida queda auditada también
+    cuando el motivo es una regla de negocio distinta al nombre duplicado
+    (aquí, especie de referencia inactiva -- RF-31 FA "Especie de referencia
+    inactiva o no encontrada")."""
+    from sqlalchemy import text
+
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+    nombre = f"Plantilla Especie Inactiva {_sufijo_letras()}"
+
+    db_session.execute(
+        text("UPDATE modulo9.especies SET es_activo = FALSE WHERE id_especie = :id"),
+        {"id": especie_activa},
+    )
+    db_session.flush()
+
+    resp = config_client.post(
+        "/configuracion/plantillas",
+        json={"template_name": nombre, "id_especie": especie_activa, "params_snapshot": _SNAPSHOT_VALIDO},
+        headers=headers,
+    )
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["error_code"] == "ESPECIE_INACTIVA"
+
+    auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
+    fallidos = [
+        item for item in auditoria.json()["items"]
+        if item["tipo_operacion"] == "CREATE"
+        and item["resultado"] == "FALLIDO"
+        and item["valores_nuevos"].get("template_name") == nombre
+    ]
+    assert len(fallidos) == 1
+
+
 def test_auditoria_lista_creacion_y_versionado(
     config_client, crear_usuario_db, crear_auth_headers, especie_activa: int
 ) -> None:
