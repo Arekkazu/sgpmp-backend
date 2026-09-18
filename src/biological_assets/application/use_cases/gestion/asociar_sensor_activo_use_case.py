@@ -18,7 +18,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsultaPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 if TYPE_CHECKING:
     from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -163,6 +163,37 @@ class AsociarSensorActivoUseCase:
                     f'y el sensor en la finca {infra_sensor.id_finca}. '
                     'La asociación solo es permitida dentro de la misma unidad territorial.'
                 ),
+            )
+
+        # V7 — Compatibilidad biologica sensor-especie (RF-49 R3 / FA-04).
+        # La configuracion de M09 es una lista blanca por sensor. Fallar
+        # cerrado cuando no hay parametrizacion evita que la ausencia del
+        # catalogo vuelva a equivaler a "cualquier especie es compatible".
+        compatibilidad = self.sensor_port.obtener_compatibilidad_especie(
+            dto.sensor_id,
+            activo.id_especie,
+        )
+        if compatibilidad is None or not compatibilidad.configurada:
+            raise ValidationError(
+                code='COMPATIBILIDAD_SENSOR_NO_CONFIGURADA',
+                message=(
+                    f'No existe una parametrización de compatibilidad biológica para el sensor '
+                    f'{dto.sensor_id}. Configure al menos una especie compatible en M09 antes '
+                    'de asociarlo a un activo biológico.'
+                ),
+                field='sensor_id',
+            )
+
+        if not compatibilidad.es_compatible:
+            especies = ', '.join(compatibilidad.especies_compatibles)
+            raise ValidationError(
+                code='INCOMPATIBILIDAD_ESPECIE_SENSOR',
+                message=(
+                    f'Incompatibilidad biológica. El sensor {dto.sensor_id} está parametrizado '
+                    f'para {especies}, no es compatible con el activo {id_activo} de tipo '
+                    f'{compatibilidad.nombre_especie_activo}.'
+                ),
+                field='sensor_id',
             )
 
         tipo_db = _TIPO_DB[dto.tipo_asociacion]

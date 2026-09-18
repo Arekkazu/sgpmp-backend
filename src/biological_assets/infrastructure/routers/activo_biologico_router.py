@@ -1218,6 +1218,7 @@ def consultar_asociaciones_sensor(
     status_code=201,
     response_model=AsociacionSensorActivoResponse,
     responses={
+        400: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
