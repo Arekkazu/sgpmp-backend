@@ -35,6 +35,19 @@ class PlantillaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def obtener_ultima_version(self, template_name: str) -> Optional[Plantilla]:
+        """Retorna la versión vigente (la de mayor número) para ese nombre.
+
+        INC-M09-03-122 (#317): RF-31 exige que "una actualización genere una
+        nueva versión, no sobreescriba la original" -- eso implica que la
+        versión anterior queda superada. Este método es lo que permite a
+        RF-32 comprobar que la plantilla que se va a aplicar es la vigente.
+        Compara igual que `existe_nombre` (normalizado, sin distinguir
+        mayúsculas/espacios) para no divergir del trigger de la BD.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def guardar(self, plantilla: Plantilla) -> Plantilla:
         """Inserta una plantilla nueva. Hace ``flush``. El ``commit`` lo emite el use case."""
         raise NotImplementedError
