@@ -89,24 +89,48 @@ existentes: honesto, nunca hubo intento de sincronización antes de este cambio)
 ## 🔴 Requiere aprobación de DBA
 
 `member_dev` (la credencial de aplicación) no tiene permiso de lectura sobre `alembic_version`
-(`InsufficientPrivilege`), así que la sintaxis se validó primero en modo offline
-(`alembic upgrade ... --sql`, sin tocar ninguna base). Después, con una credencial `dba`
-provista por el usuario, se verificó el round-trip completo contra `sgpmp_dev` real:
+(`InsufficientPrivilege`), así que la sintaxis se validó primero en modo offline. Se hicieron
+**dos rondas** de verificación con una credencial `dba` provista por el usuario, porque entre
+ambas `dev` avanzó:
+
+**Ronda 1 (17/09)**, contra head `d014e2cc785d`: `alembic upgrade head` aplicó limpio
+(`d014e2cc785d -> 424e8d205792`), columnas y `CHECK` correctos, backfill de 13 filas a
+`PENDIENTE`, `alembic downgrade d014e2cc785d` revirtió limpio.
+
+**Ronda 2 (18/09)**, tras mergear `origin/dev`: entre la ronda 1 y esta, se mergeó a `dev` la
+migración `1147428cd8fb` (precisión de umbrales, INC-M09-103-G28, de otro desarrollador) sobre
+un `down_revision` distinto al de esta rama — dos heads divergentes. Se generó la migración de
+reconciliación estándar `58a6bfab5ce6` (`alembic merge`, vacía, no toca ninguna tabla) antes de
+poder verificar de nuevo:
 
 | Comprobación | Resultado |
 |---|---|
-| `alembic current` (antes) | `d014e2cc785d` |
-| `alembic upgrade head` | Aplicó limpio: `d014e2cc785d -> 424e8d205792` |
+| `alembic heads` tras mergear `dev` | 2 heads (`1147428cd8fb`, `424e8d205792`) — no relacionados, columnas distintas |
+| `alembic merge 1147428cd8fb 424e8d205792` | Generó `58a6bfab5ce6`, un solo head |
+| `alembic current` (antes) | `1147428cd8fb` |
+| `alembic upgrade head` | Aplicó limpio: `424e8d205792` + `58a6bfab5ce6` |
 | Columnas creadas | `estado_sincronizacion` (`varchar(20)`, `NOT NULL`, default `'PENDIENTE'`), `fecha_ultima_sincronizacion` (`timestamptz`, nullable), `motivo_fallo_sincronizacion` (`text`, nullable) |
 | `CHECK` constraint | `umbrales_ambientales_estado_sincronizacion_check` presente, sobre los 3 valores permitidos |
-| Backfill de filas existentes | 13 filas, todas en `PENDIENTE` (honesto: nunca hubo intento de sincronización antes de este cambio) |
-| `alembic downgrade d014e2cc785d` | Revirtió limpio: columnas y constraint eliminados |
-| `alembic current` (después) | `d014e2cc785d` — BD queda exactamente como antes de la verificación |
+| Backfill de filas existentes | 13 filas, todas en `PENDIENTE` |
+| `valor_min`/`valor_max` (migración del compañero) | Intactos en `NUMERIC(5,2)` antes y después — no se tocaron |
+| `alembic downgrade` | Ver nota abajo — requirió un paso adicional |
+| `alembic current` (después) | `1147428cd8fb` — BD queda exactamente como antes de la verificación |
 
-Esta verificación **no reemplaza la aprobación formal del DBA** — la migración fue revertida
-inmediatamente después de confirmar que corre limpio en ambas direcciones, siguiendo la política
-del equipo para este tipo de chequeo. El DBA debe correr `alembic upgrade head` de forma
-definitiva antes de mergear.
+**Nota sobre el downgrade:** el primer intento (`alembic downgrade 1147428cd8fb`) solo deshizo
+el merge point y dejó la BD en ambos heads (`424e8d205792`, `1147428cd8fb`) — comportamiento
+esperado en un mergepoint. El segundo intento apuntó mal al ancestro común
+(`alembic downgrade d014e2cc785d`) y **revirtió de más**: además de `424e8d205792`, deshizo
+también `1147428cd8fb` y las dos migraciones de RF-49 (`281e99d58ecb`, `1d7d6069da52`) que ya
+eran parte legítima de `dev`, ajenas a este cambio. Se detectó de inmediato al revisar
+`alembic current` y se corrigió con `alembic upgrade 1147428cd8fb`, que las reaplicó sin tocar
+nada de esta rama — verificado después que `valor_min`/`valor_max` seguían en `NUMERIC(5,2)` y
+que las 3 columnas de esta migración quedaron eliminadas. Se documenta el error para que quede
+claro que un `downgrade` a un revision-id específico en un árbol con merge points debe apuntar
+al punto exacto de la rama propia, no al ancestro común de todas las ramas.
+
+Ninguna de las dos rondas reemplaza la aprobación formal del DBA — ambas veces la migración fue
+revertida inmediatamente después de confirmar que corre limpio en ambas direcciones. El DBA debe
+correr `alembic upgrade head` de forma definitiva antes de mergear.
 
 ## Pruebas
 
@@ -120,6 +144,8 @@ definitiva antes de mergear.
   nuevos).
 - Suite completa `tests -m "not integration"`: 697 passed, mismos 2 fallos preexistentes en
   `test_registrar_transferencia_use_case.py` (no relacionados, ya documentados en el repo).
+- Tras mergear `origin/dev` (18/09): `python -m pytest -q` → 727 passed, 187 skipped, mismos 2
+  fallos preexistentes — sin regresiones por el merge ni por la migración de reconciliación.
 
 ## Fuera de alcance
 
