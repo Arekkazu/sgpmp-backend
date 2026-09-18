@@ -29,7 +29,7 @@ class ActivoRepoFake:
     def __init__(self, activo: ActivoBiologico) -> None:
         self.activo = activo
 
-    def obtener_por_id(self, _id: int):
+    def obtener_por_id(self, _id: int, *, ids_fincas_permitidas=None):
         return self.activo
 
 
