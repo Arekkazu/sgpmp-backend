@@ -196,6 +196,47 @@ def test_soporte_documental_requerido_para_compra_es_422() -> None:
     assert exc_info.value.code == 'SOPORTE_DOCUMENTAL_REQUERIDO'
 
 
+def test_transferencia_interna_sin_costo_ni_soporte_no_lanza() -> None:
+    # RF-33: para transferencia_interna, costo_adquisicion es opcional y, sin
+    # costo, soporte_documental tampoco se exige.
+    payload = _OrigenFinancieroPayload(origen_financiero='transferencia_interna')
+    _validar_origen_financiero(payload)  # no debe lanzar
+
+
+def test_transferencia_interna_costo_no_positivo_es_422() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('0'),
+        soporte_documental='acta.pdf',
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        _validar_origen_financiero(payload)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'COSTO_ADQUISICION_INVALIDO'
+
+
+def test_transferencia_interna_con_costo_exige_soporte_documental_422() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('100'),
+        soporte_documental=None,
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        _validar_origen_financiero(payload)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.code == 'SOPORTE_DOCUMENTAL_REQUERIDO'
+
+
+def test_transferencia_interna_con_costo_y_soporte_no_lanza() -> None:
+    payload = _OrigenFinancieroPayload(
+        origen_financiero='transferencia_interna', costo_adquisicion=Decimal('100'),
+        soporte_documental='acta.pdf',
+    )
+    _validar_origen_financiero(payload)  # no debe lanzar
+
+
 def test_costo_adquisicion_invalido_para_origen_bloquea_antes_de_persistir() -> None:
     db = DbFake()
     repo = ActivoRepoFake()

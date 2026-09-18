@@ -4,12 +4,16 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import AppError, NotFoundError
 
 
 class ActualizarActivoIndividualUseCase:
@@ -23,8 +27,37 @@ class ActualizarActivoIndividualUseCase:
         self.repo = repo
         self.bitacora_repo = bitacora_repo
 
-    def execute(self, id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) -> ActivoBiologico:
-        activo = self.repo.obtener_por_id(id_activo)
+    def execute(
+        self,
+        id_activo: int,
+        dto: ActualizarActivoIndividualDTO,
+        usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
+    ) -> ActivoBiologico:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF35',
+            tipo_evento_rechazado='ACTIVO_INDIVIDUAL_ACTUALIZADO',
+            clasificacion_biologica='GESTION_OPERATIVA',
+        )
+
+    def _execute(
+        self,
+        id_activo: int,
+        dto: ActualizarActivoIndividualDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: list[int] | None,
+    ) -> ActivoBiologico:
+        # BOLA (TC-M02-G15): mismo alcance de finca que ya aplica la consulta
+        # (ConsultarActivoUseCase) -- sin esto, un usuario podia actualizar
+        # activos de fincas fuera de su alcance.
+        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',
@@ -42,35 +75,28 @@ class ActualizarActivoIndividualUseCase:
         try:
             activo = self.repo.actualizar_detalle_individual(activo)
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF35', tipo_evento='ACTIVO_ACTUALIZACION_FALLIDA',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo,
-                        detalle_tecnico={'error': str(exc)},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF35', tipo_evento='ACTIVO_ACTUALIZACION_FALLIDA',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo,
+                detalle_tecnico={'error': str(exc)},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF35', tipo_evento='ACTIVO_INDIVIDUAL_ACTUALIZADO',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Detalle individual actualizado para activo {id_activo}',
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF35', tipo_evento='ACTIVO_INDIVIDUAL_ACTUALIZADO',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Detalle individual actualizado para activo {id_activo}',
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return activo

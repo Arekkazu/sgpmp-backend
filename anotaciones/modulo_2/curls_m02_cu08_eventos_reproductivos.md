@@ -191,6 +191,32 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/reproduc
 }
 ```
 
+## FA-02b — Activo sin fase productiva activa (INC-M02-78-G58)
+
+**HTTP 409 Conflict**
+```json
+{
+  "code": "FASE_NO_COMPATIBLE_REPRODUCCION",
+  "message": "La fase productiva del activo no permite registrar este tipo de evento.",
+  "field": null
+}
+```
+
+RF-42 exige que "el activo debe estar en una fase productiva compatible con
+reproducción" (precondición) y documenta este mismo mensaje en su flujo
+alterno. Antes de este fix, `RegistrarEventoReproductivoUseCase` no
+verificaba la fase en absoluto — un activo sin ninguna gestión de fase activa
+(o con la fase ya cerrada) podía registrar cualquier evento reproductivo.
+
+El catálogo de fases de este sistema (`modulo9.ciclos_biologicos`) son etapas
+de crecimiento secuenciales por especie (ej. larval → juvenil → engorde), sin
+ninguna fase marcada como "reproductiva" — no existe esa distinción en el
+modelo de datos. La compatibilidad exigida por el RF se interpreta entonces
+como equivalente a la E-02 de RF-43 (`RegistrarEventoProductivoUseCase`):
+debe existir una gestión de fase **activa**, sin más granularidad. Se aplica
+antes que cualquier otra validación de categoría o secuencia — bloquea
+incluso `nacimiento` en un LOTE si no hay fase activa.
+
 ## FA-03 — Fecha inválida o futura
 
 **HTTP 400 Bad Request**
