@@ -10,9 +10,11 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.plantillas._auditoria_comun import registrar_intento_fallido
 from src.configuration.domain.entities.aplicacion_plantilla import AplicacionPlantilla
 from src.configuration.domain.esquema_plantilla import es_compatible, versiones_compatibles
 from src.configuration.domain.repositories.aplicacion_plantilla_repository import AplicacionPlantillaRepository
+from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.ciclo_biologico_repository import CicloBiologicoRepository
 from src.configuration.domain.repositories.especie_patologia_repository import EspeciePatologiaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
@@ -37,6 +39,7 @@ class AplicarPlantillaUseCase:
         umbral_repo: UmbralAmbientalRepository,
         patologia_repo: EspeciePatologiaRepository,
         aplicacion_repo: AplicacionPlantillaRepository,
+        auditoria_repo: AuditoriaPlantillaRepository,
     ) -> None:
         self.db = db
         self.plantilla_repo = plantilla_repo
@@ -46,8 +49,30 @@ class AplicarPlantillaUseCase:
         self.umbral_repo = umbral_repo
         self.patologia_repo = patologia_repo
         self.aplicacion_repo = aplicacion_repo
+        self.auditoria_repo = auditoria_repo
 
     def execute(
+        self, id_plantilla: int, dto: AplicarPlantillaDTO, usuario_actual: UsuarioActual
+    ) -> AplicacionPlantilla:
+        # INC-M09-04-124 (#316): auditar también los intentos fallidos de
+        # aplicación (con o sin rollback de datos ya hecho más abajo).
+        try:
+            return self._ejecutar(id_plantilla, dto, usuario_actual)
+        except Exception as exc:
+            registrar_intento_fallido(
+                self.db,
+                self.auditoria_repo,
+                id_usuario=usuario_actual.id_usuario,
+                tipo_operacion="APPLY",
+                id_plantilla=id_plantilla,
+                detalle={
+                    "id_especie_destino": dto.id_especie_destino,
+                    "error": str(exc),
+                },
+            )
+            raise
+
+    def _ejecutar(
         self, id_plantilla: int, dto: AplicarPlantillaDTO, usuario_actual: UsuarioActual
     ) -> AplicacionPlantilla:
         plantilla = self.plantilla_repo.obtener_por_id(id_plantilla)
@@ -55,6 +80,25 @@ class AplicarPlantillaUseCase:
             raise NotFoundError(
                 code="PLANTILLA_NO_ENCONTRADA",
                 message=f"No existe la plantilla con id {id_plantilla}.",
+            )
+
+        # INC-M09-03-122 (#317): el versionado solo cumple su propósito de
+        # control de cambios si una versión superada deja de poder aplicarse.
+        # RF-31 exige que "una actualización genere una nueva versión, no
+        # sobreescriba la original" -- eso implica que la anterior queda
+        # superada, no que las dos siguen siendo intercambiables al aplicar.
+        vigente = self.plantilla_repo.obtener_ultima_version(plantilla.template_name)
+        if vigente is not None and vigente.version != plantilla.version:
+            raise BusinessRuleError(
+                code="PLANTILLA_VERSION_NO_VIGENTE",
+                message=(
+                    f"Versión superada: la plantilla '{plantilla.template_name}' "
+                    f"(versión {plantilla.version}) ya no es la vigente. La versión "
+                    f"actual es la {vigente.version} (id {vigente.id_plantilla}); "
+                    "aplique esa o genere una nueva versión de la plantilla que "
+                    "quiere usar."
+                ),
+                field="id_plantilla",
             )
 
         schema_version = plantilla.params_snapshot.get('schema_version', 0)
@@ -104,39 +148,35 @@ class AplicarPlantillaUseCase:
 
         before_snapshot = self._capturar_estado(id_dest)
 
-        try:
-            self.ciclo_repo.desactivar_todos_por_especie(id_dest)
-            self.metrica_repo.desactivar_todas_por_especie(id_dest)
-            self.umbral_repo.desactivar_todos_por_especie(id_dest)
-            self.patologia_repo.eliminar_todas_de_especie(id_dest)
+        self.ciclo_repo.desactivar_todos_por_especie(id_dest)
+        self.metrica_repo.desactivar_todas_por_especie(id_dest)
+        self.umbral_repo.desactivar_todos_por_especie(id_dest)
+        self.patologia_repo.eliminar_todas_de_especie(id_dest)
 
-            for datos in snapshot.get('ciclos_biologicos', []):
-                self.ciclo_repo.guardar_desde_snapshot(datos, id_dest)
+        for datos in snapshot.get('ciclos_biologicos', []):
+            self.ciclo_repo.guardar_desde_snapshot(datos, id_dest)
 
-            for datos in snapshot.get('metricas_produccion', []):
-                self.metrica_repo.guardar_desde_snapshot(datos, id_dest, usuario_actual.id_usuario)
+        for datos in snapshot.get('metricas_produccion', []):
+            self.metrica_repo.guardar_desde_snapshot(datos, id_dest, usuario_actual.id_usuario)
 
-            for datos in snapshot.get('umbrales_ambientales', []):
-                self.umbral_repo.guardar_desde_snapshot(datos, id_dest, usuario_actual.id_usuario)
+        for datos in snapshot.get('umbrales_ambientales', []):
+            self.umbral_repo.guardar_desde_snapshot(datos, id_dest, usuario_actual.id_usuario)
 
-            for datos in snapshot.get('patologias', []):
-                self.patologia_repo.vincular_desde_snapshot(id_dest, datos)
+        for datos in snapshot.get('patologias', []):
+            self.patologia_repo.vincular_desde_snapshot(id_dest, datos)
 
-            after_snapshot = self._capturar_estado(id_dest)
+        after_snapshot = self._capturar_estado(id_dest)
 
-            aplicacion = AplicacionPlantilla.crear(
-                id_usuario=usuario_actual.id_usuario,
-                id_plantilla=id_plantilla,
-                target_config={"id_especie": id_dest},
-                fecha_aplicacion=datetime.now(timezone.utc),
-                before_snapshot=before_snapshot,
-                after_snapshot=after_snapshot,
-            )
-            registro = self.aplicacion_repo.guardar(aplicacion)
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        aplicacion = AplicacionPlantilla.crear(
+            id_usuario=usuario_actual.id_usuario,
+            id_plantilla=id_plantilla,
+            target_config={"id_especie": id_dest},
+            fecha_aplicacion=datetime.now(timezone.utc),
+            before_snapshot=before_snapshot,
+            after_snapshot=after_snapshot,
+        )
+        registro = self.aplicacion_repo.guardar(aplicacion)
+        self.db.commit()
 
         return registro
 
