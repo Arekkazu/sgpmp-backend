@@ -119,6 +119,15 @@ def test_infraestructura_inexistente_o_inactiva_es_422():
     assert exc.value.code == 'INFRAESTRUCTURA_NO_ENCONTRADA'
 
 
+def test_productor_no_puede_asociar_en_infraestructura_de_otra_finca():
+    uc = _uc(_sensor(), infras={1: _infra(1, id_finca=20)})
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(1, _dto(), _usuario(), ids_fincas_permitidas=[10])
+
+    assert exc.value.code == 'INFRAESTRUCTURA_NO_ENCONTRADA'
+
+
 def test_sensor_inexistente_es_404():
     uc = _uc(None, infras={1: _infra(1, id_finca=10)})
 

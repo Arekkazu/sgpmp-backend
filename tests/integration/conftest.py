@@ -49,6 +49,7 @@ def _validar_url_pruebas(url: str) -> None:
     nombre = (parsed.database or "").lower()
     if not parsed.drivername.startswith("postgresql"):
         pytest.fail("TEST_DATABASE_URL debe apuntar a PostgreSQL.")
+
     if "test" not in nombre and nombre not in BASES_PRUEBA_PERMITIDAS:
         pytest.fail(
             "Protección de seguridad: la base indicada por TEST_DATABASE_URL "

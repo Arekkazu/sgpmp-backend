@@ -51,6 +51,22 @@ def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
                 message="soporte_documental no aplica cuando origen_financiero es 'nacimiento'.",
                 field='soporte_documental',
             )
+    elif origen == 'transferencia_interna':
+        # costo_adquisicion es opcional; si se informa, debe ser > 0 y llevar
+        # soporte_documental (RF-33). Sin costo, soporte tampoco se exige.
+        if dto.costo_adquisicion is not None:
+            if dto.costo_adquisicion <= 0:
+                raise BusinessRuleError(
+                    code='COSTO_ADQUISICION_INVALIDO',
+                    message="costo_adquisicion debe ser mayor a 0 cuando se informa para 'transferencia_interna'.",
+                    field='costo_adquisicion',
+                )
+            if not dto.soporte_documental:
+                raise BusinessRuleError(
+                    code='SOPORTE_DOCUMENTAL_REQUERIDO',
+                    message="soporte_documental es requerido cuando costo_adquisicion se informa para 'transferencia_interna'.",
+                    field='soporte_documental',
+                )
 
 
 def _validar_atributos_dinamicos(

@@ -1,3 +1,23 @@
+## [1.0.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.46...v1.0.0-rc.47) (2026-09-18)
+
+### Bug Fixes
+
+* **m02:** mapear ERRCODE P0210 a 400 en db_error_translator (INC-M02-100-G31) ([346dadb](https://github.com/Arekkazu/sgpmp-backend/commit/346dadb6bd08d8ab8bd2679f6a04c925c2e7c1ce))
+* **m02:** traducir errores de DB en actualizar_detalle_poblacional (INC-M02-100-G31) ([a97396b](https://github.com/Arekkazu/sgpmp-backend/commit/a97396be2bd37fde8bc8bf717e6055455d02e20e))
+* **m02:** validar compatibilidad sensor especie en RF-49 ([07035ca](https://github.com/Arekkazu/sgpmp-backend/commit/07035caa9e36eba6506e52c8f506a09d34f221db))
+* **rf16:** permitir guion bajo en nombre de metrica, robustecer lectura ([5e03507](https://github.com/Arekkazu/sgpmp-backend/commit/5e03507b00acc0c6961f99555308a4bccd2ed1a1)), closes [#327](https://github.com/Arekkazu/sgpmp-backend/issues/327) [#324](https://github.com/Arekkazu/sgpmp-backend/issues/324)
+* **rf33:** rate limiting en POST /activos-biologicos (100/min) ([4fe25ec](https://github.com/Arekkazu/sgpmp-backend/commit/4fe25ec277981f3eceb42dacd11405d99e73ccce)), closes [#331](https://github.com/Arekkazu/sgpmp-backend/issues/331)
+* **rf33:** validar coherencia costo/soporte para transferencia_interna ([45f902c](https://github.com/Arekkazu/sgpmp-backend/commit/45f902c2c82ffde0262a17e6995118bbec8c8f64)), closes [#324](https://github.com/Arekkazu/sgpmp-backend/issues/324) [#327](https://github.com/Arekkazu/sgpmp-backend/issues/327)
+* **rf34:** ordenar historial de infraestructura ASC en vez de DESC ([c8dca3f](https://github.com/Arekkazu/sgpmp-backend/commit/c8dca3f6673ce076cfd187ebc73b2cb8495ecd0b)), closes [#329](https://github.com/Arekkazu/sgpmp-backend/issues/329)
+* **rf35:** aplicar alcance de finca en PATCH /activos-biologicos/{id} (BOLA) ([a49ae4e](https://github.com/Arekkazu/sgpmp-backend/commit/a49ae4e586e5a2e033eacdcb316c8845daee44c3)), closes [#326](https://github.com/Arekkazu/sgpmp-backend/issues/326)
+* **rf36:** registrar en bitacora RF36/ACTIVO_POBLACIONAL_CONSULTA al consultar un lote ([9c05d30](https://github.com/Arekkazu/sgpmp-backend/commit/9c05d30df60c13defbeb5d8b6e0cf284ca50aaac)), closes [#346](https://github.com/Arekkazu/sgpmp-backend/issues/346)
+* **rf49:** actualizar fake de ActivoRepo para aceptar ids_fincas_permitidas ([b583c79](https://github.com/Arekkazu/sgpmp-backend/commit/b583c795b4006763a5073e1dbabde9d70e60b102))
+* **rf49:** advertencia de dispositivo IoT desconectado en POST .../sensores ([6de7a38](https://github.com/Arekkazu/sgpmp-backend/commit/6de7a38eb30039aff4474e71a5bcf19b68a616fb)), closes [#347](https://github.com/Arekkazu/sgpmp-backend/issues/347)
+* **rf49:** bloquear AMBIENTAL en POST /activos-biologicos/{id}/sensores ([dada877](https://github.com/Arekkazu/sgpmp-backend/commit/dada877774a9a662ebf57dc093793b1369f61b67)), closes [INC-M02-66-G90/#217](https://github.com/INC-M02-66-G90/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#351](https://github.com/Arekkazu/sgpmp-backend/issues/351)
+* **rf49:** eliminar gate de BD oficial hardcodeado en conftest de integracion ([d20a461](https://github.com/Arekkazu/sgpmp-backend/commit/d20a4619db37e893497cc0979d58accd01203e8e))
+* **rf49:** habilitar asociaciones del Productor por finca ([db37172](https://github.com/Arekkazu/sgpmp-backend/commit/db37172529d39dec1f014fd1163d5e7771fd917d))
+* **rf49:** otorgar permiso U sobre asociacion_sensor_activo al rol Productor ([9a948cf](https://github.com/Arekkazu/sgpmp-backend/commit/9a948cf2142e570567bbf35fe23f3a4e35de7fea)), closes [#212](https://github.com/Arekkazu/sgpmp-backend/issues/212) [#352](https://github.com/Arekkazu/sgpmp-backend/issues/352)
+
 ## [1.0.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.45...v1.0.0-rc.46) (2026-09-16)
 
 ### Features
