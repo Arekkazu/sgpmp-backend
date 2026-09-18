@@ -30,6 +30,19 @@ El documento RF-61 describe estados: CONFIRMADA / AMBIGUA / SIN_VINCULAR / PENDI
 La DB tiene: `enum_estado_vinculacion` = VINCULADA / SIN_VINCULAR / AMBIGUA / CORREGIDA  
 **Decisión:** implementar con los valores reales de la DB.
 
+## Vinculación automática (RF-61-A) sigue en stub
+
+`VincularLecturaActivoUseCase` depende de `ActivoBiologicoDependencyPort`, cuya única
+implementación (`ActivoBiologicoStubAdapter`) retorna `[]` siempre → toda vinculación
+automática queda `SIN_VINCULAR`. A diferencia de las dependencias cruzadas hacia AIoT/Edge, M02
+(`src/biological_assets`) ya existe en este repo — `activos_biologicos.id_dispositivo_iot` es
+un candidato real para resolver el activo vigente de un dispositivo — pero requiere definir qué
+`id_estado` cuenta como "vigente" cuando un dispositivo tuvo varios activos en el tiempo
+(verificado en BD: hasta 7 activos por dispositivo). No implementado — fuera de alcance de
+`INC-M09-106-G31` (#297), que solo necesitaba la especie de un activo *ya* vinculado, no
+resolver la vinculación automática en sí. Ver
+`anotaciones/modulo_9/inc_m09_106_g31_reclasificar_semaforo_rf17.md`.
+
 ## RBAC aplicado
 
 Fecha: 2026-07-06
