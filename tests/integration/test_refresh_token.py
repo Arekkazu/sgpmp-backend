@@ -84,6 +84,23 @@ def test_refresh_rota_tokens_y_el_nuevo_access_token_funciona(
     )
     assert permisos.status_code == 200, permisos.text
 
+    auditoria = db_session.execute(
+        text(
+            """
+            SELECT resultado::text, categoria, id_sesion, detalle
+            FROM modulo1.eventos
+            WHERE tipo_evento = 23 AND id_usuario = :id_usuario
+            ORDER BY id_evento DESC
+            LIMIT 1
+            """
+        ),
+        {"id_usuario": usuario["id_usuario"]},
+    ).mappings().one()
+    assert auditoria["resultado"] == "exitoso"
+    assert auditoria["categoria"] == "AUTENTICACION"
+    assert auditoria["id_sesion"] is not None
+    assert auditoria["detalle"]["user_agent"]
+
 
 def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
@@ -114,6 +131,22 @@ def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
         permisos = client.get("/sesiones/me/permisos", headers={"Authorization": f"Bearer {token}"})
         assert permisos.status_code == 401, permisos.text
 
+    auditoria = db_session.execute(
+        text(
+            """
+            SELECT resultado::text, categoria, id_sesion
+            FROM modulo1.eventos
+            WHERE tipo_evento = 24 AND id_usuario = :id_usuario
+            ORDER BY id_evento DESC
+            LIMIT 1
+            """
+        ),
+        {"id_usuario": usuario["id_usuario"]},
+    ).mappings().one()
+    assert auditoria["resultado"] == "fallido"
+    assert auditoria["categoria"] == "AUTENTICACION"
+    assert auditoria["id_sesion"] is not None
+
 
 def test_refresh_token_expirado_responde_410_y_cierra_sesion(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
@@ -141,6 +174,15 @@ def test_refresh_sin_cookie_responde_401(client) -> None:
     respuesta = client.post("/sesiones/refresh")
     assert respuesta.status_code == 401, respuesta.text
     assert respuesta.json()["error_code"] == "REFRESH_TOKEN_REQUERIDO"
+
+
+def test_refresh_con_cookie_desconocida_responde_401(client) -> None:
+    client.cookies.set("refresh_token", "token-que-no-existe")
+
+    respuesta = client.post("/sesiones/refresh")
+
+    assert respuesta.status_code == 401, respuesta.text
+    assert respuesta.json()["error_code"] == "REFRESH_TOKEN_INVALIDO"
 
 
 def test_logout_borra_la_cookie_de_refresh(
