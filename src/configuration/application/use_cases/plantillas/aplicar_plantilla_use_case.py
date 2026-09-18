@@ -82,6 +82,25 @@ class AplicarPlantillaUseCase:
                 message=f"No existe la plantilla con id {id_plantilla}.",
             )
 
+        # INC-M09-03-122 (#317): el versionado solo cumple su propósito de
+        # control de cambios si una versión superada deja de poder aplicarse.
+        # RF-31 exige que "una actualización genere una nueva versión, no
+        # sobreescriba la original" -- eso implica que la anterior queda
+        # superada, no que las dos siguen siendo intercambiables al aplicar.
+        vigente = self.plantilla_repo.obtener_ultima_version(plantilla.template_name)
+        if vigente is not None and vigente.version != plantilla.version:
+            raise BusinessRuleError(
+                code="PLANTILLA_VERSION_NO_VIGENTE",
+                message=(
+                    f"Versión superada: la plantilla '{plantilla.template_name}' "
+                    f"(versión {plantilla.version}) ya no es la vigente. La versión "
+                    f"actual es la {vigente.version} (id {vigente.id_plantilla}); "
+                    "aplique esa o genere una nueva versión de la plantilla que "
+                    "quiere usar."
+                ),
+                field="id_plantilla",
+            )
+
         schema_version = plantilla.params_snapshot.get('schema_version', 0)
         if not es_compatible(schema_version):
             raise PreconditionFailedError(
