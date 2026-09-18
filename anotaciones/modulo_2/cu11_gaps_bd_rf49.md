@@ -95,11 +95,25 @@ El modelo `modulo9.dispositivos_iot` no tiene campo `last_heartbeat` ni timestam
 **Decisión**: La asociación se registra normalmente. El campo `advertencia` en la respuesta queda `null`.
 Cuando el módulo de telemetría (M03) exponga el estado de conexión, se puede reactivar este warning.
 
-### Compatibilidad especie-sensor (FA-04 → HTTP 400)
-El catálogo I3P-1 (M09) que define compatibilidad entre `sensor.categoria` y `especie` no tiene
-tabla en la DB actual.
-**Decisión**: La validación de compatibilidad no se implementa en este CU. Se documenta como gap.
-Cuando la tabla de catálogo exista, agregar validación en el use case antes de V8.
+### Compatibilidad especie-sensor (FA-04 → HTTP 400) — resuelto 2026-09-16
+
+La revisión Alembic `281e99d58ecb` (`v5.3.0_rf49_compatibilidad_sensor_especie`)
+crea `modulo9.compatibilidad_sensores_especies` como lista blanca por sensor.
+La migración inicializa los pares que puede determinar sin inventar taxonomía:
+
+- especie explícita de la infraestructura donde el sensor está instalado;
+- especies compatibles con el tipo de esa infraestructura según el catálogo de RF-48.
+
+`AsociarSensorActivoUseCase` consulta el catálogo mediante `SensorConsultaPort`
+después de validar la coherencia territorial y antes de las cardinalidades V8.
+Un par no listado responde `400 INCOMPATIBILIDAD_ESPECIE_SENSOR` con el mensaje
+de FA-04. Un sensor sin ninguna regla también falla cerrado con
+`400 COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`; la ausencia de configuración ya no
+equivale a compatibilidad universal.
+
+El I3P-1 de variables fisicoquímicas conserva su función existente. La nueva
+tabla separa explícitamente la compatibilidad biológica por sensor para evitar
+sobrecargar ese catálogo con una semántica distinta.
 
 ---
 
