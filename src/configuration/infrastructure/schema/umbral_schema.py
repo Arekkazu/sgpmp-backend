@@ -33,6 +33,12 @@ class UmbralAmbientalResponse(BaseModel):
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
     niveles: List[NivelAlertaResponse]
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # PENDIENTE (recién guardado o sin ACK aún) / APLICADA (ACK recibido) /
+    # NO_CONF (se publicó pero no hubo ACK a tiempo).
+    estado_sincronizacion: str
+    fecha_ultima_sincronizacion: Optional[datetime.datetime] = None
+    motivo_fallo_sincronizacion: Optional[str] = None
 
     model_config = {'from_attributes': True}
 

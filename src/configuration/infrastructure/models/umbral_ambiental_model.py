@@ -5,7 +5,7 @@ import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Numeric, PrimaryKeyConstraint, Sequence, String, text
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Numeric, PrimaryKeyConstraint, Sequence, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
@@ -50,6 +50,13 @@ class UmbralAmbientalModel(Base):
     valor_min: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     valor_max: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # Mismo vocabulario que configuraciones_remotas (RF-23): PENDIENTE (recién
+    # guardado o broker inalcanzable) / APLICADA (ACK del Edge) / NO_CONF (se
+    # publicó pero no hubo ACK a tiempo).
+    estado_sincronizacion: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'PENDIENTE'"))
+    fecha_ultima_sincronizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
+    motivo_fallo_sincronizacion: Mapped[Optional[str]] = mapped_column(Text)
 
     niveles: Mapped[List['NivelAlertaAmbientalModel']] = relationship(
         'NivelAlertaAmbientalModel',
