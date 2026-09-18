@@ -47,8 +47,11 @@ class UmbralAmbientalModel(Base):
     nombre: Mapped[Optional[str]] = mapped_column(String)
     descripcion: Mapped[Optional[str]] = mapped_column(String)
     es_activo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text('true'))
-    valor_min: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
-    valor_max: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    # NUMERIC(5, 2): rango físico [-999.99, 999.99], suficiente para toda variable_ambiental
+    # existente (INC-M09-103-G28: la columna real ya se corrigió de NUMERIC(8,2) a NUMERIC(5,2)
+    # vía la migración 1147428cd8fb; esto solo alinea el ORM con esa columna).
+    valor_min: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    valor_max: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
 
     niveles: Mapped[List['NivelAlertaAmbientalModel']] = relationship(
