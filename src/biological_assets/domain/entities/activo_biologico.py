@@ -290,6 +290,9 @@ class AsociacionSensorActivo:
     motivo: Optional[str] = None
     id_asociacion_activo_sensor: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
+    # No persistido -- advertencia informativa de la respuesta (RF-49 FA
+    # "Dispositivo IoT Fuera de Línea"), calculada por el use case tras guardar.
+    advertencia: Optional[str] = None
 
 
 @dataclass(eq=False)

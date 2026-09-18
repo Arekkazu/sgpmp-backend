@@ -15,6 +15,7 @@ from src.biological_assets.domain.repositories.asociacion_sensor_activo_reposito
     AsociacionSensorActivoRepository,
 )
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
+from src.biological_assets.domain.repositories.dispositivo_iot_estado_port import DispositivoIotEstadoPort
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsultaPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
@@ -32,6 +33,9 @@ _TIPO_DB = {
     'POBLACIONAL': 'poblacional',
 }
 
+# RF-49 FA "Dispositivo IoT Fuera de Línea": sin heartbeat en los últimos 30 min.
+_UMBRAL_DESCONEXION_MINUTOS = 30
+
 
 class AsociarSensorActivoUseCase:
 
@@ -43,6 +47,7 @@ class AsociarSensorActivoUseCase:
         sensor_port: SensorConsultaPort,
         infra_port: InfraestructuraConsultaPort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        dispositivo_estado_port: DispositivoIotEstadoPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -50,6 +55,7 @@ class AsociarSensorActivoUseCase:
         self.sensor_port = sensor_port
         self.infra_port = infra_port
         self.bitacora_repo = bitacora_repo
+        self.dispositivo_estado_port = dispositivo_estado_port
 
     def execute(
         self,
@@ -293,6 +299,7 @@ class AsociarSensorActivoUseCase:
                 estado_asociacion='ACTIVA',
             )
             nueva = self.repo.guardar(nueva)
+            nueva.advertencia = self._calcular_advertencia_desconexion(sensor.id_dispositivo_iot)
 
             self.repo.registrar_auditoria(
                 id_asociacion=nueva.id_asociacion_activo_sensor,
@@ -339,3 +346,27 @@ class AsociarSensorActivoUseCase:
         ))
 
         return nueva
+
+    def _calcular_advertencia_desconexion(self, id_dispositivo_iot: int) -> str | None:
+        """RF-49 FA "Dispositivo IoT Fuera de Línea": sin heartbeat hace más de
+        30 min, la asociación igual se crea (HTTP 201) pero con advertencia."""
+        if self.dispositivo_estado_port is None:
+            return None
+
+        estado = self.dispositivo_estado_port.obtener_estado(id_dispositivo_iot)
+        if estado is None or estado.fecha_ultimo_contacto is None:
+            return None
+
+        ultimo_contacto = estado.fecha_ultimo_contacto
+        if ultimo_contacto.tzinfo is None:
+            ultimo_contacto = ultimo_contacto.replace(tzinfo=datetime.timezone.utc)
+
+        ahora = datetime.datetime.now(datetime.timezone.utc)
+        sin_contacto = ahora - ultimo_contacto
+        if sin_contacto <= datetime.timedelta(minutes=_UMBRAL_DESCONEXION_MINUTOS):
+            return None
+
+        return (
+            f'El dispositivo {id_dispositivo_iot} se encuentra desconectado desde las '
+            f'{ultimo_contacto.strftime("%H:%M:%S")}. Las lecturas podrían no verse reflejadas de inmediato.'
+        )
