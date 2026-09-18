@@ -57,6 +57,11 @@ class AplicacionRepoFake:
         return aplicacion
 
 
+class AuditoriaRepoFake:
+    def registrar(self, **kwargs) -> None:
+        pass
+
+
 def _plantilla() -> Plantilla:
     return Plantilla.crear(
         id_especie=1,
@@ -90,6 +95,7 @@ def _use_case(plantilla_repo, especie_repo) -> AplicarPlantillaUseCase:
         umbral_repo=repo_vacio,
         patologia_repo=repo_vacio,
         aplicacion_repo=AplicacionRepoFake(),
+        auditoria_repo=AuditoriaRepoFake(),
     )
 
 
@@ -129,7 +135,10 @@ def test_fecha_actualizacion_distinta_lanza_412():
         use_case.execute(1, dto, usuario)
 
     assert exc_info.value.code == "CONFLICTO_CONCURRENCIA"
-    assert use_case.db.commits == 0
+    # INC-M09-04-124 (#316): el fallo se audita en una transacción propia — un
+    # commit, no cero (el rollback de la operación principal sigue ocurriendo).
+    assert use_case.db.rollbacks == 1
+    assert use_case.db.commits == 1
 
 
 def test_fecha_creacion_desincronizada_ya_no_bloquea():
