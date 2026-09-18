@@ -27,9 +27,16 @@ class ActualizarActivoIndividualUseCase:
         self.repo = repo
         self.bitacora_repo = bitacora_repo
 
-    def execute(self, id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) -> ActivoBiologico:
+    def execute(
+        self,
+        id_activo: int,
+        dto: ActualizarActivoIndividualDTO,
+        usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
+    ) -> ActivoBiologico:
         return ejecutar_con_auditoria_de_rechazo(
-            lambda: self._execute(id_activo, dto, usuario),
+            lambda: self._execute(id_activo, dto, usuario, ids_fincas_permitidas),
             db=self.db,
             bitacora_repo=self.bitacora_repo,
             obtener_activo=self.repo.obtener_por_id,
@@ -40,8 +47,17 @@ class ActualizarActivoIndividualUseCase:
             clasificacion_biologica='GESTION_OPERATIVA',
         )
 
-    def _execute(self, id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) -> ActivoBiologico:
-        activo = self.repo.obtener_por_id(id_activo)
+    def _execute(
+        self,
+        id_activo: int,
+        dto: ActualizarActivoIndividualDTO,
+        usuario: UsuarioActual,
+        ids_fincas_permitidas: list[int] | None,
+    ) -> ActivoBiologico:
+        # BOLA (TC-M02-G15): mismo alcance de finca que ya aplica la consulta
+        # (ConsultarActivoUseCase) -- sin esto, un usuario podia actualizar
+        # activos de fincas fuera de su alcance.
+        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',

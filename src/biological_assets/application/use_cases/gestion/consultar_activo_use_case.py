@@ -38,8 +38,17 @@ class ConsultarActivoUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe.',
             )
 
+        # INC-M02-34-G29/G31 v2: la bitácora auditaba TODA consulta de activo
+        # como RF35/ACTIVO_INDIVIDUAL_CONSULTA, sin importar tipo_activo -- un
+        # lote POBLACIONAL quedaba registrado con el rf_origen y tipo_evento
+        # de RF-35 (gestión individual), que no le corresponde.
+        if activo.tipo == 'POBLACIONAL':
+            rf_origen, tipo_evento = 'RF36', 'ACTIVO_POBLACIONAL_CONSULTA'
+        else:
+            rf_origen, tipo_evento = 'RF35', 'ACTIVO_INDIVIDUAL_CONSULTA'
+
         registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
-            rf_origen='RF35', tipo_evento='ACTIVO_INDIVIDUAL_CONSULTA',
+            rf_origen=rf_origen, tipo_evento=tipo_evento,
             clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
