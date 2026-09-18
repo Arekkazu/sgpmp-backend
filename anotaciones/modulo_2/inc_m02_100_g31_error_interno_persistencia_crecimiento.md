@@ -51,38 +51,85 @@ detalle poblacional, no toca nada de la capa de persistencia. No es la causa de 
   están disponibles desde este entorno (el lote 130 no existe en `sgpmp_dev`; el MCP de postgres
   configurado solo alcanza `sgpmp_dev`, no `sgpmp_test`).
 
-## Decisión
+## Decisión (revisión posterior — se aisló la causa raíz)
 
-Dado que no se pudo aislar el trigger/constraint exacto sin acceso a los datos reales de TEST,
-se corrige el defecto de arquitectura confirmado — que es, con la evidencia disponible, la causa
-más probable de que un rechazo legítimo de base de datos se convierta en un 500 opaco en vez de
-un código de dominio — y se deja documentado el patrón sistémico de ERRCODEs `P02xx` sin mapear
-por si QA vuelve a reproducir el 500 tras este fix (en cuyo caso el error ya vendría bien
-traducido, y su código de negocio permitiría identificar el trigger real disparado).
+La revisión inicial (arriba) dejó pendiente identificar el trigger exacto sin acceso a los datos
+reales del lote 130. Una revisión posterior sí pudo aislarlo con acceso al MCP de postgres:
+
+**Confirmado por inspección directa de `pg_trigger`/`pg_proc` en `modulo2`:**
+`detalles_activos_biologicos_poblacionales` tiene el trigger `trg_poblacional_cantidad_inmutable`
+(`BEFORE UPDATE`), que ejecuta `modulo2.trg_fn_poblacional_cantidad_inmutable()`:
+
+```sql
+IF NEW.cantidad_inicial <> OLD.cantidad_inicial THEN
+    RAISE EXCEPTION 'IMMUTABLE_FIELD: ...' USING ERRCODE = 'P0210';
+END IF;
+IF NEW.cantidad_actual < 0 THEN
+    RAISE EXCEPTION 'INVALID_VALUE: ...' USING ERRCODE = 'P0210';
+END IF;
+```
+
+`P0210` **no estaba en la lista de códigos ya sospechados** (`P0216`–`P0218`) de la primera
+revisión, pero es el único trigger de todo `modulo2` que escribe exactamente sobre la tabla que
+`actualizar_detalle_poblacional()` actualiza.
+
+**Confirmado empíricamente (no solo por lectura del trigger)** con un probe directo de
+SQLAlchemy contra Postgres: una excepción `RAISE ... USING ERRCODE = 'P0210'` se clasifica como
+`sqlalchemy.exc.InternalError` — **no** `IntegrityError`, `DataError` ni `OperationalError` — así
+que ninguna de las ramas `isinstance` de `raise_from_db_error` la reconoce y cae al catch-all
+final:
+
+```python
+raise InfrastructureError(code="ERROR_INTERNO", message="Error inesperado en base de datos", ...)
+```
+
+Ese mensaje es **literal, palabra por palabra, el que reporta QA** en el issue. Es decir: incluso
+con el fix original (envolver `actualizar_detalle_poblacional` en `raise_from_db_error`) ya
+aplicado, una violación de `P0210` seguía devolviendo exactamente el mismo `500 ERROR_INTERNO /
+Error inesperado en base de datos` — el wrap por sí solo no alcanzaba a resolver el síntoma
+reportado si esta era la causa real.
+
+Se agregó el mapeo de `P0210` en `db_error_translator.py` (mismo patrón que `P0104`, `P0109`,
+`P0130`, `P0140`, `P0215`, `P0220`) → `ValidationError` (400, `VALOR_NO_PERMITIDO`), consistente
+con la restricción `CHECK` gemela `chk_poblacional_cantidad_actual_no_negativa` que ya cubre la
+misma regla de negocio cuando la violación llega por otra vía.
+
+**Verificado end-to-end contra la base local `pruebas`** (activo POBLACIONAL real registrado en
+una transacción con rollback, `cantidad_actual` forzada a negativo): sin el mapeo, la prueba
+efectivamente falla con `InfrastructureError: Error inesperado en base de datos`; con el mapeo,
+pasa con `ValidationError` 400 / `VALOR_NO_PERMITIDO`.
 
 ## Fix
 
-`SqlAlchemyActivoBiologicoRepository.actualizar_detalle_poblacional()` ahora envuelve el
-`flush()`/`refresh()` en `try/except` y traduce con `raise_from_db_error()`, igual que el resto
-de métodos de escritura del repositorio.
+1. `SqlAlchemyActivoBiologicoRepository.actualizar_detalle_poblacional()` envuelve el
+   `flush()`/`refresh()` en `try/except` y traduce con `raise_from_db_error()`, igual que el resto
+   de métodos de escritura del repositorio (fix original).
+2. `src/shared/db_error_translator.py` agrega el mapeo de `P0210` →
+   `ValidationError(code="VALOR_NO_PERMITIDO")` (fix complementario, causa raíz).
 
 ## Pruebas
 
-- `tests/integration/test_inc_m02_100_g31_actualizar_detalle_poblacional_error_db.py`: fuerza una
-  violación real de `chk_poblacional_cantidad_actual_coherente` a través del método corregido y
-  confirma que ahora se traduce a `ValidationError` (400) en vez de escapar como excepción cruda.
-  **No se pudo ejecutar en este entorno**: los tests de integración de este proyecto exigen
-  `TEST_DATABASE_URL` apuntando a una base cuyo nombre contenga `test` (o esté en la lista
-  explícita `{"pruebas", "pruebas-integrador"}`) — protección de `tests/integration/conftest.py`
-  que impide correrlos contra `sgpmp_dev` por accidente, y no hay una base así disponible en este
-  entorno. Debe ejecutarse contra la base de pruebas real antes de mergear.
-- Suite completa de `tests/biological_assets/`: 194 passed, mismos 2 fallos preexistentes en
-  `test_registrar_transferencia_use_case.py` (no relacionados, ya documentados en el repo).
+- `tests/shared/test_db_error_translator.py`: nuevo caso unitario para `P0210`, mismo patrón que
+  los demás ERRCODEs `P0xxx` documentados en ese archivo.
+- `tests/integration/test_inc_m02_100_g31_actualizar_detalle_poblacional_error_db.py`: dos casos
+  contra la base real —
+  1. `chk_poblacional_cantidad_actual_coherente` (CHECK nativo, ya cubierto por el fix original).
+  2. `trg_fn_poblacional_cantidad_inmutable` / `P0210` (el trigger, causa raíz de este incidente).
+  Ambos ejecutados y verificados contra `pruebas` (local): **passed**. La fixture original de este
+  archivo (`especie_e_infra`) tenía nombres de finca/infraestructura con dígitos y guiones
+  (`'Finca Prueba INC-M02-100-G31'`), que `trg_fn_finca_nombre_unique` rechaza (solo letras y
+  espacios); se corrigieron a nombres válidos para poder ejecutar la prueba.
+- Suite completa no-integración: 711 passed, mismos 2 fallos preexistentes en
+  `test_registrar_transferencia_use_case.py` (no relacionados). Suite de integración completa:
+  173 passed, mismos 8 fallos preexistentes en `fix/m02` sin relación con este cambio.
 
 ## Alcance
 
-No se tocaron los triggers de base de datos ni se agregaron nuevos ERRCODEs al traductor: sin
-los datos reales del lote 130 en TEST no hay forma de confirmar cuál trigger específico dispara
-el error, y agregar un mapeo a ciegas arriesga ocultar un código de negocio distinto al correcto.
-Si QA reproduce el mismo 500 después de este fix, el `error_code`/mensaje de la respuesta (ya
-traducido) debería apuntar directo al trigger real.
+Se mapeó únicamente `P0210`, el código confirmado como causa raíz de este incidente. La
+inspección de `pg_proc` en `modulo2` para este trabajo encontró que **la enorme mayoría de los
+ERRCODE `P02xx` de ese esquema siguen sin mapear** (`P0202`–`P0209`, `P0211`–`P0214`,
+`P0216`–`P0219`, `P0221`–`P0233` — más de 25 códigos, cubriendo desde inmutabilidad de activos
+hasta transiciones de estado y secuencias de eventos reproductivos/sanitarios). Mapear todos esos
+códigos no corresponde al alcance de este incidente puntual (#262) y se deja fuera de este PR;
+queda documentado aquí como hallazgo para una tarea de deuda técnica separada, priorizando cuando
+un incidente real vuelva a aterrizar en uno de ellos — igual que ocurrió con `P0210` en este caso.

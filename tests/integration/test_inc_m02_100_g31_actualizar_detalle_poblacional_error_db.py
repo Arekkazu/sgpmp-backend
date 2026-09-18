@@ -51,7 +51,7 @@ def especie_e_infra(db_session: Session, crear_usuario_db) -> tuple[int, int]:
     id_finca = db_session.execute(
         text(
             "INSERT INTO modulo9.fincas (nombre, ubicacion, tamano_h, fecha_actualizacion, fecha_creacion, id_usuario, es_activo) "
-            "VALUES ('Finca Prueba INC-M02-100-G31', '{}'::jsonb, 10, now(), now(), :id_usuario, true) "
+            "VALUES ('Finca Prueba Lote Poblacional', '{}'::jsonb, 10, now(), now(), :id_usuario, true) "
             "RETURNING id_finca"
         ),
         {"id_usuario": dueno["id_usuario"]},
@@ -59,7 +59,7 @@ def especie_e_infra(db_session: Session, crear_usuario_db) -> tuple[int, int]:
     id_infra = db_session.execute(
         text(
             "INSERT INTO modulo9.infraestructuras (nombre, id_finca, superficie, es_activo, tipo) "
-            "VALUES ('Estanque Prueba INC-M02-100-G31', :id_finca, 500, true, 'Estanque') "
+            "VALUES ('Estanque Prueba Lote Poblacional', :id_finca, 500, true, 'Estanque') "
             "RETURNING id_infraestructura"
         ),
         {"id_finca": id_finca},
@@ -110,3 +110,49 @@ def test_violacion_de_constraint_en_actualizar_detalle_no_sale_como_500(
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+
+
+def test_cantidad_actual_negativa_dispara_trigger_p0210_no_500(
+    db_session: Session, especie_e_infra: tuple[int, int], crear_usuario_db,
+) -> None:
+    """Camino alterno al CHECK nativo: `trg_fn_poblacional_cantidad_inmutable`
+    (modulo2) también rechaza `cantidad_actual < 0` con `RAISE EXCEPTION ...
+    USING ERRCODE = 'P0210'`, una clase `P0` que psycopg2/SQLAlchemy no
+    clasifica como `IntegrityError` (se confirma como `sqlalchemy.exc.
+    InternalError`). Sin el mapeo de `P0210` en `db_error_translator.py`,
+    este camino seguía cayendo en el catch-all -> 500 ERROR_INTERNO / "Error
+    inesperado en base de datos" — el mensaje literal del reporte de QA —
+    incluso con `actualizar_detalle_poblacional` ya envuelto en
+    `raise_from_db_error`.
+    """
+    id_especie, id_infraestructura = especie_e_infra
+    usuario_db = crear_usuario_db()
+    usuario = UsuarioActual(id_usuario=usuario_db["id_usuario"], id_token=1, id_rol=usuario_db["id_rol"])
+
+    repo = SqlAlchemyActivoBiologicoRepository(db_session)
+    use_case = RegistrarActivoBiologicoUseCase(
+        db=db_session,
+        repo=repo,
+        especie_port=EspecieM09Adapter(db_session),
+        infra_port=InfraestructuraM09Adapter(db_session),
+        parametros_port=ParametrosEspecieM09Adapter(db_session),
+    )
+    dto = RegistrarActivoBiologicoDTO(
+        tipo_activo="POBLACIONAL",
+        id_especie=id_especie,
+        fecha_inicio_ciclo=date(2024, 1, 1),
+        origen_financiero="nacimiento",
+        id_infraestructura=id_infraestructura,
+        cantidad_inicial=100,
+    )
+    activo = use_case.execute(dto, usuario)
+    db_session.commit()
+
+    activo.detalle_poblacional.cantidad_actual = -3
+
+    with pytest.raises(ValidationError) as exc_info:
+        repo.actualizar_detalle_poblacional(activo)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert "INVALID_VALUE" not in exc_info.value.message
