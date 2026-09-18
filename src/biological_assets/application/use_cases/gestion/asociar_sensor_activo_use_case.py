@@ -56,12 +56,24 @@ class AsociarSensorActivoUseCase:
         id_activo: int,
         dto: AsociarSensorActivoDTO,
         usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
+        def obtener_activo_en_alcance(activo_id: int):
+            return self.activo_repo.obtener_por_id(
+                activo_id,
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            )
         return ejecutar_con_auditoria_de_rechazo(
-            lambda: self._execute(id_activo, dto, usuario_actual),
+            lambda: self._execute(
+                id_activo,
+                dto,
+                usuario_actual,
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            ),
             db=self.db,
             bitacora_repo=self.bitacora_repo,
-            obtener_activo=self.activo_repo.obtener_por_id,
+            obtener_activo=obtener_activo_en_alcance,
             id_activo=id_activo,
             id_usuario=usuario_actual.id_usuario,
             rf_origen='RF49',
@@ -74,12 +86,17 @@ class AsociarSensorActivoUseCase:
         id_activo: int,
         dto: AsociarSensorActivoDTO,
         usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
         # V1 — Activo existe (CU11 Flujo Alterno "Activo Biológico No Válido":
         # inexistente o BAJA comparten el mismo flujo -> BusinessRuleError/422,
         # no NotFoundError/404. V2 abajo ya usa BusinessRuleError para el caso
         # BAJA; esto solo alinea el caso "inexistente" con esa misma regla.
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        activo = self.activo_repo.obtener_por_id(
+            id_activo,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
         if activo is None:
             raise BusinessRuleError(
                 code='ACTIVO_NO_ENCONTRADO',

@@ -740,14 +740,14 @@ Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `
 | `id_recurso` | Recurso | Admin | Productor | Veterinario | Ing. Campo | Contador |
 |---|---|---|---|---|---|---|
 | 29 | `activos_biologicos` | C,R,U,D,E | C,R,U,D,E | C,R,D,E | C,R,U,E | — |
-| 30 | `asociacion_sensor_activo` | C,R | R | R | C,R | — |
+| 30 | `asociacion_sensor_activo` | C,R | C,R | R | C,R | — |
 | 31 | `bitacora_auditoria_m02` | R | R | R | — | R |
 
 Notas:
 - **Veterinario** no tiene `U` sobre `activos_biologicos` (no puede usar `PATCH /{id_activo}`, sí puede `PATCH /{id_activo}/estado` que es `E`).
 - **Ingeniero de Campo** no tiene `D` sobre `activos_biologicos` (no puede cerrar ciclo, `POST /{id_activo}/cierre`), y no tiene ningún permiso sobre `bitacora_auditoria_m02`.
 - **Contador** solo tiene acceso de lectura a la bitácora de auditoría (`31, R`); no participa en ninguna otra operación del módulo.
-- **Productor** y **Veterinario** solo tienen `R` sobre `asociacion_sensor_activo` — no pueden crear asociaciones sensor-activo, solo Admin e Ingeniero.
+- **Productor** tiene `C,R` sobre `asociacion_sensor_activo`, limitado en escritura a activos e infraestructuras de sus propias fincas; **Veterinario** conserva solo `R`. Admin e Ingeniero también pueden crear asociaciones.
 
 ---
 

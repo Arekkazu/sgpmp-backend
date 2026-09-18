@@ -73,12 +73,18 @@ INSERT INTO modulo1.permisos (id_rol, id_recurso, id_accion, nombre, es_activo) 
   (1, 30, 2, 'admin_leer_asociacion_sensor_activo', true),
   (4, 30, 1, 'ing_crear_asociacion_sensor_activo', true),
   (4, 30, 2, 'ing_leer_asociacion_sensor_activo', true),
+  (2, 30, 1, 'prod_crear_asociacion_sensor_activo', true),
   (2, 30, 2, 'prod_leer_asociacion_sensor_activo', true),
   (3, 30, 2, 'vet_leer_asociacion_sensor_activo', true);
 ```
 
-Roles con permiso de crear: Administrador (1), Ingeniero de campo (4).
-Roles con permiso solo de leer: Productor (2), Veterinario (3).
+Roles con permiso de crear: Administrador (1), Productor (2) e Ingeniero de campo (4).
+Rol con permiso solo de leer: Veterinario (3).
+
+> Actualización INC-M02-37-G87 v2.0 (#349, 2026-09-16): el CREATE del
+> Productor se formalizó mediante la migración Alembic v5.3.0
+> `1d7d6069da52_v5_3_0_rf49_permiso_productor_`. Los POST de RF-49 limitan
+> al Productor a activos e infraestructuras de sus propias fincas.
 
 ---
 

@@ -20,6 +20,7 @@ from src.biological_assets.infrastructure.repositories.bitacora_auditoria_reposi
 )
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import AsociacionSensorActivoResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.schemas import ErrorResponse
 
@@ -28,6 +29,7 @@ from src.shared.schemas import ErrorResponse
 # (asociaciones_activos_sensores), solo cambia si la fila queda anclada a un
 # activo o a una infraestructura completa.
 _RECURSO_SENSOR = 30
+_ROL_PRODUCTOR = 2
 
 router = APIRouter(prefix='/infraestructuras', tags=['Infraestructuras (Sensores IoT)'])
 
@@ -62,7 +64,18 @@ def asociar_sensor_a_infraestructura(
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    resultado = use_case.execute(id_infraestructura, dto, usuario_actual)
+    ids_fincas_permitidas = None
+    if usuario_actual.id_rol == _ROL_PRODUCTOR:
+        ids_fincas_permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario,
+            usuario_actual.id_rol,
+        )
+    resultado = use_case.execute(
+        id_infraestructura,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=ids_fincas_permitidas,
+    )
     return AsociacionSensorActivoResponse(
         id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
         id_activo_biologico=resultado.id_activo_biologico,
