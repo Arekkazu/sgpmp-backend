@@ -26,6 +26,7 @@ class SqlAlchemyAuditoriaPlantillaRepository(AuditoriaPlantillaRepository):
             id_plantilla=orm.id_plantilla,
             id_usuario=orm.id_usuario,
             tipo_operacion=orm.tipo_operacion,
+            resultado=orm.resultado,
             valores_anteriores=orm.valores_anteriores,
             valores_nuevos=orm.valores_nuevos,
             fecha_gestion=orm.fecha_gestion,
@@ -42,16 +43,18 @@ class SqlAlchemyAuditoriaPlantillaRepository(AuditoriaPlantillaRepository):
     def registrar(
         self,
         *,
-        id_plantilla: int,
         id_usuario: int,
         tipo_operacion: str,
         valores_nuevos: dict[str, Any],
+        id_plantilla: Optional[int] = None,
+        resultado: str = "EXITOSO",
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
         orm = AuditoriaPlantillaModel(
             id_plantilla=id_plantilla,
             id_usuario=id_usuario,
             tipo_operacion=tipo_operacion,
+            resultado=resultado,
             valores_nuevos=valores_nuevos,
             valores_anteriores=valores_anteriores,
         )
