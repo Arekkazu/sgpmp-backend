@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -46,3 +46,23 @@ class IdentidadVisualResponse(BaseModel):
                 accesibilidad_visual.evaluar(entity.primary_color, entity.secondary_color)
             ),
         )
+
+
+class AuditoriaIdentidadVisualResponse(BaseModel):
+    """Una operación del historial de identidad visual de una finca."""
+
+    id_auditoria_visual: int
+    id_finca: int
+    id_usuario: int
+    usuario: str
+    fecha_creacion: datetime.datetime
+    tipo_operacion: str
+    valor_anterior: dict[str, Any]
+    valor_nuevo: dict[str, Any]
+
+    model_config = {"from_attributes": True}
+
+
+class HistorialAuditoriaIdentidadVisualResponse(BaseModel):
+    total: int
+    items: list[AuditoriaIdentidadVisualResponse]
