@@ -9,16 +9,13 @@
 | Herramienta | API — Postman |
 | Responsable | Juan Manuel · Prioridad Alta |
 
-## ✅ Resultado: PASS — 12/12 assertions
+## ✅ Resultado (2026-09-19): PASS — 12/12 assertions
 
-**Reevaluado 2026-09-15: FAIL total.** Además de la regresión ya conocida (no se pueden crear activos nuevos), se
-encontró que `INC-M02-100` es más amplia de lo que se pensaba: también rompe el registro de eventos de
-**crecimiento** (RF-40) sobre un activo que **ya existía**, sin crear nada nuevo — probablemente también afecta a
-eventos **productivos** (RF-43) por el mismo patrón de código. Ver la sección "🔴 REEVALUACIÓN 2026-09-15" en
-`RESULTADOS/TC-M02-G41_resultado.md`.
-
-**Estado original (2026-09-10):** los 3 sub-casos funcionaban exactamente como exige el RF, con mensajes claros y
-específicos del campo faltante. Detalle completo en la sección histórica de `RESULTADOS/TC-M02-G41_resultado.md`.
+Los 3 sub-casos funcionan exactamente como exige el RF, con mensajes claros y específicos del campo faltante. La
+migración pendiente que bloqueaba esto el 09-15 (`INC-M02-100`, columnas `tipo_dato`/`es_obligatorio` en
+`modulo9.metricas_produccion`) ya está aplicada en TEST — afectaba no solo la creación de activos, sino también
+`registrar_evento_crecimiento_use_case.py` (RF-40) sobre activos ya existentes, como reveló TC-M02-078 en su
+momento. Ver `RESULTADOS/TC-M02-G41_resultado.html` para la evidencia.
 
 ### Nota sobre TC-M02-078 — por qué se usó el activo preexistente 130, no uno nuevo
 
@@ -47,17 +44,16 @@ pasan esta validación (bajas con cantidad válida), no a este caso.
 ### Entorno
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`.
-- Cuenta: `admin.test@sgpmp.com.co`. Activos: `218` (individual, TC-M02-077) · `130` (lote preexistente,
-  TC-M02-078) · `219` (lote fresco cantidad=50, TC-M02-079).
-- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-10.
+- Cuenta: `admin.test@sgpmp.com.co`. Activos: `446` (individual, TC-M02-077) · `130` (lote preexistente,
+  TC-M02-078) · `447` (lote fresco cantidad=50, TC-M02-079).
+- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-39/TC-M02-G41
-newman run TC-M02-G41.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G41.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G41.html
+newman run TC-M02-G41.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G41_resultado.html
 ```
 
 Los pasos "0B" y "3A" crean activos nuevos en cada corrida; el paso "2" reutiliza el activo 130 (dato compartido

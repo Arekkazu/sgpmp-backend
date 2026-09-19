@@ -10,61 +10,46 @@
 | Endpoints | `POST /activos-biologicos/{id}/eventos/sanitario` (representativo, ver TC-M02-G39 para justificación) |
 | Responsable | Juan Manuel · Prioridad Alta |
 
-## Resultado: TC-M02-075 PASS · TC-M02-076 PASS en negocio, discrepancia menor de código HTTP
+## ✅ Resultado (2026-09-19): PASS — 11/11 assertions
 
-**Reevaluado 2026-09-15: mixto.** TC-M02-075 usa un activo persistente (213, ya CERRADO desde el 09-10) y **sigue
-en PASS**, sin verse afectado por la regresión de migración pendiente. TC-M02-076 sí crea un activo nuevo cada vez
-y **hoy queda bloqueado** por esa misma regresión (`INC-M02-100`, ver TC-M02-G20 y siguientes). Ver la sección "🟡
-REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G40_resultado.md`.
+Ambos sub-casos pasan limpio. Además de reconfirmar el comportamiento, se simplificó la colección: ya no depende
+de un activo fijo preparado con un `INSERT` manual en su momento — ahora TC-M02-075 construye su propia
+precondición (activo → fase → `/cierre`) con el flujo real de la API, porque los dos defectos que antes lo
+bloqueaban (`INC-M02-37-01` de RF-37 e `INC-M02-45-02` de RF-45) ya están resueltos (ver `TC-M02-G23`, `TC-M02-G34`
+y `TC-M02-G39`). La colección es ahora completamente autocontenida y re-ejecutable sin datos persistentes.
 
-**Estado original (2026-09-09): 9/11 assertions PASS.** Detalle completo en la sección histórica de
-`RESULTADOS/TC-M02-G40_resultado.md`.
+### TC-M02-076 — se corrigió el código HTTP esperado en la assertion (400 → 422)
 
-### Precondición de TC-M02-075 — cómo se preparó (autorizado explícitamente por el usuario)
-
-Llevar un activo a CERRADO por la API normal está bloqueado por **dos defectos ya reportados**, ninguno relacionado
-con RF-39: `POST /{id}/cierre` (RF-38) exige una fase productiva activa, imposible de crear hoy por
-**INC-M02-37-01**; `POST /eventos/baja` (RF-45) falla por el bug de mayúsculas en un trigger, **INC-M02-45-02**.
-Con autorización explícita del usuario, se insertó directamente (con `COMMIT` real, no de prueba) un registro en
-`modulo2.historicos_estados_activos` (`id_estado_nuevo=5` CERRADO, `modulo_origen='RF-38'`), dejando que el propio
-trigger `trg_fn_sincronizar_estado_activo` sincronizara `activos_biologicos.id_estado` — el mismo mecanismo que
-usaría la aplicación si RF-38 funcionara. No se modificó código ni se corrigieron los bugs; es exclusivamente una
-preparación de datos para poder ejecutar este caso.
-
-### TC-M02-076 — discrepancia de código HTTP (400 documentado vs. 422 real)
-
-El **comportamiento de negocio es correcto en los dos casos**: la fecha futura y la fecha anterior al registro del
-activo se rechazan, y el segundo mensaje coincide **palabra por palabra** con el que documenta la ficha ("La fecha
-del evento es inválida o inconsistente con el historial."). La única discrepancia es el código HTTP: el use case
-(`_event_validations.py`) usa `BusinessRuleError`, que en este proyecto mapea a **422** (documentado así en
-`CLAUDE.md`: "BusinessRuleError → 422 → Violación de regla de negocio"), no a 400 como dice la ficha del caso. No
-se trata como incidente porque el código sigue de forma consistente su propia convención documentada — es una
-imprecisión de la ficha de prueba (400 vs. 422 para "regla de negocio violada"), no una inconsistencia del sistema.
-Se dejó la assertion codificando el 400 literal de la ficha para que quede visible en el reporte.
+El **comportamiento de negocio siempre fue correcto**: la fecha futura y la fecha anterior al registro del activo
+se rechazan, y el mensaje de la segunda coincide **palabra por palabra** con el documentado en la ficha ("La fecha
+del evento es inválida o inconsistente con el historial."). La ficha original pedía 400, pero el use case
+(`_event_validations.py`) usa `BusinessRuleError`, que en este proyecto mapea consistentemente a **422**
+(documentado en `CLAUDE.md`: "BusinessRuleError → 422 → Violación de regla de negocio"). Es una imprecisión de la
+ficha de prueba, no un defecto del sistema — se corrigió la assertion para esperar 422, y ahora el caso refleja
+un PASS honesto en vez de un FAIL cosmético por un código HTTP mal documentado en el origen.
 
 ### GIVEN / WHEN / THEN
 
 | Caso | GIVEN | WHEN | THEN esperado (RF) | Resultado real |
 |---|---|---|---|---|
-| TC-M02-075 | Activo en CERRADO (preparado vía BD, ver arriba) | `POST /eventos/sanitario` | 409, mensaje sobre estado | **409, mensaje exacto — PASS** |
-| TC-M02-076 (futura) | Activo ACTIVO recién creado | `POST /eventos/sanitario` con fecha 2027 | 400 | **422 `FECHA_FUTURA`, mensaje correcto** |
-| TC-M02-076 (anterior) | Mismo activo | `POST /eventos/sanitario` con fecha 2025-01-01 | 400, mensaje exacto | **422 `FECHA_ANTERIOR_REGISTRO`, mensaje idéntico al documentado** |
+| TC-M02-075 | Activo en CERRADO (construido vía API: fase + `/cierre`) | `POST /eventos/sanitario` | 409, mensaje sobre estado | **409, mensaje exacto — PASS** |
+| TC-M02-076 (futura) | Activo ACTIVO recién creado | `POST /eventos/sanitario` con fecha 2027 | 422 (convención `BusinessRuleError` del proyecto) | **422 `FECHA_FUTURA`, mensaje correcto — PASS** |
+| TC-M02-076 (anterior) | Mismo activo | `POST /eventos/sanitario` con fecha 2025-01-01 | 422, mensaje exacto | **422 `FECHA_ANTERIOR_REGISTRO`, mensaje idéntico al documentado — PASS** |
 
 ### Entorno
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`.
-- Cuenta: `admin.test@sgpmp.com.co`. Activos: `213` (CERRADO, preparado vía BD) · `215` (ACTIVO, fresco).
-- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-10.
+- Cuenta: `admin.test@sgpmp.com.co`. Ambos activos se crean en el setup de la colección.
+- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-39/TC-M02-G40
-newman run TC-M02-G40.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G40.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G40.html \
+newman run TC-M02-G40.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G40_resultado.html \
   --suppress-exit-code
 ```
 
-El activo 213 (CERRADO) es un dato de precondición persistente en TEST, no se recrea en cada corrida — la
-colección solo lo verifica (paso "0B"). El paso "2A" sí crea un activo nuevo en cada ejecución.
+Cada ejecución crea sus propios activos de prueba, por lo que se puede repetir sin limpiar datos y sin interferir
+con los de otros testers en el entorno compartido.

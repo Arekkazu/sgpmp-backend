@@ -1,35 +1,43 @@
-# TC-M02-G34 — BLOQUEO total: los 4 sub-casos dependen de RF-37 `cambiar_fase`, y uno además de un segundo defecto en RF-45
+# TC-M02-G34 — [ACTUALIZADO 2026-09-19] INC-M02-37-01 resuelto; los 4 sub-casos ya prueban su lógica real (y siguen en FAIL por gaps genuinos)
 
-## 1. Bloqueo común a los 4 sub-casos — INC-M02-37-01 (ya reportado)
+## 1. Bloqueo común a los 4 sub-casos — INC-M02-37-01 [RESUELTO]
 
-`POST /activos-biologicos/{id}/fases` crashea con 500 para cualquier activo/ciclo. Causa confirmada por código:
-`cambiar_fase_use_case.py:72` llama `cerrar_gestion_activa()` con 3 argumentos, el método exige 4 (falta
-`usuario_id`). Detalle completo en `tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`. Re-confirmado
-aquí en 3 intentos más (activo 204, especie 2/Trucha, ciclo productivo 2).
+> **Actualización 2026-09-19:** confirmado resuelto en TEST (mismo fix que en `TC-M02-G23`/`TC-M02-G33`:
+> `cambiar_fase_use_case.py` ya pasa `usuario.id_usuario` a `cerrar_gestion_activa`). `POST
+> /activos-biologicos/{id}/fases` ya no crashea — cada sub-caso ahora llega a probar su regla de negocio real.
+> Confirmado en vivo, con evidencia, que los 4 sub-casos siguen en **FAIL**, cada uno por una causa distinta y ya
+> identificada abajo — ninguna depende ya de este bug.
 
-Efecto sobre cada sub-caso:
-- **TC-M02-040** (fecha inválida): el 500 ocurre antes de que exista cualquier validación de fecha — y de hecho
-  `CambiarFaseDTO` no valida `fecha_inicio` en absoluto (sin `field_validator` de rango). Aunque se corrija
-  INC-M02-37-01, este sub-caso **seguirá fallando** hasta que se agregue esa validación — es un segundo gap,
-  independiente del crash.
-- **TC-M02-041** (salto sin confirmación): no es solo el crash — `CambiarFaseDTO` no declara `fase_destino_id` ni
-  `confirmacion_no_estandar` (mismo gap ya reportado como **INC-M02-37-02** desde TC-M02-G33). No hay forma de
-  siquiera expresar "un salto" en la petición.
-- **TC-M02-043** (solapamiento): bloqueado en su precondición — no se puede crear ni la primera fase, mucho menos
-  una segunda que se solape con ella. **Buena noticia, confirmada con acceso a BD:** `trg_fn_fase_solapamiento`
-  SÍ existe y está bien implementado (compara `fecha_inicio` de la nueva fase contra la `fecha_finalizacion` de la
-  última fase cerrada, `RAISE EXCEPTION ... ERRCODE='P0227'` si se solapan) — una vez corregido INC-M02-37-01, este
-  sub-caso debería funcionar a nivel de base de datos. Sigue pendiente que `raise_from_db_error` traduzca `P0227`
-  a un 409 controlado en vez de dejarlo caer al 500 genérico (mismo gap transversal que INC-M02-41-01).
-- **TC-M02-044** (activo BAJA/CERRADO): bloqueado igual por INC-M02-37-01 en el paso de prueba, **y además** su
-  precondición (llevar un activo a BAJA o CERRADO) está bloqueada por un defecto distinto — ver sección 2. **Buena
-  noticia adicional:** `trg_fn_fase_activo_estado_valido` (rechaza cambios de fase si el último estado es
-  CERRADO/BAJA, `ERRCODE='P0228'`) también está bien implementado — una vez resueltos los bloqueos de precondición
-  y aplicada la traducción de errores, este sub-caso también debería pasar sin cambios de lógica adicionales.
+`POST /activos-biologicos/{id}/fases` crasheaba con 500 para cualquier activo/ciclo. Causa confirmada por código:
+`cambiar_fase_use_case.py:72` llamaba `cerrar_gestion_activa()` con 3 argumentos, el método exige 4 (faltaba
+`usuario_id`). Detalle completo en `tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`.
 
-## 2. Bloqueo nuevo y adicional — precondición de TC-M02-044 (RF-45), causa raíz CONFIRMADA
+Estado confirmado hoy (2026-09-19) de cada sub-caso, con la precondición ya alcanzable:
+- **TC-M02-040** (fecha inválida): `CambiarFaseDTO` sigue sin validar `fecha_inicio` — un `POST /fases` con fecha
+  2027 (futura) se acepta con `201`. Gap real, independiente del crash, sigue sin corregir.
+- **TC-M02-041** (salto sin confirmación): `CambiarFaseDTO` sigue sin declarar `fase_destino_id` ni
+  `confirmacion_no_estandar` (**INC-M02-37-02**, mismo gap confirmado en `TC-M02-G33`). Pedir un salto a la fase 3
+  se ignora y el sistema avanza secuencial a la fase 2 con `201`, sin rechazar nada.
+- **TC-M02-043** (solapamiento): `trg_fn_fase_solapamiento` (`ERRCODE='P0227'`) SÍ dispara correctamente al
+  forzar una fase con `fecha_inicio` que solapa una fase ya cerrada — confirmado en vivo. Pero `raise_from_db_error`
+  no traduce `P0227`, así que sale como `500 ERROR_INTERNO` en vez de `409`. Gap de traducción de errores, no de
+  la regla de negocio en sí (que ya funciona a nivel de base de datos).
+- **TC-M02-044** (activo CERRADO): igual que arriba — `trg_fn_fase_activo_estado_valido` (`ERRCODE='P0228'`)
+  dispara correctamente al intentar cambiar de fase un activo `CERRADO`, confirmado en vivo vía `POST /{id}/cierre`
+  (RF-38) seguido de `POST /{id}/fases`, pero sale como `500` en vez de `409` por el mismo gap de traducción.
 
-**Corrección importante:** la hipótesis original de esta sección (CHECK `chk_historico_modulo_origen_valido`
+## 2. Bloqueo de precondición de TC-M02-044 vía RF-45 — [RESUELTO 2026-09-19]
+
+> **Actualización 2026-09-19:** confirmado resuelto en TEST. La migración `c4e8f1a2b603_rf45_corregir_enum_trigger_baja`
+> (2026-09-11) corrige el literal `'poblacional'` → `'POBLACIONAL'` en `trg_fn_baja_cantidad_valida`. Probado en
+> vivo: `POST /{id}/eventos/baja` ya no crashea con el error de enum — ahora avanza hasta la siguiente validación
+> real (fecha). **Nota aparte, no bloqueante:** `RegistrarEventoBajaDTO.fecha_baja` es `date` (sin hora), y el
+> trigger de coherencia de fecha (`P0215`) exige que la fecha del evento no sea anterior a `fecha_creacion` del
+> activo (que sí lleva hora) — un activo creado hoy no puede recibir una baja fechada "hoy" (medianoche siempre es
+> anterior a la hora de creación), solo desde el día siguiente. No afecta a TC-M02-044: esta colección usa
+> `POST /{id}/cierre` (RF-38) para llegar a CERRADO, que no tiene esta restricción y sí funciona el mismo día.
+
+La hipótesis original de esta sección (CHECK `chk_historico_modulo_origen_valido`
 desactualizado) **era incorrecta** — verificado con acceso directo a la base de datos de TEST (credencial de solo
 consulta, autorizada explícitamente por el usuario): ese CHECK **ya incluye** `'MANUAL'`, `'RF-38'` y `'RF-45'`
 explícitamente:
@@ -125,19 +133,15 @@ más el traceback completo del backend en el timestamp `2026-09-10T00:44:20Z`.
 `_procesar_baja_con_cierre`) y todo cierre de ciclo (RF-38) estarían rotos en este servidor TEST — no solo el
 camino usado para preparar esta precondición.
 
-## Cómo desbloquear (actualizado tras confirmar con acceso a BD)
+## Qué falta para que los 4 sub-casos pasen (1 y 2 ya resueltos)
 
-1. Aplicar el fix de una línea de INC-M02-37-01 (ver `TC-M02-G23/NOTA_BLOQUEO.md`): agregar `usuario.id_usuario`
-   como 4º argumento en `cambiar_fase_use_case.py:72`.
-2. Corregir `trg_fn_baja_cantidad_valida` en la base de datos: cambiar el literal `'poblacional'` por
-   `'POBLACIONAL'` (línea ~13 de la función) — ver sección 2 arriba. Un cambio de una línea en SQL, no en Python.
-3. Extender `raise_from_db_error` para traducir los SQLSTATE `P02xx` propios de `modulo2` (`P0219`, `P0224`-`P0228`,
-   etc.) a errores de dominio controlados, en vez de dejarlos caer al 500 genérico — necesario para que
-   TC-M02-043 y TC-M02-044 devuelvan 409 en vez de 500 una vez resuelto (1).
+1. ~~Aplicar el fix de una línea de INC-M02-37-01~~ — **RESUELTO**.
+2. ~~Corregir `trg_fn_baja_cantidad_valida` en la base de datos~~ — **RESUELTO**.
+3. Extender `raise_from_db_error` para traducir los SQLSTATE `P02xx` propios de `modulo2` (`P0227`, `P0228`, etc.)
+   a errores de dominio controlados, en vez de dejarlos caer al 500 genérico — necesario para que TC-M02-043 y
+   TC-M02-044 devuelvan 409 en vez de 500. **Confirmado en vivo hoy que sigue pendiente.**
 4. Agregar validación de `fecha_inicio` (no futura, no anterior al inicio de la fase actual) en `CambiarFaseDTO`
-   o en el use case — gap independiente, necesario para que TC-M02-040 pase.
+   o en el use case — gap independiente, necesario para que TC-M02-040 pase. **Confirmado en vivo hoy que sigue
+   pendiente** (una fecha de 2027 se acepta con 201).
 5. Implementar el mecanismo de `fase_destino_id`/`confirmacion_no_estandar` — ya reportado como INC-M02-37-02.
-
-Con (1) y (2) resueltos, se puede reintentar toda la colección de este caso desde cero — el DB ya tiene los
-triggers correctos para TC-M02-043/044 (confirmado), así que con (1)+(2)+(3) esos dos deberían pasar sin más
-cambios de lógica. (4) y (5) son necesarios además para que TC-M02-040 y TC-M02-041 pasen específicamente.
+   **Confirmado en vivo hoy que sigue pendiente** (el salto se ignora y el sistema avanza secuencial).

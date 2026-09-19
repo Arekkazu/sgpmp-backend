@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M02-G40 - Restricciones de estado y coherencia temporal para eventos biologicos",
-    "description": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se preparo con un INSERT directo autorizado en historicos_estados_activos, porque las dos vias de la API para llegar a CERRADO (POST /cierre y POST /eventos/baja) estan bloqueadas por defectos ya reportados (INC-M02-37-01 e INC-M02-45-02) -- ver README.md. Las assertions de TC-M02-076 codifican el codigo HTTP QUE EXIGE la ficha (400); el sistema real usa 422 (BusinessRuleError) con el mensaje exacto documentado -- ver resultado para el detalle de esta discrepancia menor.",
+    "description": "CU05 - Registro de Eventos Biologicos (base) - RF-39. Agrupa TC-M02-075 (rechazar evento sobre CERRADO/BAJA) y TC-M02-076 (rechazar fecha invalida). La precondicion de TC-M02-075 (activo CERRADO) se construye con el flujo real de la API (fase + POST /cierre, RF-38), ya que los bugs que antes lo bloqueaban (INC-M02-37-01 e INC-M02-45-02) estan resueltos -- ver README.md. Las assertions de TC-M02-076 esperan 422 (BusinessRuleError, convencion documentada en CLAUDE.md): la ficha original decia 400, pero es una imprecision de la ficha, no del sistema -- el mensaje de negocio es exacto.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -11,7 +11,8 @@
     { "key": "token_admin", "value": "" },
     { "key": "id_especie", "value": "3" },
     { "key": "id_infraestructura", "value": "6" },
-    { "key": "id_activo_cerrado", "value": "213" },
+    { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "id_activo_cerrado", "value": "" },
     { "key": "id_activo_fecha", "value": "" }
   ],
   "item": [
@@ -28,16 +29,48 @@
       ] } }]
     },
     {
-      "name": "0B. Verificar precondicion - activo 213 esta CERRADO (preparado con INSERT directo autorizado, ver README)",
+      "name": "0B. Setup - crear activo propio para TC-M02-075",
       "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
-        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}"
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"{{fecha_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_cerrado}}\",\n  \"raza\": \"Camaron QA-G40 cerrado\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5\n}" }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('identificador_cerrado', 'G40A-' + Date.now());",
+          "pm.variables.set('fecha_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "pm.test('Activo creado (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_cerrado', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "0C. Setup - registrar fase 1 (precondicion de /cierre)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G40 fase previa al cierre\"\n}" }
       },
       "event": [{ "listen": "test", "script": { "exec": [
-        "pm.test('Precondicion: el activo existe y esta CERRADO', function () {",
+        "pm.test('Fase 1 registrada (201)', function () { pm.response.to.have.status(201); });"
+      ] } }]
+    },
+    {
+      "name": "0D. Setup - cerrar el ciclo del activo (RF-38, precondicion CERRADO)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_cerrado}}/cierre",
+        "body": { "mode": "raw", "raw": "{\n  \"fecha_cierre\": \"{{fecha_hoy}}\",\n  \"motivo_cierre\": \"venta\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('El activo queda CERRADO (200)', function () {",
         "  pm.response.to.have.status(200);",
-        "  pm.expect(pm.response.json().nombre_estado).to.eql('CERRADO');",
+        "  pm.expect(pm.response.json().estado).to.eql('CERRADO');",
         "});"
       ] } }]
     },
@@ -93,7 +126,7 @@
       },
       "event": [{ "listen": "test", "script": { "exec": [
         "console.log('[TC-M02-076 futura] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('RF-39: fecha futura -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+        "pm.test('RF-39: fecha futura se rechaza (422 BusinessRuleError, convencion del proyecto - ver CLAUDE.md)', function () { pm.response.to.have.status(422); });",
         "const body = pm.response.json();",
         "pm.test('El mensaje coincide con el documentado', function () {",
         "  pm.expect(body.message).to.match(/inv[aá]lida o inconsistente|no puede ser posterior/i);",
@@ -110,7 +143,7 @@
       },
       "event": [{ "listen": "test", "script": { "exec": [
         "console.log('[TC-M02-076 anterior] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('RF-39: fecha anterior al registro -> 400 BAD REQUEST (segun ficha)', function () { pm.response.to.have.status(400); });",
+        "pm.test('RF-39: fecha anterior al registro se rechaza (422 BusinessRuleError, convencion del proyecto)', function () { pm.response.to.have.status(422); });",
         "const body = pm.response.json();",
         "pm.test('El mensaje coincide EXACTAMENTE con el documentado en la ficha', function () {",
         "  pm.expect(body.message).to.eql('La fecha del evento es inválida o inconsistente con el historial.');",

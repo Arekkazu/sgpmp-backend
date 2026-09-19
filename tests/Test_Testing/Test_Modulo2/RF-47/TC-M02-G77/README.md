@@ -10,9 +10,11 @@
 | Endpoint | `GET /activos-biologicos/{id_activo}/ficha-integral` |
 | Responsable | Juan Manuel · Prioridad Media |
 
-## Resultado: 3/4 sub-casos PASS, 1 FAIL confirmado (falta la Sección 8), 1 no reproducible en vivo sin riesgo
+## Resultado (2026-09-19): 3/4 sub-casos PASS, 1 FAIL confirmado (falta la Sección 8), 1 no reproducible en vivo sin riesgo
 
-**13/14 assertions PASS.** Detalle completo en `RESULTADOS/TC-M02-G77_resultado.md`.
+**13/14 assertions PASS.** Re-confirmado hoy, mismo resultado exacto que las ejecuciones anteriores (2026-09-09 y
+2026-09-15) — este caso solo hace `GET /ficha-integral` sobre activos ya existentes, no crea nada, así que nunca
+dependió de la regresión de migración que afectó a otros casos de este módulo (ver `RESULTADOS/TC-M02-G77_resultado.html`).
 
 ### Datos usados: reales, ya existentes en TEST — no se creó nada nuevo
 
@@ -60,15 +62,14 @@ implementado.
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`.
 - Cuenta: `admin.test@sgpmp.com.co`. Activos usados (ya existentes, no creados por esta sesión): `5`, `10`, `8`.
-- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-10.
+- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-47/TC-M02-G77
-newman run TC-M02-G77.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G77.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G77.html \
+newman run TC-M02-G77.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G77_resultado.html \
   --suppress-exit-code
 ```
 

@@ -14,27 +14,15 @@
 | Prioridad | Alta |
 | Endpoints | `POST /activos-biologicos/{id_activo}/fases` · `GET /activos-biologicos/{id_activo}/fases` |
 
-## ⚠️ Resultado: BLOQUEADO — ambos sub-casos, mismo defecto ya identificado en TC-M02-G23 (RF-37)
+## Resultado (2026-09-19): TC-M02-039 PASS — TC-M02-042 FAIL (gap real, no de entorno)
 
-**Reevaluado 2026-09-15: sigue bloqueado, ahora por una tercera causa que actúa primero.** El setup (crear el activo
-de prueba) responde `500` — la misma regresión de migración pendiente que afecta a TC-M02-G20/G21/G22
-(`INC-M02-100`). Los 2 bloqueos originales de abajo (bug de `cambiar_fase` y gap de diseño de
-`confirmacion_no_estandar`) siguen ahí sin corregirse, solo que hoy ni se llega a intentarlos. Ver la sección "🔴
-REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G33_resultado.md`.
+**INC-M02-37-01 (el bug que bloqueaba TC-M02-039) está resuelto.** `POST /activos-biologicos/{id}/fases` ya
+responde `201`: la fase se crea, queda activa, y el historial la refleja correctamente. Ver
+`RESULTADOS/TC-M02-G33_resultado.html` para la evidencia: **7/8 assertions PASS**, la única que falla es la de
+TC-M02-042 (esperado — ver abajo).
 
-**Estado original (2026-09-09/10): FAIL/BLOQUEADO. 3/6 assertions PASS en Postman/Newman.** Ver `NOTA_BLOQUEO.md`
-para la causa raíz (confirmada por código, no una hipótesis) y la sección histórica en
-`RESULTADOS/TC-M02-G33_resultado.md` para el detalle completo.
-
-`POST /activos-biologicos/{id}/fases` devuelve **500** para cualquier activo y cualquier ciclo productivo válido —
-el mismo defecto **INC-M02-37-01** ya documentado al intentar armar la precondición de TC-M02-047
-(`tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`). Esto bloquea **TC-M02-039 directamente**: no
-se puede verificar "la fase actual se cierra y se crea la nueva ACTIVA" porque ninguna fase, estándar o no, se
-llega a crear.
-
-### TC-M02-042 tiene además un segundo bloqueo, estructural e independiente
-
-Incluso si INC-M02-37-01 se corrigiera hoy, **TC-M02-042 seguiría sin poder pasar**: `CambiarFaseDTO`
+**TC-M02-042 sigue sin poder pasar — no por un bloqueo de precondición, sino porque la funcionalidad que pide el
+RF no está implementada.** `CambiarFaseDTO`
 (`src/biological_assets/infrastructure/dto/cambiar_fase_dto.py`) solo declara `id_ciclo_productiva`,
 `motivo_cambio` y `fecha_inicio` — **no existe ningún campo `confirmacion_no_estandar` ni `fase_destino_id`** en el
 contrato de la API. Enviarlos (como se hizo en esta prueba) no produce ningún error de validación: Pydantic los
@@ -53,30 +41,28 @@ con evidencia real de request/response.
 
 | Caso | GIVEN | WHEN | THEN esperado (RF) | Resultado real |
 |---|---|---|---|---|
-| TC-M02-039 | Activo ACTIVO, sin fase previa, ciclo productivo válido y de su misma especie | `POST /fases` con `id_ciclo_productiva` | 201, fase creada, `paso_actual=1` | **500 — bloqueado por INC-M02-37-01** |
-| TC-M02-042 | Mismo activo | `POST /fases` con `confirmacion_no_estandar=true` + `fase_destino_id` | 201, transición no estándar registrada con evidencia de la confirmación | **500 — bloqueado por INC-M02-37-01, y aunque se corrigiera, los campos de confirmación no existen en el DTO (gap estructural adicional)** |
+| TC-M02-039 | Activo ACTIVO, sin fase previa, ciclo productivo válido y de su misma especie | `POST /fases` con `id_ciclo_productiva` | 201, fase creada, `paso_actual=1` | **201 — correcto** |
+| TC-M02-042 | Mismo activo, con fase 1 ya activa | `POST /fases` con `confirmacion_no_estandar=true` + `fase_destino_id=3` (saltar la fase 2) | 201, y `paso_actual=3` (respeta el destino pedido) | **201, pero `paso_actual=2` — FAIL.** El campo `fase_destino_id` se ignora; el sistema siempre avanza a la siguiente fase secuencial, sin importar qué destino se pida |
 
 ### Entorno
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`.
 - Cuenta: `admin.test@sgpmp.com.co`.
-- Activo de prueba: `id_activo_biologico=201`, especie 2 (Trucha Arcoíris) — misma especie que el ciclo productivo
-  `id_ciclo_productiva=2` ("Ciclo completo trucha 2025-A", documentado en
-  `anotaciones/modulo_2/curls_m02_cu02_activo_individual.md`), para eliminar cualquier duda de que el 500 se deba a
-  un descalce de especie en vez de al bug real.
+- Activo de prueba: creado en el setup de la colección, especie 2 (Trucha Arcoíris) — misma especie que el ciclo
+  productivo `id_ciclo_productiva=2` ("Ciclo completo trucha 2025-A", 3 fases), documentado en
+  `anotaciones/modulo_2/curls_m02_cu02_activo_individual.md`.
 - Newman 6.2.2 + htmlextra 1.23.1. Sin acceso a base de datos — toda la verificación es vía API.
-- Fecha de ejecución: 2026-09-09/10.
+- Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-37/TC-M02-G33
-newman run TC-M02-G33.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G33.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G33.html \
+newman run TC-M02-G33.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G33_resultado.html \
   --suppress-exit-code
 ```
 
-Tras corregir INC-M02-37-01, el paso "1" (TC-M02-039) debería pasar de 500 a 201. El paso "3" (TC-M02-042) seguirá
-fallando hasta que además se agreguen `confirmacion_no_estandar`/`fase_destino_id` al DTO y su lógica en el use
-case — ver `NOTA_BLOQUEO.md`.
+`--suppress-exit-code` es intencional: mientras el gap de TC-M02-042 exista, Newman termina con código de salida
+distinto de 0 (1 assertion fallida) — el `FAIL` real queda igual registrado en el reporte HTML. Ver `NOTA_BLOQUEO.md`
+para lo que falta implementar (`confirmacion_no_estandar`/`fase_destino_id` en el DTO y su lógica en el use case).

@@ -1,10 +1,12 @@
-# TC-M02-G22 (TC-M02-038) — BLOQUEO en la precondición: RF-41 no permite registrar eventos sanitarios en TEST
+# TC-M02-G22 (TC-M02-038) — [RESUELTO 2026-09-19] Bloqueo histórico en la precondición: RF-41 no permitía registrar eventos sanitarios en TEST
 
-> **Actualización 2026-09-15:** el fix descrito en "Cómo desbloquear" ya está escrito en el código (migración
-> `alembic/versions/68232a1efcc2_inc_m02_75_g53_trigger_fecha_evento_.py` + mapeo del SQLSTATE `P0215` en
-> `src/shared/db_error_translator.py`), pero **todavía no está desplegado en TEST** — esa migración depende de otra
-> que tampoco se aplicó ahí (ver `TC-M02-G20`/`TC-M02-G21`). El bloqueo sigue vigente en TEST hasta que se pongan al
-> día las migraciones pendientes.
+> **Actualización 2026-09-19:** confirmado resuelto en TEST. `POST /activos-biologicos/{id}/eventos/sanitario` con
+> `tipo: "CONTROL_PREVENTIVO"` responde `201` y, de forma adicional, deja el activo en `EN_TRATAMIENTO`
+> automáticamente (`cambio_estado.id_estado_nuevo = 3` en la respuesta) — mejor que el comportamiento esperado
+> originalmente, ya que ahora la precondición real de TC-M02-038 ("evento pendiente sin cerrar") se puede construir
+> directamente vía RF-41, sin necesitar el workaround por RF-44 que usaba antes la colección. La colección Postman
+> (`TC-M02-G22.postman_collection.json`) ya se actualizó para usar el camino directo. Se conserva este documento
+> como registro histórico del defecto y su causa raíz.
 
 **RF-35 / CU-02.** No es un bug de RF-35 — es un defecto de RF-41 (`POST /activos-biologicos/{id}/eventos/sanitario`)
 que impide construir la precondición literal de TC-M02-038 ("Activo con eventos sanitarios/biológicos pendientes

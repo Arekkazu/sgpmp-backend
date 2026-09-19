@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M02-G33 - Transiciones de fase validas: secuencia estandar y no estandar con confirmacion",
-    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-039 (cambio de fase estandar valido) y TC-M02-042 (transicion no estandar con confirmacion_no_estandar=true). Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado. Ambos sub-casos estan bloqueados por el mismo defecto (INC-M02-37-01, ver NOTA_BLOQUEO.md); TC-M02-042 tiene ademas un gap estructural independiente (el DTO no declara confirmacion_no_estandar ni fase_destino_id).",
+    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-039 (cambio de fase estandar valido) y TC-M02-042 (transicion no estandar con confirmacion_no_estandar=true). Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado. TC-M02-039 ya funciona (INC-M02-37-01 se corrigio); TC-M02-042 sigue con un gap estructural (el DTO no declara confirmacion_no_estandar ni fase_destino_id, ver NOTA_BLOQUEO.md).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -103,7 +103,7 @@
       ] } }]
     },
     {
-      "name": "3. TC-M02-042 - Aceptar transicion NO estandar con confirmacion_no_estandar=true",
+      "name": "3. TC-M02-042 - Saltar directo a la fase 3 (saltando la 2) con confirmacion_no_estandar=true",
       "request": {
         "method": "POST",
         "header": [
@@ -113,7 +113,7 @@
         "url": "{{base_url}}/activos-biologicos/{{id_activo}}/fases",
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"Salto no estandar - QA-G33\",\n  \"confirmacion_no_estandar\": true,\n  \"fase_destino_id\": 9999\n}"
+          "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"Salto no estandar - QA-G33\",\n  \"confirmacion_no_estandar\": true,\n  \"fase_destino_id\": 3\n}"
         }
       },
       "event": [{ "listen": "test", "script": { "exec": [
@@ -121,8 +121,8 @@
         "pm.test('RF-37: la transicion no estandar confirmada se acepta (201)', function () { pm.response.to.have.status(201); });",
         "if (pm.response.code === 201) {",
         "  const body = pm.response.json();",
-        "  pm.test('El historial deja evidencia de que fue una confirmacion no estandar', function () {",
-        "    pm.expect(JSON.stringify(body).toLowerCase()).to.match(/no.?estandar|confirmacion/);",
+        "  pm.test('RF-37: el salto respeta fase_destino_id (paso_actual=3), no avanza secuencial por defecto (paso_actual=2)', function () {",
+        "    pm.expect(body.paso_actual).to.eql(3);",
         "  });",
         "}"
       ] } }]

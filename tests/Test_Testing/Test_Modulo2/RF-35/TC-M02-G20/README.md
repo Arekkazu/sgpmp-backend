@@ -17,9 +17,7 @@
 
 ## Ejecución
 
-**Estado actual (reevaluación 2026-09-15): FAIL — regresión.** El backend TEST responde `500` al crear el activo de prueba, así que ningún paso posterior se puede ejecutar. Ver la sección "Reevaluación 2026-09-15" en `RESULTADOS/TC-M02-G20_resultado.md`.
-
-Estado original (2026-09-09): PASS — 2/2 sub-casos, ejecutados dos veces (Postman/Newman y Cypress) de forma independiente contra el mismo entorno TEST desplegado. Ver `RESULTADOS/TC-M02-G20_resultado.md` para el detalle de evidencia (requests/responses reales, IDs generados, hallazgos) de esa ejecución.
+**Estado actual (2026-09-19): PASS — 2/2 sub-casos**, ejecutados dos veces (Postman/Newman y Cypress) de forma independiente contra el mismo entorno TEST desplegado. Ver `RESULTADOS/TC-M02-G20_resultado.md` para el detalle de evidencia (requests/responses reales, IDs generados).
 
 Ambas suites crean su **propio** activo individual de prueba en el `before`/setup (no reutilizan datos de otros testers en el entorno compartido) y no requieren datos previos aparte de: una especie activa (`id_especie=4`, Cachama Blanca) y una infraestructura activa (`id_infraestructura=6`), ya usadas exitosamente por activos existentes en TEST antes de esta ejecución.
 
@@ -42,17 +40,15 @@ cumple estructuralmente, no solo por ausencia de un botón en la UI.
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test` (verificado `GET /health` → 200 antes de ejecutar).
 - Cuenta usada: `admin.test@sgpmp.com.co` (Administrador, `id_rol=1`) — tiene permiso de lectura (R) y actualización (U) sobre el recurso 29 (`activos_biologicos`).
-- Newman 6.2.2 + `newman-reporter-htmlextra` 1.23.1 (ya instalados globalmente). Cypress 14.5.4, Electron 130 headless (instalado en esta ejecución vía `npm ci`, ya declarado en `package.json`/`package-lock.json` del repo — no se modificó ninguno de los dos).
-- Fecha de ejecución: 2026-09-09.
+- Newman 6.2.2 (CLI). Cypress 14.5.4, Electron 130 headless (ya declarado en `package.json`/`package-lock.json` del repo).
+- Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 # Postman/Newman
 cd tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G20
-newman run TC-M02-G20.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G20.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G20.html
+newman run TC-M02-G20.postman_collection.json
 
 # Cypress (desde la raíz del backend)
 npx cypress run --spec "tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G20/tc-m02-g20-consulta-actualizacion.cy.js"

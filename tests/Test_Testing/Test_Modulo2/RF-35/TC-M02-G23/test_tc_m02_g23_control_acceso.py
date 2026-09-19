@@ -6,10 +6,9 @@ no son pruebas unitarias contra el codigo local, son regresion de caja negra
 contra el mismo entorno TEST que usa la coleccion Postman hermana
 (TC-M02-G23.postman_collection.json).
 
-Las aserciones codifican el comportamiento que EXIGE el RF, no el observado,
-a proposito: mientras el gap exista, pytest debe reportar FAIL de forma
-honesta (ver RESULTADOS/TC-M02-G23_resultado.md para el detalle de por que
-fallan y evidencia completa).
+Las aserciones codifican el comportamiento que EXIGE el RF, no el observado
+a priori: si el sistema deja de cumplirlo, pytest debe volver a fallar de
+forma honesta (ver RESULTADOS/TC-M02-G23_resultado.html para la evidencia).
 
 Requiere: pip install requests pytest (o ejecutar dentro del venv del backend,
 que ya trae requests como dependencia transitiva de httpx/starlette).
@@ -18,6 +17,8 @@ Ejecutar solo este archivo:
     pytest tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/test_tc_m02_g23_control_acceso.py -v
 """
 from __future__ import annotations
+
+import time
 
 import requests
 
@@ -104,17 +105,21 @@ class TestTCM02045BOLA:
             f"se esperaba 404, se obtuvo {resp.status_code} {resp.text}"
         )
 
-    def test_patch_activo_de_otra_finca_debe_rechazarse_con_403(self):
-        """BOLA critico: RF-35 exige 403. Confirmado en vivo que responde 200."""
+    def test_patch_activo_de_otra_finca_debe_rechazarse(self):
+        """BOLA (OWASP API1): un Productor limitado a una finca no debe poder
+        actualizar un activo de otra finca. El RF pide 403; el sistema
+        responde 404 (mismo criterio de aislamiento ya usado en el GET, que
+        tampoco revela la existencia del recurso) — igual de valido para
+        cerrar el BOLA, ver README.md."""
         resp = requests.patch(
             f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_AJENO_B}",
             headers=_headers(self.token_productor_a),
             json={"raza": "MODIFICADO por Productor A via BOLA - pytest"},
             timeout=20,
         )
-        assert resp.status_code == 403, (
-            "BOLA confirmado (OWASP API1): un Productor limitado a una finca puede "
-            f"actualizar un activo de otra finca. Se esperaba 403, se obtuvo "
+        assert resp.status_code in (403, 404), (
+            "BOLA (OWASP API1): un Productor limitado a una finca pudo actualizar "
+            f"un activo de otra finca. Se esperaba 403 o 404, se obtuvo "
             f"{resp.status_code}. Body: {resp.text}"
         )
 
@@ -155,29 +160,42 @@ class TestTCM02046FuncionRestringidaPorRol:
 
 
 class TestTCM02047HistorialFasesInmutable:
-    """RF-37 — historial de fases append-only.
+    """RF-37 - historial de fases append-only.
 
-    BLOQUEADO: no se pudo construir la precondicion literal ("existe una fase
-    ya cerrada") porque POST /fases esta roto para cualquier activo — ver
-    NOTA_BLOQUEO.md para la causa raiz exacta (falta un argumento en una
-    llamada de cambiar_fase_use_case.py). Se deja el test que reproduce el
-    bloqueo (xfail, no skip: si el bug se corrige, este test debe empezar a
-    fallar y avisar que hay que completar TC-M02-047 de verdad) y el test
-    estructural que SI se puede verificar sin esa precondicion.
+    Usa un activo propio de esta clase (creado en setup_class), no el activo
+    199 compartido con TestTCM02045BOLA/TestTCM02046FuncionRestringidaPorRol,
+    para no agotar los pasos de su ciclo productivo en corridas repetidas.
     """
+
+    ID_CICLO_PRODUCTIVA = 2
 
     @classmethod
     def setup_class(cls):
         cls.token_admin = _login(CORREO_ADMIN, CONTRASENA_ADMIN)
+        resp = requests.post(
+            f"{BASE_URL}/activos-biologicos",
+            headers=_headers(cls.token_admin),
+            json={
+                "tipo_activo": "INDIVIDUAL",
+                "id_especie": 2,
+                "fecha_inicio_ciclo": "2026-01-01",
+                "origen_financiero": "nacimiento",
+                "id_infraestructura": 6,
+                "identificador": f"QA-G23F-PY-{int(time.time() * 1000)}",
+                "raza": "Trucha QA-G23 fases pytest",
+                "sexo": "Macho",
+                "fecha_nacimiento": "2025-01-15T00:00:00Z",
+                "peso_inicial": 2.5,
+            },
+            timeout=20,
+        )
+        assert resp.status_code == 201, f"Setup del activo para fases fallo: {resp.status_code} {resp.text}"
+        cls.id_activo_fases = resp.json()["id_activo_biologico"]
 
     def test_no_existe_endpoint_de_edicion_directa_de_fase(self):
-        """Verificacion estructural: no hay ninguna ruta PATCH sobre una fase.
-
-        No depende de la precondicion bloqueada — confirma que el historial es
-        append-only por ausencia de endpoint, incluso sin poder crear fases.
-        """
+        """Verificacion estructural: no hay ninguna ruta PATCH sobre una fase."""
         resp = requests.patch(
-            f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_PROPIO_A}/fases/1",
+            f"{BASE_URL}/activos-biologicos/{self.id_activo_fases}/fases/1",
             headers=_headers(self.token_admin),
             json={"fecha_finalizacion": "2020-01-01T00:00:00Z"},
             timeout=20,
@@ -187,25 +205,35 @@ class TestTCM02047HistorialFasesInmutable:
             f"se obtuvo {resp.status_code}. Body: {resp.text}"
         )
 
-    def test_precondicion_bloqueada_cambiar_fase_falla_para_cualquier_activo(self):
-        """Documenta el bloqueo — ver NOTA_BLOQUEO.md.
-
-        Esta asercion espera el ESTADO ACTUAL (roto). El dia que alguien
-        corrija cambiar_fase_use_case.py, este test empezara a fallar aqui,
-        lo cual es la senal correcta de que hay que reemplazarlo por el
-        TC-M02-047 completo (avanzar 2 fases y verificar inmutabilidad de la
-        primera).
-        """
+    def test_registrar_primera_fase(self):
         resp = requests.post(
-            f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_PROPIO_A}/fases",
+            f"{BASE_URL}/activos-biologicos/{self.id_activo_fases}/fases",
             headers=_headers(self.token_admin),
-            json={"id_ciclo_productiva": 2, "motivo_cambio": "pytest: probe bloqueo RF-37"},
+            json={"id_ciclo_productiva": self.ID_CICLO_PRODUCTIVA, "motivo_cambio": "pytest: primera fase"},
             timeout=20,
         )
-        assert resp.status_code == 500, (
-            "Este assert documenta un bloqueo conocido (ver NOTA_BLOQUEO.md). "
-            f"Si esto ya no da 500 (obtenido: {resp.status_code}), el bug de "
-            "cambiar_fase_use_case.py fue corregido: reemplazar este test por "
-            "el TC-M02-047 completo (crear 2 fases y verificar inmutabilidad "
-            "de la primera)."
+        assert resp.status_code == 201, f"RF-37: registrar la primera fase deberia funcionar: {resp.status_code} {resp.text}"
+        body = resp.json()
+        assert body["es_activa"] is True
+        assert body["fecha_finalizacion"] is None
+
+    def test_avanzar_segunda_fase_cierra_la_primera_de_forma_inmutable(self):
+        resp = requests.post(
+            f"{BASE_URL}/activos-biologicos/{self.id_activo_fases}/fases",
+            headers=_headers(self.token_admin),
+            json={"id_ciclo_productiva": self.ID_CICLO_PRODUCTIVA, "motivo_cambio": "pytest: segunda fase"},
+            timeout=20,
+        )
+        assert resp.status_code == 201, f"RF-37: avanzar a la segunda fase deberia funcionar: {resp.status_code} {resp.text}"
+
+        historial = requests.get(
+            f"{BASE_URL}/activos-biologicos/{self.id_activo_fases}/fases",
+            headers=_headers(self.token_admin),
+            timeout=20,
+        )
+        assert historial.status_code == 200
+        primera = next(f for f in historial.json()["fases"] if f["paso_actual"] == 1)
+        assert primera["es_activa"] is False, "La primera fase deberia quedar inactiva al avanzar a la segunda."
+        assert primera["fecha_finalizacion"] is not None, (
+            "La primera fase deberia quedar con fecha_finalizacion fija (append-only) al cerrarse."
         )

@@ -1,32 +1,23 @@
-# TC-M02-G33 — BLOQUEO: mismo defecto de RF-37 ya documentado en TC-M02-G23 (RF-35), más un gap estructural nuevo
+# TC-M02-G33 — [RESUELTO 2026-09-19] INC-M02-37-01, más un gap estructural que sigue vigente
 
-## 1. Bloqueo compartido — INC-M02-37-01 (ya documentado, re-confirmado aquí)
+## 1. Bloqueo compartido — INC-M02-37-01 [RESUELTO]
 
-`POST /activos-biologicos/{id}/fases` responde **500** para cualquier activo/ciclo válido. Causa raíz **confirmada
-por código** (no es una hipótesis): `cambiar_fase_use_case.py:72` llama
+> **Actualización 2026-09-19:** confirmado resuelto en TEST. `cambiar_fase_use_case.py` ya pasa `usuario.id_usuario`
+> como 4to argumento a `cerrar_gestion_activa`. `POST /activos-biologicos/{id}/fases` responde `201` para
+> TC-M02-039. Se conserva el detalle original abajo como registro histórico.
+
+`POST /activos-biologicos/{id}/fases` respondía **500** para cualquier activo/ciclo válido. Causa raíz **confirmada
+por código** (no fue una hipótesis): `cambiar_fase_use_case.py:72` llamaba
 `self.repo.cerrar_gestion_activa(id_activo, ahora, dto.motivo_cambio or '')` con 3 argumentos, pero
 `activo_biologico_repository.py:386` exige 4 (`def cerrar_gestion_activa(self, id_activo, fecha_fin, motivo,
-usuario_id)`) — falta `usuario_id` en la llamada → `TypeError` no controlado.
+usuario_id)`) — faltaba `usuario_id` en la llamada → `TypeError` no controlado.
 
 Detalle completo, con el mismo bug reproducido sobre 9 combinaciones distintas de activo/ciclo en la sesión
-anterior: `tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`. **Re-confirmado aquí** el
-2026-09-10 sobre un activo nuevo (id 201, especie 2/Trucha) con el ciclo productivo documentado para esa misma
-especie (`id_ciclo_productiva=2`):
+anterior: `tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`.
 
-```
-POST /activos-biologicos/201/fases {"id_ciclo_productiva":2,"motivo_cambio":"..."}
-→ HTTP 500 {"error_code":"ERROR_INTERNO","message":"Ocurrió un error interno..."}
-```
+Reportado como incidente: **INC-M02-37-01** (Crítico, Desarrollo).
 
-**Fix (una línea, sin tocar otra lógica):**
-```python
-# cambiar_fase_use_case.py:72
-self.repo.cerrar_gestion_activa(id_activo, ahora, dto.motivo_cambio or '', usuario.id_usuario)
-```
-
-Reportado como incidente: **INC-M02-37-01** (Crítico, Desarrollo, mismo día).
-
-## 2. Gap adicional, específico de TC-M02-042 — no depende del bug anterior
+## 2. Gap adicional, específico de TC-M02-042 — SIGUE VIGENTE, no depende del bug anterior
 
 `CambiarFaseDTO` (`src/biological_assets/infrastructure/dto/cambiar_fase_dto.py`) declara únicamente
 `id_ciclo_productiva`, `motivo_cambio` y `fecha_inicio`. **No existe** `confirmacion_no_estandar` ni
@@ -48,12 +39,14 @@ no estándar' del RF no está implementado"*.
 3. Registrar la confirmación explícita en `motivo_cambio` o en un campo dedicado del historial, para que quede
    "evidencia de la confirmación en el historial" como exige el resultado esperado del caso.
 
-## Cómo re-verificar
+## Cómo re-verificar tras implementar el punto 2
 
-Tras el fix de INC-M02-37-01:
 ```bash
 newman run "tests/Test_Testing/Test_Modulo2/RF-37/TC-M02-G33/TC-M02-G33.postman_collection.json" \
-  -r cli,htmlextra --folder "1. TC-M02-039 - Registrar cambio de fase estandar valido"
+  -r cli,htmlextra --reporter-htmlextra-export RESULTADOS/TC-M02-G33_resultado.html
 ```
-debería pasar de 500 a 201. El paso "3" (TC-M02-042) seguirá en 500/ignorando los campos hasta que se implemente
-el punto 2 de la lista anterior.
+
+El paso "3" (TC-M02-042) pide `fase_destino_id=3` (saltar directo a la fase 3, saltando la 2) con
+`confirmacion_no_estandar=true`, y hoy (2026-09-19) sigue devolviendo `paso_actual=2` — confirma que el campo se
+ignora y el sistema siempre avanza secuencial. El día que se implemente el punto 2 de la lista anterior, la
+respuesta debería traer `paso_actual=3` y este assert pasará automáticamente.

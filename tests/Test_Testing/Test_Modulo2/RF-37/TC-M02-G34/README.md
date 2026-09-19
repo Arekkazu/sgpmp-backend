@@ -10,53 +10,38 @@
 | Endpoints | `POST /activos-biologicos/{id_activo}/fases` · `GET /activos-biologicos/{id_activo}/fases` |
 | Responsable | Juan Manuel · Prioridad Alta |
 
-## ⚠️ Resultado: BLOQUEADO en su totalidad — 5/8 assertions FAIL
+## Resultado (2026-09-19): 4/4 sub-casos FAIL — pero ya por gaps reales, no por bloqueos de entorno
 
-**Reevaluado 2026-09-15: sigue bloqueado, ahora por una cuarta causa que actúa primero.** Ni siquiera se pudo crear
-ningún activo de prueba hoy — mismo `500` de migración pendiente que TC-M02-G20/G21/G22/G33 (`INC-M02-100`). Los 3
-bloqueos de abajo siguen sin corregirse (confirmado por código), y se encontró que el fix del defecto de RF-45
-descrito abajo ya existe en el código pero también está atrapado detrás de la misma migración pendiente. Ver la
-sección "🔴 REEVALUACIÓN 2026-09-15" en `RESULTADOS/TC-M02-G34_resultado.md`.
-
-**Estado original (2026-09-10):** Los 4 sub-casos dependen de `POST /fases`, que está roto para cualquier entrada
-(INC-M02-37-01, ya reportado desde TC-M02-G23). Se re-confirmó con datos frescos y, además, se descubrió un
-**segundo defecto independiente** que bloquea específicamente la precondición de TC-M02-044. Detalle completo con
-evidencia en la sección histórica de `RESULTADOS/TC-M02-G34_resultado.md` y causas raíz en `NOTA_BLOQUEO.md`.
+**INC-M02-37-01 (el crash que bloqueaba los 4 sub-casos) está resuelto**, igual que el defecto de RF-45 que
+bloqueaba la precondición de TC-M02-044 (ver `NOTA_BLOQUEO.md`). Los 4 sub-casos ya llegan a probar su regla de
+negocio real contra TEST — y los 4 siguen en FAIL, cada uno por una causa distinta, ya confirmada en vivo hoy:
+**11/15 assertions PASS** (todo el setup/precondiciones), **4/15 FAIL** (la assertion final de cada sub-caso). Ver
+`RESULTADOS/TC-M02-G34_resultado.html` para el reporte completo.
 
 ### GIVEN / WHEN / THEN
 
-| Caso | WHEN | THEN esperado (RF) | Resultado real |
+| Caso | WHEN | THEN esperado (RF) | Resultado real (2026-09-19) |
 |---|---|---|---|
-| TC-M02-040 | `POST /fases` con `fecha_inicio` futura (2027) | 400 "Fecha de cambio de fase inválida" | **500** — y aunque se corrija el crash, no hay ninguna validación de fecha en el código (gap adicional) |
-| TC-M02-041 | `POST /fases` con `fase_destino_id` fuera de secuencia, sin confirmación | 409 "La transición requiere confirmación explícita" | **500** — y el DTO no tiene ni `fase_destino_id` ni `confirmacion_no_estandar` (INC-M02-37-02, ya reportado) |
-| TC-M02-043 | Crear una fase que se solape con una anterior | 409 "Solapamiento de fases detectado" | **Bloqueado en la precondición** — no se puede crear ni la primera fase |
-| TC-M02-044 | `POST /fases` sobre un activo en BAJA | 409 "No se puede cambiar la fase de un activo inactivo" | **Bloqueado en la precondición** — llevar el activo a BAJA también falla (500, defecto nuevo, ver abajo) |
+| TC-M02-040 | `POST /fases` con `fecha_inicio` futura (2027) | 400 "Fecha de cambio de fase inválida" | **201 — FAIL.** `CambiarFaseDTO` no valida `fecha_inicio` en absoluto |
+| TC-M02-041 | `POST /fases` con `fase_destino_id` fuera de secuencia, sin confirmación | 409 "La transición requiere confirmación explícita" | **201 — FAIL.** El campo se ignora y el sistema avanza a la siguiente fase secuencial (INC-M02-37-02, mismo gap que TC-M02-G33) |
+| TC-M02-043 | Crear una fase con `fecha_inicio` que solapa una fase ya cerrada | 409 "Solapamiento de fases detectado" | **500 — FAIL.** El trigger de BD (`trg_fn_fase_solapamiento`, `P0227`) sí lo detecta y lo rechaza, pero `raise_from_db_error` no traduce ese código — sale como 500 genérico |
+| TC-M02-044 | `POST /fases` sobre un activo `CERRADO` | 409 "No se puede cambiar la fase de un activo inactivo" | **500 — FAIL.** Mismo patrón: el trigger (`trg_fn_fase_activo_estado_valido`, `P0228`) sí lo detecta, pero tampoco está traducido |
 
-### El defecto nuevo (precondición de TC-M02-044)
-
-Para no depender de RF-37 al preparar un activo en BAJA, se usó `POST /eventos/baja` (RF-45) sobre un activo **sin
-fase previa** — así se evita por completo el código afectado por INC-M02-37-01. Aun así, la petición falla con
-**500 "Error inesperado en base de datos"** — un mensaje que indica un error real de base de datos, no el
-`TypeError` de Python de INC-M02-37-01. Evidencia comparativa fuerte (no una hipótesis al aire): el mismo tipo de
-operación (registrar un cambio de estado) **sí funciona** cuando pasa `modulo_origen='MANUAL'` (RF-44, confirmado
-en `TC-M02-G22`), pero **falla** cuando pasa `modulo_origen='RF-45'` (este caso) — sugiere fuertemente que el CHECK
-de base de datos sobre esa columna no fue actualizado para aceptar todos los literales que el código ya usa tras
-un refactor reciente (rama `fix/rf38-44-45-centralizar-cambio-estado`). Detalle completo en `NOTA_BLOQUEO.md`,
-sección 2.
+TC-M02-043 y TC-M02-044 comparten la misma causa raíz (falta mapear `P02xx` en `raise_from_db_error`) — ambos
+deberían pasar a 409 el mismo día que se agregue ese mapeo, sin más cambios de lógica.
 
 ### Entorno
 
 - Backend TEST: `https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`.
 - Cuenta: `admin.test@sgpmp.com.co`. Sin acceso a base de datos — toda la verificación es vía API.
-- Activos de prueba: 204 (especie 2/Trucha, para 040/041/043), 205 (especie 2/Trucha, para 044).
-- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-10.
+- Cada sub-caso crea su propio activo en el setup (especie 2/Trucha, ciclo productivo 2).
+- Newman 6.2.2 + htmlextra 1.23.1. Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-37/TC-M02-G34
-newman run TC-M02-G34.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G34.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G34.html \
+newman run TC-M02-G34.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G34_resultado.html \
   --suppress-exit-code
 ```

@@ -15,20 +15,14 @@
 | Prioridad | Alta |
 | Endpoints | `GET /activos-biologicos/{id_activo}` · `PATCH /activos-biologicos/{id_activo}` |
 
-## ⚠️ Resultado: FAIL en ambos sub-casos — gaps ya confirmados en código, ahora verificados en vivo
+## ⚠️ Resultado: FAIL en ambos sub-casos — gap real de RF-35, no un problema de entorno
 
-**Estado actual (reevaluación 2026-09-15): FAIL — bloqueado más arriba en la cadena.** El backend TEST ya ni
-siquiera crea el activo de prueba (`500`, misma regresión de migración pendiente que TC-M02-G20/G21), así que no se
-pudo re-confirmar en vivo si los 2 gaps de abajo siguen igual — por código, siguen sin corregirse. Además se
-encontró que el fix del bloqueo de RF-41 (`NOTA_BLOQUEO.md`) ya existe en el código pero tampoco está desplegado en
-TEST. Ver la sección "🔴 ESTADO ACTUAL" en `RESULTADOS/TC-M02-G22_resultado.md`.
-
-**Estado original (2026-09-09): FAIL — TC-M02-037 y TC-M02-038 no se comportaban como exige el RF.** Esto no fue una
-falla de esta prueba ni de datos mal preparados: fue la primera vez que este proyecto verificó en vivo, contra el
-TEST desplegado, dos gaps que ya estaban documentados por lectura de código en `anotaciones/modulo_2/estado_M02.md`
-(RF-35: *"No valida eventos pendientes... pese a que el RF lo exige explícitamente"*). Ver la sección histórica en
-`RESULTADOS/TC-M02-G22_resultado.md` para el detalle completo, y `NOTA_BLOQUEO.md` para el defecto independiente de
-RF-41 que bloqueó la vía directa de armar la precondición de TC-M02-038.
+**Estado actual (2026-09-19): FAIL — 6/10 assertions, 4 fallidas.** Confirmado en vivo contra TEST: RF-35 sigue sin
+validar `estado_activo` ni "eventos/estado pendiente" tal como exige el RF. El bloqueo de RF-41 que impedía antes
+construir la precondición (`NOTA_BLOQUEO.md`) ya está resuelto — el evento sanitario ahora se registra en `201` y
+deja el activo en `EN_TRATAMIENTO` automáticamente, así que la precondición literal de TC-M02-038 ya se construye
+por la vía directa, sin workaround. Los 2 gaps de RF-35 de abajo persisten sin cambios desde la primera verificación
+del 2026-09-09. Ver `RESULTADOS/TC-M02-G22_resultado.html` para el reporte completo.
 
 La colección Postman (`TC-M02-G22.postman_collection.json`) codifica en sus assertions el comportamiento que **exige
 el RF** (no lo que el sistema realmente hace), a propósito: así el reporte de Newman muestra `FAIL` de forma honesta
@@ -41,20 +35,7 @@ no una que se ajustó para que "diera verde".
 |---|---|---|---|---|
 | TC-M02-037 (a) | Activo individual existente | `PATCH` solo con `estado_activo` | 400, mensaje sobre RF-44 | **400 obtenido, pero con mensaje genérico** ("Al menos un campo debe estar presente"), no el mensaje específico del RF |
 | TC-M02-037 (b) | Mismo activo | `PATCH` con `estado_activo` + un campo editable válido | 400 | **200 — FAIL.** El campo se ignora en silencio y la actualización del campo válido se acepta sin ningún aviso |
-| TC-M02-038 | Activo con un proceso sanitario abierto sin cerrar (`EN_TRATAMIENTO`) | `PATCH` con un campo editable válido | 409, mensaje sobre eventos pendientes | **200 — FAIL.** La actualización se acepta igual, sin ninguna validación de "eventos/estado pendiente" |
-
-### Por qué TC-M02-038 se adaptó (ver NOTA_BLOQUEO.md)
-
-La precondición literal ("Activo con eventos sanitarios/biológicos pendientes sin cerrar") no se pudo construir vía
-`POST /activos-biologicos/{id}/eventos/sanitario` (RF-41): ese endpoint devuelve **500** de forma reproducible para
-`DIAGNOSTICO` y `CONTROL_PREVENTIVO` en este entorno TEST — un defecto independiente y bloqueante, documentado en
-`NOTA_BLOQUEO.md`. Como workaround **funcionalmente equivalente** para lo que RF-35 necesita verificar (¿bloquea el
-endpoint una operación mientras el activo tiene algo abierto sin resolver?), se usó `PATCH /{id}/estado` (RF-44,
-endpoint no afectado por el bloqueo) para dejar el activo en `EN_TRATAMIENTO` antes de intentar el `PATCH` de
-RF-35. El resultado (200, sin bloqueo) es válido de todas formas: si ni siquiera un estado `EN_TRATAMIENTO`
-persistente bloquea la operación, es aún menos probable que exista alguna otra validación de "eventos pendientes"
-en el código — confirmado además por búsqueda exhaustiva (`grep -ri "pendiente"` sobre todo `src/biological_assets`
-no encontró ninguna coincidencia relevante).
+| TC-M02-038 | Activo con un proceso sanitario abierto sin cerrar (`EN_TRATAMIENTO`, via RF-41 directo) | `PATCH` con un campo editable válido | 409, mensaje sobre eventos pendientes | **200 — FAIL.** La actualización se acepta igual, sin ninguna validación de "eventos/estado pendiente" |
 
 ### Entorno
 
@@ -62,18 +43,17 @@ no encontró ninguna coincidencia relevante).
 - Cuenta usada: `admin.test@sgpmp.com.co` (Administrador, `id_rol=1`).
 - Newman 6.2.2 + `newman-reporter-htmlextra` 1.23.1.
 - Sin acceso a la base de datos PostgreSQL de TEST desde este entorno — toda la verificación es vía API.
-- Fecha de ejecución: 2026-09-09.
+- Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G22
-newman run TC-M02-G22.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G22.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G22.html \
+newman run TC-M02-G22.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G22_resultado.html \
   --suppress-exit-code
 ```
 
 `--suppress-exit-code` es intencional: mientras el gap exista, Newman termina con código de salida distinto de 0
 (4 assertions fallidas) — se documenta así para no romper un pipeline de CI que solo quiera el reporte, pero el
-`FAIL` real queda igualmente registrado en los tres reportes (CLI, JSON, HTML).
+`FAIL` real queda igualmente registrado en el reporte HTML.
