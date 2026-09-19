@@ -37,7 +37,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
 | RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~100% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
-| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
+| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~95% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
 | RF-28 | Personalización del dashboard | ⚠️ Cumple parcialmente | ~65% |
 | RF-29 | Configuración de idioma | ✅ Cumple | ~90% |
@@ -649,7 +649,7 @@ sí solo.
 
 ## RF-26 — Personalización de identidad visual del sistema
 
-**Veredicto: ✅ Cumple (~90%)**
+**Veredicto: ✅ Cumple (~95%)**
 
 ### Qué SÍ cumple
 
@@ -668,7 +668,14 @@ sí solo.
 - **RBAC exacto**: recurso `identidad_visual` (id=23), solo Administrador con C/R/U —
   coincide exactamente con "Solo los usuarios con rol Administrador podrán modificar la
   identidad visual del sistema".
-- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`.
+- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`, consultable por
+  `GET /configuracion/identidad-visual/{id_finca}/auditoria`. La respuesta incluye usuario,
+  fecha, operación y snapshots, y está protegida por el permiso `R` del recurso 23.
+- **TC-M09-169-G89 (#307) resuelto:** `/auditoria/` solo representa
+  `modulo1.eventos`; el historial de identidad visual ahora tiene su propio endpoint de
+  dominio. La migración `47038edfa2fc` elimina el trigger específico que duplicaba cada
+  `UPDATE`; los duplicados históricos se conservan, pero la API selecciona solo la fila
+  canónica con `id_finca` generada transaccionalmente por el caso de uso.
 
 ### Qué NO cumple / gaps
 
