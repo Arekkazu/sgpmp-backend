@@ -131,6 +131,17 @@ CREATE TABLE modulo9.auditorias_umbrales_ambientales (
 
 **Estado:** ✅ Aplicado
 
+**INC-M09-105-G30 (#296)**: esta tabla es intencionalmente independiente de `modulo1.eventos`
+(la auditoría global D09 de `identity_access`), siguiendo el mismo patrón que
+`auditorias_metricas_produccion` y el resto de auditorías por módulo (M03 `bitacora_auditoria_iot`,
+M04, supplies). Ningún módulo de negocio escribe en `modulo1.eventos` — es exclusivo de
+`identity_access` (login, cambio de contraseña, roles, perfil). QA reportó como observación no
+bloqueante que los eventos de RF-17 no aparecen en `GET /auditoria/` (D09 global); ver
+`anotaciones/modulo_9/inc_m09_105_g30_auditoria_umbrales_observaciones.md` para el detalle y
+por qué no se implementó sin una decisión de producto previa. También en esa iteración se
+corrigió la representación decimal inconsistente de los snapshots (`_snapshot()` ahora
+normaliza a 2 decimales, la escala real de las columnas NUMERIC).
+
 ---
 
 ## G7 — Falta recurso RBAC `umbrales_ambientales` en `modulo1.recursos`
