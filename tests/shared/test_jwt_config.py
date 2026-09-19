@@ -126,3 +126,38 @@ def test_env_example_declara_leeway_jwt() -> None:
     contenido = (raiz_proyecto / ".env.example").read_text(encoding="utf-8")
 
     assert "JWT_LEEWAY_SECONDS=30" in contenido.splitlines()
+
+
+def test_verify_token_rechaza_rol_forjado_con_otra_clave(monkeypatch) -> None:
+    """TC-M09-158-G83 / INC-M09-29-G83: un rol embebido en un JWT re-firmado
+    con una clave distinta a ``SECRET_KEY`` no puede colarse como válido.
+
+    Un token legítimo con ``rol=4`` no puede editarse a ``rol=999999`` sin
+    conocer ``SECRET_KEY`` (verificación HS256 en ``jose``, no propia). Quien
+    fuerza el claim solo puede volver a firmar con otra clave — y esa firma
+    nunca valida contra la real, así que ``verify_token`` lo rechaza antes de
+    que el claim llegue a influir en la autorización.
+    """
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-real-del-servidor")
+
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload_legitimo = {
+        "sub": "1",
+        "jti": "1",
+        "rol": 4,
+        "iat": ahora,
+        "exp": ahora + jwt_module.timedelta(hours=8),
+    }
+    token_legitimo = jose_jwt.encode(
+        payload_legitimo, "clave-real-del-servidor", algorithm="HS256"
+    )
+    assert jwt_module.verify_token(token_legitimo)["rol"] == 4
+
+    payload_forjado = dict(payload_legitimo, rol=999999)
+    token_forjado = jose_jwt.encode(
+        payload_forjado, "clave-que-no-es-la-del-servidor", algorithm="HS256"
+    )
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        jwt_module.verify_token(token_forjado)
+    assert exc_info.value.code == "TOKEN_INVALIDO"
