@@ -27,7 +27,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
 | RF-15 | Catálogo de especies productivas | ⚠️ Cumple parcialmente | ~85% |
-| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~80% |
+| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~90% |
 | RF-17 | Umbrales de monitoreo y niveles de alerta ambiental | ⚠️ Cumple parcialmente | ~90% |
 | RF-18 | Parámetros operativos del sistema (frecuencia/heartbeat) | ✅ Cumple | ~95% |
 | RF-19 | Registro y gestión de datos de la finca | ⚠️ Cumple parcialmente | ~85% |
@@ -118,10 +118,11 @@ inconsistencia de permisos ya documentada por el propio equipo.
 
 ## RF-16 — Configuración de etapas productivas, patologías y métricas por especie
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — de los tres sub-catálogos que pide el RF, las
-**etapas** tienen el chequeo de dependencias real (consulta una vista SQL), mientras que
-**patologías** y **métricas** lo tienen stubbeado a la espera de M04. (La discrepancia de
-"patologías global vs. por especie" fue **resuelta** en #1633, 2026-08-23 — ver abajo.)
+**Veredicto: ⚠️ Cumple parcialmente (~90%)** — los tres sub-catálogos tienen CRUD y chequeos
+reales de dependencias. La discrepancia de "patologías global vs. por especie" fue resuelta en
+#1633; los stubs de patologías y métricas fueron reemplazados por repositorios SQLAlchemy. El
+2026-09-17, INC-M09-06-G15 cerró además la incompatibilidad entre los tipos históricos de
+métricas y el dominio RF-16. Permanece el gap transversal de modo offline descrito abajo.
 
 ### Qué SÍ cumple
 
@@ -158,13 +159,13 @@ inconsistencia de permisos ya documentada por el propio equipo.
   `id_patologia` es opcional/NULL. M09 ya **no escribe** el catálogo M04 (antes lo hacía —
   mezcla de responsabilidades corregida). Ver `rf16-patologias-por-especie-mod9/resumen.md`
   y la migración `alembic/versions/192872fafd40_...py`.
-- **Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**
-  `desactivar_patologia_use_case.py` usa `DependenciaPatologiaPort`, implementado por
-  `infrastructure/adapters/dependencia_patologia_stub.py` (siempre `False`, pendiente de
-  M04). `desactivar_metrica_use_case.py` usa `DependenciaMetricaPort`, implementado por
-  `dependencia_metrica_stub.py` (mismo patrón). Los flujos alternos de RF-16 que piden
-  `HTTP 422` al intentar desactivar una patología con historial clínico o una métrica con
-  registros productivos existen en código pero no se disparan con ningún dato real hoy.
+- ~~**Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**~~
+  **RESUELTO.** `SqlAlchemyDependenciaPatologiaRepository` consulta la vista de dependencias
+  clínicas y `SqlAlchemyDependenciaMetricaRepository` consulta
+  `modulo2.eventos_productivos`. TC-M09-37 confirmó el bloqueo de patologías. Para métricas,
+  INC-M09-06-G15 agregó la migración `v5.3.0_rf16_normalizar_tipos_medicion_legacy`: normaliza
+  `manual`/`calculada`/`TALLA`, corrige `tipo_dato` y valida el CHECK. TC-M09-38 llega ahora a
+  FA-09 y responde `422 METRICA_CON_REGISTROS` sin modificar la métrica.
 - **`modulo9.patologias` mezcla campos propios de M09 (RF-16) con campos de M04**
   (`nombre_tecnico`, `etiologia`, `categoria`, `codigo_cie`, `es_base`, `version_catalogo`,
   `descripcion_clinica`) — confirma que la tabla fue diseñada como catálogo compartido entre
