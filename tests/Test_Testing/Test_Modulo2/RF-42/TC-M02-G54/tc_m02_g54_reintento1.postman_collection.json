@@ -1,0 +1,173 @@
+{
+  "info": {
+    "name": "TC-M02-G54 - Reintento 1 (2026-09-19) - Nueva validacion de fase intercepta el sub-caso",
+    "description": "Re-ejecucion de TC-M02-G54 (RF-42) contra TEST el 2026-09-19. La coleccion original (tc_m02_g54.postman_collection.json) queda intacta como evidencia historica.\n\nCAMBIO DE COMPORTAMIENTO (no es el mismo bug, ni una correccion limpia -- es una regla nueva): el backend ahora aplica una validacion de FASE antes de la validacion de secuencia reproductiva. Un activo recien registrado (sin ninguna fase asignada via RF-37) que intenta cualquier evento reproductivo ahora recibe 409 FASE_NO_COMPATIBLE_REPRODUCCION en vez de 422 SECUENCIA_REPRODUCTIVA_INVALIDA -- codigo de error que NO EXISTIA en sesiones anteriores. Confirmado en la misma sesion que un activo CON una fase asignada (ej. 'Fase juvenil cachama' via RF-37, que ahora funciona en TEST) SI llega a la validacion de secuencia original y responde 422 SECUENCIA_REPRODUCTIVA_INVALIDA como se esperaba. No se investigo a fondo el catalogo de que fases son compatibles con reproduccion ni la causa raiz -- solo se documenta el comportamiento observado.\n\nEsta coleccion prueba AMBOS escenarios: (a) activo fresco sin fase, documentando la nueva puerta FASE_NO_COMPATIBLE_REPRODUCCION; (b) activo con fase asignada, confirmando que el comportamiento original de TC-M02-100 (422 SECUENCIA_REPRODUCTIVA_INVALIDA) sigue vigente una vez pasada esa puerta.\n\nResponsable: Juan Pablo (re-verificacion QA). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); pm.collectionVariables.set('run_id', Date.now().toString().slice(-6)); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (a) - Registrar hembra reproductora fresca, SIN fase asignada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('registro HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_sin_fase', respuesta.id_activo_biologico); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-hembra-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"HEMBRA-G54R1-{{run_id}}\",\n  \"raza\": \"Tilapia Nilotica\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (a) - NACIMIENTO sobre activo sin fase (CAMBIO: ahora 409 FASE_NO_COMPATIBLE_REPRODUCCION)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- CAMBIO DE COMPORTAMIENTO: activo sin fase, se espera la puerta nueva ---');",
+              "console.log(pm.response.text());",
+              "pm.test('CAMBIO: rechazado con HTTP 409 (antes era 422)', function () { pm.response.to.have.status(409); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('CAMBIO: codigo de negocio FASE_NO_COMPATIBLE_REPRODUCCION (codigo nuevo, no existia antes)', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('FASE_NO_COMPATIBLE_REPRODUCCION');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_sin_fase}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_sin_fase}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (b) - Registrar hembra y asignarle fase via RF-37 (ya funciona en TEST)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('registro HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_con_fase', respuesta.id_activo_biologico); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_cachama}},\n  \"fecha_inicio_ciclo\": \"2026-01-15\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 50000,\n  \"soporte_documental\": \"factura-hembra-fase-{{run_id}}\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"HEMBRA-G54R1-FASE-{{run_id}}\",\n  \"raza\": \"Cachama Blanca\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2025-01-01T00:00:00Z\",\n  \"peso_inicial\": 0.5\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion (b) - Asignar fase (RF-37)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CORREGIDO: RF-37 responde 201 en TEST', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productivo_cachama}}\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_con_fase}}/fases", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_con_fase}}", "fases" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso (b) TC-M02-100 - NACIMIENTO sobre activo CON fase compatible (comportamiento original vigente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Con fase asignada, se espera el comportamiento original de TC-M02-100 ---');",
+              "console.log(pm.response.text());",
+              "pm.test('rechazado con HTTP 422 (comportamiento original de TC-M02-100 sigue vigente una vez pasada la puerta de fase)', function () { pm.response.to.have.status(422); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('codigo de negocio SECUENCIA_REPRODUCTIVA_INVALIDA', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('SECUENCIA_REPRODUCTIVA_INVALIDA');",
+              "});",
+              "console.log('CONCLUSION: la nueva puerta de fase es adicional, no reemplaza la validacion de secuencia original -- ambas coexisten.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"nacimiento\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_con_fase}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_con_fase}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_especie", "value": "10" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_ciclo_productivo_cachama", "value": "4" },
+    { "key": "id_sin_fase", "value": "" },
+    { "key": "id_con_fase", "value": "" }
+  ]
+}
