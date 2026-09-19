@@ -1,7 +1,7 @@
 """v5.3.0_sesiones_catalogo_eventos_refresh.
 
 Revision ID: d8e232bc81a3
-Revises: d014e2cc785d
+Revises: 1147428cd8fb
 Create Date: 2026-09-17 19:47:30.228203
 
 """
@@ -12,7 +12,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "d8e232bc81a3"
-down_revision: Union[str, Sequence[str], None] = "d014e2cc785d"
+down_revision: Union[str, Sequence[str], None] = "1147428cd8fb"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
