@@ -310,8 +310,11 @@ class InfraestructuraDisponibleResponse(BaseModel):
 
 class AsociacionSensorActivoResponse(BaseModel):
     id_asociacion_activo_sensor: int
-    id_activo_biologico: int
-    tipo_activo: str
+    # None para una asociación AMBIENTAL a nivel de infraestructura (RF-49
+    # Tipo B, INC-M02-66-G90/#217) -- aplica a todos los activos de esa
+    # infraestructura en vez de a un activo puntual.
+    id_activo_biologico: Optional[int]
+    tipo_activo: Optional[str]
     tipo_asociacion: str
     dispositivo_iot_id: int
     sensor_id: int
@@ -323,6 +326,15 @@ class AsociacionSensorActivoResponse(BaseModel):
     advertencia: Optional[str] = None
 
     model_config = {'from_attributes': True}
+
+
+class ConsultaAsociacionesSensorResponse(BaseModel):
+    """RF-49 (INC-M02-68-G91): GET /{id_activo}/sensores. `tipo_consulta='ACTIVA'`
+    (default) devuelve solo las asociaciones vigentes; `'HISTORIAL'` devuelve
+    todas, incluidas `INACTIVA` y `SUPERADA`."""
+    id_activo_biologico: int
+    tipo_consulta: str
+    asociaciones: list[AsociacionSensorActivoResponse]
 
 
 # ── Schemas CU12 (RF-50, RF-51) ──────────────────────────────────────────────

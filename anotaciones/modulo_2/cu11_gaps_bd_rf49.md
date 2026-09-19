@@ -73,12 +73,18 @@ INSERT INTO modulo1.permisos (id_rol, id_recurso, id_accion, nombre, es_activo) 
   (1, 30, 2, 'admin_leer_asociacion_sensor_activo', true),
   (4, 30, 1, 'ing_crear_asociacion_sensor_activo', true),
   (4, 30, 2, 'ing_leer_asociacion_sensor_activo', true),
+  (2, 30, 1, 'prod_crear_asociacion_sensor_activo', true),
   (2, 30, 2, 'prod_leer_asociacion_sensor_activo', true),
   (3, 30, 2, 'vet_leer_asociacion_sensor_activo', true);
 ```
 
-Roles con permiso de crear: Administrador (1), Ingeniero de campo (4).
-Roles con permiso solo de leer: Productor (2), Veterinario (3).
+Roles con permiso de crear: Administrador (1), Productor (2) e Ingeniero de campo (4).
+Rol con permiso solo de leer: Veterinario (3).
+
+> Actualización INC-M02-37-G87 v2.0 (#349, 2026-09-16): el CREATE del
+> Productor se formalizó mediante la migración Alembic v5.3.0
+> `1d7d6069da52_v5_3_0_rf49_permiso_productor_`. Los POST de RF-49 limitan
+> al Productor a activos e infraestructuras de sus propias fincas.
 
 ---
 
@@ -89,11 +95,25 @@ El modelo `modulo9.dispositivos_iot` no tiene campo `last_heartbeat` ni timestam
 **Decisión**: La asociación se registra normalmente. El campo `advertencia` en la respuesta queda `null`.
 Cuando el módulo de telemetría (M03) exponga el estado de conexión, se puede reactivar este warning.
 
-### Compatibilidad especie-sensor (FA-04 → HTTP 400)
-El catálogo I3P-1 (M09) que define compatibilidad entre `sensor.categoria` y `especie` no tiene
-tabla en la DB actual.
-**Decisión**: La validación de compatibilidad no se implementa en este CU. Se documenta como gap.
-Cuando la tabla de catálogo exista, agregar validación en el use case antes de V8.
+### Compatibilidad especie-sensor (FA-04 → HTTP 400) — resuelto 2026-09-16
+
+La revisión Alembic `281e99d58ecb` (`v5.3.0_rf49_compatibilidad_sensor_especie`)
+crea `modulo9.compatibilidad_sensores_especies` como lista blanca por sensor.
+La migración inicializa los pares que puede determinar sin inventar taxonomía:
+
+- especie explícita de la infraestructura donde el sensor está instalado;
+- especies compatibles con el tipo de esa infraestructura según el catálogo de RF-48.
+
+`AsociarSensorActivoUseCase` consulta el catálogo mediante `SensorConsultaPort`
+después de validar la coherencia territorial y antes de las cardinalidades V8.
+Un par no listado responde `400 INCOMPATIBILIDAD_ESPECIE_SENSOR` con el mensaje
+de FA-04. Un sensor sin ninguna regla también falla cerrado con
+`400 COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`; la ausencia de configuración ya no
+equivale a compatibilidad universal.
+
+El I3P-1 de variables fisicoquímicas conserva su función existente. La nueva
+tabla separa explícitamente la compatibilidad biológica por sensor para evitar
+sobrecargar ese catálogo con una semántica distinta.
 
 ---
 

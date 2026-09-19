@@ -6,6 +6,13 @@ Create Date: 2026-09-09
 
 INC-M02-47-G17 / #208. Agrega a las métricas productivas los metadatos que
 RF-33 necesita para validar atributos dinámicos antes de persistir un activo.
+
+Actualización: antes de tocar tipo_dato/es_obligatorio, se normalizan
+valores de prueba en tipo_medicion (manual/calculada/TALLA) que violaban
+chk_metricas_tipo_medicion, y se valida ese constraint (estaba NOT VALID,
+es decir, ya se aplicaba a escrituras nuevas pero nunca se había corrido
+contra los datos históricos). Mapeo acordado con el equipo de análisis:
+manual -> CONTEO, calculada -> PESO, TALLA -> OTRO.
 """
 from typing import Sequence, Union
 
@@ -19,6 +26,35 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # 1. Normalizar valores de prueba en tipo_medicion antes de que
+    #    cualquier UPDATE posterior fuerce la re-evaluación del check.
+    op.execute(
+        """
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'CONTEO'
+        WHERE tipo_medicion = 'manual';
+
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'PESO'
+        WHERE tipo_medicion = 'calculada';
+
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'OTRO'
+        WHERE tipo_medicion = 'TALLA';
+        """
+    )
+
+    # 2. Validar chk_metricas_tipo_medicion contra los datos existentes.
+    #    Si quedara algún valor fuera del set permitido, esto falla aquí
+    #    con un mensaje claro, antes de tocar tipo_dato/es_obligatorio.
+    op.execute(
+        """
+        ALTER TABLE modulo9.metricas_produccion
+            VALIDATE CONSTRAINT chk_metricas_tipo_medicion;
+        """
+    )
+
+    # 3. Lógica original de RF-16 (sin cambios).
     op.execute(
         """
         ALTER TABLE modulo9.metricas_produccion
@@ -71,6 +107,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # No se revierte la normalización de tipo_medicion ni se invalida
+    # chk_metricas_tipo_medicion: eran datos de prueba corregidos con el
+    # equipo de análisis, no un cambio reversible de negocio.
     op.execute(
         """
         ALTER TABLE modulo9.metricas_produccion

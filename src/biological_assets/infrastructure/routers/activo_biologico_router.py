@@ -25,6 +25,9 @@ from src.biological_assets.domain.entities.activo_biologico import (
     SensorEnInfraestructura,
 )
 from src.biological_assets.infrastructure.adapters.ciclo_productivo_m09_adapter import CicloProductivoM09Adapter
+from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_adapter import (
+    DispositivoIotEstadoM03Adapter,
+)
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
@@ -68,6 +71,9 @@ from src.biological_assets.infrastructure.dto.consultar_historial_dto import Con
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.biological_assets.infrastructure.repositories.transferencia_repository import SqlAlchemyTransferenciaRepository
 from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_use_case import AsociarSensorActivoUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_asociaciones_sensor_use_case import (
+    ConsultarAsociacionesSensorUseCase,
+)
 from src.biological_assets.application.use_cases.gestion.cambiar_estado_asociacion_sensor_use_case import (
     CambiarEstadoAsociacionSensorUseCase,
 )
@@ -94,6 +100,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
     AsociacionSensorActivoResponse,
+    ConsultaAsociacionesSensorResponse,
     CambioEstadoResponse,
     CierreActivoResponse,
     ConsultaAsociacionResponse,
@@ -137,6 +144,7 @@ router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 _RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+_ROL_PRODUCTOR = 2
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
 # 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
@@ -144,12 +152,23 @@ _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
 # (no existe todavia una identidad de modulo autenticable).
 _LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
 
+# TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
+# prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
+_LIMITE_REGISTRO_ACTIVO = rate_limit(100, 60, alcance="activos_registro")
+
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
     """Resuelve las fincas permitidas para el usuario (RF-25). ``None`` = global."""
     return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario, usuario_actual.id_rol
     )
+
+
+def _ids_fincas_productor_rf49(db: Session, usuario_actual: UsuarioActual):
+    """Restringe al Productor sin alterar el alcance operativo de otros roles."""
+    if usuario_actual.id_rol != _ROL_PRODUCTOR:
+        return None
+    return _ids_fincas_alcance(db, usuario_actual)
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -226,13 +245,17 @@ def _sensor_to_response(s: SensorEnInfraestructura) -> SensorEnInfraestructuraRe
     '',
     response_model=ActivoBiologicoResponse,
     status_code=201,
-    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF33'))],
+    dependencies=[
+        Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF33')),
+        Depends(_LIMITE_REGISTRO_ACTIVO),
+    ],
     responses={
         400: {'model': ErrorResponse},
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        429: {'model': ErrorResponse},
     },
     summary='Registrar activo biológico (RF-33)',
 )
@@ -458,7 +481,12 @@ def actualizar_activo_individual(
         repo=SqlAlchemyActivoBiologicoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    activo = use_case.execute(id_activo, dto, usuario_actual)
+    activo = use_case.execute(
+        id_activo,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return _activo_to_response(activo)
 
 
@@ -687,6 +715,7 @@ def consultar_eventos(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Registrar evento de crecimiento del activo (CU06 - RF-40)',
@@ -877,6 +906,7 @@ def cerrar_ciclo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Registrar evento reproductivo del activo (CU08 - RF-42)',
@@ -891,9 +921,13 @@ def registrar_evento_reproductivo(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         evento_repo=SqlAlchemyEventoActivoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    evento = use_case.execute(id_activo, dto, usuario_actual)
+    evento = use_case.execute(
+        id_activo, dto, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
     return RegistrarEventoReproductivoResponse(evento=_evento_to_response(evento))
 
 
@@ -1130,11 +1164,64 @@ def registrar_transferencia(
 
 # ── CU11 RF-49 — Asociar sensor IoT al activo biológico ──────────────────────
 
+@router.get(
+    '/{id_activo}/sensores',
+    response_model=ConsultaAsociacionesSensorResponse,
+    responses={
+        404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Consultar asociaciones sensor-activo (RF-49, INC-M02-68-G91)',
+    dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 2, rf_origen='RF49'))],
+)
+def consultar_asociaciones_sensor(
+    id_activo: int,
+    tipo_consulta: Literal['ACTIVA', 'HISTORIAL'] = Query(
+        'ACTIVA',
+        description="'ACTIVA' devuelve solo las asociaciones vigentes. 'HISTORIAL' devuelve todas (incluye INACTIVA y SUPERADA).",
+    ),
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ConsultaAsociacionesSensorResponse:
+    use_case = ConsultarAsociacionesSensorUseCase(
+        db=db,
+        repo=SqlAlchemyAsociacionSensorActivoRepository(db),
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    tipo_resultado, id_activo_resultado, asociaciones = use_case.execute(
+        id_activo, tipo_consulta, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
+    return ConsultaAsociacionesSensorResponse(
+        id_activo_biologico=id_activo_resultado,
+        tipo_consulta=tipo_resultado,
+        asociaciones=[
+            AsociacionSensorActivoResponse(
+                id_asociacion_activo_sensor=a.id_asociacion_activo_sensor,
+                id_activo_biologico=a.id_activo_biologico,
+                tipo_activo=a.tipo_activo,
+                tipo_asociacion=a.tipo_asociacion,
+                dispositivo_iot_id=a.dispositivo_iot_id,
+                sensor_id=a.sensor_id,
+                id_infraestructura=a.id_infraestructura,
+                fecha_inicio=a.fecha_inicio,
+                fecha_fin=a.fecha_fin,
+                estado_asociacion=a.estado_asociacion,
+                motivo=a.motivo,
+                advertencia=None,
+            )
+            for a in asociaciones
+        ],
+    )
+
+
 @router.post(
     '/{id_activo}/sensores',
     status_code=201,
     response_model=AsociacionSensorActivoResponse,
     responses={
+        400: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
@@ -1155,8 +1242,14 @@ def asociar_sensor_iot(
         sensor_port=SensorM09Adapter(db),
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        dispositivo_estado_port=DispositivoIotEstadoM03Adapter(db),
     )
-    resultado = use_case.execute(id_activo, dto, usuario_actual)
+    resultado = use_case.execute(
+        id_activo,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_productor_rf49(db, usuario_actual),
+    )
     return AsociacionSensorActivoResponse(
         id_asociacion_activo_sensor=resultado.id_asociacion_activo_sensor,
         id_activo_biologico=resultado.id_activo_biologico,
@@ -1169,7 +1262,7 @@ def asociar_sensor_iot(
         fecha_fin=resultado.fecha_fin,
         estado_asociacion=resultado.estado_asociacion,
         motivo=resultado.motivo,
-        advertencia=None,
+        advertencia=resultado.advertencia,
     )
 
 

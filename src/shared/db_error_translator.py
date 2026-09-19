@@ -45,6 +45,16 @@ _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 #: salía como 500 en vez del 422 de negocio documentado en RF-42.
 _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
 
+#: INC-M02-100-G31: `trg_fn_poblacional_cantidad_inmutable` (modulo2,
+#: `detalles_activos_biologicos_poblacionales`) protege `cantidad_inicial`
+#: (inmutable) y `cantidad_actual` (no negativa) con `RAISE EXCEPTION ...
+#: USING ERRCODE`. Misma clase P0 no mapeada por psycopg2/SQLAlchemy — antes
+#: de este mapeo, `POST .../eventos/crecimiento` sobre un lote que disparara
+#: el trigger devolvía 500 ERROR_INTERNO en vez del 400 de negocio que ya
+#: aplica la restricción CHECK gemela (`chk_poblacional_cantidad_actual_no_negativa`)
+#: cuando la violación llega por una vía distinta al CHECK nativo.
+_ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA = "P0210"
+
 #: INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, cualquier tabla
 #: de eventos vía `eventos_activos`) también señala con `RAISE ... USING
 #: ERRCODE`, sin mapeo — un cliente que sí mande una fecha inválida (futura o
@@ -168,6 +178,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
         mensaje = diag_generico.message_primary or "La fecha del evento es inválida."
         raise ValidationError(code="FECHA_INVALIDA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA:
+        mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
+        raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)

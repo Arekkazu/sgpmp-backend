@@ -264,6 +264,28 @@ def test_errcode_evento_fecha_invalida_es_400_no_500() -> None:
     assert "INVALID_DATE:" not in exc_info.value.message
 
 
+def test_errcode_poblacional_cantidad_invalida_es_400_no_500() -> None:
+    """INC-M02-100-G31 (#262): `trg_fn_poblacional_cantidad_inmutable` (modulo2)
+    señala P0210 (misma clase `P0`, no mapeada por psycopg2) cuando una
+    escritura sobre `detalles_activos_biologicos_poblacionales` deja
+    `cantidad_actual` en negativo o intenta modificar `cantidad_inicial`. Sin
+    este mapeo, `POST .../eventos/crecimiento` sobre un lote que dispare el
+    trigger devolvía 500 ERROR_INTERNO en vez del 400 que ya aplica la
+    restricción CHECK gemela para la misma regla de negocio."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0210",
+        message_primary="INVALID_VALUE: La cantidad_actual del lote no puede ser negativa. Valor intentado: -3.",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_VALUE:" not in exc_info.value.message
+
+
 def test_integrity_error_no_mapeado_es_500() -> None:
     exc = _integrity(pg_errors.NotNullViolation, constraint_name="algo")
 
