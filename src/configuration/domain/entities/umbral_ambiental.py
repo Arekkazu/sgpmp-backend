@@ -21,6 +21,13 @@ class UmbralAmbiental:
     id_umbral_ambiental: Optional[int] = None
     fecha_actualizacion: Optional[datetime.datetime] = None
     id_usuario: Optional[int] = None
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # PENDIENTE (recién guardado o broker inalcanzable) / APLICADA (ACK del
+    # Edge) / NO_CONF (se publicó pero no hubo ACK a tiempo) — mismo
+    # vocabulario que ConfiguracionRemota (RF-23).
+    estado_sincronizacion: str = 'PENDIENTE'
+    fecha_ultima_sincronizacion: Optional[datetime.datetime] = None
+    motivo_fallo_sincronizacion: Optional[str] = None
 
     @classmethod
     def crear(
@@ -60,6 +67,19 @@ class UmbralAmbiental:
 
     def desactivar(self) -> None:
         self.es_activo = False
+
+    def marcar_pendiente_sincronizacion(self, motivo: str) -> None:
+        self.estado_sincronizacion = 'PENDIENTE'
+        self.motivo_fallo_sincronizacion = motivo
+
+    def marcar_sincronizado(self, ts_ahora: datetime.datetime) -> None:
+        self.estado_sincronizacion = 'APLICADA'
+        self.fecha_ultima_sincronizacion = ts_ahora
+        self.motivo_fallo_sincronizacion = None
+
+    def marcar_fallo_sincronizacion(self, motivo: str) -> None:
+        self.estado_sincronizacion = 'NO_CONF'
+        self.motivo_fallo_sincronizacion = motivo
 
     def _snapshot(self) -> dict:
         return {

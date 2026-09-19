@@ -9,16 +9,26 @@ RF-33 necesita para validar atributos dinámicos antes de persistir un activo.
 
 TC-M09-G91 (#312): en el entorno TEST, esta migración quedó bloqueada desde
 2026-09-04 (ver runs fallidos del workflow "Deploy Migrations - test") porque
-el UPDATE de abajo toca todas las filas de `metricas_produccion`, y Postgres
-revalida en cada UPDATE el CHECK `chk_metricas_tipo_medicion` -- que es
-`NOT VALID`, así que nunca validó datos preexistentes. Una fila con
+el UPDATE original de abajo toca todas las filas de `metricas_produccion`, y
+Postgres revalida en cada UPDATE el CHECK `chk_metricas_tipo_medicion` -- que
+es `NOT VALID`, así que nunca validó datos preexistentes. Una fila con
 `tipo_medicion='manual'` (dato inválido, cargado antes de que el constraint
 empezara a aplicarse) hacía fallar el UPDATE con `CheckViolation`, y con eso
 toda la cadena de migraciones posteriores a esta quedó sin aplicarse en TEST.
-Se agrega una normalización defensiva antes del UPDATE original. Es seguro
-para los entornos donde esta migración ya se aplicó (dev, pruebas locales):
-Alembic no la re-ejecuta ahí, así que este cambio solo afecta la próxima vez
-que alguien la aplique donde todavía no llegó.
+
+Dos fixes independientes llegaron a esta misma migración para el mismo
+bloqueo: este (normalización defensiva justo antes del UPDATE original,
+paso 3 de abajo) y otro en paralelo que resuelve el caso general por
+adelantado (paso 1: mapeo acordado con el equipo de análisis para los
+valores de prueba conocidos -- manual -> CONTEO, calculada -> PESO,
+TALLA -> OTRO -- y paso 2: `VALIDATE CONSTRAINT chk_metricas_tipo_medicion`
+explícito antes de tocar nada más). Con los pasos 1-2 corriendo primero, el
+paso 3 queda como red de seguridad redundante para cualquier valor legado
+no contemplado en el mapeo explícito -- se conserva por defensa en
+profundidad, no por necesidad estricta. Es seguro para los entornos donde
+esta migración ya se aplicó (dev, pruebas locales): Alembic no la re-ejecuta
+ahí, así que este cambio solo afecta la próxima vez que alguien la aplique
+donde todavía no llegó.
 """
 from typing import Sequence, Union
 
@@ -32,6 +42,35 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # 1. Normalizar valores de prueba en tipo_medicion antes de que
+    #    cualquier UPDATE posterior fuerce la re-evaluación del check.
+    op.execute(
+        """
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'CONTEO'
+        WHERE tipo_medicion = 'manual';
+
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'PESO'
+        WHERE tipo_medicion = 'calculada';
+
+        UPDATE modulo9.metricas_produccion
+        SET tipo_medicion = 'OTRO'
+        WHERE tipo_medicion = 'TALLA';
+        """
+    )
+
+    # 2. Validar chk_metricas_tipo_medicion contra los datos existentes.
+    #    Si quedara algún valor fuera del set permitido, esto falla aquí
+    #    con un mensaje claro, antes de tocar tipo_dato/es_obligatorio.
+    op.execute(
+        """
+        ALTER TABLE modulo9.metricas_produccion
+            VALIDATE CONSTRAINT chk_metricas_tipo_medicion;
+        """
+    )
+
+    # 3. Lógica original de RF-16 (sin cambios).
     op.execute(
         """
         -- TC-M09-G91 (#312): normaliza tipo_medicion inválido preexistente
@@ -91,6 +130,9 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # No se revierte la normalización de tipo_medicion ni se invalida
+    # chk_metricas_tipo_medicion: eran datos de prueba corregidos con el
+    # equipo de análisis, no un cambio reversible de negocio.
     op.execute(
         """
         ALTER TABLE modulo9.metricas_produccion

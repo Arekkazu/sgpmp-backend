@@ -28,6 +28,16 @@ class UmbralAmbientalRepository(ABC):
     def actualizar(self, umbral: UmbralAmbiental) -> UmbralAmbiental: ...
 
     @abstractmethod
+    def actualizar_estado_sincronizacion(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Persiste solo estado_sincronizacion/fecha_ultima_sincronizacion/motivo_fallo_sincronizacion.
+
+        No toca valor_min/valor_max/niveles -- se usa después del intento de
+        propagación al Nodo Edge (INC-M09-104-G29), en un segundo commit
+        separado del guardado del umbral en sí.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def desactivar_todos_por_especie(self, id_especie: int) -> None:
         """Marca como inactivos todos los umbrales activos de una especie. Hace ``flush``."""
         raise NotImplementedError

@@ -59,9 +59,16 @@ class AsociarSensorInfraestructuraUseCase:
         id_infraestructura: int,
         dto: AsociarSensorInfraestructuraDTO,
         usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
         return ejecutar_con_auditoria_de_rechazo(
-            lambda: self._execute(id_infraestructura, dto, usuario_actual),
+            lambda: self._execute(
+                id_infraestructura,
+                dto,
+                usuario_actual,
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            ),
             db=self.db,
             bitacora_repo=self.bitacora_repo,
             obtener_activo=None,
@@ -77,10 +84,15 @@ class AsociarSensorInfraestructuraUseCase:
         id_infraestructura: int,
         dto: AsociarSensorInfraestructuraDTO,
         usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: list[int] | None = None,
     ) -> AsociacionSensorActivo:
         # V1 — Infraestructura existe y está activa
         infra = self.infra_port.obtener_activa(id_infraestructura)
-        if infra is None:
+        if infra is None or (
+            ids_fincas_permitidas is not None
+            and infra.id_finca not in ids_fincas_permitidas
+        ):
             raise BusinessRuleError(
                 code='INFRAESTRUCTURA_NO_ENCONTRADA',
                 message=f'No existe una infraestructura activa con id {id_infraestructura}.',
