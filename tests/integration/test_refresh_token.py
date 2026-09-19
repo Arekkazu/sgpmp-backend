@@ -102,6 +102,37 @@ def test_refresh_rota_tokens_y_el_nuevo_access_token_funciona(
     assert auditoria["detalle"]["user_agent"]
 
 
+def test_access_token_anterior_a_un_refresh_queda_revocado(
+    client, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """INC-M09-TC-M09-G94 (#309): un cliente que retiene el access token emitido
+    antes de un refresh (p.ej. un caso Cypress que capturo el token del login y
+    lo reutiliza tras una navegacion que dispara un refresh silencioso) debe
+    recibir 401 TOKEN_REVOCADO, nunca un 200 con datos obsoletos ni un 500.
+    Esto confirma que el 401 observado en #309 es el rechazo correcto de un
+    token ya rotado, no un defecto de get_current_user/RBAC sobre el recurso
+    contexto_interfaz.
+    """
+    from src.shared import notificacion_service
+
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+
+    login = _login(client, usuario)
+    token_viejo = login.json()["token"]
+
+    respuesta = client.post("/sesiones/refresh")
+    assert respuesta.status_code == 200, respuesta.text
+
+    reintento = client.get(
+        "/sesiones/me/permisos",
+        headers={"Authorization": f"Bearer {token_viejo}"},
+    )
+    assert reintento.status_code == 401, reintento.text
+    assert reintento.json()["error_code"] == "TOKEN_REVOCADO"
+
+
 def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
 ) -> None:
