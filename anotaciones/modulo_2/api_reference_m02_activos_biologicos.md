@@ -560,9 +560,26 @@ Sin query params. Excluye la infraestructura actual del activo; solo incluye inf
 
 | Método | Ruta | Permiso | Roles autorizados | Use Case |
 |--------|------|---------|--------------------|----------|
+| `GET` | `/{id_activo}/sensores` | `(30, R)` | Admin, Prod, Vet, Ing | `ConsultarAsociacionesSensorUseCase` |
 | `POST` | `/{id_activo}/sensores` | `(30, C)` | Admin, Ing | `AsociarSensorActivoUseCase` |
 
-> Solo lectura (`R`) para Productor y Veterinario sobre este recurso — no aparece ningún endpoint `GET` dedicado en este router para consultarlo directamente (la lectura de asociaciones de sensor se expone desde el módulo `configuration`).
+> **Corrección (INC-M02-68-G91 / issue #218):** este documento afirmaba antes que la lectura de
+> asociaciones de sensor se exponía desde el módulo `configuration` — eso nunca se implementó ahí
+> (`src/configuration/` no tiene ningún endpoint sobre `asociaciones_activos_sensores`), y el
+> permiso `R` que sí tenían sembrado Productor y Veterinario no tenía ningún endpoint detrás. Se
+> agregó el `GET` en este mismo router, que es donde vive el resto del CU11.
+
+#### `GET /activos-biologicos/{id_activo}/sensores` — Consultar asociaciones sensor-activo
+
+**Query params:**
+
+| Param | Tipo | Default | Notas |
+|-------|------|---------|-------|
+| `tipo_consulta` | `Literal['ACTIVA','HISTORIAL']` | `'ACTIVA'` | `ACTIVA` devuelve solo las vigentes; `HISTORIAL` incluye `INACTIVA` y `SUPERADA` |
+
+**Response `ConsultaAsociacionesSensorResponse`:** `id_activo_biologico: int, tipo_consulta: str, asociaciones: list[AsociacionSensorActivoResponse]`.
+
+---
 
 #### `POST /activos-biologicos/{id_activo}/sensores` — Asociar sensor IoT al activo
 
@@ -723,14 +740,14 @@ Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `
 | `id_recurso` | Recurso | Admin | Productor | Veterinario | Ing. Campo | Contador |
 |---|---|---|---|---|---|---|
 | 29 | `activos_biologicos` | C,R,U,D,E | C,R,U,D,E | C,R,D,E | C,R,U,E | — |
-| 30 | `asociacion_sensor_activo` | C,R | R | R | C,R | — |
+| 30 | `asociacion_sensor_activo` | C,R | C,R | R | C,R | — |
 | 31 | `bitacora_auditoria_m02` | R | R | R | — | R |
 
 Notas:
 - **Veterinario** no tiene `U` sobre `activos_biologicos` (no puede usar `PATCH /{id_activo}`, sí puede `PATCH /{id_activo}/estado` que es `E`).
 - **Ingeniero de Campo** no tiene `D` sobre `activos_biologicos` (no puede cerrar ciclo, `POST /{id_activo}/cierre`), y no tiene ningún permiso sobre `bitacora_auditoria_m02`.
 - **Contador** solo tiene acceso de lectura a la bitácora de auditoría (`31, R`); no participa en ninguna otra operación del módulo.
-- **Productor** y **Veterinario** solo tienen `R` sobre `asociacion_sensor_activo` — no pueden crear asociaciones sensor-activo, solo Admin e Ingeniero.
+- **Productor** tiene `C,R` sobre `asociacion_sensor_activo`, limitado en escritura a activos e infraestructuras de sus propias fincas; **Veterinario** conserva solo `R`. Admin e Ingeniero también pueden crear asociaciones.
 
 ---
 

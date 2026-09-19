@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import DatosConsolidados, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -63,18 +64,13 @@ class ConsultarDatosConsolidadosUseCase:
             page_size=dto.page_size,
         )
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF50', tipo_evento='DATOS_ANALITICOS_CONSULTADOS',
-                    clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo,
-                    detalle_tecnico={'tipo_dato': dto.tipo_dato},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF50', tipo_evento='DATOS_ANALITICOS_CONSULTADOS',
+            clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            detalle_tecnico={'tipo_dato': dto.tipo_dato},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado

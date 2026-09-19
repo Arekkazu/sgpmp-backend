@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, Transferencia
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -13,7 +17,7 @@ from src.biological_assets.domain.repositories.transferencia_repository import T
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class RegistrarTransferenciaUseCase:
@@ -33,6 +37,22 @@ class RegistrarTransferenciaUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF48',
+            tipo_evento_rechazado='TRANSFERENCIA_RECHAZADA',
+            clasificacion_biologica='GESTION_OPERATIVA',
+            tipos_por_codigo={
+                'TRANSFERENCIA_CONCURRENTE': 'TRANSFERENCIA_CONCURRENTE_BLOQUEADA',
+            },
+        )
+
+    def _execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
         # E-01: control de concurrencia — bloquea el registro para evitar transferencias simultáneas
         hay_concurrencia = self.transferencia_repo.hay_transferencia_en_progreso(id_activo)
         if hay_concurrencia:
@@ -62,10 +82,13 @@ class RegistrarTransferenciaUseCase:
                 ),
             )
 
-        # E-04: el activo debe tener infraestructura origen activa
+        # E-04: el activo debe tener infraestructura origen activa (INC-M02-88-G83:
+        # regla de negocio -> 422, no 400 -- el DTO en sí es válido, lo que falla
+        # es el estado del activo, igual que ya corrigió INC-M02-73-G80 para
+        # DESTINO_IGUAL_ORIGEN)
         asociacion_actual = self.activo_repo.obtener_asociacion_activa(id_activo)
         if asociacion_actual is None:
-            raise ValidationError(
+            raise BusinessRuleError(
                 code='SIN_INFRAESTRUCTURA_ORIGEN',
                 message=(
                     f'El activo {activo.identificador} no tiene una infraestructura origen registrada. '
@@ -84,12 +107,19 @@ class RegistrarTransferenciaUseCase:
                 field='infraestructura_origen_id',
             )
 
-        # E-05: infraestructura destino debe existir y estar activa
+        # E-05: infraestructura destino debe existir y estar activa (INC-M02-88-G83: 422, no 400)
         infra_destino = self.infra_port.obtener_activa(dto.infraestructura_destino_id)
         if infra_destino is None:
-            raise ValidationError(
+            # INC-M02-89-G83: distinguir "no existe" de "existe pero está
+            # inactiva" en el mensaje -- mejora de usabilidad, el error_code
+            # no cambia.
+            if self.infra_port.existe(dto.infraestructura_destino_id):
+                mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} se encuentra inactiva.'
+            else:
+                mensaje = f'La infraestructura con id {dto.infraestructura_destino_id} no existe.'
+            raise BusinessRuleError(
                 code='INFRAESTRUCTURA_DESTINO_INVALIDA',
-                message=f'La infraestructura con id {dto.infraestructura_destino_id} no existe o no está activa.',
+                message=mensaje,
                 field='infraestructura_destino_id',
             )
 
@@ -160,6 +190,17 @@ class RegistrarTransferenciaUseCase:
                     field='infraestructura_destino_id',
                 )
 
+        # E-10: fecha de transferencia no puede ser futura. Es la última
+        # validación del proceso (RF-48, paso 6f) — se valida en el caso de
+        # uso para responder 422 (BusinessRuleError), como declara el
+        # contrato, y no como un error de estructura de Pydantic (400).
+        if dto.fecha_transferencia > date.today():
+            raise BusinessRuleError(
+                code='FECHA_TRANSFERENCIA_FUTURA',
+                message='La fecha de transferencia no puede ser posterior a la fecha actual.',
+                field='fecha_transferencia',
+            )
+
         fecha_dt = datetime(
             dto.fecha_transferencia.year,
             dto.fecha_transferencia.month,
@@ -218,45 +259,54 @@ class RegistrarTransferenciaUseCase:
                 {'id': id_activo, 'id_infra': dto.infraestructura_destino_id},
             )
 
+            # c2) Recalcular densidad contra la superficie de la infraestructura
+            # destino (DEF-RF48-02 / INC-M02-40-G28): un lote poblacional que
+            # cambia de infraestructura cambia de superficie física; la
+            # densidad quedaba "congelada" con el valor de la infraestructura
+            # de origen si no se recalculaba aquí.
+            if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional:
+                activo.recalcular_densidad(infra_destino.superficie)
+                self.db.execute(
+                    text(
+                        'UPDATE modulo2.detalles_activos_biologicos_poblacionales '
+                        'SET densidad = :densidad '
+                        'WHERE id_activo_biologico = :id'
+                    ),
+                    {'id': id_activo, 'densidad': activo.detalle_poblacional.densidad},
+                )
+
             # d) Registrar evento en movimientos
             resultado = self.transferencia_repo.guardar(transferencia)
 
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF48', tipo_evento='TRANSFERENCIA_FALLIDA',
-                        clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'destino': dto.infraestructura_destino_id},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF48', tipo_evento='TRANSFERENCIA_FALLIDA',
+                clasificacion_biologica='GESTION_OPERATIVA', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'destino': dto.infraestructura_destino_id},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF48', tipo_evento='TRANSFERENCIA_REGISTRADA',
-                    clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Transferencia: {transferencia.nombre_infra_origen} → {transferencia.nombre_infra_destino}',
-                    detalle_tecnico={
-                        'origen': dto.infraestructura_origen_id,
-                        'destino': dto.infraestructura_destino_id,
-                        'motivo': dto.motivo_transferencia,
-                    },
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF48', tipo_evento='TRANSFERENCIA_REGISTRADA',
+            clasificacion_biologica='GESTION_OPERATIVA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Transferencia: {transferencia.nombre_infra_origen} → {transferencia.nombre_infra_destino}',
+            detalle_tecnico={
+                'origen': dto.infraestructura_origen_id,
+                'destino': dto.infraestructura_destino_id,
+                'motivo': dto.motivo_transferencia,
+            },
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado
 

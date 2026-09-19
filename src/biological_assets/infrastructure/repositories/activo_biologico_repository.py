@@ -298,7 +298,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 HistorialInfraestructuraActivoModel.id_infraestructura == InfraestructuraModel.id_infraestructura,
             )
             .filter(HistorialInfraestructuraActivoModel.id_activo_biologico == id_activo)
-            .order_by(HistorialInfraestructuraActivoModel.fecha_inicio.desc())
+            # TC-M02-023: cronologico, de la asociacion mas antigua a la vigente.
+            .order_by(HistorialInfraestructuraActivoModel.fecha_inicio.asc())
             .all()
         )
         return [
@@ -399,15 +400,18 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         )
 
     def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
-        orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
-        if orm and orm.detalle_poblacional and activo.detalle_poblacional:
-            dp = activo.detalle_poblacional
-            orm.detalle_poblacional.cantidad_actual = dp.cantidad_actual
-            orm.detalle_poblacional.peso_promedio = dp.peso_promedio
-            orm.detalle_poblacional.biomasa_total = dp.biomasa_total
-            orm.detalle_poblacional.densidad = dp.densidad
-        self.db.flush()
-        self.db.refresh(orm)
+        try:
+            orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
+            if orm and orm.detalle_poblacional and activo.detalle_poblacional:
+                dp = activo.detalle_poblacional
+                orm.detalle_poblacional.cantidad_actual = dp.cantidad_actual
+                orm.detalle_poblacional.peso_promedio = dp.peso_promedio
+                orm.detalle_poblacional.biomasa_total = dp.biomasa_total
+                orm.detalle_poblacional.densidad = dp.densidad
+            self.db.flush()
+            self.db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc)
         return self._a_entidad(orm)
 
     def actualizar_estado(self, id_activo: int, nuevo_id_estado: int) -> None:

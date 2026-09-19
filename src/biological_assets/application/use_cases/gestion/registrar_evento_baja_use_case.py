@@ -5,6 +5,10 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
+from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
+    ejecutar_con_auditoria_de_rechazo,
+)
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoBaja, HistoricoEstado
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
@@ -15,7 +19,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class RegistrarEventoBajaUseCase:
@@ -37,6 +41,19 @@ class RegistrarEventoBajaUseCase:
         self.bitacora_repo = bitacora_repo
 
     def execute(self, id_activo: int, dto: RegistrarEventoBajaDTO, usuario: UsuarioActual) -> EventoActivo:
+        return ejecutar_con_auditoria_de_rechazo(
+            lambda: self._execute(id_activo, dto, usuario),
+            db=self.db,
+            bitacora_repo=self.bitacora_repo,
+            obtener_activo=self.activo_repo.obtener_por_id,
+            id_activo=id_activo,
+            id_usuario=usuario.id_usuario,
+            rf_origen='RF45',
+            tipo_evento_rechazado='BAJA_RECHAZADA',
+            clasificacion_biologica='CONTROL_ESTADO',
+        )
+
+    def _execute(self, id_activo: int, dto: RegistrarEventoBajaDTO, usuario: UsuarioActual) -> EventoActivo:
         # E-01: activo debe existir
         activo = self.activo_repo.obtener_por_id(id_activo)
         if activo is None:
@@ -157,37 +174,30 @@ class RegistrarEventoBajaUseCase:
                 )
 
             self.db.commit()
+        except AppError:
+            self.db.rollback()
+            raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF45', tipo_evento='BAJA_REGISTRO_FALLIDO',
-                        clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'tipo_baja': dto.tipo_baja},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF45', tipo_evento='BAJA_REGISTRO_FALLIDO',
+                clasificacion_biologica='CONTROL_ESTADO', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'tipo_baja': dto.tipo_baja},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF45', tipo_evento='BAJA_REGISTRADA',
-                    clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Baja registrada: {dto.tipo_baja} — {dto.motivo_baja}',
-                    detalle_tecnico={'tipo_baja': dto.tipo_baja, 'motivo': dto.motivo_baja},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF45', tipo_evento='BAJA_REGISTRADA',
+            clasificacion_biologica='CONTROL_ESTADO', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Baja registrada: {dto.tipo_baja} — {dto.motivo_baja}',
+            detalle_tecnico={'tipo_baja': dto.tipo_baja, 'motivo': dto.motivo_baja},
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado
 
