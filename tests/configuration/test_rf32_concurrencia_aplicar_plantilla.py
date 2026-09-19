@@ -103,6 +103,9 @@ class PlantillaRepoFake:
     def obtener_por_id(self, _id_plantilla):
         return _plantilla()
 
+    def obtener_ultima_version(self, _template_name):
+        return _plantilla()
+
 
 class EspecieRepoFake:
     def obtener_por_id(self, _id_especie):

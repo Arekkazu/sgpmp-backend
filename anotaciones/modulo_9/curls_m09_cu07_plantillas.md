@@ -427,6 +427,13 @@ Errores posibles:
 - `412` — schema_version del snapshot incompatible con la versión actual (FA-02)
 - `412` — `fecha_actualizacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11)
 - `422` — especie destino inactiva
+- `422` — `PLANTILLA_VERSION_NO_VIGENTE` (INC-M09-03-122, #317): el `id_plantilla`
+  de la URL ya no es la última versión de su `template_name` (existe una
+  versión posterior generada por Flujo G). El mensaje incluye el id de la
+  versión vigente. No hay un HTTP explícito para este caso en el "Flujo
+  alterno" de RF-32 — se usó 422 por consistencia con el otro caso de
+  "plantilla no apta para aplicar" (incompatibilidad de esquema, también 422
+  en el texto de RF-32)
 
 ### Verificación en DB tras aplicar
 
