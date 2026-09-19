@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G91",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G91-REEVAL-V2-20260915-221800",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-222: Rechazar eliminación (DELETE) de una asociación existente",
+      "esperado": "HTTP 405 Method Not Allowed rechazando el borrado físico (Restricción 8 append-only)",
+      "obtenido": "HTTP 405 Method Not Allowed verificado; la asociación 43 permanece intacta en BD",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G91-REEVAL-V2-20260915-221800/TC-M02-G91_reevaluacion_V2.md",
+      "nota_qa": "Pass con observación: inmutabilidad append-only cumplida por ausencia estructural de ruta DELETE."
+    },
+    {
+      "paso": "TC-M02-223: Verificar visibilidad de la asociación creada en consultas posteriores",
+      "esperado": "HTTP 200 OK con datos completos de la asociación creada mediante PR #321 desplegado",
+      "obtenido": "HTTP 405 Method Not Allowed (fix PR #321 aún pendiente de despliegue en ambiente TEST)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G91-REEVAL-V2-20260915-221800/TC-M02-G91_reevaluacion_V2.md",
+      "nota_qa": "Bloqueado por despliegue: PR #321 cerrado en código pero pendiente de deploy en Dokploy."
+    }
+  ]
+}

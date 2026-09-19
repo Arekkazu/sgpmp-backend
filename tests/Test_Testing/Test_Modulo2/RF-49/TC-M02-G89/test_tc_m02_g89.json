@@ -11,12 +11,12 @@
       "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
     },
     {
-      "key": "adminEmail",
-      "value": "administador.dev@gmail.com"
+      "key": "admin_email",
+      "value": ""
     },
     {
-      "key": "adminPassword",
-      "value": "Test1234!"
+      "key": "admin_password",
+      "value": ""
     },
     {
       "key": "bearerToken",
@@ -24,19 +24,19 @@
     },
     {
       "key": "id_activo",
-      "value": "19"
+      "value": "112"
     },
     {
       "key": "id_sensor",
-      "value": "2"
+      "value": "30"
     },
     {
       "key": "dispositivo_iot_id",
-      "value": "1"
+      "value": "48"
     },
     {
       "key": "id_infraestructura",
-      "value": "1"
+      "value": "3"
     },
     {
       "key": "id_asociacion_A",
@@ -78,7 +78,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -101,8 +101,8 @@
                   "pm.test('Paso 01: Asociación A creada en estado inicial ACTIVA', function () {",
                   "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
                   "});",
-                  "pm.test('Paso 01: Sensor asociado coincide con sensor 2', function () {",
-                  "    pm.expect(data.sensor_id).to.eql(2);",
+                  "pm.test('Paso 01: Sensor asociado coincide con sensor 30', function () {",
+                  "    pm.expect(data.sensor_id).to.eql(30);",
                   "});",
                   "if (data && data.id_asociacion_activo_sensor) {",
                   "    pm.collectionVariables.set('id_asociacion_A', data.id_asociacion_activo_sensor);",
@@ -126,12 +126,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 48,\n  \"sensor_id\": 30,\n  \"id_infraestructura\": 3\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores"]
+              "path": ["activos-biologicos", "112", "sensores"]
             }
           }
         },
@@ -149,8 +149,8 @@
                   "pm.test('Paso 02: Asociación B creada en estado ACTIVA', function () {",
                   "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
                   "});",
-                  "pm.test('Paso 02: Sensor asociado coincide con sensor 2', function () {",
-                  "    pm.expect(data.sensor_id).to.eql(2);",
+                  "pm.test('Paso 02: Sensor asociado coincide con sensor 30', function () {",
+                  "    pm.expect(data.sensor_id).to.eql(30);",
                   "});",
                   "if (data && data.id_asociacion_activo_sensor) {",
                   "    pm.collectionVariables.set('id_asociacion_B', data.id_asociacion_activo_sensor);",
@@ -174,12 +174,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 2,\n  \"id_infraestructura\": 1\n}"
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 48,\n  \"sensor_id\": 30,\n  \"id_infraestructura\": 3\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores"]
+              "path": ["activos-biologicos", "112", "sensores"]
             }
           }
         }
@@ -215,7 +215,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -263,9 +263,9 @@
               "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Desactivacion manual de sensor por mantenimiento TC-M02-216\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/{{id_asociacion_B}}",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores", "{{id_asociacion_B}}"]
+              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
             }
           }
         }
@@ -301,7 +301,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -349,9 +349,9 @@
               "raw": "{\n  \"estado_nuevo\": \"ACTIVA\",\n  \"motivo\": \"Reactivacion de sensor tras mantenimiento TC-M02-218\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/{{id_asociacion_B}}",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores", "{{id_asociacion_B}}"]
+              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
             }
           }
         }
@@ -387,7 +387,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -430,9 +430,9 @@
               "raw": "{\n  \"estado_nuevo\": \"SUPERADA\",\n  \"motivo\": \"Intento no permitido de superacion manual directa TC-M02-219\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/{{id_asociacion_B}}",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores", "{{id_asociacion_B}}"]
+              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
             }
           }
         }
@@ -449,9 +449,14 @@
               "script": {
                 "exec": [
                   "// Operacion logica append-only (no destructiva) para garantizar la inocuidad del entorno de pruebas",
-                  "pm.test('Teardown: Desactivar Asociación B exitoso (200 OK) o ya inactiva (409 Conflict)', function () {",
-                  "    pm.expect(pm.response.code).to.be.oneOf([200, 409]);",
-                  "});"
+                  "console.log('[TC-M02-G89] [INFO] Teardown HTTP Status:', pm.response.code);",
+                  "if (pm.response.code === 200) {",
+                  "    console.log('[TC-M02-G89] Teardown exitoso vía API');",
+                  "} else if (pm.response.code === 403) {",
+                  "    console.log('[TC-M02-G89] Teardown bloqueado por RBAC (Admin no tiene permiso UPDATE en recurso 30)');",
+                  "} else {",
+                  "    console.log('[TC-M02-G89] Teardown respuesta:', pm.response.text());",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -474,9 +479,9 @@
               "raw": "{\n  \"estado_nuevo\": \"INACTIVA\",\n  \"motivo\": \"Cleanup tecnico append-only TC-M02-G89\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/{{id_asociacion_B}}",
+              "raw": "{{baseUrl}}/activos-biologicos/112/sensores/{{id_asociacion_B}}",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores", "{{id_asociacion_B}}"]
+              "path": ["activos-biologicos", "112", "sensores", "{{id_asociacion_B}}"]
             }
           }
         }

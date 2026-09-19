@@ -31,13 +31,24 @@ ID_ACTIVO_FINCA_1 = 108   # LOTE-M02-TEST-001 (Finca 1: Finca Acuícola El Reman
 ID_SENSOR_FINCA_2 = 8     # Sensor canal-trucha-01 (Finca 2: Piscícola Los Esteros, Infra 4, Disp 4)
 ID_SENSOR_INEXISTENTE = 9999
 
+# Fixtures libres para Escenario B (Productor en su finca)
+ID_ACTIVO_FINCA_1_LIBRE = 57
+ID_SENSOR_FINCA_1_LIBRE = 5
+ID_DISPOSITIVO_FINCA_1_LIBRE = 2
+ID_INFRAESTRUCTURA_FINCA_1 = 2
+
+# Fixture de activo en finca ajena para Escenario B2 (Finca 57 de m2m.nuevo)
+ID_ACTIVO_FINCA_AJENA = 279
+
 
 @pytest.fixture(scope="session")
 def admin_token() -> str:
     """Token JWT de Administrador (id_rol = 1, acceso global)."""
+    email = os.environ.get("TEST_ADMIN_EMAIL", "")
+    password = os.environ.get("TEST_ADMIN_PASSWORD", "")
     resp = requests.post(f"{BASE_URL}/sesiones/", json={
-        "correo_electronico": "admin@pecuaria.co",
-        "contrasena": "Test1234!"
+        "correo_electronico": email,
+        "contrasena": password
     }, timeout=10)
     assert resp.status_code == 200, f"Falla de autenticación Admin: {resp.text}"
     return resp.json()["token"]
@@ -46,9 +57,11 @@ def admin_token() -> str:
 @pytest.fixture(scope="session")
 def ingeniero_token() -> str:
     """Token JWT de Ingeniero de Campo (id_rol = 4, con permiso CREATE sobre asociacion_sensor_activo)."""
+    email = os.environ.get("TEST_INGENIERO_EMAIL", "")
+    password = os.environ.get("TEST_INGENIERO_PASSWORD", "")
     resp = requests.post(f"{BASE_URL}/sesiones/", json={
-        "correo_electronico": "ingeniero@pecuaria.co",
-        "contrasena": "Pruebas12#"
+        "correo_electronico": email,
+        "contrasena": password
     }, timeout=10)
     assert resp.status_code == 200, f"Falla de autenticación Ingeniero: {resp.text}"
     return resp.json()["token"]
@@ -57,9 +70,11 @@ def ingeniero_token() -> str:
 @pytest.fixture(scope="session")
 def productor_token() -> str:
     """Token JWT de Productor Agropecuario (id_rol = 2, Actor Principal RF-49)."""
+    email = os.environ.get("TEST_PRODUCER_EMAIL", "")
+    password = os.environ.get("TEST_PRODUCER_PASSWORD", "")
     resp = requests.post(f"{BASE_URL}/sesiones/", json={
-        "correo_electronico": "productor@pecuaria.co",
-        "contrasena": "Test1234!"
+        "correo_electronico": email,
+        "contrasena": password
     }, timeout=10)
     assert resp.status_code == 200, f"Falla de autenticación Productor: {resp.text}"
     return resp.json()["token"]
@@ -118,37 +133,84 @@ def test_tc_m02_152_escenario_a_bola_cross_finca_ingeniero(ingeniero_token: str)
     assert count == 0, f"Falla de integridad: se insertó asociación no autorizada en BD (count = {count})"
 
 
-def test_tc_m02_152_escenario_b_productor_defecto_rbac(productor_token: str):
-    """Escenario B: Evidencia de defecto de configuración RBAC del Productor Agropecuario.
+def test_tc_m02_152_escenario_b_productor_fix_rbac_aplicado(productor_token: str):
+    """Escenario B: Verificación de autorización RBAC del Productor Agropecuario en su propia finca.
     
     Según el RF-49 (CU11), el Productor Agropecuario es Actor Principal con responsabilidad
     textual de 'solicitar la asociación de sensores a sus activos biológicos y tomar decisiones
     sobre qué sensores monitorean qué animales en su finca'.
     
-    Actualmente el Productor carece de la acción 1 (CREATE) en modulo1.permisos sobre
-    el recurso 30 (asociacion_sensor_activo). Esta prueba captura y documenta el rechazo
-    HTTP 403 ACCESO_DENEGADO como evidencia ineludible del defecto de configuración RBAC.
+    Tras el despliegue del fix INC-M02-62-G87 (permiso prod_crear_asociacion_sensor_activo en
+    modulo1.permisos), el Productor debe poder asociar exitosamente sensores a activos de su finca
+    obteniendo HTTP 201 Created.
     """
-    url = f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_FINCA_1}/sensores"
+    url = f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_FINCA_1_LIBRE}/sensores"
     payload = {
         "tipo_activo": "INDIVIDUAL",
         "tipo_asociacion": "DIRECTA",
-        "dispositivo_iot_id": 38,
-        "sensor_id": 22,
-        "id_infraestructura": 3,
-        "motivo": "Intento de asociación por Productor Agropecuario (Actor Principal RF-49)"
+        "dispositivo_iot_id": ID_DISPOSITIVO_FINCA_1_LIBRE,
+        "sensor_id": ID_SENSOR_FINCA_1_LIBRE,
+        "id_infraestructura": ID_INFRAESTRUCTURA_FINCA_1,
+        "motivo": "Verificación camino feliz Productor en su propia finca RF-49 CU11"
     }
     headers = {"Authorization": f"Bearer {productor_token}"}
 
     resp = requests.post(url, json=payload, headers=headers, timeout=10)
 
-    # Captura de la evidencia del defecto RBAC
-    assert resp.status_code == 403, (
-        f"Se esperaba HTTP 403 Forbidden por la falta de permiso CREATE en Productor, obtenido: {resp.status_code}"
+    assert resp.status_code == 201, (
+        f"Se esperaba HTTP 201 Created tras fix RBAC para Productor en su finca, obtenido: {resp.status_code} - {resp.text}"
     )
     data = resp.json()
-    assert data.get("error_code") == "ACCESO_DENEGADO", (
-        f"Código de error no coincide con ACCESO_DENEGADO: {data.get('error_code')}"
+    assert "id_asociacion_activo_sensor" in data, "La respuesta no incluye id_asociacion_activo_sensor"
+    assert data.get("estado_asociacion") == "ACTIVA", f"Estado de asociación inesperado: {data.get('estado_asociacion')}"
+
+    # Teardown defensivo condicional
+    asoc_id = data.get("id_asociacion_activo_sensor")
+    try:
+        admin_email = os.environ.get("TEST_ADMIN_EMAIL", "")
+        admin_pass = os.environ.get("TEST_ADMIN_PASSWORD", "")
+        if admin_email and admin_pass and asoc_id:
+            r_adm = requests.post(f"{BASE_URL}/sesiones/", json={"correo_electronico": admin_email, "contrasena": admin_pass}, timeout=10)
+            if r_adm.status_code == 200:
+                t_adm = r_adm.json()["token"]
+                requests.patch(
+                    f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_FINCA_1_LIBRE}/sensores/{asoc_id}",
+                    json={"estado_asociacion": "INACTIVA", "motivo": "Teardown defensivo V3"},
+                    headers={"Authorization": f"Bearer {t_adm}"},
+                    timeout=10
+                )
+    except Exception as exc:
+        print(f"[TEARDOWN DEFENSIVO] Nota: no se pudo desactivar asociación {asoc_id}: {exc}")
+
+
+def test_tc_m02_152_escenario_b2_productor_finca_ajena_bola(productor_token: str):
+    """Escenario B2: Control de autorización BOLA del Productor en finca ajena (INC-M02-71-G48).
+    
+    Verifica que al intentar asociar un sensor sobre un activo perteneciente a una finca ajena
+    (Finca 57, activo 279):
+    1. El backend rechace con HTTP 422 Unprocessable Entity (ACTIVO_NO_ENCONTRADO).
+    2. Principio anti-enumeración (OWASP API1): el backend oculta la existencia del activo ajeno
+       en vez de responder 403, evitando reconocimiento de recursos no autorizados.
+    """
+    url = f"{BASE_URL}/activos-biologicos/{ID_ACTIVO_FINCA_AJENA}/sensores"
+    payload = {
+        "tipo_activo": "INDIVIDUAL",
+        "tipo_asociacion": "DIRECTA",
+        "dispositivo_iot_id": ID_DISPOSITIVO_FINCA_1_LIBRE,
+        "sensor_id": ID_SENSOR_FINCA_1_LIBRE,
+        "id_infraestructura": ID_INFRAESTRUCTURA_FINCA_1,
+        "motivo": "Intento no autorizado BOLA del Productor sobre activo de finca ajena"
+    }
+    headers = {"Authorization": f"Bearer {productor_token}"}
+
+    resp = requests.post(url, json=payload, headers=headers, timeout=10)
+
+    assert resp.status_code == 422, (
+        f"Se esperaba HTTP 422 por aislamiento de finca (BOLA anti-enumeración), obtenido: {resp.status_code} - {resp.text}"
+    )
+    data = resp.json()
+    assert data.get("error_code") == "ACTIVO_NO_ENCONTRADO", (
+        f"Código de error no coincide con ACTIVO_NO_ENCONTRADO: {data.get('error_code')}"
     )
 
 

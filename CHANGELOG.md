@@ -1,3 +1,86 @@
+## [1.0.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.46...v1.0.0-rc.47) (2026-09-18)
+
+### Bug Fixes
+
+* **m02:** mapear ERRCODE P0210 a 400 en db_error_translator (INC-M02-100-G31) ([346dadb](https://github.com/Arekkazu/sgpmp-backend/commit/346dadb6bd08d8ab8bd2679f6a04c925c2e7c1ce))
+* **m02:** traducir errores de DB en actualizar_detalle_poblacional (INC-M02-100-G31) ([a97396b](https://github.com/Arekkazu/sgpmp-backend/commit/a97396be2bd37fde8bc8bf717e6055455d02e20e))
+* **m02:** validar compatibilidad sensor especie en RF-49 ([07035ca](https://github.com/Arekkazu/sgpmp-backend/commit/07035caa9e36eba6506e52c8f506a09d34f221db))
+* **rf16:** permitir guion bajo en nombre de metrica, robustecer lectura ([5e03507](https://github.com/Arekkazu/sgpmp-backend/commit/5e03507b00acc0c6961f99555308a4bccd2ed1a1)), closes [#327](https://github.com/Arekkazu/sgpmp-backend/issues/327) [#324](https://github.com/Arekkazu/sgpmp-backend/issues/324)
+* **rf33:** rate limiting en POST /activos-biologicos (100/min) ([4fe25ec](https://github.com/Arekkazu/sgpmp-backend/commit/4fe25ec277981f3eceb42dacd11405d99e73ccce)), closes [#331](https://github.com/Arekkazu/sgpmp-backend/issues/331)
+* **rf33:** validar coherencia costo/soporte para transferencia_interna ([45f902c](https://github.com/Arekkazu/sgpmp-backend/commit/45f902c2c82ffde0262a17e6995118bbec8c8f64)), closes [#324](https://github.com/Arekkazu/sgpmp-backend/issues/324) [#327](https://github.com/Arekkazu/sgpmp-backend/issues/327)
+* **rf34:** ordenar historial de infraestructura ASC en vez de DESC ([c8dca3f](https://github.com/Arekkazu/sgpmp-backend/commit/c8dca3f6673ce076cfd187ebc73b2cb8495ecd0b)), closes [#329](https://github.com/Arekkazu/sgpmp-backend/issues/329)
+* **rf35:** aplicar alcance de finca en PATCH /activos-biologicos/{id} (BOLA) ([a49ae4e](https://github.com/Arekkazu/sgpmp-backend/commit/a49ae4e586e5a2e033eacdcb316c8845daee44c3)), closes [#326](https://github.com/Arekkazu/sgpmp-backend/issues/326)
+* **rf36:** registrar en bitacora RF36/ACTIVO_POBLACIONAL_CONSULTA al consultar un lote ([9c05d30](https://github.com/Arekkazu/sgpmp-backend/commit/9c05d30df60c13defbeb5d8b6e0cf284ca50aaac)), closes [#346](https://github.com/Arekkazu/sgpmp-backend/issues/346)
+* **rf49:** actualizar fake de ActivoRepo para aceptar ids_fincas_permitidas ([b583c79](https://github.com/Arekkazu/sgpmp-backend/commit/b583c795b4006763a5073e1dbabde9d70e60b102))
+* **rf49:** advertencia de dispositivo IoT desconectado en POST .../sensores ([6de7a38](https://github.com/Arekkazu/sgpmp-backend/commit/6de7a38eb30039aff4474e71a5bcf19b68a616fb)), closes [#347](https://github.com/Arekkazu/sgpmp-backend/issues/347)
+* **rf49:** bloquear AMBIENTAL en POST /activos-biologicos/{id}/sensores ([dada877](https://github.com/Arekkazu/sgpmp-backend/commit/dada877774a9a662ebf57dc093793b1369f61b67)), closes [INC-M02-66-G90/#217](https://github.com/INC-M02-66-G90/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217) [#351](https://github.com/Arekkazu/sgpmp-backend/issues/351)
+* **rf49:** eliminar gate de BD oficial hardcodeado en conftest de integracion ([d20a461](https://github.com/Arekkazu/sgpmp-backend/commit/d20a4619db37e893497cc0979d58accd01203e8e))
+* **rf49:** habilitar asociaciones del Productor por finca ([db37172](https://github.com/Arekkazu/sgpmp-backend/commit/db37172529d39dec1f014fd1163d5e7771fd917d))
+* **rf49:** otorgar permiso U sobre asociacion_sensor_activo al rol Productor ([9a948cf](https://github.com/Arekkazu/sgpmp-backend/commit/9a948cf2142e570567bbf35fe23f3a4e35de7fea)), closes [#212](https://github.com/Arekkazu/sgpmp-backend/issues/212) [#352](https://github.com/Arekkazu/sgpmp-backend/issues/352)
+
+## [1.0.0-rc.46](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.45...v1.0.0-rc.46) (2026-09-16)
+
+### Features
+
+* **m02:** asociacion ambiental compartida a nivel de infraestructura (RF-49) ([667bf69](https://github.com/Arekkazu/sgpmp-backend/commit/667bf698b940f0b9c8bc69c47d8804568f932295)), closes [#217](https://github.com/Arekkazu/sgpmp-backend/issues/217)
+
+### Bug Fixes
+
+* **m02:** diferenciar mensaje de infraestructura destino inexistente vs inactiva (RF-48) ([5ee7151](https://github.com/Arekkazu/sgpmp-backend/commit/5ee715165baadfc3dcfa7715c17b318bc7351e84)), closes [#240](https://github.com/Arekkazu/sgpmp-backend/issues/240)
+* **m02:** formalizar correccion del trigger de unicidad de sensores directa (RF-49) ([eec0661](https://github.com/Arekkazu/sgpmp-backend/commit/eec066174e7c3e343e3f9908af5178bfcc6210ed)), closes [#216](https://github.com/Arekkazu/sgpmp-backend/issues/216)
+* **m02:** recalcular densidad poblacional al transferir de infraestructura (RF-36/RF-48) ([20f612e](https://github.com/Arekkazu/sgpmp-backend/commit/20f612ec20592509f355f40c13341e0b10615a73)), closes [#201](https://github.com/Arekkazu/sgpmp-backend/issues/201)
+* **m02:** recalcular densidad poblacional al transferir de infraestructura (RF-36/RF-48) ([412d37d](https://github.com/Arekkazu/sgpmp-backend/commit/412d37dd6116ead89348d01f76993c48b102d393))
+* **m02:** responder 422 en vez de 400 para E-04/E-05 de transferencia (RF-48) ([2caf467](https://github.com/Arekkazu/sgpmp-backend/commit/2caf467a4214e61f9c1b00d6352045aad7bbaf61)), closes [#239](https://github.com/Arekkazu/sgpmp-backend/issues/239)
+* **m02:** setear app.usuario_id en el test de integracion del trigger de sensores ([a6597e0](https://github.com/Arekkazu/sgpmp-backend/commit/a6597e0f1b2349ab2042fd61ebb6ff8c9e169851))
+* **m02:** validar densidad maxima por especie en eventos de crecimiento (RF-36) ([9cbb441](https://github.com/Arekkazu/sgpmp-backend/commit/9cbb4418119e8028e462240e1f85f33a4e2eaf29))
+* **m02:** validar fase productiva activa en eventos reproductivos (RF-42) ([7c56a4e](https://github.com/Arekkazu/sgpmp-backend/commit/7c56a4ec258e500e2ab9b106570e48ca09e96ab0))
+
+## [1.0.0-rc.45](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.44...v1.0.0-rc.45) (2026-09-15)
+
+### Features
+
+* **m02:** exponer GET para consultar asociaciones sensor-activo (RF-49) ([2b3e377](https://github.com/Arekkazu/sgpmp-backend/commit/2b3e3772a9d9b3c66f4f3688c91a97d4b12e526a))
+
+### Bug Fixes
+
+* **m02:** validar alcance de finca de id_padre/id_madre y del activo (RF-42) ([f89faab](https://github.com/Arekkazu/sgpmp-backend/commit/f89faab51f3e5cab14bc79d37fc1fec0c078956f)), closes [#228](https://github.com/Arekkazu/sgpmp-backend/issues/228)
+* **shared:** localizar mensajes de validacion de Pydantic al espanol ([b803caa](https://github.com/Arekkazu/sgpmp-backend/commit/b803caa304c99a35fd09defb5bb6cfcad7ba80e1)), closes [#219](https://github.com/Arekkazu/sgpmp-backend/issues/219)
+
+## [1.0.0-rc.44](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.43...v1.0.0-rc.44) (2026-09-13)
+
+### Bug Fixes
+
+* **rbac:** retirar escalada de privilegios del rol Supervisor (SEG-M01-01) ([530a5b7](https://github.com/Arekkazu/sgpmp-backend/commit/530a5b75ff199028b9e4f48fdaaf1cd4fb053e63)), closes [#289](https://github.com/Arekkazu/sgpmp-backend/issues/289)
+
+## [1.0.0-rc.43](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.42...v1.0.0-rc.43) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** dejar de descartar en silencio los fallos de auditoria (SEG-M02-01) ([2f22d28](https://github.com/Arekkazu/sgpmp-backend/commit/2f22d28069f0ac219dd14a95074a84a875e47998)), closes [#265](https://github.com/Arekkazu/sgpmp-backend/issues/265)
+
+## [1.0.0-rc.42](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.41...v1.0.0-rc.42) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** auditar también el PATCH de ciclo de vida de sensores ([f91989f](https://github.com/Arekkazu/sgpmp-backend/commit/f91989fc2feb62847ebbfd7d9e486b3c2da00f80))
+* **rf52:** registrar rechazos RBAC en auditoría ([17ae99b](https://github.com/Arekkazu/sgpmp-backend/commit/17ae99bcb61650caa44fd01af89a3daadbde56d4))
+* **rf52:** registrar rechazos tempranos en auditoría ([05c5ed0](https://github.com/Arekkazu/sgpmp-backend/commit/05c5ed0185b3abd51782448c138d919b54057b8e))
+
+## [1.0.0-rc.41](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.40...v1.0.0-rc.41) (2026-09-13)
+
+### Bug Fixes
+
+* **rf52:** restringir auditoría por rol y propiedad ([97e9ef6](https://github.com/Arekkazu/sgpmp-backend/commit/97e9ef6a9bc966a93002586b72e68e70cd368a90))
+
+## [1.0.0-rc.40](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.39...v1.0.0-rc.40) (2026-09-13)
+
+### Bug Fixes
+
+* **rf37-rf38:** enviar usuario al cerrar la fase anterior ([2470531](https://github.com/Arekkazu/sgpmp-backend/commit/24705314a9aa7a12fed4e2fd789a64b92f6e17a9))
+* **rf39:** permitir consultar eventos de activos individuales ([9ba5f91](https://github.com/Arekkazu/sgpmp-backend/commit/9ba5f91ac7754168198a594933b2c35987f61b8c))
+* **rf45:** corregir enum en triggers de baja ([d0573aa](https://github.com/Arekkazu/sgpmp-backend/commit/d0573aa1dffe6b08c9322d809a3be20187fc7a43))
+* **rf48:** devolver 422 para fecha futura ([875732f](https://github.com/Arekkazu/sgpmp-backend/commit/875732f8f985ccb3d2f71ae5f3bcb62560e751bb))
+
 ## [1.0.0-rc.39](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.38...v1.0.0-rc.39) (2026-09-13)
 
 ### Bug Fixes

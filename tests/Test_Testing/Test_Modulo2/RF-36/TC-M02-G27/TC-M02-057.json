@@ -22,6 +22,16 @@
       "type": "string"
     },
     {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "cantidad_inicial_esperada",
       "value": "5",
       "type": "string"
@@ -40,7 +50,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",

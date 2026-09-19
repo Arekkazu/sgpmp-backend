@@ -1,0 +1,28 @@
+{
+  "tc": "TC-M02-G29",
+  "titulo": "Gestión Poblacional y Auditoría de Activos Biológicos (RF-36 / RF-52)",
+  "rf": "RF-36, RF-52",
+  "fecha": "2026-09-09",
+  "corrida": "V1",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-203: Auditoría tras evento CRECIMIENTO válido (POST /activos-biologicos/130/eventos/crecimiento)",
+      "esperado": "HTTP 200 o 201 y registro en bitácora con resultado EXITOSO",
+      "obtenido": "HTTP 201 Created y registro en bitácora confirmado (ID 295, resultado EXITOSO).",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-204: Auditoría tras evento BAJA válido (POST /activos-biologicos/130/eventos/baja)",
+      "esperado": "HTTP 200 o 201 y registro en bitácora con resultado EXITOSO",
+      "obtenido": "HTTP 500 Internal Server Error - Fallo en trigger de base de datos trg_fn_baja_cantidad_valida por comparación de enum.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-M02-205: Auditoría tras intento rechazado de modificación (PATCH /activos-biologicos/130)",
+      "esperado": "HTTP 400 Bad Request y registro de intento rechazado en bitácora de auditoría",
+      "obtenido": "HTTP 400 Bad Request (VAL_ENTRADA) pero no se generó registro de auditoría en modulo2.bitacora_auditoria_m02 (INC-M02-41-RF52).",
+      "estado": "FALLA"
+    }
+  ]
+}
