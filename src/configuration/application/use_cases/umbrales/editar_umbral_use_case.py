@@ -16,9 +16,12 @@ from src.configuration.domain.repositories.umbral_ambiental_repository import Um
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
-from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import _validar_rangos
+from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import (
+    MENSAJE_FALLO_SINCRONIZACION_EDGE,
+    _validar_rangos,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, InfrastructureError, NotFoundError, PreconditionFailedError
 
 
 class EditarUmbralUseCase:
@@ -139,5 +142,14 @@ class EditarUmbralUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        # RF-17, flujo alterno "Error de sincronización con el Nodo Edge":
+        # ver RegistrarUmbralUseCase para el detalle de por qué esto debe
+        # responder 500 en vez de un 200 silencioso.
+        if resultado.estado != 'APLICADA':
+            raise InfrastructureError(
+                code='FALLO_SINCRONIZACION_EDGE',
+                message=MENSAJE_FALLO_SINCRONIZACION_EDGE,
+            )
 
         return umbral_actualizado

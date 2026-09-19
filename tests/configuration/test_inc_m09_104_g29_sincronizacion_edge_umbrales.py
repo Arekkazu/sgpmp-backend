@@ -12,10 +12,13 @@ EdgeSincronizacionStubAdapter degrada siempre a PENDIENTE, nunca lanza y
 nunca bloquea el flujo de negocio -- mismo espíritu que MqttHttpAdapter
 (RF-23) cuando el broker real no está disponible.
 
-Se sigue, a propósito, el patrón ya establecido para el mismo problema
-(ConfiguracionRemota/RF-23): un fallo de sincronización nunca es un error del
-cliente (nunca HTTP 500) -- la petición sí tuvo éxito, solo queda pendiente
-la aplicación en el dispositivo.
+RF-17 (flujo alterno "Error de sincronización con el Nodo Edge") exige que,
+si la propagación no queda confirmada como APLICADA, el sistema marque la
+configuración como "Pendiente de Sincronización" (ya persistida) y responda
+HTTP 500 con el mensaje del contrato -- a diferencia de ConfiguracionRemota
+(RF-23), que sí tolera el broker no disponible como resultado válido. Se
+respeta la redacción literal del RF: el 500 llega después de que el umbral
+y su estado de sincronización ya quedaron confirmados en base de datos.
 """
 from __future__ import annotations
 
@@ -35,6 +38,7 @@ from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralD
 from src.configuration.infrastructure.dto.nivel_dto import NivelDTO
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import InfrastructureError
 
 
 class DbFake:
@@ -163,7 +167,7 @@ class TestRegistrarUmbralPropagacionEdge:
         )
 
     def test_llama_al_edge_port_con_el_payload_del_umbral_creado(self) -> None:
-        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='pendiente'))
+        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='APLICADA', mensaje='ok'))
         uc = self._uc(edge_port)
 
         uc.execute(_registrar_dto(), _usuario())
@@ -176,15 +180,19 @@ class TestRegistrarUmbralPropagacionEdge:
         assert payload['valor_max'] == '40'
         assert len(payload['niveles']) == 3
 
-    def test_estado_pendiente_se_persiste_y_no_rompe_el_flujo(self) -> None:
+    def test_estado_pendiente_se_persiste_y_luego_responde_500(self) -> None:
         edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='broker no disponible'))
         repo = UmbralRepoFake()
         uc = self._uc(edge_port, repo)
 
-        resultado = uc.execute(_registrar_dto(), _usuario())
+        with pytest.raises(InfrastructureError) as exc_info:
+            uc.execute(_registrar_dto(), _usuario())
 
-        assert resultado.estado_sincronizacion == 'PENDIENTE'
-        assert resultado.motivo_fallo_sincronizacion == 'broker no disponible'
+        assert exc_info.value.code == 'FALLO_SINCRONIZACION_EDGE'
+        assert 'nodos Edge' in exc_info.value.message
+        persistido = repo.estados_sincronizacion_persistidos[0]
+        assert persistido.estado_sincronizacion == 'PENDIENTE'
+        assert persistido.motivo_fallo_sincronizacion == 'broker no disponible'
         assert len(repo.estados_sincronizacion_persistidos) == 1
 
     def test_estado_aplicada_marca_fecha_de_sincronizacion(self) -> None:
@@ -197,24 +205,26 @@ class TestRegistrarUmbralPropagacionEdge:
         assert resultado.fecha_ultima_sincronizacion is not None
         assert resultado.motivo_fallo_sincronizacion is None
 
-    def test_estado_no_conf_no_lanza_excepcion_ni_produce_500(self) -> None:
-        """RF-17 describe un 500 para el fallo de sincronización, pero eso
-        rompería la consistencia con ConfiguracionRemota (RF-23), que trata
-        el mismo problema (broker MQTT no disponible) como un resultado
-        válido en 200/201, nunca un error del cliente. Este caso confirma
-        que NO_CONF no propaga ninguna excepción."""
+    def test_estado_no_conf_produce_500_tras_persistir(self) -> None:
+        """RF-17 exige HTTP 500 cuando la propagación no queda confirmada --
+        el umbral y su estado 'NO_CONF' ya quedaron guardados, pero la
+        respuesta al cliente debe reflejar que el Edge no confirmó."""
         edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='NO_CONF', mensaje='sin ACK a tiempo'))
-        uc = self._uc(edge_port)
+        repo = UmbralRepoFake()
+        uc = self._uc(edge_port, repo)
 
-        resultado = uc.execute(_registrar_dto(), _usuario())
+        with pytest.raises(InfrastructureError):
+            uc.execute(_registrar_dto(), _usuario())
 
-        assert resultado.estado_sincronizacion == 'NO_CONF'
-        assert resultado.motivo_fallo_sincronizacion == 'sin ACK a tiempo'
+        persistido = repo.estados_sincronizacion_persistidos[0]
+        assert persistido.estado_sincronizacion == 'NO_CONF'
+        assert persistido.motivo_fallo_sincronizacion == 'sin ACK a tiempo'
 
-    def test_el_umbral_ya_quedo_guardado_antes_de_intentar_la_propagacion(self) -> None:
-        """El guardado del umbral (primer commit) no depende del resultado de
-        la propagación -- si el edge_port fallara con una excepción real (no
-        debería, pero por defensa), el umbral ya está persistido."""
+    def test_el_umbral_ya_quedo_guardado_antes_de_responder_500(self) -> None:
+        """El guardado del umbral (primer commit) y el registro del estado de
+        sincronización (segundo commit) ocurren ambos antes de que se lance
+        el 500 -- el umbral nunca se pierde aunque la respuesta HTTP sea de
+        error."""
         edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='x'))
         repo = UmbralRepoFake()
         db = DbFake()
@@ -227,10 +237,12 @@ class TestRegistrarUmbralPropagacionEdge:
             edge_port=edge_port,
         )
 
-        uc.execute(_registrar_dto(), _usuario())
+        with pytest.raises(InfrastructureError):
+            uc.execute(_registrar_dto(), _usuario())
 
         assert repo.guardado is not None
         assert db.commits == 2  # guardado + actualizar_estado_sincronizacion
+        assert db.rollbacks == 0
 
 
 class TestEditarUmbralPropagacionEdge:
@@ -260,12 +272,34 @@ class TestEditarUmbralPropagacionEdge:
             fecha_actualizacion=None,
         )
 
-        resultado = uc.execute(1, dto, _usuario())
+        with pytest.raises(InfrastructureError):
+            uc.execute(1, dto, _usuario())
 
         assert len(edge_port.llamadas) == 1
         _, _, payload = edge_port.llamadas[0]
         assert payload['valor_min'] == '15'
-        assert resultado.estado_sincronizacion == 'PENDIENTE'
+        assert repo.actualizado.estado_sincronizacion == 'PENDIENTE'
+
+    def test_reenvia_el_umbral_editado_y_confirma_sin_error(self) -> None:
+        existente = _umbral_existente()
+        repo = UmbralRepoFake(existente=existente)
+        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='APLICADA', mensaje='ok'))
+        uc = self._uc(edge_port, repo)
+
+        dto = EditarUmbralDTO(
+            valor_min=Decimal('15'),
+            valor_max=Decimal('45'),
+            niveles=[
+                NivelDTO(nivel='normal', limite_inferior=Decimal('15'), limite_superior=Decimal('25')),
+                NivelDTO(nivel='precaucion', limite_inferior=Decimal('25'), limite_superior=Decimal('35')),
+                NivelDTO(nivel='critico', limite_inferior=Decimal('35'), limite_superior=Decimal('45')),
+            ],
+            fecha_actualizacion=None,
+        )
+
+        resultado = uc.execute(1, dto, _usuario())
+
+        assert resultado.estado_sincronizacion == 'APLICADA'
 
 
 def test_stub_adapter_siempre_degrada_a_pendiente_y_nunca_lanza() -> None:

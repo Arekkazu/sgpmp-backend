@@ -49,13 +49,18 @@ nadie. Se sigue el patrón ya documentado en `CLAUDE.md` ("Adaptador stub para d
 cruzadas"): `EdgeSincronizacionStubAdapter` degrada siempre a `PENDIENTE`, listo para
 reemplazarse cuando el equipo de IoT defina el contrato real.
 
-**Nunca HTTP 500 por fallo de sincronización — decisión explícita del usuario.** RF-17 describe
-literalmente un `500` para este escenario, pero el mismo problema (broker MQTT externo caído o
-sin ACK) ya está resuelto en este backend para RF-23 (`ConfigurarRemotamenteUseCase`), donde el
-resultado `PENDIENTE`/`NO_CONF` **nunca** es un error del cliente — la petición sí tuvo éxito
-(la configuración quedó guardada), solo la aplicación en el dispositivo queda pendiente. Se
-prioriza consistencia entre dos flujos que resuelven exactamente el mismo problema técnico sobre
-seguir literalmente un RF que no conocía ese patrón ya establecido en el código.
+**HTTP 500 cuando el Edge no confirma — tal como lo exige RF-17, literal.** El flujo alterno
+"Error de sincronización con el Nodo Edge" de RF-17 es explícito: si la propagación no queda
+confirmada, el sistema debe guardar la configuración, marcarla "Pendiente de Sincronización" y
+responder `500` con el mensaje del contrato. Una revisión anterior de este mismo fix decidió
+apartarse de ese texto por consistencia con `ConfigurarRemotamenteUseCase` (RF-23), que sí trata
+el broker caído como éxito — pero RF-23 no tiene ese mismo mandato explícito de HTTP en su propio
+documento, así que no hay conflicto real entre RFs, solo entre dos decisiones de diseño posibles.
+Ante RF-17 exigiéndolo por escrito, se sigue el texto del requerimiento: `RegistrarUmbralUseCase`
+y `EditarUmbralUseCase` primero persisten el umbral y su `estado_sincronizacion` (dos commits,
+igual que antes), y **luego** lanzan `InfrastructureError('FALLO_SINCRONIZACION_EDGE', ...)` si el
+resultado no fue `APLICADA` — el dato nunca se pierde, solo la respuesta HTTP refleja el fallo de
+sincronización tal como pide el RF.
 
 ## Fix
 
@@ -134,18 +139,16 @@ correr `alembic upgrade head` de forma definitiva antes de mergear.
 
 ## Pruebas
 
-- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (nuevo, 10 casos,
-  fakes sin BD): llamada al edge port con el payload correcto, persistencia de cada estado
-  (`PENDIENTE`/`APLICADA`/`NO_CONF`), confirmación de que ningún resultado del edge port lanza
-  excepción ni produce 500, que el umbral queda guardado antes del intento de propagación, que
-  `EditarUmbralUseCase` también re-propaga, que el stub siempre degrada a `PENDIENTE`, y el
-  estado por defecto de un umbral recién creado.
-- Suite completa `tests/configuration -m "not integration"`: 246 passed (236 previos + 10
-  nuevos).
-- Suite completa `tests -m "not integration"`: 697 passed, mismos 2 fallos preexistentes en
-  `test_registrar_transferencia_use_case.py` (no relacionados, ya documentados en el repo).
-- Tras mergear `origin/dev` (18/09): `python -m pytest -q` → 727 passed, 187 skipped, mismos 2
-  fallos preexistentes — sin regresiones por el merge ni por la migración de reconciliación.
+- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (11 casos, fakes sin
+  BD): llamada al edge port con el payload correcto, persistencia de cada estado
+  (`PENDIENTE`/`APLICADA`/`NO_CONF`) **antes** de responder, confirmación de que `PENDIENTE` y
+  `NO_CONF` lanzan `InfrastructureError` (500) tras persistir — no antes —, que `APLICADA` no
+  lanza nada, que `EditarUmbralUseCase` también re-propaga y responde igual, que el stub siempre
+  degrada a `PENDIENTE`, y el estado por defecto de un umbral recién creado.
+- Suite completa `tests/configuration -m "not integration"`: 250 passed.
+- Nota: mientras el contrato real del broker no exista, `EdgeSincronizacionStubAdapter` siempre
+  degrada a `PENDIENTE`, así que en la práctica todo `POST`/`PATCH` de umbrales responde `500`
+  hoy — comportamiento intencional por mandato literal de RF-17, no una regresión.
 
 ## Fuera de alcance
 

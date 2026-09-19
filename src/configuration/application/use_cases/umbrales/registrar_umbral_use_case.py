@@ -17,7 +17,19 @@ from src.configuration.domain.repositories.variable_ambiental_repository import 
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import (
+    BusinessRuleError,
+    ConflictError,
+    InfrastructureError,
+    NotFoundError,
+    ValidationError,
+)
+
+MENSAJE_FALLO_SINCRONIZACION_EDGE = (
+    "Configuración guardada en la base de datos, pero falló la actualización de los "
+    "nodos Edge. Es posible que las alertas en campo sigan operando con los valores "
+    "anteriores hasta que se restablezca la conexión."
+)
 
 
 def _validar_rangos(
@@ -197,5 +209,16 @@ class RegistrarUmbralUseCase:
         except Exception:
             self.db.rollback()
             raise
+
+        # RF-17, flujo alterno "Error de sincronización con el Nodo Edge": el
+        # umbral ya quedó guardado (commits anteriores), pero si no se pudo
+        # confirmar la propagación al Edge, el contrato exige responder 500
+        # -- no un 200/201 silencioso -- para que el cliente sepa que las
+        # alertas en campo pueden seguir operando con los valores anteriores.
+        if resultado.estado != 'APLICADA':
+            raise InfrastructureError(
+                code='FALLO_SINCRONIZACION_EDGE',
+                message=MENSAJE_FALLO_SINCRONIZACION_EDGE,
+            )
 
         return umbral_guardado
