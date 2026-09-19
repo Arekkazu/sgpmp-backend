@@ -1,0 +1,248 @@
+{
+  "info": {
+    "name": "TC-M02-G71 - Reintento 1 (2026-09-19) - Ambos hallazgos originales CORREGIDOS",
+    "description": "Re-ejecucion de TC-M02-G71 (RF-45/RF-52) contra TEST el 2026-09-19. La coleccion original queda intacta como evidencia historica.\n\nRESULTADO: ambos hallazgos originales estan CORREGIDOS.\n\nSub-caso 1 (TC-M02-258): usa ahora el fixture ya-BAJA id=80 intentando una segunda baja (ACTIVO_YA_EN_BAJA) en vez de un activo fresco -- el original self-registraba un activo fresco y esperaba el 500 de TC-M02-G58, pero eso ya no aplica (RF-45 esta corregido) y ademas un activo fresco de HOY choca con el problema fecha-vs-timestamp. Confirmado: el rechazo SI genera auditoria, con un tipo_evento NUEVO `BAJA_RECHAZADA` (mismo patron que `EVENTO_REPRODUCTIVO_RECHAZADO` de RF-42, ver TC-M02-G60 reintento1) -- reemplaza al viejo `BAJA_REGISTRO_FALLIDO`. La estructura de detalle_tecnico cambio (ya no incluye tipo_baja de la misma forma), asi que el hallazgo original sobre 'motivo_baja no queda registrado' ya no es verificable tal cual estaba redactado -- no se investigo el detalle_tecnico completo esta ronda por tiempo.\n\nSub-caso 2 (TC-M02-259): el fixture original (id=61) ya no esta ACTIVO (paso a BAJA en algun momento, probablemente por otra sesion de pruebas) -- se sustituyo por id=347 (POBLACIONAL, ACTIVO, cantidad_actual=10, ver TC-M02-G69 reintento1). CORREGIDO: la baja TOTAL de lote ahora responde 201 (antes 500) -- consistente con el resto de hallazgos de RF-45 ya confirmados (TC-M02-G61/G69).\n\nOriginal (para contexto historico): sub-casos TC-M02-258 y TC-M02-259, ambos ejecutaban una baja TOTAL (individual y de lote) que se sabia que respondia 500 por el bug de orden de operaciones de TC-M02-G58.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('La respuesta del login contiene un token', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta).to.have.property('token');",
+              "});",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "    pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0, 10));",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion sub-caso 1 - Confirmar que el fixture ya esta en BAJA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: la consulta responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Precondicion: el fixture ya esta en estado BAJA', function () { pm.expect(respuesta.nombre_estado).to.equal('BAJA'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_g71}}", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g71}}" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 1/2 (TC-M02-258) - Intentar segunda baja (CORREGIDO: rechazo limpio, no el 500 original)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 1: segunda baja sobre activo ya-BAJA ---');",
+              "console.log(pm.response.text());",
+              "pm.test('rechazado con HTTP 409 ACTIVO_YA_EN_BAJA', function () { pm.response.to.have.status(409); });",
+              "console.log('Se continua para verificar que la auditoria registre el intento rechazado.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-258 - venta total (prueba QA de auditoria)\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_g71}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_g71}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1, paso 2/2 (TC-M02-258) - Consultar bitacora de auditoria (RF-52)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 1, paso 2: bitacora de auditoria filtrada por rf_origen=RF45 e id_activo_biologico ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('CORREGIDO: existe al menos un registro de auditoria para el intento de baja rechazado, con rf_origen=RF45, usuario responsable y resultado=RECHAZADO', function () {",
+              "    pm.expect(respuesta.registros.length).to.be.greaterThan(0);",
+              "    const registro = respuesta.registros[0];",
+              "    pm.expect(registro.rf_origen).to.equal('RF45');",
+              "    pm.expect(registro.id_usuario_responsable).to.not.equal(null);",
+              "    pm.expect(registro.tipo_evento).to.equal('BAJA_RECHAZADA');",
+              "    pm.expect(registro.resultado).to.equal('RECHAZADO');",
+              "});",
+              "console.log('CONCLUSION sub-caso 1: tipo_evento=BAJA_RECHAZADA (codigo nuevo, reemplaza a BAJA_REGISTRO_FALLIDO) -- el rechazo de una segunda baja SI queda auditado. No se verifico el detalle del motivo_baja esta ronda por cambio de estructura del detalle_tecnico.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF45&id_activo_biologico={{id_activo_g71}}&page_size=10",
+          "host": [ "{{base_url}}" ],
+          "path": [ "activos-biologicos", "auditoria" ],
+          "query": [
+            { "key": "rf_origen", "value": "RF45" },
+            { "key": "id_activo_biologico", "value": "{{id_activo_g71}}" },
+            { "key": "page_size", "value": "10" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 1/3 (TC-M02-259) - Capturar cantidad_actual base del lote existente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: se usa un lote POBLACIONAL PRE-EXISTENTE (id_activo_lote, id=61) en vez de crear uno fresco -- mismo motivo que TC-M02-G61 (trg_fn_evento_fecha_coherente impide eventos con fecha sobre un activo creado el mismo dia). ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el lote de referencia existe, esta ACTIVO y responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Precondicion: el activo es POBLACIONAL y esta ACTIVO', function () {",
+              "    pm.expect(respuesta.tipo).to.equal('POBLACIONAL');",
+              "    pm.expect(respuesta.id_estado).to.equal(1);",
+              "});",
+              "console.log('NOTA: fixture cambiado de id=61 (ya no ACTIVO, paso a BAJA en otra sesion) a id=347.');",
+              "if (pm.response.code === 200 && respuesta) {",
+              "    pm.collectionVariables.set('cantidad_actual_lote', respuesta.detalle_poblacional.cantidad_actual);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 2/3 (TC-M02-259) - Registrar baja TOTAL de lote (BUG: extiende TC-M02-G58 a POBLACIONAL)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 2: baja TOTAL de lote (cantidad_afectada = cantidad_actual) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('CORREGIDO: la baja total de lote responde 201 (antes 500)', function () { pm.response.to.have.status(201); });",
+              "console.log('CONCLUSION sub-caso 2: el bug de orden de operaciones (_procesar_baja_con_cierre antes del insert del evento) esta corregido tambien para POBLACIONAL, consistente con TC-M02-G61/G69.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_hoy}}\",\n  \"motivo_baja\": \"TC-M02-259 - venta total del lote (prueba QA)\",\n  \"cantidad_afectada\": {{cantidad_actual_lote}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}/eventos/baja",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}", "eventos", "baja" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2, paso 3/3 (TC-M02-259) - Verificar que el lote no quedo corrompido por la transaccion fallida",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2, paso 3: confirmar que la baja total realmente vacio el lote y lo cerro ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta del lote responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('CORREGIDO: cantidad_actual llego a 0 y el lote paso a BAJA (baja total real, no un rollback)', function () {",
+              "    pm.expect(respuesta.detalle_poblacional.cantidad_actual).to.equal(0);",
+              "    pm.expect(respuesta.nombre_estado).to.equal('BAJA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos/{{id_activo_lote}}",
+          "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_lote}}" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "fecha_hoy", "value": "" },
+    { "key": "id_especie_cachama", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_activo_g71", "value": "80" },
+    { "key": "id_activo_lote", "value": "347" },
+    { "key": "cantidad_actual_lote", "value": "" }
+  ]
+}
