@@ -21,6 +21,18 @@ Fecha de análisis: 2026-07-07
 
 **Contexto de tipo de variable**: `estados_actuales_sensores` no tiene `id_variable` ni `tipo_variable`. Se obtienen con LATERAL join a `modulo3.telemetrias` (última lectura por sensor) + `modulo9.variables_ambientales`. Igual para `id_infraestructura` vía `modulo9.sensores_areas_asociadas`.
 
+**Clasificación semafórica (INC-M09-106-G31 / #297)**: el trigger `trg_rf58_01_cache_estado_sensor` →
+`modulo3.fn_actualizar_estado_sensor()` (en `alembic/baseline/esquema_baseline.sql`) fija
+`estado_semaforo='VERDE'` para toda `LECTURA_VALIDA` en el `INSERT`, sin evaluar RF-17 — no
+puede: la vinculación telemetría→activo→especie se crea después, en una transacción
+independiente. Se optó por **no** modificar el trigger (evita migración + aprobación de DBA
+para una lógica que igual no podría resolver la especie en ese momento) y en su lugar
+recalcular `estado_semaforo` en Python vía `ReclasificarSemaforoUseCase`, disparado desde
+`ResolverVinculacionUseCase`/`CorregirVinculacionUseCase` (RF-61-C) y desde la vinculación
+automática (RF-61-A, hoy sin efecto real — ver `ActivoBiologicoStubAdapter` en
+`cu05_gaps_bd_rf60_rf61.md`). Ver
+`anotaciones/modulo_9/inc_m09_106_g31_reclasificar_semaforo_rf17.md` para el detalle completo.
+
 ### RF-59 — Historial
 
 **Tabla `modulo3.telemetrias`** contiene todos los campos necesarios. La vista `vw_m03_historial_lecturas` es un subset de `vw_m03_telemetria_contextualizada`.
