@@ -229,7 +229,7 @@ def consultar_historial(
 
     use_case = ConsultarHistorialUseCase(
         historial_repo=SqlAlchemyHistorialTelemetriaRepository(db),
-        umbral_port=UmbralHistoricoM09Adapter(),
+        umbral_port=UmbralHistoricoM09Adapter(db),
     )
     lecturas, estadisticas, total, metadatos = use_case.execute(filtros)
 
