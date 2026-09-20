@@ -1,3 +1,28 @@
+## [1.0.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.47...v1.0.0-rc.48) (2026-09-20)
+
+### Features
+
+* **m09:** estado de sincronizacion de umbrales hacia el Nodo Edge (INC-M09-104-G29) ([40978d4](https://github.com/Arekkazu/sgpmp-backend/commit/40978d43c77eecd0d7d7d30cca963deef8839f7b))
+
+### Bug Fixes
+
+* **m03:** clasificar el semaforo con los niveles RF-17 al resolver la vinculacion (INC-M09-106-G31) ([3f64b6a](https://github.com/Arekkazu/sgpmp-backend/commit/3f64b6af298c66b6337e1eff399b5b5290dff656)), closes [#298](https://github.com/Arekkazu/sgpmp-backend/issues/298)
+* **m03:** consumir umbral RF-17 real en el semaforo historico (INC-M09-107-G32) ([285c758](https://github.com/Arekkazu/sgpmp-backend/commit/285c758b39dec2668d8d88eb4591dee12275541a))
+* **m09:** alinear precision NUMERIC(5,2) en ORM y niveles_alerta_ambientales (INC-M09-103-G28) ([3902c99](https://github.com/Arekkazu/sgpmp-backend/commit/3902c992527402550c78895e2b130ba0f544ceb4)), closes [#381](https://github.com/Arekkazu/sgpmp-backend/issues/381)
+* **m09:** normalizar decimales en snapshots de auditoria de umbrales (INC-M09-105-G30) ([a477e65](https://github.com/Arekkazu/sgpmp-backend/commit/a477e65a9f20586f083af2ec08896a1cf5f250fa))
+* **m09:** unificar heads de alembic ([e4822f7](https://github.com/Arekkazu/sgpmp-backend/commit/e4822f76cdbd0f44b6a79c85bc9ae8760207bcce))
+* **rf16:** merge fix/m09 y resolver conflicto de docstring (TC-M09-G91) ([b181225](https://github.com/Arekkazu/sgpmp-backend/commit/b181225b240a11df1ab6bec42673adcbf00a7730))
+* **rf16:** normalizar tipo_medicion inválido antes de revalidar el CHECK en migración (TC-M09-G91) ([2d4e7af](https://github.com/Arekkazu/sgpmp-backend/commit/2d4e7af1b4a0487cb1f0c8bcacb9361cd24af288))
+* **rf16:** normalizar tipos de medicion legados ([48c89ed](https://github.com/Arekkazu/sgpmp-backend/commit/48c89ed5d60222370ccaa74281990a5b2b42bcfb))
+* **rf17:** responder HTTP 500 ante fallo de sincronizacion Edge (INC-M09-104-G29) ([7d93323](https://github.com/Arekkazu/sgpmp-backend/commit/7d93323f3155f6b993eae06ad38f118634870913))
+* **rf23:** restringir configuracion remota por finca ([bb97a10](https://github.com/Arekkazu/sgpmp-backend/commit/bb97a10b18e7515ca217d3313c4f31d8c81e0976))
+* **rf26:** exponer auditoria de identidad visual ([2ade26b](https://github.com/Arekkazu/sgpmp-backend/commit/2ade26bdbc5e63666967dffbfc2558b274c20ba6))
+* **rf29:** auditar el cambio de idioma personal (TC-M09-G103) ([d3761ee](https://github.com/Arekkazu/sgpmp-backend/commit/d3761ee3f14a11c4dee7bcafc370e1c3326c0a45))
+* **rf30:** auditar consultas y fallos de cualquier operación sobre plantillas (INC-M09-01-109) ([f85ca21](https://github.com/Arekkazu/sgpmp-backend/commit/f85ca212e7d60370cb20329a8a79944039e822bb)), closes [#318](https://github.com/Arekkazu/sgpmp-backend/issues/318) [#316](https://github.com/Arekkazu/sgpmp-backend/issues/316)
+* **rf32:** rechazar aplicar una versión superada de una plantilla (INC-M09-03-122) ([91c4c03](https://github.com/Arekkazu/sgpmp-backend/commit/91c4c03e09446d0ec01cfbc8bc042e113eadfc1a))
+* **sesiones:** corregir refresh de TC-M09-G90 ([0cd6a7e](https://github.com/Arekkazu/sgpmp-backend/commit/0cd6a7e4f551a4f08f7f8211a072df455eb82cdd))
+* **sesiones:** reencadenar migracion d8e232bc81a3 sobre el head real de fix/m09 ([605f61a](https://github.com/Arekkazu/sgpmp-backend/commit/605f61ae442ce2e6cff66bd19b86159a93a2a377)), closes [#308](https://github.com/Arekkazu/sgpmp-backend/issues/308)
+
 ## [1.0.0-rc.47](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.46...v1.0.0-rc.47) (2026-09-18)
 
 ### Bug Fixes
