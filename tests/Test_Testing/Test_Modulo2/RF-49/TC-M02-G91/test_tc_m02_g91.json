@@ -13,12 +13,12 @@
     },
     {
       "key": "admin_email",
-      "value": "admin@pecuaria.co",
+      "value": "",
       "type": "string"
     },
     {
       "key": "admin_password",
-      "value": "Test1234!",
+      "value": "",
       "type": "string"
     },
     {
@@ -27,7 +27,22 @@
       "type": "string"
     },
     {
+      "key": "asociacionExistenteId",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "nuevaAsociacionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "estadoPrevio",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fechaFinPrevia",
       "value": "",
       "type": "string"
     }
@@ -82,13 +97,60 @@
           }
         },
         {
+          "name": "TC-M02-222_GET_Capturar_Asociacion_Activa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Consulta previa de sensores para capturar ID activo (HTTP 200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"Respuesta contiene array de asociaciones\", function () {",
+                  "    pm.expect(jsonData.asociaciones).to.be.an('array');",
+                  "    pm.expect(jsonData.asociaciones.length).to.be.greaterThan(0);",
+                  "});",
+                  "if (jsonData.asociaciones && jsonData.asociaciones.length > 0) {",
+                  "    var activa = jsonData.asociaciones[0];",
+                  "    pm.collectionVariables.set(\"asociacionExistenteId\", activa.id_asociacion_activo_sensor.toString());",
+                  "    pm.collectionVariables.set(\"estadoPrevio\", activa.estado_asociacion);",
+                  "    pm.collectionVariables.set(\"fechaFinPrevia\", activa.fecha_fin ? activa.fecha_fin.toString() : \"null\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ]
+            }
+          }
+        },
+        {
           "name": "TC-M02-222_DELETE_Asociacion_Existente",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Rechazo de eliminacion (DELETE no permitido / append-only)\", function () {",
+                  "pm.test(\"Rechazo de eliminacion sobre asociacion activa dinamica (DELETE no permitido / append-only)\", function () {",
                   "    pm.expect([404, 405]).to.include(pm.response.code);",
                   "});",
                   "pm.test(\"Verificar que la respuesta confirma la no eliminacion fisica (No 200 ni 204)\", function () {",
@@ -109,7 +171,7 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/17",
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores/{{asociacionExistenteId}}",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -117,7 +179,7 @@
                 "activos-biologicos",
                 "19",
                 "sensores",
-                "17"
+                "{{asociacionExistenteId}}"
               ]
             }
           }
@@ -139,6 +201,58 @@
           ],
           "request": {
             "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "19",
+                "sensores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-222_GET_Verificar_Inmutabilidad_Post_DELETE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Verificacion de inmutabilidad: GET posterior responde HTTP 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"El registro permanece intacto tras intento de DELETE (mismo estado y fecha_fin)\", function () {",
+                  "    pm.expect(jsonData.asociaciones).to.be.an('array');",
+                  "    var targetId = parseInt(pm.collectionVariables.get(\"asociacionExistenteId\"));",
+                  "    var item = jsonData.asociaciones.find(function(a) {",
+                  "        return a.id_asociacion_activo_sensor === targetId;",
+                  "    });",
+                  "    pm.expect(item, \"La asociacion debe seguir existiendo\").to.not.be.undefined;",
+                  "    pm.expect(item.estado_asociacion).to.equal(pm.collectionVariables.get(\"estadoPrevio\"));",
+                  "    var fechaFinEsperada = pm.collectionVariables.get(\"fechaFinPrevia\");",
+                  "    if (fechaFinEsperada === \"null\") {",
+                  "        pm.expect(item.fecha_fin).to.be.null;",
+                  "    } else {",
+                  "        pm.expect(item.fecha_fin.toString()).to.equal(fechaFinEsperada);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
             "header": [
               {
                 "key": "Authorization",
@@ -219,11 +333,14 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "var jsonData = pm.response.json();",
-                  "pm.test(\"Respuesta contiene asociacion activa\", function () {",
+                  "pm.test(\"Respuesta contiene asociacion activa con campos completos\", function () {",
                   "    var idAsoc = jsonData.id_asociacion_activo_sensor || jsonData.asociacion_id;",
                   "    pm.expect(idAsoc).to.be.a('number');",
                   "    pm.expect(jsonData.estado_asociacion).to.equal('ACTIVA');",
+                  "    pm.expect(jsonData.tipo_asociacion).to.equal('directa');",
                   "    pm.expect(jsonData.sensor_id).to.equal(2);",
+                  "    pm.expect(jsonData.id_activo_biologico).to.equal(19);",
+                  "    pm.expect(jsonData.fecha_inicio).to.be.a('string');",
                   "});",
                   "if (jsonData.id_asociacion_activo_sensor) {",
                   "    pm.collectionVariables.set(\"nuevaAsociacionId\", jsonData.id_asociacion_activo_sensor.toString());",
@@ -272,13 +389,24 @@
                   "pm.test(\"RF-49 Criterio de Aceptacion: El sistema refleja la asociacion en consultas posteriores (HTTP 200)\", function () {",
                   "    pm.response.to.have.status(200);",
                   "});",
-                  "pm.test(\"La asociacion recien creada es visible en la consulta de sensores del activo\", function () {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('array');",
-                  "    var encontrada = jsonData.some(function(item) {",
-                  "        return item.sensor_id === 2 && item.estado_asociacion === 'ACTIVA';",
+                  "var jsonData = pm.response.json();",
+                  "pm.test(\"El contrato de respuesta es un objeto envolvente con metadata y array 'asociaciones'\", function () {",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    pm.expect(jsonData.id_activo_biologico).to.equal(19);",
+                  "    pm.expect(jsonData.tipo_consulta).to.equal('ACTIVA');",
+                  "    pm.expect(jsonData.asociaciones).to.be.an('array');",
+                  "});",
+                  "pm.test(\"La asociacion recien creada (ID capturado) es visible con sus campos completos\", function () {",
+                  "    var targetId = parseInt(pm.collectionVariables.get(\"nuevaAsociacionId\"));",
+                  "    var encontrada = jsonData.asociaciones.find(function(item) {",
+                  "        return item.id_asociacion_activo_sensor === targetId;",
                   "    });",
-                  "    pm.expect(encontrada).to.be.true;",
+                  "    pm.expect(encontrada, \"La asociacion creada (ID: \" + targetId + \") debe estar presente en la lista\").to.not.be.undefined;",
+                  "    pm.expect(encontrada.estado_asociacion).to.equal('ACTIVA');",
+                  "    pm.expect(encontrada.tipo_asociacion).to.equal('directa');",
+                  "    pm.expect(encontrada.sensor_id).to.equal(2);",
+                  "    pm.expect(encontrada.id_activo_biologico).to.equal(19);",
+                  "    pm.expect(encontrada.fecha_inicio).to.be.a('string');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -302,6 +430,50 @@
                 "activos-biologicos",
                 "19",
                 "sensores"
+              ]
+            }
+          }
+        },
+        {
+          "name": "TC-M02-G91_ADVERTENCIA_TEARDOWN_API_BLOQUEADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// ==========================================================================",
+                  "// NOTA OPERATIVA QA / ADVERTENCIA DE TEARDOWN:",
+                  "// No existe endpoint de desactivación/cleanup viable vía API para la asociación creada.",
+                  "// El endpoint PATCH /activos-biologicos/{id_activo}/sensores/{id_asociacion} permanece",
+                  "// bloqueado con HTTP 403 Forbidden por ausencia del permiso de actualización",
+                  "// (id_accion=3 sobre id_recurso=30) en modulo1.permisos en el entorno TEST (INC-M02-40-G89).",
+                  "// Por protocolo estricto de QA, la asociación remanente (creada por TC-M02-223)",
+                  "// debe documentarse como condición de entorno remanente y NUNCA limpiarse",
+                  "// mediante sentencias SQL directas (INSERT/UPDATE/DELETE) en base de datos.",
+                  "// ==========================================================================",
+                  "pm.test(\"Advertencia de Teardown API documentada (Informativo)\", function () {",
+                  "    pm.expect(true).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
               ]
             }
           }

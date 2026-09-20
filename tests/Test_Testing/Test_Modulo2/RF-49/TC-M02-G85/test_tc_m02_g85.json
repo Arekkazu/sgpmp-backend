@@ -12,6 +12,16 @@
       "type": "string"
     },
     {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "jwt_token",
       "value": "",
       "type": "string"
@@ -34,7 +44,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -142,7 +152,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -236,7 +246,7 @@
     },
     {
       "name": "TC-M02-148",
-      "description": "Subcaso TC-M02-148: Rechazar incompatibilidad de especie sensor-activo (HTTP 400 - Bloqueado por dependencia no implementada)",
+      "description": "Subcaso TC-M02-148: Rechazar incompatibilidad de especie o sensor sin compatibilidad configurada (HTTP 400 - RF-49 R3 / FA-04)",
       "item": [
         {
           "name": "00 - Autenticación Admin",
@@ -250,7 +260,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -300,16 +310,16 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 1,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Validacion rechazo incompatibilidad especie sensor aves en activo bovino TC-M02-148\"\n}"
+              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"DIRECTA\",\n  \"dispositivo_iot_id\": 3,\n  \"sensor_id\": 37,\n  \"id_infraestructura\": 3,\n  \"motivo\": \"Validacion rechazo compatibilidad sensor-especie TC-M02-148\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/279/sensores",
+              "raw": "{{baseUrl}}/activos-biologicos/6/sensores",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "activos-biologicos",
-                "279",
+                "6",
                 "sensores"
               ]
             }
@@ -323,11 +333,29 @@
                   "    pm.response.to.have.status(400);",
                   "});",
                   "",
-                  "pm.test('[TC-M02-148] Mensaje indica incompatibilidad biológica de especie', function () {",
+                  "pm.test('[TC-M02-148] Código de error es COMPATIBILIDAD_SENSOR_NO_CONFIGURADA o INCOMPATIBILIDAD_ESPECIE_SENSOR', function () {",
                   "    var data = pm.response.json();",
-                  "    var msg = data.message || data.mensaje || (data.detail && data.detail.message) || JSON.stringify(data);",
-                  "    pm.expect(msg.toLowerCase()).to.include('incompatibilidad');",
-                  "});"
+                  "    var code = data.error_code || data.codigo || (data.detail && data.detail.code);",
+                  "    pm.expect(['COMPATIBILIDAD_SENSOR_NO_CONFIGURADA', 'INCOMPATIBILIDAD_ESPECIE_SENSOR']).to.include(code);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-148] Mensaje indica incompatibilidad o falta de configuración de compatibilidad biológica', function () {",
+                  "    var data = pm.response.json();",
+                  "    var msg = (data.message || data.mensaje || (data.detail && data.detail.message) || JSON.stringify(data)).toLowerCase();",
+                  "    var matches = msg.includes('compatibilidad') || msg.includes('incompatibilidad');",
+                  "    pm.expect(matches).to.be.true;",
+                  "});",
+                  "",
+                  "// Teardown defensivo condicional (patrón G84 - informativo sin aserción computable)",
+                  "if (pm.response.code === 201) {",
+                  "    try {",
+                  "        var data = pm.response.json();",
+                  "        var asocId = data.id_asociacion_activo_sensor;",
+                  "        console.log('[TEARDOWN DEFENSIVO] Asociación inesperada creada: ' + asocId + '. Requiere desactivación manual o PATCH.');",
+                  "    } catch (e) {",
+                  "        console.log('[TEARDOWN DEFENSIVO] Error parseando respuesta 201: ' + e);",
+                  "    }",
+                  "}"
                 ],
                 "type": "text/javascript"
               }

@@ -1,0 +1,40 @@
+{
+  "tc": "TC-M02-G87",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G87-REEVAL-V2-20260915-175400",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-152 (Escenario A): Rechazo BOLA cross-finca (Ingeniero)",
+      "esperado": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE sin fuga de datos sensibles",
+      "obtenido": "HTTP 409 Conflict, INFRAESTRUCTURA_INCOMPATIBLE validado",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G87-REEVAL-V2-20260915-175400/reporte_TC-M02-152_pytest.html"
+    },
+    {
+      "paso": "TC-M02-152 (Escenario B): Productor crea asociación en su propia finca (RF-49)",
+      "esperado": "HTTP 201 Created tras fix anunciado por Desarrollo",
+      "obtenido": "HTTP 403 Forbidden, ACCESO_DENEGADO persistente en TEST (fix no migrado a TEST)",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G87-REEVAL-V2-20260915-175400/reporte_TC-M02-152_pytest.html",
+      "nota_qa": "Rechazado: el fix de Desarrollo no fue incluido en una migración de Alembic y no llegó a la BD TEST."
+    },
+    {
+      "paso": "TC-M02-152 (Escenario C): Anti-tampering con sensor inexistente",
+      "esperado": "HTTP 404 Not Found, SENSOR_NO_ENCONTRADO",
+      "obtenido": "HTTP 404 Not Found, SENSOR_NO_ENCONTRADO validado",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G87-REEVAL-V2-20260915-175400/reporte_TC-M02-152_pytest.html"
+    },
+    {
+      "paso": "TC-M02-153: Cifrado canal MQTT/LoRaWAN (ASVS V9)",
+      "esperado": "Tráfico MQTT/LoRaWAN capturado con TLS activo",
+      "obtenido": "Bloqueo permanente fuera de stack QA confirmado",
+      "estado": "FALLA",
+      "fuente": "EvaluacionV2/RESULTADOS/G87-REEVAL-V2-20260915-175400/TC-M02-G87_reevaluacion_V2.md",
+      "nota_qa": "Bloqueo permanente fuera de stack QA."
+    }
+  ]
+}

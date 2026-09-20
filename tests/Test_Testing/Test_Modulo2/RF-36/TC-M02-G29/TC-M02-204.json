@@ -20,6 +20,16 @@
       "key": "id_lote",
       "value": "130",
       "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -35,7 +45,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -53,6 +63,7 @@
           "listen": "test",
           "script": {
             "exec": [
+              "// Corrección 2026-09-19: credenciales parametrizadas via variables de entorno.",
               "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
               "    pm.response.to.have.status(200);",
               "    var res = pm.response.json();",
@@ -185,8 +196,9 @@
               "    pm.expect(audit.rf_origen).to.eql('RF45');",
               "    pm.expect(audit.tipo_evento).to.include('BAJA');",
               "    pm.expect(audit.resultado).to.eql('EXITOSO');",
-              "    pm.expect(audit.id_usuario_responsable).to.eql(1);",
-              "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.collectionVariables.get('id_lote')));",
+              "    // Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
+              "    pm.expect([1, 104]).to.include(audit.id_usuario_responsable);",
+              "    pm.expect(audit.id_activo_biologico).to.eql(parseInt(pm.variables.get('id_lote')));",
               "});"
             ],
             "type": "text/javascript"

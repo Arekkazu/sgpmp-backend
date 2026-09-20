@@ -12,6 +12,16 @@
       "type": "string"
     },
     {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "jwt_token",
       "value": "",
       "type": "string"
@@ -23,7 +33,7 @@
     },
     {
       "key": "infraestructura_origen_id",
-      "value": "3",
+      "value": "1",
       "type": "string"
     },
     {
@@ -45,7 +55,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -76,6 +86,43 @@
       ]
     },
     {
+      "name": "0.1. Setup Precondición: Obtener infraestructura actual del lote",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Setup Precondición - Obtener infraestructura actual (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.collectionVariables.set('infraestructura_origen_id', String(res.id_infraestructura));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
       "name": "1. Intentar transferencia a infraestructura de otra finca (TC-M02-201)",
       "request": {
         "method": "POST",
@@ -91,7 +138,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_otra_finca_id}},\n  \"fecha_transferencia\": \"2026-09-08\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura otra finca TC-M02-201\",\n  \"responsable_id\": 1\n}"
+          "raw": "{\n  \"infraestructura_origen_id\": {{infraestructura_origen_id}},\n  \"infraestructura_destino_id\": {{infraestructura_otra_finca_id}},\n  \"fecha_transferencia\": \"2026-09-19\",\n  \"motivo_transferencia\": \"Prueba rechazo infraestructura otra finca TC-M02-201\",\n  \"responsable_id\": 1\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/transferencias",

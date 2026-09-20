@@ -1,0 +1,28 @@
+{
+  "tc": "TC-M02-G28",
+  "titulo": "Gestión Poblacional y Transferencia Interna (RF-36 / RF-48)",
+  "rf": "RF-36, RF-48",
+  "fecha": "2026-09-08",
+  "corrida": "V1",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-200: Rechazar transferencia a infraestructura inactiva (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 400 Bad Request o 422 con código INFRAESTRUCTURA_DESTINO_INVALIDA. Lote permanece en infraestructura origen (3).",
+      "obtenido": "HTTP 400 Bad Request (INFRAESTRUCTURA_DESTINO_INVALIDA - La infraestructura con id 10 no existe o no está activa). Lote verificado intacto en infraestructura 3.",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-201: Rechazar transferencia a infraestructura de otra finca (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 400, 403 o 422 con rechazo por frontera territorial entre fincas.",
+      "obtenido": "HTTP 201 Created. El backend permitió transferir el lote de Finca 1 a infraestructura de Finca 2 (Canal-Trucha-01, ID 4) sin validar pertenencia.",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "TC-M02-202: Aceptar transferencia válida y verificar recálculo de densidad (POST /activos-biologicos/130/transferencias)",
+      "esperado": "HTTP 200/201 con traslado a Estanque-01 (ID 1, 2500 m²) y recálculo automático de densidad a 0.002 (5 / 2500 m²).",
+      "obtenido": "HTTP 201 Created. Activo trasladado a ID 1, pero la densidad se mantuvo estática en 0.01 (5 / 500 m², no se recalculó).",
+      "estado": "FALLA"
+    }
+  ]
+}

@@ -17,6 +17,31 @@
       "type": "string"
     },
     {
+      "key": "productor_email",
+      "value": "m2m.nuevo@ejemplo.com",
+      "type": "string"
+    },
+    {
+      "key": "productor_password",
+      "value": "Test1234!",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token_admin",
+      "value": "",
+      "type": "string"
+    },
+    {
       "key": "id_lote_finca1",
       "value": "130",
       "type": "string"
@@ -40,7 +65,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo\": \"m2m.nuevo@ejemplo.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo\": \"{{productor_email}}\",\n  \"password\": \"{{productor_password}}\",\n  \"correo_electronico\": \"{{productor_email}}\",\n  \"contrasena\": \"{{productor_password}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -116,13 +141,54 @@
       ]
     },
     {
-      "name": "2. Control positivo: Consultar lote de su propia finca / accesible",
+      "name": "2. Autenticación Administrador para Control Positivo (CASO B)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\",\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Autenticación Administrador para Control Positivo (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.collectionVariables.set('jwt_token_admin', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Control positivo: Consultar lote accesible con Administrador (RF-36 / CASO B)",
       "request": {
         "method": "GET",
         "header": [
           {
             "key": "Authorization",
-            "value": "Bearer {{jwt_token_productor}}"
+            "value": "Bearer {{jwt_token_admin}}"
           }
         ],
         "url": {

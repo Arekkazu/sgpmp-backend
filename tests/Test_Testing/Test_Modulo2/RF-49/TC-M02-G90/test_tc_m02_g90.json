@@ -11,15 +11,23 @@
       "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
     },
     {
-      "key": "adminEmail",
-      "value": "admin@pecuaria.co"
+      "key": "admin_email",
+      "value": ""
     },
     {
-      "key": "adminPassword",
-      "value": "Test1234!"
+      "key": "admin_password",
+      "value": ""
     },
     {
       "key": "bearerToken",
+      "value": ""
+    },
+    {
+      "key": "asoc_id_220",
+      "value": ""
+    },
+    {
+      "key": "asoc_id_221",
       "value": ""
     }
   ],
@@ -54,7 +62,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -64,7 +72,7 @@
           }
         },
         {
-          "name": "01 - Crear Asociación AMBIENTAL en Endpoint de Activo",
+          "name": "01 - Crear Asociación AMBIENTAL en Endpoint de Infraestructura",
           "event": [
             {
               "listen": "test",
@@ -74,12 +82,18 @@
                   "    pm.response.to.have.status(201);",
                   "});",
                   "var data = pm.response.json();",
+                  "pm.test('TC-M02-220: id_activo_biologico es null (Asociación Ambiental Pura Tipo B)', function () {",
+                  "    pm.expect(data.id_activo_biologico).to.be.null;",
+                  "});",
                   "pm.test('TC-M02-220: Tipo de asociación es AMBIENTAL', function () {",
                   "    pm.expect(data.tipo_asociacion.toLowerCase()).to.eql('ambiental');",
                   "});",
                   "pm.test('TC-M02-220: Estado inicial es ACTIVA', function () {",
                   "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
-                  "});"
+                  "});",
+                  "if (data.id_asociacion_activo_sensor) {",
+                  "    pm.collectionVariables.set('asoc_id_220', data.id_asociacion_activo_sensor);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -99,12 +113,58 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"tipo_asociacion\": \"AMBIENTAL\",\n  \"dispositivo_iot_id\": 1,\n  \"sensor_id\": 3,\n  \"id_infraestructura\": 1,\n  \"motivo\": \"Evaluacion de asociacion AMBIENTAL en endpoint de activo TC-M02-220\"\n}"
+              "raw": "{\n  \"dispositivo_iot_id\": 42,\n  \"sensor_id\": 25,\n  \"motivo\": \"Asociación AMBIENTAL tipo B RF-49\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/activos-biologicos/19/sensores",
+              "raw": "{{baseUrl}}/infraestructuras/1/sensores",
               "host": ["{{baseUrl}}"],
-              "path": ["activos-biologicos", "19", "sensores"]
+              "path": ["infraestructuras", "1", "sensores"]
+            }
+          }
+        },
+        {
+          "name": "02 - Teardown Defensivo TC-M02-220",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('Teardown defensivo bloqueado por RBAC (403 Forbidden)');",
+                  "    } else if (pm.response.code === 200) {",
+                  "        console.log('Teardown defensivo exitoso (200 OK)');",
+                  "    } else {",
+                  "        console.log('Teardown defensivo respuesta: ' + pm.response.code);",
+                  "    }",
+                  "} catch (e) {",
+                  "    console.log('Error en teardown defensivo: ' + e);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_asociacion\": \"INACTIVA\",\n  \"motivo\": \"Teardown defensivo V3 TC-M02-220\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/1/sensores/{{asoc_id_220}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "1", "sensores", "{{asoc_id_220}}"]
             }
           }
         }
@@ -140,7 +200,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo_electronico\": \"{{adminEmail}}\",\n  \"contrasena\": \"{{adminPassword}}\"\n}"
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -156,14 +216,16 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test('TC-M02-221: Respuesta coherente con alguna interpretación del RF-49', function () {",
-                  "    pm.expect([201, 409, 422]).to.include(pm.response.code);",
+                  "// RF-49 Precondición 4 autoriza infraestructura dentro de la misma granja. Restricción 2 solo prohíbe cross-granja.",
+                  "pm.test('TC-M02-221: Código HTTP es 201 Created (coherencia territorial de finca)', function () {",
+                  "    pm.response.to.have.status(201);",
                   "});",
-                  "if (pm.response.code === 201) {",
-                  "    var data = pm.response.json();",
-                  "    pm.test('TC-M02-221: Estado de asociación creada es ACTIVA', function () {",
-                  "        pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
-                  "    });",
+                  "var data = pm.response.json();",
+                  "pm.test('TC-M02-221: Estado de asociación creada es ACTIVA', function () {",
+                  "    pm.expect(data.estado_asociacion).to.eql('ACTIVA');",
+                  "});",
+                  "if (data.id_asociacion_activo_sensor) {",
+                  "    pm.collectionVariables.set('asoc_id_221', data.id_asociacion_activo_sensor);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -190,6 +252,52 @@
               "raw": "{{baseUrl}}/activos-biologicos/1/sensores",
               "host": ["{{baseUrl}}"],
               "path": ["activos-biologicos", "1", "sensores"]
+            }
+          }
+        },
+        {
+          "name": "02 - Teardown Defensivo TC-M02-221",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('Teardown defensivo bloqueado por RBAC (403 Forbidden)');",
+                  "    } else if (pm.response.code === 200) {",
+                  "        console.log('Teardown defensivo exitoso (200 OK)');",
+                  "    } else {",
+                  "        console.log('Teardown defensivo respuesta: ' + pm.response.code);",
+                  "    }",
+                  "} catch (e) {",
+                  "    console.log('Error en teardown defensivo: ' + e);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{bearerToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_asociacion\": \"INACTIVA\",\n  \"motivo\": \"Teardown defensivo V3 TC-M02-221\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/1/sensores/{{asoc_id_221}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["activos-biologicos", "1", "sensores", "{{asoc_id_221}}"]
             }
           }
         }

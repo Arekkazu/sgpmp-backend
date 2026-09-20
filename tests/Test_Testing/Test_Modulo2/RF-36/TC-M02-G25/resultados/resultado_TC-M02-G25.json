@@ -1,0 +1,22 @@
+{
+  "tc": "TC-M02-G25",
+  "titulo": "Gestión Poblacional de Activos Biológicos (Baja excesiva y Densidad máxima)",
+  "rf": "RF-36",
+  "fecha": "2026-09-08",
+  "corrida": "V1",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-051: Registrar baja con cantidad superior a existencia (POST /activos-biologicos/130/eventos/baja)",
+      "esperado": "HTTP 400 o 422 con error CANTIDAD_BAJA_SUPERIOR_EXISTENCIA sin descontar existencia del lote",
+      "obtenido": "HTTP 422 Unprocessable Entity - CANTIDAD_BAJA_SUPERIOR_EXISTENCIA (La cantidad a dar de baja (10) es superior a la existencia actual del lote (5)). Lote intacto (existencia=5).",
+      "estado": "OK"
+    },
+    {
+      "paso": "TC-M02-052: Registrar evento de crecimiento que eleva la densidad sobre la máxima permitida (POST /activos-biologicos/130/eventos/crecimiento)",
+      "esperado": "HTTP 409 Conflict con mensaje de rechazo por superación de densidad máxima",
+      "obtenido": "HTTP 201 Created - El backend no validó densidad máxima, persistió el evento y actualizó biomasa y peso.",
+      "estado": "FALLA"
+    }
+  ]
+}

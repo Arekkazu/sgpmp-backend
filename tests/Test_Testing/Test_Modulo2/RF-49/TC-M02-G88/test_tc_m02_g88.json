@@ -201,9 +201,12 @@
                   "pm.test(\"Código HTTP es 409 Conflict (RF-49 Restricción 4)\", function () {",
                   "    pm.response.to.have.status(409);",
                   "});",
-                  "pm.test(\"Código de error es SENSOR_YA_VINCULADO\", function () {",
+                  "pm.test(\"Código de error corresponde a exclusividad POBLACIONAL (V8 o V8c)\", function () {",
                   "    var jsonData = pm.response.json();",
-                  "    pm.expect(jsonData.error_code).to.eql(\"SENSOR_YA_VINCULADO\");",
+                  "    pm.expect(jsonData.error_code).to.be.oneOf([",
+                  "        \"SENSOR_YA_VINCULADO\",",
+                  "        \"SENSOR_YA_ASOCIADO_A_OTRO_LOTE\"",
+                  "    ]);",
                   "});"
                 ],
                 "type": "text/javascript"

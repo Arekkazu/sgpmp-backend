@@ -15,6 +15,31 @@
       "key": "jwt_token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "cantidad_actual_baseline",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "peso_promedio_baseline",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_evento_dinamica",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cantidad_actual_baseline_tc199",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "peso_promedio_baseline_tc199",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -34,7 +59,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -52,11 +77,53 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
                   "pm.test('Autenticación Admin completada', function () {",
                   "    pm.response.to.have.status(200);",
                   "    var res = pm.response.json();",
                   "    pm.expect(res.token).to.be.a('string');",
                   "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.1. Consultar estado baseline de lote 130",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Corrección 2026-09-13: se reemplazan valores quemados (5, 2.50) por captura dinámica del estado real del lote, para evitar falsos fallos cuando el fixture cambia por otras pruebas (ver patrón aplicado en TC-M02-G29).",
+                  "pm.test('Consulta previa de baseline del lote 130 exitosa (HTTP 200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
+                  "    var peso = (res.detalle_poblacional && res.detalle_poblacional.peso_promedio !== undefined) ? res.detalle_poblacional.peso_promedio : res.peso_promedio;",
+                  "    pm.collectionVariables.set('cantidad_actual_baseline', cant);",
+                  "    pm.collectionVariables.set('peso_promedio_baseline', Number(peso));",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -80,7 +147,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tipo_producto\": \"PESO\",\n  \"cantidad_producida\": 10.0,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"2026-09-10\",\n  \"condiciones_produccion\": \"Normal\",\n  \"observaciones\": \"TC-M02-198 Registro de evento productivo sobre lote\"\n}"
+              "raw": "{\n  \"tipo_producto\": \"PESO\",\n  \"cantidad_producida\": 10.0,\n  \"unidad_medida\": \"kg\",\n  \"fecha_evento\": \"{{fecha_evento_dinamica}}\",\n  \"condiciones_produccion\": \"Normal\",\n  \"observaciones\": \"TC-M02-198 Registro de evento productivo sobre lote\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/activos-biologicos/130/eventos/productivo",
@@ -113,6 +180,16 @@
                   "        pm.expect(err.error_code).to.eql('TIPO_PRODUCTO_NO_HABILITADO_FASE');",
                   "    }",
                   "});"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const safeDate = new Date(Date.now() - 60000).toISOString().split('T')[0];",
+                  "pm.collectionVariables.set('fecha_evento_dinamica', safeDate);"
                 ],
                 "type": "text/javascript"
               }
@@ -149,16 +226,18 @@
                   "    pm.response.to.have.status(200);",
                   "});",
                   "",
-                  "pm.test('TC-M02-198: Cantidad actual del lote permanece inalterada en 5', function () {",
+                  "pm.test('TC-M02-198: Cantidad actual del lote permanece inalterada', function () {",
+                  "    // Corrección 2026-09-13: se reemplazan valores quemados (5, 2.50) por captura dinámica del estado real del lote, para evitar falsos fallos cuando el fixture cambia por otras pruebas (ver patrón aplicado en TC-M02-G29).",
                   "    var res = pm.response.json();",
                   "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
-                  "    pm.expect(cant).to.eql(5);",
+                  "    pm.expect(Number(cant)).to.eql(Number(pm.collectionVariables.get('cantidad_actual_baseline')));",
                   "});",
                   "",
-                  "pm.test('TC-M02-198: Peso promedio del lote permanece inalterado en 2.50', function () {",
+                  "pm.test('TC-M02-198: Peso promedio del lote permanece inalterado', function () {",
+                  "    // Corrección 2026-09-13: se reemplazan valores quemados (5, 2.50) por captura dinámica del estado real del lote, para evitar falsos fallos cuando el fixture cambia por otras pruebas (ver patrón aplicado en TC-M02-G29).",
                   "    var res = pm.response.json();",
                   "    var peso = (res.detalle_poblacional && res.detalle_poblacional.peso_promedio !== undefined) ? res.detalle_poblacional.peso_promedio : res.peso_promedio;",
-                  "    pm.expect(Number(peso)).to.eql(2.5);",
+                  "    pm.expect(Number(peso)).to.eql(Number(pm.collectionVariables.get('peso_promedio_baseline')));",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -184,7 +263,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"correo\": \"admin@pecuaria.co\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+              "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/sesiones/",
@@ -202,11 +281,52 @@
               "listen": "test",
               "script": {
                 "exec": [
+                  "// Corrección 2026-09-13: se actualiza credencial admin a administador.dev@gmail.com (admin@pecuaria.co presentaba error 500 en TEST desde esta fecha).",
                   "pm.test('Autenticación Admin completada', function () {",
                   "    pm.response.to.have.status(200);",
                   "    var res = pm.response.json();",
                   "    pm.expect(res.token).to.be.a('string');",
                   "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "0.1. Consultar estado baseline de lote 130 (TC-M02-199)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/130",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "130"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta previa de baseline del lote 130 exitosa (HTTP 200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
+                  "    var peso = (res.detalle_poblacional && res.detalle_poblacional.peso_promedio !== undefined) ? res.detalle_poblacional.peso_promedio : res.peso_promedio;",
+                  "    pm.collectionVariables.set('cantidad_actual_baseline_tc199', cant);",
+                  "    pm.collectionVariables.set('peso_promedio_baseline_tc199', Number(peso));",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -461,7 +581,7 @@
                   "pm.test('TC-M02-199: Cantidad del lote 130 inalterada tras intentos fallidos', function () {",
                   "    var res = pm.response.json();",
                   "    var cant = (res.detalle_poblacional && res.detalle_poblacional.cantidad_actual !== undefined) ? res.detalle_poblacional.cantidad_actual : res.cantidad_actual;",
-                  "    pm.expect(cant).to.eql(5);",
+                  "    pm.expect(Number(cant)).to.eql(Number(pm.collectionVariables.get('cantidad_actual_baseline_tc199')));",
                   "});",
                   "",
                   "pm.test('TC-M02-199: Estado del lote 130 sigue siendo ACTIVO', function () {",
