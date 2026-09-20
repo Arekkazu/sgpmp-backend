@@ -84,10 +84,16 @@ class LecturaHistoricaSchema(BaseModel):
     finca: Optional[str] = None
     id_activo_biologico: Optional[int] = None
     especie: Optional[str] = None
+    id_especie: Optional[int] = None
     id_alerta: Optional[int] = None
     nivel_bateria_pct: Optional[Decimal] = None
     calidad_senal_rssi: Optional[Decimal] = None
     calidad_senal_snr: Optional[Decimal] = None
+    # RF-17 — umbral M09 usado para calcular estado_semaforo_historico (None si GRIS)
+    id_umbral_ambiental: Optional[int] = None
+    valor_min_umbral: Optional[Decimal] = None
+    valor_max_umbral: Optional[Decimal] = None
+    version_umbral: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 

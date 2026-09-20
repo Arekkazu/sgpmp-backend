@@ -28,6 +28,7 @@ SELECT
     f.nombre                                        AS finca,
     vl_lat.id_activo_biologico,
     esp.nombre                                      AS especie,
+    ab.id_especie,
     {alerta_col}
     t.nivel_bateria_pct,
     t.calidad_senal_rssi,
@@ -236,6 +237,7 @@ class SqlAlchemyHistorialTelemetriaRepository(HistorialTelemetriaRepository):
             finca=f['finca'],
             id_activo_biologico=f['id_activo_biologico'],
             especie=f['especie'],
+            id_especie=f['id_especie'],
             id_alerta=f['id_alerta'],
             nivel_bateria_pct=f['nivel_bateria_pct'],
             calidad_senal_rssi=f['calidad_senal_rssi'],

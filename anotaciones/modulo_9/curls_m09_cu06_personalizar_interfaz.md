@@ -180,6 +180,56 @@ Errores posibles:
 
 ---
 
+### Consultar auditoría de identidad visual de una finca (Flujo D — TC-M09-169)
+
+```bash
+curl -X GET http://localhost:8000/configuracion/identidad-visual/1/auditoria \
+  -H "Authorization: Bearer <TOKEN_ADMIN>"
+```
+
+Respuesta esperada `200`:
+
+```json
+{
+  "total": 1,
+  "items": [
+    {
+      "id_auditoria_visual": 45,
+      "id_finca": 1,
+      "id_usuario": 50,
+      "usuario": "Admin Camila",
+      "fecha_creacion": "2026-09-14T05:37:31.326593Z",
+      "tipo_operacion": "UPDATE",
+      "valor_anterior": {
+        "id_finca": 1,
+        "primary_color": "#C41E3A",
+        "version": 9
+      },
+      "valor_nuevo": {
+        "id_finca": 1,
+        "primary_color": "#3A7BD5",
+        "version": 10
+      }
+    }
+  ]
+}
+```
+
+`tipo_operacion` puede ser `CREATE` o `UPDATE`. El historial se ordena del cambio más
+reciente al más antiguo y devuelve una sola fila canónica por operación. Los duplicados
+históricos producidos por el trigger legado se conservan en BD, pero no se exponen porque
+carecen de `id_finca`; la migración `47038edfa2fc` detiene su generación futura.
+
+Este endpoint consulta `modulo9.auditorias_visuales`. `GET /auditoria/` continúa siendo la
+bitácora transversal de `modulo1.eventos` y no sustituye este historial de dominio.
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `identidad_visual`
+- `404 IDENTIDAD_VISUAL_NO_ENCONTRADA` — la finca no tiene identidad visual registrada
+
+---
+
 ## RF-27 — Tema visual (`/configuracion/personalizacion/tema`)
 
 Todos los usuarios con permiso R/U sobre `tema_visual` (`id_recurso=24`).

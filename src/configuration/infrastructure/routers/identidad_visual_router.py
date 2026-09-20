@@ -4,6 +4,7 @@ RF-26:
   A) GET   /configuracion/identidad-visual/{id_finca} — Consultar identidad visual activa.
   B) POST  /configuracion/identidad-visual            — Crear (multipart/form-data).
   C) PATCH /configuracion/identidad-visual/{id_finca} — Actualizar; 412 si versión diverge.
+  D) GET   /configuracion/identidad-visual/{id_finca}/auditoria — Consultar historial.
 
 RBAC: id_recurso=23 (identidad_visual). Solo Administrador.
 """
@@ -15,13 +16,18 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.personalizacion.actualizar_identidad_visual_use_case import ActualizarIdentidadVisualUseCase
+from src.configuration.application.use_cases.personalizacion.consultar_auditoria_identidad_visual_use_case import ConsultarAuditoriaIdentidadVisualUseCase
 from src.configuration.application.use_cases.personalizacion.guardar_identidad_visual_use_case import GuardarIdentidadVisualUseCase
 from src.configuration.application.use_cases.personalizacion.obtener_identidad_visual_use_case import ObtenerIdentidadVisualUseCase
 from src.configuration.infrastructure.dto.actualizar_identidad_visual_dto import ActualizarIdentidadVisualDTO
 from src.configuration.infrastructure.dto.guardar_identidad_visual_dto import GuardarIdentidadVisualDTO
 from src.configuration.infrastructure.repositories.auditoria_identidad_visual_repository import SqlAlchemyAuditoriaIdentidadVisualRepository
 from src.configuration.infrastructure.repositories.identidad_visual_repository import SqlAlchemyIdentidadVisualRepository
-from src.configuration.infrastructure.schema.identidad_visual_schema import IdentidadVisualResponse
+from src.configuration.infrastructure.schema.identidad_visual_schema import (
+    AuditoriaIdentidadVisualResponse,
+    HistorialAuditoriaIdentidadVisualResponse,
+    IdentidadVisualResponse,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
@@ -53,6 +59,38 @@ def obtener_identidad_visual(
     if entidad is None:
         return None
     return IdentidadVisualResponse.from_entity(entidad)
+
+
+@router.get(
+    "/{id_finca}/auditoria",
+    response_model=HistorialAuditoriaIdentidadVisualResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+    summary="Consultar auditoría de identidad visual de una finca (TC-M09-169)",
+    description=(
+        "Historial de creación y actualización con usuario, fecha, operación y "
+        "snapshots anterior/nuevo. Los registros se leen de "
+        "`modulo9.auditorias_visuales`; `/auditoria/` continúa limitado a "
+        "`modulo1.eventos`."
+    ),
+)
+def consultar_auditoria_identidad_visual(
+    id_finca: int,
+    db: Session = Depends(get_db),
+) -> HistorialAuditoriaIdentidadVisualResponse:
+    use_case = ConsultarAuditoriaIdentidadVisualUseCase(
+        auditoria_repo=SqlAlchemyAuditoriaIdentidadVisualRepository(db),
+        identidad_repo=SqlAlchemyIdentidadVisualRepository(db),
+    )
+    items = [
+        AuditoriaIdentidadVisualResponse.model_validate(registro)
+        for registro in use_case.execute(id_finca)
+    ]
+    return HistorialAuditoriaIdentidadVisualResponse(total=len(items), items=items)
 
 
 @router.post(

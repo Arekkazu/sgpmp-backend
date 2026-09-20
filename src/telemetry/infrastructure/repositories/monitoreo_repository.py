@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -8,6 +9,13 @@ from sqlalchemy.orm import Session
 
 from src.telemetry.domain.entities.monitoreo import EstadoSensorActual, ResumenUnidadProductiva
 from src.telemetry.domain.repositories.monitoreo_repository import MonitoreoRepository
+
+_SQL_ACTUALIZAR_SEMAFORO = text("""
+UPDATE modulo3.estados_actuales_sensores
+SET estado_semaforo = :estado_semaforo
+WHERE id_sensor = :id_sensor
+  AND ultimo_timestamp_captura <= :timestamp_captura
+""")
 
 _SQL_ESTADOS = text("""
 SELECT
@@ -130,6 +138,18 @@ class SqlAlchemyMonitoreoRepository(MonitoreoRepository):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def actualizar_estado_semaforo_si_vigente(
+        self,
+        id_sensor: int,
+        timestamp_captura: datetime,
+        estado_semaforo: str,
+    ) -> None:
+        self.db.execute(_SQL_ACTUALIZAR_SEMAFORO, {
+            'id_sensor': id_sensor,
+            'timestamp_captura': timestamp_captura,
+            'estado_semaforo': estado_semaforo,
+        })
 
     def obtener_estados_sensores(
         self,

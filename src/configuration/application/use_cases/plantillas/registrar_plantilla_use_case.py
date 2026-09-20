@@ -23,6 +23,7 @@ from src.configuration.domain.esquema_plantilla import (
     claves_fuera_de_alcance,
     validar_rangos_fisicos_umbrales,
 )
+from src.configuration.application.use_cases.plantillas._auditoria_comun import registrar_intento_fallido
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
@@ -50,6 +51,23 @@ class RegistrarPlantillaUseCase:
         self.variable_repo = variable_repo
 
     def execute(self, dto: RegistrarPlantillaDTO, usuario_actual: UsuarioActual) -> Plantilla:
+        # INC-M09-01-109 (#319): el RF-30 exige auditar también los intentos
+        # fallidos de cualquier operación, no solo la creación exitosa. Todo el
+        # método queda envuelto para que cualquier excepción -- de validación
+        # de negocio o de persistencia -- quede registrada antes de propagarse.
+        try:
+            return self._ejecutar(dto, usuario_actual)
+        except Exception as exc:
+            registrar_intento_fallido(
+                self.db,
+                self.auditoria_repo,
+                id_usuario=usuario_actual.id_usuario,
+                tipo_operacion="CREATE",
+                detalle={"template_name": dto.template_name, "id_especie": dto.id_especie, "error": str(exc)},
+            )
+            raise
+
+    def _ejecutar(self, dto: RegistrarPlantillaDTO, usuario_actual: UsuarioActual) -> Plantilla:
         # Alcance antes que nada: el RF-30 le da a este caso su propio código
         # (422), distinto del 400 con que se rechaza un fallo de esquema. Por
         # eso no vive en el DTO, que solo puede producir 400.
@@ -107,17 +125,13 @@ class RegistrarPlantillaUseCase:
             fecha_creacion=datetime.now(timezone.utc),
         )
 
-        try:
-            guardada = self.plantilla_repo.guardar(plantilla)
-            self.auditoria_repo.registrar(
-                id_plantilla=guardada.id_plantilla,
-                id_usuario=usuario_actual.id_usuario,
-                tipo_operacion="CREATE",
-                valores_nuevos=guardada._snapshot(),
-            )
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        guardada = self.plantilla_repo.guardar(plantilla)
+        self.auditoria_repo.registrar(
+            id_plantilla=guardada.id_plantilla,
+            id_usuario=usuario_actual.id_usuario,
+            tipo_operacion="CREATE",
+            valores_nuevos=guardada._snapshot(),
+        )
+        self.db.commit()
 
         return guardada

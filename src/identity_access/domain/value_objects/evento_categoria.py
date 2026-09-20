@@ -55,6 +55,10 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # con tipo propio para poder responder "quién se llevó la auditoría" sin
     # rebuscar dentro del JSON de `detalle`.
     26: EventoCategoria.CONSULTA,
+    # Cambio de preferencia de idioma personal (RF-29, TC-M09-G103). Es un
+    # cambio de configuración del propio usuario, igual clasificación que
+    # ACTUALIZACION_PERFIL (9).
+    27: EventoCategoria.MODIFICACION,
 }
 
 
@@ -90,6 +94,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     24: "REUSO_TOKEN_REFRESCO_DETECTADO",
     25: "FALLO_ARCHIVADO_AUDITORIA",
     26: "EXPORTACION_AUDITORIA",
+    27: "CAMBIO_IDIOMA_PERSONAL",
 }
 
 
