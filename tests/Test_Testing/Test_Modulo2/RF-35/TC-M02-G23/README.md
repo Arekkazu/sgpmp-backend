@@ -14,12 +14,17 @@
 | Prioridad | Alta |
 | Endpoints | `GET/PATCH /activos-biologicos/{id_activo}` · `POST/GET /activos-biologicos/{id_activo}/fases` |
 
-## ⚠️ Resultado: BOLA CRÍTICO confirmado + 1 bloqueo de precondición (RF-37) ajeno a RF-35
+## ✅ Resultado (2026-09-19): PASS — 3/3 sub-casos, BOLA crítico corregido
 
-**Estado general: TC-M02-045 → FAIL crítico (vulnerabilidad real confirmada). TC-M02-046 → PASS. TC-M02-047 →
-BLOQUEADO en su precondición (bug de RF-37, ver `NOTA_BLOQUEO.md`), con verificación estructural parcial en PASS.**
-Postman/Newman: 9/12 assertions PASS. Pytest: 5/7 PASS. Ver `RESULTADOS/TC-M02-G23_resultado.md` para el detalle
-completo con evidencia.
+**El BOLA crítico de TC-M02-045 (confirmado explotable el 2026-09-09 y de nuevo el 2026-09-15) ya está corregido.**
+El fix de alcance por finca (`ids_fincas_permitidas` en `actualizar_activo_individual_use_case.py`) llegó a TEST:
+un Productor que intenta `PATCH` sobre un activo de otra finca ahora recibe `404 ACTIVO_NO_ENCONTRADO` — el mismo
+criterio de aislamiento que ya se usaba en el `GET` (RF-25, no revela la existencia del recurso ajeno) — y el dato
+de la víctima queda intacto. El bloqueo de precondición de RF-37 (`NOTA_BLOQUEO.md`) también se resolvió: TC-M02-047
+ya se prueba completo (2 fases, inmutabilidad de la primera confirmada). TC-M02-046 sigue en PASS, sin cambios.
+
+Postman/Newman: **18/18 assertions PASS**. Pytest: **8/8 PASS**. Ver `RESULTADOS/TC-M02-G23_resultado.html` para el
+reporte completo de Newman.
 
 ### Adaptación de precondiciones al entorno real (por qué no es literalmente "el veterinario" ni "`activo_id=800`")
 
@@ -63,20 +68,11 @@ no distinguiría si el verdadero control de BOLA existe o no. Por eso:
 |---|---|---|---|---|
 | TC-M02-045 (control) | Productor A, activo propio (199, Finca 36) | `PATCH` sobre su propio activo | 200 | **200 — correcto** |
 | TC-M02-045 (GET) | Productor A, activo ajeno (200, Finca 37) | `GET` | 404 (RF-25, no revela existencia) | **404 — correcto** |
-| TC-M02-045 (PATCH, BOLA) | Mismo Productor A, mismo activo ajeno | `PATCH` | **403 Forbidden** | **200 OK — FAIL crítico.** El activo ajeno se modifica sin ninguna restricción |
+| TC-M02-045 (PATCH, BOLA) | Mismo Productor A, mismo activo ajeno | `PATCH` | 403/404, aislado | **404 `ACTIVO_NO_ENCONTRADO` — correcto.** El activo ajeno no es accesible ni modificable |
 | TC-M02-046 | Veterinario (sin permiso `U`) | `PATCH` sobre cualquier activo accesible | 403 Forbidden | **403 `ACCESO_DENEGADO` — correcto** |
-| TC-M02-047 | Activo con una fase ya cerrada | `PATCH` directo sobre el registro de fase | Rechazado, append-only | **Precondición bloqueada** (ver abajo) — verificación estructural parcial: no existe ruta de edición directa (404) |
-
-### TC-M02-047 — por qué quedó bloqueado
-
-`POST /activos-biologicos/{id}/fases` (la única forma de crear el primer registro de historial de fases) devuelve
-**500** para **cualquier** activo con **cualquier** ciclo productivo válido — causa raíz confirmada por lectura de
-código en `NOTA_BLOQUEO.md` (falta un argumento en una llamada dentro de `cambiar_fase_use_case.py`; no requirió
-acceso a base de datos para confirmarlo, a diferencia del bloqueo de RF-41 en `TC-M02-G22`). Sin poder crear ni
-siquiera la primera fase, es imposible llegar a la precondición literal ("una fase ya cerrada"). Se dejó, como
-evidencia parcial válida, la confirmación de que **no existe ningún endpoint público para editar una fase existente**
-(`PATCH /activos-biologicos/{id}/fases/{id_fase}` → 404) — es decir, el historial es append-only por *ausencia total
-de vía de edición*, que es una forma legítima (aunque no completa) de cumplir la exigencia del RF.
+| TC-M02-047 (fase 1) | Activo propio nuevo, sin fases | `POST /fases` (primera fase) | 201, fase activa | **201 — correcto** |
+| TC-M02-047 (fase 2) | Mismo activo, con una fase activa | `POST /fases` (segunda fase) | 201, cierra la primera | **201 — correcto**, la primera queda `es_activa=false` con `fecha_finalizacion` fija |
+| TC-M02-047 (edición directa) | Cualquier fase, activa o cerrada | `PATCH` directo sobre el registro de fase | Rechazado, append-only | **404 — correcto.** No existe ruta de edición directa |
 
 ### Entorno
 
@@ -86,16 +82,15 @@ de vía de edición*, que es una forma legítima (aunque no completa) de cumplir
 - Newman 6.2.2 + htmlextra 1.23.1. Pytest 9.0.3 + `requests` (contra el mismo backend TEST, caja negra — no importa
   código del backend, solo hace HTTP real).
 - Sin acceso a la base de datos PostgreSQL de TEST — toda la verificación es vía API.
-- Fecha de ejecución: 2026-09-09.
+- Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 # Postman/Newman
 cd tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23
-newman run TC-M02-G23.postman_collection.json -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G23.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G23.html \
+newman run TC-M02-G23.postman_collection.json -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G23_resultado.html \
   --suppress-exit-code
 
 # Pytest (desde la raíz del backend)
@@ -103,4 +98,6 @@ python -m pytest tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/test_tc_m02_g2
 ```
 
 Ambas suites son idempotentes: el activo víctima (200) se restaura a su valor original al final de cada ejecución
-(paso explícito en Postman, `teardown_class` en pytest), y ninguna de las dos toca datos de usuarios reales.
+(paso explícito en Postman, `teardown_class` en pytest); TC-M02-047 crea su propio activo en cada corrida (Postman
+y pytest) para no agotar los pasos del ciclo productivo de un activo compartido. Ninguna de las dos suites toca
+datos de usuarios reales.

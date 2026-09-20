@@ -1,9 +1,11 @@
-# TC-M02-G23 (TC-M02-047) — BLOQUEO en la precondición: RF-37 `cambiar_fase` está roto para cualquier activo
+# TC-M02-G23 (TC-M02-047) — [RESUELTO 2026-09-19] Bloqueo histórico en la precondición: RF-37 `cambiar_fase` estaba roto para cualquier activo
 
-**RF-37 / CU-02.** No es un bug de RF-35 — es un defecto de RF-37 (`POST /activos-biologicos/{id_activo}/fases`)
-que impide construir la precondición literal de TC-M02-047 ("Existe un registro histórico de fase ya cerrado"). A
-diferencia del bloqueo de RF-41 documentado en `TC-M02-G22/NOTA_BLOQUEO.md`, esta vez **la causa raíz se confirmó
-100% por lectura de código, sin necesidad de acceso a la base de datos.**
+> **Actualización 2026-09-19:** confirmado resuelto en TEST. `cambiar_fase_use_case.py` ya pasa `usuario.id_usuario`
+> como 4to argumento a `cerrar_gestion_activa` (línea 93). `POST /activos-biologicos/{id}/fases` responde `201`
+> y avanzar a una segunda fase cierra correctamente la primera (`fecha_finalizacion` fija, `es_activa=false`),
+> confirmado en vivo contra TEST. TC-M02-047 ya no depende de este workaround: la colección Postman y el pytest
+> hermano ahora prueban el flujo completo (crear 2 fases, verificar inmutabilidad de la primera). Se conserva este
+> documento como registro histórico del defecto y su causa raíz.
 
 ## Qué se observó
 

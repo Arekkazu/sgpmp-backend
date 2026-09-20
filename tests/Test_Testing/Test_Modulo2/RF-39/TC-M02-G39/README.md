@@ -10,10 +10,10 @@
 | Endpoints | `GET /activos-biologicos/{id_activo}/eventos` (según ficha) |
 | Responsable | Juan Manuel · Prioridad Alta |
 
-## ✅ Resultado: PASS — 13/13 assertions
+## ✅ Resultado (2026-09-19): PASS — 13/13 assertions
 
-Los 3 estados operativos permiten registrar el evento, tal como exige el RF. Detalle completo en
-`RESULTADOS/TC-M02-G39_resultado.md`.
+Los 3 estados operativos (ACTIVO, EN_TRATAMIENTO, AISLADO) permiten registrar el evento sanitario, tal como exige
+el RF. Ver `RESULTADOS/TC-M02-G39_resultado.html` para la evidencia completa.
 
 ### Dos adaptaciones necesarias, explicadas
 
@@ -60,15 +60,14 @@ servidor, sin importar la latencia de red del momento.
 - Desfase de reloj local vs. base de datos de TEST medido con método de punto medio de ida y vuelta
   (round-trip midpoint): ~988 ms, consistente en 3 mediciones — con autorización del usuario para acceso de solo
   lectura a la base de datos.
-- Fecha de ejecución: 2026-09-10.
+- Fecha de ejecución: 2026-09-19.
 
 ### Cómo re-ejecutar
 
 ```bash
 cd tests/Test_Testing/Test_Modulo2/RF-39/TC-M02-G39
-newman run TC-M02-G39.postman_collection.json --delay-request 3000 -r cli,json,htmlextra \
-  --reporter-json-export RESULTADOS/newman-TC-M02-G39.json \
-  --reporter-htmlextra-export RESULTADOS/newman-TC-M02-G39.html
+newman run TC-M02-G39.postman_collection.json --delay-request 3000 -r cli,htmlextra \
+  --reporter-htmlextra-export RESULTADOS/TC-M02-G39_resultado.html
 ```
 
 `--delay-request 3000` es obligatorio para que las fechas explícitas de los eventos queden siempre en la ventana

@@ -1,4 +1,12 @@
-# TC-M02-G22 (TC-M02-038) — BLOQUEO en la precondición: RF-41 no permite registrar eventos sanitarios en TEST
+# TC-M02-G22 (TC-M02-038) — [RESUELTO 2026-09-19] Bloqueo histórico en la precondición: RF-41 no permitía registrar eventos sanitarios en TEST
+
+> **Actualización 2026-09-19:** confirmado resuelto en TEST. `POST /activos-biologicos/{id}/eventos/sanitario` con
+> `tipo: "CONTROL_PREVENTIVO"` responde `201` y, de forma adicional, deja el activo en `EN_TRATAMIENTO`
+> automáticamente (`cambio_estado.id_estado_nuevo = 3` en la respuesta) — mejor que el comportamiento esperado
+> originalmente, ya que ahora la precondición real de TC-M02-038 ("evento pendiente sin cerrar") se puede construir
+> directamente vía RF-41, sin necesitar el workaround por RF-44 que usaba antes la colección. La colección Postman
+> (`TC-M02-G22.postman_collection.json`) ya se actualizó para usar el camino directo. Se conserva este documento
+> como registro histórico del defecto y su causa raíz.
 
 **RF-35 / CU-02.** No es un bug de RF-35 — es un defecto de RF-41 (`POST /activos-biologicos/{id}/eventos/sanitario`)
 que impide construir la precondición literal de TC-M02-038 ("Activo con eventos sanitarios/biológicos pendientes

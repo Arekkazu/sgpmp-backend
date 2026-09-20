@@ -16,7 +16,12 @@
     { "key": "token_veterinario", "value": "" },
     { "key": "id_activo_propio_a", "value": "199" },
     { "key": "id_activo_ajeno_b", "value": "200" },
-    { "key": "raza_original_ajeno", "value": "Camaron victima finca B" }
+    { "key": "raza_original_ajeno", "value": "Camaron victima finca B" },
+    { "key": "id_especie_fases", "value": "2" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "identificador_activo_fases", "value": "" },
+    { "key": "id_activo_fases", "value": "" }
   ],
   "item": [
     {
@@ -99,7 +104,9 @@
       },
       "event": [{ "listen": "test", "script": { "exec": [
         "console.log('[BOLA PATCH] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('RF-35: el sistema DEBE rechazar el BOLA (403 Forbidden)', function () { pm.response.to.have.status(403); });"
+        "pm.test('RF-35: el sistema DEBE rechazar el BOLA (403 o 404 - mismo criterio de aislamiento ya aplicado al GET en RF-25)', function () {",
+        "  pm.expect([403, 404]).to.include(pm.response.code);",
+        "});"
       ] } }]
     },
     {
@@ -116,6 +123,22 @@
         "pm.test('RF-35: la raza del activo ajeno NO debio cambiar', function () {",
         "  pm.expect(body.detalle_individual.raza).to.eql(pm.collectionVariables.get('raza_original_ajeno'));",
         "});"
+      ] } }]
+    },
+    {
+      "name": "1e. Teardown - Restaurar raza original del activo ajeno (idempotencia, por si el BOLA llegara a tener exito)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_ajeno_b}}",
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"{{raza_original_ajeno}}\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[TEARDOWN] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('Teardown: raza restaurada al valor original', function () { pm.response.to.have.status(200); });"
       ] } }]
     },
     {
@@ -139,33 +162,96 @@
       ] } }]
     },
     {
-      "name": "3a. TC-M02-047 - [Precondicion, BLOQUEADA] Intentar la primera fase del ciclo del activo propio",
+      "name": "3a. TC-M02-047 - Setup: crear activo propio para pruebas de fases (RF-37)",
       "request": {
         "method": "POST",
         "header": [
           { "key": "Content-Type", "value": "application/json" },
           { "key": "Authorization", "value": "Bearer {{token_admin}}" }
         ],
-        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}/fases",
-        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": 2,\n  \"motivo_cambio\": \"QA-G23: primera fase (bloqueada, ver NOTA_BLOQUEO.md)\"\n}" }
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_fases}},\n  \"fecha_inicio_ciclo\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_activo_fases}}\",\n  \"raza\": \"Trucha QA-G23 fases\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.500\n}"
+        }
+      },
+      "event": [
+        { "listen": "prerequest", "script": { "exec": [
+          "pm.collectionVariables.set('identificador_activo_fases', 'QA-G23F-' + Date.now());",
+          "pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"
+        ] } },
+        { "listen": "test", "script": { "exec": [
+          "console.log('[SETUP ACTIVO FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
+          "pm.test('Se crea el activo propio para pruebas de fases (201)', function () { pm.response.to.have.status(201); });",
+          "if (pm.response.code === 201) { pm.collectionVariables.set('id_activo_fases', pm.response.json().id_activo_biologico); }"
+        ] } }
+      ]
+    },
+    {
+      "name": "3b. TC-M02-047 - Registrar la primera fase del ciclo",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G23: primera fase\"\n}" }
       },
       "event": [{ "listen": "test", "script": { "exec": [
-        "console.log('[PRECONDICION FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
-        "pm.test('RF-37: cambiar de fase deberia funcionar (201)', function () { pm.response.to.have.status(201); });",
-        "// BLOQUEADO: ver RESULTADOS/NOTA_BLOQUEO.md - cambiar_fase_use_case.py llama",
-        "// repo.cerrar_gestion_activa() con 3 argumentos pero el metodo exige 4",
-        "// (falta usuario_id) -> TypeError -> 500 en cualquier cambio de fase, para cualquier activo."
+        "console.log('[FASE 1] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: registrar la primera fase funciona (201)', function () { pm.response.to.have.status(201); });",
+        "const body = pm.response.json();",
+        "pm.test('RF-37: la primera fase queda activa y sin fecha_finalizacion', function () {",
+        "  pm.expect(body.es_activa).to.equal(true);",
+        "  pm.expect(body.fecha_finalizacion).to.equal(null);",
+        "});"
       ] } }]
     },
     {
-      "name": "3b. TC-M02-047 - No existe un endpoint para editar directamente un registro de fase",
+      "name": "3c. TC-M02-047 - Avanzar a la segunda fase (debe cerrar la primera)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases",
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G23: segunda fase\"\n}" }
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[FASE 2] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('RF-37: avanzar a la segunda fase funciona (201)', function () { pm.response.to.have.status(201); });"
+      ] } }]
+    },
+    {
+      "name": "3d. TC-M02-047 - Verificar que la primera fase quedo cerrada e inmutable (append-only)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "console.log('[HISTORIAL FASES] status=' + pm.response.code + ' body=' + pm.response.text());",
+        "pm.test('El historial de fases responde 200', function () { pm.response.to.have.status(200); });",
+        "const body = pm.response.json();",
+        "const primera = body.fases.find((f) => f.paso_actual === 1);",
+        "pm.test('RF-37: la primera fase quedo cerrada (fecha_finalizacion informada, es_activa=false)', function () {",
+        "  pm.expect(primera).to.exist;",
+        "  pm.expect(primera.fecha_finalizacion).to.not.equal(null);",
+        "  pm.expect(primera.es_activa).to.equal(false);",
+        "});"
+      ] } }]
+    },
+    {
+      "name": "3e. TC-M02-047 - No existe un endpoint para editar directamente un registro de fase",
       "request": {
         "method": "PATCH",
         "header": [
           { "key": "Content-Type", "value": "application/json" },
           { "key": "Authorization", "value": "Bearer {{token_admin}}" }
         ],
-        "url": "{{base_url}}/activos-biologicos/{{id_activo_propio_a}}/fases/1",
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_fases}}/fases/1",
         "body": { "mode": "raw", "raw": "{\n  \"fecha_finalizacion\": \"2020-01-01T00:00:00Z\"\n}" }
       },
       "event": [{ "listen": "test", "script": { "exec": [

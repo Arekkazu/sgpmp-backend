@@ -1,5 +1,20 @@
 # TC-M02-G42 — Resultado de ejecución
 
+## ✅ REEVALUACIÓN 2026-09-15 — sigue en PASS, sin cambios
+
+**10/10 tests, exactamente igual que el 09-10.** Este caso reutiliza el activo `218` (ya existente, no lo crea) y
+registra el evento a proteger con `POST /eventos/sanitario` — ninguna de las dos operaciones depende de la consulta
+de parámetros de especie que está rota por `INC-M02-100` (esa consulta solo la usan `registrar_activo`,
+`registrar_evento_crecimiento` y `registrar_evento_productivo`, confirmado en TC-M02-G41), así que este caso no se
+ve afectado por la regresión que sí bloqueó varios casos anteriores. Las dos capas de defensa (API sin ruta de
+edición, y triggers de base de datos rechazando `UPDATE`/`DELETE` directo) siguen funcionando igual que antes.
+
+No hay evidencia nueva que agregar — la corrida de hoy confirma exactamente lo mismo que ya estaba documentado.
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: PASS — 10/10 tests, vía Pytest contra el backend TEST y la base de datos de TEST desplegados.**
 
 | Campo | Valor |

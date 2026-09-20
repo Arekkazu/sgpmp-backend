@@ -11,7 +11,12 @@
 
 ## ✅ Resultado: PASS — 10/10 tests, dos capas de defensa verificadas
 
-Detalle completo en `RESULTADOS/TC-M02-G42_resultado.md`.
+**Reevaluado 2026-09-15: sigue en PASS, 10/10, sin cambios.** No se ve afectado por la regresión de migración
+pendiente (`INC-M02-100`) que sí bloquea otros casos — este no depende de crear un activo nuevo ni de la consulta
+de parámetros de especie que está rota. Ver la sección "✅ REEVALUACIÓN 2026-09-15" en
+`RESULTADOS/TC-M02-G42_resultado.md`.
+
+Detalle completo (ejecución original 2026-09-10) en la sección histórica de `RESULTADOS/TC-M02-G42_resultado.md`.
 
 ### Por qué se probaron dos capas, no solo la API
 

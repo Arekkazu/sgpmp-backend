@@ -1,5 +1,17 @@
 # TC-M02-G78 — Resultado de ejecución
 
+## ✅ REEVALUACIÓN 2026-09-15 — sin cambios, 4/4 sigue igual
+
+**Sin cambios frente al 09-10.** Este caso usa activos ya existentes (5, 222) y no depende de la consulta de
+parámetros de especie rota por `INC-M02-100`, así que no lo afecta esa regresión (igual que TC-M02-G42/G77).
+TC-M02-131 sigue rechazando correctamente con `403` a un usuario sin permisos, sin exponer ningún dato del activo.
+TC-M02-132 sigue bloqueado por el mismo motivo de siempre: la Sección 8 (`accesos_directos`) sigue sin existir en
+la API (mismo gap de TC-M02-G77), así que no hay nada que verificar todavía sobre su visibilidad por rol.
+
+---
+
+## Histórico — ejecución 2026-09-10
+
 **Estado general: PASS — 4/4 tests vía Pytest contra el backend TEST desplegado.** TC-M02-131 es un PASS de
 seguridad genuino; TC-M02-132 queda documentado como bloqueado por un gap ya conocido, no como una verificación
 completa del sub-caso.

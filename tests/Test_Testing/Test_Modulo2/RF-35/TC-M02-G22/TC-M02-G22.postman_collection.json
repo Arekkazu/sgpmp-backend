@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M02-G22 - Reglas de flujo: cambio de estado directo y eventos pendientes",
-    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35. Agrupa TC-M02-037 (rechazar cambio de estado_activo directo, debe redirigir a RF-44) y TC-M02-038 (bloquear la operacion si hay eventos pendientes sin cerrar). Las assertions codifican el comportamiento QUE EXIGE el RF (no el comportamiento observado), para que el reporte de Newman muestre FAIL de forma honesta si el sistema no lo cumple. El detalle de cada resultado (incluyendo por que falla y un bloqueo de precondicion en RF-41) esta en RESULTADOS/.",
+    "description": "CU02 - Gestion Individual de Activos Biologicos - RF-35. Agrupa TC-M02-037 (rechazar cambio de estado_activo directo, debe redirigir a RF-44) y TC-M02-038 (bloquear la operacion si hay eventos pendientes sin cerrar). Las assertions codifican el comportamiento QUE EXIGE el RF (no el comportamiento observado), para que el reporte de Newman muestre FAIL de forma honesta si el sistema no lo cumple. El detalle de cada resultado esta en RESULTADOS/.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -127,7 +127,7 @@
       ]
     },
     {
-      "name": "2. Precondicion TC-M02-038 (bloqueada) - Registrar evento sanitario CONTROL_PREVENTIVO",
+      "name": "2. Precondicion TC-M02-038 - Registrar evento sanitario CONTROL_PREVENTIVO (deja el activo EN_TRATAMIENTO)",
       "request": {
         "method": "POST",
         "header": [
@@ -146,47 +146,18 @@
           "script": {
             "exec": [
               "console.log('[PRECONDICION TC-M02-038] status=' + pm.response.code + ' body=' + pm.response.text());",
-              "pm.test('RF-41: el evento sanitario deberia registrarse (201)', function () { pm.response.to.have.status(201); });",
-              "// BLOQUEADO: ver RESULTADOS/NOTA_BLOQUEO.md - este endpoint responde 500",
-              "// (ERROR_INTERNO) para CONTROL_PREVENTIVO y DIAGNOSTICO en este entorno TEST,",
-              "// lo que hace imposible crear un 'evento sanitario pendiente' real por esta via."
+              "pm.test('RF-41: el evento sanitario se registra (201)', function () { pm.response.to.have.status(201); });",
+              "pm.test('RF-41: el evento sanitario deja el activo EN_TRATAMIENTO', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body.cambio_estado && body.cambio_estado.id_estado_nuevo).to.equal(3);",
+              "});"
             ]
           }
         }
       ]
     },
     {
-      "name": "3. Workaround - Poner el activo en EN_TRATAMIENTO via RF-44 (no via RF-41, bloqueado)",
-      "request": {
-        "method": "PATCH",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
-        ],
-        "url": "{{base_url}}/activos-biologicos/{{id_activo}}/estado",
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"estado_nuevo\": \"EN_TRATAMIENTO\",\n  \"fecha_cambio_estado\": \"{{fecha_inicio_ciclo_hoy}}\",\n  \"motivo_cambio\": \"QA-G22: simular evento pendiente sin cerrar (workaround por bloqueo RF-41)\"\n}"
-        }
-      },
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": { "exec": ["pm.variables.set('fecha_inicio_ciclo_hoy', new Date().toISOString().slice(0,10));"] }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "console.log('[WORKAROUND EN_TRATAMIENTO] status=' + pm.response.code + ' body=' + pm.response.text());",
-              "pm.test('RF-44: el cambio de estado a EN_TRATAMIENTO se acepta (200)', function () { pm.response.to.have.status(200); });"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "4. TC-M02-038 (adaptado) - PATCH normal mientras el activo esta EN_TRATAMIENTO -> el RF exige 409",
+      "name": "3. TC-M02-038 - PATCH normal mientras el activo esta EN_TRATAMIENTO -> el RF exige 409",
       "request": {
         "method": "PATCH",
         "header": [
@@ -214,7 +185,7 @@
       ]
     },
     {
-      "name": "5. Verificacion final - GET del activo",
+      "name": "4. Verificacion final - GET del activo",
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
