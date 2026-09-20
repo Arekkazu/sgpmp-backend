@@ -1,0 +1,715 @@
+{
+  "info": {
+    "name": "TC-M02-G79 V2 / TC-M02-133 - RF-48 transferencia individual compatible",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Reevaluacion V2. Criterio QA corregido: el exito de TC-M02-133 es HTTP 201 (contrato OpenAPI y router; RF-48 no fija codigo HTTP). Se elimina la assertion historica de HTTP 200. Fixtures verificados en fresco el 2026-09-19: Productor (35) activo 292 de 48 a 51; Administrador (1) activo 294 de 51 a 48; misma finca 57. GET disponibles se cruza contra BD (H2). Ejecutar con run_g79_v2.cjs (captura SQL read-only antes/despues de cada POST) y bd_gate_<actor>=validado. password vacio: se inyecta con --env-var. Sin credenciales ni tokens."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "password",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "Contrato OpenAPI RF-48",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('OpenAPI HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const s=pm.response.json(); const P=s.paths;",
+                  "pm.test('GET /transferencias/disponibles existe',()=>pm.expect(P['/activos-biologicos/{id_activo}/transferencias/disponibles']).to.have.property('get'));",
+                  "pm.test('POST /transferencias existe',()=>pm.expect(P['/activos-biologicos/{id_activo}/transferencias']).to.have.property('post'));",
+                  "const rs=Object.keys(P['/activos-biologicos/{id_activo}/transferencias'].post.responses);",
+                  "pm.test('POST declara 201 como exito (y no 200)',()=>{pm.expect(rs).to.include('201');pm.expect(rs).to.not.include('200');});",
+                  "pm.test('DTO exige origen, destino, fecha y motivo',()=>pm.expect(s.components.schemas.RegistrarTransferenciaDTO.required).to.have.members(['infraestructura_origen_id','infraestructura_destino_id','fecha_transferencia','motivo_transferencia']));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{base_url}}/openapi.json"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL-productor",
+      "item": [
+        {
+          "name": "Login productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const t=pm.response.json().token; pm.collectionVariables.set('token',t);",
+                  "pm.test('Identidad 35',()=>pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('35'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"m2m.nuevo@ejemplo.com\", \"contrasena\": \"{{password}}\"}"
+            }
+          }
+        },
+        {
+          "name": "GET disponibles productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Disponibles HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const L=pm.response.json(); const ids=L.map(x=>x.id_infraestructura);",
+                  "pm.collectionVariables.set('disponibles_productor',JSON.stringify(L));",
+                  "const yes=ids.includes(51); pm.collectionVariables.set('disponible_productor',yes);",
+                  "pm.test('H2: destino elegido 51 aparece',()=>pm.expect(yes).to.eql(true));",
+                  "pm.test('H2: el origen actual 48 no aparece',()=>pm.expect(ids).to.not.include(48));",
+                  "pm.test('H2: no aparece infraestructura 1 (otra finca)',()=>pm.expect(ids).to.not.include(1));",
+                  "pm.test('H2: no aparece 52 Estanque (tipo incompatible)',()=>pm.expect(ids).to.not.include(52));",
+                  "pm.test('H2: no aparece 53 Galpon especie 41 (especie incompatible)',()=>pm.expect(ids).to.not.include(53));",
+                  "pm.test('H2: todo destino es de especie compatible (null o 40)',()=>L.forEach(x=>pm.expect([null,40]).to.include(x.id_especie)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/transferencias/disponibles"
+          }
+        },
+        {
+          "name": "ANTES activo productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('Activo INDIVIDUAL, ACTIVO, en origen 48',()=>{pm.expect(b.tipo).to.eql('INDIVIDUAL');pm.expect(b.nombre_estado).to.eql('ACTIVO');pm.expect(b.id_infraestructura).to.eql(48);});",
+                  "pm.collectionVariables.set('acceso_productor', pm.response.code===200 && b.nombre_estado==='ACTIVO' && b.id_infraestructura===48);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292"
+          }
+        },
+        {
+          "name": "ANTES infraestructura productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Infraestructura HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('Asociacion vigente = origen 48',()=>pm.expect(b.asociacion_activa.id_infraestructura).to.eql(48));",
+                  "pm.collectionVariables.set('asoc_antes_productor',String(b.asociacion_activa.id_historial));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/infraestructura"
+          }
+        },
+        {
+          "name": "ANTES historial productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('hist_antes_productor',pm.response.text());",
+                  "pm.test('Historial completo en una pagina',()=>pm.expect(pm.response.json().total_paginas).to.be.at.most(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/historial?page_size=100"
+          }
+        },
+        {
+          "name": "ANTES auditoria RF48 productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('aud_antes_productor',JSON.stringify(pm.response.json().registros.map(r=>r.id_bitacora)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF48&id_activo_biologico=292&page_size=100"
+          }
+        },
+        {
+          "name": "POST transferencia productor",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('bd_gate_productor')!=='validado' || String(pm.collectionVariables.get('disponible_productor'))!=='true' || String(pm.collectionVariables.get('acceso_productor'))!=='true') { pm.execution.skipRequest(); throw new Error('Gate productor: requiere validacion BD fresca, acceso y destino disponible'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Transferencia creada: HTTP 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const b=pm.response.json();",
+                  "pm.test('V2 id_activo correcto',()=>pm.expect(b.id_activo_biologico).to.eql(292));",
+                  "pm.test('V3 id_movimiento valido',()=>{pm.expect(b.id_movimiento).to.be.a('number');pm.expect(b.id_movimiento).to.be.above(0);});",
+                  "pm.test('V4 mensaje de transferencia exitosa',()=>{pm.expect(b.mensaje).to.include('Transferencia registrada exitosamente');pm.expect(b.mensaje).to.include('Corral QA JE Destino OK');});",
+                  "pm.test('V5 motivo correcto',()=>pm.expect(b.motivo_transferencia).to.eql('TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51'));",
+                  "pm.test('V6 origen/destino correctos',()=>{pm.expect(b.infraestructura_origen).to.eql('Corral QA JE Origen');pm.expect(b.infraestructura_destino).to.eql('Corral QA JE Destino OK');pm.expect(String(b.fecha_transferencia)).to.include('2026-09-19');});",
+                  "pm.collectionVariables.set('mov_productor',b.id_movimiento);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"infraestructura_origen_id\": 48, \"infraestructura_destino_id\": 51, \"fecha_transferencia\": \"2026-09-19\", \"motivo_transferencia\": \"TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51\"}"
+            }
+          }
+        },
+        {
+          "name": "DESPUES activo productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('V7 activo asociado al destino 51',()=>pm.expect(pm.response.json().id_infraestructura).to.eql(51));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292"
+          }
+        },
+        {
+          "name": "DESPUES infraestructura productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Infraestructura HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('V9 nueva asociacion vigente en destino 51',()=>{pm.expect(b.asociacion_activa.id_infraestructura).to.eql(51);pm.expect(b.asociacion_activa.fecha_fin).to.eql(null);});",
+                  "pm.test('V8 la asociacion anterior ya no es la vigente',()=>pm.expect(String(b.asociacion_activa.id_historial)).to.not.eql(pm.collectionVariables.get('asoc_antes_productor')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/infraestructura"
+          }
+        },
+        {
+          "name": "DESPUES historial productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json(),prev=JSON.parse(pm.collectionVariables.get('hist_antes_productor'));",
+                  "pm.test('V10 historial +1',()=>pm.expect(b.total_registros).to.eql(prev.total_registros+1));",
+                  "pm.test('V11 historial previo conservado',()=>prev.registros.forEach(r=>pm.expect(b.registros).to.deep.include(r)));",
+                  "pm.test('V12 evento nuevo trazable',()=>{const n=b.registros.filter(r=>r.categoria==='TRANSFERENCIA'&&r.descripcion==='TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51');pm.expect(n.length).to.eql(1);pm.expect(n[0].detalle_especifico.infraestructura_origen).to.eql('Corral QA JE Origen');pm.expect(n[0].detalle_especifico.infraestructura_destino).to.eql('Corral QA JE Destino OK');});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/292/historial?page_size=100"
+          }
+        },
+        {
+          "name": "DESPUES auditoria RF48 productor",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const prev=JSON.parse(pm.collectionVariables.get('aud_antes_productor')); const nuevos=pm.response.json().registros.filter(r=>!prev.includes(r.id_bitacora));",
+                  "pm.test('V13 auditoria RF48 nueva (exactamente 1 TRANSFERENCIA_REGISTRADA)',()=>{pm.expect(nuevos.length).to.eql(1);pm.expect(nuevos[0].tipo_evento).to.eql('TRANSFERENCIA_REGISTRADA');pm.expect(nuevos[0].resultado).to.eql('EXITOSO');});",
+                  "pm.test('V14 usuario responsable = 35',()=>pm.expect(String(nuevos[0].id_usuario_responsable)).to.eql('35'));",
+                  "pm.test('V13 detalle origen/destino/motivo',()=>{const d=nuevos[0].detalle_tecnico;pm.expect(d.origen).to.eql(48);pm.expect(d.destino).to.eql(51);pm.expect(d.motivo).to.eql('TC-M02-G79 V2 TC-M02-133 productor 20260919 individual compatible 292 48 a 51');});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF48&id_activo_biologico=292&page_size=100"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL-admin",
+      "item": [
+        {
+          "name": "Login admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const t=pm.response.json().token; pm.collectionVariables.set('token',t);",
+                  "pm.test('Identidad 1',()=>pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('1'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"correo_electronico\": \"admin@pecuaria.co\", \"contrasena\": \"{{password}}\"}"
+            }
+          }
+        },
+        {
+          "name": "GET disponibles admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Disponibles HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const L=pm.response.json(); const ids=L.map(x=>x.id_infraestructura);",
+                  "pm.collectionVariables.set('disponibles_admin',JSON.stringify(L));",
+                  "const yes=ids.includes(48); pm.collectionVariables.set('disponible_admin',yes);",
+                  "pm.test('H2: destino elegido 48 aparece',()=>pm.expect(yes).to.eql(true));",
+                  "pm.test('H2: el origen actual 51 no aparece',()=>pm.expect(ids).to.not.include(51));",
+                  "pm.test('H2: no aparece infraestructura 1 (otra finca)',()=>pm.expect(ids).to.not.include(1));",
+                  "pm.test('H2: no aparece 52 Estanque (tipo incompatible)',()=>pm.expect(ids).to.not.include(52));",
+                  "pm.test('H2: no aparece 53 Galpon especie 41 (especie incompatible)',()=>pm.expect(ids).to.not.include(53));",
+                  "pm.test('H2: todo destino es de especie compatible (null o 40)',()=>L.forEach(x=>pm.expect([null,40]).to.include(x.id_especie)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/transferencias/disponibles"
+          }
+        },
+        {
+          "name": "ANTES activo admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('Activo INDIVIDUAL, ACTIVO, en origen 51',()=>{pm.expect(b.tipo).to.eql('INDIVIDUAL');pm.expect(b.nombre_estado).to.eql('ACTIVO');pm.expect(b.id_infraestructura).to.eql(51);});",
+                  "pm.collectionVariables.set('acceso_admin', pm.response.code===200 && b.nombre_estado==='ACTIVO' && b.id_infraestructura===51);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294"
+          }
+        },
+        {
+          "name": "ANTES infraestructura admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Infraestructura HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('Asociacion vigente = origen 51',()=>pm.expect(b.asociacion_activa.id_infraestructura).to.eql(51));",
+                  "pm.collectionVariables.set('asoc_antes_admin',String(b.asociacion_activa.id_historial));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/infraestructura"
+          }
+        },
+        {
+          "name": "ANTES historial admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('hist_antes_admin',pm.response.text());",
+                  "pm.test('Historial completo en una pagina',()=>pm.expect(pm.response.json().total_paginas).to.be.at.most(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/historial?page_size=100"
+          }
+        },
+        {
+          "name": "ANTES auditoria RF48 admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('aud_antes_admin',JSON.stringify(pm.response.json().registros.map(r=>r.id_bitacora)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF48&id_activo_biologico=294&page_size=100"
+          }
+        },
+        {
+          "name": "POST transferencia admin",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if(pm.environment.get('bd_gate_admin')!=='validado' || String(pm.collectionVariables.get('disponible_admin'))!=='true' || String(pm.collectionVariables.get('acceso_admin'))!=='true') { pm.execution.skipRequest(); throw new Error('Gate admin: requiere validacion BD fresca, acceso y destino disponible'); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Transferencia creada: HTTP 201', () => {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "const b=pm.response.json();",
+                  "pm.test('V2 id_activo correcto',()=>pm.expect(b.id_activo_biologico).to.eql(294));",
+                  "pm.test('V3 id_movimiento valido',()=>{pm.expect(b.id_movimiento).to.be.a('number');pm.expect(b.id_movimiento).to.be.above(0);});",
+                  "pm.test('V4 mensaje de transferencia exitosa',()=>{pm.expect(b.mensaje).to.include('Transferencia registrada exitosamente');pm.expect(b.mensaje).to.include('Corral QA JE Origen');});",
+                  "pm.test('V5 motivo correcto',()=>pm.expect(b.motivo_transferencia).to.eql('TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48'));",
+                  "pm.test('V6 origen/destino correctos',()=>{pm.expect(b.infraestructura_origen).to.eql('Corral QA JE Destino OK');pm.expect(b.infraestructura_destino).to.eql('Corral QA JE Origen');pm.expect(String(b.fecha_transferencia)).to.include('2026-09-19');});",
+                  "pm.collectionVariables.set('mov_admin',b.id_movimiento);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/transferencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\"infraestructura_origen_id\": 51, \"infraestructura_destino_id\": 48, \"fecha_transferencia\": \"2026-09-19\", \"motivo_transferencia\": \"TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48\"}"
+            }
+          }
+        },
+        {
+          "name": "DESPUES activo admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Activo HTTP 200',()=>pm.response.to.have.status(200));",
+                  "pm.test('V7 activo asociado al destino 48',()=>pm.expect(pm.response.json().id_infraestructura).to.eql(48));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294"
+          }
+        },
+        {
+          "name": "DESPUES infraestructura admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Infraestructura HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json();",
+                  "pm.test('V9 nueva asociacion vigente en destino 48',()=>{pm.expect(b.asociacion_activa.id_infraestructura).to.eql(48);pm.expect(b.asociacion_activa.fecha_fin).to.eql(null);});",
+                  "pm.test('V8 la asociacion anterior ya no es la vigente',()=>pm.expect(String(b.asociacion_activa.id_historial)).to.not.eql(pm.collectionVariables.get('asoc_antes_admin')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/infraestructura"
+          }
+        },
+        {
+          "name": "DESPUES historial admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Historial HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const b=pm.response.json(),prev=JSON.parse(pm.collectionVariables.get('hist_antes_admin'));",
+                  "pm.test('V10 historial +1',()=>pm.expect(b.total_registros).to.eql(prev.total_registros+1));",
+                  "pm.test('V11 historial previo conservado',()=>prev.registros.forEach(r=>pm.expect(b.registros).to.deep.include(r)));",
+                  "pm.test('V12 evento nuevo trazable',()=>{const n=b.registros.filter(r=>r.categoria==='TRANSFERENCIA'&&r.descripcion==='TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48');pm.expect(n.length).to.eql(1);pm.expect(n[0].detalle_especifico.infraestructura_origen).to.eql('Corral QA JE Destino OK');pm.expect(n[0].detalle_especifico.infraestructura_destino).to.eql('Corral QA JE Origen');});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/294/historial?page_size=100"
+          }
+        },
+        {
+          "name": "DESPUES auditoria RF48 admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auditoria HTTP 200',()=>pm.response.to.have.status(200));",
+                  "const prev=JSON.parse(pm.collectionVariables.get('aud_antes_admin')); const nuevos=pm.response.json().registros.filter(r=>!prev.includes(r.id_bitacora));",
+                  "pm.test('V13 auditoria RF48 nueva (exactamente 1 TRANSFERENCIA_REGISTRADA)',()=>{pm.expect(nuevos.length).to.eql(1);pm.expect(nuevos[0].tipo_evento).to.eql('TRANSFERENCIA_REGISTRADA');pm.expect(nuevos[0].resultado).to.eql('EXITOSO');});",
+                  "pm.test('V14 usuario responsable = 1',()=>pm.expect(String(nuevos[0].id_usuario_responsable)).to.eql('1'));",
+                  "pm.test('V13 detalle origen/destino/motivo',()=>{const d=nuevos[0].detalle_tecnico;pm.expect(d.origen).to.eql(51);pm.expect(d.destino).to.eql(48);pm.expect(d.motivo).to.eql('TC-M02-G79 V2 TC-M02-133 admin 20260919 individual compatible 294 51 a 48');});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": "{{base_url}}/activos-biologicos/auditoria?rf_origen=RF48&id_activo_biologico=294&page_size=100"
+          }
+        }
+      ]
+    }
+  ]
+}
