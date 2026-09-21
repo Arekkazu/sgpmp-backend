@@ -1,0 +1,289 @@
+{
+  "inicio_utc": "2026-09-19T06:28:50.923044+00:00",
+  "credencial_veterinario": {
+    "login_correo_documentado": {
+      "ts_utc": "2026-09-19T06:28:52.973771+00:00",
+      "http": 200,
+      "content_type": "application/json",
+      "set_cookie": [
+        "refresh_token=<redactado>; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+      ],
+      "body": {
+        "token": "<redactado>",
+        "tipo": "Bearer",
+        "expira_en": 28799,
+        "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+        "perfil_incompleto": false
+      }
+    },
+    "sesion_bd": [
+      "member_qa",
+      "sgpmp_test",
+      "on"
+    ],
+    "usuarios_bd": [
+      [
+        "3",
+        "juan.carlos.qa133@sgpmp-test.com",
+        "3"
+      ],
+      [
+        "97",
+        "juan.carlos@email.com",
+        "3"
+      ]
+    ]
+  },
+  "actores": {
+    "productor": {
+      "login": {
+        "ts_utc": "2026-09-19T06:28:53.774650+00:00",
+        "http": 200,
+        "content_type": "application/json",
+        "set_cookie": [
+          "refresh_token=<redactado>; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+        ],
+        "body": {
+          "token": "<redactado>",
+          "tipo": "Bearer",
+          "expira_en": 28799,
+          "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+          "perfil_incompleto": false
+        }
+      },
+      "login_emite_cookie_refresh": true,
+      "listado": {
+        "http": 200,
+        "claves": [
+          "pagina_actual",
+          "registros",
+          "registros_por_pagina",
+          "total_paginas",
+          "total_registros"
+        ],
+        "pagina_actual": 1,
+        "total_paginas": 2,
+        "total_registros": 23,
+        "registros_en_pagina": 20,
+        "fixture": 450,
+        "fixture_en_primera_pagina": true
+      },
+      "refresh_sin_cookie": {
+        "ts_utc": "2026-09-19T06:28:55.040270+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_REQUERIDO",
+          "message": "No se encontró una sesión para renovar. Inicia sesión nuevamente.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:54.759425+00:00"
+        }
+      },
+      "refresh_cookie_invalida": {
+        "ts_utc": "2026-09-19T06:28:55.622903+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_INVALIDO",
+          "message": "El refresh token no es válido.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:55.339295+00:00"
+        }
+      },
+      "refresh_cookie_valida": {
+        "ts_utc": "2026-09-19T06:28:56.203611+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:55.924846+00:00"
+        }
+      },
+      "refresh_emite_cookie_nueva": false,
+      "refresh_reuso_cookie_rotada": {
+        "ts_utc": "2026-09-19T06:28:56.798790+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:56.515994+00:00"
+        }
+      }
+    },
+    "veterinario": {
+      "login": {
+        "ts_utc": "2026-09-19T06:28:57.620452+00:00",
+        "http": 200,
+        "content_type": "application/json",
+        "set_cookie": [
+          "refresh_token=<redactado>; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+        ],
+        "body": {
+          "token": "<redactado>",
+          "tipo": "Bearer",
+          "expira_en": 28799,
+          "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+          "perfil_incompleto": false
+        }
+      },
+      "login_emite_cookie_refresh": true,
+      "listado": {
+        "http": 200,
+        "claves": [
+          "pagina_actual",
+          "registros",
+          "registros_por_pagina",
+          "total_paginas",
+          "total_registros"
+        ],
+        "pagina_actual": 1,
+        "total_paginas": 1,
+        "total_registros": 9,
+        "registros_en_pagina": 9,
+        "fixture": 451,
+        "fixture_en_primera_pagina": true
+      },
+      "refresh_sin_cookie": {
+        "ts_utc": "2026-09-19T06:28:58.748333+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_REQUERIDO",
+          "message": "No se encontró una sesión para renovar. Inicia sesión nuevamente.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:58.468717+00:00"
+        }
+      },
+      "refresh_cookie_invalida": {
+        "ts_utc": "2026-09-19T06:28:59.329707+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_INVALIDO",
+          "message": "El refresh token no es válido.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:59.047144+00:00"
+        }
+      },
+      "refresh_cookie_valida": {
+        "ts_utc": "2026-09-19T06:28:59.920850+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:28:59.636972+00:00"
+        }
+      },
+      "refresh_emite_cookie_nueva": false,
+      "refresh_reuso_cookie_rotada": {
+        "ts_utc": "2026-09-19T06:29:00.517712+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:29:00.232507+00:00"
+        }
+      }
+    },
+    "ingeniero": {
+      "login": {
+        "ts_utc": "2026-09-19T06:29:01.483109+00:00",
+        "http": 200,
+        "content_type": "application/json",
+        "set_cookie": [
+          "refresh_token=<redactado>; HttpOnly; Max-Age=604799; Path=/; SameSite=lax; Secure"
+        ],
+        "body": {
+          "token": "<redactado>",
+          "tipo": "Bearer",
+          "expira_en": 28799,
+          "message": "Sesión iniciada exitosamente. Se ha cerrado automáticamente la sesión activa en otros dispositivos por políticas de seguridad de sesión única.",
+          "perfil_incompleto": false
+        }
+      },
+      "login_emite_cookie_refresh": true,
+      "listado": {
+        "http": 200,
+        "claves": [
+          "pagina_actual",
+          "registros",
+          "registros_por_pagina",
+          "total_paginas",
+          "total_registros"
+        ],
+        "pagina_actual": 1,
+        "total_paginas": 1,
+        "total_registros": 9,
+        "registros_en_pagina": 9,
+        "fixture": 452,
+        "fixture_en_primera_pagina": true
+      },
+      "refresh_sin_cookie": {
+        "ts_utc": "2026-09-19T06:29:03.068302+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_REQUERIDO",
+          "message": "No se encontró una sesión para renovar. Inicia sesión nuevamente.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:29:02.698396+00:00"
+        }
+      },
+      "refresh_cookie_invalida": {
+        "ts_utc": "2026-09-19T06:29:03.837881+00:00",
+        "http": 401,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "REFRESH_TOKEN_INVALIDO",
+          "message": "El refresh token no es válido.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:29:03.494916+00:00"
+        }
+      },
+      "refresh_cookie_valida": {
+        "ts_utc": "2026-09-19T06:29:04.537751+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:29:04.260336+00:00"
+        }
+      },
+      "refresh_emite_cookie_nueva": false,
+      "refresh_reuso_cookie_rotada": {
+        "ts_utc": "2026-09-19T06:29:05.125703+00:00",
+        "http": 500,
+        "content_type": "application/json",
+        "set_cookie": [],
+        "body": {
+          "error_code": "AUDITORIA_OBLIGATORIA_FALLIDA",
+          "message": "Fallo crítico de seguridad: No se pudo generar el registro de auditoría obligatorio. La operación REFRESH_TOKEN_ROTADO ha sido cancelada para garantizar la trazabilidad del sistema.",
+          "fields": [],
+          "timestamp": "2026-09-19T06:29:04.842679+00:00"
+        }
+      }
+    }
+  },
+  "fin_utc": "2026-09-19T06:29:05.126847+00:00"
+}

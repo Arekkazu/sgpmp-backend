@@ -1,0 +1,816 @@
+{
+  "info": {
+    "name": "TC-M02-G96 V2 - RF-51 rechazo de indicadores no calculables (criterios V2)",
+    "description": "RF-51 / TC-M02-G96, reevaluacion V2. Criterios V2: TC-M02-160 -> 422 INDICADOR_NO_DISPONIBLE (muestra insuficiente, activo 285); TC-M02-161 -> 400 INDICADOR_NO_APLICABLE_SEXO (activo 299 macho); TC-M02-162 (reformulado) -> 422 INDICADOR_NO_DISPONIBLE por ausencia de consumo VALIDADO en kg en M05 con crecimiento valido (activo 295, 2026-07-15..2026-08-15); TC-M02-163 -> 422 INDICADOR_NO_DISPONIBLE + OUTLIER_CRITICO sin publicar el valor atipico (activo 280). Solo GET; la contrasena se inyecta con --env-var password.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00-SETUP-LECTURA",
+      "item": [
+        {
+          "name": "OpenAPI - contrato de /indicadores",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('El ambiente TEST HTTPS responde 200', () => pm.response.to.have.status(200));",
+                  "const spec = pm.response.json();",
+                  "const ruta = '/activos-biologicos/{id_activo}/indicadores';",
+                  "pm.test('El contrato declara la ruta de indicadores', () => pm.expect(spec.paths).to.have.property(ruta));",
+                  "const get = spec.paths[ruta].get;",
+                  "const p = get.parameters.find((x) => x.name === 'tipo_indicador');",
+                  "pm.test('D12: el contrato expone tipo_indicador con sus valores admitidos', () => {",
+                  "  pm.expect(p, 'no existe el parametro tipo_indicador').to.not.eql(undefined);",
+                  "  ['CRECIMIENTO', 'PRODUCCION', 'SANITARIO', 'EFICIENCIA', 'TODOS'].forEach((v) => {",
+                  "    pm.expect(p.schema.description, 'falta ' + v).to.include(v);",
+                  "  });",
+                  "});",
+                  "pm.test('A7: el contrato NO expone un enum por indicador individual (leche, GDP, conversion)', () => {",
+                  "  pm.expect(norm(JSON.stringify(p.schema))).to.not.match(/leche|ganancia_diaria|conversion_alimenticia/);",
+                  "});",
+                  "const resp = Object.keys(get.responses);",
+                  "pm.collectionVariables.set('respuestas_declaradas', resp.join(','));",
+                  "pm.test('OBS-G96-01 (V2): el contrato declara 422, exigido por TC-M02-160, TC-M02-162 y TC-M02-163', () => {",
+                  "  pm.expect(resp, 'respuestas declaradas: ' + resp.join(',')).to.include('422');",
+                  "});",
+                  "pm.test('OBS-G96-01 (V2): el contrato declara 400, exigido por TC-M02-161', () => {",
+                  "  pm.expect(resp, 'respuestas declaradas: ' + resp.join(',')).to.include('400');",
+                  "});",
+                  "pm.test('El contrato declara un unico metodo GET (caso de solo lectura)', () => {",
+                  "  pm.expect(Object.keys(spec.paths[ruta])).to.eql(['get']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login del consumidor autorizado RF-51",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('D1: el consumidor autentica correctamente', () => pm.response.to.have.status(200));",
+                  "const t = pm.response.json().token;",
+                  "pm.collectionVariables.set('token_consumidor', t);",
+                  "pm.test('D1: la credencial corresponde al usuario 35, propietario de la finca 57', () => {",
+                  "  pm.expect(String(JSON.parse(atob(t.split('.')[1])).sub)).to.eql('35');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "A1 - El consumidor esta autorizado para leer indicadores (control positivo)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('A1: el consumidor obtiene 200 en /indicadores de un activo accesible', () => pm.response.to.have.status(200));",
+                  "pm.test('A1: la respuesta corresponde al activo consultado', () => pm.expect(pm.response.json().id_activo_biologico).to.eql(279));",
+                  "pm.collectionVariables.set('autorizacion_ok', 'SI');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-160 - activo 285 existe y esta activo",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/285/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('A2: el activo 285 existe y es accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo es QAJE-IND-1MED y esta ACTIVO', () => {",
+                  "  pm.expect(b.identificador).to.eql('QAJE-IND-1MED');",
+                  "  pm.expect(b.estado_actual).to.eql('ACTIVO');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-160 - historial confirma 1 medicion en el rango",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/285/historial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('El historial del activo 285 es accesible', () => pm.response.to.have.status(200));",
+                  "const regs = pm.response.json().registros || [];",
+                  "const enRango = regs.filter((r) => r.categoria === 'CRECIMIENTO' && r.fecha_evento >= '2026-07-01' && r.fecha_evento <= '2026-07-31T23:59:59Z');",
+                  "pm.test('A3/A4: exactamente 1 evento de crecimiento entre 2026-07-01 y 2026-07-31', () => {",
+                  "  pm.expect(enRango.length, 'eventos en rango: ' + enRango.length).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-161 - activo 299 bovino macho",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/299/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('A2: el activo 299 existe y es accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('A6: la especie del activo es bovina', () => pm.expect(norm(b.especie)).to.include('bovino'));",
+                  "pm.test('A5: el sexo del activo es Macho', () => pm.expect(norm(String(b.sexo))).to.eql('macho'));",
+                  "pm.test('El activo esta ACTIVO (ninguna otra condicion invalida)', () => pm.expect(b.estado_actual).to.eql('ACTIVO'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-162 - activo 295 existe, esta ACTIVO y es accesible",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/ficha-integral"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('A2: el activo 295 existe y es accesible', () => pm.response.to.have.status(200));",
+                  "const b = pm.response.json();",
+                  "pm.test('El activo es QAJE-DAT-COMPL y esta ACTIVO', () => {",
+                  "  pm.expect(b.identificador).to.eql('QAJE-DAT-COMPL');",
+                  "  pm.expect(b.estado_actual).to.eql('ACTIVO');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-162 - historial confirma 2 pesos en el rango (crecimiento valido)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/historial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('El historial del activo 295 es accesible', () => pm.response.to.have.status(200));",
+                  "const regs = pm.response.json().registros || [];",
+                  "const enRango = regs.filter((r) => r.categoria === 'CRECIMIENTO' && r.fecha_evento >= '2026-07-15' && r.fecha_evento <= '2026-08-15T23:59:59Z');",
+                  "pm.test('TC-162: exactamente 2 eventos de crecimiento entre 2026-07-15 y 2026-08-15', () => {",
+                  "  pm.expect(enRango.length, 'eventos en rango: ' + enRango.length).to.eql(2);",
+                  "});",
+                  "const gdp = Math.round(((230 - 200) / 31) * 10000) / 10000;",
+                  "pm.test('TC-162: calculo independiente QA: ganancia +30 kg en 31 dias, GDP 0.9677 kg/dia (plausible, sin outlier)', () => {",
+                  "  pm.expect(gdp).to.eql(0.9677);",
+                  "  pm.expect(gdp).to.be.below(10);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Datos TC-M02-163 - activo 280 con crecimiento atipico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/280/historial"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('A2: el activo 280 existe y su historial es accesible', () => pm.response.to.have.status(200));",
+                  "const regs = pm.response.json().registros || [];",
+                  "const crec = regs.filter((r) => r.categoria === 'CRECIMIENTO' && r.fecha_evento >= '2026-08-01' && r.fecha_evento <= '2026-08-02T23:59:59Z');",
+                  "pm.test('El rango contiene las 2 mediciones que generan el outlier', () => pm.expect(crec.length).to.eql(2));",
+                  "const gdp = (510 - 10) / 1;",
+                  "pm.test('8.3: el calculo independiente de QA da +500 kg/dia (outlier critico)', () => {",
+                  "  pm.expect(gdp).to.eql(500);",
+                  "  pm.expect(gdp, 'el escenario del caso exige una ganancia biologicamente imposible').to.be.at.least(500);",
+                  "});",
+                  "pm.collectionVariables.set('gdp_qa', String(gdp));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01-CASO-PRINCIPAL",
+      "item": [
+        {
+          "name": "TC-M02-160 - muestra insuficiente (activo 285, Ganancia Diaria de Peso)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/285/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-07-31"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-160: el consumidor esta autorizado (A1 descartado)', () => pm.expect(pm.collectionVariables.get('autorizacion_ok')).to.eql('SI'));",
+                  "pm.test('TC-M02-160: la solicitud pide crecimiento en el rango aislado (A15)', () => {",
+                  "  const u = pm.request.url.toString();",
+                  "  pm.expect(u).to.include('tipo_indicador=CRECIMIENTO');",
+                  "  pm.expect(u).to.include('fecha_inicio=2026-07-01');",
+                  "  pm.expect(u).to.include('fecha_fin=2026-07-31');",
+                  "});",
+                  "pm.test('V3: HTTP 422 por muestra insuficiente (5.5)', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(422));",
+                  "pm.test('V4: la respuesta identifica la muestra insuficiente', () => {",
+                  "  pm.expect(norm(bodyTexto())).to.match(/insuficiente|al menos (2|dos) medicion/);",
+                  "});",
+                  "const ind = indicadorDe('ganancia_peso');",
+                  "pm.test('5.6.8: no se retorna un valor de GDP como valido', () => {",
+                  "  if (ind) { pm.expect(ind.valor, 'valor publicado: ' + ind.valor).to.eql(null);",
+                  "             pm.expect(ind.disponible, 'el indicador se marca disponible').to.eql(false); }",
+                  "});",
+                  "pm.test('V2: error_code = INDICADOR_NO_DISPONIBLE', () => pm.expect((json() || {}).error_code).to.eql('INDICADOR_NO_DISPONIBLE'));",
+                  "pm.test('V3/V4: el mensaje es DATOS_INSUFICIENTES y exige al menos 2 mediciones', () => {",
+                  "  const m = String((json() || {}).message);",
+                  "  pm.expect(m).to.include('DATOS_INSUFICIENTES');",
+                  "  pm.expect(norm(m)).to.match(/al menos (2|dos) medicion/);",
+                  "});",
+                  "pm.test('V5: no se publica ningun indicador valido', () => {",
+                  "  const b = json() || {};",
+                  "  pm.expect((b.indicadores || []).filter((i) => i.disponible === true).length).to.eql(0);",
+                  "});",
+                  "sinValoresInvalidos('TC-M02-160');",
+                  "sinDetallesTecnicos('TC-M02-160');",
+                  "pm.collectionVariables.set('http_160', code);",
+                  "pm.collectionVariables.set('adv_160', advertencias());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-161 - incompatibilidad biologica (activo 299 macho, Produccion de leche)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/299/indicadores?tipo_indicador=PRODUCCION"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-161: el consumidor esta autorizado (A1 descartado)', () => pm.expect(pm.collectionVariables.get('autorizacion_ok')).to.eql('SI'));",
+                  "pm.test('A7: se solicita produccion por la unica via que expone el contrato', () => {",
+                  "  pm.expect(pm.request.url.toString()).to.include('tipo_indicador=PRODUCCION');",
+                  "});",
+                  "pm.test('V7: HTTP 400 por incompatibilidad biologica (6.4)', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(400));",
+                  "pm.test('V8: la respuesta identifica la incompatibilidad biologica especie/genero', () => {",
+                  "  pm.expect(norm(bodyTexto()), 'la respuesta no menciona incompatibilidad biologica').to.match(/incompatibilidad|no es aplicable|especie|genero|sexo/);",
+                  "});",
+                  "const ind = indicadorDe('produccion_promedio');",
+                  "pm.test('6.5.8: no se calcula ni expone el indicador de produccion', () => {",
+                  "  if (ind) { pm.expect(ind.valor, 'valor publicado: ' + ind.valor).to.eql(null);",
+                  "             pm.expect(ind.disponible).to.eql(false); }",
+                  "});",
+                  "pm.test('V2: error_code = INDICADOR_NO_APLICABLE_SEXO', () => pm.expect((json() || {}).error_code).to.eql('INDICADOR_NO_APLICABLE_SEXO'));",
+                  "pm.test('V3: el error senala el campo tipo_indicador', () => {",
+                  "  const f = (json() || {}).fields || [];",
+                  "  pm.expect(f.map((x) => x.field)).to.include('tipo_indicador');",
+                  "});",
+                  "pm.test('V4: el mensaje indica que PRODUCCION no aplica al sexo Macho (no falta de datos)', () => {",
+                  "  const m = String((json() || {}).message);",
+                  "  pm.expect(m).to.include('Macho');",
+                  "  pm.expect(m).to.include('PRODUCCION');",
+                  "  pm.expect(m).to.not.include('DATOS_INSUFICIENTES');",
+                  "});",
+                  "pm.test('V5: no se publica ningun indicador valido', () => {",
+                  "  const b = json() || {};",
+                  "  pm.expect((b.indicadores || []).filter((i) => i.disponible === true).length).to.eql(0);",
+                  "});",
+                  "sinValoresInvalidos('TC-M02-161');",
+                  "sinDetallesTecnicos('TC-M02-161');",
+                  "pm.collectionVariables.set('http_161', code);",
+                  "pm.collectionVariables.set('adv_161', advertencias());"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-162 - sin consumo VALIDADO en M05 con crecimiento valido (activo 295, Conversion Alimenticia)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/295/indicadores?tipo_indicador=EFICIENCIA&fecha_inicio=2026-07-15&fecha_fin=2026-08-15"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-162: el consumidor esta autorizado (A1 descartado)', () => pm.expect(pm.collectionVariables.get('autorizacion_ok')).to.eql('SI'));",
+                  "pm.test('TC-M02-162: la solicitud pide EFICIENCIA (Conversion Alimenticia) en el periodo con crecimiento valido', () => {",
+                  "  const u = pm.request.url.toString();",
+                  "  pm.expect(u).to.include('tipo_indicador=EFICIENCIA');",
+                  "  pm.expect(u).to.include('fecha_inicio=2026-07-15');",
+                  "  pm.expect(u).to.include('fecha_fin=2026-08-15');",
+                  "});",
+                  "pm.test('V1: HTTP 422 por ausencia de consumo VALIDADO en kg', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(422));",
+                  "pm.test('V2: error_code = INDICADOR_NO_DISPONIBLE', () => pm.expect((json() || {}).error_code).to.eql('INDICADOR_NO_DISPONIBLE'));",
+                  "pm.test('V3/V4: el mensaje indica ausencia de consumo de alimento validado en M05 (no REQUIERE_M05)', () => {",
+                  "  const m = norm((json() || {}).message);",
+                  "  pm.expect(m).to.match(/consumo de alimento/);",
+                  "  pm.expect(m).to.match(/validado/);",
+                  "  pm.expect(m).to.match(/m05/);",
+                  "  pm.expect(m).to.not.include('requiere_m05');",
+                  "  pm.expect(m).to.not.match(/no esta implementado|aun no esta implementado/);",
+                  "});",
+                  "pm.test('V5: no se publica ningun FCR valido', () => {",
+                  "  const b = json() || {};",
+                  "  pm.expect((b.indicadores || []).filter((i) => i.disponible === true).length).to.eql(0);",
+                  "});",
+                  "pm.test('V8: no es un error de servidor (500)', () => pm.expect(code).to.not.eql(500));",
+                  "sinValoresInvalidos('TC-M02-162');",
+                  "sinDetallesTecnicos('TC-M02-162');",
+                  "pm.collectionVariables.set('http_162', code);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-163 - outlier critico (activo 280, +500 kg/dia)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/280/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-08-01&fecha_fin=2026-08-02"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "const code = pm.response.code;",
+                  "pm.test('TC-M02-163: el consumidor esta autorizado (A1 descartado)', () => pm.expect(pm.collectionVariables.get('autorizacion_ok')).to.eql('SI'));",
+                  "pm.test('TC-M02-163: la solicitud cubre el periodo del crecimiento atipico (A15)', () => {",
+                  "  const u = pm.request.url.toString();",
+                  "  pm.expect(u).to.include('fecha_inicio=2026-08-01');",
+                  "  pm.expect(u).to.include('fecha_fin=2026-08-02');",
+                  "});",
+                  "const ind = indicadorDe('ganancia_peso');",
+                  "pm.test('A11/A12: la trazabilidad del error reporta el mismo valor que el calculo QA (+500 kg/dia)', () => {",
+                  "  pm.expect(String((json() || {}).message)).to.include('500.0000 kg/dia');",
+                  "});",
+                  "pm.test('V14: el calculo independiente de QA confirma +500 kg/dia', () => {",
+                  "  pm.expect(Number(pm.collectionVariables.get('gdp_qa'))).to.eql(500);",
+                  "});",
+                  "pm.test('V15 (V2): HTTP 422 por outlier critico', () => pm.expect(code, 'obtenido HTTP ' + code).to.eql(422));",
+                  "pm.test('V2: error_code = INDICADOR_NO_DISPONIBLE', () => pm.expect((json() || {}).error_code).to.eql('INDICADOR_NO_DISPONIBLE'));",
+                  "pm.test('V3: el mensaje contiene OUTLIER_CRITICO', () => pm.expect(String((json() || {}).message)).to.include('OUTLIER_CRITICO'));",
+                  "pm.test('V16: la respuesta identifica valores atipicos / resultado biologicamente imposible', () => {",
+                  "  pm.expect(norm(bodyTexto()), 'la respuesta no menciona outlier ni imposibilidad biologica').to.match(/atipic|outlier|biologicamente imposible/);",
+                  "});",
+                  "pm.test('V4/V5: +500 kg/dia no se publica como indicador valido (ningun indicador disponible=true)', () => {",
+                  "  const b = json() || {};",
+                  "  pm.expect((b.indicadores || []).filter((i) => i.disponible === true).length).to.eql(0);",
+                  "});",
+                  "pm.test('V17: no se expone el indicador atipico como valido', () => {",
+                  "  if (ind) { pm.expect(ind.disponible, 'el indicador se publica como disponible').to.eql(false);",
+                  "             pm.expect(ind.valor, 'valor publicado: ' + ind.valor).to.eql(null); }",
+                  "});",
+                  "sinValoresInvalidos('TC-M02-163');",
+                  "sinDetallesTecnicos('TC-M02-163');",
+                  "pm.collectionVariables.set('http_163', code);",
+                  "pm.collectionVariables.set('valor_163', ind ? String(ind.valor) : 'sin indicador');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02-DIAGNOSTICO",
+      "item": [
+        {
+          "name": "DIAG - control positivo: el calculo si funciona con datos normales (activo 279)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_consumidor}}"
+              }
+            ],
+            "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const norm = (s) => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();",
+                  "const bodyTexto = () => pm.response.text();",
+                  "const json = () => { try { return pm.response.json(); } catch (e) { return null; } };",
+                  "const indicadorDe = (tipo) => { const b = json(); if (!b || !Array.isArray(b.indicadores)) return null;",
+                  "  return b.indicadores.find((i) => i.tipo === tipo) || null; };",
+                  "const advertencias = () => { const b = json(); return (b && Array.isArray(b.advertencias)) ? b.advertencias.join(' | ') : ''; };",
+                  "const sinValoresInvalidos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no contiene Infinity ni NaN', () => {",
+                  "    pm.expect(bodyTexto()).to.not.match(/\\bInfinity\\b|\\bNaN\\b/);",
+                  "  });",
+                  "};",
+                  "const sinDetallesTecnicos = (etiqueta) => {",
+                  "  pm.test(etiqueta + ': la respuesta no expone stack trace, SQL ni rutas internas', () => {",
+                  "    const t = bodyTexto();",
+                  "    pm.expect(t).to.not.match(/Traceback|site-packages|sqlalchemy|psycopg2|SELECT .*FROM/i);",
+                  "    pm.expect(t).to.not.include('/src/');",
+                  "  });",
+                  "};",
+                  "pm.test('DIAG: el endpoint calcula normalmente con datos validos', () => pm.response.to.have.status(200));",
+                  "const ind = indicadorDe('ganancia_peso');",
+                  "pm.test('DIAG: con 2+ mediciones normales el indicador se publica como disponible', () => {",
+                  "  pm.expect(ind).to.not.eql(null);",
+                  "  pm.expect(ind.disponible).to.eql(true);",
+                  "});",
+                  "pm.collectionVariables.set('valor_control_279', ind ? String(ind.valor) : 'n/d');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "password",
+      "value": ""
+    }
+  ]
+}
