@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -156,6 +157,29 @@ _LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolid
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
 _LIMITE_REGISTRO_ACTIVO = rate_limit(100, 60, alcance="activos_registro")
 
+_MENSAJE_FORMATO_FECHA = 'Formato de fecha inválido. Use el formato YYYY-MM-DD.'
+_MENSAJE_FORMATO_FECHA_HORA = 'Formato de fecha y hora inválido. Use el formato ISO 8601.'
+
+
+def _mensaje_validacion_dto(exc: PydanticValidationError) -> str:
+    """Extrae solo el mensaje funcional de un error Pydantic.
+
+    ``str(exc)`` incluye el nombre interno del DTO, el input recibido, tipos y
+    enlaces de Pydantic. Los validadores de M02 ya redactan mensajes de negocio;
+    Pydantic los conserva en ``ctx.error`` sin añadir metadatos del framework.
+    """
+    errores = exc.errors()
+    if not errores:
+        return 'Los parámetros de la solicitud no son válidos.'
+
+    primero = errores[0]
+    contexto = primero.get('ctx') or {}
+    if primero.get('type') == 'value_error' and contexto.get('error') is not None:
+        return str(contexto['error'])
+
+    mensaje = str(primero.get('msg') or 'Los parámetros de la solicitud no son válidos.')
+    return mensaje.removeprefix('Value error, ')
+
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
     """Resuelve las fincas permitidas para el usuario (RF-25). ``None`` = global."""
@@ -297,7 +321,6 @@ def listar_activos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivosPaginadosResponse:
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ListarActivosDTO(
             tipo=tipo,
@@ -307,8 +330,16 @@ def listar_activos(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message='Los parámetros de la solicitud no son válidos.',
+        ) from None
 
     use_case = ListarActivosUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
     registros, total = use_case.execute(
@@ -379,7 +410,6 @@ def consultar_bitacora(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> BitacoraAuditoriaResponse:
     from datetime import datetime as _dt
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarBitacoraDTO(
             rf_origen=rf_origen,
@@ -393,8 +423,16 @@ def consultar_bitacora(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA_HORA,
+        ) from None
 
     use_case = ConsultarBitacoraUseCase(
         db=db,
@@ -989,7 +1027,6 @@ def consultar_historial(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarHistorialDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
@@ -998,11 +1035,16 @@ def consultar_historial(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Formato de fecha inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
     use_case = ConsultarHistorialUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
@@ -1332,18 +1374,22 @@ def consultar_indicadores(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IndicadoresActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarIndicadoresDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
             fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
             tipo_indicador=tipo_indicador,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
 
     use_case = ConsultarIndicadoresUseCase(
         db=db,
@@ -1408,7 +1454,6 @@ def consultar_datos_consolidados(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DatosConsolidadosResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = DatosConsolidadosDTO(
             tipo_dato=tipo_dato,
@@ -1417,11 +1462,16 @@ def consultar_datos_consolidados(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
 
     use_case = ConsultarDatosConsolidadosUseCase(
         db=db,
