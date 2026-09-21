@@ -35,6 +35,13 @@ _ID_ESPECIE_CACHAMA_BLANCA = 4
 
 @pytest.fixture
 def infra_cachama(db_session: Session, crear_usuario_db) -> int:
+    db_session.execute(
+        text(
+            "UPDATE modulo9.especies SET densidad_maxima_por_especie = 1000 "
+            "WHERE id_especie = :id"
+        ),
+        {"id": _ID_ESPECIE_CACHAMA_BLANCA},
+    )
     metrica = db_session.execute(
         text(
             "SELECT 1 FROM modulo9.metricas_produccion "

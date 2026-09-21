@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -17,6 +16,7 @@ from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloC
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
+from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -159,22 +159,20 @@ class RegistrarEventoCrecimientoUseCase:
             infra = self.infra_port.obtener_activa(activo.id_infraestructura)
             superficie = infra.superficie if infra and infra.superficie else None
 
-            # RF-36 (INC-M02-38-G25): "densidad no debe superar la
-            # densidad_maxima_por_especie definida en M09". Esa densidad
-            # máxima se deriva de infraestructuras.capacidad_maxima / superficie
-            # (ya expuesto en InfraestructuraConsulta, sin usar hasta ahora en
-            # este flujo). La densidad se calcula sobre cantidad_actual, que un
-            # evento de crecimiento nunca modifica (RF-36: solo eventos de BAJA
-            # o ingresos la cambian) — se valida antes de mutar el detalle.
-            if infra and infra.capacidad_maxima and superficie and superficie > 0:
-                cantidad_actual = Decimal(str(activo.detalle_poblacional.cantidad_actual or 0))
-                densidad_actual = cantidad_actual / superficie
-                densidad_maxima = Decimal(infra.capacidad_maxima) / superficie
-                if densidad_actual > densidad_maxima:
-                    raise ConflictError(
-                        code='DENSIDAD_MAXIMA_SUPERADA',
-                        message='La densidad del lote supera el máximo permitido para la especie.',
-                    )
+            if superficie is None:
+                raise BusinessRuleError(
+                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
+                    message='La infraestructura debe tener una superficie mayor a cero para calcular la densidad.',
+                    field='id_infraestructura',
+                )
+
+            calcular_y_validar_densidad(
+                cantidad_actual=activo.detalle_poblacional.cantidad_actual or 0,
+                superficie=superficie,
+                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
+                    activo.id_especie
+                ),
+            )
 
             activo.aplicar_evento_crecimiento(
                 nuevo_peso_promedio=dto.nuevo_peso_promedio,
