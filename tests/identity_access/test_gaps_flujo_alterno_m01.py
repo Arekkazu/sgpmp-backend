@@ -423,3 +423,67 @@ def test_rf11_editar_un_usuario_eliminado_responde_410() -> None:
     assert error.value.status_code == 410
     assert error.value.code == "USUARIO_ELIMINADO"
     assert db.commits == 0
+
+
+class _PortNotificacionFake:
+    def __init__(self, estado_cuenta: int) -> None:
+        self.estado_cuenta = estado_cuenta
+        self.enviados: list[dict] = []
+
+    def buscar_estado_cuenta(self, _id_usuario):
+        return self.estado_cuenta
+
+    def buscar_ultimo_evento_id(self, _id_usuario, _tipo_evento):
+        return 999
+
+    def buscar_correo_usuario(self, _id_usuario):
+        return "inactivo@example.com"
+
+    def buscar_fcm_tokens(self, _id_usuario):
+        return []
+
+    def verificar_anti_spam(self, *_a, **_k):
+        return False
+
+    def registrar(self, **datos) -> int:
+        self.enviados.append(datos)
+        return len(self.enviados)
+
+    def actualizar_estado(self, _id_notificacion, _estado) -> None:
+        pass
+
+
+def test_rf14_login_fallido_no_llega_a_una_cuenta_inactiva(monkeypatch) -> None:
+    """RF-14: "Evento de seguridad en Usuario Inactivo" → se ignora por completo.
+
+    INACTIVO compartía la excepción de "eventos de seguridad" con BLOQUEADO, así
+    que LOGIN_FALLIDO se enviaba igual y confirmaba la existencia de la cuenta.
+    """
+    from src.shared import notificacion_service as modulo
+
+    monkeypatch.setattr(modulo, "send_email", lambda **_k: None)
+    port = _PortNotificacionFake(estado_cuenta=modulo.ESTADO_INACTIVO)
+
+    modulo.NotificacionService(port=port, db=_DbFake()).notificar(
+        tipo_evento=4,  # LOGIN_FALLIDO
+        id_usuario=55,
+        correo_destino="inactivo@example.com",
+    )
+
+    assert port.enviados == []
+
+
+def test_rf14_login_fallido_sigue_llegando_a_una_cuenta_bloqueada(monkeypatch) -> None:
+    """La restricción del RF para BLOQUEADO sí incluye el intento fallido."""
+    from src.shared import notificacion_service as modulo
+
+    monkeypatch.setattr(modulo, "send_email", lambda **_k: None)
+    port = _PortNotificacionFake(estado_cuenta=modulo.ESTADO_BLOQUEADO)
+
+    modulo.NotificacionService(port=port, db=_DbFake()).notificar(
+        tipo_evento=4,
+        id_usuario=55,
+        correo_destino="bloqueado@example.com",
+    )
+
+    assert len(port.enviados) == 2  # email + interno
