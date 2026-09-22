@@ -1,0 +1,254 @@
+{
+  "info": {
+    "name": "TC-M09-G70 - Rechazo y manejo de configuracion remota invalida (RF-23, CU-05)",
+    "description": "TC-M09-G70 (RF-23, CU-05 Gestionar Dispositivos IoT), sub-casos TC-M09-133, TC-M09-134, TC-M09-135, TC-M09-138.\n\nPrimera coleccion de esta sesion armada contra el entorno DEV (https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp), no TEST -- ver convencion nueva desde 2026-09-12.\n\nSub-caso 3 (TC-M09-135, intervalo_transmision < frecuencia_captura) y sub-caso 4 (TC-M09-138, formato/estructura invalidos) se prueban en vivo sin ninguna limitacion -- son validaciones de ConfigurarRemotamenteDTO (Pydantic: field_validator de tipo/positivo + model_validator de coherencia), ocurren ANTES de que el endpoint/use case se ejecute, asi que no dependen del broker MQTT.\n\nSub-caso 1 (TC-M09-133, dispositivo offline -> configuracion queda PENDIENTE) SI se pudo verificar en vivo con un resultado limpio: DEV devuelve estado=PENDIENTE, HTTP 202, con el mensaje 'Dispositivo offline. La configuracion quedara pendiente hasta que reconecte.' -- coincide exactamente con lo que pide la ficha. NOTA: el mecanismo real (confirmado leyendo mqtt_http_adapter.py en el codigo local, rama casos-qa-juan-parra) es que el adaptador jamas intenta contactar al broker si MQTT_BROKER_URL/MQTT_BROKER_TOKEN no estan configurados -- degrada a PENDIENTE para CUALQUIER dispositivo, este online o no. El mensaje especifico 'Dispositivo offline...' visto en DEV sugiere que el codigo desplegado ahi podria diferir del que hay en el checkout local (la rama dev del repo avanzo por separado, ver revision de ramas de fix de la sesion anterior) -- de cualquier forma, el RESULTADO OBSERVABLE coincide con lo que exige la ficha (no se aplica, no se altera la configuracion activa), asi que el sub-caso se da por verificado por comportamiento, aunque no se pudo confirmar en esta sesion si distingue genuinamente 'device offline' de 'broker no configurado'.\n\nSub-caso 2 (TC-M09-134, timeout de 30s sin ACK -> verificar comportamiento ante HTTP 504) NO se pudo materializar: el codigo real solo tiene 3 estados (PENDIENTE, APLICADA, NO_CONF -- no existe 'PENDIENTE_SYNC' como dice la ficha), y el router SI mapea NO_CONF a HTTP 504 (GatewayTimeoutError) -- pero ese camino exige que el adaptador intente de verdad publicar en el broker y reciba una respuesta explicita de 'no ACK', algo que requiere un broker MQTT real y un dispositivo fisico/simulado que efectivamente no responda dentro del timeout. Sin ese broker+simulador (mismo gap 'fuera de stack' ya documentado en TC-M09-G69), este sub-caso solo puede confirmarse por lectura de codigo, no en vivo. Se deja documentado como hallazgo de ambiente, no como bug.\n\nLa coleccion registra su propio dispositivo IoT fresco (tipo GENERICO, id_tipo_dispositivo=1, rango 1-1440 min) sobre id_infraestructura=3 (finca 1).\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Validacion / Disponibilidad. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) {",
+              "    pm.collectionVariables.set('token', respuesta.token);",
+              "    pm.collectionVariables.set('run_id', Date.now().toString());",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Precondicion - Registrar dispositivo IoT fresco (GENERICO)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Precondicion: el registro del dispositivo responde HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) {",
+              "    pm.collectionVariables.set('id_dispositivo', respuesta.id_dispositivo_iot);",
+              "} else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"serial\": \"G70-{{run_id}}\",\n  \"descripcion\": \"Sensor de prueba TC-M09-G70\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_dispositivo}},\n  \"es_activo\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/dispositivos-iot", "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 1 (TC-M09-133) - Configurar dispositivo offline: debe quedar PENDIENTE, no aplicada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 1: responde HTTP 202 (configuracion aceptada pero no aplicada)', function () { pm.response.to.have.status(202); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 1: el estado queda PENDIENTE, sin fecha_aplicacion -- no se altera la configuracion como aplicada', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.estado).to.equal('PENDIENTE');",
+              "    pm.expect(respuesta.fecha_aplicacion).to.equal(null);",
+              "});",
+              "console.log('Mensaje devuelto: ' + (respuesta ? respuesta.mensaje : 'N/A'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 15\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 2 (TC-M09-134, HALLAZGO DE AMBIENTE) - Consultar historial de configuraciones del dispositivo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Sub-caso 2: no se puede forzar en vivo un timeout de ACK sin un broker MQTT real y un dispositivo/simulador que no responda -- mismo gap FUERA DE STACK que TC-M09-G69. Se consulta el historial para documentar el estado real disponible. ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta del historial de configuraciones responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('HALLAZGO: el unico estado alcanzable en este ambiente es PENDIENTE -- la ficha exige verificar un estado \"PENDIENTE_SYNC\" que no existe en el codigo (los estados reales son PENDIENTE, APLICADA, NO_CONF)', function () {",
+              "    const items = respuesta.items || respuesta.registros || respuesta;",
+              "    const estados = Array.isArray(items) ? items.map(function (c) { return c.estado; }) : [];",
+              "    console.log('Estados encontrados en el historial: ' + estados.join(', '));",
+              "    pm.expect(estados).to.not.include('PENDIENTE_SYNC');",
+              "});",
+              "console.log('CONCLUSION sub-caso 2: el camino NO_CONF/HTTP 504 (GatewayTimeoutError, ver dispositivo_iot_router.py) existe en el codigo y esta correctamente implementado por lectura, pero es inalcanzable en este ambiente sin un broker MQTT real + un dispositivo (fisico o simulado) que reciba el comando y deliberadamente no confirme dentro de los ~30s. No es un bug -- es una limitacion de ambiente, igual que TC-M09-G69 (MQTT/LoRaWAN).');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configuraciones",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configuraciones" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 3 (TC-M09-135) - Rechazar intervalo_transmision menor a frecuencia_captura",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 3: rechazado con HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 3: codigo VAL_ENTRADA, mensaje menciona la incoherencia frecuencia/intervalo', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].message).to.include('intervalo de transmisión no puede ser menor');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": 5\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 4a (TC-M09-138) - Rechazar frecuencia_captura con formato invalido ('abc')",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 4a: rechazado con HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 4a: codigo VAL_ENTRADA con el campo frecuencia_captura senalado', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('frecuencia_captura');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": \"abc\",\n  \"intervalo_transmision\": 15\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sub-caso 4b (TC-M09-138) - Rechazar intervalo_transmision=null (payload alterado)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Sub-caso 4b: rechazado con HTTP 400', function () { pm.response.to.have.status(400); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Sub-caso 4b: codigo VAL_ENTRADA con el campo intervalo_transmision senalado', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('VAL_ENTRADA');",
+              "    pm.expect(respuesta.fields[0].field).to.equal('intervalo_transmision');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_captura\": 10,\n  \"intervalo_transmision\": null\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{id_dispositivo}}/configurar",
+          "host": [ "{{base_url}}" ], "path": [ "configuracion", "dispositivos-iot", "{{id_dispositivo}}", "configurar" ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "run_id", "value": "" },
+    { "key": "id_infraestructura", "value": "3" },
+    { "key": "id_tipo_dispositivo", "value": "1" },
+    { "key": "id_dispositivo", "value": "" }
+  ]
+}

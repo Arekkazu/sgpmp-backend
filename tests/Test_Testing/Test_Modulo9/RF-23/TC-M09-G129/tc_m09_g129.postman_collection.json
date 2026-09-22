@@ -1,0 +1,160 @@
+{
+  "info": {
+    "name": "TC-M09-G129 - Rechazo de dispositivo falso/no registrado (spoofing IoT, OWASP A01/A07/A09, CU-05)",
+    "description": "TC-M09-G129 (OWASP A01/A07/A09, CU-05 Gestionar Dispositivos IoT). La ficha etiqueta RF-23, pero el endpoint real bajo prueba (POST /iot/telemetria, ingesta de lecturas) pertenece a RF-53 (src/telemetry) -- se mantiene la carpeta RF-23 por consistencia con el resto de TCs de dispositivos IoT de esta sesion. Sin sub-caso ID explicito en la ficha (formato mas corto que otras); se trata como un unico caso.\n\nArmada contra DEV. Auth de este endpoint: NO usa JWT -- la identidad se valida dentro del use case via `access_key` (serial del dispositivo) + `device_id`/`sensor_id` en el body (ver telemetria_router.py, comentario de modulo).\n\nEscenario 1: device_id=999 (no registrado en absoluto) + access_key inventada -> confirmado en vivo HTTP 401 ERROR_AUTENTICACION, exactamente lo que pide la ficha.\nEscenario 2 (suplantacion mas realista): device_id=14 (dispositivo REAL, existente en DEV) + access_key falsa (no coincide con su serial real) -> tambien 401 ERROR_AUTENTICACION -- confirma que no basta con adivinar/conocer un device_id valido, la access_key se valida igual de estricto.\n\nNo persistencia: confirmado por lectura de codigo (IngerirTelemetriaUseCase.execute(), Fase 2) que la validacion de identidad ocurre ANTES de cualquier intento de self.repo.guardar() -- ninguna lectura llega a persistirse para ninguno de los dos escenarios.\n\nHALLAZGO (OWASP A09, mismo patron que TC-M09-G72 para RF-23): la ficha pide 'verificar el evento en auditoria'. IngerirTelemetriaUseCase SI registra el intento fallido (bitacora_repo.registrar_error(), ver except AuthenticationError), pero en la tabla `bitacora_ingest` -- que NO tiene NINGUN endpoint GET expuesto en ningun router (confirmado buscando 'bitacora_ingest'/'BitacoraIngest' en src/telemetry/infrastructure/routers/: solo aparece en telemetria_router.py, el que ESCRIBE, nunca en un router de lectura). El unico endpoint de auditoria realmente consultable por API es GET /iot/auditoria (RF-63, bitacora_auditoria_iot), pero ese es alimentado por un mecanismo COMPLETAMENTE DISTINTO (EvaluarCalidadTelemetriaUseCase, RF-62) que IngerirTelemetriaUseCase nunca invoca en el camino de fallo de autenticacion. Confirmado en vivo: tras los dos intentos de suplantacion, GET /iot/auditoria sigue mostrando los mismos 3 registros de un evento no relacionado (transiciones de mantenimiento de dispositivo, 2026-07-27) -- ningun rastro de los intentos de spoofing.\n\nResponsable: Juan Pablo. Prioridad: Alta. Tipo: Seguridad. Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); }",
+              "else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Baseline - Consultar GET /iot/auditoria antes de los intentos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Baseline: la consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (respuesta) { pm.collectionVariables.set('total_auditoria_antes', respuesta.total); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/iot/auditoria?por_pagina=10", "host": [ "{{base_url}}" ], "path": [ "iot", "auditoria" ], "query": [ { "key": "por_pagina", "value": "10" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 1 - Telemetria con device_id no registrado (999)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('Escenario 1: rechazado con HTTP 401', function () { pm.response.to.have.status(401); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Escenario 1: codigo ERROR_AUTENTICACION', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ERROR_AUTENTICACION');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": 999,\n  \"sensor_id\": 1,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.5,\n  \"unidad\": \"C\",\n  \"timestamp_captura\": \"{{$isoTimestamp}}\",\n  \"access_key\": \"clave-inventada-dispositivo-999\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/iot/telemetria", "host": [ "{{base_url}}" ], "path": [ "iot", "telemetria" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Escenario 2 (suplantacion) - device_id real (14) con access_key falsa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Escenario 2: device_id existente pero access_key que no coincide con su serial real (suplantacion) ---');",
+              "console.log(pm.response.text());",
+              "pm.test('Escenario 2: rechazado con HTTP 401', function () { pm.response.to.have.status(401); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('Escenario 2: codigo ERROR_AUTENTICACION -- conocer un device_id real no basta sin la access_key correcta', function () {",
+              "    pm.expect(respuesta).to.not.equal(null);",
+              "    pm.expect(respuesta.error_code).to.equal('ERROR_AUTENTICACION');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"device_id\": {{id_dispositivo_real}},\n  \"sensor_id\": 1,\n  \"tipo_variable\": \"TEMPERATURA_AMBIENTAL\",\n  \"valor\": 25.5,\n  \"unidad\": \"C\",\n  \"timestamp_captura\": \"{{$isoTimestamp}}\",\n  \"access_key\": \"clave-falsa-suplantacion\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/iot/telemetria", "host": [ "{{base_url}}" ], "path": [ "iot", "telemetria" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Verificacion final (HALLAZGO OWASP A09) - Los intentos NO quedan en GET /iot/auditoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('--- Verificando si los 2 intentos de spoofing dejaron algun rastro en la auditoria consultable por API ---');",
+              "console.log(pm.response.text());",
+              "pm.test('La consulta de auditoria responde HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('HALLAZGO: el total de auditoria NO cambio -- los intentos de spoofing SI se rechazan (401) pero no dejan rastro en ningun endpoint de auditoria consultable', function () {",
+              "    const antes = parseInt(pm.collectionVariables.get('total_auditoria_antes'), 10);",
+              "    pm.expect(respuesta.total).to.equal(antes);",
+              "});",
+              "console.log('CONCLUSION: IngerirTelemetriaUseCase SI llama a bitacora_repo.registrar_error() en el except AuthenticationError, pero esa tabla (bitacora_ingest) no tiene ningun endpoint GET expuesto. El endpoint SI consultable (GET /iot/auditoria, RF-63) es alimentado por un mecanismo distinto (EvaluarCalidadTelemetriaUseCase, RF-62) que nunca se ejecuta en el camino de fallo de autenticacion. Mismo patron OWASP A09 ya documentado en TC-M09-G72 para RF-23.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{base_url}}/iot/auditoria?por_pagina=10", "host": [ "{{base_url}}" ], "path": [ "iot", "auditoria" ], "query": [ { "key": "por_pagina", "value": "10" } ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_dispositivo_real", "value": "14" },
+    { "key": "total_auditoria_antes", "value": "" }
+  ]
+}
