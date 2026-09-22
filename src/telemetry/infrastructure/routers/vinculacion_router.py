@@ -25,13 +25,28 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.telemetry.application.use_cases.infraestructura.corregir_vinculacion_use_case import CorregirVinculacionUseCase
 from src.telemetry.application.use_cases.infraestructura.listar_vinculaciones_use_case import ListarVinculacionesUseCase
 from src.telemetry.application.use_cases.infraestructura.resolver_vinculacion_use_case import ResolverVinculacionUseCase
+from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
 from src.telemetry.infrastructure.adapters.activo_biologico_stub_adapter import ActivoBiologicoStubAdapter
+from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
+from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
 from src.telemetry.infrastructure.dto.corregir_vinculacion_dto import CorregirVinculacionDTO
 from src.telemetry.infrastructure.dto.resolver_vinculacion_dto import ResolverVinculacionDTO
+from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
+from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
 from src.telemetry.infrastructure.schema.vinculacion_lectura_schema import ListaVinculacionesSchema, VinculacionLecturaSchema
 
 router = APIRouter(prefix="/iot/vinculaciones", tags=["Telemetría IoT - Vinculaciones RF-61"])
+
+
+def _build_reclasificar_semaforo_use_case(db: Session) -> ReclasificarSemaforoUseCase:
+    return ReclasificarSemaforoUseCase(
+        db=db,
+        telemetria_repo=SqlAlchemyTelemetriaRepository(db),
+        especie_port=EspecieActivoM02Adapter(db),
+        umbral_port=UmbralHistoricoM09Adapter(db),
+        monitoreo_repo=SqlAlchemyMonitoreoRepository(db),
+    )
 
 
 @router.get(
@@ -136,6 +151,7 @@ def resolver_vinculacion(
     use_case = ResolverVinculacionUseCase(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
+        reclasificar_semaforo_use_case=_build_reclasificar_semaforo_use_case(db),
     )
     vinculacion = use_case.execute(
         id_vinculacion_lectura=id_vinculacion_lectura,
@@ -167,6 +183,7 @@ def corregir_vinculacion(
     use_case = CorregirVinculacionUseCase(
         db=db,
         vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
+        reclasificar_semaforo_use_case=_build_reclasificar_semaforo_use_case(db),
     )
     nueva = use_case.execute(
         id_vinculacion_lectura=id_vinculacion_lectura,

@@ -337,6 +337,13 @@ Errores posibles:
 - `404` — métrica no existe
 - `422` — métrica ya inactiva o tiene registros productivos activos (FA-09)
 
+Los valores históricos `manual`, `calculada` y `TALLA` no forman parte de
+`tipo_medicion`: describían el método o una denominación anterior, no la magnitud RF-16.
+La migración `v5.3.0_rf16_normalizar_tipos_medicion_legacy` los convierte al catálogo
+vigente, corrige `tipo_dato` y valida `chk_metricas_tipo_medicion`. Esto permite que el
+endpoint evalúe FA-09 y responda `METRICA_CON_REGISTROS` en vez de fallar durante la
+hidratación ORM.
+
 ---
 
 ## Tabla FA-10: coherencia unidad_medida / tipo_medicion

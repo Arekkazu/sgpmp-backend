@@ -27,7 +27,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
 | RF-15 | Catálogo de especies productivas | ⚠️ Cumple parcialmente | ~85% |
-| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~80% |
+| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~90% |
 | RF-17 | Umbrales de monitoreo y niveles de alerta ambiental | ⚠️ Cumple parcialmente | ~90% |
 | RF-18 | Parámetros operativos del sistema (frecuencia/heartbeat) | ✅ Cumple | ~95% |
 | RF-19 | Registro y gestión de datos de la finca | ⚠️ Cumple parcialmente | ~85% |
@@ -37,7 +37,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
 | RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~100% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
-| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
+| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~95% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
 | RF-28 | Personalización del dashboard | ⚠️ Cumple parcialmente | ~65% |
 | RF-29 | Configuración de idioma | ✅ Cumple | ~90% |
@@ -118,10 +118,11 @@ inconsistencia de permisos ya documentada por el propio equipo.
 
 ## RF-16 — Configuración de etapas productivas, patologías y métricas por especie
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — de los tres sub-catálogos que pide el RF, las
-**etapas** tienen el chequeo de dependencias real (consulta una vista SQL), mientras que
-**patologías** y **métricas** lo tienen stubbeado a la espera de M04. (La discrepancia de
-"patologías global vs. por especie" fue **resuelta** en #1633, 2026-08-23 — ver abajo.)
+**Veredicto: ⚠️ Cumple parcialmente (~90%)** — los tres sub-catálogos tienen CRUD y chequeos
+reales de dependencias. La discrepancia de "patologías global vs. por especie" fue resuelta en
+#1633; los stubs de patologías y métricas fueron reemplazados por repositorios SQLAlchemy. El
+2026-09-17, INC-M09-06-G15 cerró además la incompatibilidad entre los tipos históricos de
+métricas y el dominio RF-16. Permanece el gap transversal de modo offline descrito abajo.
 
 ### Qué SÍ cumple
 
@@ -158,13 +159,13 @@ inconsistencia de permisos ya documentada por el propio equipo.
   `id_patologia` es opcional/NULL. M09 ya **no escribe** el catálogo M04 (antes lo hacía —
   mezcla de responsabilidades corregida). Ver `rf16-patologias-por-especie-mod9/resumen.md`
   y la migración `alembic/versions/192872fafd40_...py`.
-- **Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**
-  `desactivar_patologia_use_case.py` usa `DependenciaPatologiaPort`, implementado por
-  `infrastructure/adapters/dependencia_patologia_stub.py` (siempre `False`, pendiente de
-  M04). `desactivar_metrica_use_case.py` usa `DependenciaMetricaPort`, implementado por
-  `dependencia_metrica_stub.py` (mismo patrón). Los flujos alternos de RF-16 que piden
-  `HTTP 422` al intentar desactivar una patología con historial clínico o una métrica con
-  registros productivos existen en código pero no se disparan con ningún dato real hoy.
+- ~~**Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**~~
+  **RESUELTO.** `SqlAlchemyDependenciaPatologiaRepository` consulta la vista de dependencias
+  clínicas y `SqlAlchemyDependenciaMetricaRepository` consulta
+  `modulo2.eventos_productivos`. TC-M09-37 confirmó el bloqueo de patologías. Para métricas,
+  INC-M09-06-G15 agregó la migración `v5.3.0_rf16_normalizar_tipos_medicion_legacy`: normaliza
+  `manual`/`calculada`/`TALLA`, corrige `tipo_dato` y valida el CHECK. TC-M09-38 llega ahora a
+  FA-09 y responde `422 METRICA_CON_REGISTROS` sin modificar la métrica.
 - **`modulo9.patologias` mezcla campos propios de M09 (RF-16) con campos de M04**
   (`nombre_tecnico`, `etiologia`, `categoria`, `codigo_cie`, `es_base`, `version_catalogo`,
   `descripcion_clinica`) — confirma que la tabla fue diseñada como catálogo compartido entre
@@ -509,7 +510,9 @@ se reemplazó el stub por integración MQTT real vía `BROKER-MQTT-SGPMP` (repo 
 verificado end-to-end con backend + broker + Mosquitto reales. El 2026-08-24 (issue #1632) se
 agregaron los **rangos de configuración por tipo de dispositivo**, cerrando ese gap. Detalle
 del MVP en `anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md` y de los rangos por tipo en
-`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. Queda fuera de esta entrega el
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. El 2026-09-17 se cerró además el
+BOLA reportado en TC-M09-G71: configurar y consultar el historial validan el alcance por finca
+antes de acceder al dispositivo. Queda fuera de esta entrega el
 reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
@@ -534,7 +537,10 @@ reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver
   la migración Alembic `7e2d5f3bf17a_rf23_mqtt_integracion.py` (primera migración real del
   proyecto; hasta ahora los gaps de Paso 0 se aplicaban directo a la BD vía MCP postgres).
 - Historial de configuración por dispositivo consultable
-  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`).
+  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`). Tanto este historial como el
+  POST de configuración aplican el alcance de `AlcanceFincaAdapter`: Administrador global e
+  Ingeniero limitado a las fincas vinculadas a su usuario. Un ID ajeno se presenta como
+  `404 DISPOSITIVO_NO_ENCONTRADO`, sin persistencia ni publicación MQTT (TC-M09-G71/#300).
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
   `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
   `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
@@ -725,7 +731,7 @@ sí solo.
 
 ## RF-26 — Personalización de identidad visual del sistema
 
-**Veredicto: ✅ Cumple (~90%)**
+**Veredicto: ✅ Cumple (~95%)**
 
 ### Qué SÍ cumple
 
@@ -744,7 +750,14 @@ sí solo.
 - **RBAC exacto**: recurso `identidad_visual` (id=23), solo Administrador con C/R/U —
   coincide exactamente con "Solo los usuarios con rol Administrador podrán modificar la
   identidad visual del sistema".
-- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`.
+- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`, consultable por
+  `GET /configuracion/identidad-visual/{id_finca}/auditoria`. La respuesta incluye usuario,
+  fecha, operación y snapshots, y está protegida por el permiso `R` del recurso 23.
+- **TC-M09-169-G89 (#307) resuelto:** `/auditoria/` solo representa
+  `modulo1.eventos`; el historial de identidad visual ahora tiene su propio endpoint de
+  dominio. La migración `47038edfa2fc` elimina el trigger específico que duplicaba cada
+  `UPDATE`; los duplicados históricos se conservan, pero la API selecciona solo la fila
+  canónica con `id_finca` generada transaccionalmente por el caso de uso.
 
 ### Qué NO cumple / gaps
 
