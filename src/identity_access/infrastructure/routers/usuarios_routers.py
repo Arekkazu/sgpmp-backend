@@ -298,6 +298,7 @@ def consultar_perfil(
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         412: {"model": ErrorResponse},

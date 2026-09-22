@@ -69,11 +69,16 @@ def test_dtos_de_perfil_rechazan_campos_fuera_de_su_alcance() -> None:
         "version": 1,
     }
 
+    # El DTO propio acepta los datos críticos para que el rechazo lo haga el
+    # caso de uso con 403 + auditoría (RF-05); no los aplica nunca.
+    propio = EditarPerfilDTO(**datos, id_rol=2)
+    assert propio.id_rol == 2
+
     with pytest.raises(PydanticValidationError) as error_propio:
-        EditarPerfilDTO(**datos, id_rol=2)
+        EditarPerfilDTO(**datos, campo_inventado="x")
 
     assert any(
-        error["loc"] == ("id_rol",)
+        error["loc"] == ("campo_inventado",)
         and error["type"] == "extra_forbidden"
         for error in error_propio.value.errors()
     )

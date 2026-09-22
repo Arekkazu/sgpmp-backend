@@ -250,3 +250,68 @@ def test_rf04_ejecutar_sobre_proceso_especial_sigue_permitido() -> None:
     )
 
     assert db.commits == 1
+
+
+def _use_case_perfil(db: _DbFake, eventos):
+    from src.identity_access.application.use_cases.perfil.editar_perfil_use_case import (
+        EditarPerfilUseCase,
+    )
+
+    return EditarPerfilUseCase(
+        usuarios_repo=SimpleNamespace(obtener_por_id=lambda _id: None),
+        cuentas_repo=SimpleNamespace(),
+        sesiones_repo=SimpleNamespace(),
+        eventos_repo=eventos,
+        roles_repo=SimpleNamespace(),
+        db=db,
+    )
+
+
+def test_rf05_escalada_de_privilegios_responde_403_y_queda_auditada() -> None:
+    """RF-05: "Intento de escalada de privilegios" → 403 + auditoría.
+
+    `extra="forbid"` rechazaba `id_rol` con un 400 genérico de Pydantic antes
+    de que el caso de uso pudiera registrar el intento.
+    """
+    from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
+    from src.shared.errors import AuthorizationError
+
+    registros: list[dict] = []
+    db = _DbFake()
+    dto = EditarPerfilDTO(nombre="Ana", apellidos="Pérez", version=1, id_rol=1)
+
+    with pytest.raises(AuthorizationError) as error:
+        _use_case_perfil(db, SimpleNamespace(registrar=lambda **k: registros.append(k))).execute(
+            id_usuario=7,
+            dto=dto,
+            usuario_actual=SimpleNamespace(id_usuario=7, id_rol=2),
+        )
+
+    assert error.value.status_code == 403
+    assert error.value.code == "ESCALADA_PRIVILEGIOS"
+    assert registros, "el intento debe quedar en la bitácora antes del 403"
+    assert registros[0]["exitoso"] is False
+    assert registros[0]["detalle"]["campos_rechazados"] == ["id_rol"]
+    assert db.commits == 1, "la auditoría se confirma aunque la edición se rechace"
+
+
+def test_rf05_el_403_se_devuelve_aunque_falle_la_auditoria() -> None:
+    """Perder la bitácora no debe convertir la denegación en un 500."""
+    from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
+    from src.shared.errors import AuthorizationError
+
+    def _explota(**_k):
+        raise RuntimeError("bitácora caída")
+
+    db = _DbFake()
+
+    with pytest.raises(AuthorizationError):
+        _use_case_perfil(db, SimpleNamespace(registrar=_explota)).execute(
+            id_usuario=7,
+            dto=EditarPerfilDTO(
+                nombre="Ana", apellidos="Pérez", version=1, estado_usuario="Activo"
+            ),
+            usuario_actual=SimpleNamespace(id_usuario=7, id_rol=2),
+        )
+
+    assert db.rollbacks == 1
