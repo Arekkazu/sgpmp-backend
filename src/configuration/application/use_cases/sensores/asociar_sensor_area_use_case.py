@@ -63,16 +63,20 @@ class AsociarSensorAreaUseCase:
                 message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
             )
 
+        # RF-22, flujo alterno "Área productiva inexistente o inactiva": el RF
+        # describe un solo caso con un solo código —404— para las dos ramas. Antes
+        # el área inactiva salía como 422 y solo la inexistente como 404, así que
+        # el cliente veía dos contratos distintos para el mismo mensaje del RF.
         area = self.infra_repo.obtener_por_id(dto.id_infraestructura)
-        if area is None:
+        if area is None or not area.es_activo:
             raise NotFoundError(
                 code="AREA_NO_ENCONTRADA",
-                message=f"No existe un área productiva con ID {dto.id_infraestructura}.",
-            )
-        if not area.es_activo:
-            raise BusinessRuleError(
-                code="AREA_NO_DISPONIBLE",
-                message="No se pueden asociar sensores a áreas productivas inactivas.",
+                message=(
+                    "Ubicación inválida: El área productiva seleccionada no existe o se "
+                    "encuentra desactivada. No se pueden asociar sensores a "
+                    "infraestructuras fuera de operación."
+                ),
+                field="id_infraestructura",
             )
 
         # INC-M09-22-G126-01: el dispositivo del sensor está instalado en una

@@ -29,7 +29,7 @@ from src.configuration.domain.value_objects.serial_dispositivo import SerialDisp
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 USUARIO = UsuarioActual(id_usuario=1, id_token=1, id_rol=1)
 
@@ -230,14 +230,17 @@ def test_area_distinta_confirmada_termina_la_anterior_y_crea_la_nueva():
 
 
 def test_area_inactiva_no_permite_asociar():
+    """RF-22 pide 404 tanto para el área inexistente como para la inactiva: es un
+    solo caso de flujo alterno con un solo código, no dos contratos distintos."""
     area_inactiva = _area(ID_AREA_1, "Estanque Norte", activo=False)
     uc, _db = _use_case(SensorAreaRepoFake(activa=None), area_inactiva)
     dto = AsociarSensorAreaDTO(id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_1, punto_instalacion="Punto")
 
-    with pytest.raises(BusinessRuleError) as exc:
+    with pytest.raises(NotFoundError) as exc:
         uc.execute(1, dto, USUARIO)
 
-    assert exc.value.code == "AREA_NO_DISPONIBLE"
+    assert exc.value.code == "AREA_NO_ENCONTRADA"
+    assert NotFoundError.status_code == 404
 
 
 def test_area_de_finca_distinta_a_la_del_dispositivo_es_rechazada():
