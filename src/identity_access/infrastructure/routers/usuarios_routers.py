@@ -6,7 +6,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -21,9 +21,6 @@ from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_u
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
     CaptchaVerifierPort,
-)
-from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
-    CorreoActivacionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
     GoogleRecaptchaAdapter,
@@ -181,7 +178,6 @@ def listar_usuarios_admin(
 def crear_usuario(
     dto: UsuarioCreateDTO,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     captcha_verifier: CaptchaVerifierPort = Depends(get_captcha_verifier),
 ):
@@ -191,9 +187,12 @@ def crear_usuario(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
-        correo_activacion_port=CorreoActivacionBackgroundAdapter(background_tasks),
         captcha_verifier=captcha_verifier,
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(dto, ip, user_agent)
