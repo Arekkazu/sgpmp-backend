@@ -250,7 +250,6 @@ def detalle_plantilla(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
-        412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
     summary="Aplicar plantilla a especie destino (Flujo D — RF-32)",
@@ -271,6 +270,7 @@ def aplicar_plantilla(
         patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+        variable_repo=SqlAlchemyVariableAmbientalRepository(db),
     )
     aplicacion = use_case.execute(id_plantilla, dto, usuario_actual)
     return AplicacionPlantillaResponse.model_validate(aplicacion)

@@ -21,9 +21,10 @@ from src.configuration.domain.repositories.especie_repository import EspecieRepo
 from src.configuration.domain.repositories.metrica_produccion_repository import MetricaProduccionRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
+from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.infrastructure.dto.aplicar_plantilla_dto import AplicarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class AplicarPlantillaUseCase:
@@ -40,6 +41,7 @@ class AplicarPlantillaUseCase:
         patologia_repo: EspeciePatologiaRepository,
         aplicacion_repo: AplicacionPlantillaRepository,
         auditoria_repo: AuditoriaPlantillaRepository,
+        variable_repo: VariableAmbientalRepository,
     ) -> None:
         self.db = db
         self.plantilla_repo = plantilla_repo
@@ -50,6 +52,7 @@ class AplicarPlantillaUseCase:
         self.patologia_repo = patologia_repo
         self.aplicacion_repo = aplicacion_repo
         self.auditoria_repo = auditoria_repo
+        self.variable_repo = variable_repo
 
     def execute(
         self, id_plantilla: int, dto: AplicarPlantillaDTO, usuario_actual: UsuarioActual
@@ -103,7 +106,11 @@ class AplicarPlantillaUseCase:
 
         schema_version = plantilla.params_snapshot.get('schema_version', 0)
         if not es_compatible(schema_version):
-            raise PreconditionFailedError(
+            # RF-32 pide 422 para "Incompatibilidad de esquema (Versión Legacy)".
+            # El 412 que había aquí venía del flujo homólogo de RF-30, que sin
+            # embargo describe la *creación* de plantillas; aplicar una plantilla
+            # legacy solo ocurre por esta ruta, así que manda RF-32.
+            raise BusinessRuleError(
                 code="VERSION_SNAPSHOT_INCOMPATIBLE",
                 message=(
                     f"Incompatibilidad estructural: la plantilla '{plantilla.template_name}' "
@@ -129,22 +136,29 @@ class AplicarPlantillaUseCase:
 
         # Concurrencia optimista sobre la especie destino (fecha_actualizacion, no
         # fecha_creacion: esta última es inmutable y nunca detectaría una edición real).
+        # El resto del módulo usa 412 para este patrón, pero RF-32 pide
+        # explícitamente 409 para su "Conflicto de modificación concurrente" —y es
+        # el único RF que gobierna este endpoint, así que aquí manda su letra.
         ts_db = especie_destino.fecha_actualizacion
         ts_dto = dto.fecha_actualizacion_especie_destino
         if ts_db is not None and ts_dto is not None:
-            if ts_db.astimezone(timezone.utc) != ts_dto.astimezone(timezone.utc):
-                raise PreconditionFailedError(
-                    code="CONFLICTO_CONCURRENCIA",
-                    message="La especie destino fue modificada. Recarga y reintenta.",
-                )
-        elif ts_db != ts_dto:
-            raise PreconditionFailedError(
+            desincronizado = ts_db.astimezone(timezone.utc) != ts_dto.astimezone(timezone.utc)
+        else:
+            desincronizado = ts_db != ts_dto
+        if desincronizado:
+            raise ConflictError(
                 code="CONFLICTO_CONCURRENCIA",
-                message="La especie destino fue modificada. Recarga y reintenta.",
+                message=(
+                    "Conflicto de concurrencia: Los parámetros de la especie destino han "
+                    "cambiado recientemente. Por favor, recargue el resumen para "
+                    "visualizar los valores actuales antes de confirmar."
+                ),
             )
 
         id_dest = dto.id_especie_destino
         snapshot = plantilla.params_snapshot
+
+        self._verificar_referencias(snapshot)
 
         before_snapshot = self._capturar_estado(id_dest)
 
@@ -179,6 +193,37 @@ class AplicarPlantillaUseCase:
         self.db.commit()
 
         return registro
+
+    def _verificar_referencias(self, snapshot: dict) -> None:
+        """RF-32, flujo alterno "Fallo de consistencia (Referencias huérfanas)".
+
+        Una plantilla guarda un snapshot congelado: nada impide que el catálogo
+        maestro cambie después. La única referencia del snapshot a un catálogo
+        externo es ``id_variable_ambiental`` de cada umbral —ciclos, métricas y
+        patologías viajan por valor y se recrean bajo la especie destino—, así
+        que es la que hay que revalidar antes de desactivar nada. Si se aplicara
+        sin esta comprobación, el fallo saldría abajo como violación de FK
+        (409/500) en vez del 400 con el detalle que pide el RF.
+        """
+        huerfanas = [
+            int(datos['id_variable_ambiental'])
+            for datos in snapshot.get('umbrales_ambientales', [])
+            if not self._variable_vigente(int(datos['id_variable_ambiental']))
+        ]
+        if huerfanas:
+            raise ValidationError(
+                code="REFERENCIAS_HUERFANAS",
+                message=(
+                    "Inconsistencia detectada: La plantilla contiene parámetros que ya "
+                    "no son válidos en el sistema (Detalle: variables ambientales "
+                    f"{sorted(set(huerfanas))} inexistentes o inactivas). La operación "
+                    "ha sido cancelada."
+                ),
+            )
+
+    def _variable_vigente(self, id_variable_ambiental: int) -> bool:
+        variable = self.variable_repo.obtener_por_id(id_variable_ambiental)
+        return variable is not None and variable.es_activo
 
     def _capturar_estado(self, id_especie: int) -> dict:
         ciclos = self.ciclo_repo.listar_por_especie(id_especie, solo_activas=True)
