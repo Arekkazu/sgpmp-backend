@@ -195,3 +195,58 @@ def test_rf03_el_rol_protegido_conserva_su_descripcion_editable() -> None:
     )
 
     assert db.commits == 1
+
+
+def _use_case_permisos(es_proceso_especial: bool, db: _DbFake):
+    from src.identity_access.application.use_cases.permisos.asignar_permiso_use_case import (
+        AsignarPermisoUseCase,
+    )
+
+    permisos_repo = SimpleNamespace(
+        existe_recurso=lambda _id: True,
+        existe_accion=lambda _id: True,
+        es_proceso_especial=lambda _id: es_proceso_especial,
+        buscar=lambda *_a: None,
+        asignar=lambda *_a: SimpleNamespace(id_permiso=1),
+    )
+    return AsignarPermisoUseCase(
+        roles_repo=SimpleNamespace(
+            obtener_por_id=lambda _id: SimpleNamespace(id_rol=2, nombre_rol="Productor")
+        ),
+        permisos_repo=permisos_repo,
+        eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+        db=db,
+    )
+
+
+def test_rf04_ejecutar_sobre_recurso_comun_responde_400() -> None:
+    """RF-04: "Acción no permitida para el recurso" → HTTP 400.
+
+    `existe_accion()` solo miraba el catálogo genérico C/R/U/D/E, así que
+    cualquier combinación rol+recurso+acción se aceptaba.
+    """
+    from src.shared.errors import ValidationError
+
+    db = _DbFake()
+
+    with pytest.raises(ValidationError) as error:
+        _use_case_permisos(es_proceso_especial=False, db=db).execute(
+            id_rol=2,
+            dto=SimpleNamespace(id_recurso=1, id_accion=5),
+            usuario_actual=SimpleNamespace(id_usuario=9),
+        )
+
+    assert error.value.status_code == 400
+    assert error.value.code == "ACCION_NO_PERMITIDA_PARA_RECURSO"
+    assert db.commits == 0
+
+
+def test_rf04_ejecutar_sobre_proceso_especial_sigue_permitido() -> None:
+    db = _DbFake()
+    _use_case_permisos(es_proceso_especial=True, db=db).execute(
+        id_rol=2,
+        dto=SimpleNamespace(id_recurso=13, id_accion=5),
+        usuario_actual=SimpleNamespace(id_usuario=9),
+    )
+
+    assert db.commits == 1
