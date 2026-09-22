@@ -377,3 +377,49 @@ def test_rf06_ultimo_administrador_activo_responde_400() -> None:
     assert error.value.status_code == 400
     assert error.value.code == "ULTIMO_ADMIN_PROTEGIDO"
     assert db.commits == 0
+
+
+def test_rf11_editar_un_usuario_eliminado_responde_410() -> None:
+    """RF-11: "Conflicto de visualización por eliminación lógica concurrente" → 410.
+
+    Ningún endpoint del módulo devolvía 410: el estado ELIMINADO se trataba
+    como 422 o se confundía con "no encontrado".
+    """
+    from src.identity_access.application.use_cases.perfil.editar_perfil_use_case import (
+        EditarPerfilUseCase,
+    )
+    from src.identity_access.domain.entities.cuenta import Cuenta
+    from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilAdminDTO
+    from src.shared.errors import GoneError
+
+    usuario = SimpleNamespace(
+        id_usuario=7,
+        id_rol=2,
+        nombre="Ana",
+        apellidos="Pérez",
+        correo="ana@example.com",
+    )
+    cuenta = Cuenta(
+        id_cuenta_usuario=8,
+        id_usuario=7,
+        id_estado_cuenta=Cuenta.ESTADO_ELIMINADO,
+    )
+    db = _DbFake()
+
+    with pytest.raises(GoneError) as error:
+        EditarPerfilUseCase(
+            usuarios_repo=SimpleNamespace(obtener_por_id=lambda _i: usuario),
+            cuentas_repo=SimpleNamespace(obtener_por_usuario=lambda _i: cuenta),
+            sesiones_repo=SimpleNamespace(),
+            eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+            roles_repo=SimpleNamespace(),
+            db=db,
+        ).execute(
+            id_usuario=7,
+            dto=EditarPerfilAdminDTO(nombre="Ana", apellidos="Pérez", version=3),
+            usuario_actual=SimpleNamespace(id_usuario=99, id_rol=1),
+        )
+
+    assert error.value.status_code == 410
+    assert error.value.code == "USUARIO_ELIMINADO"
+    assert db.commits == 0

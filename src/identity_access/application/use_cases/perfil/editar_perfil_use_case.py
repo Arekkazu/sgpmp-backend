@@ -32,7 +32,13 @@ from src.identity_access.infrastructure.dto.perfil_dto import (
 )
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import (
+    AuthorizationError,
+    BusinessRuleError,
+    GoneError,
+    NotFoundError,
+    ValidationError,
+)
 
 
 TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
@@ -153,7 +159,9 @@ class EditarPerfilUseCase:
             Entidad Usuario actualizada.
 
         Raises:
-            NotFoundError: Si el usuario objetivo no existe.
+            NotFoundError: Si el usuario objetivo no existe. HTTP 404.
+            GoneError: Si la cuenta del usuario objetivo ya fue eliminada
+                lógicamente por otro administrador (RF-11). HTTP 410.
             ValidationError: Si se intenta cambiar el propio rol o el nuevo
                 rol no existe.
             AuthorizationError: Si un usuario (no administrador) envía datos
@@ -261,6 +269,23 @@ class EditarPerfilUseCase:
         cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(
             usuario.id_usuario
         )
+
+        # RF-11: si otro administrador marcó la cuenta como ELIMINADA mientras
+        # este tenía el formulario abierto, el registro ya no está disponible
+        # para editarse. Es el caso que la validación de concurrencia detecta
+        # antes de mirar la versión — un 404 lo confundiría con "no existe" y un
+        # 412 invitaría a recargar y reintentar algo que ya no se puede.
+        if (
+            cuenta_objetivo is not None
+            and cuenta_objetivo.id_estado_cuenta == Cuenta.ESTADO_ELIMINADO
+        ):
+            raise GoneError(
+                code="USUARIO_ELIMINADO",
+                message=(
+                    "El registro ya no está disponible. El usuario fue eliminado "
+                    "recientemente por otro administrador. Actualice el listado."
+                ),
+            )
 
         # Los campos de identificación solo aplican para completar una cuenta
         # PENDIENTE_DATOS (provista vía SSO sin sincronización previa) por el

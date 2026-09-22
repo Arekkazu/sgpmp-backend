@@ -328,6 +328,7 @@ def editar_perfil_propio(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
