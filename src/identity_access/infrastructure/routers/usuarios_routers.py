@@ -227,7 +227,6 @@ def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depend
     responses={
         400: {"model": ErrorResponse},
         410: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
     },
 )
 
