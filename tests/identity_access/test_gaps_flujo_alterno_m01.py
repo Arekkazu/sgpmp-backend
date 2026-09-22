@@ -129,3 +129,69 @@ def test_rf01_registro_exitoso_no_lanza_cuando_el_correo_sale(monkeypatch) -> No
 
     assert db.commits == 1
     assert db.rollbacks == 0
+
+
+def test_rf03_renombrar_el_rol_protegido_responde_403() -> None:
+    """RF-03: "Intento de modificación o eliminación de rol protegido" → 403.
+
+    El DELETE ya daba 403; el PUT dependía del trigger P0004 y terminaba en
+    422 `BusinessRuleError`.
+    """
+    from src.identity_access.application.use_cases.roles.editar_rol_use_case import (
+        EditarRolUseCase,
+    )
+    from src.shared.errors import AuthorizationError
+
+    rol = SimpleNamespace(
+        id_rol=1,
+        nombre_rol="Administrador",
+        descripcion="Rol raíz",
+        es_protegido=True,
+    )
+    db = _DbFake()
+    use_case = EditarRolUseCase(
+        roles_repo=SimpleNamespace(obtener_por_id=lambda _id: rol),
+        eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+        db=db,
+    )
+
+    with pytest.raises(AuthorizationError) as error:
+        use_case.execute(
+            id_rol=1,
+            dto=SimpleNamespace(nombre_rol="Superadmin", descripcion=None),
+            usuario_actual=SimpleNamespace(id_usuario=9),
+        )
+
+    assert error.value.status_code == 403
+    assert error.value.code == "ROL_PROTEGIDO"
+    assert db.commits == 0
+
+
+def test_rf03_el_rol_protegido_conserva_su_descripcion_editable() -> None:
+    """El trigger P0004 solo protege el nombre: la descripción sigue editable."""
+    from src.identity_access.application.use_cases.roles.editar_rol_use_case import (
+        EditarRolUseCase,
+    )
+
+    rol = SimpleNamespace(
+        id_rol=1,
+        nombre_rol="Administrador",
+        descripcion="Rol raíz",
+        es_protegido=True,
+        editar=lambda _n, _d: None,
+    )
+    db = _DbFake()
+    EditarRolUseCase(
+        roles_repo=SimpleNamespace(
+            obtener_por_id=lambda _id: rol,
+            guardar=lambda _rol: rol,
+        ),
+        eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+        db=db,
+    ).execute(
+        id_rol=1,
+        dto=SimpleNamespace(nombre_rol=None, descripcion="Nueva descripción"),
+        usuario_actual=SimpleNamespace(id_usuario=9),
+    )
+
+    assert db.commits == 1
