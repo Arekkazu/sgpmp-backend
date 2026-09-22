@@ -17,7 +17,7 @@ from src.identity_access.infrastructure.dto.perfil_dto import (
     EditarPerfilAdminDTO,
     EditarPerfilDTO,
 )
-from src.shared.errors import BusinessRuleError
+from src.shared.errors import ValidationError
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -158,7 +158,8 @@ def test_ultimo_usuario_activo_de_rol_protegido_usa_rol_real() -> None:
         db=_DbFake(),
     )
 
-    with pytest.raises(BusinessRuleError) as error:
+    # RF-06 clasifica este caso como 400, no como 422.
+    with pytest.raises(ValidationError) as error:
         use_case.execute(
             id_usuario=7,
             dto=GestionarCuentaDTO(

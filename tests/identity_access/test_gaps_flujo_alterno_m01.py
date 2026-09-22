@@ -315,3 +315,65 @@ def test_rf05_el_403_se_devuelve_aunque_falle_la_auditoria() -> None:
         )
 
     assert db.rollbacks == 1
+
+
+def _gestionar(estado_inicial: int, activos_del_rol: int, accion: str, db: _DbFake):
+    from src.identity_access.application.use_cases.cuentas.gestionar_cuenta_use_case import (
+        GestionarCuentaUseCase,
+    )
+    from src.identity_access.domain.entities.cuenta import Cuenta
+    from src.identity_access.infrastructure.dto.gestion_cuenta_dto import (
+        GestionarCuentaDTO,
+    )
+
+    cuenta = Cuenta(id_cuenta_usuario=8, id_usuario=7, id_estado_cuenta=estado_inicial)
+    use_case = GestionarCuentaUseCase(
+        usuarios_repo=SimpleNamespace(
+            obtener_por_id=lambda i: SimpleNamespace(id_usuario=i, id_rol=1)
+        ),
+        cuentas_repo=SimpleNamespace(
+            obtener_por_usuario=lambda _i: cuenta,
+            contar_usuarios_activos_por_rol=lambda _r: activos_del_rol,
+        ),
+        eventos_repo=SimpleNamespace(registrar=lambda **_k: None),
+        sesiones_repo=SimpleNamespace(invalidar_todas_sesiones=lambda *_a: None),
+        roles_repo=SimpleNamespace(
+            obtener_por_id=lambda i: SimpleNamespace(id_rol=i, es_protegido=True)
+        ),
+        db=db,
+    )
+    return use_case.execute(
+        id_usuario=7,
+        dto=GestionarCuentaDTO(accion_cuenta=accion, motivo_accion="Motivo auditado"),
+        usuario_actual=SimpleNamespace(id_usuario=99, id_rol=1),
+    )
+
+
+def test_rf06_transicion_desde_eliminado_responde_409() -> None:
+    """RF-06: "Transición de estado no permitida" → HTTP 409, no 422."""
+    from src.identity_access.domain.entities.cuenta import Cuenta
+    from src.shared.errors import ConflictError
+
+    db = _DbFake()
+
+    with pytest.raises(ConflictError) as error:
+        _gestionar(Cuenta.ESTADO_ELIMINADO, activos_del_rol=5, accion="activar", db=db)
+
+    assert error.value.status_code == 409
+    assert error.value.code == "TRANSICION_INVALIDA"
+    assert db.commits == 0
+
+
+def test_rf06_ultimo_administrador_activo_responde_400() -> None:
+    """RF-06: "Intento de eliminar o desactivar al último administrador" → 400."""
+    from src.identity_access.domain.entities.cuenta import Cuenta
+    from src.shared.errors import ValidationError
+
+    db = _DbFake()
+
+    with pytest.raises(ValidationError) as error:
+        _gestionar(Cuenta.ESTADO_ACTIVO, activos_del_rol=1, accion="inactivar", db=db)
+
+    assert error.value.status_code == 400
+    assert error.value.code == "ULTIMO_ADMIN_PROTEGIDO"
+    assert db.commits == 0
