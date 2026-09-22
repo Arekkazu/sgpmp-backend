@@ -1,216 +1,188 @@
 """
-TC-M09-G127 - Pruebas de ataque al protocolo MQTT: control de acceso,
-interceptacion y repeticion de mensajes.
+TC-M09-G127 (RF-23, CU-05) - Ataques al protocolo MQTT: control de acceso,
+interceptacion, repeticion de mensajes y transporte sin cifrar.
 
-RF relacionado: RF-23, CU-05 Gestionar Dispositivos IoT
-Categoria: Pruebas de seguridad (OWASP API2/API5, seguridad MQTT)
-Sub-casos: TC-M09-250 (credenciales invalidas/ajenas), TC-M09-251
-(eavesdropping via wildcard), TC-M09-252 (replay), TC-M09-253 (TLS).
+    TC-M09-250  credenciales invalidas / ajenas
+    TC-M09-251  eavesdropping via suscripcion wildcard
+    TC-M09-252  replay de un mensaje capturado
+    TC-M09-253  conexion sin TLS
 
-Herramienta pedida por la ficha: Pytest + paho-mqtt, conectando
-DIRECTAMENTE al broker MQTT (BROKER-MQTT-SGPMP), no a la API HTTP del
-backend. Datos de conexion provistos por el usuario (2026-09-13):
-    host: sigab-brokerdev-jwjecq-284f9b-158-69-200-27.sslip.io
-    puerto MQTT nativo: 5449 (TCP)
-    puerto MQTT sobre WebSocket: 9001
-    usuario/clave: sgpmp_devices / IoTSgpmp2026
-    TLS: No (dev)
+Herramienta de la ficha: Pytest + paho-mqtt, DIRECTO al broker de DEV (no a la
+API HTTP). Las credenciales NUNCA van en el archivo (regla del plan de pruebas):
+    $env:MQTT_USER = "..."      $env:MQTT_PASS = "..."
+    $env:MQTT_HOST = "sigab-brokerdev-jwjecq-284f9b-158-69-200-27.sslip.io"   (opcional)
+Listeners de DEV: TCP 1884 y WebSocket 9001 (el TCP nativo 5449 sigue sin ser
+alcanzable desde la red de QA; 1883 responde pero rechaza estas credenciales).
 
-RESULTADO: los 4 sub-casos quedan BLOQUEADOS / NO CONCLUYENTES, por una
-combinacion de limitaciones de red y de credenciales descubiertas al
-intentar ejecutarlos en esta sesion:
+QUE SE PUDO Y QUE NO SE PUDO VERIFICAR (sondeo del 2026-09-21, ver reporte):
+  * Con la credencial de dispositivo el broker autentica en 1884 y 9001, y
+    rechaza la conexion anonima y las credenciales invalidas en ambos.
+  * El broker NO entrega ningun mensaje a ningun suscriptor con esta
+    credencial: ni el propio (mismo cliente), ni topics candidatos
+    sgpmp/<serial>/{status,telemetry,config,cmd,ack,uplink,downlink}, ni
+    mensajes retenidos a un suscriptor nuevo, ni el trafico que el backend
+    deberia generar al configurar un dispositivo (POST .../configurar -> 202
+    PENDIENTE, "dispositivo offline"). Con el PUBACK/SUBACK en exito, eso es
+    consistente con una ACL que descarta en silencio lectura y escritura para
+    esta cuenta, pero no permite ver trafico real.
+  * Por eso TC-M09-252 (replay) y la parte de "publicar en el topic de otro
+    dispositivo" de 250 NO se pueden comprobar: no hay forma de observar el
+    efecto. El plan de pruebas pide no improvisar pruebas parciales que den
+    falsa confianza, asi que se dejan como SKIP con su motivo.
 
-1. El puerto TCP nativo (5449) NO es alcanzable desde este entorno --
-   `ping` responde (112ms) pero la conexion TCP es rechazada
-   (`Test-NetConnection` -> TcpTestSucceeded=False). Requiere estar en la
-   VPN/red interna del equipo, que no esta disponible aqui. El usuario
-   confirmo (2026-09-13) que no tiene ese acceso a mano.
-2. El puerto WebSocket (9001) SI es alcanzable, pero el broker responde
-   `Not authorized` (CONNACK) para las TRES variantes probadas:
-   conexion anonima, credenciales invalidas, Y las credenciales
-   "sgpmp_devices"/"IoTSgpmp2026" provistas como validas. Probado con
-   varios paths de WebSocket (/, /mqtt, /ws, /mqtt/, /websocket) --
-   mismo resultado en todos. Esto es AMBIGUO: no se puede distinguir si
-   (a) esas credenciales solo son validas en el listener nativo 5449 y
-   el listener 9001 tiene su propio ACL distinto, o (b) las credenciales
-   no son validas en absoluto ahora mismo. Sin acceso a 5449 no se puede
-   desambiguar.
+Los tests que se ejecutan afirman lo que pide la ficha; si el broker no lo
+cumple, el test queda en rojo como evidencia.
 
-HALLAZGO YA DOCUMENTADO POR EL EQUIPO DEV (no confirmado por esta sesion
-por la limitacion de red, pero citado aqui porque es exactamente lo que
-TC-M09-250/251/253 buscan): `anotaciones/modulo_9/estado_M09.md` (seccion
-RF-23, "Que NO cumple / gaps", lineas ~492-496) ya documenta: "El ACK del
-dispositivo no esta autenticado mas alla del token de servicio del
-backend. Mosquitto corre con allow_anonymous true en dev -- cualquier
-cliente en la red podria publicar en sgpmp/<serial>/status y falsificar
-un ACK. Mismo nivel de gap que el serial reusado como credencial debil de
-telemetria en modulo 3 (ya documentado ahi); no es especifico de esta
-entrega ni se resuelve aca." Esto es una admision explicita del propio
-equipo de que TC-M09-250 (y por extension 251, ya que sin ACL por topic
-tampoco habria restriccion de suscripcion) aplicarian sobre el listener
-nativo (5449) -- pero como ESTE listener es el que no pudimos alcanzar
-esta sesion, no se puede confirmar en vivo, solo citar la fuente.
-
-Lo unico confirmado EN VIVO esta sesion es el comportamiento del listener
-WebSocket (9001): rechaza tanto conexiones anonimas como con credenciales
-invalidas (ver test_conexion_anonima_rechazada y
-test_credenciales_invalidas_rechazadas mas abajo) -- comportamiento
-correcto para ESE listener especificamente, sin que esto diga nada sobre
-el listener 5449 que es al que realmente aplica el hallazgo ya conocido.
-
-TC-M09-251 (eavesdropping), TC-M09-252 (replay) y la confirmacion via
-conexion real de TC-M09-253 (TLS) requieren poder autenticarse
-exitosamente con AL MENOS una credencial contra el broker real, cosa que
-no se logro esta sesion en el unico puerto alcanzable -- quedan sin
-ejecutar, no se simulan con dobles de prueba porque el objetivo es
-probar el broker real, no la logica interna del backend.
-
-Como correrlo (si en el futuro se logra acceso a la VPN/red interna, o
-se consiguen credenciales validas para el listener 9001):
-    python -m pip install paho-mqtt
+Como correrlo (desde la raiz del repo):
     python -m pytest <ruta>\\test_tc_m09_250_253_ataques_mqtt.py -v \
-        --html=Resultados/reporte-TC-M09-G127.html --self-contained-html
+        --html=<ruta>\\Resultados\\resultado_TC-M09-G127_reintento1.html --self-contained-html
 """
+import os
 import time
 
 import paho.mqtt.client as mqtt
 import pytest
 
-MQTT_HOST = "sigab-brokerdev-jwjecq-284f9b-158-69-200-27.sslip.io"
-MQTT_WS_PORT = 9001
-MQTT_TCP_PORT = 5449  # no alcanzable desde esta sesion, ver docstring del modulo
-CONNECT_TIMEOUT_S = 5
+MQTT_HOST = os.getenv("MQTT_HOST", "sigab-brokerdev-jwjecq-284f9b-158-69-200-27.sslip.io")
+MQTT_USER = os.getenv("MQTT_USER")
+MQTT_PASS = os.getenv("MQTT_PASS")
+LISTENERS = [("tcp", 1884), ("websockets", 9001)]
+ESPERA_S = 3
+
+pytestmark = pytest.mark.skipif(
+    not (MQTT_USER and MQTT_PASS),
+    reason="definir MQTT_USER y MQTT_PASS en el entorno (no se versionan credenciales)",
+)
 
 
-def _intentar_conectar(username, password, transport="websockets", port=MQTT_WS_PORT):
-    resultado = {"reason_code": None}
+def _conectar(transport, port, user=None, password=None, tls=False):
+    """Devuelve (aceptada, codigo_connack | error)."""
+    resultado = {}
 
     def on_connect(client, userdata, flags, reason_code, properties=None):
-        resultado["reason_code"] = reason_code
+        resultado["rc"] = reason_code
 
-    client = mqtt.Client(
+    cliente = mqtt.Client(
         mqtt.CallbackAPIVersion.VERSION2,
-        client_id=f"tc-m09-g127-{username or 'anon'}-{int(time.time())}",
+        client_id=f"tc-m09-g127-{int(time.time() * 1000) % 10**9}",
         transport=transport,
     )
-    if username:
-        client.username_pw_set(username, password)
-    client.on_connect = on_connect
-    client.connect(MQTT_HOST, port, keepalive=10)
-    client.loop_start()
-    time.sleep(CONNECT_TIMEOUT_S)
-    esta_conectado = client.is_connected()
-    client.loop_stop()
+    if user:
+        cliente.username_pw_set(user, password)
+    if tls:
+        cliente.tls_set()
+    cliente.on_connect = on_connect
     try:
-        client.disconnect()
-    except Exception:
-        pass
-    return resultado["reason_code"], esta_conectado
+        cliente.connect(MQTT_HOST, port, keepalive=10)
+        cliente.loop_start()
+        limite = time.time() + ESPERA_S + 2
+        while "rc" not in resultado and time.time() < limite:
+            time.sleep(0.1)
+        aceptada = "rc" in resultado and not resultado["rc"].is_failure
+        return aceptada, str(resultado.get("rc", "sin CONNACK"))
+    except Exception as exc:  # handshake TLS fallido, reset, etc.
+        return False, f"{type(exc).__name__}: {exc}"
+    finally:
+        try:
+            cliente.loop_stop()
+            cliente.disconnect()
+        except Exception:
+            pass
 
 
+@pytest.mark.parametrize("transport,port", LISTENERS, ids=[f"{t}-{p}" for t, p in LISTENERS])
 class TestTCM09250CredencialesInvalidasOAjenas:
-    """TC-M09-250 -- solo se pudo probar el listener WebSocket (9001),
-    no el nativo (5449) donde el equipo dev ya documento un gap
-    (allow_anonymous true). Ver docstring del modulo."""
 
-    def test_conexion_anonima_rechazada_en_listener_websocket(self):
-        """
-        En el listener WebSocket (9001), una conexion SIN credenciales es
-        rechazada por el broker (CONNACK 'Not authorized'). Esto NO
-        confirma ni descarta el gap ya documentado por el equipo dev para
-        el listener nativo (5449, 'allow_anonymous true') -- son
-        listeners distintos y este solo cubre el alcanzable.
-        """
-        reason_code, conectado = _intentar_conectar(username=None, password=None)
-        assert conectado is False, (
-            f"Se esperaba rechazo, pero la conexion anonima fue aceptada "
-            f"(reason_code={reason_code}) -- esto SI confirmaria el gap "
-            f"del listener WebSocket."
-        )
+    def test_credencial_valida_es_aceptada_control_positivo(self, transport, port):
+        aceptada, detalle = _conectar(transport, port, MQTT_USER, MQTT_PASS)
+        assert aceptada, f"la credencial de dispositivo provista no autentica en {transport}:{port} ({detalle})"
 
-    def test_credenciales_invalidas_rechazadas_en_listener_websocket(self):
-        """Credenciales claramente invalidas deben rechazarse."""
-        reason_code, conectado = _intentar_conectar(
-            username="totally_wrong_user", password="wrong_pass"
-        )
-        assert conectado is False, (
-            f"Se esperaba rechazo, pero credenciales invalidas fueron "
-            f"aceptadas (reason_code={reason_code})."
-        )
+    def test_conexion_anonima_es_rechazada(self, transport, port):
+        aceptada, detalle = _conectar(transport, port)
+        assert not aceptada, f"el broker acepto una conexion anonima en {transport}:{port} ({detalle})"
+
+    def test_credenciales_invalidas_son_rechazadas(self, transport, port):
+        aceptada, detalle = _conectar(transport, port, "usuario_inexistente", "clave_incorrecta")
+        assert not aceptada, f"el broker acepto credenciales invalidas en {transport}:{port} ({detalle})"
+
+
+class TestTCM09250PublicarEnTopicDeOtroDispositivo:
 
     @pytest.mark.skip(
         reason=(
-            "BLOQUEADO: el puerto TCP nativo (5449), unico listener donde el "
-            "equipo dev ya documento 'allow_anonymous true' "
-            "(anotaciones/modulo_9/estado_M09.md ~L492-496), no es alcanzable "
-            "desde esta red (TCP rechazado, sin acceso VPN). En el listener "
-            "WebSocket (9001) SI alcanzable, las credenciales provistas como "
-            "validas ('sgpmp_devices'/'IoTSgpmp2026') tambien fueron "
-            "rechazadas (Not authorized) -- no se puede distinguir si son "
-            "invalidas para este listener o si tienen un ACL propio. Sin "
-            "poder autenticar con exito no se puede probar 'publicar en el "
-            "topic de otro dispositivo usando credenciales de uno propio'."
+            "NO VERIFICABLE: el broker devuelve exito al PUBLISH pero no entrega ningun mensaje a ningun suscriptor "
+            "con esta credencial (ni el propio), asi que no hay forma de observar si la publicacion cruzada fue "
+            "aceptada o descartada por una ACL. Ademas la cuenta 'sgpmp_devices' es una sola para todos los "
+            "dispositivos: no existen credenciales por dispositivo con las que probar el cruce."
         )
     )
-    def test_publicar_en_topic_de_dispositivo_ajeno_usando_credenciales_propias(self):
+    def test_publicar_en_topic_ajeno_con_credencial_propia_es_rechazado(self):
         pass
 
 
 class TestTCM09251EavesdroppingWildcard:
-    """TC-M09-251 -- requiere una sesion autenticada exitosa para
-    suscribirse y observar trafico real; no se logro esta sesion."""
+
+    def test_una_credencial_de_dispositivo_no_puede_suscribirse_al_wildcard_de_todo_el_broker(self):
+        """Un dispositivo solo deberia poder leer sus propios topics: SUBSCRIBE '#' debe recibir un codigo de fallo."""
+        codigos = {}
+
+        def on_subscribe(client, userdata, mid, reason_codes, properties=None):
+            codigos["suback"] = [str(rc) for rc in reason_codes]
+            codigos["denegado"] = any(rc.is_failure for rc in reason_codes)
+
+        def on_connect(client, userdata, flags, reason_code, properties=None):
+            client.subscribe("#", qos=0)
+
+        cliente = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="tc-m09-g127-wildcard")
+        cliente.username_pw_set(MQTT_USER, MQTT_PASS)
+        cliente.on_connect = on_connect
+        cliente.on_subscribe = on_subscribe
+        cliente.connect(MQTT_HOST, 1884, keepalive=10)
+        cliente.loop_start()
+        limite = time.time() + ESPERA_S + 2
+        while "suback" not in codigos and time.time() < limite:
+            time.sleep(0.1)
+        cliente.loop_stop()
+        cliente.disconnect()
+
+        assert "suback" in codigos, "el broker no respondio SUBACK"
+        assert codigos["denegado"], (
+            f"SUBSCRIBE '#' fue CONCEDIDO a la credencial de dispositivo (SUBACK: {codigos['suback']}); "
+            "una ACL de minimo privilegio deberia negarlo. Nota: durante el sondeo la suscripcion no recibio "
+            "ningun mensaje, asi que no se pudo demostrar fuga real de trafico."
+        )
 
     @pytest.mark.skip(
         reason=(
-            "BLOQUEADO: no se logro una conexion autenticada exitosa contra "
-            "el broker en ningun listener alcanzable esta sesion (ver "
-            "TestTCM09250, mismo motivo). Sin conexion no hay forma de "
-            "suscribirse a '#' ni observar si hay trafico de otros "
-            "dispositivos visible."
+            "NO VERIFICABLE: no hay trafico de otros dispositivos que observar. Durante el sondeo (8 s en reposo y 6 s "
+            "tras disparar POST /configuracion/dispositivos-iot/{id}/configurar, que respondio 202 PENDIENTE "
+            "'dispositivo offline') la suscripcion '#' en TCP 1884 y WS 9001 no recibio ni un mensaje."
         )
     )
-    def test_suscripcion_wildcard_intercepta_trafico_de_otros_dispositivos(self):
+    def test_el_wildcard_no_expone_trafico_de_otros_dispositivos(self):
         pass
 
 
 class TestTCM09252ReplayDeMensaje:
-    """TC-M09-252 -- requiere capturar un mensaje real via suscripcion
-    (TC-M09-251) antes de poder reenviarlo; tampoco se logro."""
 
     @pytest.mark.skip(
         reason=(
-            "BLOQUEADO: depende de TC-M09-251 (capturar un mensaje real de "
-            "configuracion via suscripcion) para tener algo que reenviar. "
-            "Ademas, el reprocesamiento del mensaje reenviado ocurriria en "
-            "BROKER-MQTT-SGPMP (repo hermano, fuera de este codebase) o en "
-            "el propio dispositivo -- ninguno de los dos es inspeccionable "
-            "desde aqui aunque se lograra la conexion; como maximo se podria "
-            "confirmar que el BROKER (nivel transporte) acepta republicar un "
-            "payload identico sin deduplicar, lo cual es comportamiento MQTT "
-            "estandar y no prueba nada sobre la logica de aplicacion."
+            "NO VERIFICABLE: requiere capturar un mensaje real (depende de 251) y el broker no entrega mensajes a "
+            "ningun suscriptor con esta credencial; el reprocesamiento ocurriria ademas en el dispositivo o en "
+            "BROKER-MQTT-SGPMP (repo hermano). Un replay 'a ciegas' seria una prueba parcial con falsa confianza."
         )
     )
-    def test_mensaje_capturado_se_puede_reenviar_y_reprocesar(self):
+    def test_un_mensaje_capturado_reenviado_es_rechazado_o_ignorado(self):
         pass
 
 
 class TestTCM09253ConexionSinTLS:
 
-    def test_listener_websocket_acepta_conexion_sin_tls(self):
-        """
-        El listener WebSocket (9001) acepta el intento de conexion (TCP +
-        upgrade WS) sin TLS -- el rechazo posterior es por autenticacion
-        (Not authorized en el CONNACK de MQTT), no por exigir una capa de
-        transporte cifrada. Esto SI confirma, para este listener, que no
-        hay TLS obligatorio -- coincide con lo indicado por el usuario
-        ('TLS: No (dev)') y con el hallazgo de la ficha (conexion en texto
-        plano posible). No se pudo probar el listener nativo (5449) por la
-        misma limitacion de red de los sub-casos anteriores.
-        """
-        reason_code, _ = _intentar_conectar(username=None, password=None)
-        assert reason_code is not None, (
-            "Se esperaba recibir un CONNACK del broker (aunque sea de "
-            "rechazo por auth) sobre una conexion en texto plano -- si no "
-            "se recibe nada, el transporte no-TLS podria estar bloqueado "
-            "a nivel de red en vez de a nivel de aplicacion."
+    @pytest.mark.parametrize("transport,port", LISTENERS, ids=[f"{t}-{p}" for t, p in LISTENERS])
+    def test_el_broker_rechaza_conexiones_en_texto_plano(self, transport, port):
+        """El canal MQTT debe ir cifrado: una conexion sin TLS con credenciales validas no deberia aceptarse."""
+        plana, detalle = _conectar(transport, port, MQTT_USER, MQTT_PASS, tls=False)
+        assert not plana, (
+            f"el listener {transport}:{port} acepta credenciales en texto plano (CONNACK: {detalle}). "
+            "Segun el equipo DEV no hay TLS en el ambiente de desarrollo; debe exigirse en produccion."
         )
