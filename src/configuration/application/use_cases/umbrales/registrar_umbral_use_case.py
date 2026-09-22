@@ -60,10 +60,14 @@ def _validar_rangos(
                 ),
             )
 
-    # FA-05: sin solapamiento y cobertura completa [valor_min, valor_max]
+    # FA-05: sin solapamiento y cobertura completa [valor_min, valor_max].
+    # RF-17 clasifica la semaforizacion inconsistente como "Error de
+    # semaforizacion ... HTTP 400: Bad Request" -- no como violacion de regla de
+    # negocio (422): es el mismo tipo de dato mal formado que la inconsistencia
+    # de rango min>=max, que el propio RF tambien pide en 400.
     ordenados = sorted(niveles, key=lambda n: n.limite_inferior)
     if ordenados[0].limite_inferior != valor_min:
-        raise BusinessRuleError(
+        raise ValidationError(
             code='SOLAPAMIENTO_NIVELES',
             message=(
                 f"El primer nivel debe comenzar en {valor_min} (el mínimo del umbral). "
@@ -71,7 +75,7 @@ def _validar_rangos(
             ),
         )
     if ordenados[-1].limite_superior != valor_max:
-        raise BusinessRuleError(
+        raise ValidationError(
             code='SOLAPAMIENTO_NIVELES',
             message=(
                 f"El último nivel debe terminar en {valor_max} (el máximo del umbral). "
@@ -80,7 +84,7 @@ def _validar_rangos(
         )
     for i in range(len(ordenados) - 1):
         if ordenados[i].limite_superior != ordenados[i + 1].limite_inferior:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code='SOLAPAMIENTO_NIVELES',
                 message=(
                     f"Los niveles de alerta deben ser contiguos sin huecos ni solapamientos. "
