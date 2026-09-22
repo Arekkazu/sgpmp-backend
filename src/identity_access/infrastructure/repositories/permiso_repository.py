@@ -117,7 +117,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
                 raise BusinessRuleError(
                     code="PERMISO_SOLO_ADMIN",
                     message=(
-                        "HTTP 403: Acción denegada: El rol 'Administrador' es un objeto protegido "
+                        "Acción denegada: El rol 'Administrador' es un objeto protegido "
                         "por el sistema. No se permite asignar permisos administrativos a otros roles."
                     ),
                 )
