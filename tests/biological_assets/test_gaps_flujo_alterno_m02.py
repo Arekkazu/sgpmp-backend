@@ -36,6 +36,9 @@ from src.biological_assets.application.use_cases.gestion.consultar_historial_use
 from src.biological_assets.application.use_cases.gestion.consultar_indicadores_use_case import (
     ConsultarIndicadoresUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.registrar_evento_crecimiento_use_case import (
+    RegistrarEventoCrecimientoUseCase,
+)
 from src.biological_assets.application.use_cases.gestion.registrar_evento_productivo_use_case import (
     RegistrarEventoProductivoUseCase,
 )
@@ -50,6 +53,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     ResultadoIndicadores,
     SeccionDatosConsolidados,
 )
+from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloProductivoConsulta, FaseCiclo
 from src.biological_assets.domain.repositories.parametros_especie_port import MetricaProductiva
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
@@ -247,7 +251,7 @@ class _HistoricoRepo:
 
     def registrar(self, **kwargs):
         self.registros.append(kwargs)
-        return SimpleNamespace(**kwargs)
+        return SimpleNamespace(id_historico=len(self.registros), **kwargs)
 
 
 def _cambiar_estado(estado: str = 'INACTIVO', **campos):
@@ -501,7 +505,7 @@ def test_rf52_e1_al_recuperarse_persiste_el_buffer_en_orden_cronologico() -> Non
     temprano = _evento(tipo_evento='TEMPRANO', timestamp_evento=AHORA - timedelta(minutes=5))
     registrar_evento_bitacora(_BitacoraCaida(), db, tarde)
     registrar_evento_bitacora(_BitacoraCaida(), db, temprano)
-    assert bitacora._BUFFER.exists()
+    assert bitacora._buffer().exists()
 
     repo = _Bitacora()
     registrar_evento_bitacora(repo, db, _evento(tipo_evento='ACTUAL'))
@@ -510,16 +514,158 @@ def test_rf52_e1_al_recuperarse_persiste_el_buffer_en_orden_cronologico() -> Non
     periodo = repo.eventos[-1].detalle_tecnico
     assert periodo['eventos_recuperados'] == 2
     assert periodo['desde'] < periodo['hasta']
-    assert not bitacora._BUFFER.exists()
+    assert not bitacora._buffer().exists()
+    assert not bitacora._en_proceso().exists()
 
 
 def test_rf52_e1_si_la_recuperacion_falla_el_buffer_se_conserva() -> None:
     db = _Db()
     registrar_evento_bitacora(_BitacoraCaida(), db, _evento(tipo_evento='PENDIENTE'))
-    contenido = bitacora._BUFFER.read_text()
 
     # La escritura actual entra; la recuperación del pendiente vuelve a fallar.
     registrar_evento_bitacora(_Bitacora(falla_en_llamada=2), db, _evento(tipo_evento='ACTUAL'))
 
-    assert bitacora._BUFFER.read_text() == contenido
-    assert json.loads(contenido)['evento']['tipo_evento'] == 'PENDIENTE'
+    pendientes = [json.loads(l)['evento']['tipo_evento'] for l in bitacora._en_proceso().read_text().splitlines()]
+    assert pendientes == ['PENDIENTE']
+
+    # El siguiente intento lo recupera junto con lo que se haya encolado después.
+    registrar_evento_bitacora(_BitacoraCaida(), db, _evento(tipo_evento='OTRO_PENDIENTE'))
+    repo = _Bitacora()
+    bitacora.procesar_buffer_bitacora(repo, db)
+    assert [e.tipo_evento for e in repo.eventos][:2] == ['PENDIENTE', 'OTRO_PENDIENTE']
+
+
+# --------------------------------------------------------------------------- #
+# RF-52 E3 — tormenta de eventos: INFO a la cola, lo prioritario inmediato
+# --------------------------------------------------------------------------- #
+
+class _Reloj:
+    def __init__(self) -> None:
+        self.t = 0.0
+
+    def __call__(self) -> float:
+        return self.t
+
+
+def _con_umbral(monkeypatch, umbral: float = 1.0) -> _Reloj:
+    """Ventana de 1 s y umbral de 1 evento/s: el segundo evento del mismo instante ya es tormenta."""
+    reloj = _Reloj()
+    monkeypatch.setattr(bitacora, '_control', bitacora.ControlCarga(umbral=umbral, ventana_segundos=1.0, reloj=reloj))
+    return reloj
+
+
+def _info(tipo: str) -> EventoAuditoria:
+    return _evento(tipo_evento=tipo, clasificacion_biologica='ACCESO_DATOS', severidad_log='INFO')
+
+
+def test_rf52_e3_carga_normal_escribe_todo_en_el_momento(monkeypatch) -> None:
+    reloj = _con_umbral(monkeypatch)
+    repo = _Bitacora()
+
+    for i in range(3):
+        reloj.t = i * 2.0  # un evento cada 2 s: siempre por debajo de 1/s
+        registrar_evento_bitacora(repo, _Db(), _info(f'INFO_{i}'))
+
+    assert [e.tipo_evento for e in repo.eventos] == ['INFO_0', 'INFO_1', 'INFO_2']
+    assert not bitacora._buffer().exists()
+
+
+def test_rf52_e3_tormenta_encola_info_y_escribe_lo_prioritario(monkeypatch) -> None:
+    _con_umbral(monkeypatch)
+    repo = _Bitacora()
+    db = _Db()
+
+    registrar_evento_bitacora(repo, db, _info('INFO_1'))
+    registrar_evento_bitacora(repo, db, _info('INFO_2'))  # supera el umbral: empieza la tormenta
+    registrar_evento_bitacora(repo, db, _evento(tipo_evento='TRANSFORMACION'))
+    registrar_evento_bitacora(repo, db, _evento(
+        tipo_evento='ERROR_OPERATIVO', clasificacion_biologica='GESTION_OPERATIVA', severidad_log='ERROR',
+    ))
+
+    assert [e.tipo_evento for e in repo.eventos] == [
+        'INFO_1', 'ALTA_CARGA_AUDITORIA_INICIO', 'TRANSFORMACION', 'ERROR_OPERATIVO',
+    ]
+    encolados = [json.loads(l) for l in bitacora._buffer().read_text().splitlines()]
+    assert [(l['evento']['tipo_evento'], l['motivo']) for l in encolados] == [('INFO_2', 'ALTA_CARGA')]
+
+
+def test_rf52_e3_la_tarea_periodica_persiste_el_lote_y_cierra_el_episodio(monkeypatch) -> None:
+    reloj = _con_umbral(monkeypatch)
+    repo = _Bitacora()
+    db = _Db()
+    for i in range(4):
+        registrar_evento_bitacora(repo, db, _info(f'INFO_{i}'))
+
+    reloj.t = 10.0  # la ráfaga pasó
+    bitacora.procesar_buffer_bitacora(repo, db)
+
+    tipos = [e.tipo_evento for e in repo.eventos]
+    assert tipos[:2] == ['INFO_0', 'ALTA_CARGA_AUDITORIA_INICIO']
+    assert tipos[2] == 'ALTA_CARGA_AUDITORIA_FIN'
+    assert repo.eventos[2].detalle_tecnico['eventos_encolados'] == 3
+    assert sorted(tipos[3:]) == ['INFO_1', 'INFO_2', 'INFO_3']
+    assert 'INDISPONIBILIDAD_AUDITORIA' not in tipos  # encolar por carga no es una caída
+    assert not bitacora._buffer().exists()
+
+
+# --------------------------------------------------------------------------- #
+# RF-52 E5 (llave) — cada fila del historial RF-46 queda referenciada en la bitácora
+# --------------------------------------------------------------------------- #
+
+class _EventoRepoQueGuarda(_EventoRepo):
+    def guardar(self, evento):
+        evento.id_eventos = 77
+        return evento
+
+
+def test_rf52_e5_el_evento_registrado_lleva_la_llave_de_su_fila_rf46() -> None:
+    bitacora_repo = _Bitacora()
+    uc = RegistrarEventoProductivoUseCase(
+        db=_Db(), activo_repo=_ActivoRepo(_activo()), evento_repo=_EventoRepoQueGuarda(),
+        parametros_port=_Parametros(), ciclo_port=_Ciclo(), bitacora_repo=bitacora_repo,
+    )
+
+    uc.execute(10, RegistrarEventoProductivoDTO(
+        tipo_producto='LECHE', cantidad_producida=Decimal('12'), unidad_medida='L', fecha_evento=date(2026, 2, 1),
+    ), USUARIO)
+
+    registrado = next(e for e in bitacora_repo.eventos if e.tipo_evento == 'EVENTO_PRODUCTIVO_REGISTRADO')
+    assert registrado.detalle_tecnico['registros_rf46'] == [{'tabla': 'eventos_activos', 'id': 77}]
+
+
+class _ActivoRepoConFases(_ActivoRepo):
+    def obtener_gestiones_fases(self, _id: int):
+        return [SimpleNamespace(id_ciclo_productiva=3)]
+
+    def cerrar_gestion_activa(self, *_args) -> None:
+        pass
+
+    def crear_gestion_fase(self, gestion):
+        gestion.id_gestion_fases = 55
+        return gestion
+
+
+class _CicloConFases:
+    def obtener_ciclo_con_fases(self, _id: int) -> CicloProductivoConsulta:
+        return CicloProductivoConsulta(id_ciclo_productivo=3, nombre='Engorde', fases=[
+            FaseCiclo(id_ciclos_productivo_biologico=1, id_ciclo_biologico=1, nombre_fase='Juvenil', duracion_dias=30),
+            FaseCiclo(id_ciclos_productivo_biologico=2, id_ciclo_biologico=2, nombre_fase='Adulto', duracion_dias=60),
+        ])
+
+
+def test_rf52_e5_el_avance_automatico_de_fase_queda_en_la_bitacora() -> None:
+    """Antes, el avance de fase disparado por un evento de crecimiento creaba la fila
+    de gestiones_fases (historial RF-46) sin ningún registro en la bitácora."""
+    bitacora_repo = _Bitacora()
+    uc = RegistrarEventoCrecimientoUseCase(
+        db=_Db(), activo_repo=_ActivoRepoConFases(_activo()), evento_repo=None, infra_port=None,
+        parametros_port=None, ciclo_port=_CicloConFases(), bitacora_repo=bitacora_repo,
+    )
+    fase = SimpleNamespace(id_ciclo_productiva=3, fecha_inicio=datetime(2026, 1, 1, tzinfo=timezone.utc))
+
+    avanzo = uc._evaluar_avance_fase(10, fase, datetime(2026, 3, 1, tzinfo=timezone.utc), USUARIO)
+
+    assert avanzo is True
+    [evento] = bitacora_repo.eventos
+    assert evento.tipo_evento == 'FASE_AVANZADA_AUTOMATICAMENTE'
+    assert evento.detalle_tecnico['registros_rf46'] == [{'tabla': 'gestiones_fases', 'id': 55}]
