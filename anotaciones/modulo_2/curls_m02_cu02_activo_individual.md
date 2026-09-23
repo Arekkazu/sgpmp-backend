@@ -97,6 +97,14 @@ Respuesta esperada `422`: `Al menos un campo debe estar presente para actualizar
 
 ### POST /activos-biologicos/{id}/fases — Cambiar fase
 
+`fase_destino_id` (opcional, tarea Taiga fase_destino/confirmacion_no_estandar):
+`id_ciclos_productivo_biologico` de la fase a la que se quiere transicionar.
+Si se omite, se avanza a la fase estándar siguiente (comportamiento
+histórico, sin cambios). Si se especifica una fase que **no** es la estándar
+siguiente (salto hacia adelante, retroceso, o re-entrar tras completar el
+ciclo), se exige `confirmacion_no_estandar: true` o se rechaza con `409`.
+`fecha_inicio` no puede ser futura.
+
 #### Primera fase (iniciar ciclo)
 
 ```bash
@@ -115,6 +123,7 @@ Respuesta esperada `201`:
   "id_gestion_fases": 20,
   "id_activo_biologico": 51,
   "id_ciclo_productiva": 2,
+  "id_ciclos_productivo_biologico": 5,
   "nombre_ciclo": "Ciclo completo trucha 2025-A",
   "nombre_fase_actual": "Fase larval trucha",
   "paso_actual": 1,
@@ -122,7 +131,8 @@ Respuesta esperada `201`:
   "fecha_inicio": "2026-06-27T...",
   "fecha_finalizacion": null,
   "es_activa": true,
-  "motivo_cambio": "Inicio de ciclo completo trucha"
+  "motivo_cambio": "Inicio de ciclo completo trucha",
+  "es_transicion_no_estandar": false
 }
 ```
 
@@ -162,6 +172,57 @@ curl -X POST http://localhost:8000/activos-biologicos/51/fases \
 ```
 
 Respuesta esperada `422 CICLO_COMPLETADO`.
+
+#### Caso FA: transición no estándar sin confirmar → 409
+
+```bash
+# El activo está en la fase 1 (Alevinaje); fase_destino_id=3 salta la fase 2
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fase_destino_id": 7}'
+```
+
+Respuesta esperada `409`:
+```json
+{
+  "code": "TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR",
+  "message": "La transición a \"Fase adulta trucha\" no es la siguiente fase estándar de la secuencia del ciclo \"Ciclo completo trucha 2025-A\". Si esta transición es intencional (salto de fase o retroceso), reenvíe la solicitud con confirmacion_no_estandar=true."
+}
+```
+
+#### Caso FA: transición no estándar confirmada → 201
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fase_destino_id": 7, "confirmacion_no_estandar": true, "motivo_cambio": "Salto por crecimiento acelerado, autorizado por veterinario"}'
+```
+
+Respuesta esperada `201` con `"es_transicion_no_estandar": true`.
+
+#### Caso FA: fase_destino_id inexistente en el ciclo → 400
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fase_destino_id": 9999}'
+```
+
+Respuesta esperada `400 FASE_DESTINO_INVALIDA`.
+
+#### Caso FA: fecha_inicio futura → 400
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fecha_inicio": "2099-01-01T00:00:00Z"}'
+```
+
+Respuesta esperada `400`: `La fecha de inicio de la fase no puede ser futura.`
 
 ---
 

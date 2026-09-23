@@ -417,6 +417,7 @@ def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
         id_gestion_fases=g.id_gestion_fases,
         id_activo_biologico=g.id_activo_biologico,
         id_ciclo_productiva=g.id_ciclo_productiva,
+        id_ciclos_productivo_biologico=g.id_ciclos_productivo_biologico,
         nombre_ciclo=g.nombre_ciclo,
         nombre_fase_actual=g.nombre_fase_actual,
         paso_actual=g.paso_actual,
@@ -425,6 +426,7 @@ def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
         fecha_finalizacion=g.fecha_finalizacion,
         es_activa=g.es_activa,
         motivo_cambio=g.motivo_cambio,
+        es_transicion_no_estandar=g.es_transicion_no_estandar,
     )
 
 
@@ -500,6 +502,7 @@ def actualizar_activo_individual(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Cambiar fase del ciclo productivo (RF-37)',

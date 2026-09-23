@@ -268,7 +268,13 @@ Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor
 |-------|------|---------------|
 | `id_ciclo_productiva` | `int` | Obligatorio |
 | `motivo_cambio` | `str \| None` | Opcional |
-| `fecha_inicio` | `datetime \| None` | Opcional |
+| `fecha_inicio` | `datetime \| None` | Opcional. No puede ser futura (tarea Taiga fase_destino/confirmacion_no_estandar). |
+| `fase_destino_id` | `int \| None` | Opcional. `id_ciclos_productivo_biologico` de la fase destino; si se omite, avanza a la fase estándar siguiente. |
+| `confirmacion_no_estandar` | `bool` | Default `false`. Requerido `true` si `fase_destino_id` no es la fase estándar siguiente. |
+
+Validaciones adicionales (tarea Taiga fase_destino/confirmacion_no_estandar):
+- `400 FASE_DESTINO_INVALIDA` si `fase_destino_id` no pertenece a la secuencia del ciclo.
+- `409 TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR` si la fase destino no es la estándar siguiente y `confirmacion_no_estandar` no es `true`.
 
 **Response `GestionFaseResponse`** (201):
 
@@ -277,6 +283,7 @@ Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor
 | `id_gestion_fases` | `int \| None` |
 | `id_activo_biologico` | `int` |
 | `id_ciclo_productiva` | `int` |
+| `id_ciclos_productivo_biologico` | `int \| None` — fase específica del ciclo que representa esta gestión |
 | `nombre_ciclo` | `str` |
 | `nombre_fase_actual` | `str \| None` |
 | `paso_actual` | `int \| None` |
@@ -285,6 +292,7 @@ Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor
 | `fecha_finalizacion` | `datetime \| None` |
 | `es_activa` | `bool` |
 | `motivo_cambio` | `str \| None` |
+| `es_transicion_no_estandar` | `bool` — `true` si esta gestión no fue el avance estándar (salto/retroceso confirmado) |
 
 ---
 
