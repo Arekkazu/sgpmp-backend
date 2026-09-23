@@ -5,6 +5,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import ValidationError as _PydanticValidationError
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -136,6 +137,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
+from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
 from src.shared.rbac import tiene_permiso
@@ -166,6 +168,42 @@ def _error_parametros_invalidos(exc: Exception) -> DomainValidationError:
     else:
         mensaje = str(exc)
     return DomainValidationError(code='PARAMETROS_INVALIDOS', message=mensaje)
+
+
+# INC-M02-92-G93 (RF-50): recursos RBAC granulares por `tipo_dato` de
+# `datos-consolidados`. El permiso base sobre `activos_biologicos` (29, R)
+# solo controla acceso al endpoint; estos recursos controlan qué secciones
+# puede leer cada rol dentro de él — necesario para que un consumidor de
+# módulo (ej. M06) tenga scope de solo-métricas sin acceso a eventos/fases/
+# estado. Se resuelven por `nombre_recurso` (`datos_consolidados_<tipo>` en
+# `modulo1.recursos`), no por id numérico: a diferencia de recursos base como
+# `activos_biologicos` (29), sembrados de forma idéntica desde el inicio del
+# proyecto, el id autoincremental de un recurso nuevo depende del historial
+# de cada base — confirmado divergente entre `sgpmp` y `pruebas` al aplicar
+# este mismo cambio. Resolver por nombre evita que el código dependa de un
+# número que ninguna migración garantiza igual entre entornos.
+_TIPOS_DATO_CON_SCOPE = ('eventos', 'fases', 'estado', 'metricas')
+
+
+def _id_recurso_datos_consolidados(db: Session, tipo_dato: str) -> Optional[int]:
+    return db.execute(
+        text('SELECT id_recurso FROM modulo1.recursos WHERE nombre_recurso = :nombre'),
+        {'nombre': f'datos_consolidados_{tipo_dato}'},
+    ).scalar_one_or_none()
+
+
+def _verificar_scope_tipo_dato(db: Session, usuario_actual: UsuarioActual, tipo_dato: str) -> None:
+    tipos = _TIPOS_DATO_CON_SCOPE if tipo_dato == 'todos' else (tipo_dato,)
+    for tipo in tipos:
+        id_recurso = _id_recurso_datos_consolidados(db, tipo)
+        if id_recurso is None or not tiene_permiso(db, usuario_actual.id_rol, id_recurso, 2):
+            raise AuthorizationError(
+                code='SCOPE_TIPO_DATO_NO_AUTORIZADO',
+                message=(
+                    f'Acceso denegado: El módulo solicitante no tiene autorización '
+                    f'para consumir datos de tipo {tipo}.'
+                ),
+            )
 _ROL_PRODUCTOR = 2
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
@@ -1457,6 +1495,8 @@ def consultar_datos_consolidados(
         )
     except (ValueError, _PydanticValidationError) as exc:
         raise _error_parametros_invalidos(exc)
+
+    _verificar_scope_tipo_dato(db, usuario_actual, dto.tipo_dato)
 
     use_case = ConsultarDatosConsolidadosUseCase(
         db=db,
