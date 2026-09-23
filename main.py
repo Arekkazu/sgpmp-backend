@@ -424,6 +424,28 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
             db.close()
 
 
+async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
+    """RF-52 E1/E3: persiste por lotes, fuera del request, lo que quedó en el buffer
+    de la bitácora de M02 (cola de alta carga o eventos pendientes por una caída)."""
+    from src.biological_assets.application.use_cases._registrar_evento_bitacora import (
+        procesar_buffer_bitacora,
+    )
+    from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+        SqlAlchemyBitacoraAuditoriaRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    while True:
+        await asyncio.sleep(5)
+        db = SessionLocal()
+        try:
+            await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
+        except Exception:
+            logger.exception("Error vaciando el buffer de la bitácora de M02.")
+        finally:
+            db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Solo advierte en logs si MQTT_BROKER_TOKEN quedó desincronizado de la BD;
@@ -440,6 +462,7 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
+        asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
     ]
     yield
     for task in tasks:

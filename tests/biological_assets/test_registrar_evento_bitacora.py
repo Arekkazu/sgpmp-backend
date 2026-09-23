@@ -89,7 +89,7 @@ def test_fallo_no_bloquea_operacion_y_deja_rastro(caplog) -> None:
     assert db.commits == 0
     assert any('Fallo al registrar evento de auditoría RF-52' in r.message for r in caplog.records)
 
-    linea = json.loads(bitacora._BUFFER.read_text().strip().splitlines()[-1])
+    linea = json.loads(bitacora._buffer().read_text().strip().splitlines()[-1])
     assert linea['evento']['tipo_evento'] == 'ACTIVO_REGISTRO_FALLIDO'
     assert linea['evento']['id_activo_biologico'] == 99
     assert linea['evento']['id_usuario_responsable'] == 3
