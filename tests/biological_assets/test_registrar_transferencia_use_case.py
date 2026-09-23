@@ -35,6 +35,33 @@ class ColaboradorNoInvocado:
         raise AssertionError(f'No debía invocarse {nombre} tras el rechazo.')
 
 
+class DbFake:
+    """`ejecutar_con_auditoria_de_rechazo` llama `db.rollback()` legítimamente
+    para separar cualquier escritura pendiente del registro de auditoría del
+    rechazo (ver docstring de `_auditoria_rechazos.py`) -- necesita un `db`
+    real con no-ops, no un `ColaboradorNoInvocado` que explota con cualquier
+    llamada.
+    """
+
+    def commit(self) -> None:
+        pass
+
+    def rollback(self) -> None:
+        pass
+
+
+class ActivoRepoNoDebeConsultarse:
+    """`execute()` toma una referencia a `obtener_por_id` (para el auditor de
+    rechazos) incluso cuando `bitacora_repo` es `None` y esa referencia nunca
+    llega a invocarse -- así que, a diferencia de `ColaboradorNoInvocado`, esta
+    clase debe permitir el *acceso* al atributo sin lanzar; solo debe fallar si
+    el método se llega a *invocar* de verdad.
+    """
+
+    def obtener_por_id(self, _id: int):
+        raise AssertionError('No debía invocarse obtener_por_id tras el rechazo.')
+
+
 class ActivoRepoFake:
     def __init__(self, activo, asociacion) -> None:
         self.activo = activo
@@ -150,7 +177,7 @@ def cliente_transferencia(monkeypatch: pytest.MonkeyPatch):
     app = FastAPI()
     register_error_handlers(app)
     app.include_router(router_module.router)
-    app.dependency_overrides[get_db] = lambda: ColaboradorNoInvocado()
+    app.dependency_overrides[get_db] = lambda: DbFake()
     app.dependency_overrides[get_current_user] = _usuario
 
     ruta = next(
@@ -202,7 +229,7 @@ def test_fecha_actual_conserva_el_flujo_existente() -> None:
 
     caso_uso = RegistrarTransferenciaUseCase(
         db=ColaboradorNoInvocado(),
-        activo_repo=ColaboradorNoInvocado(),
+        activo_repo=ActivoRepoNoDebeConsultarse(),
         transferencia_repo=TransferenciaRepo(),
         infra_port=ColaboradorNoInvocado(),
     )

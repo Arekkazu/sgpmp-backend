@@ -28,7 +28,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-45 | Registro de Bajas | ⚠️ Cumple parcialmente | ~85% |
 | RF-46 | Consulta de Historial del Activo | ⚠️ Cumple parcialmente | ~85% |
 | RF-47 | Ficha Integral del Activo Biológico | ⚠️ Cumple parcialmente | ~65% |
-| RF-48 | Transferencia Interna de Activos Biológicos | ⚠️ Cumple parcialmente | ~85% |
+| RF-48 | Transferencia Interna de Activos Biológicos | ✅ Cumple | ~95% |
 | RF-49 | Asociación de Activos Biológicos con Sensores IoT | ⚠️ Cumple parcialmente | ~65% |
 | RF-50 | Disponibilidad de Datos para Módulos Analíticos | ⚠️ Cumple parcialmente | ~55% |
 | RF-51 | Generación de Indicadores Zootécnicos | ⚠️ Cumple parcialmente | ~60% |
@@ -344,21 +344,24 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-48 — Transferencia Interna de Activos Biológicos
 
-**Veredicto: ⚠️ Cumple parcialmente (~85%)**
+**Veredicto: ✅ Cumple (~95%)** — actualizado 2026-09-23 (tarea Taiga "RF-48: Regla
+C2, formato de error"). Anteriormente ⚠️ ~85%; ambos gaps de entonces ya estaban
+resueltos en `dev` antes de recibir esta tarea (commits `074e5c14` y `875732f8`,
+ver `cu10_gaps_bd_rf46_rf47_rf48.md` para el detalle completo).
 
 ### Qué SÍ cumple
 
 - **Control de concurrencia real, no aspiracional**: usa `SELECT ... FOR UPDATE NOWAIT` — un lock genuino de Postgres; si otra transacción ya bloqueó la fila, se rechaza con 409 `TRANSFERENCIA_CONCURRENTE`.
 - Todos los flujos alternos de activo/infraestructura inválidos implementados con los códigos documentados.
-- **Regla C1 (especie) y C3 (capacidad, con cálculo correcto de cantidad para LOTE vs INDIVIDUAL) implementadas.**
-- Fecha futura rechazada en el DTO. Transacción atómica real (cierra/abre asociación en `historial_infraestructura_activo` + actualiza infraestructura del activo + registra `Movimiento`, todo en un único bloque commit/rollback). Auditoría en éxito y en fallo.
+- **Reglas C1 (especie), C2 (tipo de infraestructura vs especie, `modulo9.compatibilidades_tipo_area_especie`) y C3 (capacidad, con cálculo correcto de cantidad para LOTE vs INDIVIDUAL) implementadas** — las tres como reglas de negocio reales, no aspiracionales. Verificado en vivo contra `sgpmp_dev`: 6 filas sembradas para C2 (tipo `Estanque` restringido a especies acuáticas); un tipo de infraestructura sin regla configurada queda sin restricción.
+- **Fecha futura rechazada como regla de negocio real en el use case** (`BusinessRuleError`, `code='FECHA_TRANSFERENCIA_FUTURA'`, `field='fecha_transferencia'`, HTTP 422) — no vive en un `@field_validator` de Pydantic, así que no cae en el patrón sistémico de HTTP 400 documentado en Hallazgos transversales #3.
+- Transacción atómica real (cierra/abre asociación en `historial_infraestructura_activo` + actualiza infraestructura del activo + registra `Movimiento`, todo en un único bloque commit/rollback). Auditoría en éxito y en fallo.
 - LOTE se transfiere completo por diseño estructural (el DTO no acepta cantidad parcial).
 - **Corrección a las notas del propio desarrollador**: el doc de curls afirma "solo admin y productor" pueden transferir, pero verificado en vivo contra `modulo1.permisos`, los 4 roles tienen el permiso. El use case no tiene ningún `id_rol` quemado — el gap es de documentación desactualizada, no de código.
 
 ### Qué NO cumple / gaps
 
-- **Regla C2 (compatibilidad de tipo de infraestructura) no está implementada.** El RF exige que el tipo de infraestructura destino sea adecuado para el tipo de activo, como regla obligatoria simultánea a C1 y C3. El campo `tipo` de la infraestructura está disponible en el adaptador pero **nunca se usa** para esta validación — una transferencia de un activo avícola a un estanque, por ejemplo, no sería rechazada por tipo.
-- El error de fecha futura, al venir de un `@field_validator` de Pydantic, se traduce a HTTP 400 con formato `{error_code, fields[]}`, no al `422` con formato `{code, message, field}` que documenta el propio doc de curls del módulo ni el formato estándar de error de dominio de `CLAUDE.md` — patrón sistémico, no exclusivo de este RF (ver Hallazgos transversales #3).
+- `INFRAESTRUCTURA_ORIGEN_INCORRECTA` sigue respondiendo `400` (`ValidationError`) en vez de `422` — QA no lo ha probado como defecto todavía (ver nota en `curls_m02_cu10_...md`), pendiente de confirmación antes de tocarlo.
 
 ---
 
@@ -453,7 +456,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 2. **El campo `modulo_origen` de `historicos_estados_activos` no distingue nada.** Todos los cambios de estado quedan grabados como `'modulo2'` (o `'modulo5'` en 2 casos), nunca `'MANUAL'`/`'RF-38'`/`'RF-45'` como exige textualmente RF-44 — imposible reconstruir el origen real de un cambio de estado desde esta tabla. Causa raíz: el CHECK `chk_historico_modulo_origen_valido` solo acepta literales `'modulo1'..'modulo9'`. *(Afecta RF-38, RF-44, RF-45.)*
 
-3. **Errores de validación en `@field_validator` de Pydantic no siguen el formato de error de dominio `{code, message, field}` de `CLAUDE.md`.** Salen como HTTP 400 genérico vía el handler de `RequestValidationError` de FastAPI, con formato `{error_code, fields[]}` — a veces en contradicción directa con el código HTTP que el propio RF documenta (ej. RF-33 flujo #8 pide 422, RF-48 fecha futura documentada como 422 en las notas del dev). Afecta a cualquier DTO del módulo que use `@field_validator`, no es exclusivo de un RF.
+3. **Errores de validación en `@field_validator` de Pydantic no siguen el formato de error de dominio `{code, message, field}` de `CLAUDE.md`.** Salen como HTTP 400 genérico vía el handler de `RequestValidationError` de FastAPI, con formato `{error_code, fields[]}` — a veces en contradicción directa con el código HTTP que el propio RF documenta (ej. RF-33 flujo #8 pide 422). Afecta a cualquier DTO del módulo que use `@field_validator`, no es exclusivo de un RF. **RF-48 ya no es un ejemplo vigente de este patrón** (actualizado 2026-09-23): su fecha futura se validaba antes en el DTO, pero se movió al use case como regla de negocio real (`BusinessRuleError`, 422) desde el commit `875732f8`, confirmado en `estado_M02.md` RF-48.
 
 4. **Los errores de negocio que solo detecta un trigger de PL/pgSQL (con `ERRCODE` propio `P02xx`) caen en HTTP 500 genérico, no en el código específico del RF.** `raise_from_db_error` (`src/shared/db_error_translator.py`) solo traduce `IntegrityError`/`DataError`/`OperationalError` de SQLAlchemy — no reconoce los `RAISE EXCEPTION ... USING ERRCODE='P02xx'` que usan los triggers de este módulo. Confirmado 100% reproducible en RF-40 (mismatch de unidad `'gr'` vs `'g'`) y RF-42 (bloqueo de LOTE en reproductivo). *(Afecta RF-39, RF-40, RF-41, RF-42.)*
 
