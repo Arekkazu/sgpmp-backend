@@ -29,7 +29,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-46 | Consulta de Historial del Activo | ⚠️ Cumple parcialmente | ~85% |
 | RF-47 | Ficha Integral del Activo Biológico | ⚠️ Cumple parcialmente | ~65% |
 | RF-48 | Transferencia Interna de Activos Biológicos | ⚠️ Cumple parcialmente | ~85% |
-| RF-49 | Asociación de Activos Biológicos con Sensores IoT | ⚠️ Cumple parcialmente | ~65% |
+| RF-49 | Asociación de Activos Biológicos con Sensores IoT | ✅ Cumple | ~90% |
 | RF-50 | Disponibilidad de Datos para Módulos Analíticos | ⚠️ Cumple parcialmente | ~55% |
 | RF-51 | Generación de Indicadores Zootécnicos | ⚠️ Cumple parcialmente | ~60% |
 | RF-52 | Auditoría y Trazabilidad de Eventos (bitácora) | ⚠️ Cumple parcialmente | ~50% |
@@ -364,23 +364,29 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-49 — Asociación de Activos Biológicos con Sensores IoT
 
-**Veredicto: ⚠️ Cumple parcialmente (~65%)**
+**Veredicto: ✅ Cumple (~90%)** — actualizado 2026-09-23 (tarea Taiga "RF-49:
+Compatibilidad de especie sensor-activo y ciclo de vida completo"). Anteriormente
+⚠️ ~65%; los gaps de entonces (compatibilidad de especie, ciclo de vida completo,
+advertencia de dispositivo offline) ya estaban resueltos en código antes de
+recibir esta tarea — ver `cu11_gaps_bd_rf49.md` para el detalle completo de
+cada commit.
 
 ### Qué SÍ cumple
 
 - Las 6 validaciones de precondición (existencia de activo/sensor, activo no en BAJA, sensor y dispositivo activos, sensor con área asociada, coherencia de finca) implementadas en orden.
 - **Cardinalidad DIRECTA correcta**: un sensor con asociación DIRECTA activa no puede vincularse a otro activo sin liberarlo primero; un mismo activo individual puede tener varios sensores.
-- **Cardinalidad POBLACIONAL correcta**: un lote no puede tener dos sensores POBLACIONAL activos simultáneos. AMBIENTAL correctamente sin restricción de exclusividad.
+- **Cardinalidad POBLACIONAL correcta**: un lote no puede tener dos sensores POBLACIONAL activos simultáneos, y un sensor no puede estar activo en dos lotes a la vez (V8c). AMBIENTAL correctamente sin restricción de exclusividad.
 - **Auto-supersede real y funcional**: si ya existe una asociación ACTIVA para el mismo par sensor+activo, se marca SUPERADA con snapshot de auditoría antes de crear la nueva.
+- **Compatibilidad de especie implementada (V7)** — bloque dedicado en `AsociarSensorActivoUseCase` que consulta `modulo9.compatibilidad_sensores_especies` (lista blanca por sensor) y falla cerrado (`COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`) si el sensor no tiene ninguna regla parametrizada, en vez de tratar la ausencia de configuración como compatibilidad universal. Verificado en vivo: 156 filas reales sembradas en `sgpmp_dev`.
+- **Ciclo de vida completo**: `GET /{id}/sensores` (listar, con `tipo_consulta=ACTIVA|HISTORIAL`), `POST /{id}/sensores` (crear) y `PATCH /{id}/sensores/{id_asociacion}` (activar/desactivar, con tabla de transiciones válidas `ACTIVA↔INACTIVA` y `SUPERADA` inalcanzable manualmente) — los 3 endpoints existen y tienen tests dedicados pasando.
+- **Advertencia de dispositivo IoT desconectado implementada**: `_calcular_advertencia_desconexion()` compara el último heartbeat contra un umbral de 30 minutos; si está desconectado, la asociación igual se crea (201) pero con `advertencia` poblada.
 - **Corrección importante a un hallazgo de la exploración inicial: la tabla de auditoría dedicada `auditorias_asociaciones_sensor_activo` sí se escribe desde código real** (`SqlAlchemyAsociacionSensorActivoRepository.registrar_auditoria`, INSERT real en la misma transacción). Sus 0 filas en dev no son un bug — las 4 asociaciones existentes en `asociaciones_activos_sensores` tienen fechas de 2024, es decir, fueron sembradas directamente por SQL, no creadas vía este endpoint; el código simplemente no se ha ejercitado todavía en este entorno.
 - El `fk_usuario` duplicado y mal nombrado en `asociaciones_activos_sensores` (apunta otra vez a `id_activo_biologico`) es basura de migración inofensiva — el FK real hacia `usuarios` existe correctamente bajo otro nombre autogenerado.
 
 ### Qué NO cumple / gaps
 
-- **No existe validación de compatibilidad de especie** (Restricción 3 del RF: "el sensor debe ser compatible con la especie del activo según el catálogo I3P-1"). Grep exhaustivo confirma cero referencias a "especie" en todo el flujo de asociación — solo se valida coherencia de finca. Un sensor parametrizado para aves podría asociarse hoy a un activo bovino sin rechazo.
-- **Ciclo de vida incompleto: solo existe `POST /{id}/sensores`.** No hay ningún endpoint para desactivar manualmente una asociación, reactivarla, ni siquiera para listar/consultar las asociaciones activas de un activo. El RF exige explícitamente "gestionar el ciclo de vida completo: creación, modificación, desactivación e historial inmutable" — hoy solo la creación (y el auto-supersede indirecto) están cubiertas.
-- Coherente con lo anterior: el RBAC del recurso dedicado solo tiene permisos C y R sembrados, ni siquiera está previsto en el modelo de permisos actual.
-- No hay verificación de "dispositivo IoT fuera de línea" (heartbeat) que describe el flujo alterno del RF — solo se valida el estado booleano del dispositivo.
+- **El RBAC del PATCH (ciclo de vida) nunca llegó a `dev`.** El endpoint exige `(recurso 30, acción U=3)`; ese permiso se había aplicado directamente por SQL contra `sgpmp`/`pruebas` pero nunca se formalizó como migración Alembic, así que en `dev` respondía `403` para los 4 roles, incluido Administrador. Corregido en esta iteración (migración `1ee808f9ee6b_v5_4_0_rf49_permiso_patch_asociacion_sensor`, roles autorizados: Administrador e Ingeniero de Campo).
+- No se decidió si Productor también debería tener `U` sobre este recurso (el issue original que agregó el PATCH dejó esa pregunta abierta a propósito, para no invadir el alcance de otro issue) — el RF no lo exige de forma inequívoca. Pendiente de una decisión explícita.
 
 ---
 
