@@ -16,7 +16,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-33 | Registro de Activos Biológicos | ⚠️ Cumple parcialmente | ~65% |
 | RF-34 | Asociación del Activo a Infraestructura (lectura) | ⚠️ Cumple parcialmente | ~55% |
 | RF-35 | Gestión Individual de Activos Biológicos | ⚠️ Cumple parcialmente | ~55% |
-| RF-36 | Gestión Poblacional de Activos Biológicos | ⚠️ Cumple parcialmente | ~40% |
+| RF-36 | Gestión Poblacional de Activos Biológicos | ✅ Cumple | ~90% |
 | RF-37 | Gestión de Fases del Ciclo Productivo | ⚠️ Cumple parcialmente | ~55% |
 | RF-38 | Cierre del Ciclo Productivo | ⚠️ Cumple parcialmente | ~85% |
 | RF-39 | Registro de Eventos Biológicos (base) | ⚠️ Cumple parcialmente | ~80% |
@@ -34,7 +34,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-51 | Generación de Indicadores Zootécnicos | ⚠️ Cumple parcialmente | ~60% |
 | RF-52 | Auditoría y Trazabilidad de Eventos (bitácora) | ⚠️ Cumple parcialmente | ~50% |
 
-**Lectura rápida:** este es, por lejos, el módulo más desarrollado de los auditados hasta ahora — las 20 RFs tienen use cases reales y sustanciales (22 a 255 líneas), no stubs, con arquitectura hexagonal completa y ~25 triggers de base de datos reforzando reglas de negocio críticas (máquina de estados, inmutabilidad de eventos, fase única activa, cantidad/biomasa de lotes). No hay ningún RF en estado "no cumple" — el peor caso (RF-36, ~40%) tiene el motor de coherencia de datos bien resuelto, pero le falta la mitad del contrato funcional (ficha del lote como entidad propia, validación de densidad máxima). Los gaps más serios no son de "falta código": son grietas puntuales en el principio central de RF-44 (el punto de control de estado se puede saltar por un segundo camino), en la integridad de la bitácora de auditoría del RF-52 (sin inmutabilidad garantizada por DB, justo lo que el RF exige como no negociable), y un problema sistémico de traducción de errores que convierte violaciones de reglas de negocio detectadas solo por trigger en HTTP 500 genérico en vez del código específico documentado por cada RF. RBAC está, en general, muy bien resuelto (ningún `id_rol` quemado en ningún use case de los 20 auditados — mejor disciplina que el módulo 1), aunque el recorte de roles por recurso no siempre coincide con la lista de actores que cada RF describe en su ficha.
+**Lectura rápida:** este es, por lejos, el módulo más desarrollado de los auditados hasta ahora — las 20 RFs tienen use cases reales y sustanciales (22 a 255 líneas), no stubs, con arquitectura hexagonal completa y ~25 triggers de base de datos reforzando reglas de negocio críticas (máquina de estados, inmutabilidad de eventos, fase única activa, cantidad/biomasa de lotes). No hay ningún RF en estado "no cumple". Al momento de esta auditoría (2026-08-06) el peor caso era RF-36 (~40%, ficha del lote y validación de densidad máxima ausentes); ambos gaps se resolvieron después (INC-M02-38-G25 para densidad, y la tarea Taiga "Ficha de gestión de lote" del 2026-09-23 para el resto — ver sección RF-36 actualizada más abajo), dejando a RF-52 (~50%) como el caso más bajo vigente. Los gaps más serios no son de "falta código": son grietas puntuales en el principio central de RF-44 (el punto de control de estado se puede saltar por un segundo camino), en la integridad de la bitácora de auditoría del RF-52 (sin inmutabilidad garantizada por DB, justo lo que el RF exige como no negociable), y un problema sistémico de traducción de errores que convierte violaciones de reglas de negocio detectadas solo por trigger en HTTP 500 genérico en vez del código específico documentado por cada RF. RBAC está, en general, muy bien resuelto (ningún `id_rol` quemado en ningún use case de los 20 auditados — mejor disciplina que el módulo 1), aunque el recorte de roles por recurso no siempre coincide con la lista de actores que cada RF describe en su ficha.
 
 ---
 
@@ -111,22 +111,25 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-36 — Gestión Poblacional de Activos Biológicos
 
-**Veredicto: ⚠️ Cumple parcialmente (~40%)** — el más bajo de las 20 RFs auditadas.
+**Veredicto: ✅ Cumple (~90%)** — actualizado 2026-09-23 (tarea Taiga "Ficha
+de gestión de lote, densidad máxima, ingreso de individuos"). Anteriormente
+⚠️ ~40%, el más bajo de las RFs auditadas.
 
 ### Qué SÍ cumple
 
-- Coherencia `cantidad_actual`/`biomasa_total`/`densidad` forzada tanto en el dominio (`aplicar_evento_baja()`/`aplicar_evento_crecimiento()`, `activo_biologico.py:399-422`) como en DB (`chk_poblacional_biomasa_coherente`, `chk_poblacional_cantidad_actual_coherente`, `chk_poblacional_cantidad_actual_no_negativa`, `chk_poblacional_cantidad_inicial_positiva`).
+- Coherencia `cantidad_actual`/`biomasa_total`/`densidad` forzada tanto en el dominio (`aplicar_evento_baja()`/`aplicar_evento_crecimiento()`/`aplicar_evento_ingreso()`, `activo_biologico.py`) como en DB (`chk_poblacional_biomasa_coherente`, `chk_poblacional_cantidad_actual_no_negativa`, `chk_poblacional_cantidad_inicial_positiva`).
 - Ningún DTO permite editar directamente `cantidad_actual`, `peso_promedio`, `biomasa_total` ni `densidad` — el único mecanismo de cambio son los eventos, tal como exige el RF.
 - `cantidad_inicial`/`peso_promedio_inicial` inmutables vía trigger, satisfaciendo la referencia histórica permanente.
 - Un lote no puede convertirse en INDIVIDUAL (tipo inmutable). El estado del lote no es editable desde ningún flujo de este RF, solo vía RF-44.
+- **`GET /{id}/ficha-lote` (nuevo, `ConsultarFichaLoteUseCase`):** ficha operativa dedicada al lote — `cantidad_actual` + `peso_promedio` + `biomasa_total` + `densidad` + `densidad_maxima` + `estado_actual` + `historial` (10 más recientes, reutiliza `consultar_historial` de RF-46/RF-48) en una sola respuesta. Distinta de la ficha integral genérica de RF-47 (que no expone `densidad`/`densidad_maxima`).
+- **`densidad_maxima_por_especie` ahora se valida** — resuelto en dos partes: el cálculo (`capacidad_maxima/superficie` de la infraestructura) ya existía desde INC-M02-38-G25 para eventos de crecimiento; esta iteración lo reutiliza en `RegistrarEventoIngresoUseCase`, donde sí puede bloquear la operación (`409 DENSIDAD_MAXIMA_SUPERADA`) porque el ingreso incrementa `cantidad_actual` directamente, a diferencia de crecimiento.
+- **`POST /{id}/eventos/ingreso` (nuevo, `RegistrarEventoIngresoUseCase`):** mecanismo de alta de individuos al lote, contraparte simétrica de BAJA. `cantidad_actual` ahora solo se modifica vía BAJA o INGRESO, tal como exige el RF. Reutiliza `(recurso 29, acción C)`, mismo RBAC que baja — sin cambios de permisos necesarios.
 
 ### Qué NO cumple / gaps
 
-- **No existe un endpoint ni caso de uso propio de "gestión de lote"** con la ficha operativa completa que describe el RF (cantidad_actual + peso_promedio + biomasa_total + densidad + estado + historial en una sola vista). El único endpoint con RF-36 implícito, `GET /{id}/eventos`, **solo devuelve la lista de eventos**, no las métricas del lote — para verlas hay que usar `GET /{id}` (pensado para individuales) o la ficha integral (RF-47). El RF describe una "ficha del lote" propia que no existe como endpoint dedicado.
-- **No se valida `densidad_maxima_por_especie` en absoluto** — grep exhaustivo sin coincidencias. El flujo alterno #4 del RF ("409 — densidad supera el máximo permitido") no está implementado; el sistema calcula la densidad pero nunca la contrasta contra ningún límite.
-- No hay ningún mecanismo de "ingreso"/alta de individuos al lote — solo existe el flujo de BAJA. La restricción "`cantidad_actual` no puede ser mayor a `cantidad_inicial` + ingresos" es hoy trivialmente cierta porque el mecanismo de ingreso simplemente no existe, no porque esté validado.
 - No hay ninguna validación cruzada que fuerce o recuerde que un evento sanitario con `cantidad_afectada` por muertes debe ir acompañado de un evento de tipo BAJA independiente, tal como exige el RF — queda a discreción manual del usuario.
 - Reglas de validación agregada por especie más allá del rango de medición puntual (ej. rango de peso promedio del lote, tipos de evento permitidos por especie) no están implementadas a nivel de lote.
+- Hallazgo colateral (no bloqueaba este RF, documentado en `cu03_gaps_bd_rf36.md` GAP-04): el filtro explícito `categoria_evento` de `GET /{id}/historial` (RF-46) no acepta `'INGRESO'` como valor — solo se agregó a la categoría por defecto (sin filtro) que consume la ficha de lote. Pendiente de RF-46.
 
 ---
 
