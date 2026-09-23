@@ -19,7 +19,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.domain.entities.rol import Rol
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class ActivoRepoFake:
@@ -35,8 +35,10 @@ class ActivoRepoFake:
 
 
 class IndicadoresRepoFake:
-    def __init__(self) -> None:
+    def __init__(self, total_metricas_peso: int = 1) -> None:
         self.llamado = False
+        self.contar_metricas_peso_llamado = False
+        self.total_metricas_peso = total_metricas_peso
 
     def obtener_datos_consolidados(self, **kwargs) -> DatosConsolidados:
         self.llamado = True
@@ -50,6 +52,10 @@ class IndicadoresRepoFake:
             fase_productiva_activa=None,
             fecha_generacion=datetime.now(timezone.utc),
         )
+
+    def contar_metricas_peso_en_rango(self, _id_activo, _fecha_inicio, _fecha_fin) -> int:
+        self.contar_metricas_peso_llamado = True
+        return self.total_metricas_peso
 
 
 def _usuario() -> UsuarioActual:
@@ -169,3 +175,77 @@ def test_resolver_modulo_consumidor_deriva_desde_rol_integracion_m04():
     uc = _uc(_activo(279), None)
     uc.rol_repo = RolRepoFake({12: Rol(nombre_rol='Integración M04', es_protegido=False, id_rol=12)})
     assert uc._resolver_modulo_consumidor(12) == 'modulo4'
+
+
+# ── INC-M02-93-G93 (RF-50 FA-03): 422 para M06 sin métricas de peso ──────────
+# RF-50 distingue "consistencia fuerte" (M06, valoración NIC-41) de
+# "consistencia eventual" (resto) -- por eso la validación solo aplica
+# cuando el consumidor resuelve a 'modulo6' y pide una sección con metricas.
+# Cualquier otro consumidor sigue recibiendo 200 con metricas_actuales en
+# null como hasta ahora (sin regresión).
+
+def _usuario_m06(id_rol: int = 15) -> UsuarioActual:
+    return UsuarioActual(id_usuario=99, id_token=1, id_rol=id_rol)
+
+
+def _rol_repo_m06(id_rol: int = 15) -> RolRepoFake:
+    return RolRepoFake({id_rol: Rol(nombre_rol='Integración M06', es_protegido=False, id_rol=id_rol)})
+
+
+def test_m06_sin_metricas_peso_en_rango_lanza_422():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(279, DatosConsolidadosDTO(tipo_dato='metricas'), _usuario_m06())
+
+    assert exc.value.code == 'METRICAS_PESO_INSUFICIENTES'
+    assert '279' in exc.value.message
+    assert indicadores_repo.contar_metricas_peso_llamado is True
+    assert indicadores_repo.llamado is False  # se rechaza antes de construir la respuesta
+
+
+def test_m06_con_metricas_peso_disponibles_no_lanza():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=3)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='metricas'), _usuario_m06())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.llamado is True
+
+
+def test_m06_tipo_dato_todos_tambien_valida_metricas_peso():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(279, DatosConsolidadosDTO(tipo_dato='todos'), _usuario_m06())
+
+    assert exc.value.code == 'METRICAS_PESO_INSUFICIENTES'
+
+
+def test_m06_tipo_dato_eventos_no_aplica_la_validacion():
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+    uc.rol_repo = _rol_repo_m06()
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='eventos'), _usuario_m06())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.contar_metricas_peso_llamado is False
+
+
+def test_consumidor_no_m06_nunca_activa_la_validacion_aunque_no_haya_peso():
+    # Productor (default 'modulo2'): mismo comportamiento de siempre (200,
+    # sin la validación nueva), aunque el repo "tendría" 0 métricas de peso.
+    indicadores_repo = IndicadoresRepoFake(total_metricas_peso=0)
+    uc = _uc(_activo(279), None, indicadores_repo)
+
+    resultado = uc.execute(279, DatosConsolidadosDTO(tipo_dato='todos'), _usuario())
+
+    assert resultado.id_activo_biologico == 279
+    assert indicadores_repo.contar_metricas_peso_llamado is False

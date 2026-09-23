@@ -14,7 +14,7 @@ from src.biological_assets.domain.repositories.indicadores_repository import Ind
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 # INC-M02-92-G93: RF-50 exige registrar el "módulo solicitante" en la
 # auditoría. Las identidades técnicas de consumidores analíticos creadas para
@@ -22,6 +22,16 @@ from src.shared.errors import ConflictError, NotFoundError
 # cualquier otro rol (humano, viendo su propio módulo) conserva el valor
 # histórico 'modulo2'.
 _PATRON_ROL_MODULO = re.compile(r'^integraci[oó]n\s+m0*(\d+)$', re.IGNORECASE)
+
+# INC-M02-93-G93 (RF-50 FA-03): la validación de "métricas de peso
+# insuficientes" solo aplica a M06 -- RF-50 mismo distingue "políticas de
+# consistencia fuerte para consultas críticas (ej. M06 - valoración
+# financiera)" de la "consistencia eventual" del resto de consumidores (ej.
+# M08 dashboards). Aplicarla a todos habría sido una regresión: hoy Admin/
+# Productor/Veterinario/Ingeniero reciben 200 con metricas_actuales en null
+# cuando no hay peso, comportamiento que RF-50 no prohíbe para ellos.
+_MODULO_CONSISTENCIA_FUERTE = 'modulo6'
+_TIPOS_DATO_CON_METRICAS = {'metricas', 'todos'}
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -66,6 +76,22 @@ class ConsultarDatosConsolidadosUseCase:
                 ),
             )
 
+        modulo_consumidor = self._resolver_modulo_consumidor(usuario.id_rol)
+
+        if modulo_consumidor == _MODULO_CONSISTENCIA_FUERTE and dto.tipo_dato in _TIPOS_DATO_CON_METRICAS:
+            total_peso = self.indicadores_repo.contar_metricas_peso_en_rango(
+                id_activo, dto.fecha_inicio, dto.fecha_fin,
+            )
+            if total_peso == 0:
+                raise BusinessRuleError(
+                    code='METRICAS_PESO_INSUFICIENTES',
+                    message=(
+                        f'Información incompleta: El activo {id_activo} no registra métricas de '
+                        f'peso necesarias para el cálculo de transformación biológica en el rango '
+                        f'de fechas solicitado.'
+                    ),
+                )
+
         resultado = self.indicadores_repo.obtener_datos_consolidados(
             id_activo=id_activo,
             tipo_dato=dto.tipo_dato,
@@ -82,7 +108,7 @@ class ConsultarDatosConsolidadosUseCase:
             id_activo_biologico=id_activo,
             detalle_tecnico={'tipo_dato': dto.tipo_dato},
             id_usuario_responsable=usuario.id_usuario,
-            modulo_consumidor=self._resolver_modulo_consumidor(usuario.id_rol),
+            modulo_consumidor=modulo_consumidor,
         ))
 
         return resultado

@@ -312,6 +312,11 @@ scope activo por `tipo_dato` solicitado: recursos 59 (`datos_analiticos_eventos`
 scopes (rechazo estricto, ver E-07 abajo). Sembrado por la migración
 `d944f4d8c215` — ver `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
 
+**Validación adicional para M06 (INC-M02-93-G93 / RF-50 FA-03):** cuando el
+consumidor es la identidad `'Integración M06'` y `tipo_dato` incluye
+métricas, se exige además al menos una medición de peso dentro del rango
+solicitado — ver E-08 abajo.
+
 ---
 
 ### Flujo A — Datos completos del activo
@@ -531,6 +536,34 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_
 mínima, RF-50): con la misma identidad M04, `?tipo_dato=todos` también
 devuelve 403 con `"...tipo metricas."` (primer scope faltante en el orden
 `eventos, fases, estado, metricas`).
+
+#### E-08 — Métricas de peso insuficientes para valoración NIC-41 (INC-M02-93-G93 / TC-M02-157)
+
+RF-50 FA-03: cuando el consumidor es M06 (`modulo_consumidor` resuelto desde
+el rol `'Integración M06'`) y el rango solicitado no tiene ninguna medición
+`tipo_medicion='peso'` en `modulo2.eventos_crecimeinto`, se rechaza antes de
+construir la respuesta. Solo aplica cuando `tipo_dato` incluye la sección de
+métricas (`metricas` o `todos`); para cualquier otro consumidor (Admin,
+Productor, Veterinario, Ingeniero de Campo, M04) el comportamiento no cambia
+— siguen recibiendo `200` con `metricas_actuales` en `null` cuando no hay
+peso, tal como hoy.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-08-31" \
+  -H "Authorization: Bearer <TOKEN_M06>"
+```
+**HTTP 422:**
+```json
+{
+  "code": "METRICAS_PESO_INSUFICIENTES",
+  "message": "Información incompleta: El activo 279 no registra métricas de peso necesarias para el cálculo de transformación biológica en el rango de fechas solicitado."
+}
+```
+
+**Autorización de M06 (INC-M02-93-G93):** scope de valoración/NIC-41 — recurso
+62 (`datos_analiticos_metricas`), acción R. Sembrado por la migración
+`2b747aaae732` (depende de `d944f4d8c215`) — ver
+`anotaciones/modulo_2/inc_m02_93_g93_identidad_m06_metricas_peso.md`.
 
 ---
 

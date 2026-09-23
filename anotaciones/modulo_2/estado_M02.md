@@ -407,7 +407,18 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
   sin aprobación de DBA todavía) — ver
   `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
 - **No hay rate limiting.** *(Nota: esta entrada quedó desactualizada por INC-M02-96-G94, que ya agregó rate limiting a este endpoint — ver `inc_m02_96_g94_rate_limit_contrato_datos_consolidados.md`; no se reescribe aquí por estar fuera del alcance de INC-M02-92-G93.)* El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
-- **No hay validación de integridad referencial/completitud mínima antes de exponer datos** — el sistema devuelve lo que encuentra sin ninguna de las comprobaciones 409/422/500 que describen los flujos alternos del RF; si no hay eventos de peso, el campo simplemente sale `null`.
+- ~~**No hay validación de integridad referencial/completitud mínima antes de exponer datos**~~
+  **Parcialmente corregido por INC-M02-93-G93 (issue #391).** El FA-03 (422
+  por métricas de peso insuficientes) ya está implementado, pero acotado a
+  M06 (`modulo_consumidor == 'modulo6'`) — no de forma universal, siguiendo
+  la propia distinción "consistencia fuerte (M06) / eventual (resto)" que
+  hace el RF. Para cualquier otro consumidor (incluido M04) el
+  comportamiento no cambió: `metricas_actuales` sigue en `null` sin rechazo
+  cuando no hay peso. El FA-06 (409 integridad referencial) ya estaba
+  cubierto desde antes por INC-M02-97-G95 (`INCONSISTENCIA_JERARQUICA`); el
+  FA-07 (500 por normalización/valores fuera de rango físico) sigue sin
+  implementar — ver
+  `anotaciones/modulo_2/inc_m02_93_g93_identidad_m06_metricas_peso.md`.
 - No hay diferenciación de consistencia fuerte (para M06) vs. eventual (para M08) — todo es una lectura síncrona simple.
 - **La escritura de auditoría es best-effort silenciosa** (`try/except Exception: pass`), decisión documentada conscientemente por el propio dev para no bloquear el flujo principal, pero contradice el criterio de RF-52 de que todo evento debe registrarse "sin excepción" (ver Hallazgos transversales #6).
 
