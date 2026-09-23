@@ -130,7 +130,7 @@ fuera de alcance de esta tarea de 5 puntos.
 
 ## Migración
 
-`alembic/versions/69d26aea234c_v5_5_0_rf37_id_fase_ciclo_gestiones_.py` —
+`alembic/versions/69d26aea234c_v5_4_0_rf37_id_fase_ciclo_gestiones_.py` —
 `down_revision=c8d4f1a9b7e2` (head real de `origin/dev` al momento de
 escribir esta migración). DDL (columna + FK) + backfill DML en una sola
 migración porque el backfill es indispensable para que la columna pueda
