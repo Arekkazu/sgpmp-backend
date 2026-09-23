@@ -152,7 +152,7 @@ _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
 _ROL_PRODUCTOR = 2
 
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
-# Sembrados en la migración d944f4d8c215 (v5.4.0) -- si esa migración no ha
+# Sembrados en la migración d944f4d8c215 (v5.5.0) -- si esa migración no ha
 # corrido, estos IDs no existen todavía en modulo1.recursos.
 _RECURSO_DATOS_EVENTOS = 59    # modulo1.recursos: 'datos_analiticos_eventos'
 _RECURSO_DATOS_FASES = 60      # modulo1.recursos: 'datos_analiticos_fases'

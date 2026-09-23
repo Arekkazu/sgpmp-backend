@@ -100,7 +100,7 @@ advertencia, es un cambio acotado a `_verificar_scope_tipo_dato` en el router.
 
 ## SQL aplicado
 
-Migración Alembic `d944f4d8c215` (`v5.4.0_inc_m02_92_scope_tipo_dato_datos_consolidados`,
+Migración Alembic `d944f4d8c215` (`v5.5.0_inc_m02_92_scope_tipo_dato_datos_consolidados`,
 `down_revision=1147428cd8fb`) — ver el archivo para el DDL/DML completo:
 
 1. Inserta los 4 recursos nuevos (`datos_analiticos_eventos/fases/estado/metricas`).
