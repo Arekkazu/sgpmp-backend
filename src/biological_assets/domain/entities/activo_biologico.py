@@ -506,6 +506,11 @@ class ActivoBiologico:
         return hash(self.id_activo_biologico)
 
 
+# RF-52 E2: estas clasificaciones siempre describen a un activo concreto, así que
+# "activo_biologico_id ... obligatorio cuando el evento corresponde a un activo".
+_CLASIFICACIONES_DE_UN_ACTIVO = frozenset({'TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'CONTROL_ESTADO'})
+
+
 @dataclass
 class EventoAuditoria:
     rf_origen: str
@@ -526,3 +531,25 @@ class EventoAuditoria:
     timestamp_registro: Optional[datetime] = None
     hash_integridad: Optional[str] = None
     registro_incompleto: bool = False
+
+    def marcar_si_incompleto(self) -> list[str]:
+        """RF-52 E2: un evento sin todos sus campos obligatorios no se rechaza.
+
+        Se persiste con lo que trae, marcado ``registro_incompleto`` y con la
+        causa en ``detalle_tecnico`` -- principio de no perder trazabilidad por
+        un error de formato del emisor. Devuelve las causas (vacío si está completo).
+        """
+        causas = [
+            f'{campo} vacío'
+            for campo in ('rf_origen', 'tipo_evento', 'clasificacion_biologica')
+            if not getattr(self, campo)
+        ]
+        if self.clasificacion_biologica in _CLASIFICACIONES_DE_UN_ACTIVO and self.id_activo_biologico is None:
+            causas.append(
+                f'activo_biologico_id ausente en un evento {self.clasificacion_biologica}, '
+                'que corresponde a un activo específico'
+            )
+        if causas:
+            self.registro_incompleto = True
+            self.detalle_tecnico = {**(self.detalle_tecnico or {}), 'causas_registro_incompleto': causas}
+        return causas
