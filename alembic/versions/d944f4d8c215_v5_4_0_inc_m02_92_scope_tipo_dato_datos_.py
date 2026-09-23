@@ -1,4 +1,4 @@
-"""v5.5.0_inc_m02_92_scope_tipo_dato_datos_consolidados
+"""v5.4.0_inc_m02_92_scope_tipo_dato_datos_consolidados
 
 Revision ID: d944f4d8c215
 Revises: c8d4f1a9b7e2
