@@ -6,7 +6,8 @@ Síntesis de los tres audits de solo lectura (`anotaciones/modulo_1/gaps_flujo_a
 > los 11 ❌ del Módulo 9 (rama `fix/gaps-flujo-alterno-m09`) y 16 de los 18 ❌ del Módulo 2, más sus
 > 4 ⚠️ (rama `fix/gaps-flujo-alterno-m02`). Este documento conserva el diagnóstico estructural
 > completo; las menciones ya resueltas se anotan con **(corregido)**. **Lo único abierto en los tres
-> módulos es M2·RF-52 E3 y E5** (ver Patrón 5). Los ⚠️ de M9 se dejaron deliberadamente como están:
+> módulos es la reconciliación de M2·RF-52 E5**, en un PR aparte (ver Patrón 5). Los ⚠️ de M9 se
+> dejaron deliberadamente como están:
 > ver la nota al final del Patrón 2.
 
 No es un cuarto listado de gaps por RF — es la lectura arquitectónica de por qué los mismos tipos
@@ -142,11 +143,12 @@ existe en ningún punto del código, por lo que ni siquiera hay un HTTP "equivoc
 | M2 | RF-49 **(corregido)** | No había validación de compatibilidad de especie sensor↔activo ni aviso de dispositivo desconectado. Los dos los cerraron PRs posteriores a la auditoría (#354 y #377) antes de corregir el módulo: la auditoría quedó desactualizada, no hizo falta tocar código |
 | M2 | RF-50 / RF-51 **(corregido)** | No había detección de valores físicamente imposibles. RF-51 ya detectaba el outlier de ganancia de peso (PR #271), pero lo respondía con el 422 genérico: ahora da 500, y la división por cero da 409, con una `causa_no_disponible` explícita en el indicador. RF-50 cancela la exportación (500) si una métrica es negativa. El 422 de NIC 41 de RF-50 ya lo había cerrado el PR #424 |
 | M2 | RF-52 E1/E2 **(corregido)** | El flag `registro_incompleto` existía de punta a punta pero nada lo activaba. Ahora el repositorio, único punto por el que pasan todos los emisores, persiste el evento marcado y con la causa, sin rechazarlo. El archivo de fallback se volvió un buffer que se recupera en orden cronológico al volver la bitácora y deja registrado el periodo de indisponibilidad |
-| M2 | RF-52 E3/E5 **(abierto)** | Falta la cola con prioridad bajo alta carga (E3) y la reconciliación RF-46↔RF-52 (E5). No son solo código: E3 necesita que Análisis defina qué es "alta carga" (y decidir si la bitácora pasa a ser asíncrona, como pide la restricción 3 del RF); E5 necesita una llave de cruce que hoy no existe, porque ninguna entrada de la bitácora guarda el `id_evento` que registró |
+| M2 | RF-52 E3 **(corregido)** | No había control de tasa. Con carga normal nada cambia; por encima de un umbral configurable, los INFO que no son de transformación biológica se encolan en el buffer durable de E1 y se persisten por lotes, mientras lo prioritario sigue siendo inmediato |
+| M2 | RF-52 E5 **(a medias)** | Faltaba una llave para cruzar historial y bitácora. Ya se emite (`registros_rf46`) desde los 9 puntos que crean historial, y eso destapó un emisor sin rastro: el avance automático de fase por crecimiento. La reconciliación diaria y el registro correctivo van en un PR aparte, por su migración de permiso |
 
 Estos son los hallazgos de mayor severidad real de toda la auditoría: en el Patrón 1/2/3 el sistema
 sí aplica la regla y solo falla el código HTTP; aquí la regla de negocio no se aplica en absoluto.
-Tras corregir los tres módulos, de este patrón solo quedan M2·RF-52 E3 y E5.
+Tras corregir los tres módulos, de este patrón solo queda la reconciliación de M2·RF-52 E5.
 
 ---
 
@@ -183,9 +185,10 @@ excepción en los tres audits:
 4. **Más caro, requiere diseño nuevo:** Patrón 5 — son features ausentes (buffer de auditoría, cola
    con prioridad, detección de outliers, validación cruzada de especie), no fixes de una línea.
    *Los de M1 (RF-01 SMTP y RF-11 410), los de M9 (RF-17 sync a Edge, RF-25 204/504, RF-32
-   referencias huérfanas) y los de M2 (outliers de RF-50/51, RF-52 E1/E2) ya se implementaron;
+   referencias huérfanas) y los de M2 (outliers de RF-50/51, RF-52 E1/E2/E3) ya se implementaron;
    ninguno requirió infraestructura nueva: el buffer de E1 reutilizó el archivo de fallback que ya
-   existía. Lo que queda —M2·RF-52 E3/E5— sí la requiere, además de decisiones de Análisis.*
+   existía, y la cola de E3 reutilizó ese buffer. Lo único que necesita algo de esquema es la
+   reconciliación de E5, y es apenas una fila de permiso.*
 
 **Lección que dejan las dos correcciones:** de los 20 ❌ cerrados entre M1 y M9, uno (M9·RF-23) era
 un falso positivo de la auditoría —la regla existía, en el `model_validator` del DTO, donde el audit

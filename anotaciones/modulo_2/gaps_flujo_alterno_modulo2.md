@@ -14,8 +14,10 @@ clave para varios de los gaps: cuando un RF pide 422 para un caso que el
 código valida con un `@field_validator` de Pydantic, el resultado real es 400.
 
 > **Estado (2026-09-23): corregido en la rama `fix/gaps-flujo-alterno-m02`**
-> (derivada de `fix/inc-m02-51-g44-refresh-token-http-500`). Quedan abiertos solo
-> **RF-52 E3 y E5**, que requieren diseño nuevo (ver su sección). Cada fila
+> (derivada de `fix/inc-m02-51-g44-refresh-token-http-500`). Solo queda **RF-52 E5 a
+> medias**: la llave del cruce ya se emite aquí, y la reconciliación con su registro
+> correctivo va en la rama `feat/rf52-e5-reconciliacion-bitacora`, en un PR aparte
+> porque trae una migración de permiso que espera autorización del DBA. Cada fila
 > corregida lleva el `archivo:línea` de la corrección. Tres de los gaps ya los
 > habían cerrado PRs posteriores a la auditoría: RF-49 especie (#354), RF-49
 > dispositivo desconectado (#377) y RF-50 NIC 41 (#424). Sin migración de BD.
@@ -86,9 +88,9 @@ tres RFs a la vez.
 | RF-49 | Asociación sensor IoT | 6 | 2 | 0 | 0 |
 | RF-50 | Datos consolidados | 7 | 2 | 0 | 0 |
 | RF-51 | Indicadores zootécnicos (x2, texto idéntico) | 7 | 1 | 1 | 0 |
-| RF-52 | Auditoría y trazabilidad | 5 | 4 | 0 | **2** (E3, E5) |
+| RF-52 | Auditoría y trazabilidad | 5 | 4 | 0 | **1** (E5, en PR aparte) |
 
-**Total: ~104 casos revisados, 18 gaps ❌, 4 parciales ⚠️. Pendientes hoy: 2 ❌ (RF-52 E3 y E5), 0 ⚠️.**
+**Total: ~104 casos revisados, 18 gaps ❌, 4 parciales ⚠️. Pendientes hoy: 1 ❌ (RF-52 E5, en PR aparte), 0 ⚠️.**
 
 RF-33, RF-34, RF-38, RF-45 y RF-48 están implementados sin gaps de código HTTP
 — casi calcados al RF, incluyendo comentarios en código que citan
@@ -392,21 +394,22 @@ cuando se pide un indicador concreto.
 
 | Caso | Comportamiento esperado | Comportamiento real | Archivo:línea | Veredicto |
 |------|---|---|---|:---:|
-| E1: fallo persistente del repositorio de auditoría (buffer + recuperación) | Eventos se acumulan en buffer, se recuperan sin pérdida al volver el servicio | El archivo de *fallback* que ya existía (#265) se volvió un buffer recuperable: guarda el evento completo, alerta con CRITICAL en el log y la primera escritura exitosa lo persiste en orden cronológico, con un registro `INDISPONIBILIDAD_AUDITORIA` del periodo caído. Si la recuperación falla, el buffer se conserva. Los rechazos auditados y el handler de 400 también pasan por él (antes se perdían en silencio). Verificado en vivo | `application/use_cases/_registrar_evento_bitacora.py:54,76` | ✅ corregido |
+| E1: fallo persistente del repositorio de auditoría (buffer + recuperación) | Eventos se acumulan en buffer, se recuperan sin pérdida al volver el servicio | El archivo de *fallback* que ya existía (#265) se volvió un buffer recuperable: guarda el evento completo, alerta con CRITICAL en el log y la primera escritura exitosa lo persiste en orden cronológico, con un registro `INDISPONIBILIDAD_AUDITORIA` del periodo caído. Si la recuperación falla, el buffer se conserva. Los rechazos auditados y el handler de 400 también pasan por él (antes se perdían en silencio). Además de la siguiente escritura exitosa, una tarea periódica de `main.py` (cada 5 s) lo vacía aunque no lleguen eventos nuevos. Verificado en vivo | `application/use_cases/_registrar_evento_bitacora.py:152,189`, `main.py:427` | ✅ corregido |
 | E2: evento con esquema incompleto → `registro_incompleto=true`, no se rechaza | Se persiste con el flag y WARNING | Se persiste con `registro_incompleto=true`, la causa en `detalle_tecnico.causas_registro_incompleto` y un WARNING en el log. Se aplica en el repositorio, el único punto por el que pasan todos los emisores. Incompleto = campo base vacío, o sin `activo_biologico_id` en un evento TRANSFORMACION_BIOLOGICA, SANITARIO o CONTROL_ESTADO. Verificado en vivo | `domain/entities/activo_biologico.py:535`, `repositories/bitacora_auditoria_repository.py:45` | ✅ corregido |
-| E3: tormenta de eventos (control de tasa con priorización) | Cola con prioridad CRITICAL/ERROR > TRANSFORMACION_BIOLOGICA > INFO | **Sigue abierto.** La escritura es síncrona y en el mismo request, así que hoy ningún evento se descarta ni espera; lo que falta es la cola con prioridad y registrar el inicio de alta carga. El RF no define qué tasa cuenta como "alta carga" | `application/use_cases/_registrar_evento_bitacora.py` | ❌ pendiente |
+| E3: tormenta de eventos (control de tasa con priorización) | Cola con prioridad CRITICAL/ERROR > TRANSFORMACION_BIOLOGICA > INFO | Con carga normal no cambia nada: todo se escribe en el momento. Si la tasa del proceso supera `AUDITORIA_M02_EVENTOS_POR_SEGUNDO` (100 por defecto, ventana de 5 s), los INFO que no son de transformación biológica se encolan en el buffer durable de E1 —ninguno se descarta— y la tarea periódica los persiste por lotes. CRITICAL, ERROR, WARNING y TRANSFORMACION_BIOLOGICA se siguen escribiendo de inmediato. Se registran `ALTA_CARGA_AUDITORIA_INICIO` y `..._FIN` como WARNING, con los eventos encolados | `application/use_cases/_registrar_evento_bitacora.py:72,265,301` | ✅ corregido |
 | E4: consulta sin permisos por alcance de rol | HTTP 403 + registro propio en bitácora con `tipo_evento=ACCESO_NO_AUTORIZADO` | 403 (`AuthorizationError`) y se auto-registra en la bitácora antes de lanzar el error, exactamente como pide el RF | `gestion/consultar_bitacora_use_case.py:132-158` | ✅ |
-| E5: inconsistencia entre RF-52 y RF-46 (reconciliación) | Alerta CRITICAL + registro correctivo manual | **Sigue abierto.** No hay llave para cruzar: ninguna entrada de la bitácora guarda el id del evento que registró (`detalle_tecnico` trae el tipo y el valor, no el `id_evento`), y la fecha del evento en RF-46 es la de negocio, no la de registro | — | ❌ pendiente |
+| E5: inconsistencia entre RF-52 y RF-46 (reconciliación) | Alerta CRITICAL + registro correctivo manual | **A medias.** Faltaba la llave para cruzar: ninguna entrada de la bitácora guardaba el id de lo que registró. Ahora los 9 emisores que crean filas del historial RF-46 (eventos, estados, fases, transferencias y la creación del activo) la dejan en `detalle_tecnico.registros_rf46`. El avance automático de fase por crecimiento no dejaba ningún registro en la bitácora, y ahora sí (`FASE_AVANZADA_AUTOMATICAMENTE`). La reconciliación diaria y el registro correctivo van en la rama `feat/rf52-e5-reconciliacion-bitacora` | `domain/entities/activo_biologico.py:558`, `gestion/registrar_evento_crecimiento_use_case.py:296` | ⏳ PR aparte |
 
 E4 es el único caso de RF-52 que es una respuesta HTTP directa y verificable
 contra un endpoint; los otros cuatro son comportamientos de resiliencia de
-sistema. E1 y E2 quedaron resueltos. E3 y E5 necesitan decisiones de Análisis
-antes de escribir código:
-- **E3:** qué tasa de eventos cuenta como "alta carga" y si la bitácora pasa a
-  ser asíncrona, como pide la restricción 3 del propio RF.
-- **E5:** agregar el `id_evento` al `detalle_tecnico` de cada emisor, que es la
-  llave del cruce (los registros existentes no la tienen), y definir quién
-  ejecuta la reconciliación y dónde llega la alerta CRITICAL.
+sistema. E1, E2 y E3 quedaron resueltos. Dos decisiones que Análisis puede revisar:
+- **E3:** el umbral de "alta carga" es configurable porque el RF no lo fija; 100
+  eventos por segundo y proceso está muy por encima del uso actual. La
+  restricción 3 del RF pide una bitácora asíncrona: con carga normal sigue siendo
+  síncrona (después del commit de negocio y sin poder tumbarlo), para que un
+  evento se vea en la bitácora apenas ocurre.
+- **E5:** los registros anteriores a la llave no se pueden reconciliar; la
+  primera corrida de la reconciliación solo fija el punto de partida.
 
 ---
 
@@ -415,7 +418,7 @@ antes de escribir código:
 Con la corrección del 2026-09-23 los códigos HTTP de RF-40/41/42/43/44/46/47/50/51
 coinciden con el texto del RF (ver la tabla de cambios al inicio). Pruebas
 escritas contra el comportamiento anterior van a fallar en esos casos, y es lo
-esperado. Lo único que sigue sin cubrirse es RF-52 E3 (cola con prioridad bajo
-alta carga) y E5 (reconciliación RF-46↔RF-52).
+esperado. Lo único que sigue sin cubrirse en esta rama es la reconciliación de
+RF-52 E5, que va en un PR aparte.
 
 Pruebas del contrato: `tests/biological_assets/test_gaps_flujo_alterno_m02.py`.
