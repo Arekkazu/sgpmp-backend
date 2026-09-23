@@ -12,7 +12,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -54,6 +54,26 @@ class ConsultarDatosConsolidadosUseCase:
                     f'Regulariza la jerarquía del activo antes de consultar datos consolidados.'
                 ),
             )
+
+        # RF-50 (flujo alterno "Datos insuficientes para proceso crítico -
+        # NIC 41"): si se pide un rango de fechas explícito y el tipo de
+        # dato solicitado incluye métricas, el activo debe tener al menos
+        # una métrica de PESO dentro de ese rango. Sin rango, se sigue
+        # devolviendo la última métrica conocida (comportamiento actual,
+        # sin cambios) — la insuficiencia solo aplica cuando el consumidor
+        # pidió explícitamente un periodo y ese periodo no tiene datos.
+        if dto.tipo_dato in ('metricas', 'todos') and (dto.fecha_inicio or dto.fecha_fin):
+            if not self.indicadores_repo.existen_metricas_peso_en_rango(
+                id_activo, dto.fecha_inicio, dto.fecha_fin
+            ):
+                raise BusinessRuleError(
+                    code='METRICAS_PESO_INSUFICIENTES',
+                    message=(
+                        f'Información incompleta: El activo {id_activo} no registra métricas de '
+                        f'peso necesarias para el cálculo de transformación biológica en el rango '
+                        f'de fechas solicitado.'
+                    ),
+                )
 
         resultado = self.indicadores_repo.obtener_datos_consolidados(
             id_activo=id_activo,

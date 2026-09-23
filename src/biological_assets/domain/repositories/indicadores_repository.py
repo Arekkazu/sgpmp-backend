@@ -29,3 +29,11 @@ class IndicadoresRepository(ABC):
         pagina: int,
         page_size: int,
     ) -> DatosConsolidados: ...
+
+    @abstractmethod
+    def existen_metricas_peso_en_rango(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+    ) -> bool: ...

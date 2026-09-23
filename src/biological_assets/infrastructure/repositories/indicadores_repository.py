@@ -515,6 +515,25 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             secciones=secciones,
         )
 
+    def existen_metricas_peso_en_rango(
+        self, id_activo: int, fecha_inicio: Optional[date], fecha_fin: Optional[date]
+    ) -> bool:
+        return bool(
+            self.db.execute(
+                text(
+                    'SELECT EXISTS ('
+                    '  SELECT 1 FROM modulo2.eventos_activos ea '
+                    '  JOIN modulo2.eventos_crecimeinto ec ON ec.id_evento = ea.id_eventos '
+                    '  WHERE ea.id_activo_biologico = :id '
+                    "  AND ec.tipo_medicion = 'PESO' "
+                    '  AND (:fi IS NULL OR ea.fecha::date >= :fi) '
+                    '  AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+                    ')'
+                ),
+                {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+            ).scalar_one()
+        )
+
     def _obtener_eventos(
         self, id_activo: int, fecha_inicio: Optional[date], fecha_fin: Optional[date]
     ) -> list[dict]:
