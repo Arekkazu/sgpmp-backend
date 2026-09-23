@@ -75,7 +75,7 @@ en vez de inventar una fuente de datos nueva.
 
 ## SQL aplicado
 
-Migración Alembic `2b747aaae732` (`v5.5.0_inc_m02_93_g93_identidad_m06_scope_metricas`,
+Migración Alembic `2b747aaae732` (`v5.6.0_inc_m02_93_g93_identidad_m06_scope_metricas`,
 `down_revision=d944f4d8c215`) — **depende de que `d944f4d8c215` (INC-M02-92-G93,
 PR #390) se aplique primero**, porque referencia el recurso `datos_analiticos_metricas`
 que esa migración crea. El propio archivo lo valida con un `RAISE EXCEPTION`
