@@ -1,7 +1,7 @@
 """v5.4.0_inc_m02_92_scope_tipo_dato_datos_consolidados
 
 Revision ID: d944f4d8c215
-Revises: 1147428cd8fb
+Revises: c8d4f1a9b7e2
 Create Date: 2026-09-22 22:48:25.020786
 
 INC-M02-92-G93 / issue #390: RF-50 exige "permisos y scopes definidos" por
@@ -34,7 +34,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = 'd944f4d8c215'
-down_revision: Union[str, Sequence[str], None] = '1147428cd8fb'
+down_revision: Union[str, Sequence[str], None] = 'c8d4f1a9b7e2'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -64,6 +64,19 @@ def upgrade() -> None:
             ) THEN
                 RAISE EXCEPTION 'INC-M02-92-G93: id_accion=2 no corresponde a Leer (R)';
             END IF;
+
+            -- Guarda de seguridad: en sgpmp_dev la secuencia de id_recurso
+            -- quedó desincronizada por debajo del máximo real ya sembrado
+            -- (confirmado en vivo: last_value=54 con filas hasta id_recurso=58,
+            -- sin huecos -- probablemente datos de baseline insertados con ID
+            -- explícito, sin `setval` posterior). Sin este resync, el primer
+            -- INSERT de abajo fallaría por violación de PK. Es seguro e
+            -- idempotente: solo avanza la secuencia a la realidad de la tabla.
+            PERFORM setval(
+                'modulo1.recursos_id_recurso_seq',
+                (SELECT MAX(id_recurso) FROM modulo1.recursos),
+                true
+            );
 
             -- 1) Recursos de scope por tipo_dato (RF-50, entrada `tipo_dato`:
             -- eventos | fases | estado | metricas).
