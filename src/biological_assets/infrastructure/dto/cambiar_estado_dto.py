@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 
 from pydantic import field_validator
 
@@ -38,7 +38,9 @@ class CambiarEstadoDTO(BaseDTO):
     @field_validator('fecha_cambio_estado')
     @classmethod
     def fecha_no_futura(cls, v: date) -> date:
-        if v > date.today():
+        # INC-M02-29-g36 / #411 (RF-38 depende de RF-44): mismo problema que
+        # CerrarCicloDTO -- date.today() es local, no UTC.
+        if v > datetime.now(timezone.utc).date():
             raise ValueError('La fecha del cambio de estado no puede ser futura.')
         return v
 
