@@ -168,6 +168,12 @@ class GestionFase:
     total_pasos: Optional[int] = None
     fecha_finalizacion: Optional[datetime] = None
     motivo_cambio: Optional[str] = None
+    # RF-37 (tarea Taiga fase_destino/confirmacion_no_estandar): fase
+    # específica del ciclo (modulo9.ciclos_productivos_biologicos) que
+    # representa esta gestión -- necesaria para soportar transiciones no
+    # estándar sin perder la posición real del activo en la secuencia.
+    id_ciclos_productivo_biologico: Optional[int] = None
+    es_transicion_no_estandar: bool = False
 
 
 @dataclass

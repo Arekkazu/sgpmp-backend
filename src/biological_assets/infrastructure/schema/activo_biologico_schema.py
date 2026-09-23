@@ -128,6 +128,7 @@ class GestionFaseResponse(BaseModel):
     id_gestion_fases: Optional[int]
     id_activo_biologico: int
     id_ciclo_productiva: int
+    id_ciclos_productivo_biologico: Optional[int] = None
     nombre_ciclo: str
     nombre_fase_actual: Optional[str]
     paso_actual: Optional[int]
@@ -136,6 +137,7 @@ class GestionFaseResponse(BaseModel):
     fecha_finalizacion: Optional[datetime]
     es_activa: bool
     motivo_cambio: Optional[str]
+    es_transicion_no_estandar: bool = False
 
     model_config = {'from_attributes': True}
 

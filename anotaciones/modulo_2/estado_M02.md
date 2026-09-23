@@ -144,10 +144,29 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **El modelo de "fase destino + confirmación de transición no estándar" del RF no está implementado.** El DTO real (`cambiar_fase_dto.py`) solo tiene `id_ciclo_productiva`, `motivo_cambio` y `fecha_inicio` — no existe `fase_destino_id` ni `confirmacion_no_estandar`. El use case siempre avanza automáticamente a la siguiente fase de la secuencia. **Consecuencia: el flujo alterno "transición no estándar sin confirmación" (409) es inalcanzable** — nunca se puede solicitar una transición fuera de secuencia, ni saltando pasos hacia adelante ni retrocediendo.
-- No se valida que la fecha no sea futura — ni el DTO ni ningún trigger de `gestiones_fases` lo comprueban.
+- ~~**El modelo de "fase destino + confirmación de transición no estándar" del RF no está implementado.**~~
+  **Corregido (tarea Taiga "RF-37: fase_destino/confirmacion_no_estandar,
+  fecha no futura, RBAC").** `CambiarFaseDTO` ahora acepta `fase_destino_id`
+  y `confirmacion_no_estandar`; sin `fase_destino_id` el comportamiento
+  histórico se conserva exactamente. El flujo alterno "transición no
+  estándar sin confirmación" ya es alcanzable: `409
+  TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR`. Requirió una migración de BD
+  (`69d26aea234c`) que agrega `id_ciclos_productivo_biologico` a
+  `gestiones_fases` — sin ella, el sistema no tenía forma de recordar a qué
+  fase específica correspondía cada gestión (se inferían por conteo,
+  asumiendo secuencia estricta) — ver
+  `anotaciones/modulo_2/cu02_gaps_bd_rf37_fase_destino_confirmacion.md`.
+- ~~No se valida que la fecha no sea futura~~
+  **Corregido**, mismo patrón que `CambiarEstadoDTO` (RF-44).
 - Sin inmutabilidad reforzada por trigger de DB para el historial de fases, a diferencia de `historicos_estados_activos` y las tablas de eventos.
-- RBAC más amplio que los actores del RF: el permiso de ejecutar cambio de fase también está concedido a Ingeniero de Campo, pese a que el RF solo lista Productor/Veterinario/Administrador.
+- **RBAC más amplio que los actores del RF** (sin cambios — decisión
+  documentada): el permiso de ejecutar cambio de fase también está
+  concedido a Ingeniero de Campo, pese a que el RF solo lista
+  Productor/Veterinario/Administrador. No se ajustó porque el recurso
+  29/acción E (5) es compartido con RF-44 y RF-48 — revocárselo a
+  Ingeniero de Campo aquí le quitaría acceso a esos otros dos RFs también,
+  sin evidencia de que corresponda. Ver hallazgo transversal #5 abajo y el
+  detalle en el gaps doc de esta tarea.
 
 ---
 

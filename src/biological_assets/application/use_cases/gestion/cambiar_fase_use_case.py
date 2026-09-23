@@ -14,7 +14,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 
 class CambiarFaseUseCase:
@@ -67,21 +67,75 @@ class CambiarFaseUseCase:
                 field='id_ciclo_productiva',
             )
 
-        # FA-03: determinar la siguiente fase en la secuencia
+        # FA-03: determinar la fase "estándar siguiente" en la secuencia --
+        # misma lógica de siempre (avanzar un paso desde la última fase
+        # realmente registrada), pero ahora basada en la fase persistida
+        # (id_ciclos_productivo_biologico) y no en un conteo de filas, para
+        # que siga siendo correcta después de una transición no estándar.
         gestiones = self.repo.obtener_gestiones_fases(id_activo)
         gestiones_en_ciclo = [g for g in gestiones if g.id_ciclo_productiva == dto.id_ciclo_productiva]
-        fase_siguiente_idx = len(gestiones_en_ciclo)  # 0-based
 
-        if fase_siguiente_idx >= len(ciclo.fases):
-            raise BusinessRuleError(
-                code='CICLO_COMPLETADO',
-                message=(
-                    f'El activo ya completó todas las fases del ciclo "{ciclo.nombre}". '
-                    'No es posible avanzar más en este ciclo.'
-                ),
+        if not gestiones_en_ciclo:
+            idx_estandar = 0
+        else:
+            ultima = gestiones_en_ciclo[-1]  # obtener_gestiones_fases ordena por fecha_inicio ASC
+            idx_ultima = next(
+                (i for i, f in enumerate(ciclo.fases)
+                 if f.id_ciclos_productivo_biologico == ultima.id_ciclos_productivo_biologico),
+                None,
             )
+            idx_estandar = (idx_ultima + 1) if idx_ultima is not None else len(ciclo.fases)
 
-        fase_actual = ciclo.fases[fase_siguiente_idx]
+        fase_estandar = ciclo.fases[idx_estandar] if idx_estandar < len(ciclo.fases) else None
+
+        # RF-37 (tarea Taiga fase_destino/confirmacion_no_estandar): sin
+        # fase_destino_id explícito, se conserva el comportamiento histórico
+        # (avanzar a la fase estándar). Con fase_destino_id, se permite
+        # cualquier fase del ciclo -- pero si no es la estándar, exige
+        # confirmacion_no_estandar=true o rechaza con 409.
+        if dto.fase_destino_id is None:
+            if fase_estandar is None:
+                raise BusinessRuleError(
+                    code='CICLO_COMPLETADO',
+                    message=(
+                        f'El activo ya completó todas las fases del ciclo "{ciclo.nombre}". '
+                        'No es posible avanzar más en este ciclo.'
+                    ),
+                )
+            idx_objetivo = idx_estandar
+            fase_objetivo = fase_estandar
+            es_no_estandar = False
+        else:
+            idx_objetivo = next(
+                (i for i, f in enumerate(ciclo.fases)
+                 if f.id_ciclos_productivo_biologico == dto.fase_destino_id),
+                None,
+            )
+            if idx_objetivo is None:
+                raise ValidationError(
+                    code='FASE_DESTINO_INVALIDA',
+                    message=(
+                        f'La fase destino {dto.fase_destino_id} no pertenece a la secuencia '
+                        f'del ciclo "{ciclo.nombre}".'
+                    ),
+                    field='fase_destino_id',
+                )
+            fase_objetivo = ciclo.fases[idx_objetivo]
+            es_no_estandar = (
+                fase_estandar is None
+                or fase_objetivo.id_ciclos_productivo_biologico != fase_estandar.id_ciclos_productivo_biologico
+            )
+            if es_no_estandar and not dto.confirmacion_no_estandar:
+                raise ConflictError(
+                    code='TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR',
+                    message=(
+                        f'La transición a "{fase_objetivo.nombre_fase}" no es la siguiente fase '
+                        f'estándar de la secuencia del ciclo "{ciclo.nombre}". Si esta transición '
+                        f'es intencional (salto de fase o retroceso), reenvíe la solicitud con '
+                        f'confirmacion_no_estandar=true.'
+                    ),
+                )
+
         ahora = dto.fecha_inicio or datetime.now(timezone.utc)
 
         try:
@@ -97,10 +151,12 @@ class CambiarFaseUseCase:
                 id_gestion_fases=None,
                 id_activo_biologico=id_activo,
                 id_ciclo_productiva=dto.id_ciclo_productiva,
+                id_ciclos_productivo_biologico=fase_objetivo.id_ciclos_productivo_biologico,
                 nombre_ciclo=ciclo.nombre,
-                nombre_fase_actual=fase_actual.nombre_fase,
-                paso_actual=fase_siguiente_idx + 1,
+                nombre_fase_actual=fase_objetivo.nombre_fase,
+                paso_actual=idx_objetivo + 1,
                 total_pasos=len(ciclo.fases),
+                es_transicion_no_estandar=es_no_estandar,
                 fecha_inicio=ahora,
                 fecha_finalizacion=None,
                 es_activa=True,
@@ -129,8 +185,12 @@ class CambiarFaseUseCase:
             clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-            descripcion=f'Fase cambiada a {fase_actual.nombre_fase} (paso {fase_siguiente_idx + 1}/{len(ciclo.fases)})',
-            detalle_tecnico={'fase': fase_actual.nombre_fase, 'ciclo': ciclo.nombre},
+            descripcion=f'Fase cambiada a {fase_objetivo.nombre_fase} (paso {idx_objetivo + 1}/{len(ciclo.fases)})',
+            detalle_tecnico={
+                'fase': fase_objetivo.nombre_fase,
+                'ciclo': ciclo.nombre,
+                'es_transicion_no_estandar': es_no_estandar,
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 
