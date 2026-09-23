@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, time, timezone
 
 from sqlalchemy.orm import Session
 
@@ -107,7 +107,16 @@ class CerrarCicloUseCase:
         if dto.descripcion_cierre:
             motivo_completo = f'{dto.motivo_cierre} — {dto.descripcion_cierre}'
 
-        fecha_cierre_dt = datetime.combine(dto.fecha_cierre, datetime.min.time()).replace(tzinfo=timezone.utc)
+        # INC-M02-29-g36 / #411 (RF-38): mismo patrón que la corrección de RF-45
+        # (#412) para `RegistrarEventoBajaUseCase` -- fijar siempre medianoche UTC
+        # es incorrecto para un cierre el mismo día UTC de un evento posterior
+        # (FA-04 ya compara fecha_cierre contra el último evento). Hoy usa la
+        # hora real; un día pasado usa el final de ese día.
+        ahora = datetime.now(timezone.utc)
+        if dto.fecha_cierre == ahora.date():
+            fecha_cierre_dt = ahora
+        else:
+            fecha_cierre_dt = datetime.combine(dto.fecha_cierre, time.max, tzinfo=timezone.utc)
 
         try:
             # Cerrar fase primero: el trigger trg_fn_fase_activo_estado_valido bloquea

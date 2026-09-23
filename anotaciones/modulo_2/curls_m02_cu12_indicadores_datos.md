@@ -393,6 +393,27 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_
 Mismo formato pero `historial_eventos`, `historial_fases` y `historico_estados` vacíos.
 `metricas_actuales` contiene peso actual, cantidad actual e indicadores históricos almacenados.
 
+**Advertencia de rango (INC-M02-94-G93):** `metricas_actuales.peso_actual`/`.fecha_ultimo_peso`
+son deliberadamente el estado **más reciente** del activo, no filtrado por
+`fecha_inicio`/`fecha_fin` (ver `?tipo_dato=metricas&fecha_inicio=...&fecha_fin=...`
+abajo). Cuando se pide un rango y ese peso más reciente cae fuera de él,
+`metricas_actuales` incluye una clave adicional:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-08-31" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+```json
+{
+  "metricas_actuales": {
+    "peso_actual": 250.0,
+    "unidad_peso": "kg",
+    "fecha_ultimo_peso": "2026-09-10",
+    "advertencia_peso_fuera_de_rango": "El peso más reciente registrado (2026-09-10) está fuera del rango solicitado (2026-06-01 a 2026-08-31)."
+  }
+}
+```
+
 ---
 
 ### Flujo C — Filtrar solo eventos en un período
@@ -449,8 +470,9 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?fecha
 **HTTP 400:**
 ```json
 {
-  "code": "PARAMETROS_INVALIDOS",
-  "message": "Parámetro inválido: Invalid isoformat string: '2024-13-01'"
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "Formato de fecha inválido. Use el formato YYYY-MM-DD.",
+  "fields": []
 }
 ```
 
@@ -488,10 +510,15 @@ curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tip
 **HTTP 400:**
 ```json
 {
-  "code": "PARAMETROS_INVALIDOS",
-  "message": "Parámetro inválido: 1 validation error for DatosConsolidadosDTO\n  Value error, La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos. [...]"
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos.",
+  "fields": []
 }
 ```
+
+Los errores de validación exponen únicamente el mensaje funcional. No incluyen el
+nombre interno del DTO, el input recibido, tipos de error ni enlaces de Pydantic
+(INC-M02-95-G93 / TC-M02-156-A).
 
 #### E-06 — Límite de tasa excedido (INC-M02-96-G94)
 

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -146,9 +147,10 @@ from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
-_RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
-_RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
-_RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+_RECURSO = 29                  # modulo1.recursos: 'activos_biologicos'
+_RECURSO_SENSOR = 30           # modulo1.recursos: 'asociacion_sensor_activo'
+_RECURSO_BITACORA = 31         # modulo1.recursos: 'bitacora_auditoria_m02'
+_RECURSO_DATOS_CLINICOS = 59   # modulo1.recursos: 'datos_clinicos_activo'
 _ROL_PRODUCTOR = 2
 
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
@@ -174,6 +176,29 @@ _LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolid
 # TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
 _LIMITE_REGISTRO_ACTIVO = rate_limit(100, 60, alcance="activos_registro")
+
+_MENSAJE_FORMATO_FECHA = 'Formato de fecha inválido. Use el formato YYYY-MM-DD.'
+_MENSAJE_FORMATO_FECHA_HORA = 'Formato de fecha y hora inválido. Use el formato ISO 8601.'
+
+
+def _mensaje_validacion_dto(exc: PydanticValidationError) -> str:
+    """Extrae solo el mensaje funcional de un error Pydantic.
+
+    ``str(exc)`` incluye el nombre interno del DTO, el input recibido, tipos y
+    enlaces de Pydantic. Los validadores de M02 ya redactan mensajes de negocio;
+    Pydantic los conserva en ``ctx.error`` sin añadir metadatos del framework.
+    """
+    errores = exc.errors()
+    if not errores:
+        return 'Los parámetros de la solicitud no son válidos.'
+
+    primero = errores[0]
+    contexto = primero.get('ctx') or {}
+    if primero.get('type') == 'value_error' and contexto.get('error') is not None:
+        return str(contexto['error'])
+
+    mensaje = str(primero.get('msg') or 'Los parámetros de la solicitud no son válidos.')
+    return mensaje.removeprefix('Value error, ')
 
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
@@ -360,7 +385,6 @@ def listar_activos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivosPaginadosResponse:
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ListarActivosDTO(
             tipo=tipo,
@@ -370,8 +394,16 @@ def listar_activos(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message='Los parámetros de la solicitud no son válidos.',
+        ) from None
 
     use_case = ListarActivosUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
     registros, total = use_case.execute(
@@ -442,7 +474,6 @@ def consultar_bitacora(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> BitacoraAuditoriaResponse:
     from datetime import datetime as _dt
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarBitacoraDTO(
             rf_origen=rf_origen,
@@ -456,8 +487,16 @@ def consultar_bitacora(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA_HORA,
+        ) from None
 
     use_case = ConsultarBitacoraUseCase(
         db=db,
@@ -738,6 +777,25 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
     )
 
 
+def _redactar_datos_clinicos(respuestas: list[EventoActivoResponse]) -> list[EventoActivoResponse]:
+    """INC-M02-43-G52 / #413: quita diagnostico/medicamento/dosis/unidad_dosis/
+    frecuencia/duracion/observaciones de los eventos SANITARIO para un rol sin
+    autorizacion clinica. `tipo` (VACUNACION/TRATAMIENTO/...) se conserva -- es
+    la categoria del evento, no el detalle clinico que RF-46 restringe."""
+    for r in respuestas:
+        if r.sanitario is not None:
+            r.sanitario = r.sanitario.model_copy(update={
+                'diagnostico': None,
+                'medicamento': None,
+                'dosis': None,
+                'unidad_dosis': None,
+                'frecuencia': None,
+                'duracion': None,
+                'observaciones': None,
+            })
+    return respuestas
+
+
 @router.get(
     '/{id_activo}/eventos',
     response_model=HistorialEventosResponse,
@@ -761,10 +819,18 @@ def consultar_eventos(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
     )
     eventos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    respuestas = [_evento_to_response(e) for e in eventos]
+    # INC-M02-43-G52 / #413: el permiso generico de RF39 sobre `_RECURSO` no
+    # distingue autorizacion clinica -- el rol necesita ademas el permiso
+    # dedicado sobre `_RECURSO_DATOS_CLINICOS` para ver diagnostico/
+    # medicamento/dosis del historial sanitario (RF-46 solo reconoce a
+    # Productor/Veterinario/Administrador como actores de esa categoria).
+    if not tiene_permiso(db, usuario_actual.id_rol, _RECURSO_DATOS_CLINICOS, 2):
+        respuestas = _redactar_datos_clinicos(respuestas)
     return HistorialEventosResponse(
         id_activo_biologico=id_activo,
-        total=len(eventos),
-        eventos=[_evento_to_response(e) for e in eventos],
+        total=len(respuestas),
+        eventos=respuestas,
     )
 
 
@@ -1052,7 +1118,6 @@ def consultar_historial(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarHistorialDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
@@ -1061,11 +1126,16 @@ def consultar_historial(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Formato de fecha inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
     use_case = ConsultarHistorialUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
@@ -1176,6 +1246,7 @@ def listar_infraestructuras_disponibles(
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
     )
     infras = use_case.listar_infraestructuras_disponibles(id_activo, usuario_actual)
     return [InfraestructuraDisponibleResponse(**i) for i in infras]
@@ -1207,6 +1278,7 @@ def registrar_transferencia(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
@@ -1395,18 +1467,22 @@ def consultar_indicadores(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IndicadoresActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarIndicadoresDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
             fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
             tipo_indicador=tipo_indicador,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
 
     use_case = ConsultarIndicadoresUseCase(
         db=db,
@@ -1473,7 +1549,6 @@ def consultar_datos_consolidados(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DatosConsolidadosResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = DatosConsolidadosDTO(
             tipo_dato=tipo_dato,
@@ -1482,11 +1557,16 @@ def consultar_datos_consolidados(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
 
     _verificar_scope_tipo_dato(db, usuario_actual, dto.tipo_dato, request, id_activo)
 

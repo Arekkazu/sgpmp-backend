@@ -38,6 +38,13 @@ def especie_e_infra_500m2(db_session: Session, crear_usuario_db) -> tuple[int, i
     ).first()
     if especie is None:
         pytest.skip("Se requiere al menos una especie activa en modulo9.")
+    db_session.execute(
+        text(
+            "UPDATE modulo9.especies SET densidad_maxima_por_especie = 1000 "
+            "WHERE id_especie = :id"
+        ),
+        {"id": especie[0]},
+    )
 
     dueno = crear_usuario_db()
     id_finca = db_session.execute(

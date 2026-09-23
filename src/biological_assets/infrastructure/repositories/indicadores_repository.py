@@ -489,7 +489,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             secciones.historico_estados = self._obtener_historico_estados(id_activo)
 
         if tipo_dato in ('metricas', 'todos'):
-            secciones.metricas_actuales = self._obtener_metricas(id_activo)
+            secciones.metricas_actuales = self._obtener_metricas(id_activo, fecha_inicio, fecha_fin)
 
         todos_registros = (
             secciones.historial_eventos
@@ -607,7 +607,12 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
         ).fetchone()
         return int(row.total) if row else 0
 
-    def _obtener_metricas(self, id_activo: int) -> dict:
+    def _obtener_metricas(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date] = None,
+        fecha_fin: Optional[date] = None,
+    ) -> dict:
         row = self.db.execute(
             text(
                 'SELECT peso_actual, unidad_peso, fecha_ultimo_peso, '
@@ -628,7 +633,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             {'id': id_activo},
         ).fetchall()
 
-        return {
+        resultado = {
             'peso_actual': float(row.peso_actual) if row and row.peso_actual else None,
             'unidad_peso': row.unidad_peso if row else None,
             'fecha_ultimo_peso': row.fecha_ultimo_peso.isoformat() if row and row.fecha_ultimo_peso else None,
@@ -644,3 +649,28 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                 for r in indicadores_rows
             ],
         }
+
+        # INC-M02-94-G93: `peso_actual`/`fecha_ultimo_peso` son deliberadamente
+        # el estado MÁS RECIENTE del activo (así lo dice el propio nombre del
+        # campo), no un valor acotado a fecha_inicio/fecha_fin -- filtrarlos
+        # por rango rompería ese significado para quien consulta el estado
+        # actual sin pedir un histórico. El riesgo real que reportó QA no es
+        # que el campo exista, sino que un consumidor puede leerlo como si
+        # representara el rango solicitado sin ninguna indicación de que no
+        # es así. Se agrega una advertencia explícita en vez de filtrar u
+        # ocultar el dato.
+        if (fecha_inicio is not None or fecha_fin is not None) and row and row.fecha_ultimo_peso:
+            fecha_peso = row.fecha_ultimo_peso
+            fuera_de_rango = (
+                (fecha_inicio is not None and fecha_peso < fecha_inicio)
+                or (fecha_fin is not None and fecha_peso > fecha_fin)
+            )
+            if fuera_de_rango:
+                resultado['advertencia_peso_fuera_de_rango'] = (
+                    f'El peso más reciente registrado ({fecha_peso.isoformat()}) está fuera '
+                    f'del rango solicitado '
+                    f'({fecha_inicio.isoformat() if fecha_inicio else "sin inicio"} a '
+                    f'{fecha_fin.isoformat() if fecha_fin else "sin fin"}).'
+                )
+
+        return resultado

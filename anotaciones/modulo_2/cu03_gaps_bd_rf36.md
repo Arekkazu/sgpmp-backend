@@ -40,25 +40,23 @@ Los modelos ORM, puertos, repositorios, use cases y endpoints fueron creados en 
 
 ## Decisiones de diseño
 
-### D-01: Validación de densidad máxima por especie omitida — RESUELTO (INC-M02-38-G25, 2026-09-15)
+### D-01: Densidad máxima por especie — RESUELTO (INC-M02-48-G25, 2026-09-20)
 
-**Situación original:** RF-36 menciona validar `densidad` contra `densidad_maxima_por_especie` definida en M09. Se asumió que el dato viviría en `ParametrosEspeciePort` (que solo expone `nombre`, `tipo_medicion`, `aplica_a_tipo_activo`, sin `valor_max`/`densidad_maxima`), y se dejó como gap pendiente.
+**Situación:** RF-36 exige comparar `cantidad_actual / superficie` con una
+`densidad_maxima_por_especie` definida en M09. La corrección inicial interpretó
+el límite como `infraestructuras.capacidad_maxima / superficie`, pero ese dato
+representa capacidad física, no la parametrización biológica por especie.
 
-**Resolución:** El dato no vive en `ParametrosEspeciePort` sino en
-`modulo9.infraestructuras.capacidad_maxima` (individuos), ya mapeado en
-`InfraestructuraConsulta` (`InfraestructuraConsultaPort`, ya inyectado en
-`RegistrarEventoCrecimientoUseCase` para obtener `superficie`) — no hizo
-falta ningún cambio de esquema ni de puerto. `densidad_maxima_por_especie` =
-`capacidad_maxima / superficie` de la infraestructura donde reside el lote
-(cada infraestructura ya está pensada para una especie vía su propio
-`id_especie`, aunque hoy esa columna esté sin poblar). Ver
-`inc_m02_38_g25_densidad_maxima_crecimiento.md` para el fix completo.
+**Resolución:** la revisión Alembic `7abae1ee50f6` agrega
+`modulo9.especies.densidad_maxima_por_especie`. El campo se administra mediante
+los endpoints de especies de M09 y se consulta desde M02 mediante
+`ParametrosEspeciePort`.
 
-**Nota de datos:** en `sgpmp_dev`, `capacidad_maxima` está en `NULL` para las
-12 infraestructuras reales — la validación no bloquea nada hasta que se
-pueble ese dato por infraestructura. Sembrar `capacidad_maxima` real por
-especie/infraestructura queda fuera de alcance de este fix (es una decisión
-operativa del equipo de M09/datos, no de este INC).
+Registro, crecimiento y transferencia de lotes usan la misma política. La
+ausencia de límite o de superficie produce un `422` controlado; exceder el
+límite produce `409 DENSIDAD_MAXIMA_SUPERADA`. No se usan valores inventados
+para las especies existentes y `capacidad_maxima` conserva su responsabilidad
+independiente.
 
 ### D-02: Typo en nombre de tabla respetado
 

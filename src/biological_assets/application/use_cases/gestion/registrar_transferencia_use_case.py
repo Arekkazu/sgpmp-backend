@@ -13,7 +13,9 @@ from src.biological_assets.domain.entities.activo_biologico import EventoAuditor
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
+from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
+from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -28,6 +30,7 @@ class RegistrarTransferenciaUseCase:
         activo_repo: ActivoBiologicoRepository,
         transferencia_repo: TransferenciaRepository,
         infra_port: InfraestructuraConsultaPort,
+        parametros_port: ParametrosEspeciePort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
@@ -35,6 +38,7 @@ class RegistrarTransferenciaUseCase:
         self.transferencia_repo = transferencia_repo
         self.infra_port = infra_port
         self.bitacora_repo = bitacora_repo
+        self.parametros_port = parametros_port
 
     def execute(self, id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) -> Transferencia:
         return ejecutar_con_auditoria_de_rechazo(
@@ -189,6 +193,23 @@ class RegistrarTransferenciaUseCase:
                     ),
                     field='infraestructura_destino_id',
                 )
+
+        # RF-36: el cupo físico de la infraestructura y la densidad biológica
+        # máxima de la especie son restricciones independientes.
+        if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional is not None:
+            if infra_destino.superficie is None:
+                raise BusinessRuleError(
+                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
+                    message='La infraestructura destino debe tener superficie para validar la densidad.',
+                    field='infraestructura_destino_id',
+                )
+            calcular_y_validar_densidad(
+                cantidad_actual=activo.detalle_poblacional.cantidad_actual,
+                superficie=infra_destino.superficie,
+                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
+                    activo.id_especie
+                ),
+            )
 
         # E-10: fecha de transferencia no puede ser futura. Es la última
         # validación del proceso (RF-48, paso 6f) — se valida en el caso de

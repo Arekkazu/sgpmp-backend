@@ -7,7 +7,7 @@ efectos secundarios.
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, timedelta, timezone, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -43,8 +43,12 @@ def test_mapa_id_estado_nuevo() -> None:
 
 
 def test_fecha_futura_rechazada() -> None:
+    # +2 días (no +1): en un servidor cuya zona horaria local va detrás de
+    # UTC, "mañana local" puede seguir siendo "hoy" en UTC (la referencia
+    # real de la validación, INC-M02-29-g36 / #411) y no sería futura.
+    manana_utc = datetime.now(timezone.utc).date() + timedelta(days=2)
     with pytest.raises(ValidationError):
-        CambiarEstadoDTO(**_dto('ACTIVO', fecha_cambio_estado=date.today() + timedelta(days=1)))
+        CambiarEstadoDTO(**_dto('ACTIVO', fecha_cambio_estado=manana_utc))
 
 
 def test_motivo_vacio_rechazado() -> None:

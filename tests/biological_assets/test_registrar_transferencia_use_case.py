@@ -106,6 +106,7 @@ def _caso_uso_hasta_e10() -> RegistrarTransferenciaUseCase:
             48: _infra(48, id_finca=10),
             51: _infra(51, id_finca=10),
         }),
+        parametros_port=ColaboradorNoInvocado(),
     )
 
 
@@ -205,6 +206,7 @@ def test_fecha_actual_conserva_el_flujo_existente() -> None:
         activo_repo=ColaboradorNoInvocado(),
         transferencia_repo=TransferenciaRepo(),
         infra_port=ColaboradorNoInvocado(),
+        parametros_port=ColaboradorNoInvocado(),
     )
 
     with pytest.raises(ConflictError) as capturada:
