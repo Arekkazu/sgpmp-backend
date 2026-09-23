@@ -436,8 +436,9 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?fecha
 **HTTP 400:**
 ```json
 {
-  "code": "PARAMETROS_INVALIDOS",
-  "message": "Parámetro inválido: Invalid isoformat string: '2024-13-01'"
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "Formato de fecha inválido. Use el formato YYYY-MM-DD.",
+  "fields": []
 }
 ```
 
@@ -475,10 +476,15 @@ curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tip
 **HTTP 400:**
 ```json
 {
-  "code": "PARAMETROS_INVALIDOS",
-  "message": "Parámetro inválido: 1 validation error for DatosConsolidadosDTO\n  Value error, La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos. [...]"
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos.",
+  "fields": []
 }
 ```
+
+Los errores de validación exponen únicamente el mensaje funcional. No incluyen el
+nombre interno del DTO, el input recibido, tipos de error ni enlaces de Pydantic
+(INC-M02-95-G93 / TC-M02-156-A).
 
 #### E-06 — Límite de tasa excedido (INC-M02-96-G94)
 
