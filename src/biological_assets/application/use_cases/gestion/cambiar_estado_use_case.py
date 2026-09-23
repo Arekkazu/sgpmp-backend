@@ -13,9 +13,10 @@ from src.biological_assets.domain.entities.activo_biologico import EventoAuditor
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
+from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 
 
 class CambiarEstadoUseCase:
@@ -45,6 +46,7 @@ class CambiarEstadoUseCase:
             tipos_por_codigo={
                 'ESTADO_REDUNDANTE': 'ESTADO_REDUNDANTE_DETECTADO',
                 'TRANSICION_INVALIDA': 'TRANSICION_NO_PERMITIDA',
+                'VALIDACIONES_PREVIAS_REQUERIDAS': 'TRANSICION_NO_PERMITIDA',
             },
         )
 
@@ -56,20 +58,56 @@ class CambiarEstadoUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe.',
             )
 
+        # E-05/E-06/E-07 son "HTTP 422" en RF-44; por eso viven aquí y no en el DTO,
+        # donde un validador de Pydantic sale siempre como 400.
+        if dto.id_estado_nuevo in (EstadoActivo.CERRADO, EstadoActivo.BAJA):
+            modulo = 'RF-38 (cierre de ciclo)' if dto.id_estado_nuevo == EstadoActivo.CERRADO else 'RF-45 (registro de baja)'
+            raise BusinessRuleError(
+                code='VALIDACIONES_PREVIAS_REQUERIDAS',
+                message=(
+                    f'El proceso {modulo} no completó las validaciones previas requeridas antes de '
+                    f'invocar el cambio de estado. Operación rechazada. El estado {dto.estado_nuevo} '
+                    'solo se establece desde ese proceso, no con el cambio manual.'
+                ),
+                field='estado_nuevo',
+            )
+
+        # INC-M02-29-g36 / #411: la referencia es la fecha UTC, no la local del servidor.
+        if dto.fecha_cambio_estado > datetime.now(timezone.utc).date():
+            raise BusinessRuleError(
+                code='FECHA_FUTURA',
+                message=(
+                    f'La fecha del cambio de estado {dto.fecha_cambio_estado.isoformat()} es posterior a la '
+                    'fecha actual del sistema. No se permiten registros con fecha futura.'
+                ),
+                field='fecha_cambio_estado',
+            )
+
+        motivo = dto.motivo_cambio.strip()
+        if not motivo:
+            raise BusinessRuleError(
+                code='MOTIVO_REQUERIDO',
+                message=(
+                    'El campo motivo del cambio de estado es obligatorio. '
+                    'Ingrese una justificación para continuar.'
+                ),
+                field='motivo_cambio',
+            )
+
         id_estado_anterior = activo.id_estado
         fecha = datetime.combine(dto.fecha_cambio_estado, datetime.min.time()).replace(tzinfo=timezone.utc)
 
         try:
             # aplicar_cambio_estado valida BAJA irreversible, estado redundante y matriz de
             # transiciones, y registra el histórico (el INSERT dispara trg_sincronizar_estado_activo
-            # que actualiza activos_biologicos.id_estado). CambiarEstadoDTO ya excluye CERRADO/BAJA:
+            # que actualiza activos_biologicos.id_estado). CERRADO/BAJA ya se rechazaron arriba:
             # esos estados solo se alcanzan vía CerrarCicloUseCase (RF-38) o RegistrarEventoBajaUseCase
             # (RF-45), que aplican sus propias validaciones y efectos secundarios.
             historico = aplicar_cambio_estado(
                 activo=activo,
                 id_estado_nuevo=dto.id_estado_nuevo,
                 fecha=fecha,
-                motivo=dto.motivo_cambio,
+                motivo=motivo,
                 usuario_id=usuario.id_usuario,
                 historico_repo=self.historico_repo,
                 modulo_origen='MANUAL',
@@ -96,7 +134,7 @@ class CambiarEstadoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo,
             descripcion=f'Estado cambiado: {id_estado_anterior} → {dto.id_estado_nuevo}',
-            detalle_tecnico={'estado_anterior': id_estado_anterior, 'estado_nuevo': dto.id_estado_nuevo, 'motivo': dto.motivo_cambio},
+            detalle_tecnico={'estado_anterior': id_estado_anterior, 'estado_nuevo': dto.id_estado_nuevo, 'motivo': motivo},
             id_usuario_responsable=usuario.id_usuario,
         ))
 
