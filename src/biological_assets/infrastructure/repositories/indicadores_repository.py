@@ -586,6 +586,27 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
             for r in rows
         ]
 
+    def contar_metricas_peso_en_rango(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+    ) -> int:
+        # Mismo WHERE que _calcular_ganancia_peso (RF-51): eventos_crecimeinto
+        # con tipo_medicion='peso', acotados al rango solicitado.
+        row = self.db.execute(
+            text(
+                'SELECT count(*) AS total '
+                'FROM modulo2.eventos_crecimeinto ec '
+                'JOIN modulo2.eventos_activos ea ON ec.id_evento = ea.id_eventos '
+                'WHERE ea.id_activo_biologico = :id AND lower(ec.tipo_medicion) = \'peso\' '
+                'AND (:fi IS NULL OR ea.fecha::date >= :fi) '
+                'AND (:ff IS NULL OR ea.fecha::date <= :ff)'
+            ),
+            {'id': id_activo, 'fi': fecha_inicio, 'ff': fecha_fin},
+        ).fetchone()
+        return int(row.total) if row else 0
+
     def _obtener_metricas(
         self,
         id_activo: int,

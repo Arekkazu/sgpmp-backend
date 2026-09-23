@@ -304,6 +304,19 @@ Query params opcionales:
 - `fecha_inicio` / `fecha_fin`: filtro temporal sobre eventos (solo aplica a `tipo_dato=eventos` o `todos`)
 - `pagina` / `page_size`: paginación (default: 1 / 20, máximo page_size: 100)
 
+**Autorización (INC-M02-92-G93 / RF-50 FA-04):** además del permiso general
+sobre recurso 29/R (`require_permission_m02`), el rol autenticado necesita un
+scope activo por `tipo_dato` solicitado: recursos 59 (`datos_analiticos_eventos`),
+60 (`datos_analiticos_fases`), 61 (`datos_analiticos_estado`) y 62
+(`datos_analiticos_metricas`), todos acción R. `tipo_dato=todos` exige los 4
+scopes (rechazo estricto, ver E-07 abajo). Sembrado por la migración
+`d944f4d8c215` — ver `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+
+**Validación adicional para M06 (INC-M02-93-G93 / RF-50 FA-03):** cuando el
+consumidor es la identidad `'Integración M06'` y `tipo_dato` incluye
+métricas, se exige además al menos una medición de peso dentro del rango
+solicitado — ver E-08 abajo.
+
 ---
 
 ### Flujo A — Datos completos del activo
@@ -526,6 +539,58 @@ done
   "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos."
 }
 ```
+
+#### E-07 — Scope de tipo_dato no autorizado (INC-M02-92-G93 / TC-M02-155)
+
+El rol autenticado tiene el permiso general del endpoint (recurso 29/R) pero
+no el scope del `tipo_dato` solicitado. Ejemplo con la identidad técnica
+`Integración M04` (tiene scope en `eventos`/`fases`/`estado`, no en `metricas`
+— ver la migración `d944f4d8c215`):
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_dato=metricas" \
+  -H "Authorization: Bearer <TOKEN_M04>"
+```
+**HTTP 403:**
+```json
+{
+  "code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+  "message": "Acceso denegado: El módulo solicitante no tiene autorización para consumir datos de tipo metricas."
+}
+```
+
+`tipo_dato=todos` exige los 4 scopes (rechazo estricto ante completitud
+mínima, RF-50): con la misma identidad M04, `?tipo_dato=todos` también
+devuelve 403 con `"...tipo metricas."` (primer scope faltante en el orden
+`eventos, fases, estado, metricas`).
+
+#### E-08 — Métricas de peso insuficientes para valoración NIC-41 (INC-M02-93-G93 / TC-M02-157)
+
+RF-50 FA-03: cuando el consumidor es M06 (`modulo_consumidor` resuelto desde
+el rol `'Integración M06'`) y el rango solicitado no tiene ninguna medición
+`tipo_medicion='peso'` en `modulo2.eventos_crecimeinto`, se rechaza antes de
+construir la respuesta. Solo aplica cuando `tipo_dato` incluye la sección de
+métricas (`metricas` o `todos`); para cualquier otro consumidor (Admin,
+Productor, Veterinario, Ingeniero de Campo, M04) el comportamiento no cambia
+— siguen recibiendo `200` con `metricas_actuales` en `null` cuando no hay
+peso, tal como hoy.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-08-31" \
+  -H "Authorization: Bearer <TOKEN_M06>"
+```
+**HTTP 422:**
+```json
+{
+  "code": "METRICAS_PESO_INSUFICIENTES",
+  "message": "Información incompleta: El activo 279 no registra métricas de peso necesarias para el cálculo de transformación biológica en el rango de fechas solicitado."
+}
+```
+
+**Autorización de M06 (INC-M02-93-G93):** scope de valoración/NIC-41 — recurso
+62 (`datos_analiticos_metricas`), acción R. Sembrado por la migración
+`2b747aaae732` (depende de `d944f4d8c215`) — ver
+`anotaciones/modulo_2/inc_m02_93_g93_identidad_m06_metricas_peso.md`.
 
 ---
 

@@ -99,6 +99,26 @@ def test_conversion_alimenticia_sin_consumo_no_falla_por_division_cero():
     assert aviso is not None and aviso.startswith('DATOS_INSUFICIENTES')
 
 
+# ── INC-M02-93-G93 (RF-50 FA-03): conteo de métricas de peso por rango ──────
+
+def test_contar_metricas_peso_en_rango_cero():
+    fila_conteo = _Fila(total=0)
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila_conteo]]))
+
+    total = repo.contar_metricas_peso_en_rango(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert total == 0
+
+
+def test_contar_metricas_peso_en_rango_con_datos():
+    fila_conteo = _Fila(total=4)
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila_conteo]]))
+
+    total = repo.contar_metricas_peso_en_rango(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert total == 4
+
+
 # ── INC-M02-94-G93: advertencia cuando metricas_actuales queda fuera del
 # rango solicitado. `peso_actual`/`fecha_ultimo_peso` siguen siendo el
 # estado MÁS RECIENTE del activo (no se filtran por rango -- ese es su
