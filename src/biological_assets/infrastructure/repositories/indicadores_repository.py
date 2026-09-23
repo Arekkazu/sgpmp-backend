@@ -138,6 +138,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                     fecha_calculo=ahora,
                     disponible=False,
                     variables_usadas={**variables_usadas, 'valor_calculado_kg_dia': float(gpd)},
+                    causa_no_disponible='OUTLIER_CRITICO',
                 ),
                 f'OUTLIER_CRITICO: el valor calculado ({gpd.quantize(Decimal("0.0001"))} kg/dia) excede '
                 'el umbral de plausibilidad biologica y no se publica como valido. Requiere revision manual '
@@ -174,6 +175,8 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                     fecha_calculo=ahora,
                     disponible=False,
                     variables_usadas={},
+                    # Un outlier en el peso invalida también el FCR que se apoya en él.
+                    causa_no_disponible=ganancia_ind.causa_no_disponible,
                 ),
                 'DATOS_INSUFICIENTES: conversion_alimenticia requiere un indicador ganancia_peso '
                 'valido (minimo 2 mediciones de peso y sin outliers) en el periodo solicitado.',
@@ -217,6 +220,7 @@ class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
                     fecha_calculo=ahora,
                     disponible=False,
                     variables_usadas={'total_kg_ganancia': float(ganancia_kg)},
+                    causa_no_disponible='CONSUMO_CERO',
                 ),
                 'DATOS_INSUFICIENTES: no hay consumo de alimento (kg) validado en el modulo M05 '
                 'para el periodo solicitado.',

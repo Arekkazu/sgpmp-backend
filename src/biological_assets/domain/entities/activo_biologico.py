@@ -242,6 +242,9 @@ class IndicadorZootecnico:
     periodo_inicio: Optional[date] = None
     periodo_fin: Optional[date] = None
     variables_usadas: dict = field(default_factory=dict)
+    # Por qué no está disponible, cuando RF-51 le asigna un HTTP propio:
+    # CONSUMO_CERO (409) u OUTLIER_CRITICO (500). None = datos insuficientes (422).
+    causa_no_disponible: Optional[str] = None
 
 
 @dataclass
