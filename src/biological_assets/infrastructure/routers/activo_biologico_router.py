@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -95,6 +95,9 @@ from src.biological_assets.infrastructure.dto.consultar_bitacora_dto import Cons
 from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import SqlAlchemyBitacoraAuditoriaRepository
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.infrastructure.rbac_auditoria import require_permission_m02
+from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_autorizado_use_case import (
+    RegistrarAccesoNoAutorizadoUseCase,
+)
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
@@ -135,8 +138,10 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual, get_c
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
+from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
+from src.shared.rbac import tiene_permiso
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -145,6 +150,20 @@ _RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
 _ROL_PRODUCTOR = 2
+
+# INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
+# Sembrados en la migración d944f4d8c215 (v5.4.0) -- si esa migración no ha
+# corrido, estos IDs no existen todavía en modulo1.recursos.
+_RECURSO_DATOS_EVENTOS = 59    # modulo1.recursos: 'datos_analiticos_eventos'
+_RECURSO_DATOS_FASES = 60      # modulo1.recursos: 'datos_analiticos_fases'
+_RECURSO_DATOS_ESTADO = 61     # modulo1.recursos: 'datos_analiticos_estado'
+_RECURSO_DATOS_METRICAS = 62   # modulo1.recursos: 'datos_analiticos_metricas'
+_SCOPES_TIPO_DATO = {
+    'eventos': _RECURSO_DATOS_EVENTOS,
+    'fases': _RECURSO_DATOS_FASES,
+    'estado': _RECURSO_DATOS_ESTADO,
+    'metricas': _RECURSO_DATOS_METRICAS,
+}
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
 # 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
@@ -169,6 +188,50 @@ def _ids_fincas_productor_rf49(db: Session, usuario_actual: UsuarioActual):
     if usuario_actual.id_rol != _ROL_PRODUCTOR:
         return None
     return _ids_fincas_alcance(db, usuario_actual)
+
+
+def _verificar_scope_tipo_dato(
+    db: Session,
+    usuario_actual: UsuarioActual,
+    tipo_dato: str,
+    request: Request,
+    id_activo: int,
+) -> None:
+    """RF-50 FA-04 (INC-M02-92-G93): el 403 general de `require_permission_m02`
+    solo prueba credencial + scope general sobre el endpoint completo -- RF-50
+    exige además evaluar el scope específico del `tipo_dato` solicitado.
+
+    `tipo_dato='todos'` exige los 4 scopes: RF-50 pide "completitud mínima...
+    en caso contrario, se debe rechazar la solicitud", así que no se devuelve
+    un subconjunto parcial en silencio cuando falta alguno.
+    """
+    requeridos = (
+        list(_SCOPES_TIPO_DATO.items())
+        if tipo_dato == 'todos'
+        else [(tipo_dato, _SCOPES_TIPO_DATO[tipo_dato])]
+    )
+    for nombre_tipo, id_recurso_scope in requeridos:
+        if tiene_permiso(db, usuario_actual.id_rol, id_recurso_scope, 2):
+            continue
+        mensaje = (
+            f'Acceso denegado: El módulo solicitante no tiene autorización '
+            f'para consumir datos de tipo {nombre_tipo}.'
+        )
+        RegistrarAccesoNoAutorizadoUseCase(
+            db=db,
+            bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        ).execute(
+            rf_origen='RF50',
+            id_usuario=usuario_actual.id_usuario,
+            id_recurso=id_recurso_scope,
+            id_accion=2,
+            error_code='SCOPE_TIPO_DATO_NO_AUTORIZADO',
+            causa=mensaje,
+            metodo_http=request.method,
+            ruta=request.url.path,
+            id_activo_biologico=id_activo,
+        )
+        raise AuthorizationError(code='SCOPE_TIPO_DATO_NO_AUTORIZADO', message=mensaje)
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -1395,6 +1458,7 @@ def consultar_indicadores(
     summary='Exponer datos consolidados del activo biológico para módulos analíticos (CU12 - RF-50)',
 )
 def consultar_datos_consolidados(
+    request: Request,
     id_activo: int,
     tipo_dato: str = Query(
         default='todos',
@@ -1423,11 +1487,14 @@ def consultar_datos_consolidados(
         first = exc.errors()[0]
         raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
 
+    _verificar_scope_tipo_dato(db, usuario_actual, dto.tipo_dato, request, id_activo)
+
     use_case = ConsultarDatosConsolidadosUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        rol_repo=SqlAlchemyRolRepository(db),
     )
     datos = use_case.execute(
         id_activo, dto, usuario_actual,

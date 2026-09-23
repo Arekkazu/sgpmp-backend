@@ -17,6 +17,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     HistorialInfraestructura,
 )
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
+from src.identity_access.domain.entities.rol import Rol
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
 
@@ -130,3 +131,41 @@ def test_activo_inexistente_lanza_not_found():
 
     with pytest.raises(NotFoundError):
         uc.execute(99999, DatosConsolidadosDTO(), _usuario())
+
+
+# ── INC-M02-92-G93: modulo_consumidor real en la auditoría RF-50/RF-52 ────────
+# Antes de este fix, `EventoAuditoria.modulo_consumidor` quedaba siempre con
+# el default `'modulo2'` sin importar quién consultó (ver estado_M02.md,
+# hallazgo de RF-50). `_resolver_modulo_consumidor` lo deriva del nombre del
+# rol autenticado cuando ese rol es una identidad técnica de módulo
+# ('Integración M0<n>', patrón de INC-M02-90-G92).
+
+class RolRepoFake:
+    def __init__(self, roles: dict[int, Rol]) -> None:
+        self.roles = roles
+
+    def obtener_por_id(self, id_rol: int):
+        return self.roles.get(id_rol)
+
+
+def test_resolver_modulo_consumidor_sin_rol_repo_usa_default():
+    uc = _uc(_activo(279), None)
+    assert uc._resolver_modulo_consumidor(2) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_rol_desconocido_usa_default():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({})
+    assert uc._resolver_modulo_consumidor(999) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_rol_humano_usa_default():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({2: Rol(nombre_rol='Productor', es_protegido=False, id_rol=2)})
+    assert uc._resolver_modulo_consumidor(2) == 'modulo2'
+
+
+def test_resolver_modulo_consumidor_deriva_desde_rol_integracion_m04():
+    uc = _uc(_activo(279), None)
+    uc.rol_repo = RolRepoFake({12: Rol(nombre_rol='Integración M04', es_protegido=False, id_rol=12)})
+    assert uc._resolver_modulo_consumidor(12) == 'modulo4'

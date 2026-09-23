@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -11,8 +12,16 @@ from src.biological_assets.domain.repositories.activo_biologico_repository impor
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.indicadores_repository import IndicadoresRepository
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
+from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import ConflictError, NotFoundError
+
+# INC-M02-92-G93: RF-50 exige registrar el "módulo solicitante" en la
+# auditoría. Las identidades técnicas de consumidores analíticos creadas para
+# ese fin (INC-M02-90-G92) siguen el patrón de nombre 'Integración M0<n>' —
+# cualquier otro rol (humano, viendo su propio módulo) conserva el valor
+# histórico 'modulo2'.
+_PATRON_ROL_MODULO = re.compile(r'^integraci[oó]n\s+m0*(\d+)$', re.IGNORECASE)
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -23,11 +32,13 @@ class ConsultarDatosConsolidadosUseCase:
         activo_repo: ActivoBiologicoRepository,
         indicadores_repo: IndicadoresRepository,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        rol_repo: RolRepository | None = None,
     ) -> None:
         self.db = db
         self.activo_repo = activo_repo
         self.indicadores_repo = indicadores_repo
         self.bitacora_repo = bitacora_repo
+        self.rol_repo = rol_repo
 
     def execute(
         self,
@@ -71,6 +82,24 @@ class ConsultarDatosConsolidadosUseCase:
             id_activo_biologico=id_activo,
             detalle_tecnico={'tipo_dato': dto.tipo_dato},
             id_usuario_responsable=usuario.id_usuario,
+            modulo_consumidor=self._resolver_modulo_consumidor(usuario.id_rol),
         ))
 
         return resultado
+
+    def _resolver_modulo_consumidor(self, id_rol: int) -> str:
+        """Deriva qué módulo consumió el dato, para RF-50/RF-52 (INC-M02-92-G93).
+
+        Antes de esto el campo quedaba siempre con el default `'modulo2'` de
+        `EventoAuditoria` — inútil para identificar el módulo externo real que
+        consultó (ver hallazgo de `estado_M02.md`, RF-50).
+        """
+        if self.rol_repo is None:
+            return 'modulo2'
+        rol = self.rol_repo.obtener_por_id(id_rol)
+        if rol is None:
+            return 'modulo2'
+        match = _PATRON_ROL_MODULO.match(rol.nombre_rol.strip())
+        if not match:
+            return 'modulo2'
+        return f'modulo{int(match.group(1))}'

@@ -396,8 +396,17 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **No es una "interfaz de servicio interno" real con control por módulo, es un endpoint humano reutilizado.** El RF describe un mecanismo M2M con "scopes" por módulo consumidor y exige registrar el "módulo solicitante". El campo `modulo_consumidor` en `EventoAuditoria` tiene default `'modulo2'` y **ningún use case lo sobre-escribe nunca** (grep sin resultados) — el campo existe pero siempre queda con el valor por defecto, inútil para identificar qué módulo externo consultó.
-- **No hay rate limiting.** El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
+- ~~**No es una "interfaz de servicio interno" real con control por módulo...**~~
+  **Corregido por INC-M02-92-G93 (issue #390).** Se agregaron 4 recursos RBAC
+  (uno por `tipo_dato`: eventos/fases/estado/metricas) evaluados en
+  `_verificar_scope_tipo_dato` además del permiso general del endpoint, con
+  el 403 literal del flujo alterno #4 del RF (`SCOPE_TIPO_DATO_NO_AUTORIZADO`).
+  `modulo_consumidor` ya no queda fijo en `'modulo2'`: `ConsultarDatosConsolidadosUseCase._resolver_modulo_consumidor`
+  lo deriva del nombre del rol autenticado (`'Integración M0<n>'` → `'modulo<n>'`)
+  vía `RolRepository`. Pendiente de aplicar en BD (migración `d944f4d8c215`,
+  sin aprobación de DBA todavía) — ver
+  `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+- **No hay rate limiting.** *(Nota: esta entrada quedó desactualizada por INC-M02-96-G94, que ya agregó rate limiting a este endpoint — ver `inc_m02_96_g94_rate_limit_contrato_datos_consolidados.md`; no se reescribe aquí por estar fuera del alcance de INC-M02-92-G93.)* El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
 - **No hay validación de integridad referencial/completitud mínima antes de exponer datos** — el sistema devuelve lo que encuentra sin ninguna de las comprobaciones 409/422/500 que describen los flujos alternos del RF; si no hay eventos de peso, el campo simplemente sale `null`.
 - No hay diferenciación de consistencia fuerte (para M06) vs. eventual (para M08) — todo es una lectura síncrona simple.
 - **La escritura de auditoría es best-effort silenciosa** (`try/except Exception: pass`), decisión documentada conscientemente por el propio dev para no bloquear el flujo principal, pero contradice el criterio de RF-52 de que todo evento debe registrarse "sin excepción" (ver Hallazgos transversales #6).

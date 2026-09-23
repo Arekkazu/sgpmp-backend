@@ -304,6 +304,14 @@ Query params opcionales:
 - `fecha_inicio` / `fecha_fin`: filtro temporal sobre eventos (solo aplica a `tipo_dato=eventos` o `todos`)
 - `pagina` / `page_size`: paginación (default: 1 / 20, máximo page_size: 100)
 
+**Autorización (INC-M02-92-G93 / RF-50 FA-04):** además del permiso general
+sobre recurso 29/R (`require_permission_m02`), el rol autenticado necesita un
+scope activo por `tipo_dato` solicitado: recursos 59 (`datos_analiticos_eventos`),
+60 (`datos_analiticos_fases`), 61 (`datos_analiticos_estado`) y 62
+(`datos_analiticos_metricas`), todos acción R. `tipo_dato=todos` exige los 4
+scopes (rechazo estricto, ver E-07 abajo). Sembrado por la migración
+`d944f4d8c215` — ver `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+
 ---
 
 ### Flujo A — Datos completos del activo
@@ -499,6 +507,30 @@ done
   "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos."
 }
 ```
+
+#### E-07 — Scope de tipo_dato no autorizado (INC-M02-92-G93 / TC-M02-155)
+
+El rol autenticado tiene el permiso general del endpoint (recurso 29/R) pero
+no el scope del `tipo_dato` solicitado. Ejemplo con la identidad técnica
+`Integración M04` (tiene scope en `eventos`/`fases`/`estado`, no en `metricas`
+— ver la migración `d944f4d8c215`):
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_dato=metricas" \
+  -H "Authorization: Bearer <TOKEN_M04>"
+```
+**HTTP 403:**
+```json
+{
+  "code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+  "message": "Acceso denegado: El módulo solicitante no tiene autorización para consumir datos de tipo metricas."
+}
+```
+
+`tipo_dato=todos` exige los 4 scopes (rechazo estricto ante completitud
+mínima, RF-50): con la misma identidad M04, `?tipo_dato=todos` también
+devuelve 403 con `"...tipo metricas."` (primer scope faltante en el orden
+`eventos, fases, estado, metricas`).
 
 ---
 
