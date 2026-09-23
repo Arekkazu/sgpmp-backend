@@ -8,7 +8,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoProductivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
@@ -252,7 +252,11 @@ class RegistrarEventoProductivoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Evento productivo: {dto.tipo_producto} = {dto.cantidad_producida}',
-            detalle_tecnico={'tipo_producto': dto.tipo_producto, 'cantidad': str(dto.cantidad_producida)},
+            detalle_tecnico={
+                'tipo_producto': dto.tipo_producto,
+                'cantidad': str(dto.cantidad_producida),
+                'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

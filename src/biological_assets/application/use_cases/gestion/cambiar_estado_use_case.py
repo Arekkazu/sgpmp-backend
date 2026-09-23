@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
@@ -134,7 +134,12 @@ class CambiarEstadoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo,
             descripcion=f'Estado cambiado: {id_estado_anterior} → {dto.id_estado_nuevo}',
-            detalle_tecnico={'estado_anterior': id_estado_anterior, 'estado_nuevo': dto.id_estado_nuevo, 'motivo': motivo},
+            detalle_tecnico={
+                'estado_anterior': id_estado_anterior,
+                'estado_nuevo': dto.id_estado_nuevo,
+                'motivo': motivo,
+                'registros_rf46': registros_rf46(historicos_estados_activos=historico.id_historico),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

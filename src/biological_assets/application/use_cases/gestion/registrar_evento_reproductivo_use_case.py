@@ -18,6 +18,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     EventoActivo,
     EventoAuditoria,
     EventoReproductivo,
+    registros_rf46,
 )
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -213,7 +214,10 @@ class RegistrarEventoReproductivoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Evento reproductivo registrado: {dto.categoria}',
-            detalle_tecnico={'categoria': dto.categoria},
+            detalle_tecnico={
+                'categoria': dto.categoria,
+                'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

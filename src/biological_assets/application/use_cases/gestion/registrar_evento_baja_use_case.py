@@ -10,7 +10,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoBaja, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoBaja, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -168,6 +168,7 @@ class RegistrarEventoBajaUseCase:
 
         try:
             resultado = self.evento_repo.guardar(evento)
+            historico = None
 
             if activo.tipo == 'POBLACIONAL' and activo.detalle_poblacional is not None:
                 self.activo_repo.actualizar_detalle_poblacional(activo)
@@ -175,7 +176,7 @@ class RegistrarEventoBajaUseCase:
             if requiere_cierre:
                 # El evento debe existir antes de pasar a BAJA: el trigger de
                 # eventos rechaza inserciones sobre estados terminales.
-                self._procesar_baja_con_cierre(
+                historico = self._procesar_baja_con_cierre(
                     activo, id_activo, fecha_dt, dto.motivo_baja, usuario
                 )
 
@@ -201,7 +202,14 @@ class RegistrarEventoBajaUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Baja registrada: {dto.tipo_baja} — {dto.motivo_baja}',
-            detalle_tecnico={'tipo_baja': dto.tipo_baja, 'motivo': dto.motivo_baja},
+            detalle_tecnico={
+                'tipo_baja': dto.tipo_baja,
+                'motivo': dto.motivo_baja,
+                'registros_rf46': registros_rf46(
+                    eventos_activos=resultado.id_eventos,
+                    historicos_estados_activos=historico.id_historico if historico else None,
+                ),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 
@@ -214,7 +222,7 @@ class RegistrarEventoBajaUseCase:
         fecha_dt: datetime,
         motivo: str,
         usuario: UsuarioActual,
-    ) -> None:
+    ) -> HistoricoEstado:
         # Cerrar gestión de fase activa si existe (igual que cerrar_ciclo_use_case)
         fase_activa = self.activo_repo.obtener_fase_activa(id_activo)
         if fase_activa is not None:
@@ -223,7 +231,7 @@ class RegistrarEventoBajaUseCase:
             )
 
         # Registrar histórico de estado → trigger actualiza activos_biologicos.id_estado a BAJA
-        aplicar_cambio_estado(
+        return aplicar_cambio_estado(
             activo=activo,
             id_estado_nuevo=EstadoActivo.BAJA,
             fecha=fecha_dt,

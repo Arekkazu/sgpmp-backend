@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo
+from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsultaPort
@@ -253,7 +253,7 @@ class RegistrarActivoBiologicoUseCase:
         try:
             activo = self.repo.guardar(activo)
             # RF-33: snapshot inicial (Evento 0) — version=1, tipo_evento=CREACION
-            self.repo.registrar_historial(HistorialActivo(
+            historial = self.repo.registrar_historial(HistorialActivo(
                 id_activo_biologico=activo.id_activo_biologico,
                 version=1,
                 tipo_evento='CREACION',
@@ -283,6 +283,7 @@ class RegistrarActivoBiologicoUseCase:
             id_activo_biologico=activo.id_activo_biologico,
             tipo_activo=activo.tipo,
             descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
+            detalle_tecnico={'registros_rf46': registros_rf46(historial_activos=historial.id_historial_activo)},
             id_usuario_responsable=usuario.id_usuario,
         ))
 

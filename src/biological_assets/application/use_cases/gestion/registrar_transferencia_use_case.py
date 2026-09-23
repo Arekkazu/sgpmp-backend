@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, Transferencia
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, Transferencia, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
@@ -325,6 +325,7 @@ class RegistrarTransferenciaUseCase:
                 'origen': dto.infraestructura_origen_id,
                 'destino': dto.infraestructura_destino_id,
                 'motivo': dto.motivo_transferencia,
+                'registros_rf46': registros_rf46(movimientos=resultado.id_movimiento),
             },
             id_usuario_responsable=usuario.id_usuario,
         ))

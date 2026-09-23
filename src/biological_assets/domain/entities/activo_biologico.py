@@ -553,3 +553,13 @@ class EventoAuditoria:
             self.registro_incompleto = True
             self.detalle_tecnico = {**(self.detalle_tecnico or {}), 'causas_registro_incompleto': causas}
         return causas
+
+
+def registros_rf46(**ids_por_tabla: Optional[int]) -> list[dict]:
+    """RF-52 E5: llave que une una entrada de la bitácora con las filas del historial
+    RF-46 que produjo la misma operación, para poder reconciliar una con otra.
+
+    ``registros_rf46(eventos_activos=12, historicos_estados_activos=None)``
+    -> ``[{'tabla': 'eventos_activos', 'id': 12}]``
+    """
+    return [{'tabla': tabla, 'id': id_} for tabla, id_ in ids_por_tabla.items() if id_ is not None]
