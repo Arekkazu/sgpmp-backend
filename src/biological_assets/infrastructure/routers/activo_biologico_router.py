@@ -137,13 +137,15 @@ from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
+from src.shared.rbac import tiene_permiso
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
-_RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
-_RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
-_RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+_RECURSO = 29                  # modulo1.recursos: 'activos_biologicos'
+_RECURSO_SENSOR = 30           # modulo1.recursos: 'asociacion_sensor_activo'
+_RECURSO_BITACORA = 31         # modulo1.recursos: 'bitacora_auditoria_m02'
+_RECURSO_DATOS_CLINICOS = 59   # modulo1.recursos: 'datos_clinicos_activo'
 _ROL_PRODUCTOR = 2
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
@@ -675,6 +677,25 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
     )
 
 
+def _redactar_datos_clinicos(respuestas: list[EventoActivoResponse]) -> list[EventoActivoResponse]:
+    """INC-M02-43-G52 / #413: quita diagnostico/medicamento/dosis/unidad_dosis/
+    frecuencia/duracion/observaciones de los eventos SANITARIO para un rol sin
+    autorizacion clinica. `tipo` (VACUNACION/TRATAMIENTO/...) se conserva -- es
+    la categoria del evento, no el detalle clinico que RF-46 restringe."""
+    for r in respuestas:
+        if r.sanitario is not None:
+            r.sanitario = r.sanitario.model_copy(update={
+                'diagnostico': None,
+                'medicamento': None,
+                'dosis': None,
+                'unidad_dosis': None,
+                'frecuencia': None,
+                'duracion': None,
+                'observaciones': None,
+            })
+    return respuestas
+
+
 @router.get(
     '/{id_activo}/eventos',
     response_model=HistorialEventosResponse,
@@ -698,10 +719,18 @@ def consultar_eventos(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
     )
     eventos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    respuestas = [_evento_to_response(e) for e in eventos]
+    # INC-M02-43-G52 / #413: el permiso generico de RF39 sobre `_RECURSO` no
+    # distingue autorizacion clinica -- el rol necesita ademas el permiso
+    # dedicado sobre `_RECURSO_DATOS_CLINICOS` para ver diagnostico/
+    # medicamento/dosis del historial sanitario (RF-46 solo reconoce a
+    # Productor/Veterinario/Administrador como actores de esa categoria).
+    if not tiene_permiso(db, usuario_actual.id_rol, _RECURSO_DATOS_CLINICOS, 2):
+        respuestas = _redactar_datos_clinicos(respuestas)
     return HistorialEventosResponse(
         id_activo_biologico=id_activo,
-        total=len(eventos),
-        eventos=[_evento_to_response(e) for e in eventos],
+        total=len(respuestas),
+        eventos=respuestas,
     )
 
 
