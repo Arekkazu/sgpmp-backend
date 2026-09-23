@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.repositories.parametros_especie_port import MetricaProductiva, ParametroEspecie, ParametrosEspeciePort
+from src.configuration.infrastructure.models.especie_model import EspecieModel
 from src.configuration.infrastructure.models.metrica_produccion_model import MetricaProduccionModel
 
 # El campo aplica_a_tipo_activo usa 'LOTE' para activos poblacionales
@@ -31,6 +33,12 @@ class ParametrosEspecieM09Adapter(ParametrosEspeciePort):
 
     def __init__(self, db: Session) -> None:
         self.db = db
+
+    def obtener_densidad_maxima(self, id_especie: int) -> Optional[Decimal]:
+        row = self.db.get(EspecieModel, id_especie)
+        if row is None or not row.es_activo:
+            return None
+        return row.densidad_maxima_por_especie
 
     def listar_por_especie(self, id_especie: int, tipo_activo: str) -> list[ParametroEspecie]:
         tipo_db = _TIPO_ACTIVO_A_LOTE.get(tipo_activo, tipo_activo)

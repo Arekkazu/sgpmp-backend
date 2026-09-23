@@ -68,6 +68,7 @@ def test_destino_igual_origen_es_422_no_400():
         activo_repo=ActivoRepoFake(activo, asociacion),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake({51: infra_51}),
+        parametros_port=None,
     )
     dto = RegistrarTransferenciaDTO(
         infraestructura_origen_id=51, infraestructura_destino_id=51,

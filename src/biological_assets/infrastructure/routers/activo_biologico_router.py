@@ -1142,6 +1142,7 @@ def listar_infraestructuras_disponibles(
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
     )
     infras = use_case.listar_infraestructuras_disponibles(id_activo, usuario_actual)
     return [InfraestructuraDisponibleResponse(**i) for i in infras]
@@ -1173,6 +1174,7 @@ def registrar_transferencia(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)

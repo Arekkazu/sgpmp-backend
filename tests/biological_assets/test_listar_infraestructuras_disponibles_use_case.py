@@ -72,6 +72,7 @@ def _use_case(activo_repo, infra_port):
         activo_repo=activo_repo,
         transferencia_repo=None,
         infra_port=infra_port,
+        parametros_port=None,
     )
 
 

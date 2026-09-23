@@ -27,6 +27,10 @@ class MetricaProductiva:
 
 class ParametrosEspeciePort(ABC):
     @abstractmethod
+    def obtener_densidad_maxima(self, id_especie: int) -> Optional[Decimal]:
+        """Retorna la densidad máxima configurada en M09 para la especie."""
+
+    @abstractmethod
     def listar_por_especie(self, id_especie: int, tipo_activo: str) -> list[ParametroEspecie]:
         """Retorna los parámetros de producción activos para la especie y tipo de activo."""
 
