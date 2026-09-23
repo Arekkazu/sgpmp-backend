@@ -30,6 +30,7 @@ Respuesta esperada `200`:
   "nombre_estado": "ACTIVO",
   "id_usuario": 1,
   "fecha_creacion": "2026-06-27T...",
+  "fecha_actualizacion": null,
   "detalle_individual": {
     "raza": "Arcoíris Atlántica",
     "sexo": "Hembra",
@@ -51,23 +52,71 @@ Errores posibles:
 
 ### PATCH /activos-biologicos/{id} — Actualizar atributos del individuo
 
+RBAC: Administrador, Productor, Ingeniero de Campo y **Veterinario** (tarea
+Taiga "RF-35 RBAC Veterinario, eventos pendientes, concurrencia optimista"
+— `vet_actualizar_activo_biologico`, ver
+`anotaciones/modulo_2/cu02_gaps_bd_rf35_fix_rbac_concurrencia.md`).
+
+`fecha_actualizacion` implementa concurrencia optimista (RF-35): enviar el
+valor obtenido en el último `GET`. Si el activo nunca fue editado, el valor
+es `null` y puede omitirse del body.
+
 ```bash
 curl -X PATCH http://localhost:8000/activos-biologicos/51 \
   -H "Authorization: Bearer <TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
     "raza": "Arcoíris Premium",
-    "peso_inicial": 0.30
+    "peso_inicial": 0.30,
+    "fecha_actualizacion": null
   }'
 ```
 
-Respuesta esperada `200` con los campos actualizados en `detalle_individual`.
+Respuesta esperada `200` con los campos actualizados en `detalle_individual`
+y `fecha_actualizacion` con el nuevo timestamp.
 
 Errores posibles:
 - `400 TIPO_INVALIDO` — el activo es POBLACIONAL (no tiene detalle individual)
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe
+- `412 CONFLICTO_CONCURRENCIA` — `fecha_actualizacion` no coincide con el valor actual en BD (el activo fue modificado por otro usuario desde el último `GET`)
+- `422 EVENTO_PENDIENTE_SIN_CERRAR` — el activo está en estado `EN_TRATAMIENTO`/`AISLADO` (evento sanitario sin cerrar)
+- `422 HISTORIAL_INCONSISTENTE` — el último registro de `historicos_estados_activos` no coincide con el `id_estado` actual del activo
 - `422` (validación Pydantic) — ningún campo enviado en el body
 - `403 ACCESO_DENEGADO` — sin permiso U sobre `activos_biologicos`
+
+#### Caso FA: PATCH con fecha_actualizacion desactualizada → 412
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/51 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"raza": "XYZ", "fecha_actualizacion": "2026-01-01T00:00:00Z"}'
+```
+
+Respuesta esperada `412`:
+```json
+{
+  "code": "CONFLICTO_CONCURRENCIA",
+  "message": "El activo fue modificado por otro usuario. Recarga y reintenta."
+}
+```
+
+#### Caso FA: PATCH sobre activo con evento sanitario pendiente → 422
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/51 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"raza": "XYZ"}'
+```
+
+Respuesta esperada `422` (activo en estado `EN_TRATAMIENTO` o `AISLADO`):
+```json
+{
+  "code": "EVENTO_PENDIENTE_SIN_CERRAR",
+  "message": "No se puede editar el activo mientras tenga un evento sanitario pendiente sin cerrar (estado actual: EN_TRATAMIENTO). Cambie el estado de vuelta a ACTIVO, INACTIVO o CERRADO antes de editar sus datos."
+}
+```
 
 #### Caso FA: PATCH en activo POBLACIONAL → 400
 

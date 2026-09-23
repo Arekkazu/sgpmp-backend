@@ -214,6 +214,7 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         nombre_estado=activo.nombre_estado,
         id_usuario=activo.id_usuario,
         fecha_creacion=activo.fecha_creacion,
+        fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
     )
@@ -466,6 +467,7 @@ def consultar_activo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        412: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Actualizar atributos de activo individual (RF-35)',
@@ -479,6 +481,7 @@ def actualizar_activo_individual(
     use_case = ActualizarActivoIndividualUseCase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(

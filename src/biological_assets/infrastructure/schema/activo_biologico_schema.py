@@ -79,6 +79,7 @@ class ActivoBiologicoResponse(BaseModel):
     nombre_estado: Optional[str]
     id_usuario: int
     fecha_creacion: Optional[datetime]
+    fecha_actualizacion: Optional[datetime] = None
     detalle_individual: Optional[DetalleIndividualResponse]
     detalle_poblacional: Optional[DetallePoblacionalResponse]
 
