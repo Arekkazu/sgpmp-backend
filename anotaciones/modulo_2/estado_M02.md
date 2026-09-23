@@ -396,10 +396,23 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **No es una "interfaz de servicio interno" real con control por módulo, es un endpoint humano reutilizado.** El RF describe un mecanismo M2M con "scopes" por módulo consumidor y exige registrar el "módulo solicitante". El campo `modulo_consumidor` en `EventoAuditoria` tiene default `'modulo2'` y **ningún use case lo sobre-escribe nunca** (grep sin resultados) — el campo existe pero siempre queda con el valor por defecto, inútil para identificar qué módulo externo consultó.
+- **No es una "interfaz de servicio interno" real con control por módulo, es un endpoint humano reutilizado.** El RF describe un mecanismo M2M con "scopes" por módulo consumidor y exige registrar el "módulo solicitante". El campo `modulo_consumidor` en `EventoAuditoria` tiene default `'modulo2'` y **ningún use case lo sobre-escribe nunca** (grep sin resultados) — el campo existe pero siempre queda con el valor por defecto, inútil para identificar qué módulo externo consultó. *(En curso: PR de INC-M02-92-G93/#390.)*
 - **No hay rate limiting.** El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
-- **No hay validación de integridad referencial/completitud mínima antes de exponer datos** — el sistema devuelve lo que encuentra sin ninguna de las comprobaciones 409/422/500 que describen los flujos alternos del RF; si no hay eventos de peso, el campo simplemente sale `null`.
-- No hay diferenciación de consistencia fuerte (para M06) vs. eventual (para M08) — todo es una lectura síncrona simple.
+- ~~**No hay validación de integridad referencial/completitud mínima antes de exponer datos**~~
+  **Parcialmente corregido por INC-M02-94-G93 (issue #392).**
+  `metricas_actuales.peso_actual`/`.fecha_ultimo_peso` siguen siendo
+  deliberadamente el estado **más reciente** del activo (no se filtran por
+  `fecha_inicio`/`fecha_fin` — es el significado del propio nombre del
+  campo), pero ahora incluyen `advertencia_peso_fuera_de_rango` cuando ese
+  valor cae fuera del rango solicitado, para cualquier consumidor — ver
+  `anotaciones/modulo_2/inc_m02_94_g93_advertencia_peso_fuera_de_rango.md`.
+  El 422 de FA-03 (rechazo cuando no hay **ninguna** métrica PESO en el
+  rango, acotado a M06) sigue en curso por separado en PR de INC-M02-93-G93/#391
+  — este PR no lo duplica. El FA-06 (409 integridad referencial) ya estaba
+  cubierto desde antes por INC-M02-97-G95 (`INCONSISTENCIA_JERARQUICA`); el
+  FA-07 (500 por normalización/valores fuera de rango físico) sigue sin
+  implementar.
+- No hay diferenciación de consistencia fuerte (para M06) vs. eventual (para M08) en el FA-03 de RF-50 — pendiente del PR de INC-M02-93-G93/#391 mencionado arriba.
 - **La escritura de auditoría es best-effort silenciosa** (`try/except Exception: pass`), decisión documentada conscientemente por el propio dev para no bloquear el flujo principal, pero contradice el criterio de RF-52 de que todo evento debe registrarse "sin excepción" (ver Hallazgos transversales #6).
 
 ---
