@@ -28,6 +28,6 @@ class FincaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def listar(self, *, id_usuario_filtro: Optional[int] = None, solo_activas: bool = False) -> list[Finca]:
-        """Lista fincas; el filtro opcional limita al usuario asignado."""
+    def listar(self, *, ids_fincas: Optional[list[int]] = None, solo_activas: bool = False) -> list[Finca]:
+        """Lista fincas; ``ids_fincas`` limita el resultado (``None`` = todas)."""
         raise NotImplementedError

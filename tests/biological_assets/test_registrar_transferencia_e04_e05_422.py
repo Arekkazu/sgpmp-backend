@@ -84,6 +84,7 @@ def test_sin_infraestructura_origen_es_422_no_400():
         activo_repo=ActivoRepoFake(_activo(287), asociacion=None),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake({}),
+        parametros_port=None,
     )
 
     with pytest.raises(BusinessRuleError) as exc:
@@ -108,6 +109,7 @@ def test_infraestructura_destino_inexistente_es_422_no_400():
         activo_repo=ActivoRepoFake(_activo(279), asociacion),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake({}),  # 99999 no está en el dict -> None
+        parametros_port=None,
     )
 
     with pytest.raises(BusinessRuleError) as exc:
@@ -133,6 +135,7 @@ def test_infraestructura_destino_inactiva_es_422_no_400():
         activo_repo=ActivoRepoFake(_activo(279), asociacion),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake({}),  # inactiva -> obtener_activa() retorna None
+        parametros_port=None,
     )
 
     with pytest.raises(BusinessRuleError) as exc:

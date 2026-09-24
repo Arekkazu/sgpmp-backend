@@ -125,6 +125,9 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
     if not request.url.path.startswith("/activos-biologicos"):
         return
 
+    from src.biological_assets.application.use_cases._registrar_evento_bitacora import (
+        registrar_evento_bitacora,
+    )
     from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
     from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
         SqlAlchemyBitacoraAuditoriaRepository,
@@ -139,7 +142,8 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
 
     db = SessionLocal()
     try:
-        SqlAlchemyBitacoraAuditoriaRepository(db).registrar(EventoAuditoria(
+        # RF-52 E1: si la bitácora no responde, el evento queda en el buffer.
+        registrar_evento_bitacora(SqlAlchemyBitacoraAuditoriaRepository(db), db, EventoAuditoria(
             rf_origen="RF36",
             tipo_evento="VALIDACION_RECHAZADA",
             clasificacion_biologica="GESTION_OPERATIVA",
@@ -151,8 +155,8 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
             detalle_tecnico={"fields": fields},
             id_usuario_responsable=_usuario_del_token(request),
         ))
-        db.commit()
     except Exception:
+        # Defensivo: el 400 que recibe el cliente no puede depender de la auditoría.
         db.rollback()
     finally:
         db.close()
@@ -181,6 +185,7 @@ _MENSAJES_PYDANTIC_POR_TIPO: dict[str, str] = {
     "json_invalid": "El cuerpo de la solicitud no es un JSON válido.",
     "enum": "El valor ingresado no es una de las opciones permitidas.",
     "literal_error": "El valor ingresado no es una de las opciones permitidas.",
+    "extra_forbidden": "Este campo no está permitido en esta solicitud.",
 }
 
 

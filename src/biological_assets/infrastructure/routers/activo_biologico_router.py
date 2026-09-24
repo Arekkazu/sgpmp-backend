@@ -3,7 +3,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -45,6 +46,8 @@ from src.biological_assets.infrastructure.repositories.historico_estado_reposito
 )
 from src.biological_assets.application.use_cases.gestion.consultar_eventos_use_case import ConsultarEventosUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import RegistrarEventoBajaUseCase
+from src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case import RegistrarEventoIngresoUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_ficha_lote_use_case import ConsultarFichaLoteUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_evento_crecimiento_use_case import (
     RegistrarEventoCrecimientoUseCase,
 )
@@ -59,6 +62,7 @@ from src.biological_assets.application.use_cases.gestion.registrar_evento_sanita
 )
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
+from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
@@ -91,10 +95,20 @@ from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import C
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
 from src.biological_assets.application.use_cases.gestion.consultar_bitacora_use_case import ConsultarBitacoraUseCase
+from src.biological_assets.application.use_cases.auditoria.registrar_correctivo_auditoria_use_case import (
+    RegistrarCorrectivoAuditoriaUseCase,
+)
 from src.biological_assets.infrastructure.dto.consultar_bitacora_dto import ConsultarBitacoraDTO
+from src.biological_assets.infrastructure.dto.registrar_correctivo_auditoria_dto import RegistrarCorrectivoAuditoriaDTO
 from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import SqlAlchemyBitacoraAuditoriaRepository
+from src.biological_assets.infrastructure.repositories.reconciliacion_auditoria_repository import (
+    SqlAlchemyReconciliacionAuditoriaRepository,
+)
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.infrastructure.rbac_auditoria import require_permission_m02
+from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_autorizado_use_case import (
+    RegistrarAccesoNoAutorizadoUseCase,
+)
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
@@ -108,11 +122,13 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     DetallePoblacionalResponse,
     EventoActivoResponse,
     EventoBajaResponse,
+    EventoIngresoResponse,
     EventoCrecimientoResponse,
     EventoProductivoResponse,
     EventoReproductivoResponse,
     EventoSanitarioResponse,
     FichaIntegralResponse,
+    FichaLoteResponse,
     GestionFaseResponse,
     HistorialActivoResponse,
     HistorialEventosResponse,
@@ -129,22 +145,43 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     IndicadorZootecnicoResponse,
     DatosConsolidadosResponse,
     BitacoraAuditoriaResponse,
+    RegistroCorrectivoAuditoriaResponse,
     EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.rol_repository import SqlAlchemyRolRepository
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
+from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
+from src.shared.rbac import tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 
-_RECURSO = 29           # modulo1.recursos: 'activos_biologicos'
-_RECURSO_SENSOR = 30    # modulo1.recursos: 'asociacion_sensor_activo'
-_RECURSO_BITACORA = 31  # modulo1.recursos: 'bitacora_auditoria_m02'
+_RECURSO = 29                  # modulo1.recursos: 'activos_biologicos'
+_RECURSO_SENSOR = 30           # modulo1.recursos: 'asociacion_sensor_activo'
+_RECURSO_BITACORA = 31         # modulo1.recursos: 'bitacora_auditoria_m02'
 _ROL_PRODUCTOR = 2
+
+# Recursos sembrados por migraciones recientes (4f453b6d2b90, d944f4d8c215,
+# 2b747aaae732): se ubican por nombre con `tiene_permiso_sobre`. Sus ids salen
+# de la secuencia y difieren entre bases; con números fijos, datos clínicos y
+# el scope 'eventos' quedaron ambos en 59.
+_RECURSO_DATOS_CLINICOS = 'datos_clinicos_activo'
+
+# INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
+_RECURSO_DATOS_EVENTOS = 'datos_analiticos_eventos'
+_RECURSO_DATOS_FASES = 'datos_analiticos_fases'
+_RECURSO_DATOS_ESTADO = 'datos_analiticos_estado'
+_RECURSO_DATOS_METRICAS = 'datos_analiticos_metricas'
+_SCOPES_TIPO_DATO = {
+    'eventos': _RECURSO_DATOS_EVENTOS,
+    'fases': _RECURSO_DATOS_FASES,
+    'estado': _RECURSO_DATOS_ESTADO,
+    'metricas': _RECURSO_DATOS_METRICAS,
+}
 
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
 # 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
@@ -155,6 +192,29 @@ _LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolid
 # TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
 _LIMITE_REGISTRO_ACTIVO = rate_limit(100, 60, alcance="activos_registro")
+
+_MENSAJE_FORMATO_FECHA = 'Formato de fecha inválido. Use el formato YYYY-MM-DD.'
+_MENSAJE_FORMATO_FECHA_HORA = 'Formato de fecha y hora inválido. Use el formato ISO 8601.'
+
+
+def _mensaje_validacion_dto(exc: PydanticValidationError) -> str:
+    """Extrae solo el mensaje funcional de un error Pydantic.
+
+    ``str(exc)`` incluye el nombre interno del DTO, el input recibido, tipos y
+    enlaces de Pydantic. Los validadores de M02 ya redactan mensajes de negocio;
+    Pydantic los conserva en ``ctx.error`` sin añadir metadatos del framework.
+    """
+    errores = exc.errors()
+    if not errores:
+        return 'Los parámetros de la solicitud no son válidos.'
+
+    primero = errores[0]
+    contexto = primero.get('ctx') or {}
+    if primero.get('type') == 'value_error' and contexto.get('error') is not None:
+        return str(contexto['error'])
+
+    mensaje = str(primero.get('msg') or 'Los parámetros de la solicitud no son válidos.')
+    return mensaje.removeprefix('Value error, ')
 
 
 def _ids_fincas_alcance(db: Session, usuario_actual: UsuarioActual):
@@ -169,6 +229,50 @@ def _ids_fincas_productor_rf49(db: Session, usuario_actual: UsuarioActual):
     if usuario_actual.id_rol != _ROL_PRODUCTOR:
         return None
     return _ids_fincas_alcance(db, usuario_actual)
+
+
+def _verificar_scope_tipo_dato(
+    db: Session,
+    usuario_actual: UsuarioActual,
+    tipo_dato: str,
+    request: Request,
+    id_activo: int,
+) -> None:
+    """RF-50 FA-04 (INC-M02-92-G93): el 403 general de `require_permission_m02`
+    solo prueba credencial + scope general sobre el endpoint completo -- RF-50
+    exige además evaluar el scope específico del `tipo_dato` solicitado.
+
+    `tipo_dato='todos'` exige los 4 scopes: RF-50 pide "completitud mínima...
+    en caso contrario, se debe rechazar la solicitud", así que no se devuelve
+    un subconjunto parcial en silencio cuando falta alguno.
+    """
+    requeridos = (
+        list(_SCOPES_TIPO_DATO.items())
+        if tipo_dato == 'todos'
+        else [(tipo_dato, _SCOPES_TIPO_DATO[tipo_dato])]
+    )
+    for nombre_tipo, recurso_scope in requeridos:
+        if tiene_permiso_sobre(db, usuario_actual.id_rol, recurso_scope, 2):
+            continue
+        mensaje = (
+            f'Acceso denegado: El módulo solicitante no tiene autorización '
+            f'para consumir datos de tipo {nombre_tipo}.'
+        )
+        RegistrarAccesoNoAutorizadoUseCase(
+            db=db,
+            bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        ).execute(
+            rf_origen='RF50',
+            id_usuario=usuario_actual.id_usuario,
+            id_recurso=recurso_scope,
+            id_accion=2,
+            error_code='SCOPE_TIPO_DATO_NO_AUTORIZADO',
+            causa=mensaje,
+            metodo_http=request.method,
+            ruta=request.url.path,
+            id_activo_biologico=id_activo,
+        )
+        raise AuthorizationError(code='SCOPE_TIPO_DATO_NO_AUTORIZADO', message=mensaje)
 
 
 def _activo_to_response(activo) -> ActivoBiologicoResponse:
@@ -214,6 +318,7 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         nombre_estado=activo.nombre_estado,
         id_usuario=activo.id_usuario,
         fecha_creacion=activo.fecha_creacion,
+        fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
     )
@@ -297,7 +402,6 @@ def listar_activos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivosPaginadosResponse:
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ListarActivosDTO(
             tipo=tipo,
@@ -307,8 +411,16 @@ def listar_activos(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message='Los parámetros de la solicitud no son válidos.',
+        ) from None
 
     use_case = ListarActivosUseCase(db=db, repo=SqlAlchemyActivoBiologicoRepository(db))
     registros, total = use_case.execute(
@@ -379,7 +491,6 @@ def consultar_bitacora(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> BitacoraAuditoriaResponse:
     from datetime import datetime as _dt
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarBitacoraDTO(
             rf_origen=rf_origen,
@@ -393,8 +504,16 @@ def consultar_bitacora(
             pagina=pagina,
             page_size=page_size,
         )
-    except (ValueError, _PydanticValidationError) as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=str(exc))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA_HORA,
+        ) from None
 
     use_case = ConsultarBitacoraUseCase(
         db=db,
@@ -412,11 +531,48 @@ def consultar_bitacora(
     )
 
 
+# ── CU13 RF-52 E5 — Registro correctivo de auditoría ────────────────────────
+
+@router.post(
+    '/auditoria/registros-correctivos',
+    response_model=RegistroCorrectivoAuditoriaResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission_m02(_RECURSO_BITACORA, 1, rf_origen='RF52'))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse, 'description': 'El registro no existe en el historial RF-46'},
+        409: {'model': ErrorResponse, 'description': 'El registro ya tiene su entrada en la bitácora'},
+    },
+    summary='Registrar un correctivo de auditoría para una fila del historial sin bitácora (CU13 - RF-52 E5)',
+)
+def registrar_correctivo_auditoria(
+    dto: RegistrarCorrectivoAuditoriaDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> RegistroCorrectivoAuditoriaResponse:
+    use_case = RegistrarCorrectivoAuditoriaUseCase(
+        db=db,
+        repo=SqlAlchemyReconciliacionAuditoriaRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    evento = use_case.execute(dto, usuario_actual)
+    return RegistroCorrectivoAuditoriaResponse(
+        tabla=dto.tabla,
+        id_registro=dto.id_registro,
+        id_activo_biologico=evento.id_activo_biologico,
+        motivo=dto.motivo,
+        timestamp_evento=evento.timestamp_evento,
+    )
+
+
 def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
     return GestionFaseResponse(
         id_gestion_fases=g.id_gestion_fases,
         id_activo_biologico=g.id_activo_biologico,
         id_ciclo_productiva=g.id_ciclo_productiva,
+        id_ciclos_productivo_biologico=g.id_ciclos_productivo_biologico,
         nombre_ciclo=g.nombre_ciclo,
         nombre_fase_actual=g.nombre_fase_actual,
         paso_actual=g.paso_actual,
@@ -425,6 +581,7 @@ def _gestion_to_response(g: GestionFase) -> GestionFaseResponse:
         fecha_finalizacion=g.fecha_finalizacion,
         es_activa=g.es_activa,
         motivo_cambio=g.motivo_cambio,
+        es_transicion_no_estandar=g.es_transicion_no_estandar,
     )
 
 
@@ -466,6 +623,8 @@ def consultar_activo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        412: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Actualizar atributos de activo individual (RF-35)',
@@ -479,6 +638,7 @@ def actualizar_activo_individual(
     use_case = ActualizarActivoIndividualUseCase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(
@@ -500,6 +660,7 @@ def actualizar_activo_individual(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Cambiar fase del ciclo productivo (RF-37)',
@@ -624,6 +785,15 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             motivo_baja=b.detalles,
         )
 
+    ingreso = None
+    if evento.ingreso:
+        i = evento.ingreso
+        ingreso = EventoIngresoResponse(
+            cantidad_ingresada=i.cantidad_ingresada,
+            tipo=i.tipo,
+            motivo_ingreso=i.detalles,
+        )
+
     sanitario = None
     if evento.sanitario:
         s = evento.sanitario
@@ -669,10 +839,30 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
         id_usuario=evento.id_usuario,
         crecimiento=crecimiento,
         baja=baja,
+        ingreso=ingreso,
         sanitario=sanitario,
         productivo=productivo,
         reproductivo=reproductivo,
     )
+
+
+def _redactar_datos_clinicos(respuestas: list[EventoActivoResponse]) -> list[EventoActivoResponse]:
+    """INC-M02-43-G52 / #413: quita diagnostico/medicamento/dosis/unidad_dosis/
+    frecuencia/duracion/observaciones de los eventos SANITARIO para un rol sin
+    autorizacion clinica. `tipo` (VACUNACION/TRATAMIENTO/...) se conserva -- es
+    la categoria del evento, no el detalle clinico que RF-46 restringe."""
+    for r in respuestas:
+        if r.sanitario is not None:
+            r.sanitario = r.sanitario.model_copy(update={
+                'diagnostico': None,
+                'medicamento': None,
+                'dosis': None,
+                'unidad_dosis': None,
+                'frecuencia': None,
+                'duracion': None,
+                'observaciones': None,
+            })
+    return respuestas
 
 
 @router.get(
@@ -698,10 +888,18 @@ def consultar_eventos(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
     )
     eventos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    respuestas = [_evento_to_response(e) for e in eventos]
+    # INC-M02-43-G52 / #413: el permiso generico de RF39 sobre `_RECURSO` no
+    # distingue autorizacion clinica -- el rol necesita ademas el permiso
+    # dedicado sobre `_RECURSO_DATOS_CLINICOS` para ver diagnostico/
+    # medicamento/dosis del historial sanitario (RF-46 solo reconoce a
+    # Productor/Veterinario/Administrador como actores de esa categoria).
+    if not tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_CLINICOS, 2):
+        respuestas = _redactar_datos_clinicos(respuestas)
     return HistorialEventosResponse(
         id_activo_biologico=id_activo,
-        total=len(eventos),
-        eventos=[_evento_to_response(e) for e in eventos],
+        total=len(respuestas),
+        eventos=respuestas,
     )
 
 
@@ -772,6 +970,38 @@ def registrar_evento_baja(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    evento = use_case.execute(id_activo, dto, usuario_actual)
+    return _evento_to_response(evento)
+
+
+@router.post(
+    '/{id_activo}/eventos/ingreso',
+    response_model=EventoActivoResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF36'))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Registrar ingreso de individuos a un lote (RF-36)',
+)
+def registrar_evento_ingreso(
+    id_activo: int,
+    dto: RegistrarEventoIngresoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EventoActivoResponse:
+    use_case = RegistrarEventoIngresoUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        evento_repo=SqlAlchemyEventoActivoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
@@ -989,7 +1219,6 @@ def consultar_historial(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarHistorialDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
@@ -998,11 +1227,16 @@ def consultar_historial(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Formato de fecha inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
     use_case = ConsultarHistorialUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
@@ -1089,6 +1323,66 @@ def consultar_ficha_integral(
     )
 
 
+# ── CU03 — RF-36: Ficha de gestión de lote ──────────────────────────────────
+
+@router.get(
+    '/{id_activo}/ficha-lote',
+    response_model=FichaLoteResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF36'))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar ficha operativa del lote (RF-36)',
+)
+def consultar_ficha_lote(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FichaLoteResponse:
+    use_case = ConsultarFichaLoteUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
+        especie_port=EspecieM09Adapter(db),
+        transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    ficha = use_case.execute(
+        id_activo, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
+    return FichaLoteResponse(
+        id_activo_biologico=ficha.id_activo_biologico,
+        identificador=ficha.identificador,
+        especie=ficha.especie,
+        infraestructura_asociada=ficha.infraestructura_asociada,
+        estado_actual=ficha.estado_actual,
+        fecha_registro=ficha.fecha_registro,
+        cantidad_inicial=ficha.cantidad_inicial,
+        cantidad_actual=ficha.cantidad_actual,
+        peso_promedio_inicial=ficha.peso_promedio_inicial,
+        peso_promedio=ficha.peso_promedio,
+        biomasa_total=ficha.biomasa_total,
+        densidad=ficha.densidad,
+        densidad_maxima=ficha.densidad_maxima,
+        historial=[
+            RegistroHistorialResponse(
+                categoria=r.categoria,
+                fecha_evento=r.fecha_evento,
+                descripcion=r.descripcion,
+                detalle_especifico=r.detalle_especifico,
+                usuario_responsable=r.usuario_responsable,
+                modulo_origen=r.modulo_origen,
+            )
+            for r in ficha.historial
+        ],
+        total_registros_historial=ficha.total_registros_historial,
+    )
+
+
 # ── CU10C — RF-48: Infraestructuras disponibles y transferencia ─────────────
 
 @router.get(
@@ -1113,6 +1407,7 @@ def listar_infraestructuras_disponibles(
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
     )
     infras = use_case.listar_infraestructuras_disponibles(id_activo, usuario_actual)
     return [InfraestructuraDisponibleResponse(**i) for i in infras]
@@ -1144,6 +1439,7 @@ def registrar_transferencia(
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         transferencia_repo=SqlAlchemyTransferenciaRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
+        parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     resultado = use_case.execute(id_activo, dto, usuario_actual)
@@ -1317,6 +1613,9 @@ def cambiar_estado_asociacion_sensor(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse, 'description': 'Consumo de alimento en 0 (división por cero)'},
+        422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'Outliers críticos en las métricas del activo'},
     },
     summary='Consultar indicadores zootécnicos del activo biológico (CU12 - RF-51)',
 )
@@ -1332,18 +1631,22 @@ def consultar_indicadores(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IndicadoresActivoResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = ConsultarIndicadoresDTO(
             fecha_inicio=date_cls.fromisoformat(fecha_inicio) if fecha_inicio else None,
             fecha_fin=date_cls.fromisoformat(fecha_fin) if fecha_fin else None,
             tipo_indicador=tipo_indicador,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
 
     use_case = ConsultarIndicadoresUseCase(
         db=db,
@@ -1390,11 +1693,14 @@ def consultar_indicadores(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
         429: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'Métricas físicamente imposibles (exportación cancelada)'},
     },
     summary='Exponer datos consolidados del activo biológico para módulos analíticos (CU12 - RF-50)',
 )
 def consultar_datos_consolidados(
+    request: Request,
     id_activo: int,
     tipo_dato: str = Query(
         default='todos',
@@ -1408,7 +1714,6 @@ def consultar_datos_consolidados(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DatosConsolidadosResponse:
     from datetime import date as date_cls
-    from pydantic import ValidationError as _PydanticValidationError
     try:
         dto = DatosConsolidadosDTO(
             tipo_dato=tipo_dato,
@@ -1417,17 +1722,25 @@ def consultar_datos_consolidados(
             pagina=pagina,
             page_size=page_size,
         )
-    except ValueError as exc:
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=f'Parámetro inválido: {exc}')
-    except _PydanticValidationError as exc:
-        first = exc.errors()[0]
-        raise DomainValidationError(code='PARAMETROS_INVALIDOS', message=first['msg'].replace('Value error, ', ''))
+    except PydanticValidationError as exc:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_mensaje_validacion_dto(exc),
+        ) from None
+    except ValueError:
+        raise DomainValidationError(
+            code='PARAMETROS_INVALIDOS',
+            message=_MENSAJE_FORMATO_FECHA,
+        ) from None
+
+    _verificar_scope_tipo_dato(db, usuario_actual, dto.tipo_dato, request, id_activo)
 
     use_case = ConsultarDatosConsolidadosUseCase(
         db=db,
         activo_repo=SqlAlchemyActivoBiologicoRepository(db),
         indicadores_repo=SqlAlchemyIndicadoresRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        rol_repo=SqlAlchemyRolRepository(db),
     )
     datos = use_case.execute(
         id_activo, dto, usuario_actual,

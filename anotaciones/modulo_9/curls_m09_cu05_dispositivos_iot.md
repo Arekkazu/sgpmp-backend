@@ -234,9 +234,8 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `404` — sensor no existe (FA-02)
-- `404` — área productiva no existe (FA-03)
+- `404` — área productiva no existe **o está inactiva** (FA-03) — `AREA_NO_ENCONTRADA`
 - `422` — sensor no pertenece al dispositivo indicado (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
-- `422` — área productiva inactiva (FA-04) — `AREA_NO_DISPONIBLE`
 - `422` — intento de reasignar a infraestructura diferente — `SENSOR_INFRAESTRUCTURA_FIJA`
 - `409` — sensor ya está activo en esa área (FA-06) — `ASOCIACION_DUPLICADA`
 - `403` — rol sin permiso C sobre sensores (FA-01)
@@ -275,6 +274,11 @@ Respuesta esperada `200`:
 ## RF-23 — Configuración remota (`/configuracion/dispositivos-iot/{id}/configurar`)
 
 Recurso `id_recurso=11`, acción U(3). Admin / Ing.
+
+El permiso RBAC habilita la acción, pero no concede alcance territorial. El Administrador
+conserva alcance global; el Ingeniero solo puede configurar dispositivos ubicados en fincas
+vinculadas a su usuario mediante `modulo9.fincas.id_usuario`. Un dispositivo inexistente o
+fuera de ese alcance responde igual (`404 DISPOSITIVO_NO_ENCONTRADO`) para evitar enumeración.
 
 Integración MQTT real vía `BROKER-MQTT-SGPMP` (ya no es un stub). El endpoint
 llama al broker, que publica el comando y espera hasta 30s (configurable,
@@ -350,7 +354,8 @@ Caso `NO_CONF` (dispositivo `ACTIVO`, sin ACK dentro de 30s) — `504`:
 ```
 
 Errores posibles:
-- `404` — dispositivo no existe (FA-02)
+- `404` — dispositivo no existe o está fuera del alcance por finca del usuario —
+  `DISPOSITIVO_NO_ENCONTRADO`
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
 - `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
@@ -363,6 +368,9 @@ Errores posibles:
 ---
 
 ### Historial de configuraciones del dispositivo
+
+Aplica el mismo alcance por finca que el POST. Un dispositivo inexistente o ajeno responde
+`404 DISPOSITIVO_NO_ENCONTRADO` sin consultar ni exponer su historial.
 
 ```bash
 curl -X GET http://localhost:8000/configuracion/dispositivos-iot/1/configuraciones \

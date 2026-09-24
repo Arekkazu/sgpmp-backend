@@ -49,6 +49,18 @@ class SqlAlchemyPlantillaRepository(PlantillaRepository):
         )
         return [self._a_entidad(r) for r in rows]
 
+    def obtener_ultima_version(self, template_name: str) -> Optional[Plantilla]:
+        orm = (
+            self.db.query(PlantillaModel)
+            .filter(
+                func.lower(func.trim(PlantillaModel.template_name))
+                == func.lower(func.trim(template_name))
+            )
+            .order_by(PlantillaModel.version.desc())
+            .first()
+        )
+        return self._a_entidad(orm) if orm else None
+
     def guardar(self, plantilla: Plantilla) -> Plantilla:
         orm = PlantillaModel(
             id_especie=plantilla.id_especie,

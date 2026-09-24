@@ -1,9 +1,12 @@
 """Caso de uso: asignar/desasignar fincas a un usuario (RF-25).
 
 Operación exclusiva de administración (RBAC ``U`` sobre el recurso Usuarios).
-Refleja la relación ``modulo9.fincas.id_usuario`` (1 finca = 1 dueño): asignar
-una finca que ya tiene otro dueño se rechaza con 409; desmarcar una finca la
-deja sin dueño (``id_usuario NULL``).
+La lista enviada es el conjunto completo de fincas a las que el usuario accede,
+en ``modulo9.usuarios_fincas`` (M:N). Varias personas pueden atender una misma
+finca (RF-46: el Veterinario consulta los activos de la finca asignada), así
+que una finca con otro dueño ya no se rechaza con 409 (INC-M02-61-G52). Retirar
+una finca de la lista desactiva el acceso; ``fincas.id_usuario`` (propietario)
+no se toca.
 """
 from __future__ import annotations
 
@@ -12,7 +15,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.asignar_fincas_dto import AsignarFincasDTO
-from src.shared.errors import ConflictError, NotFoundError
+from src.shared.errors import NotFoundError
 
 
 class AsignarFincasUsuarioUseCase:
@@ -34,39 +37,34 @@ class AsignarFincasUsuarioUseCase:
 
         ids_deseados = set(dto.ids_fincas)
 
-        # Validar existencia y dueño actual de cada finca solicitada.
         for id_finca in ids_deseados:
-            fila = self.db.execute(
-                text("SELECT id_usuario, nombre FROM modulo9.fincas WHERE id_finca = :id"),
+            existe = self.db.execute(
+                text("SELECT 1 FROM modulo9.fincas WHERE id_finca = :id"),
                 {"id": id_finca},
-            ).mappings().first()
-            if fila is None:
+            ).first()
+            if existe is None:
                 raise NotFoundError(
                     code="FINCA_NO_ENCONTRADA",
                     message=f"No existe una finca con ID {id_finca}.",
                 )
-            if fila["id_usuario"] is not None and fila["id_usuario"] != id_usuario:
-                raise ConflictError(
-                    code="FINCA_YA_ASIGNADA",
-                    message=f"La finca '{fila['nombre']}' ya está asignada a otro usuario.",
-                    field="ids_fincas",
-                )
 
-        # Desasignar fincas que este usuario poseía y ya no están en la lista.
+        # Revocar el acceso a las fincas que ya no están en la lista.
         self.db.execute(
             text(
-                "UPDATE modulo9.fincas SET id_usuario = NULL, fecha_actualizacion = NOW() "
-                "WHERE id_usuario = :id_usuario AND id_finca != ALL(:ids_fincas)"
+                "UPDATE modulo9.usuarios_fincas SET es_activo = FALSE "
+                "WHERE id_usuario = :id_usuario AND es_activo IS TRUE "
+                "AND id_finca != ALL(:ids_fincas)"
             ),
             {"id_usuario": id_usuario, "ids_fincas": list(ids_deseados) or [0]},
         )
 
-        # Asignar las fincas solicitadas.
+        # Conceder (o reactivar) el acceso a las fincas solicitadas.
         if ids_deseados:
             self.db.execute(
                 text(
-                    "UPDATE modulo9.fincas SET id_usuario = :id_usuario, fecha_actualizacion = NOW() "
-                    "WHERE id_finca = ANY(:ids_fincas)"
+                    "INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) "
+                    "SELECT :id_usuario, unnest(CAST(:ids_fincas AS integer[])) "
+                    "ON CONFLICT ON CONSTRAINT uq_usuario_finca DO UPDATE SET es_activo = TRUE"
                 ),
                 {"id_usuario": id_usuario, "ids_fincas": list(ids_deseados)},
             )

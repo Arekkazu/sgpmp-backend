@@ -13,6 +13,10 @@ class TelemetriaRepository(ABC):
         """Persiste la telemetría y retorna la entidad con id asignado."""
 
     @abstractmethod
+    def obtener_por_id(self, id_telemetria: int) -> Optional[Telemetria]:
+        """Retorna la telemetría por id, o None si no existe."""
+
+    @abstractmethod
     def existe_duplicado(
         self,
         id_sensor: int,

@@ -21,6 +21,7 @@ from src.configuration.application.use_cases.umbrales.consultar_umbrales_use_cas
 from src.configuration.application.use_cases.umbrales.desactivar_umbral_use_case import DesactivarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.editar_umbral_use_case import EditarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import RegistrarUmbralUseCase
+from src.configuration.infrastructure.adapters.edge_sincronizacion_stub_adapter import EdgeSincronizacionStubAdapter
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.configuration.infrastructure.repositories.auditoria_umbral_repository import SqlAlchemyAuditoriaUmbralRepository
@@ -68,6 +69,7 @@ def registrar_umbral(
         especie_repo=SqlAlchemyEspecieRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        edge_port=EdgeSincronizacionStubAdapter(),
     )
     umbral = use_case.execute(dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)
@@ -147,6 +149,7 @@ def editar_umbral(
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        edge_port=EdgeSincronizacionStubAdapter(),
     )
     umbral = use_case.execute(id_umbral_ambiental, dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)

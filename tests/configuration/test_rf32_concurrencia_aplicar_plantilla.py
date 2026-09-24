@@ -15,7 +15,7 @@ from src.configuration.domain.entities.plantilla import Plantilla
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.infrastructure.dto.aplicar_plantilla_dto import AplicarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import PreconditionFailedError
+from src.shared.errors import ConflictError
 
 FECHA_ACTUALIZACION_DB = datetime(2026, 5, 10, 8, 0, tzinfo=timezone.utc)
 
@@ -57,6 +57,21 @@ class AplicacionRepoFake:
         return aplicacion
 
 
+class AuditoriaRepoFake:
+    def registrar(self, **kwargs) -> None:
+        pass
+
+
+class VariableRepoFake:
+    """El snapshot de estas pruebas no trae umbrales, así que nunca se consulta."""
+
+    def obtener_por_id(self, _id_variable_ambiental):  # pragma: no cover
+        raise AssertionError("sin umbrales en el snapshot no hay referencia que validar")
+
+    def listar_activas(self):  # pragma: no cover
+        return []
+
+
 def _plantilla() -> Plantilla:
     return Plantilla.crear(
         id_especie=1,
@@ -90,11 +105,16 @@ def _use_case(plantilla_repo, especie_repo) -> AplicarPlantillaUseCase:
         umbral_repo=repo_vacio,
         patologia_repo=repo_vacio,
         aplicacion_repo=AplicacionRepoFake(),
+        auditoria_repo=AuditoriaRepoFake(),
+        variable_repo=VariableRepoFake(),
     )
 
 
 class PlantillaRepoFake:
     def obtener_por_id(self, _id_plantilla):
+        return _plantilla()
+
+    def obtener_ultima_version(self, _template_name):
         return _plantilla()
 
 
@@ -117,7 +137,9 @@ def test_fecha_actualizacion_coincidente_permite_aplicar():
     assert use_case.db.commits == 1
 
 
-def test_fecha_actualizacion_distinta_lanza_412():
+def test_fecha_actualizacion_distinta_lanza_409():
+    """RF-32 pide 409 Conflict para "Conflicto de modificación concurrente"
+    —no el 412 que el resto del módulo usa para concurrencia optimista."""
     use_case = _use_case(PlantillaRepoFake(), EspecieRepoFake())
     dto = AplicarPlantillaDTO(
         id_especie_destino=5,
@@ -125,11 +147,15 @@ def test_fecha_actualizacion_distinta_lanza_412():
     )
     usuario = UsuarioActual(id_usuario=1, id_token=1, id_rol=1)
 
-    with pytest.raises(PreconditionFailedError) as exc_info:
+    with pytest.raises(ConflictError) as exc_info:
         use_case.execute(1, dto, usuario)
 
     assert exc_info.value.code == "CONFLICTO_CONCURRENCIA"
-    assert use_case.db.commits == 0
+    assert exc_info.value.status_code == 409
+    # INC-M09-04-124 (#316): el fallo se audita en una transacción propia — un
+    # commit, no cero (el rollback de la operación principal sigue ocurriendo).
+    assert use_case.db.rollbacks == 1
+    assert use_case.db.commits == 1
 
 
 def test_fecha_creacion_desincronizada_ya_no_bloquea():

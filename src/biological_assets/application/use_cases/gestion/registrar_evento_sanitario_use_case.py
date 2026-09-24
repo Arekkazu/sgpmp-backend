@@ -13,7 +13,7 @@ from src.biological_assets.application.use_cases.gestion._event_validations impo
     validar_estado_permite_eventos,
     validar_fecha_evento,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoSanitario, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoSanitario, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -143,7 +143,13 @@ class RegistrarEventoSanitarioUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Evento sanitario registrado: {dto.tipo}',
-            detalle_tecnico={'tipo_sanitario': dto.tipo},
+            detalle_tecnico={
+                'tipo_sanitario': dto.tipo,
+                'registros_rf46': registros_rf46(
+                    eventos_activos=resultado.id_eventos,
+                    historicos_estados_activos=historico.id_historico if historico else None,
+                ),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

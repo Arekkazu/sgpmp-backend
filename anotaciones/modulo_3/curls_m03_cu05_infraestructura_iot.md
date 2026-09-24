@@ -272,6 +272,11 @@ curl -s -X PATCH "http://localhost:8000/iot/vinculaciones/2/resolver" \
 
 **Respuesta esperada (200):** Vinculación con `estado_vinculacion=VINCULADA`, `mecanismo_vinculacion=MANUAL`.
 
+**Efecto lateral (INC-M09-106-G31 / #297):** si la especie del activo tiene un umbral RF-17
+activo para la variable de la lectura, `estados_actuales_sensores.estado_semaforo` de ese
+sensor se recalcula contra los niveles normal/precaución/crítico (mejor esfuerzo — si falla no
+bloquea la resolución de la vinculación).
+
 ### FA — Intentar resolver vinculación que no es AMBIGUA
 
 **Respuesta esperada (422):**
@@ -299,6 +304,9 @@ curl -s -X POST "http://localhost:8000/iot/vinculaciones/1/corregir" \
 **Respuesta esperada (201):** Nueva vinculación con `mecanismo_vinculacion=CORRECCION`, `estado_vinculacion=VINCULADA`, `id_vinculacion_reemplazada=1`.
 
 **Efecto:** La vinculación original (id=1) queda con `estado_vinculacion=CORREGIDA`.
+
+**Efecto lateral (INC-M09-106-G31 / #297):** igual que en `resolver` — recalcula
+`estado_semaforo` del sensor contra el umbral RF-17 del nuevo activo/especie, si existe.
 
 ### FA — Intentar corregir vinculación ya corregida
 

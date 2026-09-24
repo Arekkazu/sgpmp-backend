@@ -71,6 +71,7 @@ _RECURSO = 28
 )
 def listar_historial(
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialAplicacionesResponse:
     use_case = ConsultarPlantillasUseCase(
         db=db,
@@ -78,7 +79,7 @@ def listar_historial(
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial()]
+    items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial(usuario_actual)]
     return HistorialAplicacionesResponse(total=len(items), items=items)
 
 
@@ -165,6 +166,7 @@ def consultar_esquema() -> EsquemaPlantillaResponse:
 )
 def listar_plantillas(
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillasListResponse:
     use_case = ConsultarPlantillasUseCase(
         db=db,
@@ -172,7 +174,7 @@ def listar_plantillas(
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    items = [PlantillaResponse.model_validate(p) for p in use_case.listar_plantillas()]
+    items = [PlantillaResponse.model_validate(p) for p in use_case.listar_plantillas(usuario_actual)]
     return PlantillasListResponse(total=len(items), items=items)
 
 
@@ -226,6 +228,7 @@ def registrar_plantilla(
 def detalle_plantilla(
     id_plantilla: int,
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillaResponse:
     use_case = ConsultarPlantillasUseCase(
         db=db,
@@ -233,13 +236,7 @@ def detalle_plantilla(
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    from src.shared.errors import NotFoundError
-    plantilla = use_case.obtener_plantilla(id_plantilla)
-    if plantilla is None:
-        raise NotFoundError(
-            code="PLANTILLA_NO_ENCONTRADA",
-            message=f"No existe la plantilla con id {id_plantilla}.",
-        )
+    plantilla = use_case.obtener_plantilla(id_plantilla, usuario_actual)
     return PlantillaResponse.model_validate(plantilla)
 
 
@@ -253,7 +250,6 @@ def detalle_plantilla(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
-        412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
     summary="Aplicar plantilla a especie destino (Flujo D — RF-32)",
@@ -273,6 +269,8 @@ def aplicar_plantilla(
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+        variable_repo=SqlAlchemyVariableAmbientalRepository(db),
     )
     aplicacion = use_case.execute(id_plantilla, dto, usuario_actual)
     return AplicacionPlantillaResponse.model_validate(aplicacion)

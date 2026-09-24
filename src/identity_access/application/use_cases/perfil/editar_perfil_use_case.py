@@ -25,10 +25,20 @@ from src.identity_access.domain.value_objects.identificacion import (
 )
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.identity_access.infrastructure.dto.perfil_dto import EditarPerfilDTO
+from src.identity_access.infrastructure.dto.perfil_dto import (
+    CAMPOS_CRITICOS,
+    EditarPerfilAdminDTO,
+    PerfilBaseDTO,
+)
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.shared.email import send_email
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import (
+    AuthorizationError,
+    BusinessRuleError,
+    GoneError,
+    NotFoundError,
+    ValidationError,
+)
 
 
 TIPO_EVENTO_ACTUALIZACION_PERFIL = 9
@@ -84,10 +94,58 @@ class EditarPerfilUseCase:
         self.db = db
         self.notificacion_service = notificacion_service
 
+    def _rechazar_escalada_de_privilegios(
+        self,
+        dto: PerfilBaseDTO,
+        id_usuario: int,
+        usuario_actual: UsuarioActual,
+    ) -> None:
+        """Audita y bloquea el envío de datos críticos por el endpoint propio.
+
+        RF-05 reserva ``rol_usuario`` y ``estado_usuario`` al administrador y
+        pide responder 403 dejando constancia del intento. El rechazo vive aquí
+        —y no en el DTO— porque un ``extra="forbid"`` de Pydantic devuelve un
+        400 genérico antes de que exista sesión de auditoría.
+        """
+        enviados = [
+            campo
+            for campo in CAMPOS_CRITICOS
+            if getattr(dto, campo, None) is not None
+        ]
+        if not enviados:
+            return
+
+        try:
+            self.eventos_repo.registrar(
+                tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
+                exitoso=False,
+                id_usuario=usuario_actual.id_usuario,
+                detalle={
+                    "razon": "ESCALADA_PRIVILEGIOS",
+                    "id_usuario_modificado": id_usuario,
+                    "campos_rechazados": enviados,
+                },
+            )
+            self.db.commit()
+        except Exception:
+            # El intento ya se está bloqueando; no poder auditarlo no debe
+            # convertir el 403 en un 500 que oculte la denegación.
+            self.db.rollback()
+
+        raise AuthorizationError(
+            code="ESCALADA_PRIVILEGIOS",
+            message=(
+                "Acceso restringido. No tiene permisos para modificar campos "
+                "críticos (Rol/Estado). Esta acción ha sido reportada al sistema "
+                "de auditoría."
+            ),
+            field=enviados[0],
+        )
+
     def execute(
         self,
         id_usuario: int,
-        dto: EditarPerfilDTO,
+        dto: PerfilBaseDTO,
         usuario_actual: UsuarioActual,
     ) -> Usuario:
         """Aplica cambios de perfil previamente autorizados por el router.
@@ -101,14 +159,25 @@ class EditarPerfilUseCase:
             Entidad Usuario actualizada.
 
         Raises:
-            NotFoundError: Si el usuario objetivo no existe.
+            NotFoundError: Si el usuario objetivo no existe. HTTP 404.
+            GoneError: Si la cuenta del usuario objetivo ya fue eliminada
+                lógicamente por otro administrador (RF-11). HTTP 410.
             ValidationError: Si se intenta cambiar el propio rol o el nuevo
                 rol no existe.
-            AuthorizationError: Si un usuario (no administrador) envía campos
-                de identificación fuera de una cuenta PENDIENTE_DATOS.
+            AuthorizationError: Si un usuario (no administrador) envía datos
+                críticos —rol o estado— por el endpoint propio (RF-05, queda
+                auditado), o campos de identificación fuera de una cuenta
+                PENDIENTE_DATOS. HTTP 403.
             BusinessRuleError: Si el cambio de correo no es permitido o se
                 intenta reasignar al último usuario activo de un rol protegido.
         """
+
+        # 0. La autorización propio/administrativo se realiza en el router:
+        # EditarPerfilAdminDTO es el único que puede traer datos críticos.
+        es_edicion_administrativa = isinstance(dto, EditarPerfilAdminDTO)
+
+        if not es_edicion_administrativa:
+            self._rechazar_escalada_de_privilegios(dto, id_usuario, usuario_actual)
 
         # 1. Buscar usuario objetivo.
         usuario = self.usuarios_repo.obtener_por_id(id_usuario)
@@ -122,11 +191,8 @@ class EditarPerfilUseCase:
                 ),
             )
 
-        # 2. La autorización propio/administrativo se realiza en el router.
-        # EditarPerfilAdminDTO incorpora id_rol, mientras que EditarPerfilDTO
-        # utilizado para /usuarios/me no lo expone.
-        es_edicion_administrativa = hasattr(dto, "id_rol")
-        id_rol_nuevo = getattr(dto, "id_rol", None)
+        # 2. Solo la edición administrativa aplica el rol recibido.
+        id_rol_nuevo = dto.id_rol if es_edicion_administrativa else None
 
         rol_modificado = (
             id_rol_nuevo is not None
@@ -203,6 +269,23 @@ class EditarPerfilUseCase:
         cuenta_objetivo = self.cuentas_repo.obtener_por_usuario(
             usuario.id_usuario
         )
+
+        # RF-11: si otro administrador marcó la cuenta como ELIMINADA mientras
+        # este tenía el formulario abierto, el registro ya no está disponible
+        # para editarse. Es el caso que la validación de concurrencia detecta
+        # antes de mirar la versión — un 404 lo confundiría con "no existe" y un
+        # 412 invitaría a recargar y reintentar algo que ya no se puede.
+        if (
+            cuenta_objetivo is not None
+            and cuenta_objetivo.id_estado_cuenta == Cuenta.ESTADO_ELIMINADO
+        ):
+            raise GoneError(
+                code="USUARIO_ELIMINADO",
+                message=(
+                    "El registro ya no está disponible. El usuario fue eliminado "
+                    "recientemente por otro administrador. Actualice el listado."
+                ),
+            )
 
         # Los campos de identificación solo aplican para completar una cuenta
         # PENDIENTE_DATOS (provista vía SSO sin sincronización previa) por el

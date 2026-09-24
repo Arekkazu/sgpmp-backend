@@ -64,6 +64,10 @@ class SqlAlchemyTelemetriaRepository(TelemetriaRepository):
                 ),
             })
 
+    def obtener_por_id(self, id_telemetria: int) -> Optional[Telemetria]:
+        orm = self.db.get(TelemetriaModel, id_telemetria)
+        return self._a_entidad(orm) if orm else None
+
     def existe_duplicado(
         self,
         id_sensor: int,

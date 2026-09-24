@@ -18,17 +18,19 @@ from src.identity_access.domain.entities.usuario import Usuario
 from src.identity_access.domain.repositories.captcha_verifier_port import (
     CaptchaVerifierPort,
 )
-from src.identity_access.domain.repositories.correo_activacion_port import (
-    CorreoActivacionPort,
-)
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
+from src.identity_access.infrastructure.email_templates import activation_email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
-from src.shared.errors import AuthorizationError, ValidationError
+from src.shared.errors import (
+    AuthorizationError,
+    ServiceUnavailableError,
+    ValidationError,
+)
 
 TIPO_REGISTRO_USUARIO = 1
 
@@ -40,9 +42,9 @@ class CrearUsuarioUseCase:
         usuarios_repo: UsuarioRepository,
         cuentas_repo: CuentaRepository,
         eventos_repo: EventoRepository,
-        correo_activacion_port: CorreoActivacionPort,
         captcha_verifier: CaptchaVerifierPort,
         db: Session,
+        notificacion_service=None,
     ):
         """Inicializa el use case.
 
@@ -50,17 +52,18 @@ class CrearUsuarioUseCase:
             usuarios_repo: Repositorio de dominio del agregado Usuario.
             eventos_repo: Repositorio utilizado para registrar eventos de auditoría.
             cuentas_repo: Repositorio de dominio del agregado Cuenta (alta en estado PENDIENTE).
-            correo_activacion_port: Salida que agenda el correo después del commit.
             captcha_verifier: Puerto que valida el desafío CAPTCHA del registro.
             db: Sesión SQLAlchemy activa del request, usada solo para delimitar
                 la transacción (``commit``/``rollback``).
+            notificacion_service: Servicio centralizado de notificaciones que
+                despacha el correo de activación después del commit.
         """
         self.usuarios_repo = usuarios_repo
         self.cuentas_repo = cuentas_repo
         self.eventos_repo = eventos_repo
-        self.correo_activacion_port = correo_activacion_port
         self.captcha_verifier = captcha_verifier
         self.db = db
+        self.notificacion_service = notificacion_service
 
     def execute(
         self,
@@ -83,8 +86,9 @@ class CrearUsuarioUseCase:
             AuthorizationError: Si la edad es menor de 18 años. HTTP 403.
             ConflictError: Si el correo o la identificación ya están registrados.
                 HTTP 409.
-            ServiceUnavailableError: Si el proveedor CAPTCHA no está disponible.
-                HTTP 503.
+            ServiceUnavailableError: Si el proveedor CAPTCHA no está disponible,
+                o si el SMTP agotó sus 3 intentos de enviar el correo de
+                activación (el usuario queda registrado igual). HTTP 503.
         """
         # 1. La barrera anti-bot se valida antes de construir o persistir
         # cualquier dato. Ante error no se crea usuario, cuenta, token ni evento.
@@ -147,12 +151,29 @@ class CrearUsuarioUseCase:
             self.db.rollback()
             raise
 
-        # 6. Notificación fuera de la transacción y del tiempo de respuesta HTTP.
-        self.correo_activacion_port.programar_envio(
-            correo=str(usuario.correo),
-            nombre=usuario.nombre,
-            token=token,
-            id_usuario=usuario.id_usuario,
-        )
+        # 6. Correo de activación fuera de la transacción, pero dentro del
+        # request: el flujo alterno de RF-01 exige responder 503 cuando el SMTP
+        # agota sus 3 intentos, y una tarea en segundo plano no puede cambiar
+        # una respuesta que el cliente ya recibió. El usuario queda registrado
+        # en cualquier caso — de ahí que el mensaje del 503 empiece por
+        # "Registro exitoso".
+        if self.notificacion_service is not None:
+            enviado = self.notificacion_service.notificar(
+                tipo_evento=TIPO_REGISTRO_USUARIO,
+                id_usuario=usuario.id_usuario,
+                correo_destino=str(usuario.correo),
+                asunto_email="Activa tu cuenta en SGPMP",
+                contenido_html_email=activation_email(usuario.nombre, token),
+            )
+            if enviado is False:
+                raise ServiceUnavailableError(
+                    code="EMAIL_NO_DISPONIBLE",
+                    message=(
+                        "Registro exitoso, pero el servicio de notificaciones no "
+                        "está disponible. Use la opción 'Re-enviar token' para "
+                        "recibir el correo de activación. No es necesario "
+                        "registrarse de nuevo."
+                    ),
+                )
 
         return usuario

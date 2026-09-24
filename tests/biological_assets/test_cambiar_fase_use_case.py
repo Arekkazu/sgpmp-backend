@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,6 +20,8 @@ from src.biological_assets.domain.repositories.ciclo_consulta_port import (
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.db_error_translator import raise_from_db_error
+from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 
 class DbFake:
@@ -107,15 +110,28 @@ def _ciclo() -> CicloProductivoConsulta:
     )
 
 
+def _ciclo_3fases() -> CicloProductivoConsulta:
+    return CicloProductivoConsulta(
+        id_ciclo_productivo=4,
+        nombre='Cachama',
+        fases=[
+            FaseCiclo(1, 4, 'Alevinaje', 30),
+            FaseCiclo(2, 4, 'Engorde', 60),
+            FaseCiclo(3, 4, 'Finalizacion', 15),
+        ],
+    )
+
+
 def _usuario() -> UsuarioActual:
     return UsuarioActual(id_usuario=7, id_token=1, id_rol=1)
 
 
-def _gestion_anterior(fecha: datetime) -> GestionFase:
+def _gestion_anterior(fecha: datetime, *, id_ciclos_productivo_biologico: int = 1) -> GestionFase:
     return GestionFase(
         id_gestion_fases=100,
         id_activo_biologico=10,
         id_ciclo_productiva=4,
+        id_ciclos_productivo_biologico=id_ciclos_productivo_biologico,
         nombre_ciclo='Cachama',
         nombre_fase_actual='Alevinaje',
         paso_actual=1,
@@ -191,3 +207,260 @@ def test_fallo_al_cerrar_fase_anterior_revierte_y_no_crea_la_nueva() -> None:
     assert repo.creadas == []
     assert db.commits == 0
     assert db.rollbacks == 1
+
+
+# ── RF-37 (tarea Taiga fase_destino/confirmacion_no_estandar) ───────────────
+
+def test_fase_destino_id_estandar_se_comporta_igual_que_sin_especificar() -> None:
+    """fase_destino_id = la fase estándar siguiente -> mismo resultado que
+    omitir el campo, sin exigir confirmación."""
+    fecha_anterior = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    fecha_cambio = datetime(2026, 9, 11, tzinfo=timezone.utc)
+    db = DbFake()
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(fecha_anterior)])
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    resultado = use_case.execute(
+        10,
+        CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=fecha_cambio, fase_destino_id=2),
+        _usuario(),
+    )
+
+    assert resultado.nombre_fase_actual == 'Engorde'
+    assert resultado.paso_actual == 2
+    assert resultado.es_transicion_no_estandar is False
+
+
+def test_fase_destino_salto_hacia_adelante_sin_confirmar_lanza_409() -> None:
+    fecha_anterior = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    db = DbFake()
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(fecha_anterior, id_ciclos_productivo_biologico=1)])
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo_3fases()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=3),  # salta Engorde
+            _usuario(),
+        )
+
+    assert exc.value.code == 'TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR'
+    assert repo.creadas == []
+    assert db.commits == 0
+
+
+def test_fase_destino_salto_hacia_adelante_confirmado_procede() -> None:
+    fecha_anterior = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    db = DbFake()
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(fecha_anterior, id_ciclos_productivo_biologico=1)])
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo_3fases()))
+
+    resultado = use_case.execute(
+        10,
+        CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=3, confirmacion_no_estandar=True),
+        _usuario(),
+    )
+
+    assert resultado.nombre_fase_actual == 'Finalizacion'
+    assert resultado.paso_actual == 3
+    assert resultado.es_transicion_no_estandar is True
+    assert db.commits == 1
+
+
+def test_fase_destino_retroceso_sin_confirmar_lanza_409() -> None:
+    fecha_anterior = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    db = DbFake()
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(fecha_anterior, id_ciclos_productivo_biologico=2)])
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo_3fases()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=1),  # retrocede a Alevinaje
+            _usuario(),
+        )
+
+    assert exc.value.code == 'TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR'
+
+
+def test_fase_destino_id_inexistente_en_el_ciclo_lanza_validation_error() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake(_activo())
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ValidationError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=999),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_DESTINO_INVALIDA'
+    assert exc.value.field == 'fase_destino_id'
+
+
+def test_ciclo_completado_sin_fase_destino_sigue_lanzando_ciclo_completado() -> None:
+    """Sin fase_destino_id, el comportamiento histórico se conserva
+    exactamente: ciclo agotado -> CICLO_COMPLETADO, no 409."""
+    fecha_1 = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    fecha_2 = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    db = DbFake()
+    cerrada = _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1)
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, fecha_2
+    gestiones = [
+        cerrada,
+        GestionFase(
+            id_gestion_fases=101, id_activo_biologico=10, id_ciclo_productiva=4,
+            id_ciclos_productivo_biologico=2, nombre_ciclo='Cachama',
+            nombre_fase_actual='Engorde', paso_actual=2, total_pasos=2,
+            fecha_inicio=fecha_2, fecha_finalizacion=None, es_activa=True, id_usuario=3,
+        ),
+    ]
+    repo = ActivoRepoFake(_activo(), gestiones)
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(BusinessRuleError) as exc:
+        use_case.execute(10, CambiarFaseDTO(id_ciclo_productiva=4), _usuario())
+
+    assert exc.value.code == 'CICLO_COMPLETADO'
+
+
+def test_reentrar_fase_tras_completar_ciclo_requiere_confirmacion() -> None:
+    """Con fase_destino_id explícito, un ciclo ya completado no bloquea de
+    entrada -- pero re-entrar a cualquier fase sigue siendo no estándar."""
+    fecha_1 = datetime(2026, 8, 1, tzinfo=timezone.utc)
+    fecha_2 = datetime(2026, 8, 15, tzinfo=timezone.utc)
+    db = DbFake()
+    cerrada = _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1)
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, fecha_2
+    gestiones = [
+        cerrada,
+        GestionFase(
+            id_gestion_fases=101, id_activo_biologico=10, id_ciclo_productiva=4,
+            id_ciclos_productivo_biologico=2, nombre_ciclo='Cachama',
+            nombre_fase_actual='Engorde', paso_actual=2, total_pasos=2,
+            fecha_inicio=fecha_2, fecha_finalizacion=None, es_activa=True, id_usuario=3,
+        ),
+    ]
+    repo = ActivoRepoFake(_activo(), gestiones)
+    use_case = CambiarFaseUseCase(db=db, repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=1),
+            _usuario(),
+        )
+    assert exc.value.code == 'TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR'
+
+    resultado = use_case.execute(
+        10,
+        CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=1, confirmacion_no_estandar=True),
+        _usuario(),
+    )
+    assert resultado.nombre_fase_actual == 'Alevinaje'
+    assert resultado.es_transicion_no_estandar is True
+
+
+def test_fecha_inicio_futura_rechazada_por_el_dto() -> None:
+    futura = datetime.now(timezone.utc).replace(year=datetime.now(timezone.utc).year + 1)
+    with pytest.raises(ValueError, match='no puede ser futura'):
+        CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=futura)
+
+
+def test_fecha_inicio_pasada_es_aceptada_por_el_dto() -> None:
+    pasada = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    dto = CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=pasada)
+    assert dto.fecha_inicio == pasada
+
+
+# ── INC-M02-G34 (#429): rechazos claros en vez de 500 ───────────────────────
+
+@pytest.mark.parametrize('estado', [EstadoActivo.CERRADO, EstadoActivo.BAJA])
+def test_activo_cerrado_o_en_baja_lanza_409_sin_tocar_fases(estado: EstadoActivo) -> None:
+    activo = _activo()
+    activo.id_estado = estado
+    repo = ActivoRepoFake(activo, [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(10, CambiarFaseDTO(id_ciclo_productiva=4), _usuario())
+
+    assert exc.value.code == 'ACTIVO_NO_OPERATIVO'
+    assert repo.orden == []
+
+
+def test_fecha_anterior_al_inicio_de_la_fase_actual_lanza_409() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 7, 1, tzinfo=timezone.utc)),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_SOLAPADA'
+    assert repo.orden == []
+
+
+def test_fecha_que_se_solapa_con_una_fase_cerrada_lanza_409() -> None:
+    """Sin fase activa, el límite es el fin de la última fase cerrada."""
+    cerrada = _gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, datetime(2026, 8, 20, tzinfo=timezone.utc)
+    repo = ActivoRepoFake(_activo(), [cerrada])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 8, 10, tzinfo=timezone.utc)),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_SOLAPADA'
+
+
+def test_fecha_naive_se_normaliza_a_utc_y_se_compara_sin_error() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    resultado = use_case.execute(
+        10, CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 9, 1)), _usuario(),
+    )
+
+    assert resultado.fecha_inicio == datetime(2026, 9, 1, tzinfo=timezone.utc)
+
+
+def test_fase_destino_igual_a_la_actual_lanza_409_aun_confirmada() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=1, confirmacion_no_estandar=True),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_DESTINO_IGUAL_ACTUAL'
+    assert repo.orden == []
+
+
+@pytest.mark.parametrize('sqlstate, code', [
+    ('P0226', 'FASE_ACTIVA_DUPLICADA'),
+    ('P0227', 'FASE_SOLAPADA'),
+    ('P0228', 'ACTIVO_NO_OPERATIVO'),
+])
+def test_triggers_de_gestiones_fases_se_traducen_a_409(sqlstate: str, code: str) -> None:
+    """Red de seguridad: si una carrera llega al trigger, sale 409 y no 500."""
+    error_bd = Exception()
+    error_bd.orig = SimpleNamespace(diag=SimpleNamespace(
+        sqlstate=sqlstate, message_primary='PHASE_OVERLAP: detalle del trigger',
+    ))
+    with pytest.raises(ConflictError) as exc:
+        raise_from_db_error(error_bd)
+
+    assert exc.value.code == code
+    assert exc.value.message == 'detalle del trigger'

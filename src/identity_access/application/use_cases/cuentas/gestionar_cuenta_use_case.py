@@ -15,7 +15,7 @@ from src.identity_access.domain.repositories.usuario_repository import UsuarioRe
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
-from src.shared.errors import AuthorizationError, BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
 
 ACCION_A_ESTADO = {
     EnumAccionCuenta.ACTIVAR:   2,
@@ -84,10 +84,10 @@ class GestionarCuentaUseCase:
             AuthorizationError: Si el actor intenta gestionar su propia cuenta.
                 La autorización RBAC del actor se resuelve en el router. HTTP 403.
             NotFoundError: Si el usuario o su cuenta no existen. HTTP 404.
-            ValidationError: Si la acción crítica no tiene motivo, o la cuenta
-                ya está en el estado solicitado. HTTP 400.
-            BusinessRuleError: Si la transición de estado no es válida o se
-                intenta desactivar al único administrador activo. HTTP 422.
+            ValidationError: Si la acción crítica no tiene motivo, la cuenta ya
+                está en el estado solicitado, o se intenta desactivar al único
+                administrador activo. HTTP 400.
+            ConflictError: Si la transición de estado no es válida. HTTP 409.
         """
         # 1. La autorización RBAC ya fue validada por require_permission en el router.
         #    Se conserva como regla de negocio la prohibición de auto-gestión.
@@ -138,8 +138,10 @@ class GestionarCuentaUseCase:
                 message=f"Inconsistencia de estado. La cuenta ya se encuentra en el estado solicitado.",
             )
 
+        # RF-06 clasifica la transición no permitida como conflicto con el
+        # estado actual del recurso (409), no como regla de negocio (422).
         if estado_actual == 5:
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="TRANSICION_INVALIDA",
                 message=(
                     "Transición de estado inválida. Una cuenta en estado 'ELIMINADO' tiene carácter "
@@ -148,7 +150,7 @@ class GestionarCuentaUseCase:
             )
 
         if nuevo_estado not in TRANSICIONES_VALIDAS.get(estado_actual, set()):
-            raise BusinessRuleError(
+            raise ConflictError(
                 code="TRANSICION_INVALIDA",
                 message=f"Transición de estado inválida ({estado_actual} → {nuevo_estado}).",
             )
@@ -163,8 +165,10 @@ class GestionarCuentaUseCase:
             and dto.accion_cuenta in ACCIONES_QUE_REDUCEN_ADMINS
         )
         if reduce_rol_protegido:
+            # RF-06 pide 400 para este caso: la petición es inválida de entrada
+            # porque dejaría al sistema sin administradores activos.
             if self.cuentas_repo.contar_usuarios_activos_por_rol(usuario.id_rol) <= 1:
-                raise BusinessRuleError(
+                raise ValidationError(
                     code="ULTIMO_ADMIN_PROTEGIDO",
                     message=(
                         f"Operación denegada por seguridad. El usuario {id_usuario} es el único "

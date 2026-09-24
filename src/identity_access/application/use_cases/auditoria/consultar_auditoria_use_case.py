@@ -4,7 +4,7 @@ Aplica filtros opcionales por usuario, tipo, categoría y rango de fechas.
 Registra el propio acceso como un evento de auditoría, incluso si el acceso
 fue denegado, para mantener trazabilidad completa.
 """
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -20,6 +20,16 @@ TIPO_CONSULTA_AUDITORIA = 16
 # Umbral del FA "Exceso de resultados en consulta (Saturación)".
 UMBRAL_SATURACION = 10_000
 TAMANO_MAXIMO_PAGINA = 50
+
+# INC-M01-71: margen de seguridad restado al ancla temporal por defecto
+# (`fecha_hasta_efectiva`) para que el propio evento de auto-auditoría de
+# esta consulta (registrado con `datetime.now()` unos milisegundos después)
+# nunca empate con el ancla. La resolución del reloj no es infinita — en
+# Windows en particular, dos llamadas a `datetime.now()` separadas por muy
+# pocos milisegundos pueden devolver el mismo valor exacto — y con `<=`
+# como operador del filtro, un empate volvería a colar el auto-registro en
+# la página siguiente exactamente como hacía el bug original.
+_MARGEN_ANCLA_AUTOAUDITORIA = timedelta(milliseconds=50)
 
 
 class ConsultarAuditoriaUseCase:
@@ -72,7 +82,8 @@ class ConsultarAuditoriaUseCase:
 
         Returns:
             Diccionario con ``total``, ``pagina``, ``tamano``, ``items``,
-            ``saturada`` y ``mensaje``. Cada ítem es una tupla
+            ``saturada``, ``mensaje`` y ``fecha_hasta`` (el ancla temporal
+            efectiva usada para esta consulta). Cada ítem es una tupla
             ``(Evento, clasificacion_integridad)``.
 
         Raises:
@@ -103,12 +114,26 @@ class ConsultarAuditoriaUseCase:
         tamano = min(tamano, TAMANO_MAXIMO_PAGINA)
         offset = (pagina - 1) * tamano
 
+        # INC-M01-71 (TC-M01-71): sin un ancla temporal fija, cada consulta se
+        # auditaba a sí misma (paso 5, TIPO_CONSULTA_AUDITORIA) con
+        # fecha_evento=now(). Como el orden es "más reciente primero", esa
+        # fila nueva se colaba en la posición 0 y desplazaba una fila hacia la
+        # página siguiente -- el mismo evento aparecía repetido entre página N
+        # y N+1. Al fijar fecha_hasta_efectiva ANTES de consultar y de
+        # autoauditar, tanto la propia auto-auditoría como cualquier evento
+        # concurrente posterior al ancla quedan fuera del conjunto paginado;
+        # el cliente puede reenviar el mismo valor (devuelto en la respuesta)
+        # en las siguientes páginas para mantener un conjunto estable.
+        fecha_hasta_efectiva = fecha_hasta or (
+            datetime.now(timezone.utc) - _MARGEN_ANCLA_AUTOAUDITORIA
+        )
+
         # 3. Consultar eventos con verificación de integridad
         total = self.eventos_repo.contar_eventos(
             id_usuario=id_usuario,
             tipo_evento=tipo_evento,
             fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
+            fecha_hasta=fecha_hasta_efectiva,
             categoria=categoria,
             archivados=archivados,
         )
@@ -116,7 +141,7 @@ class ConsultarAuditoriaUseCase:
             id_usuario=id_usuario,
             tipo_evento=tipo_evento,
             fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
+            fecha_hasta=fecha_hasta_efectiva,
             offset=offset,
             limit=tamano,
             categoria=categoria,
@@ -181,4 +206,5 @@ class ConsultarAuditoriaUseCase:
             "items": items,
             "saturada": saturada,
             "mensaje": mensaje,
+            "fecha_hasta": fecha_hasta_efectiva,
         }
