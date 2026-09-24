@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from src.biological_assets.application.use_cases.gestion._event_validations import (
     validar_historial_consistente,
@@ -31,7 +32,7 @@ from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto i
     ActualizarActivoIndividualDTO,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, ConflictError, PreconditionFailedError
 
 
 # ── _event_validations.py (unitario, sin use case) ───────────────────────────
@@ -63,7 +64,7 @@ def _historico(id_estado_nuevo: int) -> HistoricoEstado:
 
 @pytest.mark.parametrize('id_estado', [3, 4])  # EN_TRATAMIENTO, AISLADO
 def test_validar_sin_eventos_pendientes_bloquea_estados_con_evento_abierto(id_estado):
-    with pytest.raises(BusinessRuleError) as exc:
+    with pytest.raises(ConflictError) as exc:
         validar_sin_eventos_pendientes(_ActivoIdEstado(id_estado=id_estado))
     assert exc.value.code == 'EVENTO_PENDIENTE_SIN_CERRAR'
 
@@ -203,12 +204,13 @@ def test_edicion_exitosa_establece_fecha_actualizacion():
 
 
 @pytest.mark.parametrize('id_estado', [3, 4])
-def test_evento_pendiente_bloquea_edicion_con_422(id_estado):
+def test_evento_pendiente_bloquea_edicion_con_409(id_estado):
+    # INC-M02-G22: 409, no 422.
     activo = _ActivoFake(id_estado=id_estado)
     uc, repo = _use_case(activo)
     dto = ActualizarActivoIndividualDTO(raza='Nueva')
 
-    with pytest.raises(BusinessRuleError) as exc:
+    with pytest.raises(ConflictError) as exc:
         uc.execute(350, dto, _usuario())
 
     assert exc.value.code == 'EVENTO_PENDIENTE_SIN_CERRAR'
@@ -242,3 +244,27 @@ def test_veterinario_puede_editar_cuando_todo_es_consistente():
 
     assert resultado is activo
     assert repo.actualizado_con is activo
+
+
+# ── INC-M02-G22: campos no editables en el DTO (400 vía RequestValidationError) ─
+
+@pytest.mark.parametrize('payload', [
+    {'raza': 'Nueva', 'estado_activo': 'BAJA'},
+    {'estado_activo': 'INACTIVO'},
+    {'raza': 'Nueva', 'estado_activo': None},
+])
+def test_dto_rechaza_estado_activo(payload):
+    with pytest.raises(PydanticValidationError) as exc:
+        ActualizarActivoIndividualDTO(**payload)
+
+    error = exc.value.errors()[0]
+    assert error['loc'] == ('estado_activo',)
+    assert 'RF-44' in str(error['ctx']['error'])
+
+
+@pytest.mark.parametrize('campo', ['especie_id', 'tipo', 'id_estado'])
+def test_dto_rechaza_campos_no_editables(campo):
+    with pytest.raises(PydanticValidationError) as exc:
+        ActualizarActivoIndividualDTO(raza='Nueva', **{campo: 1})
+
+    assert exc.value.errors()[0]['type'] == 'extra_forbidden'
