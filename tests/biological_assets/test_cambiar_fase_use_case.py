@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,6 +20,7 @@ from src.biological_assets.domain.repositories.ciclo_consulta_port import (
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 
@@ -303,8 +305,10 @@ def test_ciclo_completado_sin_fase_destino_sigue_lanzando_ciclo_completado() -> 
     fecha_1 = datetime(2026, 8, 1, tzinfo=timezone.utc)
     fecha_2 = datetime(2026, 8, 15, tzinfo=timezone.utc)
     db = DbFake()
+    cerrada = _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1)
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, fecha_2
     gestiones = [
-        _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1),
+        cerrada,
         GestionFase(
             id_gestion_fases=101, id_activo_biologico=10, id_ciclo_productiva=4,
             id_ciclos_productivo_biologico=2, nombre_ciclo='Cachama',
@@ -327,8 +331,10 @@ def test_reentrar_fase_tras_completar_ciclo_requiere_confirmacion() -> None:
     fecha_1 = datetime(2026, 8, 1, tzinfo=timezone.utc)
     fecha_2 = datetime(2026, 8, 15, tzinfo=timezone.utc)
     db = DbFake()
+    cerrada = _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1)
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, fecha_2
     gestiones = [
-        _gestion_anterior(fecha_1, id_ciclos_productivo_biologico=1),
+        cerrada,
         GestionFase(
             id_gestion_fases=101, id_activo_biologico=10, id_ciclo_productiva=4,
             id_ciclos_productivo_biologico=2, nombre_ciclo='Cachama',
@@ -366,3 +372,95 @@ def test_fecha_inicio_pasada_es_aceptada_por_el_dto() -> None:
     pasada = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dto = CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=pasada)
     assert dto.fecha_inicio == pasada
+
+
+# ── INC-M02-G34 (#429): rechazos claros en vez de 500 ───────────────────────
+
+@pytest.mark.parametrize('estado', [EstadoActivo.CERRADO, EstadoActivo.BAJA])
+def test_activo_cerrado_o_en_baja_lanza_409_sin_tocar_fases(estado: EstadoActivo) -> None:
+    activo = _activo()
+    activo.id_estado = estado
+    repo = ActivoRepoFake(activo, [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(10, CambiarFaseDTO(id_ciclo_productiva=4), _usuario())
+
+    assert exc.value.code == 'ACTIVO_NO_OPERATIVO'
+    assert repo.orden == []
+
+
+def test_fecha_anterior_al_inicio_de_la_fase_actual_lanza_409() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 7, 1, tzinfo=timezone.utc)),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_SOLAPADA'
+    assert repo.orden == []
+
+
+def test_fecha_que_se_solapa_con_una_fase_cerrada_lanza_409() -> None:
+    """Sin fase activa, el límite es el fin de la última fase cerrada."""
+    cerrada = _gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))
+    cerrada.es_activa, cerrada.fecha_finalizacion = False, datetime(2026, 8, 20, tzinfo=timezone.utc)
+    repo = ActivoRepoFake(_activo(), [cerrada])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 8, 10, tzinfo=timezone.utc)),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_SOLAPADA'
+
+
+def test_fecha_naive_se_normaliza_a_utc_y_se_compara_sin_error() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    resultado = use_case.execute(
+        10, CambiarFaseDTO(id_ciclo_productiva=4, fecha_inicio=datetime(2026, 9, 1)), _usuario(),
+    )
+
+    assert resultado.fecha_inicio == datetime(2026, 9, 1, tzinfo=timezone.utc)
+
+
+def test_fase_destino_igual_a_la_actual_lanza_409_aun_confirmada() -> None:
+    repo = ActivoRepoFake(_activo(), [_gestion_anterior(datetime(2026, 8, 1, tzinfo=timezone.utc))])
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(_ciclo()))
+
+    with pytest.raises(ConflictError) as exc:
+        use_case.execute(
+            10,
+            CambiarFaseDTO(id_ciclo_productiva=4, fase_destino_id=1, confirmacion_no_estandar=True),
+            _usuario(),
+        )
+
+    assert exc.value.code == 'FASE_DESTINO_IGUAL_ACTUAL'
+    assert repo.orden == []
+
+
+@pytest.mark.parametrize('sqlstate, code', [
+    ('P0226', 'FASE_ACTIVA_DUPLICADA'),
+    ('P0227', 'FASE_SOLAPADA'),
+    ('P0228', 'ACTIVO_NO_OPERATIVO'),
+])
+def test_triggers_de_gestiones_fases_se_traducen_a_409(sqlstate: str, code: str) -> None:
+    """Red de seguridad: si una carrera llega al trigger, sale 409 y no 500."""
+    error_bd = Exception()
+    error_bd.orig = SimpleNamespace(diag=SimpleNamespace(
+        sqlstate=sqlstate, message_primary='PHASE_OVERLAP: detalle del trigger',
+    ))
+    with pytest.raises(ConflictError) as exc:
+        raise_from_db_error(error_bd)
+
+    assert exc.value.code == code
+    assert exc.value.message == 'detalle del trigger'
