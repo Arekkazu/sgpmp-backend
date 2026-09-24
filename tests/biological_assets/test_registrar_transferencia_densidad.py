@@ -16,6 +16,8 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
+import pytest
+
 from src.biological_assets.application.use_cases.gestion.registrar_transferencia_use_case import (
     RegistrarTransferenciaUseCase,
 )
@@ -29,6 +31,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_transferencia_dto import RegistrarTransferenciaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
+from src.shared.errors import BusinessRuleError, ConflictError
 
 
 class DbFake:
@@ -82,6 +85,14 @@ class InfraPortFake:
         return True
 
 
+class ParametrosPortFake:
+    def __init__(self, densidad_maxima: Decimal | None) -> None:
+        self.densidad_maxima = densidad_maxima
+
+    def obtener_densidad_maxima(self, _id_especie: int):
+        return self.densidad_maxima
+
+
 def _infra(id_infraestructura: int, id_finca: int, superficie: Optional[Decimal]) -> InfraestructuraConsulta:
     return InfraestructuraConsulta(
         id_infraestructura=id_infraestructura, nombre=f'Infra {id_infraestructura}',
@@ -132,6 +143,7 @@ def test_densidad_se_recalcula_contra_la_superficie_destino() -> None:
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('2500')),
         }),
+        parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
     uc.execute(130, _dto(origen=3, destino=1), _usuario())
@@ -162,6 +174,7 @@ def test_activo_individual_no_toca_detalle_poblacional() -> None:
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=Decimal('2500')),
         }),
+        parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
     uc.execute(51, _dto(origen=3, destino=1), _usuario())
@@ -169,9 +182,8 @@ def test_activo_individual_no_toca_detalle_poblacional() -> None:
     assert not [params for _, params in db.ejecutados if 'densidad' in params]
 
 
-def test_destino_sin_superficie_configurada_conserva_la_densidad_previa() -> None:
-    """Sin superficie en el destino no hay con qué recalcular -- se conserva
-    el valor previo (mismo criterio que aplicar_evento_crecimiento)."""
+def test_destino_sin_superficie_configurada_rechaza_transferencia() -> None:
+    """Sin superficie no se puede comprobar la restricción de densidad."""
     activo = _activo_poblacional(cantidad_actual=5, id_infraestructura=3)
     db = DbFake()
     uc = RegistrarTransferenciaUseCase(
@@ -182,12 +194,54 @@ def test_destino_sin_superficie_configurada_conserva_la_densidad_previa() -> Non
             3: _infra(3, id_finca=1, superficie=Decimal('500')),
             1: _infra(1, id_finca=1, superficie=None),
         }),
+        parametros_port=ParametrosPortFake(Decimal('0.01')),
     )
 
-    uc.execute(130, _dto(origen=3, destino=1), _usuario())
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(130, _dto(origen=3, destino=1), _usuario())
 
+    assert exc_info.value.code == 'SUPERFICIE_INFRAESTRUCTURA_INVALIDA'
     assert activo.detalle_poblacional.densidad == Decimal('0.01')
-    actualizaciones_densidad = [
-        params for _, params in db.ejecutados if 'densidad' in params
-    ]
-    assert actualizaciones_densidad == [{'id': 130, 'densidad': Decimal('0.01')}]
+    assert db.ejecutados == []
+
+
+def test_transferencia_rechaza_densidad_superior_al_limite_de_especie() -> None:
+    activo = _activo_poblacional(cantidad_actual=50, id_infraestructura=3)
+    db = DbFake()
+    uc = RegistrarTransferenciaUseCase(
+        db=db,
+        activo_repo=ActivoRepoFake(activo, _asociacion(3)),
+        transferencia_repo=TransferenciaRepoFake(),
+        infra_port=InfraPortFake({
+            3: _infra(3, id_finca=1, superficie=Decimal('500')),
+            1: _infra(1, id_finca=1, superficie=Decimal('100')),
+        }),
+        parametros_port=ParametrosPortFake(Decimal('0.2')),
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        uc.execute(130, _dto(origen=3, destino=1), _usuario())
+
+    assert exc_info.value.code == 'DENSIDAD_MAXIMA_SUPERADA'
+    assert db.ejecutados == []
+
+
+def test_transferencia_sin_limite_de_especie_no_omite_validacion() -> None:
+    activo = _activo_poblacional(cantidad_actual=5, id_infraestructura=3)
+    db = DbFake()
+    uc = RegistrarTransferenciaUseCase(
+        db=db,
+        activo_repo=ActivoRepoFake(activo, _asociacion(3)),
+        transferencia_repo=TransferenciaRepoFake(),
+        infra_port=InfraPortFake({
+            3: _infra(3, id_finca=1, superficie=Decimal('500')),
+            1: _infra(1, id_finca=1, superficie=Decimal('2500')),
+        }),
+        parametros_port=ParametrosPortFake(None),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(130, _dto(origen=3, destino=1), _usuario())
+
+    assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
+    assert db.ejecutados == []

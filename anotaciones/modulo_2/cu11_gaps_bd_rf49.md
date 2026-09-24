@@ -126,3 +126,59 @@ El campo `tipo` usa el tipo PG `enum_asociaciones_activos_sensores_tipo` con val
 
 El DTO acepta valores en MAYÚSCULAS (`DIRECTA`, `AMBIENTAL`, `POBLACIONAL`) y el use case
 normaliza a minúsculas antes de persistir.
+
+---
+
+## Iteración 2026-09-23 — Tarea Taiga "RF-49: Compatibilidad de especie sensor-activo y ciclo de vida completo"
+
+Tarea recibida describiendo dos gaps, ambos copiados literalmente de `estado_M02.md`
+(auditoría 2026-08-06): (1) "no existe validación de compatibilidad de especie... un
+sensor de aves podría asociarse hoy a un bovino sin rechazo"; (2) "solo existe `POST
+/{id}/sensores`... no hay endpoint para desactivar, reactivar ni listar". **Ambos ya
+estaban resueltos en `dev`** antes de recibir esta tarea:
+
+- Compatibilidad de especie: ya documentada arriba como "resuelto 2026-09-16"
+  (sección "Compatibilidad especie-sensor"), bloque **V7** de
+  `AsociarSensorActivoUseCase`, confirmado en vivo con 156 filas reales en
+  `modulo9.compatibilidad_sensores_especies`.
+- Ciclo de vida completo: `GET /{id}/sensores` (listar, con `tipo_consulta=ACTIVA|HISTORIAL`,
+  commit `2b3e3772`) y `PATCH /{id}/sensores/{id_asociacion}` (activar/desactivar,
+  commit `c1eaf765`, documentado en `inc_m02_65_g89_patch_ciclo_vida_asociacion_sensor.md`)
+  ya existen como endpoints reales, con tests dedicados pasando.
+
+### Gap real encontrado: el PATCH nunca funcionó en `dev` por RBAC faltante
+
+`inc_m02_65_g89_patch_ciclo_vida_asociacion_sensor.md` documenta que el PATCH exige
+`(recurso 30, accion U=3)`, y que ese permiso se insertó para Administrador (`id_rol=1`)
+e Ingeniero de Campo (`id_rol=4`) — pero el propio documento aclara que el INSERT se
+aplicó **directamente por SQL contra `sgpmp` y `pruebas`**, nunca se formalizó como
+migración Alembic. Confirmado en vivo contra `sgpmp_dev`:
+
+```sql
+SELECT * FROM modulo1.permisos WHERE id_recurso = 30 AND id_accion = 3;
+-- 0 filas
+```
+
+Es decir: el endpoint `PATCH /{id_activo}/sensores/{id_asociacion}` responde `403`
+silencioso para **los 4 roles, incluido Administrador**, en `dev` — el escenario
+exacto que el Paso 0 de `CLAUDE.md` pide verificar antes de dar por resuelta una
+tarea de RBAC.
+
+**Fix aplicado:** `alembic/versions/1ee808f9ee6b_v5_4_0_rf49_permiso_patch_asociacion_sensor.py`
+formaliza el mismo INSERT que ya está vigente en `sgpmp`/`pruebas` (mismos roles,
+mismo `nombre` de permiso), para que se aplique también en `dev` y en cualquier
+entorno futuro vía `alembic upgrade head`. Verificado en vivo (transacción revertida):
+`upgrade()` idempotente (correrlo dos veces no duplica filas, `ON CONFLICT DO NOTHING`
+para `admin_*`/`DO UPDATE` para `ing_*`), `downgrade()` elimina solo la fila `ing_*`
+— la fila `admin_*` es intencionalmente inmutable: `trg_fn_proteger_permisos_admin_delete`
+bloquea cualquier `DELETE` sobre permisos `admin_%` con `ADMIN_PERM_NO_DELETE`,
+confirmado al intentar revertirla en la misma verificación.
+
+No se decide aquí si Productor también debería tener `U` sobre este recurso —
+`inc_m02_65_g89...md` dejó esa pregunta explícitamente abierta para no invadir el
+alcance de otro issue (#212), y el RF no lo exige de forma inequívoca. Queda fuera
+de esta iteración.
+
+**Sin cambios de código de producción** — ambos gaps del RF ya estaban resueltos en
+código; el único trabajo real fue formalizar en Alembic un permiso RBAC que existía
+en otros entornos pero nunca llegó a `dev`.
