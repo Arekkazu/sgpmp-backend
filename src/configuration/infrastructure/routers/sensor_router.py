@@ -24,7 +24,6 @@ from src.configuration.infrastructure.repositories.auditoria_calibracion_reposit
 from src.configuration.infrastructure.repositories.auditoria_sensor_area_repository import SqlAlchemyAuditoriaSensorAreaRepository
 from src.configuration.infrastructure.repositories.calibracion_repository import SqlAlchemyCalibracionRepository
 from src.configuration.infrastructure.repositories.dispositivo_iot_repository import SqlAlchemyDispositivoIotRepository
-from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
 from src.configuration.infrastructure.repositories.rango_calibracion_repository import SqlAlchemyRangoCalibracionRepository
 from src.configuration.infrastructure.repositories.sensor_area_repository import SqlAlchemySensorAreaRepository
@@ -101,10 +100,8 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
-    id_filtro = (
-        None
-        if AlcanceFincaAdapter(db).es_global(usuario_actual.id_rol)
-        else usuario_actual.id_usuario
+    ids_permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario, usuario_actual.id_rol
     )
     use_case = ConsultarAsociacionesUseCase(
         db=db,
@@ -112,9 +109,8 @@ def listar_asociaciones(
         sensor_repo=SqlAlchemySensorRepository(db),
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
-        finca_repo=SqlAlchemyFincaRepository(db),
     )
-    asociaciones = use_case.listar_por_sensor(id_sensor, id_usuario_filtro=id_filtro)
+    asociaciones = use_case.listar_por_sensor(id_sensor, ids_fincas_permitidas=ids_permitidas)
     items = [SensorAreaResponse.from_entity(a) for a in asociaciones]
     return ListaSensorAreasResponse(total=len(items), items=items)
 

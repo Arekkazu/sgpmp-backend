@@ -4,8 +4,9 @@ Un usuario con rol Productor sin relación con ninguna finca podía consultar
 el historial completo de asociaciones de un sensor de una finca ajena,
 cambiando el ID en la URL: `ConsultarAsociacionesUseCase.listar_por_sensor()`
 no recibía el usuario autenticado, así que no había forma de filtrar por
-finca. Verifica, con fakes (sin BD), el mismo patrón de alcance por
-propietario que ya usa `ConsultarFincasUseCase.obtener()`.
+finca. Verifica, con fakes (sin BD), el mismo patrón de alcance por fincas
+permitidas que ya usa `ConsultarFincasUseCase.obtener()` (INC-M02-61-G52: las
+fincas permitidas salen de `modulo9.usuarios_fincas`, ya no del dueño).
 """
 from __future__ import annotations
 
@@ -13,7 +14,6 @@ import pytest
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import ConsultarAsociacionesUseCase
 from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
-from src.configuration.domain.entities.finca import Finca
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.entities.sensor import Sensor
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
@@ -25,8 +25,7 @@ ID_SENSOR = 1
 ID_DISPOSITIVO = 5
 ID_AREA = 10
 ID_FINCA = 7
-ID_PRODUCTOR_DUENO = 99
-ID_PRODUCTOR_AJENO = 42
+ID_FINCA_AJENA = 8
 
 
 class SensorRepoFake:
@@ -51,14 +50,6 @@ class InfraRepoFake:
 
     def obtener_por_id(self, _id):
         return self._a
-
-
-class FincaRepoFake:
-    def __init__(self, finca) -> None:
-        self._f = finca
-
-    def obtener_por_id(self, _id):
-        return self._f
 
 
 class SensorAreaRepoFake:
@@ -98,23 +89,7 @@ def _area() -> Infraestructura:
     return a
 
 
-def _finca(id_usuario: int) -> Finca:
-    # Fake mínimo: al use case bajo prueba solo le importa `id_usuario` (el
-    # dueño). El resto de campos de Finca no participan en el chequeo de
-    # propiedad, así que se evita construir sus value objects reales.
-    return Finca(
-        nombre=None,
-        ubicacion=None,
-        tamano_h=None,
-        es_activo=True,
-        fecha_creacion=None,
-        fecha_actualizacion=None,
-        id_finca=ID_FINCA,
-        id_usuario=id_usuario,
-    )
-
-
-def _use_case(id_usuario_dueno: int) -> tuple[ConsultarAsociacionesUseCase, SensorAreaRepoFake]:
+def _use_case() -> tuple[ConsultarAsociacionesUseCase, SensorAreaRepoFake]:
     sensor_area_repo = SensorAreaRepoFake()
     uc = ConsultarAsociacionesUseCase(
         db=None,
@@ -122,25 +97,24 @@ def _use_case(id_usuario_dueno: int) -> tuple[ConsultarAsociacionesUseCase, Sens
         sensor_repo=SensorRepoFake(_sensor()),
         dispositivo_repo=DispositivoRepoFake(_dispositivo()),
         infra_repo=InfraRepoFake(_area()),
-        finca_repo=FincaRepoFake(_finca(id_usuario_dueno)),
     )
     return uc, sensor_area_repo
 
 
-def test_productor_dueno_de_la_finca_puede_consultar() -> None:
-    uc, repo = _use_case(id_usuario_dueno=ID_PRODUCTOR_DUENO)
+def test_usuario_con_acceso_a_la_finca_puede_consultar() -> None:
+    uc, repo = _use_case()
 
-    resultado = uc.listar_por_sensor(ID_SENSOR, id_usuario_filtro=ID_PRODUCTOR_DUENO)
+    resultado = uc.listar_por_sensor(ID_SENSOR, ids_fincas_permitidas=[ID_FINCA])
 
     assert resultado == ["asociacion-1", "asociacion-2"]
     assert repo.listar_llamado_con == [ID_SENSOR]
 
 
-def test_productor_ajeno_a_la_finca_recibe_404_no_200() -> None:
-    uc, repo = _use_case(id_usuario_dueno=ID_PRODUCTOR_DUENO)
+def test_usuario_sin_acceso_a_la_finca_recibe_404_no_200() -> None:
+    uc, repo = _use_case()
 
     with pytest.raises(NotFoundError) as exc:
-        uc.listar_por_sensor(ID_SENSOR, id_usuario_filtro=ID_PRODUCTOR_AJENO)
+        uc.listar_por_sensor(ID_SENSOR, ids_fincas_permitidas=[ID_FINCA_AJENA])
 
     assert exc.value.code == "SENSOR_NO_ENCONTRADO"
     assert exc.value.status_code == 404
@@ -148,16 +122,16 @@ def test_productor_ajeno_a_la_finca_recibe_404_no_200() -> None:
 
 
 def test_admin_sin_filtro_ve_cualquier_sensor() -> None:
-    uc, repo = _use_case(id_usuario_dueno=ID_PRODUCTOR_DUENO)
+    uc, repo = _use_case()
 
-    resultado = uc.listar_por_sensor(ID_SENSOR, id_usuario_filtro=None)
+    resultado = uc.listar_por_sensor(ID_SENSOR, ids_fincas_permitidas=None)
 
     assert resultado == ["asociacion-1", "asociacion-2"]
     assert repo.listar_llamado_con == [ID_SENSOR]
 
 
 if __name__ == "__main__":
-    test_productor_dueno_de_la_finca_puede_consultar()
-    test_productor_ajeno_a_la_finca_recibe_404_no_200()
+    test_usuario_con_acceso_a_la_finca_puede_consultar()
+    test_usuario_sin_acceso_a_la_finca_recibe_404_no_200()
     test_admin_sin_filtro_ve_cualquier_sensor()
     print("OK")

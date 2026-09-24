@@ -414,7 +414,6 @@ def gestionar_cuenta(
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
-        409: {"model": ErrorResponse},
     },
     summary="Asignar o desasignar fincas a un usuario (RF-25)",
 )
