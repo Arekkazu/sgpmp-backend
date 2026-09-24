@@ -29,7 +29,7 @@ from xml.etree import ElementTree
 
 from PIL import Image, UnidentifiedImageError
 
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import InfrastructureError, UnsupportedMediaTypeError, ValidationError
 
 FORMATOS_PERMITIDOS = {"image/png", "image/jpeg", "image/svg+xml"}
 TAMANO_MAX = 2 * 1024 * 1024  # 2 MB, límite explícito de RF-26
@@ -61,7 +61,7 @@ def guardar_logo(contenido: bytes, content_type: Optional[str]) -> str:
     se valida de verdad abriendo los bytes con Pillow (o, para SVG, parseándolo).
     """
     if content_type not in FORMATOS_PERMITIDOS:
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message=(
                 f"Archivo no admitido. El logotipo debe estar en formato PNG, JPEG o SVG. "
@@ -119,14 +119,14 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
         formato_real = imagen.format
         imagen.load()
     except (UnidentifiedImageError, OSError, ValueError):
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es una imagen válida.",
             field="logo",
         )
 
     if formato_real != _FORMATOS_PIL[content_type]:
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El contenido del archivo no coincide con el formato declarado.",
             field="logo",
@@ -144,7 +144,7 @@ def _validar_y_redimensionar_raster(contenido: bytes, content_type: str) -> byte
 def _validar_svg(contenido: bytes) -> bytes:
     texto = contenido.decode("utf-8", errors="ignore")
     if _SVG_PATRON_PELIGROSO.search(texto):
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El SVG contiene contenido no permitido.",
             field="logo",
@@ -152,13 +152,13 @@ def _validar_svg(contenido: bytes) -> bytes:
     try:
         raiz = ElementTree.fromstring(contenido)
     except ElementTree.ParseError:
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
             field="logo",
         )
     if not raiz.tag.endswith("svg"):
-        raise ValidationError(
+        raise UnsupportedMediaTypeError(
             code="FORMATO_IMAGEN_NO_PERMITIDO",
             message="El archivo no es un SVG válido.",
             field="logo",
