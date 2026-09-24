@@ -1,3 +1,11 @@
+## [1.0.0-rc.52](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.51...v1.0.0-rc.52) (2026-09-24)
+
+### Bug Fixes
+
+* **rf25:** asignar fincas a un usuario aunque ya tengan dueno (INC-M02-61-G52) ([60d5ee3](https://github.com/Arekkazu/sgpmp-backend/commit/60d5ee3741600f6b751a01c3a42f4c11e2881d8e)), closes [Arekkazu/SGPMP-FRONT-END-PWA#97](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/97)
+* **rf46:** resolver el alcance por finca desde usuarios_fincas (INC-M02-61-G52) ([7fd0b3f](https://github.com/Arekkazu/sgpmp-backend/commit/7fd0b3f0ad745fdf54eee4a3d5c0fad2ed3498c8)), closes [Arekkazu/SGPMP-FRONT-END-PWA#97](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/97)
+* **rf46:** tabla usuarios_fincas para el acceso m:n a fincas (INC-M02-61-G52) ([21349d3](https://github.com/Arekkazu/sgpmp-backend/commit/21349d3ed827e00bc695f6333ab06676dea6aad6)), closes [Arekkazu/SGPMP-FRONT-END-PWA#97](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/97)
+
 ## [1.0.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.50...v1.0.0-rc.51) (2026-09-24)
 
 ### Bug Fixes
