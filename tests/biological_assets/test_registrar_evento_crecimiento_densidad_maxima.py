@@ -1,13 +1,15 @@
-"""INC-M02-38-G25 / issue #198 (RF-36): al registrar un evento de crecimiento
+"""INC-M02-48-G25 / issue #394 (RF-36): densidad máxima por especie.
+
+La primera corrección usó ``infraestructuras.capacidad_maxima`` como si fuera
+el límite biológico por especie. Son conceptos distintos y, además, ese campo
+está sin configurar en los ambientes compartidos. El límite contractual vive
+ahora en ``modulo9.especies.densidad_maxima_por_especie``.
+
+Al registrar un evento de crecimiento
 sobre un lote poblacional, el backend recalculaba la densidad
 (`cantidad_actual / superficie`) pero nunca la comparaba contra
 `densidad_maxima_por_especie` (RF-36, restricción de M09) — el evento se
 aceptaba (201) sin importar qué tan hacinado estuviera el lote.
-
-El dato ya existía de punta a punta sin usarse:
-`modulo9.infraestructuras.capacidad_maxima` ya estaba mapeado en
-`InfraestructuraConsulta` (puerto ya inyectado en este use case), solo
-faltaba compararlo. `densidad_maxima = capacidad_maxima / superficie`.
 
 RF-36 es explícito en que `cantidad_actual` "se modifica únicamente mediante
 eventos de tipo BAJA o... ingresos" — nunca por un evento de crecimiento — así
@@ -36,7 +38,7 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import ConflictError
+from src.shared.errors import BusinessRuleError, ConflictError
 
 
 class DbFake:
@@ -103,6 +105,12 @@ class InfraPortFake:
 
 
 class ParametrosPortFake:
+    def __init__(self, densidad_maxima: Decimal | None) -> None:
+        self.densidad_maxima = densidad_maxima
+
+    def obtener_densidad_maxima(self, _id_especie):
+        return self.densidad_maxima
+
     def obtener_por_tipo_medicion(self, _id_especie, _tipo_medicion, _tipo_activo):
         return ParametroEspecie(
             nombre='Peso', tipo_medicion='PESO', aplica_a_tipo_activo='LOTE',
@@ -150,13 +158,19 @@ def _dto(**overrides) -> RegistrarEventoCrecimientoDTO:
     return RegistrarEventoCrecimientoDTO(**base)
 
 
-def _uc(activo_repo, evento_repo, infra_port, db=None) -> RegistrarEventoCrecimientoUseCase:
+def _uc(
+    activo_repo,
+    evento_repo,
+    infra_port,
+    db=None,
+    densidad_maxima: Decimal | None = Decimal('1000'),
+) -> RegistrarEventoCrecimientoUseCase:
     return RegistrarEventoCrecimientoUseCase(
         db=db or DbFake(),
         activo_repo=activo_repo,
         evento_repo=evento_repo,
         infra_port=infra_port,
-        parametros_port=ParametrosPortFake(),
+        parametros_port=ParametrosPortFake(densidad_maxima),
         ciclo_port=None,
         bitacora_repo=BitacoraRepoFake(),
     )
@@ -164,12 +178,12 @@ def _uc(activo_repo, evento_repo, infra_port, db=None) -> RegistrarEventoCrecimi
 
 def test_densidad_por_encima_del_maximo_es_409() -> None:
     """Reproduce el caso reportado: cantidad_actual=5, superficie=500 ->
-    densidad=0.01. Con capacidad_maxima=2, densidad_maxima=0.004 < 0.01."""
+    densidad=0.01 y límite M09=0.004."""
     activo = _activo_poblacional(cantidad_actual=5)
     activo_repo = ActivoRepoFake(activo)
     evento_repo = EventoRepoFake()
-    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=2)
-    uc = _uc(activo_repo, evento_repo, infra_port)
+    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=None)
+    uc = _uc(activo_repo, evento_repo, infra_port, densidad_maxima=Decimal('0.004'))
 
     with pytest.raises(ConflictError) as exc_info:
         uc.execute(130, _dto(), _usuario())
@@ -181,13 +195,12 @@ def test_densidad_por_encima_del_maximo_es_409() -> None:
 
 
 def test_densidad_igual_al_maximo_es_aceptada() -> None:
-    """Borde exacto: cantidad_actual=5, superficie=500, capacidad_maxima=5 ->
-    densidad == densidad_maxima (0.01 == 0.01), no debe rechazar."""
+    """Borde exacto: densidad == límite M09 (0.01), no debe rechazar."""
     activo = _activo_poblacional(cantidad_actual=5)
     activo_repo = ActivoRepoFake(activo)
     evento_repo = EventoRepoFake()
-    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=5)
-    uc = _uc(activo_repo, evento_repo, infra_port)
+    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=None)
+    uc = _uc(activo_repo, evento_repo, infra_port, densidad_maxima=Decimal('0.01'))
 
     resultado, _ = uc.execute(130, _dto(), _usuario())
 
@@ -199,8 +212,8 @@ def test_densidad_por_debajo_del_maximo_es_aceptada() -> None:
     activo = _activo_poblacional(cantidad_actual=5)
     activo_repo = ActivoRepoFake(activo)
     evento_repo = EventoRepoFake()
-    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=1000)
-    uc = _uc(activo_repo, evento_repo, infra_port)
+    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=None)
+    uc = _uc(activo_repo, evento_repo, infra_port, densidad_maxima=Decimal('0.02'))
 
     resultado, _ = uc.execute(130, _dto(), _usuario())
 
@@ -210,20 +223,24 @@ def test_densidad_por_debajo_del_maximo_es_aceptada() -> None:
     assert activo.detalle_poblacional.cantidad_actual == 5
 
 
-def test_sin_capacidad_maxima_configurada_no_bloquea() -> None:
-    """capacidad_maxima sin configurar (None, el estado real de todas las
-    infraestructuras hoy en sgpmp_dev) no debe bloquear -- sin regla
-    configurada, sin restricción, igual que el resto de validaciones
-    opcionales por infraestructura en este módulo."""
+def test_sin_densidad_maxima_configurada_rechaza_de_forma_controlada() -> None:
+    """La ausencia del dato obligatorio de M09 nunca omite la regla."""
     activo = _activo_poblacional(cantidad_actual=999999)
     activo_repo = ActivoRepoFake(activo)
     evento_repo = EventoRepoFake()
     infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=None)
-    uc = _uc(activo_repo, evento_repo, infra_port)
+    uc = _uc(
+        activo_repo,
+        evento_repo,
+        infra_port,
+        densidad_maxima=None,
+    )
 
-    resultado, _ = uc.execute(130, _dto(), _usuario())
+    with pytest.raises(BusinessRuleError) as exc_info:
+        uc.execute(130, _dto(), _usuario())
 
-    assert resultado is not None
+    assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
+    assert evento_repo.guardado is None
 
 
 def test_cantidad_medida_no_afecta_la_validacion_de_densidad() -> None:
@@ -233,8 +250,10 @@ def test_cantidad_medida_no_afecta_la_validacion_de_densidad() -> None:
     activo = _activo_poblacional(cantidad_actual=5)
     activo_repo = ActivoRepoFake(activo)
     evento_repo = EventoRepoFake()
-    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=10)
-    uc = _uc(activo_repo, evento_repo, infra_port)
+    # Aunque capacidad_maxima sea menor que la población, este flujo evalúa
+    # el límite biológico por especie; cantidad_medida continúa siendo muestra.
+    infra_port = InfraPortFake(superficie=Decimal('500'), capacidad_maxima=2)
+    uc = _uc(activo_repo, evento_repo, infra_port, densidad_maxima=Decimal('0.02'))
 
     resultado, _ = uc.execute(130, _dto(cantidad_medida=250), _usuario())
 

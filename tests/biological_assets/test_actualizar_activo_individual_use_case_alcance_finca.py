@@ -30,9 +30,19 @@ from src.shared.errors import NotFoundError
 class _ActivoFake:
     tipo: str = 'INDIVIDUAL'
     mutado: bool = field(default=False)
+    id_activo_biologico: int = 350
+    id_estado: int = 1  # ACTIVO -- no bloquea por "evento pendiente" (RF-35)
+    fecha_actualizacion: object = None
 
     def actualizar_detalle_individual(self, **_kwargs) -> None:
         self.mutado = True
+
+
+class HistoricoRepoFake:
+    """Sin registros de histórico -> `validar_historial_consistente` no rechaza."""
+
+    def obtener_ultimo_cambio(self, _id_activo):
+        return None
 
 
 class DbFake:
@@ -64,7 +74,9 @@ class ActivoRepoFake:
 
 
 def _use_case(repo):
-    return ActualizarActivoIndividualUseCase(db=DbFake(), repo=repo, bitacora_repo=None)
+    return ActualizarActivoIndividualUseCase(
+        db=DbFake(), repo=repo, historico_repo=HistoricoRepoFake(), bitacora_repo=None,
+    )
 
 
 def _dto():

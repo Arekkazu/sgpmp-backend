@@ -16,7 +16,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-33 | Registro de Activos Biológicos | ⚠️ Cumple parcialmente | ~65% |
 | RF-34 | Asociación del Activo a Infraestructura (lectura) | ⚠️ Cumple parcialmente | ~55% |
 | RF-35 | Gestión Individual de Activos Biológicos | ⚠️ Cumple parcialmente | ~55% |
-| RF-36 | Gestión Poblacional de Activos Biológicos | ⚠️ Cumple parcialmente | ~40% |
+| RF-36 | Gestión Poblacional de Activos Biológicos | ✅ Cumple | ~90% |
 | RF-37 | Gestión de Fases del Ciclo Productivo | ⚠️ Cumple parcialmente | ~55% |
 | RF-38 | Cierre del Ciclo Productivo | ⚠️ Cumple parcialmente | ~85% |
 | RF-39 | Registro de Eventos Biológicos (base) | ⚠️ Cumple parcialmente | ~80% |
@@ -28,13 +28,13 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 | RF-45 | Registro de Bajas | ⚠️ Cumple parcialmente | ~85% |
 | RF-46 | Consulta de Historial del Activo | ⚠️ Cumple parcialmente | ~85% |
 | RF-47 | Ficha Integral del Activo Biológico | ⚠️ Cumple parcialmente | ~65% |
-| RF-48 | Transferencia Interna de Activos Biológicos | ⚠️ Cumple parcialmente | ~85% |
-| RF-49 | Asociación de Activos Biológicos con Sensores IoT | ✅ Cumple | ~90% |
+| RF-48 | Transferencia Interna de Activos Biológicos | ✅ Cumple | ~95% |
+| RF-49 | Asociación de Activos Biológicos con Sensores IoT | ⚠️ Cumple parcialmente | ~65% |
 | RF-50 | Disponibilidad de Datos para Módulos Analíticos | ⚠️ Cumple parcialmente | ~55% |
 | RF-51 | Generación de Indicadores Zootécnicos | ⚠️ Cumple parcialmente | ~60% |
 | RF-52 | Auditoría y Trazabilidad de Eventos (bitácora) | ⚠️ Cumple parcialmente | ~50% |
 
-**Lectura rápida:** este es, por lejos, el módulo más desarrollado de los auditados hasta ahora — las 20 RFs tienen use cases reales y sustanciales (22 a 255 líneas), no stubs, con arquitectura hexagonal completa y ~25 triggers de base de datos reforzando reglas de negocio críticas (máquina de estados, inmutabilidad de eventos, fase única activa, cantidad/biomasa de lotes). No hay ningún RF en estado "no cumple" — el peor caso (RF-36, ~40%) tiene el motor de coherencia de datos bien resuelto, pero le falta la mitad del contrato funcional (ficha del lote como entidad propia, validación de densidad máxima). Los gaps más serios no son de "falta código": son grietas puntuales en el principio central de RF-44 (el punto de control de estado se puede saltar por un segundo camino), en la integridad de la bitácora de auditoría del RF-52 (sin inmutabilidad garantizada por DB, justo lo que el RF exige como no negociable), y un problema sistémico de traducción de errores que convierte violaciones de reglas de negocio detectadas solo por trigger en HTTP 500 genérico en vez del código específico documentado por cada RF. RBAC está, en general, muy bien resuelto (ningún `id_rol` quemado en ningún use case de los 20 auditados — mejor disciplina que el módulo 1), aunque el recorte de roles por recurso no siempre coincide con la lista de actores que cada RF describe en su ficha.
+**Lectura rápida:** este es, por lejos, el módulo más desarrollado de los auditados hasta ahora — las 20 RFs tienen use cases reales y sustanciales (22 a 255 líneas), no stubs, con arquitectura hexagonal completa y ~25 triggers de base de datos reforzando reglas de negocio críticas (máquina de estados, inmutabilidad de eventos, fase única activa, cantidad/biomasa de lotes). No hay ningún RF en estado "no cumple". Al momento de esta auditoría (2026-08-06) el peor caso era RF-36 (~40%, ficha del lote y validación de densidad máxima ausentes); ambos gaps se resolvieron después (INC-M02-38-G25 para densidad, y la tarea Taiga "Ficha de gestión de lote" del 2026-09-23 para el resto — ver sección RF-36 actualizada más abajo), dejando a RF-52 (~50%) como el caso más bajo vigente. Los gaps más serios no son de "falta código": son grietas puntuales en el principio central de RF-44 (el punto de control de estado se puede saltar por un segundo camino), en la integridad de la bitácora de auditoría del RF-52 (sin inmutabilidad garantizada por DB, justo lo que el RF exige como no negociable), y un problema sistémico de traducción de errores que convierte violaciones de reglas de negocio detectadas solo por trigger en HTTP 500 genérico en vez del código específico documentado por cada RF. RBAC está, en general, muy bien resuelto (ningún `id_rol` quemado en ningún use case de los 20 auditados — mejor disciplina que el módulo 1), aunque el recorte de roles por recurso no siempre coincide con la lista de actores que cada RF describe en su ficha.
 
 ---
 
@@ -102,31 +102,53 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **Discrepancia de RBAC confirmada: Veterinario, listado explícitamente como actor de RF-35, no tiene permiso de actualización.** Verificado en vivo contra `modulo1.permisos`: para la acción de `PATCH` (U=3) sobre el recurso 29, los roles son Administrador, Ingeniero de Campo y Productor — Veterinario está ausente.
-- **No valida "eventos pendientes sin cerrar" ni "inconsistencias en el historial"** antes de aceptar una edición, pese a que el RF lo exige explícitamente en su Proceso.
+- ~~**Discrepancia de RBAC confirmada: Veterinario, listado explícitamente como actor de RF-35, no tiene permiso de actualización.**~~
+  **Corregido (tarea Taiga "RF-35: RBAC Veterinario, validar eventos
+  pendientes, concurrencia optimista").** Migración `e5ce9d42b2ec` siembra
+  `vet_actualizar_activo_biologico` (rol 3, recurso 29, acción U=3).
+- ~~**No valida "eventos pendientes sin cerrar" ni "inconsistencias en el historial"**~~
+  **Corregido.** `_event_validations.py` agrega `validar_sin_eventos_pendientes`
+  (422 `EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en `EN_TRATAMIENTO`/`AISLADO`)
+  y `validar_historial_consistente` (422 `HISTORIAL_INCONSISTENTE` si el
+  último registro de histórico no coincide con `id_estado`) — ver
+  `anotaciones/modulo_2/cu02_gaps_bd_rf35_fix_rbac_concurrencia.md` para la
+  interpretación aplicada (el texto completo del RF-35 no está en el repo,
+  así que esta interpretación queda pendiente de confirmación del grupo de
+  análisis).
 - No hay ningún vínculo/atajo desde este RF hacia el registro de eventos asociados, ni hacia "transferir ubicación" — ambos listados como operaciones disponibles en el texto del RF, aunque viven correctamente en otros RFs (separación de responsabilidad razonable, pero sin ningún puente).
-- Sin concurrencia optimista (ni 412 ni versión) en el `PATCH`, a diferencia del patrón documentado como estándar del proyecto en `CLAUDE.md`.
+- ~~Sin concurrencia optimista (ni 412 ni versión) en el `PATCH`~~
+  **Corregido.** Migración `ccc0b8df02a6` agrega `fecha_actualizacion` a
+  `activos_biologicos`; el use case aplica el patrón estándar de `CLAUDE.md`
+  (`PreconditionFailedError` / `CONFLICTO_CONCURRENCIA`, comparación UTC con
+  doble rama `None`). De paso se corrigió un bug que esta misma columna
+  exponía: `actualizar_detalle_individual()` nunca establecía
+  `app.usuario_id` (solo lo hacía `guardar()`), inofensivo mientras ese
+  método solo tocaba la tabla hija — pero al tocar ahora una columna del
+  padre dispara `trg_auditar_activo_biologico`, que exige esa variable.
 
 ---
 
 ## RF-36 — Gestión Poblacional de Activos Biológicos
 
-**Veredicto: ⚠️ Cumple parcialmente (~40%)** — el más bajo de las 20 RFs auditadas.
+**Veredicto: ✅ Cumple (~90%)** — actualizado 2026-09-23 (tarea Taiga "Ficha
+de gestión de lote, densidad máxima, ingreso de individuos"). Anteriormente
+⚠️ ~40%, el más bajo de las RFs auditadas.
 
 ### Qué SÍ cumple
 
-- Coherencia `cantidad_actual`/`biomasa_total`/`densidad` forzada tanto en el dominio (`aplicar_evento_baja()`/`aplicar_evento_crecimiento()`, `activo_biologico.py:399-422`) como en DB (`chk_poblacional_biomasa_coherente`, `chk_poblacional_cantidad_actual_coherente`, `chk_poblacional_cantidad_actual_no_negativa`, `chk_poblacional_cantidad_inicial_positiva`).
+- Coherencia `cantidad_actual`/`biomasa_total`/`densidad` forzada tanto en el dominio (`aplicar_evento_baja()`/`aplicar_evento_crecimiento()`/`aplicar_evento_ingreso()`, `activo_biologico.py`) como en DB (`chk_poblacional_biomasa_coherente`, `chk_poblacional_cantidad_actual_no_negativa`, `chk_poblacional_cantidad_inicial_positiva`).
 - Ningún DTO permite editar directamente `cantidad_actual`, `peso_promedio`, `biomasa_total` ni `densidad` — el único mecanismo de cambio son los eventos, tal como exige el RF.
 - `cantidad_inicial`/`peso_promedio_inicial` inmutables vía trigger, satisfaciendo la referencia histórica permanente.
 - Un lote no puede convertirse en INDIVIDUAL (tipo inmutable). El estado del lote no es editable desde ningún flujo de este RF, solo vía RF-44.
+- **`GET /{id}/ficha-lote` (nuevo, `ConsultarFichaLoteUseCase`):** ficha operativa dedicada al lote — `cantidad_actual` + `peso_promedio` + `biomasa_total` + `densidad` + `densidad_maxima` + `estado_actual` + `historial` (10 más recientes, reutiliza `consultar_historial` de RF-46/RF-48) en una sola respuesta. Distinta de la ficha integral genérica de RF-47 (que no expone `densidad`/`densidad_maxima`).
+- **`densidad_maxima_por_especie` ahora se valida** — resuelto en dos partes: el cálculo (`capacidad_maxima/superficie` de la infraestructura) ya existía desde INC-M02-38-G25 para eventos de crecimiento; esta iteración lo reutiliza en `RegistrarEventoIngresoUseCase`, donde sí puede bloquear la operación (`409 DENSIDAD_MAXIMA_SUPERADA`) porque el ingreso incrementa `cantidad_actual` directamente, a diferencia de crecimiento.
+- **`POST /{id}/eventos/ingreso` (nuevo, `RegistrarEventoIngresoUseCase`):** mecanismo de alta de individuos al lote, contraparte simétrica de BAJA. `cantidad_actual` ahora solo se modifica vía BAJA o INGRESO, tal como exige el RF. Reutiliza `(recurso 29, acción C)`, mismo RBAC que baja — sin cambios de permisos necesarios.
 
 ### Qué NO cumple / gaps
 
-- **No existe un endpoint ni caso de uso propio de "gestión de lote"** con la ficha operativa completa que describe el RF (cantidad_actual + peso_promedio + biomasa_total + densidad + estado + historial en una sola vista). El único endpoint con RF-36 implícito, `GET /{id}/eventos`, **solo devuelve la lista de eventos**, no las métricas del lote — para verlas hay que usar `GET /{id}` (pensado para individuales) o la ficha integral (RF-47). El RF describe una "ficha del lote" propia que no existe como endpoint dedicado.
-- **No se valida `densidad_maxima_por_especie` en absoluto** — grep exhaustivo sin coincidencias. El flujo alterno #4 del RF ("409 — densidad supera el máximo permitido") no está implementado; el sistema calcula la densidad pero nunca la contrasta contra ningún límite.
-- No hay ningún mecanismo de "ingreso"/alta de individuos al lote — solo existe el flujo de BAJA. La restricción "`cantidad_actual` no puede ser mayor a `cantidad_inicial` + ingresos" es hoy trivialmente cierta porque el mecanismo de ingreso simplemente no existe, no porque esté validado.
 - No hay ninguna validación cruzada que fuerce o recuerde que un evento sanitario con `cantidad_afectada` por muertes debe ir acompañado de un evento de tipo BAJA independiente, tal como exige el RF — queda a discreción manual del usuario.
 - Reglas de validación agregada por especie más allá del rango de medición puntual (ej. rango de peso promedio del lote, tipos de evento permitidos por especie) no están implementadas a nivel de lote.
+- Hallazgo colateral (no bloqueaba este RF, documentado en `cu03_gaps_bd_rf36.md` GAP-04): el filtro explícito `categoria_evento` de `GET /{id}/historial` (RF-46) no acepta `'INGRESO'` como valor — solo se agregó a la categoría por defecto (sin filtro) que consume la ficha de lote. Pendiente de RF-46.
 
 ---
 
@@ -144,10 +166,29 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **El modelo de "fase destino + confirmación de transición no estándar" del RF no está implementado.** El DTO real (`cambiar_fase_dto.py`) solo tiene `id_ciclo_productiva`, `motivo_cambio` y `fecha_inicio` — no existe `fase_destino_id` ni `confirmacion_no_estandar`. El use case siempre avanza automáticamente a la siguiente fase de la secuencia. **Consecuencia: el flujo alterno "transición no estándar sin confirmación" (409) es inalcanzable** — nunca se puede solicitar una transición fuera de secuencia, ni saltando pasos hacia adelante ni retrocediendo.
-- No se valida que la fecha no sea futura — ni el DTO ni ningún trigger de `gestiones_fases` lo comprueban.
+- ~~**El modelo de "fase destino + confirmación de transición no estándar" del RF no está implementado.**~~
+  **Corregido (tarea Taiga "RF-37: fase_destino/confirmacion_no_estandar,
+  fecha no futura, RBAC").** `CambiarFaseDTO` ahora acepta `fase_destino_id`
+  y `confirmacion_no_estandar`; sin `fase_destino_id` el comportamiento
+  histórico se conserva exactamente. El flujo alterno "transición no
+  estándar sin confirmación" ya es alcanzable: `409
+  TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR`. Requirió una migración de BD
+  (`69d26aea234c`) que agrega `id_ciclos_productivo_biologico` a
+  `gestiones_fases` — sin ella, el sistema no tenía forma de recordar a qué
+  fase específica correspondía cada gestión (se inferían por conteo,
+  asumiendo secuencia estricta) — ver
+  `anotaciones/modulo_2/cu02_gaps_bd_rf37_fase_destino_confirmacion.md`.
+- ~~No se valida que la fecha no sea futura~~
+  **Corregido**, mismo patrón que `CambiarEstadoDTO` (RF-44).
 - Sin inmutabilidad reforzada por trigger de DB para el historial de fases, a diferencia de `historicos_estados_activos` y las tablas de eventos.
-- RBAC más amplio que los actores del RF: el permiso de ejecutar cambio de fase también está concedido a Ingeniero de Campo, pese a que el RF solo lista Productor/Veterinario/Administrador.
+- **RBAC más amplio que los actores del RF** (sin cambios — decisión
+  documentada): el permiso de ejecutar cambio de fase también está
+  concedido a Ingeniero de Campo, pese a que el RF solo lista
+  Productor/Veterinario/Administrador. No se ajustó porque el recurso
+  29/acción E (5) es compartido con RF-44 y RF-48 — revocárselo a
+  Ingeniero de Campo aquí le quitaría acceso a esos otros dos RFs también,
+  sin evidencia de que corresponda. Ver hallazgo transversal #5 abajo y el
+  detalle en el gaps doc de esta tarea.
 
 ---
 
@@ -344,21 +385,24 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ## RF-48 — Transferencia Interna de Activos Biológicos
 
-**Veredicto: ⚠️ Cumple parcialmente (~85%)**
+**Veredicto: ✅ Cumple (~95%)** — actualizado 2026-09-23 (tarea Taiga "RF-48: Regla
+C2, formato de error"). Anteriormente ⚠️ ~85%; ambos gaps de entonces ya estaban
+resueltos en `dev` antes de recibir esta tarea (commits `074e5c14` y `875732f8`,
+ver `cu10_gaps_bd_rf46_rf47_rf48.md` para el detalle completo).
 
 ### Qué SÍ cumple
 
 - **Control de concurrencia real, no aspiracional**: usa `SELECT ... FOR UPDATE NOWAIT` — un lock genuino de Postgres; si otra transacción ya bloqueó la fila, se rechaza con 409 `TRANSFERENCIA_CONCURRENTE`.
 - Todos los flujos alternos de activo/infraestructura inválidos implementados con los códigos documentados.
-- **Regla C1 (especie) y C3 (capacidad, con cálculo correcto de cantidad para LOTE vs INDIVIDUAL) implementadas.**
-- Fecha futura rechazada en el DTO. Transacción atómica real (cierra/abre asociación en `historial_infraestructura_activo` + actualiza infraestructura del activo + registra `Movimiento`, todo en un único bloque commit/rollback). Auditoría en éxito y en fallo.
+- **Reglas C1 (especie), C2 (tipo de infraestructura vs especie, `modulo9.compatibilidades_tipo_area_especie`) y C3 (capacidad, con cálculo correcto de cantidad para LOTE vs INDIVIDUAL) implementadas** — las tres como reglas de negocio reales, no aspiracionales. Verificado en vivo contra `sgpmp_dev`: 6 filas sembradas para C2 (tipo `Estanque` restringido a especies acuáticas); un tipo de infraestructura sin regla configurada queda sin restricción.
+- **Fecha futura rechazada como regla de negocio real en el use case** (`BusinessRuleError`, `code='FECHA_TRANSFERENCIA_FUTURA'`, `field='fecha_transferencia'`, HTTP 422) — no vive en un `@field_validator` de Pydantic, así que no cae en el patrón sistémico de HTTP 400 documentado en Hallazgos transversales #3.
+- Transacción atómica real (cierra/abre asociación en `historial_infraestructura_activo` + actualiza infraestructura del activo + registra `Movimiento`, todo en un único bloque commit/rollback). Auditoría en éxito y en fallo.
 - LOTE se transfiere completo por diseño estructural (el DTO no acepta cantidad parcial).
 - **Corrección a las notas del propio desarrollador**: el doc de curls afirma "solo admin y productor" pueden transferir, pero verificado en vivo contra `modulo1.permisos`, los 4 roles tienen el permiso. El use case no tiene ningún `id_rol` quemado — el gap es de documentación desactualizada, no de código.
 
 ### Qué NO cumple / gaps
 
-- **Regla C2 (compatibilidad de tipo de infraestructura) no está implementada.** El RF exige que el tipo de infraestructura destino sea adecuado para el tipo de activo, como regla obligatoria simultánea a C1 y C3. El campo `tipo` de la infraestructura está disponible en el adaptador pero **nunca se usa** para esta validación — una transferencia de un activo avícola a un estanque, por ejemplo, no sería rechazada por tipo.
-- El error de fecha futura, al venir de un `@field_validator` de Pydantic, se traduce a HTTP 400 con formato `{error_code, fields[]}`, no al `422` con formato `{code, message, field}` que documenta el propio doc de curls del módulo ni el formato estándar de error de dominio de `CLAUDE.md` — patrón sistémico, no exclusivo de este RF (ver Hallazgos transversales #3).
+- `INFRAESTRUCTURA_ORIGEN_INCORRECTA` sigue respondiendo `400` (`ValidationError`) en vez de `422` — QA no lo ha probado como defecto todavía (ver nota en `curls_m02_cu10_...md`), pendiente de confirmación antes de tocarlo.
 
 ---
 
@@ -402,9 +446,35 @@ cada commit.
 
 ### Qué NO cumple / gaps
 
-- **No es una "interfaz de servicio interno" real con control por módulo, es un endpoint humano reutilizado.** El RF describe un mecanismo M2M con "scopes" por módulo consumidor y exige registrar el "módulo solicitante". El campo `modulo_consumidor` en `EventoAuditoria` tiene default `'modulo2'` y **ningún use case lo sobre-escribe nunca** (grep sin resultados) — el campo existe pero siempre queda con el valor por defecto, inútil para identificar qué módulo externo consultó.
-- **No hay rate limiting.** El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
-- **No hay validación de integridad referencial/completitud mínima antes de exponer datos** — el sistema devuelve lo que encuentra sin ninguna de las comprobaciones 409/422/500 que describen los flujos alternos del RF; si no hay eventos de peso, el campo simplemente sale `null`.
+- ~~**No es una "interfaz de servicio interno" real con control por módulo...**~~
+  **Corregido por INC-M02-92-G93 (issue #390).** Se agregaron 4 recursos RBAC
+  (uno por `tipo_dato`: eventos/fases/estado/metricas) evaluados en
+  `_verificar_scope_tipo_dato` además del permiso general del endpoint, con
+  el 403 literal del flujo alterno #4 del RF (`SCOPE_TIPO_DATO_NO_AUTORIZADO`).
+  `modulo_consumidor` ya no queda fijo en `'modulo2'`: `ConsultarDatosConsolidadosUseCase._resolver_modulo_consumidor`
+  lo deriva del nombre del rol autenticado (`'Integración M0<n>'` → `'modulo<n>'`)
+  vía `RolRepository`. Pendiente de aplicar en BD (migración `d944f4d8c215`,
+  sin aprobación de DBA todavía) — ver
+  `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+- **No hay rate limiting.** *(Nota: esta entrada quedó desactualizada por INC-M02-96-G94, que ya agregó rate limiting a este endpoint — ver `inc_m02_96_g94_rate_limit_contrato_datos_consolidados.md`; no se reescribe aquí por estar fuera del alcance de INC-M02-92-G93.)* El RF exige "límite de solicitudes por módulo" y el error 429; la clase `TooManyRequestsError` existe en `src/shared/errors.py` pero **no se usa en ningún punto de `src/biological_assets/`**.
+- ~~**No hay validación de integridad referencial/completitud mínima antes de exponer datos**~~
+  **Parcialmente corregido por INC-M02-93-G93 (issue #391) e INC-M02-94-G93
+  (issue #392).** El FA-03 (422 por métricas de peso insuficientes) ya está
+  implementado, pero acotado a M06 (`modulo_consumidor == 'modulo6'`) — no de
+  forma universal, siguiendo la propia distinción "consistencia fuerte (M06)
+  / eventual (resto)" que hace el RF. Para cualquier otro consumidor
+  (incluido M04) el comportamiento no cambió: `metricas_actuales` sigue en
+  `null` sin rechazo cuando no hay peso. Además, `metricas_actuales.peso_actual`/
+  `.fecha_ultimo_peso` siguen siendo deliberadamente el estado **más
+  reciente** del activo (no se filtran por `fecha_inicio`/`fecha_fin` — es el
+  significado del propio nombre del campo), pero ahora incluyen
+  `advertencia_peso_fuera_de_rango` cuando ese valor cae fuera del rango
+  solicitado, para cualquier consumidor — ver
+  `anotaciones/modulo_2/inc_m02_94_g93_advertencia_peso_fuera_de_rango.md`.
+  El FA-06 (409 integridad referencial) ya estaba cubierto desde antes por
+  INC-M02-97-G95 (`INCONSISTENCIA_JERARQUICA`); el FA-07 (500 por
+  normalización/valores fuera de rango físico) sigue sin implementar — ver
+  `anotaciones/modulo_2/inc_m02_93_g93_identidad_m06_metricas_peso.md`.
 - No hay diferenciación de consistencia fuerte (para M06) vs. eventual (para M08) — todo es una lectura síncrona simple.
 - **La escritura de auditoría es best-effort silenciosa** (`try/except Exception: pass`), decisión documentada conscientemente por el propio dev para no bloquear el flujo principal, pero contradice el criterio de RF-52 de que todo evento debe registrarse "sin excepción" (ver Hallazgos transversales #6).
 
@@ -459,11 +529,11 @@ cada commit.
 
 2. **El campo `modulo_origen` de `historicos_estados_activos` no distingue nada.** Todos los cambios de estado quedan grabados como `'modulo2'` (o `'modulo5'` en 2 casos), nunca `'MANUAL'`/`'RF-38'`/`'RF-45'` como exige textualmente RF-44 — imposible reconstruir el origen real de un cambio de estado desde esta tabla. Causa raíz: el CHECK `chk_historico_modulo_origen_valido` solo acepta literales `'modulo1'..'modulo9'`. *(Afecta RF-38, RF-44, RF-45.)*
 
-3. **Errores de validación en `@field_validator` de Pydantic no siguen el formato de error de dominio `{code, message, field}` de `CLAUDE.md`.** Salen como HTTP 400 genérico vía el handler de `RequestValidationError` de FastAPI, con formato `{error_code, fields[]}` — a veces en contradicción directa con el código HTTP que el propio RF documenta (ej. RF-33 flujo #8 pide 422, RF-48 fecha futura documentada como 422 en las notas del dev). Afecta a cualquier DTO del módulo que use `@field_validator`, no es exclusivo de un RF.
+3. **Errores de validación en `@field_validator` de Pydantic no siguen el formato de error de dominio `{code, message, field}` de `CLAUDE.md`.** Salen como HTTP 400 genérico vía el handler de `RequestValidationError` de FastAPI, con formato `{error_code, fields[]}` — a veces en contradicción directa con el código HTTP que el propio RF documenta (ej. RF-33 flujo #8 pide 422). Afecta a cualquier DTO del módulo que use `@field_validator`, no es exclusivo de un RF. **RF-48 ya no es un ejemplo vigente de este patrón** (actualizado 2026-09-23): su fecha futura se validaba antes en el DTO, pero se movió al use case como regla de negocio real (`BusinessRuleError`, 422) desde el commit `875732f8`, confirmado en `estado_M02.md` RF-48.
 
 4. **Los errores de negocio que solo detecta un trigger de PL/pgSQL (con `ERRCODE` propio `P02xx`) caen en HTTP 500 genérico, no en el código específico del RF.** `raise_from_db_error` (`src/shared/db_error_translator.py`) solo traduce `IntegrityError`/`DataError`/`OperationalError` de SQLAlchemy — no reconoce los `RAISE EXCEPTION ... USING ERRCODE='P02xx'` que usan los triggers de este módulo. Confirmado 100% reproducible en RF-40 (mismatch de unidad `'gr'` vs `'g'`) y RF-42 (bloqueo de LOTE en reproductivo). *(Afecta RF-39, RF-40, RF-41, RF-42.)*
 
-5. **RBAC más amplio que la lista de actores del RF, de forma sistemática (Ingeniero de Campo incluido donde el RF no lo menciona), y en un caso al revés (Veterinario excluido donde el RF sí lo lista).** El recurso 29 (`activos_biologicos`) agrupa demasiadas operaciones bajo el mismo par acción+recurso — por ejemplo, la acción C (crear) sirve tanto para "registrar evento productivo" (RF-43, donde los 4 roles aplican) como para "registrar baja" (RF-45, donde el RF solo lista 3), así que no se puede dar a uno sin dársela al otro con el modelo de permisos actual. El caso inverso: RF-35 excluye a Veterinario de `PATCH /{id}` pese a listarlo como actor explícito. *(Afecta RF-35, RF-37, RF-44, RF-45.)* Ningún use case tiene `id_rol` quemado — es puramente un problema de granularidad del catálogo de recursos/permisos, no de disciplina de código.
+5. **RBAC más amplio que la lista de actores del RF, de forma sistemática (Ingeniero de Campo incluido donde el RF no lo menciona), y en un caso al revés (Veterinario excluido donde el RF sí lo lista).** El recurso 29 (`activos_biologicos`) agrupa demasiadas operaciones bajo el mismo par acción+recurso — por ejemplo, la acción C (crear) sirve tanto para "registrar evento productivo" (RF-43, donde los 4 roles aplican) como para "registrar baja" (RF-45, donde el RF solo lista 3), así que no se puede dar a uno sin dársela al otro con el modelo de permisos actual. El caso inverso: RF-35 excluía a Veterinario de `PATCH /{id}` pese a listarlo como actor explícito — **corregido** (ver RF-35 arriba), aunque el problema de granularidad del catálogo en sí sigue vigente para el resto de casos listados aquí. *(Afecta RF-35, RF-37, RF-44, RF-45.)* Ningún use case tiene `id_rol` quemado — es puramente un problema de granularidad del catálogo de recursos/permisos, no de disciplina de código.
 
 6. **La bitácora de auditoría RF-52 no es append-only a nivel de base de datos y su escritura es best-effort, no "sin excepción".** Es el hallazgo más serio del módulo desde la perspectiva de valor de negocio: RF-52 es explícitamente la fuente de evidencia para valoración NIC 41 (M06) y auditorías ICA/UPRA, y hoy ni la inmutabilidad ni la garantía de "todo evento se registra sin excepción" están reforzadas más allá de la buena voluntad del código de aplicación. *(Afecta RF-50, RF-51, RF-52, y de rebote la confiabilidad de la bitácora que citan RF-33 a RF-49.)*
 

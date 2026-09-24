@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
@@ -74,16 +74,22 @@ class RegistrarEventoBajaUseCase:
 
         # E-03: fecha_baja no futura ni anterior al último evento
         ahora = datetime.now(timezone.utc)
-        fecha_dt = datetime(
-            dto.fecha_baja.year, dto.fecha_baja.month, dto.fecha_baja.day,
-            tzinfo=timezone.utc,
-        )
-        if fecha_dt > ahora:
+        hoy = ahora.date()
+        if dto.fecha_baja > hoy:
             raise ValidationError(
                 code='FECHA_BAJA_FUTURA',
                 message='La fecha de baja no puede ser posterior a la fecha actual del sistema.',
                 field='fecha_baja',
             )
+        # INC-M02-42-G36 / #412: `dto.fecha_baja` es `date` (sin hora, por RF-45),
+        # y el trigger modulo2.trg_fn_evento_fecha_coherente exige que la fecha
+        # del evento sea >= la fecha_creacion EXACTA (con hora) del activo. Fijar
+        # siempre medianoche UTC hacía que una baja el mismo día UTC de creación
+        # quedara "antes" de esa hora real y el trigger la rechazara. Para el día
+        # de hoy se usa la hora real (`ahora`, siempre >= la creación, que ya
+        # ocurrió); para un día pasado se usa el final de ese día, que nunca cae
+        # en el futuro porque el día completo ya transcurrió.
+        fecha_dt = ahora if dto.fecha_baja == hoy else datetime.combine(dto.fecha_baja, time.max, tzinfo=timezone.utc)
 
         ultima_fecha = self.evento_repo.obtener_ultima_fecha(id_activo)
         if ultima_fecha is not None:
