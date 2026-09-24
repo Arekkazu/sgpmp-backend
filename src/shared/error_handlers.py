@@ -185,6 +185,7 @@ _MENSAJES_PYDANTIC_POR_TIPO: dict[str, str] = {
     "json_invalid": "El cuerpo de la solicitud no es un JSON válido.",
     "enum": "El valor ingresado no es una de las opciones permitidas.",
     "literal_error": "El valor ingresado no es una de las opciones permitidas.",
+    "extra_forbidden": "Este campo no está permitido en esta solicitud.",
 }
 
 

@@ -25,10 +25,13 @@ def validar_sin_eventos_pendientes(activo: ActivoBiologico) -> None:
     sanitario sigue abierto: `RegistrarEventoSanitarioUseCase` transiciona a
     EN_TRATAMIENTO/AISLADO al registrar el evento, y solo `CambiarEstadoUseCase`
     (RF-44) lo "cierra" de vuelta a ACTIVO/INACTIVO/CERRADO.
+
+    409, no 422 (INC-M02-G22): el activo está bloqueado por su estado actual,
+    igual que ESTADO_NO_PERMITE_EVENTOS; la petición en sí es válida.
     """
     if activo.id_estado in _ESTADOS_EVENTO_PENDIENTE:
         estado_actual = _NOMBRES_ESTADO.get(activo.id_estado, str(activo.id_estado))
-        raise BusinessRuleError(
+        raise ConflictError(
             code='EVENTO_PENDIENTE_SIN_CERRAR',
             message=(
                 f'No se puede editar el activo mientras tenga un evento sanitario pendiente sin cerrar '
