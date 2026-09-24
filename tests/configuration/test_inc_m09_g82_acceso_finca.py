@@ -1,10 +1,15 @@
-"""Regresión INC-M09-G82: una lectura RBAC no concede acceso global a fincas."""
+"""Regresión INC-M09-G82: una lectura RBAC no concede acceso global a fincas.
+
+INC-M02-61-G52: el acceso de un rol restringido sale de ``modulo9.usuarios_fincas``,
+no del dueño de la finca; ``DbPermisosFake.accesos`` hace ese papel.
+"""
 from __future__ import annotations
 
 from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
@@ -77,13 +82,13 @@ class FincaRepoFake:
     def listar(
         self,
         *,
-        id_usuario_filtro: int | None = None,
+        ids_fincas: list[int] | None = None,
         solo_activas: bool = False,
     ) -> list[Finca]:
         return [
             finca
             for finca in self.fincas
-            if (id_usuario_filtro is None or finca.id_usuario == id_usuario_filtro)
+            if (ids_fincas is None or finca.id_finca in ids_fincas)
             and (not solo_activas or finca.es_activo)
         ]
 
@@ -107,12 +112,29 @@ class _QueryPermisoFake:
         return object() if (id_rol, id_recurso, id_accion) in self.permisos else None
 
 
+class _FilasAcceso:
+    def __init__(self, ids: list[int]) -> None:
+        self.ids = ids
+
+    def fetchall(self):
+        return [SimpleNamespace(id_finca=i) for i in self.ids]
+
+
 class DbPermisosFake:
-    def __init__(self, permisos: set[tuple[int, int, int]]) -> None:
+    def __init__(
+        self,
+        permisos: set[tuple[int, int, int]],
+        accesos: dict[int, list[int]],
+    ) -> None:
         self.permisos = permisos
+        self.accesos = accesos
 
     def query(self, *_args):
         return _QueryPermisoFake(self.permisos)
+
+    def execute(self, _sql, params):
+        # Única consulta cruda del flujo: las fincas del usuario en usuarios_fincas.
+        return _FilasAcceso(self.accesos.get(params["id_usuario"], []))
 
 
 @contextmanager
@@ -121,6 +143,7 @@ def _client(
     usuario: UsuarioActual,
     permisos: set[tuple[int, int, int]],
     fincas: list[Finca],
+    accesos: dict[int, list[int]] | None = None,
 ) -> Generator[TestClient, None, None]:
     from src.configuration.infrastructure.routers import finca_router as modulo
 
@@ -131,7 +154,7 @@ def _client(
     register_error_handlers(app)
     app.include_router(modulo.router)
     app.dependency_overrides[get_current_user] = lambda: usuario
-    app.dependency_overrides[get_db] = lambda: DbPermisosFake(permisos)
+    app.dependency_overrides[get_db] = lambda: DbPermisosFake(permisos, accesos or {})
     with TestClient(app, raise_server_exceptions=False) as client:
         yield client
 
@@ -176,6 +199,7 @@ def test_lector_asignado_solo_consulta_su_finca(
         LECTOR_ASIGNADO,
         permisos,
         [FINCA_AJENA, FINCA_PROPIA],
+        {LECTOR_ASIGNADO.id_usuario: [20]},
     ) as client:
         listado = client.get("/configuracion/fincas")
         detalle = client.get("/configuracion/fincas/20")
@@ -184,6 +208,27 @@ def test_lector_asignado_solo_consulta_su_finca(
     assert [item["id_finca"] for item in listado.json()["items"]] == [20]
     assert detalle.status_code == 200
     assert detalle.json()["id_finca"] == 20
+
+
+def test_lector_con_acceso_a_finca_de_otro_dueno_la_consulta(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # INC-M02-61-G52 (#97): el Veterinario atiende una finca que no es suya.
+    permisos = {_permiso(LECTOR_SIN_FINCA, ACCION_LEER)}
+
+    with _client(
+        monkeypatch,
+        LECTOR_SIN_FINCA,
+        permisos,
+        [FINCA_AJENA, FINCA_PROPIA],
+        {LECTOR_SIN_FINCA.id_usuario: [19]},
+    ) as client:
+        listado = client.get("/configuracion/fincas")
+        detalle = client.get("/configuracion/fincas/19")
+
+    assert [item["id_finca"] for item in listado.json()["items"]] == [19]
+    assert detalle.status_code == 200
+    assert detalle.json()["id_usuario"] == 200  # el dueño sigue siendo otro
 
 
 def test_permiso_de_gestion_conserva_alcance_global(

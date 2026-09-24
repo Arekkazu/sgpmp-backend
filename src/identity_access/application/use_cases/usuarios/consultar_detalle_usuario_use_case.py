@@ -133,11 +133,13 @@ class ConsultarDetalleUsuarioUseCase:
         }
 
     def _obtener_fincas_asignadas(self, id_usuario: int) -> list[dict]:
-        """Fincas vinculadas al usuario por ``modulo9.fincas.id_usuario`` (RF-25)."""
+        """Fincas con acceso activo en ``modulo9.usuarios_fincas`` (RF-25)."""
         filas = self.db.execute(
             text(
-                "SELECT id_finca, nombre FROM modulo9.fincas "
-                "WHERE id_usuario = :id_usuario ORDER BY nombre"
+                "SELECT f.id_finca, f.nombre FROM modulo9.usuarios_fincas uf "
+                "JOIN modulo9.fincas f ON f.id_finca = uf.id_finca "
+                "WHERE uf.id_usuario = :id_usuario AND uf.es_activo IS TRUE "
+                "ORDER BY f.nombre"
             ),
             {"id_usuario": id_usuario},
         ).mappings().all()
