@@ -170,6 +170,14 @@ class EventoBajaResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class EventoIngresoResponse(BaseModel):
+    cantidad_ingresada: int
+    tipo: str
+    motivo_ingreso: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
 class EventoSanitarioResponse(BaseModel):
     tipo: str
     diagnostico: Optional[str]
@@ -215,6 +223,7 @@ class EventoActivoResponse(BaseModel):
     sanitario: Optional[EventoSanitarioResponse] = None
     productivo: Optional[EventoProductivoResponse] = None
     reproductivo: Optional[EventoReproductivoResponse] = None
+    ingreso: Optional[EventoIngresoResponse] = None
 
     model_config = {'from_attributes': True}
 
@@ -289,6 +298,24 @@ class FichaIntegralResponse(BaseModel):
     eventos_reproductivos: list[dict] = []
     indicadores: list[dict] = []
     advertencias: list[str] = []
+
+
+class FichaLoteResponse(BaseModel):
+    id_activo_biologico: int
+    identificador: Optional[str]
+    especie: Optional[str] = None
+    infraestructura_asociada: Optional[str] = None
+    estado_actual: str
+    fecha_registro: Optional[datetime] = None
+    cantidad_inicial: int
+    cantidad_actual: Optional[int] = None
+    peso_promedio_inicial: Optional[Decimal] = None
+    peso_promedio: Optional[Decimal] = None
+    biomasa_total: Optional[Decimal] = None
+    densidad: Optional[Decimal] = None
+    densidad_maxima: Optional[Decimal] = None
+    historial: list[RegistroHistorialResponse] = []
+    total_registros_historial: int = 0
 
 
 class TransferenciaResponse(BaseModel):
