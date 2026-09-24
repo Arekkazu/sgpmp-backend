@@ -188,6 +188,115 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/baja \
 
 ---
 
+## Flujo C — Registrar evento de ingreso (alta de individuos)
+
+**Endpoint:** `POST /activos-biologicos/{id_activo}/eventos/ingreso`
+**Permiso:** C(1) sobre recurso 29
+**Efecto:** Incrementa `cantidad_actual`, recalcula `biomasa_total` y `densidad`. Contraparte de baja — valida que la densidad resultante no supere `capacidad_maxima/superficie` de la infraestructura (409 si se excede).
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/ingreso \
+  -H "Authorization: Bearer {TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "tipo_ingreso": "compra",
+    "fecha_ingreso": "2026-09-23",
+    "cantidad_ingresada": 50,
+    "motivo_ingreso": "Reposición de lote tras mortalidad"
+  }'
+```
+
+**Tipos de ingreso válidos:** `compra`, `nacimiento`, `donacion`, `transferencia_interna`
+
+**Respuesta esperada (201):**
+```json
+{
+  "id_eventos": 5,
+  "id_activo_biologico": 1,
+  "fecha": "2026-09-23T00:00:00Z",
+  "descripcion": null,
+  "id_usuario": 5,
+  "ingreso": {
+    "cantidad_ingresada": 50,
+    "tipo": "compra",
+    "motivo_ingreso": "Reposición de lote tras mortalidad"
+  }
+}
+```
+
+**Errores posibles:**
+| Código | code | Descripción |
+|--------|------|-------------|
+| 404 | ACTIVO_NO_ENCONTRADO | El lote no existe |
+| 422 | TIPO_INVALIDO | El activo no es POBLACIONAL |
+| 409 | ESTADO_NO_PERMITE_EVENTOS | El activo está INACTIVO/CERRADO/BAJA |
+| 422 | FECHA_INGRESO_FUTURA | `fecha_ingreso` es posterior a hoy |
+| 422 | FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA | `fecha_ingreso` es anterior al último evento registrado |
+| 409 | DENSIDAD_MAXIMA_SUPERADA | La densidad resultante superaría `capacidad_maxima/superficie` de la infraestructura |
+| 400 | — | `tipo_ingreso` inválido, `cantidad_ingresada <= 0` o `motivo_ingreso` vacío |
+
+---
+
+## Flujo B — Consultar ficha de gestión de lote
+
+**Endpoint:** `GET /activos-biologicos/{id_activo}/ficha-lote`
+**Permiso:** R(2) sobre recurso 29
+**Efecto:** Vista operativa completa del lote en una sola respuesta —
+distinta de la ficha integral genérica de RF-47 (esta expone `densidad`,
+`densidad_maxima` y el historial paginado real, no solo los últimos 5
+eventos). El campo `historial` reutiliza el mismo mecanismo de RF-46/RF-48
+(`consultar_historial`), por lo que incluye eventos de CREACION, ESTADO,
+FASE_PRODUCTIVA, SANITARIO, CRECIMIENTO, PRODUCTIVO, REPRODUCTIVO,
+INDICADOR, BAJA, TRANSFERENCIA e INGRESO, limitado a los 10 más recientes.
+
+```bash
+curl -X GET http://localhost:8000/activos-biologicos/{ID_LOTE}/ficha-lote \
+  -H "Authorization: Bearer {TOKEN}"
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_activo_biologico": 1,
+  "identificador": null,
+  "especie": "Bovino",
+  "infraestructura_asociada": "Corral-01",
+  "estado_actual": "ACTIVO",
+  "fecha_registro": "2026-06-27T09:00:00Z",
+  "cantidad_inicial": 500,
+  "cantidad_actual": 540,
+  "peso_promedio_inicial": "0.1500",
+  "peso_promedio": "0.2500",
+  "biomasa_total": "135.0000",
+  "densidad": "0.2160",
+  "densidad_maxima": "1.5000",
+  "historial": [
+    {
+      "categoria": "INGRESO",
+      "fecha_evento": "2026-09-23T00:00:00Z",
+      "descripcion": "Reposición de lote tras mortalidad",
+      "detalle_especifico": {"detalle_1": "compra", "detalle_2": "50"},
+      "usuario_responsable": "Juan Pérez",
+      "modulo_origen": "modulo2"
+    }
+  ],
+  "total_registros_historial": 3
+}
+```
+
+**Notas:**
+- `densidad_maxima` es `null` si la infraestructura no tiene `capacidad_maxima` configurada (dato opcional en M09, ver GAP-01 de `inc_m02_38_g25_densidad_maxima_crecimiento.md`).
+- `especie` e `infraestructura_asociada` son `null` si esas referencias ya no están activas.
+
+**Errores posibles:**
+| Código | code | Descripción |
+|--------|------|-------------|
+| 404 | ACTIVO_NO_ENCONTRADO | El lote no existe |
+| 422 | TIPO_INVALIDO | El activo no es POBLACIONAL |
+| 403 | — | Sin permiso R sobre recurso 29 |
+
+---
+
 ## Flujo C — Registrar evento sanitario
 
 **Endpoint:** `POST /activos-biologicos/{id_activo}/eventos/sanitario`  
@@ -306,3 +415,5 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/producti
 | FA-02 | 422 | TIPO_INVALIDO | Activo no es POBLACIONAL |
 | FA-04 | 422 | CANTIDAD_NEGATIVA | Baja dejaría cantidad_actual negativa |
 | FA-09 | 403 | — | Sin permisos RBAC |
+| — | 409 | DENSIDAD_MAXIMA_SUPERADA | Ingreso dejaría la densidad por encima de `capacidad_maxima/superficie` |
+| — | 409 | ESTADO_NO_PERMITE_EVENTOS | Ingreso sobre activo INACTIVO/CERRADO/BAJA |

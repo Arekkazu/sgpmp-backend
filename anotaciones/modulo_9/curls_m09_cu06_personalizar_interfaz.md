@@ -67,9 +67,18 @@ condicionales. `aviso` trae el texto del flujo alterno de RF-27 y es `null` cuan
 claro exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: ningún color cumple en los dos a
 la vez. El cliente muestra el aviso del tema activo.
 
+Respuestas alternas:
+- `204` — la finca del usuario no tiene **ni** especies **ni** áreas productivas
+  configuradas (FA-19). Sin cuerpo: el cliente pinta la pantalla de "Finca sin
+  configuración". Un usuario **sin finca** sigue siendo `200` con `id_finca: null`
+  (FA-18, vista de bienvenida), no `204`.
+
 Errores posibles:
 - `401` — token ausente o inválido
 - `403` — rol sin permiso R sobre `contexto_interfaz` (FA-22)
+- `504` — la construcción del contexto superó el presupuesto de 2 s del RF
+  (FA-21) — `TIMEOUT_CONTEXTO_INTERFAZ`. Se impone con `statement_timeout` en la
+  transacción del request; una BD caída sigue dando `503`, no `504`.
 
 ---
 
@@ -148,7 +157,7 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `400` — color con formato inválido, nombre vacío o mayor de 50 chars (FA-24)
-- `400` — formato de imagen no permitido (gif, bmp, etc.) (FA-25)
+- `415` — formato de imagen no permitido (gif, bmp, webp, pdf...) (FA-25) — `FORMATO_IMAGEN_NO_PERMITIDO`
 - `400` — imagen supera 2 MB (FA-26)
 - `403` — rol sin permiso C sobre `identidad_visual` (sin RBAC)
 - `409` — ya existe identidad visual para esa finca (FA-23)

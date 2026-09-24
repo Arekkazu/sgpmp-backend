@@ -83,6 +83,17 @@ lectura de `/indicadores` y `/datos-consolidados` + rechazo 403 en escritura)
 antes de eliminarla; no se deja como test permanente porque no cubre lógica de
 aplicación nueva, solo datos semilla.
 
+## Actualización (INC-M02-92-G93 / issue #390)
+
+Verificado vía MCP `postgres` contra `sgpmp_dev`: este bloque **nunca se
+ejecutó** contra esa base (`modulo1.roles` no tiene ningún `'Integración
+M04'`, IDs van de 1 a 11 y 14). Se reaplica, sin cambios, dentro de la
+migración Alembic `d944f4d8c215` (INC-M02-92-G93), que además le agrega el
+scope por `tipo_dato` que ese issue necesita — ver
+`anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+Sigue pendiente de aprobación de DBA y de aplicarse contra TEST (mismo
+bloque, ver abajo).
+
 ## Pendiente — no aplicable desde este entorno
 
 Este mismo bloque SQL (idempotente, con guarda `NOT EXISTS`) debe ejecutarse

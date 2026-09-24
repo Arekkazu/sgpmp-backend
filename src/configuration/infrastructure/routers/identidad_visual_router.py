@@ -103,6 +103,7 @@ def consultar_auditoria_identidad_visual(
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
+        415: {"model": ErrorResponse},
     },
     summary="Crear identidad visual para una finca (Flujo B)",
 )
@@ -143,6 +144,7 @@ async def crear_identidad_visual(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
+        415: {"model": ErrorResponse},
     },
     summary="Actualizar identidad visual de una finca (Flujo C)",
 )

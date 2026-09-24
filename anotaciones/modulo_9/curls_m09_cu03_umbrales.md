@@ -87,7 +87,7 @@ Errores posibles:
 - `409` — ya existe umbral para esa especie-variable (FA-02)
 - `400` — valor_min >= valor_max (FA-03)
 - `400` — valores fuera del rango físico de la variable (FA-04)
-- `422` — solapamiento o cobertura incompleta de niveles (FA-05)
+- `400` — solapamiento o cobertura incompleta de niveles (FA-05)
 - `400` — algún nivel fuera del rango general (FA-08)
 - `403` — sin permiso C sobre umbrales_ambientales
 
@@ -154,7 +154,7 @@ Errores posibles:
 - `422` — umbral inactivo
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
-- `422` — solapamiento de niveles (FA-05)
+- `400` — solapamiento de niveles (FA-05)
 - `500` — el Nodo Edge no confirmó la re-propagación (`PENDIENTE`/`NO_CONF`), igual que en el Flujo A
 
 Igual que en el Flujo A, la edición también dispara un intento de re-propagación hacia

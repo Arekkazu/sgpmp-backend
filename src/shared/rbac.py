@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
+from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 
@@ -28,6 +29,32 @@ def tiene_permiso(
         .filter(
             Permisos.id_rol == id_rol,
             Permisos.id_recurso == id_recurso,
+            Permisos.id_accion == id_accion,
+            Permisos.es_activo.is_(True),
+        )
+        .first()
+        is not None
+    )
+
+
+def tiene_permiso_sobre(
+    db: Session,
+    id_rol: int,
+    nombre_recurso: str,
+    id_accion: int,
+) -> bool:
+    """Como ``tiene_permiso``, pero ubica el recurso por ``nombre_recurso`` (UNIQUE).
+
+    Para recursos sembrados por migraciones recientes: su ``id_recurso`` sale de
+    la secuencia y no coincide entre bases, así que un número fijo en el código
+    puede apuntar a otro recurso.
+    """
+    return (
+        db.query(Permisos)
+        .join(Recursos, Recursos.id_recurso == Permisos.id_recurso)
+        .filter(
+            Permisos.id_rol == id_rol,
+            Recursos.nombre_recurso == nombre_recurso,
             Permisos.id_accion == id_accion,
             Permisos.es_activo.is_(True),
         )

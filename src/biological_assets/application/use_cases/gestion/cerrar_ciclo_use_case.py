@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import datetime, time, timezone
 
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -107,7 +107,16 @@ class CerrarCicloUseCase:
         if dto.descripcion_cierre:
             motivo_completo = f'{dto.motivo_cierre} — {dto.descripcion_cierre}'
 
-        fecha_cierre_dt = datetime.combine(dto.fecha_cierre, datetime.min.time()).replace(tzinfo=timezone.utc)
+        # INC-M02-29-g36 / #411 (RF-38): mismo patrón que la corrección de RF-45
+        # (#412) para `RegistrarEventoBajaUseCase` -- fijar siempre medianoche UTC
+        # es incorrecto para un cierre el mismo día UTC de un evento posterior
+        # (FA-04 ya compara fecha_cierre contra el último evento). Hoy usa la
+        # hora real; un día pasado usa el final de ese día.
+        ahora = datetime.now(timezone.utc)
+        if dto.fecha_cierre == ahora.date():
+            fecha_cierre_dt = ahora
+        else:
+            fecha_cierre_dt = datetime.combine(dto.fecha_cierre, time.max, tzinfo=timezone.utc)
 
         try:
             # Cerrar fase primero: el trigger trg_fn_fase_activo_estado_valido bloquea
@@ -146,7 +155,11 @@ class CerrarCicloUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Ciclo productivo cerrado: {dto.motivo_cierre}',
-            detalle_tecnico={'motivo': motivo_completo, 'fecha_cierre': dto.fecha_cierre.isoformat()},
+            detalle_tecnico={
+                'motivo': motivo_completo,
+                'fecha_cierre': dto.fecha_cierre.isoformat(),
+                'registros_rf46': registros_rf46(historicos_estados_activos=historico.id_historico),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

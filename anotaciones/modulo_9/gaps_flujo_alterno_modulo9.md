@@ -32,6 +32,36 @@ code y la condición de negocio detrás son correctos.
 | RF-30 — Plantillas (CRUD) | 7 | 1 | 3 | 1 |
 | RF-31 — Creación de plantilla | 7 | 0 | 2 | 0 |
 | RF-32 — Aplicación de plantilla | 7 | 2 | 1 | 1 |
+> **Estado (2026-09-22): los 11 ❌ están corregidos** (rama `fix/gaps-flujo-alterno-m09`
+> → PR a `fix/m09`). Uno de ellos —RF-23, "Inconsistencia lógica de tiempos"— resultó
+> ser un **falso positivo de la auditoría**: la regla sí existía, en el `model_validator`
+> del DTO, y ya respondía el 400 que pide el RF; solo se alineó el texto del mensaje. Los
+> ⚠️ parciales se dejan como estaban: no son gaps de comportamiento, y los dos de RF-30 /
+> RF-31 dependen de que Análisis unifique primero RF-30 vs RF-32. El detalle por caso
+> está en `gaps_flujo_alterno_m09_correcciones.md`.
+
+## Resumen
+
+| RF | Caso(s) revisados | ❌ Gap | ❌ Pendiente hoy | ⚠️ Parcial | ➖ N/A |
+|----|---|---|---|---|---|
+| RF-15 — Catálogo de especies | 7 | 0 | 0 | 1 | 1 |
+| RF-16 — Etapas/patologías/métricas | sin ficha de flujo alterno en el doc fuente | — | — | — | — |
+| RF-17 — Umbrales ambientales | 7 | 2 | 0 | 0 | 0 |
+| RF-18 — Parámetros operativos | 7 | 0 | 0 | 0 | 0 |
+| RF-19 — Fincas | 7 | 0 | 0 | 2 | 0 |
+| RF-20 — Infraestructura | 7 | 1 | 0 | 2 | 0 |
+| RF-21 — Dispositivos IoT | 7 | 0 | 0 | 2 | 1 |
+| RF-22 — Asociación sensor-área | 8 | 1 | 0 | 2 | 0 |
+| RF-23 — Configuración remota IoT | 8 | 1 | 0 | 1 | 0 |
+| RF-24 — Calibración | 7 | 0 | 0 | 0 | 0 |
+| RF-25 — Interfaz adaptativa | 7 | 2 | 0 | 1 | 2 |
+| RF-26 — Identidad visual | 6 | 1 | 0 | 0 | 1 |
+| RF-27 — Tema visual | 6 | 0 | 0 | 0 | 1 |
+| RF-28 — Dashboard | 7 | 0 | 0 | 0 | 0 |
+| RF-29 — Idioma | 6 | 0 | 0 | 0 | 2 |
+| RF-30 — Plantillas (CRUD) | 7 | 0 | 0 | 3 | 1 |
+| RF-31 — Creación de plantilla | 7 | 0 | 0 | 2 | 0 |
+| RF-32 — Aplicación de plantilla | 7 | 3 | 0 | 1 | 1 |
 
 **Patrón recurrente (no contado como gap independiente en cada fila, se explica aquí una vez):**
 en más de la mitad de los RFs, cuando el flujo alterno del RF describe un único
@@ -81,6 +111,10 @@ No hay caso de flujo alterno documentado que comparar.
 | Valores fuera de límites físicos | 400 | 400 `ValidationError` | `registrar_umbral_use_case.py:28-36` | ✅ | — |
 | Fallo de privilegios (rol Productor) | 403 | 403 (RBAC) | `umbral_router.py:50` | ✅ | Productor no tiene fila en `modulo1.permisos` para recurso 20 |
 | Error de sincronización con Nodo Edge | 500 + estado "Pendiente de Sincronización" | — | `registrar_umbral_use_case.py` (completo) | ❌ | No existe ningún mecanismo de notificación a dispositivos IoT/Edge al guardar un umbral; el caso completo no está implementado |
+| Solapamiento de niveles de alerta | 400 | 400 `ValidationError` (`SOLAPAMIENTO_NIVELES`) | `registrar_umbral_use_case.py:63-94` | ✅ **corregido** | La lógica ya era correcta (cobertura completa, sin huecos/solapes); solo se cambió la clase de error. Cubre registrar y editar, que comparten `_validar_rangos` |
+| Valores fuera de límites físicos | 400 | 400 `ValidationError` | `registrar_umbral_use_case.py:28-36` | ✅ | — |
+| Fallo de privilegios (rol Productor) | 403 | 403 (RBAC) | `umbral_router.py:50` | ✅ | Productor no tiene fila en `modulo1.permisos` para recurso 20 |
+| Error de sincronización con Nodo Edge | 500 + estado "Pendiente de Sincronización" | 500 `InfrastructureError` (`FALLO_SINCRONIZACION_EDGE`) tras marcar el umbral `PENDIENTE`/`NO_CONF` | `registrar_umbral_use_case.py:178-222`, `edge_sincronizacion_port.py` | ✅ **ya corregido antes de esta pasada** | Lo cerró INC-M09-104-G29 (PR #385, ya en `dev`) entre la auditoría y esta corrección: `EdgeSincronizacionPort` propaga el umbral post-commit y el estado de sincronización se persiste |
 
 ---
 
@@ -124,6 +158,7 @@ RF-18 es uno de los mejor implementados del módulo: 7/7 casos correctos.
 | Desactivación con dependencias | 422 | 422 `BusinessRuleError` | `desactivar_infraestructura_use_case.py:42-49` | ✅ | — |
 | Acceso no autorizado (Productor) | 403 | 403 (RBAC) | recurso 10, solo Admin C/U/D | ✅ | — |
 | Tipo de área no reconocido | 400 | 422 `BusinessRuleError` | `registrar_infraestructura_use_case.py:47-56`, `editar_infraestructura_use_case.py:73-82` | ❌ | Código HTTP no coincide (400 esperado vs 422 real) |
+| Tipo de área no reconocido | 400 | 400 `ValidationError` (`TIPO_AREA_NO_RECONOCIDO`) | `registrar_infraestructura_use_case.py:52-65`, `editar_infraestructura_use_case.py:78-91` | ✅ **corregido** | La validación sigue en el use case y no en el DTO: el catálogo de tipos es una tabla administrable, no un enum, así que hay que consultarlo en DB |
 | Conflicto de edición concurrente | 412 | 412 `PreconditionFailedError` | `editar_infraestructura_use_case.py:58-71` | ✅ | — |
 
 ---
@@ -149,6 +184,7 @@ RF-18 es uno de los mejor implementados del módulo: 7/7 casos correctos.
 | Dispositivo IoT no existente | 404 | 404 `NotFoundError` | `asociar_sensor_area_use_case.py:59-64` | ✅ | — |
 | Sensor no existente o no vinculado | 422 (unificado) | 404 si no existe / 422 si no vinculado | `asociar_sensor_area_use_case.py:47-57` | ⚠️ | Split 404/422 |
 | Área productiva inexistente o inactiva | 404 (ambos) | 404 si no existe / **422** si inactiva | `asociar_sensor_area_use_case.py:66-76` | ❌ | Aquí el split va al revés que en otros RFs: el RF pide 404 para ambos, el código da 422 para "inactiva" |
+| Área productiva inexistente o inactiva | 404 (ambos) | 404 `NotFoundError` (`AREA_NO_ENCONTRADA`) en ambos | `asociar_sensor_area_use_case.py:66-80` | ✅ **corregido** | Unificado con el mensaje literal del RF. El caso homólogo de RF-21 no se tocó: ese RF pide 422 para ambos, no 404 |
 | Sensor ya asociado a otra área | 409 | 409 `ConflictError` | `asociar_sensor_area_use_case.py:102-113` | ✅ | — |
 | Asociación duplicada (misma área) | 409 | 409 `ConflictError` | `asociar_sensor_area_use_case.py:95-100` | ✅ | — |
 | Acceso no autorizado (Prod/Vet/Cont) | 403 | 403 (RBAC) | recurso 12 | ✅ | — |
@@ -164,6 +200,7 @@ RF-18 es uno de los mejor implementados del módulo: 7/7 casos correctos.
 | Dispositivo IoT inexistente | 404 | 404 `NotFoundError` | `configurar_remotamente_use_case.py:43-48` | ✅ | — |
 | Parámetros fuera de rango técnico | 400 | 400 `ValidationError` | `configurar_remotamente_use_case.py:61-71`, `tipo_dispositivo_iot.py:26-32` | ✅ | — |
 | Inconsistencia lógica de tiempos (intervalo < frecuencia) | 400 | — (no validado) | `tipo_dispositivo_iot.py:22-40` (`verificar_rango`) | ❌ | `verificar_rango` solo valida cada campo contra su propio rango individual; nunca compara `intervalo_transmision` contra `frecuencia_captura` entre sí |
+| Inconsistencia lógica de tiempos (intervalo < frecuencia) | 400 | 400 (Pydantic `model_validator` → handler global) | `configurar_remotamente_dto.py:20-34` | ✅ **falso positivo de la auditoría** | La auditoría solo miró `verificar_rango` (que sí compara cada campo contra su propio rango individual) y no vio el `model_validator` del DTO, donde la regla cruzada siempre existió. Solo se alineó el texto del mensaje con el del RF |
 | Dispositivo offline (Estado Diferido) | 202 Accepted | 202 | `dispositivo_iot_router.py:63,105` (`_ESTADO_A_HTTP["PENDIENTE"]=202`) | ✅ | — |
 | Timeout de confirmación (ACK) | 504 | 504 `GatewayTimeoutError` | `dispositivo_iot_router.py:97-98` | ✅ | — |
 | Acceso no autorizado (Vet/Prod) | 403 | 403 (RBAC) | recurso 11, acción U | ✅ | — |
@@ -202,6 +239,10 @@ exceden lo que un solo GET de agregación puede resolver.
 | Cambio de permisos en sesión activa | 403 (detección en vivo) | Parcial | `require_permission` consulta `modulo1.permisos` en cada request | ⚠️ | El *permiso* sí se re-evalúa en vivo; un cambio de `id_rol` en sí no se detecta hasta que se emite un JWT nuevo — no hay invalidación activa de sesión por cambio de rol en este endpoint |
 | Acceso a módulo no autorizado (bypass de URL) | 403 | 403 (RBAC genérico) | `require_permission` en cada router | ✅ | Cubierto por el mecanismo estándar, no por RF-25 específicamente |
 | Timeout de carga de contexto (>2s) | 504 | — (sin timeout explícito; un fallo de BD da 503) | `obtener_contexto_use_case.py` | ❌ | No hay enforcement de un límite de 2s ni mapeo a 504; una BD caída da 503 vía `db_no_disponible_handler`, no 504 |
+| Finca sin especies/infraestructura configuradas | 204 No Content | 204 | `contexto_interfaz.py:36-49` (`finca_sin_catalogo`), `contexto_interfaz_router.py:49-54` | ✅ **corregido** | El RF lo define sobre las dos cosas a la vez ("ni especies ni infraestructura"), así que el read-model suma `tiene_infraestructura` y solo devuelve 204 cuando faltan ambas. Con finca pero sin especies (o al revés) sigue siendo 200, igual que el usuario sin finca |
+| Cambio de permisos en sesión activa | 403 (detección en vivo) | Parcial | `require_permission` consulta `modulo1.permisos` en cada request | ⚠️ | El *permiso* sí se re-evalúa en vivo; un cambio de `id_rol` en sí no se detecta hasta que se emite un JWT nuevo — no hay invalidación activa de sesión por cambio de rol en este endpoint |
+| Acceso a módulo no autorizado (bypass de URL) | 403 | 403 (RBAC genérico) | `require_permission` en cada router | ✅ | Cubierto por el mecanismo estándar, no por RF-25 específicamente |
+| Timeout de carga de contexto (>2s) | 504 | 504 `GatewayTimeoutError` (`TIMEOUT_CONTEXTO_INTERFAZ`) | `contexto_interfaz_repository.py:17-47` | ✅ **corregido** | El presupuesto se impone de verdad con `SET LOCAL statement_timeout = 2000` en la transacción del request; el repositorio traduce el SQLSTATE `57014` (`query_canceled`) a 504. Cualquier otro `OperationalError` sigue saliendo 503, que es lo correcto para una BD caída |
 | Inconsistencia especie-indicador | omitir sin error + log | — | — | ➖ | Pertenece al filtrado de widgets (RF-28), no a este endpoint |
 | ID de finca manipulado en la URL | 401 | — | `obtener_contexto_use_case.py` | ➖ | Este endpoint no acepta `id_finca` como parámetro (siempre resuelve por el usuario autenticado); el escenario que describe el RF no aplica a esta ruta tal como está diseñada |
 
@@ -212,6 +253,7 @@ exceden lo que un solo GET de agregación puede resolver.
 | Caso | HTTP esperado (RF) | HTTP real (código) | Archivo:línea | Veredicto | Nota |
 |---|---|---|---|---|---|
 | Formato de imagen no compatible | 415 | 400 `ValidationError` | `almacen_logos.py:63-71` | ❌ | Validación de contenido muy sólida (Pillow real, rechazo de SVG con script), pero el código HTTP no es el que pide el RF |
+| Formato de imagen no compatible | 415 | 415 `UnsupportedMediaTypeError` | `almacen_logos.py:63-71`, `errors.py:159-169` | ✅ **corregido** | La validación de contenido no cambió (Pillow real, coherencia con el Content-Type declarado, rechazo de SVG con script). **Transversal:** se agregó `UnsupportedMediaTypeError` (415) a `src/shared/errors.py`, que no tenía clase para ese código. El límite de 2 MB se queda en 400: el RF no le asigna otro |
 | Código de color hexadecimal inválido | 400 | 400 `ValidationError` | `color_hex.py:40-49` | ✅ | — |
 | Nombre de organización demasiado extenso | 400 | 400 `ValidationError` | `nombre_organizacion.py:16-32` | ✅ | — |
 | Fallo en persistencia del archivo | 500 | 500 `InfrastructureError` | `almacen_logos.py:88-105` | ✅ | Mensaje casi idéntico al del RF |
@@ -314,3 +356,20 @@ en *todo* el módulo, que choca puntualmente con cómo RF-30 y RF-32 redactan el
 mismo tipo de caso con HTTP distintos entre sí. Antes de "corregir" el código
 valdría la pena unificar qué código HTTP quiere realmente el RF para
 concurrencia optimista en todo el módulo.
+| Incompatibilidad de esquema (legacy) | 422 | 422 `BusinessRuleError` (`VERSION_SNAPSHOT_INCOMPATIBLE`) | `aplicar_plantilla_use_case.py:107-121` | ✅ **corregido** | La contradicción RF-30 vs RF-32 se resuelve a favor de RF-32 porque el escenario solo se materializa **al aplicar**, nunca al crear: la fila homóloga de RF-30 ya estaba marcada ➖ N/A por eso mismo. No queda ningún caso gobernado por el 412 de RF-30 |
+| Referencias huérfanas en la plantilla | 400 | 400 `ValidationError` (`REFERENCIAS_HUERFANAS`) | `aplicar_plantilla_use_case.py:_verificar_referencias` | ✅ **corregido** | Se verifica **antes** de desactivar nada de la especie destino, así que un rechazo deja la configuración anterior intacta. La única referencia del snapshot a un catálogo externo es `id_variable_ambiental` de cada umbral: ciclos, métricas y patologías viajan por valor y se recrean bajo la especie destino (`vincular_desde_snapshot` inserta por nombre, no resuelve ningún FK a un catálogo maestro) |
+| Configuración destino no encontrada o inactiva | 404 (ambos) | 404 si no existe / 422 si inactiva | `aplicar_plantilla_use_case.py:72-84` | ⚠️ | Split 404/422 |
+| Cancelación por el usuario | sin llamada al servidor | — | — | ➖ | Frontend |
+| Fallo crítico durante la aplicación (rollback automático) | 500 | 500 (rollback genérico) | `aplicar_plantilla_use_case.py:107-139` | ✅ | — |
+| Conflicto de modificación concurrente | 409 | 409 `ConflictError` (`CONFLICTO_CONCURRENCIA`) | `aplicar_plantilla_use_case.py:137-158` | ✅ **corregido** | El resto del módulo sigue en 412 para concurrencia optimista; aquí manda la letra de RF-32, que es el único RF que gobierna este endpoint. Es una excepción deliberada y local, no un cambio de patrón del módulo |
+| Acceso no autorizado | 403 | 403 (RBAC) | recurso 28, acción E | ✅ | — |
+
+**Nota (actualizada 2026-09-22):** los dos casos de concurrencia/versión de esta
+tabla nunca fueron errores de implementación aislados — eran el patrón 412 del
+módulo chocando con la redacción de RF-32. Se resolvieron a favor de RF-32
+**solo en este endpoint**, porque es el único que ese RF gobierna y porque el
+caso de incompatibilidad de esquema no se materializa en ningún otro sitio (la
+fila homóloga de RF-30 ya estaba marcada ➖ N/A). El resto del módulo conserva
+412 para concurrencia optimista, tal como documenta `CLAUDE.md`. Si Análisis
+llega a unificar el corpus, lo que habría que revisar es el texto de RF-32, no
+volver a tocar este código.

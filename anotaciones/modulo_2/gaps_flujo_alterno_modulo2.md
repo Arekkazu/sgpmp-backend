@@ -13,6 +13,37 @@ Convención: `código_dominio → HTTP` según `src/shared/errors.py`
 clave para varios de los gaps: cuando un RF pide 422 para un caso que el
 código valida con un `@field_validator` de Pydantic, el resultado real es 400.
 
+> **Estado (2026-09-23): corregido en la rama `fix/gaps-flujo-alterno-m02`**
+> (derivada de `fix/inc-m02-51-g44-refresh-token-http-500`), más **RF-52 E5** en
+> `feat/rf52-e5-reconciliacion-bitacora`, encima de ella: un PR aparte porque trae
+> la migración `094d4799c3ca` (tipo de evento y permiso), que requiere autorización
+> del DBA. **Con los dos PRs no queda ningún gap abierto en M02.** Cada fila
+> corregida lleva el `archivo:línea` de la corrección. Tres de los gaps ya los
+> habían cerrado PRs posteriores a la auditoría: RF-49 especie (#354), RF-49
+> dispositivo desconectado (#377) y RF-50 NIC 41 (#424). Sin migración de BD.
+>
+> **Recuento:** la tabla resumen original suma 16 ❌ y 5 ⚠️, pero contando fila
+> por fila en las tablas de detalle son **18 ❌ y 4 ⚠️**: RF-52 tiene 4 ❌ (E1,
+> E2, E3 y E5) y ningún ⚠️. Las columnas de abajo usan el recuento real.
+>
+> **Códigos HTTP que cambian para el frontend** (el `error_code` se conserva
+> salvo donde se indica):
+>
+> | Endpoint | Caso | Antes → Ahora |
+> |---|---|---|
+> | `POST .../eventos/crecimiento`, `.../sanitario`, `.../reproductivo` | fecha futura o incoherente | 422 → **400** |
+> | `POST .../eventos/reproductivo` | falta `id_padre` o `numero_crias` | 422 → **400** |
+> | `POST .../eventos/productivo` | fecha inválida (futura, anterior al activo, fuera de fase) | 400 → **422** |
+> | `POST .../eventos/productivo` | cantidad ≤ 0 (nuevo código `CANTIDAD_INVALIDA`) | 400 → **422** |
+> | `POST .../eventos/productivo` | unidad de medida incompatible | 400 → **422** |
+> | `PATCH .../estado` | fecha futura (`FECHA_FUTURA`), motivo vacío (`MOTIVO_REQUERIDO`) | 400 → **422** |
+> | `PATCH .../estado` | CERRADO o BAJA (`VALIDACIONES_PREVIAS_REQUERIDAS`) | 400 → **422** |
+> | `GET .../historial` | fecha_inicio > fecha_fin (`RANGO_FECHAS_INVALIDO`) | 400 → **422** |
+> | `GET .../ficha-integral` | una sección no carga | 500 → **200** con advertencia de la sección |
+> | `GET .../indicadores` | consumo de alimento en 0 (`CONSUMO_ALIMENTO_CERO`) | 422 → **409** |
+> | `GET .../indicadores` | outlier crítico (`OUTLIER_CRITICO`) | 422 → **500** |
+> | `GET .../datos-consolidados` | métrica negativa (`METRICAS_CORRUPTAS`) | 200 → **500** |
+
 ## Hallazgo transversal (antes de la tabla por RF)
 
 El patrón correcto para que un caso de negocio responda 422 (no 400) es
@@ -60,6 +91,30 @@ tres RFs a la vez.
 | RF-52 | Auditoría y trazabilidad | 5 | 3 | 1 |
 
 **Total: ~104 casos revisados, 16 gaps ❌, 5 parciales ⚠️.**
+| RF | Título | Casos revisados | ❌ Gaps | ⚠️ Parciales | Pendiente hoy |
+|----|--------|:---:|:---:|:---:|:---:|
+| RF-33 | Registro de activos | 5 | 0 | 0 | 0 |
+| RF-34 | Asociación a infraestructura (consulta) | 4 | 0 | 0 | 0 |
+| RF-35 | Gestión individual | — | N/A | N/A | — |
+| RF-36 | Gestión poblacional | — | N/A | N/A | — |
+| RF-37 | Gestión de fases | — | N/A | N/A | — |
+| RF-38 | Cierre de ciclo | 7 | 0 | 0 | 0 |
+| RF-39 | Eventos biológicos (umbrella) | 4 | ver RF-40/41/42 | — | — |
+| RF-40 | Eventos de crecimiento | 6 | 1 | 0 | 0 |
+| RF-41 | Eventos sanitarios | 5 | 1 | 0 | 0 |
+| RF-42 | Eventos reproductivos | 8 | 1 | 1 | 0 |
+| RF-43 | Eventos productivos | 9 | 3 | 0 | 0 |
+| RF-44 | Cambio de estado | 8 | 2 | 1 | 0 |
+| RF-45 | Registro de bajas | 7 | 0 | 0 | 0 |
+| RF-46 | Consulta de historial | 5 | 1 | 0 | 0 |
+| RF-47 | Ficha integral | 5 | 0 | 1 | 0 |
+| RF-48 | Transferencia interna | 11 | 0 | 0 | 0 |
+| RF-49 | Asociación sensor IoT | 6 | 2 | 0 | 0 |
+| RF-50 | Datos consolidados | 7 | 2 | 0 | 0 |
+| RF-51 | Indicadores zootécnicos (x2, texto idéntico) | 7 | 1 | 1 | 0 |
+| RF-52 | Auditoría y trazabilidad | 5 | 4 | 0 | 0 |
+
+**Total: ~104 casos revisados, 18 gaps ❌, 4 parciales ⚠️. Pendientes hoy: 0.**
 
 RF-33, RF-34, RF-38, RF-45 y RF-48 están implementados sin gaps de código HTTP
 — casi calcados al RF, incluyendo comentarios en código que citan
@@ -157,6 +212,7 @@ texto de "solo ACTIVO").
 | Activo no existe | 404 | 404 (`NotFoundError`) | `gestion/registrar_evento_crecimiento_use_case.py:74` | ✅ |
 | Activo no está en estado ACTIVO | 409 | 409 (`ConflictError`) | `gestion/registrar_evento_crecimiento_use_case.py:80` | ✅ |
 | Fecha inválida/incoherente | 400 | **422** (`BusinessRuleError`, vía `validar_fecha_evento`) | `gestion/_event_validations.py:36,44,53` | ❌ |
+| Fecha inválida/incoherente | 400 | 400 (`ValidationError`, vía `validar_fecha_evento`) — antes 422 | `gestion/_event_validations.py:39,47,56` | ✅ corregido |
 | Datos obligatorios faltantes (POBLACIONAL) | 400 | 400 (`ValidationError`) | `gestion/registrar_evento_crecimiento_use_case.py:141,147,153` | ✅ |
 | Datos no numéricos | 400 | 400 (Pydantic `Decimal` coercion → handler global) | `dto/registrar_evento_crecimiento_dto.py:25` | ✅ |
 | Unidad no corresponde al tipo de medición | 400 | 400 (Pydantic `validar_unidad_por_tipo` → handler global) | `dto/registrar_evento_crecimiento_dto.py:68` | ✅ |
@@ -170,6 +226,7 @@ texto de "solo ACTIVO").
 | Activo no existe | 404 | 404 (`NotFoundError`) | `gestion/registrar_evento_sanitario_use_case.py:74` | ✅ |
 | Activo no está en estado ACTIVO | 409 | 409 (`ConflictError`, vía `validar_estado_permite_eventos`) | `gestion/_event_validations.py:17` | ✅¹ |
 | Fecha inválida/incoherente | 400 | **422** (`BusinessRuleError`) | `gestion/_event_validations.py:36,44,53` | ❌ |
+| Fecha inválida/incoherente | 400 | 400 (`ValidationError`, misma función compartida) — antes 422 | `gestion/_event_validations.py:39,47,56` | ✅ corregido |
 | Violación de secuencia lógica (diagnóstico previo) | 422 | 422 (`BusinessRuleError` `DIAGNOSTICO_PREVIO_REQUERIDO`) | `gestion/registrar_evento_sanitario_use_case.py:83` | ✅ |
 | Datos obligatorios faltantes | 400 | 400 (Pydantic, campos requeridos del DTO) | `dto/registrar_evento_sanitario_dto.py` | ✅ |
 
@@ -197,6 +254,16 @@ El ⚠️: estos dos campos son "obligatorios condicionales" (dependen de la
 categoría del evento), tratados como regla de negocio → 422, mientras el RF
 los agrupa bajo el caso genérico "datos obligatorios faltantes" → 400. Es una
 zona gris razonable, pero técnicamente no coincide con el HTTP del RF.
+| Fecha inválida/incoherente | 400 | 400 (`ValidationError`, misma función compartida) — antes 422 | `gestion/_event_validations.py:39,47,56` | ✅ corregido |
+| Activo relacionado inválido (padre/madre) | 404 | 404 (`NotFoundError` `ACTIVO_RELACIONADO_NO_ENCONTRADO`) | `gestion/registrar_evento_reproductivo_use_case.py:241,250` | ✅ |
+| Violación de secuencia lógica | 422 | 422 (`BusinessRuleError` `SECUENCIA_REPRODUCTIVA_INVALIDA`) | `gestion/registrar_evento_reproductivo_use_case.py:134-167` | ✅ |
+| Datos obligatorios faltantes (padre/nº crías) | 400 | 400 (`ValidationError` `PADRE_REQUERIDO`/`NUMERO_CRIAS_REQUERIDO`) — antes 422 | `gestion/registrar_evento_reproductivo_use_case.py:120,174` | ✅ corregido |
+
+El antiguo ⚠️: estos dos campos son "obligatorios condicionales" (dependen de la
+categoría del evento) y se trataban como regla de negocio → 422, mientras el RF
+los agrupa bajo el caso genérico "datos obligatorios faltantes" → 400. Se
+alinearon al RF: que la obligatoriedad dependa de la categoría no cambia que el
+RF los clasifique como dato faltante.
 
 ---
 
@@ -219,6 +286,16 @@ el RF pide 400).
 | E-08: duplicidad | 409 | 409 (`ConflictError`) | `gestion/registrar_evento_productivo_use_case.py:194` | ✅ |
 | E-09: fallo transaccional | 500 | 500 (excepción no controlada) | `gestion/registrar_evento_productivo_use_case.py:225` | ✅ |
 
+| E-05: fecha del evento inválida | 422 | 422 (`BusinessRuleError`: futura, anterior al activo, fuera de fase) — antes 400 | `gestion/registrar_evento_productivo_use_case.py:140-205` | ✅ corregido |
+| E-06: cantidad inválida (≤0) | 422 | 422 (`BusinessRuleError` `CANTIDAD_INVALIDA`, con el valor ingresado en el mensaje) — antes 400 de Pydantic; el validador salió del DTO | `gestion/registrar_evento_productivo_use_case.py:97` | ✅ corregido |
+| E-07: unidad de medida incompatible | 422 | 422 (`BusinessRuleError`) — antes 400 | `gestion/registrar_evento_productivo_use_case.py:108` | ✅ corregido |
+| E-08: duplicidad | 409 | 409 (`ConflictError`) | `gestion/registrar_evento_productivo_use_case.py:194` | ✅ |
+| E-09: fallo transaccional | 500 | 500 (excepción no controlada) | `gestion/registrar_evento_productivo_use_case.py:225` | ✅ |
+
+Un valor no numérico en `cantidad_producida` sigue saliendo 400: falla la
+conversión de tipo de Pydantic antes de llegar a cualquier regla, y E-06 habla
+de un valor numérico que no es positivo.
+
 ---
 
 ## RF-44 — Gestión del Estado del Activo Biológico
@@ -238,6 +315,15 @@ E-07 ⚠️: la implementación real (rechazar CERRADO/BAJA en el DTO porque eso
 estados solo se alcanzan vía RF-38/RF-45) es un mecanismo distinto al que
 describe el RF ("módulo invocante sin validaciones previas"), pero cumple el
 mismo propósito de fondo — igual da 400, no el 422 declarado.
+| E-05: fecha futura | 422 | 422 (`BusinessRuleError` `FECHA_FUTURA`, referencia UTC) — antes 400 de Pydantic | `gestion/cambiar_estado_use_case.py:78` | ✅ corregido |
+| E-06: motivo vacío | 422 | 422 (`BusinessRuleError` `MOTIVO_REQUERIDO`) — antes 400 de Pydantic | `gestion/cambiar_estado_use_case.py:89` | ✅ corregido |
+| E-07: módulo invocante sin validaciones previas | 422 | 422 (`BusinessRuleError` `VALIDACIONES_PREVIAS_REQUERIDAS` para CERRADO/BAJA) — antes 400 de Pydantic | `gestion/cambiar_estado_use_case.py:66` | ✅ corregido |
+| E-08: fallo transaccional | 500 | 500 (excepción no controlada) | `gestion/cambiar_estado_use_case.py:81` | ✅ |
+
+E-07: rechazar CERRADO/BAJA en este endpoint (esos estados solo se alcanzan
+vía RF-38/RF-45) cumple el mismo propósito que el RF describe como "módulo
+invocante sin validaciones previas". Ahora lo rechaza el use case con 422 y el
+mensaje del RF; el DTO solo rechaza (400) un estado que no existe en el sistema.
 
 ---
 
@@ -265,6 +351,7 @@ completa.
 | E-01: activo inexistente | 404 | 404 (`NotFoundError`) | `gestion/consultar_historial_use_case.py:43` | ✅ |
 | E-02: sin permisos de consulta | 403 | 403 (RBAC) | `routers/activo_biologico_router.py:948` | ✅ |
 | E-03: filtro de fecha inválido (inicio > fin) | 422 | **400** (Pydantic `validar_rango_fechas` en el DTO, capturado por el router y re-lanzado como `ValidationError`) | `dto/consultar_historial_dto.py:53`, `routers/activo_biologico_router.py:979` | ❌ |
+| E-03: filtro de fecha inválido (inicio > fin) | 422 | 422 (`BusinessRuleError` `RANGO_FECHAS_INVALIDO`), validado antes de cualquier consulta a la BD — antes 400 | `gestion/consultar_historial_use_case.py:43` | ✅ corregido |
 | E-04: sin registros en el filtro | 200 | 200 con `mensaje` informativo | `gestion/consultar_historial_use_case.py:59` | ✅ |
 | E-05: fallo de carga del historial | 500 | 500 (excepción no controlada → handler global) | — | ✅ |
 
@@ -277,6 +364,7 @@ completa.
 | E-01: activo inexistente | 404 | 404 (`NotFoundError`) | `gestion/consultar_ficha_integral_use_case.py:40` | ✅ |
 | E-02: sin permisos de consulta | 403 | 403 (RBAC) | `routers/activo_biologico_router.py:1018` | ✅ |
 | E-03: módulo fuente no disponible (fallo parcial) | 200 con advertencia por sección | ⚠️ solo la vista base tiene *fallback* (`ficha_row` ausente → advertencia genérica); las 4 subconsultas de eventos (`_ultimos_sanitarios/productivos/crecimiento/reproductivos`) no tienen try/except individual — si una vista falla, se propaga como 500 para **toda** la ficha, no como degradación de una sola sección | `gestion/consultar_ficha_integral_use_case.py:142-222` | ⚠️ |
+| E-03: módulo fuente no disponible (fallo parcial) | 200 con advertencia por sección | 200: cada sección (4 de eventos + indicadores) carga en su propio savepoint; si falla, llega vacía con "La sección [nombre] no pudo cargarse en este momento." y el resto se muestra. Antes, una vista caída tumbaba toda la ficha con 500. Verificado en vivo contra PostgreSQL | `gestion/consultar_ficha_integral_use_case.py:149` | ✅ corregido |
 | E-04: inconsistencia entre módulos | 200 con advertencia | 200 con advertencia, pero solo detecta un tipo de inconsistencia (estado CERRADO/BAJA con fase aún activa) | `gestion/consultar_ficha_integral_use_case.py:63-71` | ✅ |
 | E-05: fallo total de carga | 500 | 500 (excepción no controlada) | — | ✅ |
 
@@ -313,6 +401,8 @@ previos).
 | Sensor ya vinculado (exclusividad) | 409 | 409 (`ConflictError`) | `gestion/asociar_sensor_activo_use_case.py:160` | ✅ |
 | Incompatibilidad de especie | 400 | **No implementado** — `SensorConsulta` (`domain/repositories/sensor_consulta_port.py`) no tiene campo de especie; no hay ninguna validación de compatibilidad biológica sensor↔activo en el use case | — | ❌ |
 | Dispositivo IoT fuera de línea (warning, 201) | 201 + advertencia | **No implementado** — la respuesta hardcodea `advertencia=None` en el router; no se consulta heartbeat/última conexión en ningún punto | `routers/activo_biologico_router.py:1234,1274` | ❌ |
+| Incompatibilidad de especie | 400 | 400 (`ValidationError` `INCOMPATIBILIDAD_ESPECIE_SENSOR`, contra `modulo9.compatibilidad_sensores_especies`) — ya lo había cerrado el PR #354 (INC-M02-36-G85) | `gestion/asociar_sensor_activo_use_case.py:174` | ✅ ya estaba |
+| Dispositivo IoT fuera de línea (warning, 201) | 201 + advertencia | 201 con advertencia si el dispositivo no reporta hace más de 30 min — ya lo había cerrado el PR #377 (INC-M02-35-G84) | `gestion/asociar_sensor_activo_use_case.py:350` | ✅ ya estaba |
 | Error de persistencia en auditoría | 500 | 500 (mismo bloque transaccional que el resto de la operación → rollback y re-raise) | `gestion/asociar_sensor_activo_use_case.py:270` | ✅ |
 
 ---
@@ -328,6 +418,11 @@ previos).
 | Saturación de peticiones (rate limit) | 429 | 429, exactamente 100 req/min como pide el RF | `routers/activo_biologico_router.py:149,1355` | ✅ |
 | Conflicto de integridad referencial | 409 | 409 (`ConflictError` `INCONSISTENCIA_JERARQUICA`) | `gestion/consultar_datos_consolidados_use_case.py:49` | ✅ |
 | Fallo de normalización (outliers, ej. peso negativo) | 500 | **No implementado** — no hay detección de valores físicamente imposibles | — | ❌ |
+| Datos insuficientes para NIC 41 | 422 | 422 (`BusinessRuleError` `METRICAS_PESO_INSUFICIENTES`, solo para M06, el consumidor de "consistencia fuerte") — ya lo había cerrado el PR #424 (INC-M02-93-G93) | `gestion/consultar_datos_consolidados_use_case.py:92` | ✅ ya estaba |
+| Acceso de módulo no autorizado | 403 | 403 (RBAC) | `routers/activo_biologico_router.py:1354` | ✅ |
+| Saturación de peticiones (rate limit) | 429 | 429, exactamente 100 req/min como pide el RF | `routers/activo_biologico_router.py:149,1355` | ✅ |
+| Conflicto de integridad referencial | 409 | 409 (`ConflictError` `INCONSISTENCIA_JERARQUICA`) | `gestion/consultar_datos_consolidados_use_case.py:49` | ✅ |
+| Fallo de normalización (outliers, ej. peso negativo) | 500 | 500 (`InfrastructureError` `METRICAS_CORRUPTAS`) si `peso_actual`, `biomasa_total` o `cantidad_actual` son negativos; la exportación se cancela antes de auditarse como consumida. Solo se valida el signo: no existe un catálogo de rangos plausibles por especie | `gestion/consultar_datos_consolidados_use_case.py:111` | ✅ corregido |
 
 ---
 
@@ -348,6 +443,15 @@ mismo contenido. Se audita una sola vez.
 | Inconsistencia de datos (outliers) | 500 | **No implementado** — no hay detección de valores físicamente imposibles | — | ❌ |
 | Fallo de autorización de acceso a datos | 403 | 403 (RBAC) | `routers/activo_biologico_router.py:1283` | ✅ |
 
+| División por cero (consumo = 0) | 409 | 409 (`ConflictError` `CONSUMO_ALIMENTO_CERO`, mensaje del RF). El indicador ahora trae `causa_no_disponible` y el use case decide el HTTP por causa, en vez de todo al 422 genérico | `gestion/consultar_indicadores_use_case.py:86`, `repositories/indicadores_repository.py:223` | ✅ corregido |
+| Rango de fechas fuera del ciclo biológico | 400 | 400 (`ValidationError` `RANGO_FUERA_DE_CICLO_VIDA`) | `gestion/consultar_indicadores_use_case.py:114,123,139` | ✅ |
+| Inconsistencia de datos (outliers) | 500 | 500 (`InfrastructureError` `OUTLIER_CRITICO`, mensaje del RF). La detección (ganancia de peso > 10 kg/día) ya existía desde el PR #271, pero respondía el 422 genérico; también invalida la conversión alimenticia que depende de ese peso | `gestion/consultar_indicadores_use_case.py:86`, `repositories/indicadores_repository.py:141,179` | ✅ corregido |
+| Fallo de autorización de acceso a datos | 403 | 403 (RBAC) | `routers/activo_biologico_router.py:1283` | ✅ |
+
+Con `tipo_indicador=TODOS` no se rechaza nada: la respuesta es 200 y cada
+indicador no disponible viaja con su advertencia. Los códigos 409/422/500 aplican
+cuando se pide un indicador concreto.
+
 ---
 
 ## RF-52 — Auditoría y Trazabilidad de Eventos de Transformación Biológica
@@ -366,6 +470,24 @@ sistema (buffer, cola con prioridad, reconciliación batch) que no tienen
 equivalente en el código actual — son gaps reales, pero de una naturaleza
 distinta (funcionalidad ausente) a los "código HTTP incorrecto" del resto del
 informe.
+| E1: fallo persistente del repositorio de auditoría (buffer + recuperación) | Eventos se acumulan en buffer, se recuperan sin pérdida al volver el servicio | El archivo de *fallback* que ya existía (#265) se volvió un buffer recuperable: guarda el evento completo, alerta con CRITICAL en el log y la primera escritura exitosa lo persiste en orden cronológico, con un registro `INDISPONIBILIDAD_AUDITORIA` del periodo caído. Si la recuperación falla, el buffer se conserva. Los rechazos auditados y el handler de 400 también pasan por él (antes se perdían en silencio). Además de la siguiente escritura exitosa, una tarea periódica de `main.py` (cada 5 s) lo vacía aunque no lleguen eventos nuevos. Verificado en vivo | `application/use_cases/_registrar_evento_bitacora.py:152,189`, `main.py:427` | ✅ corregido |
+| E2: evento con esquema incompleto → `registro_incompleto=true`, no se rechaza | Se persiste con el flag y WARNING | Se persiste con `registro_incompleto=true`, la causa en `detalle_tecnico.causas_registro_incompleto` y un WARNING en el log. Se aplica en el repositorio, el único punto por el que pasan todos los emisores. Incompleto = campo base vacío, o sin `activo_biologico_id` en un evento TRANSFORMACION_BIOLOGICA, SANITARIO o CONTROL_ESTADO. Verificado en vivo | `domain/entities/activo_biologico.py:535`, `repositories/bitacora_auditoria_repository.py:45` | ✅ corregido |
+| E3: tormenta de eventos (control de tasa con priorización) | Cola con prioridad CRITICAL/ERROR > TRANSFORMACION_BIOLOGICA > INFO | Con carga normal no cambia nada: todo se escribe en el momento. Si la tasa del proceso supera `AUDITORIA_M02_EVENTOS_POR_SEGUNDO` (100 por defecto, ventana de 5 s), los INFO que no son de transformación biológica se encolan en el buffer durable de E1 —ninguno se descarta— y la tarea periódica los persiste por lotes. CRITICAL, ERROR, WARNING y TRANSFORMACION_BIOLOGICA se siguen escribiendo de inmediato. Se registran `ALTA_CARGA_AUDITORIA_INICIO` y `..._FIN` como WARNING, con los eventos encolados | `application/use_cases/_registrar_evento_bitacora.py:72,265,301` | ✅ corregido |
+| E4: consulta sin permisos por alcance de rol | HTTP 403 + registro propio en bitácora con `tipo_evento=ACCESO_NO_AUTORIZADO` | 403 (`AuthorizationError`) y se auto-registra en la bitácora antes de lanzar el error, exactamente como pide el RF | `gestion/consultar_bitacora_use_case.py:132-158` | ✅ |
+| E5: inconsistencia entre RF-52 y RF-46 (reconciliación) | Alerta CRITICAL + registro correctivo manual | **Llave:** los 9 emisores que crean filas del historial RF-46 (eventos, estados, fases, transferencias y la creación del activo) dejan `detalle_tecnico.registros_rf46`; el avance automático de fase por crecimiento, que no dejaba ningún registro, ahora emite `FASE_AVANZADA_AUTOMATICAMENTE`. **Reconciliación:** una tarea diaria (05:00 UTC, con lock de PostgreSQL) revisa, con una corrida de retraso, las filas nuevas entre marcas. Lo que falta queda como `INCONSISTENCIA_RF46_RF52` (CRITICAL) con los ids, y quien puede crear el correctivo recibe una notificación interna (tipo de evento 28), igual que la alerta de RF-10. El historial no se modifica. **Correctivo:** `POST /activos-biologicos/auditoria/registros-correctivos`, solo Administrador, crea `REGISTRO_CORRECTIVO_AUDITORIA` con el motivo (404 si la fila no está en RF-46, 409 si ya tiene registro). Verificado en vivo contra la BD de dev | `domain/entities/activo_biologico.py:558`, `auditoria/reconciliar_bitacora_historial_use_case.py:44`, `auditoria/registrar_correctivo_auditoria_use_case.py:23`, `main.py:449` | ✅ corregido |
+
+E4 es el único caso de RF-52 que es una respuesta HTTP directa y verificable
+contra un endpoint; los otros cuatro son comportamientos de resiliencia de
+sistema. Los cuatro quedaron resueltos. Dos decisiones que Análisis puede revisar:
+- **E3:** el umbral de "alta carga" es configurable porque el RF no lo fija; 100
+  eventos por segundo y proceso está muy por encima del uso actual. La
+  restricción 3 del RF pide una bitácora asíncrona: con carga normal sigue siendo
+  síncrona (después del commit de negocio y sin poder tumbarlo), para que un
+  evento se vea en la bitácora apenas ocurre.
+- **E5:** los registros anteriores a la llave no se pueden reconciliar; la
+  primera corrida solo fija el punto de partida. `indicadores_zootecnicos` queda
+  fuera: RF-51 calcula en el momento y ningún código de M02 escribe esa tabla,
+  así que no hay emisor que pueda haber fallado.
 
 ---
 
@@ -380,3 +502,9 @@ estado HTTP exacto que documenta el RF. Los gaps de funcionalidad genuinamente
 ausente (nada se valida, el caso no se contempla) están en: RF-49
 (incompatibilidad de especie, warning de dispositivo offline), RF-50/RF-51
 (outliers, datos insuficientes NIC-41) y RF-52 (E1/E3/E5).
+Con la corrección del 2026-09-23 los códigos HTTP de RF-40/41/42/43/44/46/47/50/51
+coinciden con el texto del RF (ver la tabla de cambios al inicio). Pruebas
+escritas contra el comportamiento anterior van a fallar en esos casos, y es lo
+esperado. No queda ningún caso de flujo alterno sin cubrir en M02.
+
+Pruebas del contrato: `tests/biological_assets/test_gaps_flujo_alterno_m02.py`.

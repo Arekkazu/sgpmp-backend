@@ -1,3 +1,63 @@
+## [1.0.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.49...v1.0.0-rc.50) (2026-09-24)
+
+### Features
+
+* **rf25:** contexto de interfaz devuelve 204 sin catalogo y 504 por timeout ([57e3def](https://github.com/Arekkazu/sgpmp-backend/commit/57e3defab5fe005a1caef4151953b993004afc7e))
+
+### Bug Fixes
+
+* **rf17:** solapamiento de niveles de alerta responde 400 en vez de 422 ([978fc0a](https://github.com/Arekkazu/sgpmp-backend/commit/978fc0a4bfa871cb359e32d517e0943055714ad1))
+* **rf20:** tipo de area no reconocido responde 400 en vez de 422 ([642a009](https://github.com/Arekkazu/sgpmp-backend/commit/642a00901dc7fe027ef6ac03342ba5a9b47cb55f))
+* **rf22:** area productiva inexistente o inactiva responde 404 en ambos casos ([e233447](https://github.com/Arekkazu/sgpmp-backend/commit/e23344757965c8d94a0ab18cea02348b984c627e))
+* **rf26:** logo en formato no admitido responde 415 en vez de 400 ([4fe27e1](https://github.com/Arekkazu/sgpmp-backend/commit/4fe27e1b24f523cb64d139ba2bf65a6e2063e1a3))
+* **rf32:** esquema legacy 422, concurrencia 409 y referencias huerfanas 400 ([4749413](https://github.com/Arekkazu/sgpmp-backend/commit/474941376c5f908ca2473fe060e9f906346e4b95))
+
+## [1.0.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.48...v1.0.0-rc.49) (2026-09-24)
+
+### Features
+
+* **m02:** agregar identidad M06 y 422 por metricas de peso (RF-50) ([277b3be](https://github.com/Arekkazu/sgpmp-backend/commit/277b3befd8b8c38c048f53488a11a2d009218bd6)), closes [#391](https://github.com/Arekkazu/sgpmp-backend/issues/391) [#3](https://github.com/Arekkazu/sgpmp-backend/issues/3)
+* **m02:** agregar scope por tipo_dato en datos-consolidados (RF-50) ([4868138](https://github.com/Arekkazu/sgpmp-backend/commit/48681382f6e81da2309403a840857e36ff94cffa)), closes [#390](https://github.com/Arekkazu/sgpmp-backend/issues/390) [#4](https://github.com/Arekkazu/sgpmp-backend/issues/4)
+* **m02:** fase_destino/confirmacion_no_estandar, fecha no futura y RBAC (RF-37) ([15c4611](https://github.com/Arekkazu/sgpmp-backend/commit/15c4611e7deeb61209974775bfc84defbdea5b77)), closes [#5](https://github.com/Arekkazu/sgpmp-backend/issues/5)
+* **m02:** rbac vet, eventos pendientes y concurrencia optimista en patch activo (RF-35) ([e84c0ac](https://github.com/Arekkazu/sgpmp-backend/commit/e84c0ac248fb61dccf757bd66bf7828f9fd90900)), closes [#30](https://github.com/Arekkazu/sgpmp-backend/issues/30)
+* **m02:** RF-36 ficha de gestion de lote, ingreso de individuos y densidad maxima ([bb9aba8](https://github.com/Arekkazu/sgpmp-backend/commit/bb9aba817c71d47c28a879c36c4cdc296fbb751c))
+* **rf49:** exponer PATCH para activar/desactivar sensores ambientales ([44f114e](https://github.com/Arekkazu/sgpmp-backend/commit/44f114e48d3c05cef43e5aa91c5e9087957005c6))
+* **rf52:** buffer recuperable de auditoria y registro_incompleto (E1, E2) ([a7ced44](https://github.com/Arekkazu/sgpmp-backend/commit/a7ced44ecf6ce9d082d776d022dc0ff5db20c78d)), closes [#265](https://github.com/Arekkazu/sgpmp-backend/issues/265)
+* **rf52:** control de tasa con prioridad en la bitacora de M02 (E3) ([0e5a6ce](https://github.com/Arekkazu/sgpmp-backend/commit/0e5a6cef6a94be56d6f4c718511f6669adee4070))
+* **rf52:** llave de reconciliacion con el historial RF-46 en la bitacora (E5) ([8d3a2fb](https://github.com/Arekkazu/sgpmp-backend/commit/8d3a2fb22f520dc787133a2e2325aa3a01f3aace))
+* **rf52:** reconciliacion diaria con el historial RF-46 y registro correctivo (E5) ([f6671dd](https://github.com/Arekkazu/sgpmp-backend/commit/f6671dd17b5904d7bb0b6ab70370cea26b9652b8))
+* **rf52:** tipo de evento de la alerta y permiso del registro correctivo (E5) ([e98b460](https://github.com/Arekkazu/sgpmp-backend/commit/e98b46073636b9a4400f788bd9db40b78e2a82b4))
+
+### Bug Fixes
+
+* **identity-access:** exigir aud, exp e iss en el token SSO de AgroFusion (SEG-M01-02, [#438](https://github.com/Arekkazu/sgpmp-backend/issues/438)) ([045e92b](https://github.com/Arekkazu/sgpmp-backend/commit/045e92b72e1c3959cc65c404c8fe94d278b5576d))
+* **m02:** agregar advertencia cuando metricas_actuales sale del rango ([5b2db04](https://github.com/Arekkazu/sgpmp-backend/commit/5b2db0443e5c8bdfff356ca70f91c1ecd9503029))
+* **m02:** corregir down_revision y resync de secuencia en migracion RF-50 ([2599cc0](https://github.com/Arekkazu/sgpmp-backend/commit/2599cc0d1677d862369bfbed686b53b06f1e5530)), closes [#403](https://github.com/Arekkazu/sgpmp-backend/issues/403)
+* **m02:** corregir etiqueta de version v5.4.0 a v5.5.0 en migracion RF-50 ([84751de](https://github.com/Arekkazu/sgpmp-backend/commit/84751de39debaf19415baf2b036f10b6628bcce5))
+* **m02:** corregir etiqueta de version v5.5.0 a v5.6.0 en migracion M06 ([d85e649](https://github.com/Arekkazu/sgpmp-backend/commit/d85e6493c1bbf542decc3d62fb2dbc9a6faac1fc))
+* **m02:** formalizar en alembic el permiso RBAC faltante del PATCH de RF-49 ([d5d8f95](https://github.com/Arekkazu/sgpmp-backend/commit/d5d8f95293a0eca60297a3ac75256cfb2820e854))
+* **m02:** mantener etiqueta v5.4.0 en migracion de identidad M06 (sin incrementar) ([0c500e9](https://github.com/Arekkazu/sgpmp-backend/commit/0c500e9237637b6afcac54b525c9938554aec1b6))
+* **m02:** mantener etiqueta v5.4.0 en migracion de scope RF-50 (sin incrementar) ([0060d46](https://github.com/Arekkazu/sgpmp-backend/commit/0060d46bb4af1dfb023948fff70f97dffac8b6ba))
+* **m02:** mantener etiqueta v5.4.0 en migracion RF-37 (sin incrementar) ([c9c3031](https://github.com/Arekkazu/sgpmp-backend/commit/c9c30317adc09ba46673b7927fe52d1d52c0c761))
+* **m02:** resolver conflictos de merge con fix/m02-fixes en PR [#424](https://github.com/Arekkazu/sgpmp-backend/issues/424) ([5aec72f](https://github.com/Arekkazu/sgpmp-backend/commit/5aec72f290ef88aecde984c3806416914aa208e3))
+* **m02:** unificar heads de alembic acumuladas en fix/m02-fixes ([19773ec](https://github.com/Arekkazu/sgpmp-backend/commit/19773ec9c8254402360f703d14ff1833da7982a5))
+* **m02:** unificar heads de alembic tras rf35, rf36, rf49 y rf52 ([9c88d85](https://github.com/Arekkazu/sgpmp-backend/commit/9c88d857946769746cde1a283f10fdad9fc4ec59)), closes [#426](https://github.com/Arekkazu/sgpmp-backend/issues/426) [#431](https://github.com/Arekkazu/sgpmp-backend/issues/431) [#433](https://github.com/Arekkazu/sgpmp-backend/issues/433) [#437](https://github.com/Arekkazu/sgpmp-backend/issues/437)
+* **rf36:** parametrizar densidad maxima por especie ([106d8b9](https://github.com/Arekkazu/sgpmp-backend/commit/106d8b937c10f5da72d1b8338dfdb1dca6c1bfe2))
+* **rf37:** 409 en vez de 500 al cambiar de fase un activo cerrado o con fechas solapadas (INC-M02-G34, [#429](https://github.com/Arekkazu/sgpmp-backend/issues/429)) ([05b4cde](https://github.com/Arekkazu/sgpmp-backend/commit/05b4cdec25d773e30b69fb14b0c365e8e271d3af)), closes [#428](https://github.com/Arekkazu/sgpmp-backend/issues/428) [#428](https://github.com/Arekkazu/sgpmp-backend/issues/428)
+* **rf38:** usar fecha UTC en cierre de ciclo y cambio de estado manual ([0f12b3a](https://github.com/Arekkazu/sgpmp-backend/commit/0f12b3ab5e1e4814599c112675a31aaeb1ab1733)), closes [#250](https://github.com/Arekkazu/sgpmp-backend/issues/250) [#412](https://github.com/Arekkazu/sgpmp-backend/issues/412) [#412](https://github.com/Arekkazu/sgpmp-backend/issues/412)
+* **rf40-rf41-rf42:** fecha de evento invalida y datos obligatorios de reproduccion responden 400 ([35f7939](https://github.com/Arekkazu/sgpmp-backend/commit/35f793935d17a33e4eeeccb549bee83bd8bbbbb8))
+* **rf41:** restringir datos clinicos del historial sanitario por rol ([3675986](https://github.com/Arekkazu/sgpmp-backend/commit/367598688b99b6dae7f10479f28b009897980d52))
+* **rf43:** fecha, cantidad y unidad invalidas responden 422 ([4cb2b11](https://github.com/Arekkazu/sgpmp-backend/commit/4cb2b11a2cb45c8f8c1616058de039d657756e8a))
+* **rf44:** fecha futura, motivo vacio y CERRADO/BAJA responden 422 ([e81abfa](https://github.com/Arekkazu/sgpmp-backend/commit/e81abfa00c591fa6c6648bc3b66796c39997a583))
+* **rf45:** permitir dar de baja un activo el mismo dia UTC de su creacion ([d53dde5](https://github.com/Arekkazu/sgpmp-backend/commit/d53dde5eb252476b018e47541b29fca6f7a35df0))
+* **rf46:** rango de fechas invertido en el historial responde 422 ([7c1f065](https://github.com/Arekkazu/sgpmp-backend/commit/7c1f065fc32720b998b4f3360246e40923da1eac))
+* **rf47:** una seccion que no carga ya no tumba la ficha integral ([4f63a9d](https://github.com/Arekkazu/sgpmp-backend/commit/4f63a9dc31ebee3e280967b40a7814c30a0ac520))
+* **rf49:** agregar permiso de actualizar asociacion sensor-activo a admin y productor ([206efcb](https://github.com/Arekkazu/sgpmp-backend/commit/206efcbde62587699aa2c2a6a97ea5197e5dd2be)), closes [#286](https://github.com/Arekkazu/sgpmp-backend/issues/286)
+* **rf50-rf41:** ubicar por nombre los recursos rbac de datos clinicos y de datos-consolidados ([efcd4b1](https://github.com/Arekkazu/sgpmp-backend/commit/efcd4b18cfde5acb15fcb9db914a4a0720280373)), closes [#417](https://github.com/Arekkazu/sgpmp-backend/issues/417)
+* **rf50-rf51:** outliers responden 500 y consumo de alimento en cero 409 ([58f6161](https://github.com/Arekkazu/sgpmp-backend/commit/58f61615d56a11952001c4e6160e52132e179901)), closes [#271](https://github.com/Arekkazu/sgpmp-backend/issues/271)
+* **rf50:** sanitizar errores de validacion Pydantic ([28b0c06](https://github.com/Arekkazu/sgpmp-backend/commit/28b0c0695f429c1319e7265f967005b85fcbadd8))
+* **sesiones:** [#404](https://github.com/Arekkazu/sgpmp-backend/issues/404) avisar al arrancar si la bd no tiene las migraciones del codigo (RF-02) ([988b5c5](https://github.com/Arekkazu/sgpmp-backend/commit/988b5c5bb53c64d7bb9ada1ab555a817ef496f09)), closes [#308](https://github.com/Arekkazu/sgpmp-backend/issues/308) [#126](https://github.com/Arekkazu/sgpmp-backend/issues/126)
+
 ## [1.0.0-rc.48](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.47...v1.0.0-rc.48) (2026-09-20)
 
 ### Features

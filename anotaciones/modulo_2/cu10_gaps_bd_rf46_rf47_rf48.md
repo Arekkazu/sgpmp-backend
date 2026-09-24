@@ -95,8 +95,68 @@ ALTER TABLE modulo9.infraestructuras
 
 1. **Tabla de transferencias**: Se usa `modulo2.movimientos` existente. No se crea `evento_transferencia`.
 2. **C1 (compatibilidad especie)**: `infraestructuras.id_especie IS NULL → acepta todas`. Si tiene valor, el activo debe tener la misma especie.
-3. **C2 (compatibilidad tipo)**: Cubierta implícitamente por C1. Si la infra tiene especie configurada y coincide con el activo, el tipo es compatible por configuración del administrador. Sin tabla de mapeo adicional.
+3. **C2 (compatibilidad tipo)**: ~~Cubierta implícitamente por C1. Si la infra tiene especie configurada y coincide con el activo, el tipo es compatible por configuración del administrador. Sin tabla de mapeo adicional.~~ **Superado por `074e5c14` (INC-M02-72-G80):** esa decisión resultó insuficiente — dejaba pasar cualquier tipo de infraestructura mientras la especie coincidiera, sin importar si el tipo físico (ej. Estanque) tenía sentido para esa especie. Se creó un modelo de compatibilidad dedicado, ver iteración 2026-09-23 más abajo.
 4. **C3 (capacidad)**: `capacidad_maxima IS NULL → sin límite`. Si tiene valor, se verifica que ocupación actual + cantidad del activo no supere el máximo. Ocupación calculada en tiempo real contando activos con `id_infraestructura = destino` y estado != BAJA(6) y != CERRADO(5).
 5. **Historial RF-46**: Se consultan las vistas `vw_rf46_*` y `movimientos` por separado en Python, se unen y ordenan cronológicamente antes de paginar.
 6. **Ficha integral RF-47**: Se consulta `vw_rf47_ficha_integral_activo` y `vw_rf47_indicadores_zootecnicos_activo` directamente.
 7. **Indicadores RF-51**: Ya existe tabla `modulo2.indicadores_zootecnicos`. Sin stub.
+
+---
+
+## Iteración 2026-09-23 — Tarea Taiga "RF-48: Regla C2, formato de error"
+
+Tarea recibida describiendo dos gaps: (1) "Regla C2 (compatibilidad tipo de
+infraestructura) no está implementada — el campo `tipo` está disponible pero
+nunca se usa"; (2) "el error de fecha futura se traduce a HTTP 400 con
+formato `{error_code, fields[]}` en vez del 422 con formato `{code, message,
+field}`". Ambos textos son copia literal de `estado_M02.md` (auditoría
+2026-08-06) — **ambos gaps ya estaban resueltos en `dev` antes de recibir
+esta tarea**, confirmado por `git log`:
+
+- `074e5c14 fix(rf48): crear modelo de compatibilidad tipo-infraestructura/especie (C2)` — revisó la
+  decisión original de este mismo documento ("C2 cubierta implícitamente por C1, sin tabla de mapeo
+  adicional") y la reemplazó por un modelo dedicado real: `modulo9.tipos_area` +
+  `modulo9.compatibilidades_tipo_area_especie`, consultado desde
+  `InfraestructuraM09Adapter.es_tipo_compatible()` y aplicado en
+  `RegistrarTransferenciaUseCase._execute` (E-07b, `code='INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA'`, 422).
+  Confirmado en vivo contra `sgpmp_dev`: 6 filas sembradas, todas para el tipo `Estanque` con especies
+  acuáticas (`Tilapia`, `Cachama Blanca`, `Camarón Blanco`, etc.) — un tipo de infraestructura sin
+  ninguna regla configurada sigue sin restricción (comportamiento de transición documentado en el
+  propio código). El ejemplo del RF ("un activo avícola a un estanque no sería rechazado") ya no
+  ocurre: hoy se rechaza con `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA`.
+- `875732f8 fix(rf48): devolver 422 para fecha futura` — la validación de `fecha_transferencia` futura
+  se sacó del `@field_validator` de Pydantic (que sí produce el formato `{error_code, fields[]}` vía
+  `RequestValidationError`, HTTP 400/422 genérico) y se movió al use case como regla de negocio E-10
+  (`BusinessRuleError`, `code='FECHA_TRANSFERENCIA_FUTURA'`, `field='fecha_transferencia'`, HTTP 422).
+
+**Hallazgo real de esta iteración:** los 2 tests que llevaban toda la sesión reportándose como "fallas
+pre-existentes conocidas, no relacionadas" en cada corrida de la suite completa (`tests/biological_assets/
+test_registrar_transferencia_use_case.py::test_endpoint_fecha_futura_responde_422_con_campo_y_mensaje` y
+`::test_fecha_actual_conserva_el_flujo_existente`) son justamente las pruebas de regresión que RF-48
+escribió para el fix de fecha futura (commit `875732f8`, el único commit que tocó ese archivo de test).
+Se rompieron **después**, cuando `05c5ed01 fix(rf52): registrar rechazos tempranos en auditoría` le
+agregó a `RegistrarTransferenciaUseCase.execute()` el wrapper `ejecutar_con_auditoria_de_rechazo(...)`
+-- nadie ajustó los fixtures de estos 2 tests a los nuevos requisitos de ese wrapper:
+
+- `ejecutar_con_auditoria_de_rechazo` necesita llamar `db.rollback()` de verdad (para separar cualquier
+  escritura pendiente del registro de auditoría del rechazo) cuando `bitacora_repo is not None`. El
+  fixture `cliente_transferencia` inyectaba `db=ColaboradorNoInvocado()` (una clase que lanza
+  `AssertionError` ante *cualquier* acceso de atributo) — rompía en el primer `db.rollback()` real.
+- `RegistrarTransferenciaUseCase.execute()` toma una referencia a `self.activo_repo.obtener_por_id`
+  (para pasarla como `obtener_activo` al wrapper) en el momento de construir la llamada, antes de que el
+  wrapper decida si de verdad la va a usar. Con `activo_repo=ColaboradorNoInvocado()`, el simple *acceso*
+  al atributo ya lanzaba, sin llegar siquiera a evaluar si `bitacora_repo is None` (caso en el que el
+  wrapper nunca la habría invocado).
+
+No es un bug de producción: en producción `activo_repo`/`db` son siempre instancias reales
+(`SqlAlchemyActivoBiologicoRepository`/`Session`), donde tomar una referencia a un método o llamar
+`rollback()` sobre una sesión sin cambios pendientes es una operación válida y sin efectos secundarios.
+Es puramente un defecto de diseño de fixture: `ColaboradorNoInvocado` es demasiado estricta para cómo el
+wrapper de RF-52 necesita tocar sus colaboradores incluso en el camino de rechazo. Corregido con un
+`DbFake` real (con `commit()`/`rollback()` no-op) para el `db` del endpoint, y una
+`ActivoRepoNoDebeConsultarse` que permite el acceso al atributo pero sigue fallando si `obtener_por_id`
+se llega a *invocar* de verdad (preservando la intención original del test). Suite completa: 763 passed,
+199 skipped, 0 failed (antes: 761 passed, 199 skipped, 2 failed).
+
+**Sin cambios de código de producción, sin migración nueva, sin cambios de RBAC** — ambos gaps del RF ya
+estaban resueltos; el único trabajo real de esta iteración fue reparar la cobertura de regresión rota.

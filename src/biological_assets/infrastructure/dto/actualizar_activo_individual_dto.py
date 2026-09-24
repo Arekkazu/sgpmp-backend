@@ -14,6 +14,9 @@ class ActualizarActivoIndividualDTO(BaseDTO):
     sexo: Optional[str] = None
     fecha_nacimiento: Optional[datetime] = None
     peso_inicial: Optional[Decimal] = None
+    # Concurrencia optimista (RF-35). Optional: la columna nace NULL sin
+    # backfill, se establece recién en la primera edición del activo.
+    fecha_actualizacion: Optional[datetime] = None
 
     @model_validator(mode='after')
     def al_menos_un_campo(self) -> ActualizarActivoIndividualDTO:
