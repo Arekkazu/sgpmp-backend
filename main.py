@@ -78,7 +78,9 @@ from src.identity_access.infrastructure.routers.sesiones_routers import router a
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared import almacen_logos
+from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
+from src.shared.migraciones import verificar_migraciones_aplicadas
 from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
 
 
@@ -427,6 +429,8 @@ async def lifespan(app: FastAPI):
     # Solo advierte en logs si MQTT_BROKER_TOKEN quedó desincronizado de la BD;
     # nunca escribe nada (ver docstring de la función).
     verificar_token_configurado()
+    # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
+    verificar_migraciones_aplicadas(engine)
 
     tasks = [
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
