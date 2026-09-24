@@ -1,7 +1,8 @@
 """Caso de uso: asignación de un permiso (recurso + acción) a un rol.
 
 Valida que el rol exista, que el recurso y la acción pertenezcan a los catálogos
-del sistema, y que el permiso no esté duplicado antes de persistirlo.
+del sistema, que la acción aplique al recurso (RF-04) y que el permiso no esté
+duplicado antes de persistirlo.
 """
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,9 @@ from src.identity_access.infrastructure.dto.roles_dto import AsignarPermisoDTO
 from src.shared.errors import ConflictError, NotFoundError, ValidationError
 
 TIPO_ASIGNACION_PERMISO = 14
+
+# `modulo1.acciones`: 1=C, 2=R, 3=U, 4=D, 5=E.
+ACCION_EJECUTAR = 5
 
 
 class AsignarPermisoUseCase:
@@ -52,7 +56,8 @@ class AsignarPermisoUseCase:
 
         Raises:
             NotFoundError: Si el rol no existe. HTTP 404.
-            ValidationError: Si el recurso o la acción no existen en catálogo. HTTP 400.
+            ValidationError: Si el recurso o la acción no existen en catálogo, o
+                si la acción no aplica al recurso. HTTP 400.
             ConflictError: Si el rol ya tiene ese permiso asignado. HTTP 409.
         """
         rol = self.roles_repo.obtener_por_id(id_rol)
@@ -78,6 +83,23 @@ class AsignarPermisoUseCase:
                 message=(
                     f"Error de catálogo: La acción {dto.id_accion} no es válida. "
                     "Las acciones permitidas son: C(1), R(2), U(3), D(4), E(5)."
+                ),
+                field="id_accion",
+            )
+
+        # RF-04: la acción Ejecutar solo aplica a procesos especiales del
+        # catálogo (`modulo1.recursos.es_proceso_especial`). La otra mitad del
+        # caso —"acción CRUD a un recurso que no las soporta"— no es exigible
+        # hoy: el catálogo no declara qué CRUD admite cada recurso.
+        if dto.id_accion == ACCION_EJECUTAR and not self.permisos_repo.es_proceso_especial(
+            dto.id_recurso
+        ):
+            raise ValidationError(
+                code="ACCION_NO_PERMITIDA_PARA_RECURSO",
+                message=(
+                    f"Acción inválida: El recurso {dto.id_recurso} no admite la operación "
+                    "'E'. Solo se permiten acciones de ejecución en procesos especiales "
+                    "del catálogo."
                 ),
                 field="id_accion",
             )

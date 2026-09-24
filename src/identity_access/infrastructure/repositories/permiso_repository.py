@@ -88,6 +88,13 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
     def existe_accion(self, id_accion: int) -> bool:
         return self.db.query(Acciones).filter(Acciones.id_accion == id_accion).first() is not None
 
+    def es_proceso_especial(self, id_recurso: int) -> bool:
+        return bool(
+            self.db.query(Recursos.es_proceso_especial)
+            .filter(Recursos.id_recurso == id_recurso)
+            .scalar()
+        )
+
     def asignar(self, id_rol: int, id_recurso: int, id_accion: int, nombre_rol: str) -> Permiso:
         nombre = f"{nombre_rol}_permiso_{id_recurso}_{id_accion}"
         permiso = Permisos(
@@ -110,7 +117,7 @@ class SqlAlchemyPermisoRepository(PermisoRepository):
                 raise BusinessRuleError(
                     code="PERMISO_SOLO_ADMIN",
                     message=(
-                        "HTTP 403: Acción denegada: El rol 'Administrador' es un objeto protegido "
+                        "Acción denegada: El rol 'Administrador' es un objeto protegido "
                         "por el sistema. No se permite asignar permisos administrativos a otros roles."
                     ),
                 )
