@@ -155,7 +155,7 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import tiene_permiso
+from src.shared.rbac import tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -163,16 +163,19 @@ router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
 _RECURSO = 29                  # modulo1.recursos: 'activos_biologicos'
 _RECURSO_SENSOR = 30           # modulo1.recursos: 'asociacion_sensor_activo'
 _RECURSO_BITACORA = 31         # modulo1.recursos: 'bitacora_auditoria_m02'
-_RECURSO_DATOS_CLINICOS = 59   # modulo1.recursos: 'datos_clinicos_activo'
 _ROL_PRODUCTOR = 2
 
+# Recursos sembrados por migraciones recientes (4f453b6d2b90, d944f4d8c215,
+# 2b747aaae732): se ubican por nombre con `tiene_permiso_sobre`. Sus ids salen
+# de la secuencia y difieren entre bases; con números fijos, datos clínicos y
+# el scope 'eventos' quedaron ambos en 59.
+_RECURSO_DATOS_CLINICOS = 'datos_clinicos_activo'
+
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
-# Sembrados en la migración d944f4d8c215 (v5.4.0) -- si esa migración no ha
-# corrido, estos IDs no existen todavía en modulo1.recursos.
-_RECURSO_DATOS_EVENTOS = 59    # modulo1.recursos: 'datos_analiticos_eventos'
-_RECURSO_DATOS_FASES = 60      # modulo1.recursos: 'datos_analiticos_fases'
-_RECURSO_DATOS_ESTADO = 61     # modulo1.recursos: 'datos_analiticos_estado'
-_RECURSO_DATOS_METRICAS = 62   # modulo1.recursos: 'datos_analiticos_metricas'
+_RECURSO_DATOS_EVENTOS = 'datos_analiticos_eventos'
+_RECURSO_DATOS_FASES = 'datos_analiticos_fases'
+_RECURSO_DATOS_ESTADO = 'datos_analiticos_estado'
+_RECURSO_DATOS_METRICAS = 'datos_analiticos_metricas'
 _SCOPES_TIPO_DATO = {
     'eventos': _RECURSO_DATOS_EVENTOS,
     'fases': _RECURSO_DATOS_FASES,
@@ -248,8 +251,8 @@ def _verificar_scope_tipo_dato(
         if tipo_dato == 'todos'
         else [(tipo_dato, _SCOPES_TIPO_DATO[tipo_dato])]
     )
-    for nombre_tipo, id_recurso_scope in requeridos:
-        if tiene_permiso(db, usuario_actual.id_rol, id_recurso_scope, 2):
+    for nombre_tipo, recurso_scope in requeridos:
+        if tiene_permiso_sobre(db, usuario_actual.id_rol, recurso_scope, 2):
             continue
         mensaje = (
             f'Acceso denegado: El módulo solicitante no tiene autorización '
@@ -261,7 +264,7 @@ def _verificar_scope_tipo_dato(
         ).execute(
             rf_origen='RF50',
             id_usuario=usuario_actual.id_usuario,
-            id_recurso=id_recurso_scope,
+            id_recurso=recurso_scope,
             id_accion=2,
             error_code='SCOPE_TIPO_DATO_NO_AUTORIZADO',
             causa=mensaje,
@@ -890,7 +893,7 @@ def consultar_eventos(
     # dedicado sobre `_RECURSO_DATOS_CLINICOS` para ver diagnostico/
     # medicamento/dosis del historial sanitario (RF-46 solo reconoce a
     # Productor/Veterinario/Administrador como actores de esa categoria).
-    if not tiene_permiso(db, usuario_actual.id_rol, _RECURSO_DATOS_CLINICOS, 2):
+    if not tiene_permiso_sobre(db, usuario_actual.id_rol, _RECURSO_DATOS_CLINICOS, 2):
         respuestas = _redactar_datos_clinicos(respuestas)
     return HistorialEventosResponse(
         id_activo_biologico=id_activo,

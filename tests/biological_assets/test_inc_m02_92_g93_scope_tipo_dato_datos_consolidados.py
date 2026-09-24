@@ -65,15 +65,15 @@ def _request(id_activo: int = 7) -> Request:
     )
 
 
-def _tiene_permiso_fake(recursos_concedidos: set[int]):
-    def _fake(_db, _id_rol, id_recurso, _id_accion):
-        return id_recurso in recursos_concedidos
+def _tiene_permiso_fake(recursos_concedidos: set[str]):
+    def _fake(_db, _id_rol, nombre_recurso, _id_accion):
+        return nombre_recurso in recursos_concedidos
     return _fake
 
 
 def test_scope_concedido_no_lanza(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        router_module, 'tiene_permiso',
+        router_module, 'tiene_permiso_sobre',
         _tiene_permiso_fake({router_module._RECURSO_DATOS_METRICAS}),
     )
     db = DbFake()
@@ -85,7 +85,7 @@ def test_scope_concedido_no_lanza(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_scope_ausente_lanza_403_con_mensaje_literal_de_rf50(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(router_module, 'tiene_permiso', _tiene_permiso_fake(set()))
+    monkeypatch.setattr(router_module, 'tiene_permiso_sobre', _tiene_permiso_fake(set()))
     db = DbFake()
 
     with pytest.raises(AuthorizationError) as exc:
@@ -102,7 +102,7 @@ def test_scope_ausente_lanza_403_con_mensaje_literal_de_rf50(monkeypatch: pytest
 
 
 def test_scope_ausente_registra_rechazo_en_bitacora_rf52(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(router_module, 'tiene_permiso', _tiene_permiso_fake(set()))
+    monkeypatch.setattr(router_module, 'tiene_permiso_sobre', _tiene_permiso_fake(set()))
     db = DbFake()
 
     with pytest.raises(AuthorizationError):
@@ -117,7 +117,7 @@ def test_todos_exige_los_4_scopes_estricto(monkeypatch: pytest.MonkeyPatch) -> N
     # que siembra la migración d944f4d8c215 para 'Integración M04', para que
     # QA pueda reejecutar TC-M02-155 tal cual sin fabricar nada.
     monkeypatch.setattr(
-        router_module, 'tiene_permiso',
+        router_module, 'tiene_permiso_sobre',
         _tiene_permiso_fake({
             router_module._RECURSO_DATOS_EVENTOS,
             router_module._RECURSO_DATOS_FASES,
@@ -135,7 +135,7 @@ def test_todos_exige_los_4_scopes_estricto(monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_todos_concedido_cuando_los_4_scopes_estan(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        router_module, 'tiene_permiso',
+        router_module, 'tiene_permiso_sobre',
         _tiene_permiso_fake(set(router_module._SCOPES_TIPO_DATO.values())),
     )
     db = DbFake()
@@ -143,3 +143,10 @@ def test_todos_concedido_cuando_los_4_scopes_estan(monkeypatch: pytest.MonkeyPat
     router_module._verificar_scope_tipo_dato(db, _usuario(), 'todos', _request(), 7)
 
     assert db.agregados == []
+
+
+def test_recursos_rbac_del_router_no_se_pisan() -> None:
+    """Con ids fijos, datos clínicos (#417) y el scope 'eventos' (RF-50) quedaron
+    ambos en 59: un permiso concedía el otro."""
+    recursos = [router_module._RECURSO_DATOS_CLINICOS, *router_module._SCOPES_TIPO_DATO.values()]
+    assert len(set(recursos)) == len(recursos) == 5
