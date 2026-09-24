@@ -603,6 +603,21 @@ class EventoAuditoria:
         return causas
 
 
+@dataclass
+class RegistroRf46:
+    """Una fila del historial RF-46, identificada por su tabla de origen (RF-52 E5)."""
+    tabla: str
+    id: int
+    id_activo_biologico: Optional[int] = None
+
+
+@dataclass
+class MarcaReconciliacion:
+    """Hasta qué id de cada tabla del historial revisó una corrida de reconciliación."""
+    registrada_en: datetime
+    hasta: dict[str, int]
+
+
 def registros_rf46(**ids_por_tabla: Optional[int]) -> list[dict]:
     """RF-52 E5: llave que une una entrada de la bitácora con las filas del historial
     RF-46 que produjo la misma operación, para poder reconciliar una con otra.

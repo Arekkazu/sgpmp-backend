@@ -669,3 +669,221 @@ def test_rf52_e5_el_avance_automatico_de_fase_queda_en_la_bitacora() -> None:
     [evento] = bitacora_repo.eventos
     assert evento.tipo_evento == 'FASE_AVANZADA_AUTOMATICAMENTE'
     assert evento.detalle_tecnico['registros_rf46'] == [{'tabla': 'gestiones_fases', 'id': 55}]
+
+
+# --------------------------------------------------------------------------- #
+# RF-52 E5 — reconciliación diaria, aviso al administrador y registro correctivo
+# --------------------------------------------------------------------------- #
+
+from src.biological_assets.application.use_cases.auditoria.notificar_inconsistencia_auditoria_use_case import (  # noqa: E402
+    NotificarInconsistenciaAuditoriaUseCase,
+)
+from src.biological_assets.application.use_cases.auditoria.reconciliar_bitacora_historial_use_case import (  # noqa: E402
+    ReconciliarBitacoraHistorialUseCase,
+)
+from src.biological_assets.application.use_cases.auditoria.registrar_correctivo_auditoria_use_case import (  # noqa: E402
+    RegistrarCorrectivoAuditoriaUseCase,
+)
+from src.biological_assets.domain.entities.activo_biologico import MarcaReconciliacion, RegistroRf46  # noqa: E402
+from src.biological_assets.infrastructure.dto.registrar_correctivo_auditoria_dto import (  # noqa: E402
+    RegistrarCorrectivoAuditoriaDTO,
+)
+from src.shared.errors import NotFoundError  # noqa: E402
+
+HACE_UN_DIA = AHORA - timedelta(days=1)
+HACE_DOS_DIAS = AHORA - timedelta(days=2)
+
+
+class _ReconciliacionRepo:
+    def __init__(self, marcas=(), faltantes=(), turno=True, registro=None, auditado=False) -> None:
+        self.marcas = list(marcas)
+        self.faltantes = list(faltantes)
+        self.turno = turno
+        self.registro = registro
+        self.auditado = auditado
+        self.ventana = None
+
+    def adquirir_turno(self) -> bool:
+        return self.turno
+
+    def ids_maximos(self) -> dict:
+        return {'eventos_activos': 30}
+
+    def ultimas_marcas(self, limite: int):
+        return self.marcas[:limite]
+
+    def registros_sin_bitacora(self, desde, hasta, bitacora_desde):
+        self.ventana = (desde, hasta, bitacora_desde)
+        return self.faltantes
+
+    def obtener_registro(self, tabla, id_registro):
+        return self.registro
+
+    def tiene_auditoria(self, tabla, id_registro) -> bool:
+        return self.auditado
+
+
+def _reconciliar(repo: _ReconciliacionRepo):
+    bitacora_repo, db = _Bitacora(), _Db()
+    resultado = ReconciliarBitacoraHistorialUseCase(db=db, repo=repo, bitacora_repo=bitacora_repo).execute()
+    return resultado, bitacora_repo, db
+
+
+@pytest.mark.parametrize('marcas', [
+    pytest.param([], id='primera-corrida'),
+    pytest.param([MarcaReconciliacion(HACE_UN_DIA, {'eventos_activos': 20})], id='segunda-corrida'),
+])
+def test_rf52_e5_sin_dos_marcas_solo_fija_el_punto_de_partida(marcas) -> None:
+    repo = _ReconciliacionRepo(marcas=marcas, faltantes=[RegistroRf46('eventos_activos', 5)])
+
+    resultado, bitacora_repo, db = _reconciliar(repo)
+
+    assert resultado.ventana_revisada is False
+    assert repo.ventana is None  # lo anterior a la llave no se revisa
+    [marca] = bitacora_repo.eventos
+    assert marca.tipo_evento == 'RECONCILIACION_RF46_RF52'
+    assert marca.detalle_tecnico['hasta'] == {'eventos_activos': 30}
+    assert db.commits == 1
+
+
+def test_rf52_e5_revisa_con_una_corrida_de_retraso_y_alerta_lo_que_falta() -> None:
+    ultima = MarcaReconciliacion(HACE_UN_DIA, {'eventos_activos': 20})
+    penultima = MarcaReconciliacion(HACE_DOS_DIAS, {'eventos_activos': 10})
+    repo = _ReconciliacionRepo(marcas=[ultima, penultima], faltantes=[RegistroRf46('eventos_activos', 15, 53)])
+
+    resultado, bitacora_repo, db = _reconciliar(repo)
+
+    desde, hasta, bitacora_desde = repo.ventana
+    assert (desde, hasta) == ({'eventos_activos': 10}, {'eventos_activos': 20})
+    assert bitacora_desde < HACE_DOS_DIAS  # margen sobre la hora de la marca
+    alerta, marca = bitacora_repo.eventos
+    assert (alerta.tipo_evento, alerta.severidad_log) == ('INCONSISTENCIA_RF46_RF52', 'CRITICAL')
+    assert alerta.detalle_tecnico['registros_rf46'] == [
+        {'tabla': 'eventos_activos', 'id': 15, 'id_activo_biologico': 53},
+    ]
+    assert marca.detalle_tecnico['inconsistencias'] == 1
+    assert db.commits == 1
+    assert resultado.inconsistencias == [RegistroRf46('eventos_activos', 15, 53)]
+
+
+def test_rf52_e5_sin_faltantes_no_hay_alerta() -> None:
+    marcas = [MarcaReconciliacion(HACE_UN_DIA, {'eventos_activos': 20}), MarcaReconciliacion(HACE_DOS_DIAS, {})]
+
+    resultado, bitacora_repo, _ = _reconciliar(_ReconciliacionRepo(marcas=marcas))
+
+    assert resultado.ventana_revisada is True
+    assert [e.tipo_evento for e in bitacora_repo.eventos] == ['RECONCILIACION_RF46_RF52']
+
+
+def test_rf52_e5_otra_replica_con_el_turno_no_escribe_nada() -> None:
+    resultado, bitacora_repo, db = _reconciliar(_ReconciliacionRepo(turno=False))
+
+    assert resultado.turno_adquirido is False
+    assert bitacora_repo.eventos == []
+    assert db.commits == 0
+
+
+def _correctivo(repo: _ReconciliacionRepo, **campos):
+    base = dict(tabla='eventos_activos', id_registro=15, motivo='  El worker murió antes de auditar  ')
+    base.update(campos)
+    bitacora_repo = _Bitacora()
+    uc = RegistrarCorrectivoAuditoriaUseCase(db=_Db(), repo=repo, bitacora_repo=bitacora_repo)
+    return uc.execute(RegistrarCorrectivoAuditoriaDTO(**base), USUARIO), bitacora_repo
+
+
+def test_rf52_e5_registro_correctivo_completa_el_rastro() -> None:
+    evento, bitacora_repo = _correctivo(_ReconciliacionRepo(registro=RegistroRf46('eventos_activos', 15, 53)))
+
+    assert bitacora_repo.eventos == [evento]
+    assert evento.tipo_evento == 'REGISTRO_CORRECTIVO_AUDITORIA'
+    assert evento.id_activo_biologico == 53
+    assert evento.id_usuario_responsable == USUARIO.id_usuario
+    assert evento.detalle_tecnico == {
+        'registros_rf46': [{'tabla': 'eventos_activos', 'id': 15}],
+        'motivo': 'El worker murió antes de auditar',
+    }
+
+
+def test_rf52_e5_correctivo_de_un_registro_inexistente_es_404() -> None:
+    with pytest.raises(NotFoundError) as error:
+        _correctivo(_ReconciliacionRepo(registro=None))
+
+    assert error.value.status_code == 404
+
+
+def test_rf52_e5_correctivo_de_un_registro_ya_auditado_es_409() -> None:
+    with pytest.raises(ConflictError) as error:
+        _correctivo(_ReconciliacionRepo(registro=RegistroRf46('eventos_activos', 15, 53), auditado=True))
+
+    assert error.value.code == 'REGISTRO_YA_AUDITADO'
+    assert error.value.status_code == 409
+
+
+@pytest.mark.parametrize('campos', [
+    pytest.param({'tabla': 'indicadores_zootecnicos'}, id='tabla-fuera-del-historial'),
+    pytest.param({'motivo': '   '}, id='motivo-vacio'),
+    pytest.param({'id_registro': 0}, id='id-no-positivo'),
+])
+def test_rf52_e5_correctivo_rechaza_datos_invalidos_en_el_dto(campos) -> None:
+    from pydantic import ValidationError as PydanticValidationError
+
+    base = dict(tabla='eventos_activos', id_registro=15, motivo='motivo')
+    base.update(campos)
+    with pytest.raises(PydanticValidationError):
+        RegistrarCorrectivoAuditoriaDTO(**base)
+
+
+class _UsuariosRepo:
+    def __init__(self, ids: list[int]) -> None:
+        self.ids = ids
+        self.consulta = None
+
+    def listar_ids_con_permiso(self, id_recurso: int, id_accion: int) -> list[int]:
+        self.consulta = (id_recurso, id_accion)
+        return self.ids
+
+
+class _EventosModulo1:
+    def __init__(self) -> None:
+        self.registrados: list[dict] = []
+
+    def registrar(self, **evento) -> None:
+        self.registrados.append(evento)
+
+
+class _Notificaciones:
+    def __init__(self) -> None:
+        self.enviadas: list[dict] = []
+
+    def buscar_ultimo_evento_id(self, id_usuario: int, tipo_evento: int) -> int:
+        return 900
+
+    def registrar(self, **notificacion) -> int:
+        self.enviadas.append(notificacion)
+        return len(self.enviadas)
+
+
+def test_rf52_e5_alerta_a_quien_puede_crear_el_correctivo() -> None:
+    usuarios, eventos, notificaciones, db = _UsuariosRepo([4, 9]), _EventosModulo1(), _Notificaciones(), _Db()
+    uc = NotificarInconsistenciaAuditoriaUseCase(
+        eventos_repo=eventos, notificaciones_repo=notificaciones, usuarios_repo=usuarios, db=db,
+    )
+
+    avisados = uc.execute([RegistroRf46('movimientos', 17, 20)])
+
+    assert avisados == 2
+    assert usuarios.consulta == (31, 1)  # crear sobre bitacora_auditoria_m02
+    assert eventos.registrados[0]['tipo_evento'] == 28
+    assert [n['id_usuario'] for n in notificaciones.enviadas] == [4, 9]
+    assert all(n['id_evento'] == 900 and n['id_canal'] == 2 for n in notificaciones.enviadas)
+    assert db.commits == 1
+
+
+def test_rf52_e5_sin_destinatarios_no_registra_evento() -> None:
+    eventos = _EventosModulo1()
+    uc = NotificarInconsistenciaAuditoriaUseCase(
+        eventos_repo=eventos, notificaciones_repo=_Notificaciones(), usuarios_repo=_UsuariosRepo([]), db=_Db(),
+    )
+
+    assert uc.execute([RegistroRf46('movimientos', 17, 20)]) == 0
+    assert eventos.registrados == []
