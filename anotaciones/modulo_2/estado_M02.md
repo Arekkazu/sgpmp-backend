@@ -108,7 +108,8 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
   `vet_actualizar_activo_biologico` (rol 3, recurso 29, acción U=3).
 - ~~**No valida "eventos pendientes sin cerrar" ni "inconsistencias en el historial"**~~
   **Corregido.** `_event_validations.py` agrega `validar_sin_eventos_pendientes`
-  (422 `EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en `EN_TRATAMIENTO`/`AISLADO`)
+  (409 `EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en `EN_TRATAMIENTO`/`AISLADO`;
+  era 422 hasta INC-M02-G22)
   y `validar_historial_consistente` (422 `HISTORIAL_INCONSISTENTE` si el
   último registro de histórico no coincide con `id_estado`) — ver
   `anotaciones/modulo_2/cu02_gaps_bd_rf35_fix_rbac_concurrencia.md` para la

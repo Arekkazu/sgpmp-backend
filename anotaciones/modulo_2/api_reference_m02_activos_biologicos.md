@@ -200,12 +200,16 @@ Sin input adicional (path param `id_activo: int`).
 | `peso_inicial` | `Decimal \| None` | Opcional |
 | `fecha_actualizacion` | `datetime \| None` | Concurrencia optimista (RF-35). `null` si el activo nunca fue editado. |
 
-Validador `al_menos_un_campo`: al menos uno de los 4 campos editables debe venir con valor (si no, 422).
+Validador `al_menos_un_campo`: al menos uno de los 4 campos editables debe venir con valor (si no, `400 VAL_ENTRADA`).
+
+`extra='forbid'` (INC-M02-G22): cualquier campo fuera de la tabla responde `400 VAL_ENTRADA` en vez de ignorarse.
+`estado_activo` lleva mensaje propio que remite al cambio de estado (RF-44); `especie_id`, `tipo`, etc. usan el
+genérico "Este campo no está permitido en esta solicitud."
 
 Validaciones adicionales antes de aplicar el cambio (tarea Taiga RF-35 RBAC
 Vet/eventos/concurrencia):
 - `412 CONFLICTO_CONCURRENCIA` si `fecha_actualizacion` no coincide con el valor actual en BD.
-- `422 EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en estado `EN_TRATAMIENTO`/`AISLADO`.
+- `409 EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en estado `EN_TRATAMIENTO`/`AISLADO` (era 422 hasta INC-M02-G22).
 - `422 HISTORIAL_INCONSISTENTE` si el último registro de `historicos_estados_activos` no coincide con el `id_estado` actual del activo.
 
 **Response:** `ActivoBiologicoResponse` (incluye `fecha_actualizacion`)

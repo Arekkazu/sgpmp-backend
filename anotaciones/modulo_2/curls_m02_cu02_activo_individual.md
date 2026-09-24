@@ -79,9 +79,9 @@ Errores posibles:
 - `400 TIPO_INVALIDO` — el activo es POBLACIONAL (no tiene detalle individual)
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe
 - `412 CONFLICTO_CONCURRENCIA` — `fecha_actualizacion` no coincide con el valor actual en BD (el activo fue modificado por otro usuario desde el último `GET`)
-- `422 EVENTO_PENDIENTE_SIN_CERRAR` — el activo está en estado `EN_TRATAMIENTO`/`AISLADO` (evento sanitario sin cerrar)
+- `409 EVENTO_PENDIENTE_SIN_CERRAR` — el activo está en estado `EN_TRATAMIENTO`/`AISLADO` (evento sanitario sin cerrar)
 - `422 HISTORIAL_INCONSISTENTE` — el último registro de `historicos_estados_activos` no coincide con el `id_estado` actual del activo
-- `422` (validación Pydantic) — ningún campo enviado en el body
+- `400 VAL_ENTRADA` — ningún campo editable enviado, o se envió un campo no editable (`estado_activo`, `especie_id`, `tipo`...) — INC-M02-G22
 - `403 ACCESO_DENEGADO` — sin permiso U sobre `activos_biologicos`
 
 #### Caso FA: PATCH con fecha_actualizacion desactualizada → 412
@@ -101,7 +101,36 @@ Respuesta esperada `412`:
 }
 ```
 
-#### Caso FA: PATCH sobre activo con evento sanitario pendiente → 422
+#### Caso FA: PATCH con `estado_activo` en el body → 400 (INC-M02-G22)
+
+El estado no se edita en RF-35, solo vía `PATCH /activos-biologicos/{id}/estado`
+(RF-44). Antes se ignoraba en silencio y respondía `200`.
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/51 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"raza": "XYZ", "estado_activo": "BAJA"}'
+```
+
+Respuesta esperada `400`:
+```json
+{
+  "error_code": "VAL_ENTRADA",
+  "message": "Errores de validacion en la solicitud",
+  "fields": [
+    {
+      "field": "estado_activo",
+      "message": "El estado del activo no se puede modificar en esta operación. Use el cambio de estado del activo (RF-44)."
+    }
+  ]
+}
+```
+
+Cualquier otro campo no editable (`especie_id`, `tipo`...) responde igual, con
+`"message": "Este campo no está permitido en esta solicitud."`.
+
+#### Caso FA: PATCH sobre activo con evento sanitario pendiente → 409
 
 ```bash
 curl -X PATCH http://localhost:8000/activos-biologicos/51 \
@@ -110,10 +139,11 @@ curl -X PATCH http://localhost:8000/activos-biologicos/51 \
   -d '{"raza": "XYZ"}'
 ```
 
-Respuesta esperada `422` (activo en estado `EN_TRATAMIENTO` o `AISLADO`):
+Respuesta esperada `409` (activo en estado `EN_TRATAMIENTO` o `AISLADO`; era
+`422` hasta INC-M02-G22):
 ```json
 {
-  "code": "EVENTO_PENDIENTE_SIN_CERRAR",
+  "error_code": "EVENTO_PENDIENTE_SIN_CERRAR",
   "message": "No se puede editar el activo mientras tenga un evento sanitario pendiente sin cerrar (estado actual: EN_TRATAMIENTO). Cambie el estado de vuelta a ACTIVO, INACTIVO o CERRADO antes de editar sus datos."
 }
 ```
