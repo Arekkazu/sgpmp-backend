@@ -58,6 +58,14 @@ class PermisoRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def es_proceso_especial(self, id_recurso: int) -> bool:
+        """Indica si el recurso es un proceso especial del catálogo.
+
+        RF-04 restringe la acción Ejecutar (``E``) a este tipo de recurso.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
     def asignar(self, id_rol: int, id_recurso: int, id_accion: int, nombre_rol: str) -> Permiso:
         """Crea y persiste un permiso para el rol indicado (hace ``flush``, sin ``commit``).
 

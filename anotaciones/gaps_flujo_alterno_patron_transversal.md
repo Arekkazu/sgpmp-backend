@@ -2,6 +2,9 @@
 
 Síntesis de los tres audits de solo lectura (`anotaciones/modulo_1/gaps_flujo_alterno_modulo1.md`,
 `anotaciones/modulo_9/gaps_flujo_alterno_modulo9.md`, `anotaciones/modulo_2/gaps_flujo_alterno_modulo2.md`).
+> **Estado (2026-09-22):** los 9 ❌ del Módulo 1 están corregidos (rama `fix/gaps-flujo-alterno-m01`).
+> Este documento conserva el diagnóstico estructural completo; las menciones a M1 se anotan con
+> **(corregido en M1)** donde aplica. M9 y M2 siguen sin tocar.
 > **Estado (2026-09-22):** los 9 ❌ del Módulo 1 (rama `fix/gaps-flujo-alterno-m01`) y los 11 ❌ del
 > Módulo 9 (rama `fix/gaps-flujo-alterno-m09`) están corregidos. Este documento conserva el
 > diagnóstico estructural completo; las menciones ya resueltas se anotan con **(corregido)** donde
@@ -44,6 +47,14 @@ justamente los que auditan en cero gaps de código HTTP.
 
 | Dirección | Dónde aparece | Ejemplo |
 |---|---|---|
+| DTO/Pydantic → 400, RF pide 422/403 (falta subir) | M1 RF-05 **(corregido en M1)** | Escalada de privilegios (`extra="forbid"` en `EditarPerfilDTO`) rechazaba con 400 genérico de Pydantic antes de que el use case pudiera auditar el intento o lanzar `AuthorizationError`→403. El fix: declarar los campos críticos en el DTO propio para que el rechazo lo haga el use case |
+| | M2 RF-40/41/42 (vía `_event_validations.py::validar_fecha_evento`, compartida) | Fecha de evento inválida da 422, RF pide 400 — pero aquí es al revés: **use case sube a 422 algo que el RF llama validación básica (400)** |
+| | M2 RF-44 | Fecha futura / motivo vacío → 400 (Pydantic), RF pide 422 |
+| | M2 RF-46 | Filtro de fecha inicio>fin → 400 (Pydantic), RF pide 422 |
+| Use case/BusinessRuleError → 422, RF pide 400 (sobra) | M9 RF-17 | Solapamiento de niveles de alerta → 422, RF pide 400 |
+| | M9 RF-20 | Tipo de área no reconocido → 422, RF pide 400 |
+| | M2 RF-43 (caso inverso al de RF-40/41/42) | 3 de 9 casos (fecha, cantidad, unidad) usan `ValidationError`(400) donde el propio RF-43 etiqueta explícitamente "Error de validación — HTTP 422" |
+| Código HTTP de familia distinta a la esperada | M9 RF-26 | Formato de imagen inválido → 400, RF pide 415 (Unsupported Media Type) |
 | DTO/Pydantic → 400, RF pide 422/403 (falta subir) | M1 RF-05 **(corregido)** | Escalada de privilegios (`extra="forbid"` en `EditarPerfilDTO`) rechazaba con 400 genérico de Pydantic antes de que el use case pudiera auditar el intento o lanzar `AuthorizationError`→403. El fix: declarar los campos críticos en el DTO propio para que el rechazo lo haga el use case |
 | | M2 RF-40/41/42 (vía `_event_validations.py::validar_fecha_evento`, compartida) | Fecha de evento inválida da 422, RF pide 400 — pero aquí es al revés: **use case sube a 422 algo que el RF llama validación básica (400)** |
 | | M2 RF-44 | Fecha futura / motivo vacío → 400 (Pydantic), RF pide 422 |
@@ -83,6 +94,7 @@ operación, solo que con dos HTTP distintos en vez de uno. La dirección del mis
 - La mayoría de los RFs de M9 piden el mismo código para ambos sub-casos y el sistema los separa
   (⚠️ parcial en la mitad del caso).
 - M9 RF-22 (área productiva inexistente/inactiva) va al revés de lo esperado: el RF pide 404 para
+  ambos, el código da 422 para "inactiva" — ahí sí es un ❌ franco, no solo un split.
   ambos, el código da 422 para "inactiva" — ahí sí era un ❌ franco, no solo un split. **(corregido:
   las dos ramas responden 404 con el mensaje del RF.)**
 
@@ -115,6 +127,9 @@ plantilla de configuración) piden HTTP distintos para el mismo escenario:
   y el conflicto de modificación concurrente propiamente dicho → **409**, no 412.
 
 El código implementó el patrón 412 de forma consistente con RF-30 y con el resto del módulo, pero
+eso lo deja en gap contra la letra de RF-32. Antes de tocar código aquí, vale más la pena que
+Análisis unifique qué HTTP quiere el negocio para concurrencia en plantillas, porque los dos RF
+fuente ya se contradicen entre sí.
 eso lo dejaba en gap contra la letra de RF-32.
 
 **Cómo se resolvió (2026-09-22):** a favor de RF-32, pero **solo en el endpoint de aplicación**. La
@@ -149,6 +164,8 @@ existe en ningún punto del código, por lo que ni siquiera hay un HTTP "equivoc
 |---|---|---|
 | M1 | RF-01 **(corregido)** | El caso "SMTP falla 3 veces → 503" era arquitectónicamente irreproducible: el correo se agendaba con `BackgroundTasks` **después** del `201`. Ahora se despacha dentro del request con `NotificacionService` y el fallo del canal EMAIL se traduce a 503 |
 | M1 | RF-11 **(corregido)** | No existía ningún `410 Gone` por eliminación lógica concurrente. Ahora `EditarPerfilUseCase` lo emite cuando la cuenta objetivo está en ELIMINADO |
+| M9 | RF-17 | Sin ningún mecanismo de notificación/sincronización a nodos Edge al guardar un umbral ambiental |
+| M9 | RF-25 | Nunca devuelve `204` para una finca sin catálogo configurado (siempre `200`); tampoco hay `504` por timeout de carga de contexto |
 | M9 | RF-17 **(corregido)** | No existía notificación/sincronización a nodos Edge al guardar un umbral. Lo cerró INC-M09-104-G29 (PR #385) entre la auditoría y la corrección del módulo: `EdgeSincronizacionPort` propaga post-commit y el estado de sincronización se persiste |
 | M9 | RF-25 **(corregido)** | Nunca devolvía `204` para una finca sin catálogo (siempre `200`) ni `504` por timeout. El 204 exigió sumar `tiene_infraestructura` al read-model —el RF lo define sobre especies **e** infraestructura a la vez—; el 504 se impone de verdad con `SET LOCAL statement_timeout = 2000` y la traducción del SQLSTATE `57014`, no midiendo después de esperar de más |
 | M9 | RF-32 **(corregido)** | El snapshot se aplicaba sin revalidar sus referencias: una variable ambiental eliminada reventaba abajo como violación de FK, y después de haber desactivado ya la configuración de la especie destino. Ahora se verifica antes de tocar nada |
@@ -194,6 +211,15 @@ excepción en los tres audits:
 
 1. **Más barato de arreglar, más ruido en QA:** Patrón 1 y 2. Son cambios de una línea (qué
    excepción se lanza) en use cases ya escritos y probados en su lógica — el fix no toca reglas de
+   negocio, solo la clase de error. *Confirmado al corregir M1: los cinco casos de este tipo
+   (RF-01 token, RF-03, RF-06 ×2 y RF-14) fueron exactamente eso.*
+2. **Requiere alinear el propio corpus de RFs primero:** Patrón 3 (RF-30 vs RF-32 se contradicen).
+3. **No es un bug, es documentación desactualizada del RF:** Patrón 4.
+4. **Más caro, requiere diseño nuevo:** Patrón 5 — son features ausentes (buffer de auditoría, cola
+   con prioridad, sync a Edge, detección de outliers, validación cruzada de especie), no fixes de
+   una línea. *Los dos casos de M1 (RF-01 SMTP y RF-11 410) costaron más que un cambio de excepción
+   pero no requirieron infraestructura nueva: bastó mover el envío del correo al request y leer el
+   estado de la cuenta antes de editar.*
    negocio, solo la clase de error. *Confirmado dos veces: los cinco casos de M1 (RF-01 token,
    RF-03, RF-06 ×2 y RF-14) y los cuatro de M9 (RF-17, RF-20, RF-22, RF-26) fueron exactamente eso.
    La única excepción fue RF-26, que además necesitó una clase nueva en la jerarquía compartida
