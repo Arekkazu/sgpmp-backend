@@ -1,3 +1,10 @@
+## [1.0.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.52...v1.0.0-rc.53) (2026-09-24)
+
+### Bug Fixes
+
+* **alembic:** unir heads 1b9536d4411c y 6d8b88392ac8 y crear el check de bitacora como not valid ([8bbba7f](https://github.com/Arekkazu/sgpmp-backend/commit/8bbba7f6aebf8b856008e0efe51815f9596d96cb)), closes [#445](https://github.com/Arekkazu/sgpmp-backend/issues/445) [#387](https://github.com/Arekkazu/sgpmp-backend/issues/387)
+* **rf35:** rechazar estado_activo con 400 y bloquear evento pendiente con 409 en patch de activo (INC-M02-G22) ([b77f812](https://github.com/Arekkazu/sgpmp-backend/commit/b77f8124b774253a23fb74bf063b6944a27f2558))
+
 ## [1.0.0-rc.52](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.51...v1.0.0-rc.52) (2026-09-24)
 
 ### Bug Fixes
