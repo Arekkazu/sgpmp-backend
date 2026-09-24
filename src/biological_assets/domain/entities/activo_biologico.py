@@ -320,6 +320,7 @@ class ActivoBiologico:
     detalle_poblacional: Optional[DetallePoblacional] = None
     id_activo_biologico: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
     nombre_estado: Optional[str] = None
 
     @classmethod

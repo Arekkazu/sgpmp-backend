@@ -72,7 +72,7 @@ Nota sobre el trigger de BD: `trg_auditar_activo_biologico` exige `SET LOCAL app
 | `POST` | `/` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarActivoBiologicoUseCase` |
 | `GET` | `/` | `(29, R)` | Admin, Prod, Vet, Ing | `ListarActivosUseCase` |
 | `GET` | `/{id_activo}` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarActivoUseCase` |
-| `PATCH` | `/{id_activo}` | `(29, U)` | Admin, Prod, Ing | `ActualizarActivoIndividualUseCase` |
+| `PATCH` | `/{id_activo}` | `(29, U)` | Admin, Prod, Vet, Ing | `ActualizarActivoIndividualUseCase` |
 
 #### `POST /activos-biologicos/` — Registrar activo biológico
 
@@ -119,6 +119,7 @@ Validadores de modelo: `validar_segun_tipo` (reglas INDIVIDUAL/POBLACIONAL de ar
 | `nombre_estado` | `str \| None` |
 | `id_usuario` | `int` |
 | `fecha_creacion` | `datetime \| None` |
+| `fecha_actualizacion` | `datetime \| None` — concurrencia optimista (RF-35, tarea Taiga RBAC Vet/eventos/concurrencia) |
 | `detalle_individual` | `DetalleIndividualResponse \| None` |
 | `detalle_poblacional` | `DetallePoblacionalResponse \| None` |
 
@@ -197,10 +198,17 @@ Sin input adicional (path param `id_activo: int`).
 | `sexo` | `str \| None` | Opcional |
 | `fecha_nacimiento` | `datetime \| None` | Opcional |
 | `peso_inicial` | `Decimal \| None` | Opcional |
+| `fecha_actualizacion` | `datetime \| None` | Concurrencia optimista (RF-35). `null` si el activo nunca fue editado. |
 
-Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor (si no, 422).
+Validador `al_menos_un_campo`: al menos uno de los 4 campos editables debe venir con valor (si no, 422).
 
-**Response:** `ActivoBiologicoResponse`
+Validaciones adicionales antes de aplicar el cambio (tarea Taiga RF-35 RBAC
+Vet/eventos/concurrencia):
+- `412 CONFLICTO_CONCURRENCIA` si `fecha_actualizacion` no coincide con el valor actual en BD.
+- `422 EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en estado `EN_TRATAMIENTO`/`AISLADO`.
+- `422 HISTORIAL_INCONSISTENTE` si el último registro de `historicos_estados_activos` no coincide con el `id_estado` actual del activo.
+
+**Response:** `ActivoBiologicoResponse` (incluye `fecha_actualizacion`)
 
 ---
 
@@ -765,7 +773,7 @@ Notas:
 |-------|--------------------------------------|
 | `RegistrarActivoBiologicoUseCase` | `(dto: RegistrarActivoBiologicoDTO, usuario: UsuarioActual) → ActivoBiologico` |
 | `ConsultarActivoUseCase` | `(id_activo: int, usuario: UsuarioActual \| None = None) → ActivoBiologico` |
-| `ActualizarActivoIndividualUseCase` | `(id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) → ActivoBiologico` |
+| `ActualizarActivoIndividualUseCase` | `(id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual, *, ids_fincas_permitidas=None) → ActivoBiologico` (constructor requiere `historico_repo` desde la tarea Taiga RF-35 RBAC Vet/eventos/concurrencia) |
 | `CambiarEstadoUseCase` | `(id_activo: int, dto: CambiarEstadoDTO, usuario: UsuarioActual) → HistoricoEstado` |
 | `CerrarCicloUseCase` | `(id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) → HistoricoEstado` |
 | `CambiarFaseUseCase` | `(id_activo: int, dto: CambiarFaseDTO, usuario: UsuarioActual) → GestionFase` |

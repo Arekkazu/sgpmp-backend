@@ -102,10 +102,29 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 ### Qué NO cumple / gaps
 
-- **Discrepancia de RBAC confirmada: Veterinario, listado explícitamente como actor de RF-35, no tiene permiso de actualización.** Verificado en vivo contra `modulo1.permisos`: para la acción de `PATCH` (U=3) sobre el recurso 29, los roles son Administrador, Ingeniero de Campo y Productor — Veterinario está ausente.
-- **No valida "eventos pendientes sin cerrar" ni "inconsistencias en el historial"** antes de aceptar una edición, pese a que el RF lo exige explícitamente en su Proceso.
+- ~~**Discrepancia de RBAC confirmada: Veterinario, listado explícitamente como actor de RF-35, no tiene permiso de actualización.**~~
+  **Corregido (tarea Taiga "RF-35: RBAC Veterinario, validar eventos
+  pendientes, concurrencia optimista").** Migración `e5ce9d42b2ec` siembra
+  `vet_actualizar_activo_biologico` (rol 3, recurso 29, acción U=3).
+- ~~**No valida "eventos pendientes sin cerrar" ni "inconsistencias en el historial"**~~
+  **Corregido.** `_event_validations.py` agrega `validar_sin_eventos_pendientes`
+  (422 `EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en `EN_TRATAMIENTO`/`AISLADO`)
+  y `validar_historial_consistente` (422 `HISTORIAL_INCONSISTENTE` si el
+  último registro de histórico no coincide con `id_estado`) — ver
+  `anotaciones/modulo_2/cu02_gaps_bd_rf35_fix_rbac_concurrencia.md` para la
+  interpretación aplicada (el texto completo del RF-35 no está en el repo,
+  así que esta interpretación queda pendiente de confirmación del grupo de
+  análisis).
 - No hay ningún vínculo/atajo desde este RF hacia el registro de eventos asociados, ni hacia "transferir ubicación" — ambos listados como operaciones disponibles en el texto del RF, aunque viven correctamente en otros RFs (separación de responsabilidad razonable, pero sin ningún puente).
-- Sin concurrencia optimista (ni 412 ni versión) en el `PATCH`, a diferencia del patrón documentado como estándar del proyecto en `CLAUDE.md`.
+- ~~Sin concurrencia optimista (ni 412 ni versión) en el `PATCH`~~
+  **Corregido.** Migración `ccc0b8df02a6` agrega `fecha_actualizacion` a
+  `activos_biologicos`; el use case aplica el patrón estándar de `CLAUDE.md`
+  (`PreconditionFailedError` / `CONFLICTO_CONCURRENCIA`, comparación UTC con
+  doble rama `None`). De paso se corrigió un bug que esta misma columna
+  exponía: `actualizar_detalle_individual()` nunca establecía
+  `app.usuario_id` (solo lo hacía `guardar()`), inofensivo mientras ese
+  método solo tocaba la tabla hija — pero al tocar ahora una columna del
+  padre dispara `trg_auditar_activo_biologico`, que exige esa variable.
 
 ---
 
@@ -502,7 +521,7 @@ Los porcentajes son una estimación orientativa de cuánto del RF está cubierto
 
 4. **Los errores de negocio que solo detecta un trigger de PL/pgSQL (con `ERRCODE` propio `P02xx`) caen en HTTP 500 genérico, no en el código específico del RF.** `raise_from_db_error` (`src/shared/db_error_translator.py`) solo traduce `IntegrityError`/`DataError`/`OperationalError` de SQLAlchemy — no reconoce los `RAISE EXCEPTION ... USING ERRCODE='P02xx'` que usan los triggers de este módulo. Confirmado 100% reproducible en RF-40 (mismatch de unidad `'gr'` vs `'g'`) y RF-42 (bloqueo de LOTE en reproductivo). *(Afecta RF-39, RF-40, RF-41, RF-42.)*
 
-5. **RBAC más amplio que la lista de actores del RF, de forma sistemática (Ingeniero de Campo incluido donde el RF no lo menciona), y en un caso al revés (Veterinario excluido donde el RF sí lo lista).** El recurso 29 (`activos_biologicos`) agrupa demasiadas operaciones bajo el mismo par acción+recurso — por ejemplo, la acción C (crear) sirve tanto para "registrar evento productivo" (RF-43, donde los 4 roles aplican) como para "registrar baja" (RF-45, donde el RF solo lista 3), así que no se puede dar a uno sin dársela al otro con el modelo de permisos actual. El caso inverso: RF-35 excluye a Veterinario de `PATCH /{id}` pese a listarlo como actor explícito. *(Afecta RF-35, RF-37, RF-44, RF-45.)* Ningún use case tiene `id_rol` quemado — es puramente un problema de granularidad del catálogo de recursos/permisos, no de disciplina de código.
+5. **RBAC más amplio que la lista de actores del RF, de forma sistemática (Ingeniero de Campo incluido donde el RF no lo menciona), y en un caso al revés (Veterinario excluido donde el RF sí lo lista).** El recurso 29 (`activos_biologicos`) agrupa demasiadas operaciones bajo el mismo par acción+recurso — por ejemplo, la acción C (crear) sirve tanto para "registrar evento productivo" (RF-43, donde los 4 roles aplican) como para "registrar baja" (RF-45, donde el RF solo lista 3), así que no se puede dar a uno sin dársela al otro con el modelo de permisos actual. El caso inverso: RF-35 excluía a Veterinario de `PATCH /{id}` pese a listarlo como actor explícito — **corregido** (ver RF-35 arriba), aunque el problema de granularidad del catálogo en sí sigue vigente para el resto de casos listados aquí. *(Afecta RF-35, RF-37, RF-44, RF-45.)* Ningún use case tiene `id_rol` quemado — es puramente un problema de granularidad del catálogo de recursos/permisos, no de disciplina de código.
 
 6. **La bitácora de auditoría RF-52 no es append-only a nivel de base de datos y su escritura es best-effort, no "sin excepción".** Es el hallazgo más serio del módulo desde la perspectiva de valor de negocio: RF-52 es explícitamente la fuente de evidencia para valoración NIC 41 (M06) y auditorías ICA/UPRA, y hoy ni la inmutabilidad ni la garantía de "todo evento se registra sin excepción" están reforzadas más allá de la buena voluntad del código de aplicación. *(Afecta RF-50, RF-51, RF-52, y de rebote la confiabilidad de la bitácora que citan RF-33 a RF-49.)*
 
