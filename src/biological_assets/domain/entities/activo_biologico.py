@@ -48,6 +48,17 @@ class EventoBaja:
 
 
 @dataclass
+class EventoIngreso:
+    """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima,
+    ingreso de individuos"): alta de individuos a un lote POBLACIONAL --
+    contraparte de EventoBaja. `tipo` reutiliza los mismos 4 valores de
+    `origen_financiero` del registro inicial del activo."""
+    cantidad_ingresada: int
+    tipo: str
+    detalles: Optional[str] = None
+
+
+@dataclass
 class EventoSanitario:
     tipo: str
     diagnostico: Optional[str] = None
@@ -90,6 +101,7 @@ class EventoActivo:
     sanitario: Optional[EventoSanitario] = None
     productivo: Optional[EventoProductivo] = None
     reproductivo: Optional[EventoReproductivo] = None
+    ingreso: Optional[EventoIngreso] = None
 
 
 @dataclass
@@ -152,6 +164,31 @@ class FichaIntegral:
     eventos_reproductivos: list[dict]
     indicadores: list[dict]
     advertencias: list[str]
+
+
+@dataclass
+class FichaLote:
+    """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima,
+    ingreso de individuos"): ficha operativa dedicada a un activo
+    POBLACIONAL -- cantidad_actual + peso_promedio + biomasa_total +
+    densidad + estado + historial en una sola vista. Distinta de
+    `FichaIntegral` (RF-47, genérica para ambos tipos, sin `densidad` ni
+    `densidad_maxima`, "últimos 5 eventos" en vez de historial paginado)."""
+    id_activo_biologico: int
+    identificador: Optional[str]
+    especie: Optional[str]
+    infraestructura_asociada: Optional[str]
+    estado_actual: str
+    fecha_registro: Optional[datetime]
+    cantidad_inicial: int
+    cantidad_actual: Optional[int]
+    peso_promedio_inicial: Optional[Decimal]
+    peso_promedio: Optional[Decimal]
+    biomasa_total: Optional[Decimal]
+    densidad: Optional[Decimal]
+    densidad_maxima: Optional[Decimal]
+    historial: list[RegistroHistorial]
+    total_registros_historial: int
 
 
 @dataclass
@@ -323,6 +360,7 @@ class ActivoBiologico:
     detalle_poblacional: Optional[DetallePoblacional] = None
     id_activo_biologico: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
     nombre_estado: Optional[str] = None
 
     @classmethod
@@ -473,6 +511,16 @@ class ActivoBiologico:
                 ),
             )
         dp.cantidad_actual = cantidad_actual - cantidad_afectada
+        if dp.peso_promedio is not None:
+            dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
+
+    def aplicar_evento_ingreso(self, cantidad_ingresada: int) -> None:
+        """RF-36: alta de individuos al lote -- contraparte de
+        `aplicar_evento_baja`. `cantidad_actual` solo crece por esta vía o
+        decrece por `aplicar_evento_baja`; ningún otro flujo la modifica."""
+        self._validar_tipo_poblacional()
+        dp = self.detalle_poblacional
+        dp.cantidad_actual = (dp.cantidad_actual or 0) + cantidad_ingresada
         if dp.peso_promedio is not None:
             dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
 

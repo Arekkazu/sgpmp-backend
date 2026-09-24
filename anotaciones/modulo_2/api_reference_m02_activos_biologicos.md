@@ -35,7 +35,7 @@ Esto implica que **sin un JWT válido no se llega ni siquiera a evaluar el permi
 
 | `id_recurso` | Nombre | Qué protege |
 |---|---|---|
-| **29** | `activos_biologicos` | Todas las operaciones sobre el activo biológico en sí: alta, consulta, edición, cambios de estado/fase, eventos, historial, transferencias, indicadores. Es, con diferencia, el recurso más usado del módulo (20 de los 23 endpoints). |
+| **29** | `activos_biologicos` | Todas las operaciones sobre el activo biológico en sí: alta, consulta, edición, cambios de estado/fase, eventos, historial, transferencias, indicadores. Es, con diferencia, el recurso más usado del módulo (22 de los 25 endpoints). |
 | **30** | `asociacion_sensor_activo` | Asociar un sensor IoT a un activo (`POST /{id_activo}/sensores`). Recurso separado porque sus reglas de actor son distintas a las del resto (ver tabla de permisos). |
 | **31** | `bitacora_auditoria_m02` | Solo lectura de la bitácora de auditoría del módulo (`GET /auditoria`). Recurso de solo-R; no existe acción de escritura porque los registros de auditoría se generan automáticamente desde los demás use cases, nunca desde un endpoint dedicado. |
 
@@ -72,7 +72,7 @@ Nota sobre el trigger de BD: `trg_auditar_activo_biologico` exige `SET LOCAL app
 | `POST` | `/` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarActivoBiologicoUseCase` |
 | `GET` | `/` | `(29, R)` | Admin, Prod, Vet, Ing | `ListarActivosUseCase` |
 | `GET` | `/{id_activo}` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarActivoUseCase` |
-| `PATCH` | `/{id_activo}` | `(29, U)` | Admin, Prod, Ing | `ActualizarActivoIndividualUseCase` |
+| `PATCH` | `/{id_activo}` | `(29, U)` | Admin, Prod, Vet, Ing | `ActualizarActivoIndividualUseCase` |
 
 #### `POST /activos-biologicos/` — Registrar activo biológico
 
@@ -119,6 +119,7 @@ Validadores de modelo: `validar_segun_tipo` (reglas INDIVIDUAL/POBLACIONAL de ar
 | `nombre_estado` | `str \| None` |
 | `id_usuario` | `int` |
 | `fecha_creacion` | `datetime \| None` |
+| `fecha_actualizacion` | `datetime \| None` — concurrencia optimista (RF-35, tarea Taiga RBAC Vet/eventos/concurrencia) |
 | `detalle_individual` | `DetalleIndividualResponse \| None` |
 | `detalle_poblacional` | `DetallePoblacionalResponse \| None` |
 
@@ -197,10 +198,17 @@ Sin input adicional (path param `id_activo: int`).
 | `sexo` | `str \| None` | Opcional |
 | `fecha_nacimiento` | `datetime \| None` | Opcional |
 | `peso_inicial` | `Decimal \| None` | Opcional |
+| `fecha_actualizacion` | `datetime \| None` | Concurrencia optimista (RF-35). `null` si el activo nunca fue editado. |
 
-Validador `al_menos_un_campo`: al menos uno de los 4 campos debe venir con valor (si no, 422).
+Validador `al_menos_un_campo`: al menos uno de los 4 campos editables debe venir con valor (si no, 422).
 
-**Response:** `ActivoBiologicoResponse`
+Validaciones adicionales antes de aplicar el cambio (tarea Taiga RF-35 RBAC
+Vet/eventos/concurrencia):
+- `412 CONFLICTO_CONCURRENCIA` si `fecha_actualizacion` no coincide con el valor actual en BD.
+- `422 EVENTO_PENDIENTE_SIN_CERRAR` si el activo está en estado `EN_TRATAMIENTO`/`AISLADO`.
+- `422 HISTORIAL_INCONSISTENTE` si el último registro de `historicos_estados_activos` no coincide con el `id_estado` actual del activo.
+
+**Response:** `ActivoBiologicoResponse` (incluye `fecha_actualizacion`)
 
 ---
 
@@ -311,6 +319,7 @@ Sin input adicional.
 | `GET` | `/{id_activo}/eventos` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarEventosUseCase` |
 | `POST` | `/{id_activo}/eventos/crecimiento` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoCrecimientoUseCase` |
 | `POST` | `/{id_activo}/eventos/baja` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoBajaUseCase` |
+| `POST` | `/{id_activo}/eventos/ingreso` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoIngresoUseCase` |
 | `POST` | `/{id_activo}/eventos/sanitario` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoSanitarioUseCase` |
 | `POST` | `/{id_activo}/eventos/productivo` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoProductivoUseCase` |
 | `POST` | `/{id_activo}/eventos/reproductivo` | `(29, C)` | Admin, Prod, Vet, Ing | `RegistrarEventoReproductivoUseCase` |
@@ -355,6 +364,43 @@ Sin input adicional.
 | `cantidad_afectada` | `int \| None` | Solo para LOTE (baja parcial); `None` = baja total; `>0` si se envía |
 
 **Response:** `EventoActivoResponse` (201).
+
+---
+
+#### `POST /activos-biologicos/{id_activo}/eventos/ingreso` — Registrar ingreso de individuos (RF-36)
+
+Contraparte de baja: alta de individuos a un lote `POBLACIONAL` ya existente
+(`cantidad_actual` solo puede modificarse vía BAJA o INGRESO, RF-36). Reutiliza
+`(29, C)`, el mismo permiso que baja.
+
+**Input `RegistrarEventoIngresoDTO`:**
+
+| Campo | Tipo | Restricciones |
+|-------|------|---------------|
+| `tipo_ingreso` | `str` | Uno de `compra, nacimiento, donacion, transferencia_interna` |
+| `fecha_ingreso` | `date` | Obligatorio; no puede ser futura ni anterior al último evento registrado |
+| `cantidad_ingresada` | `int` | `> 0` |
+| `motivo_ingreso` | `str` | No vacío (stripped) |
+
+**Efecto:** incrementa `cantidad_actual`; si el lote tiene `peso_promedio`
+configurado, recalcula `biomasa_total = cantidad_actual * peso_promedio`, y si
+la infraestructura tiene `superficie`, recalcula `densidad`. Antes de aplicar
+el cambio valida que la densidad resultante no supere
+`capacidad_maxima/superficie` de la infraestructura (mismo cálculo que
+`RegistrarEventoCrecimientoUseCase`, INC-M02-38-G25) — a diferencia de
+crecimiento, aquí la validación sí puede bloquear la operación porque el
+ingreso incrementa `cantidad_actual` directamente.
+
+**Response:** `EventoActivoResponse` (201), con el sub-objeto `ingreso`
+poblado (ver abajo).
+
+**Errores propios de este endpoint** (además de los comunes a `POST /eventos/*`):
+
+| HTTP | `code` | Cuándo |
+|------|--------|--------|
+| 422 | `FECHA_INGRESO_FUTURA` | `fecha_ingreso` posterior a hoy |
+| 422 | `FECHA_INGRESO_CRONOLOGICAMENTE_INVALIDA` | `fecha_ingreso` anterior al último evento del activo |
+| 409 | `DENSIDAD_MAXIMA_SUPERADA` | La densidad resultante superaría `capacidad_maxima/superficie` |
 
 ---
 
@@ -430,14 +476,16 @@ Todas las respuestas de eventos anteriores usan (directa o envuelta) este schema
 | `id_usuario` | `int \| None` |
 | `crecimiento` | `EventoCrecimientoResponse \| None` |
 | `baja` | `EventoBajaResponse \| None` |
+| `ingreso` | `EventoIngresoResponse \| None` |
 | `sanitario` | `EventoSanitarioResponse \| None` |
 | `productivo` | `EventoProductivoResponse \| None` |
 | `reproductivo` | `EventoReproductivoResponse \| None` |
 
-Solo uno de los 5 sub-objetos viene poblado según el tipo de evento; los demás son `null`.
+Solo uno de los 6 sub-objetos viene poblado según el tipo de evento; los demás son `null`.
 
 - **`EventoCrecimientoResponse`:** `tipo_medicion, valor_medicion, unidad_medida, tipo_agregacion=None, frecuencia=None, nuevo_peso_promedio=None, cantidad_medida=None`.
 - **`EventoBajaResponse`:** `cantidad_afectada: int, tipo: str, motivo_baja: str \| None`.
+- **`EventoIngresoResponse`:** `cantidad_ingresada: int, tipo: str, motivo_ingreso: str \| None`.
 - **`EventoSanitarioResponse`:** `tipo, diagnostico, medicamento, dosis, unidad_dosis, frecuencia, duracion, observaciones` (todos opcionales salvo `tipo`).
 - **`EventoProductivoResponse`:** `cantidad: Decimal, id_metrica_produccion: int, id_ciclo_productivo: int, condiciones: str \| None, tipo_producto: str \| None=None, unidad_medida: str \| None=None`.
 - **`EventoReproductivoResponse`:** `categoria: str, resultado: str, numero_cria: int, id_padre: int \| None, id_madre: int \| None`.
@@ -451,6 +499,7 @@ Solo uno de los 5 sub-objetos viene poblado según el tipo de evento; los demás
 | `GET` | `/{id_activo}/infraestructura` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarAsociacionUseCase` |
 | `GET` | `/{id_activo}/historial` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarHistorialUseCase` |
 | `GET` | `/{id_activo}/ficha-integral` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarFichaIntegralUseCase` |
+| `GET` | `/{id_activo}/ficha-lote` | `(29, R)` | Admin, Prod, Vet, Ing | `ConsultarFichaLoteUseCase` |
 | `GET` | `/{id_activo}/transferencias/disponibles` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.listar_infraestructuras_disponibles` |
 | `POST` | `/{id_activo}/transferencias` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.execute` |
 
@@ -485,7 +534,7 @@ Solo uno de los 5 sub-objetos viene poblado según el tipo de evento; los demás
 |-------|------|---------|-------|
 | `fecha_inicio` | `date \| None` | — | Opcional |
 | `fecha_fin` | `date \| None` | — | Opcional; debe ser `>= fecha_inicio` |
-| `categoria_evento` | `str \| None` | — | Uno de `ESTADO, FASE, EVENTO_BIOLOGICO, CRECIMIENTO, SANITARIO, REPRODUCTIVO, PRODUCTIVO, BAJA, TRANSFERENCIA` (uppercased antes de validar) |
+| `categoria_evento` | `str \| None` | — | Uno de `ESTADO, FASE, EVENTO_BIOLOGICO, CRECIMIENTO, SANITARIO, REPRODUCTIVO, PRODUCTIVO, BAJA, TRANSFERENCIA` (uppercased antes de validar). **No incluye `INGRESO`** como valor aceptado del filtro explícito — gap identificado al implementar RF-36 (ver `cu03_gaps_bd_rf36.md`, GAP-04). Sin filtro (`categoria_evento` omitido), la respuesta sí incluye eventos INGRESO desde esta migración; filtrar explícitamente con `categoria_evento=INGRESO` responde `400` porque el DTO no lo reconoce como valor válido. Pendiente de RF-46. |
 | `pagina` | `int` | `1` | `≥1` |
 | `page_size` | `int` | `20` | `1–100` |
 
@@ -538,6 +587,44 @@ Sin query params.
 | `advertencias` | `list[str]` |
 
 Si el activo está en `CERRADO`/`BAJA` con fase activa, o si las vistas subyacentes no devuelven datos, `advertencias` explica la inconsistencia en vez de fallar con error.
+
+---
+
+#### `GET /activos-biologicos/{id_activo}/ficha-lote` — Ficha de gestión de lote (RF-36)
+
+Solo aplica a activos `POBLACIONAL` (`422 TIPO_INVALIDO` si es `INDIVIDUAL`).
+Distinta de la ficha integral: expone `densidad`/`densidad_maxima` (que
+`ficha-integral` no tiene) y un `historial` paginado real (reutiliza
+`consultar_historial`, no "últimos 5 eventos" como `ficha-integral`).
+
+Sin query params.
+
+**Response `FichaLoteResponse`:**
+
+| Campo | Tipo |
+|-------|------|
+| `id_activo_biologico` | `int` |
+| `identificador` | `str \| None` |
+| `especie` | `str \| None` |
+| `infraestructura_asociada` | `str \| None` |
+| `estado_actual` | `str` |
+| `fecha_registro` | `datetime \| None` |
+| `cantidad_inicial` | `int` |
+| `cantidad_actual` | `int \| None` |
+| `peso_promedio_inicial` | `Decimal \| None` |
+| `peso_promedio` | `Decimal \| None` |
+| `biomasa_total` | `Decimal \| None` |
+| `densidad` | `Decimal \| None` |
+| `densidad_maxima` | `Decimal \| None` |
+| `historial` | `list[RegistroHistorialResponse]` |
+| `total_registros_historial` | `int` |
+
+`densidad_maxima = capacidad_maxima / superficie` de la infraestructura
+asociada (mismo cálculo que `RegistrarEventoCrecimientoUseCase`,
+INC-M02-38-G25); `null` si la infraestructura no tiene `capacidad_maxima`
+configurada. `historial` trae los 10 registros más recientes de todas las
+categorías que cubre `consultar_historial` (ver arriba), incluyendo
+`INGRESO`.
 
 ---
 
@@ -737,7 +824,7 @@ Una segunda llamada con el mismo `sensor_id` + activo cierra la asociación ante
 | `CERRADO` (5) | `BAJA` (único destino) |
 | `BAJA` (6) | — (estado terminal, sin transiciones) |
 
-Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `_event_validations.py`) son únicamente `ACTIVO`, `EN_TRATAMIENTO` y `AISLADO` (ids 1, 3, 4). Cualquier evento (`crecimiento/baja/sanitario/productivo/reproductivo`) sobre un activo en `INACTIVO`, `CERRADO` o `BAJA` responde `409 ESTADO_NO_PERMITE_EVENTOS`.
+Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `_event_validations.py`) son únicamente `ACTIVO`, `EN_TRATAMIENTO` y `AISLADO` (ids 1, 3, 4). Cualquier evento (`crecimiento/baja/ingreso/sanitario/productivo/reproductivo`) sobre un activo en `INACTIVO`, `CERRADO` o `BAJA` responde `409 ESTADO_NO_PERMITE_EVENTOS`.
 
 ---
 
@@ -765,7 +852,7 @@ Notas:
 |-------|--------------------------------------|
 | `RegistrarActivoBiologicoUseCase` | `(dto: RegistrarActivoBiologicoDTO, usuario: UsuarioActual) → ActivoBiologico` |
 | `ConsultarActivoUseCase` | `(id_activo: int, usuario: UsuarioActual \| None = None) → ActivoBiologico` |
-| `ActualizarActivoIndividualUseCase` | `(id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual) → ActivoBiologico` |
+| `ActualizarActivoIndividualUseCase` | `(id_activo: int, dto: ActualizarActivoIndividualDTO, usuario: UsuarioActual, *, ids_fincas_permitidas=None) → ActivoBiologico` (constructor requiere `historico_repo` desde la tarea Taiga RF-35 RBAC Vet/eventos/concurrencia) |
 | `CambiarEstadoUseCase` | `(id_activo: int, dto: CambiarEstadoDTO, usuario: UsuarioActual) → HistoricoEstado` |
 | `CerrarCicloUseCase` | `(id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) → HistoricoEstado` |
 | `CambiarFaseUseCase` | `(id_activo: int, dto: CambiarFaseDTO, usuario: UsuarioActual) → GestionFase` |
@@ -773,12 +860,14 @@ Notas:
 | `ConsultarEventosUseCase` | `(id_activo: int) → list[EventoActivo]` |
 | `RegistrarEventoCrecimientoUseCase` | `(id_activo: int, dto: RegistrarEventoCrecimientoDTO, usuario: UsuarioActual) → tuple[EventoActivo, bool]` |
 | `RegistrarEventoBajaUseCase` | `(id_activo: int, dto: RegistrarEventoBajaDTO, usuario: UsuarioActual) → EventoActivo` |
+| `RegistrarEventoIngresoUseCase` | `(id_activo: int, dto: RegistrarEventoIngresoDTO, usuario: UsuarioActual) → EventoActivo` |
 | `RegistrarEventoSanitarioUseCase` | `(id_activo: int, dto: RegistrarEventoSanitarioDTO, usuario: UsuarioActual) → tuple[EventoActivo, HistoricoEstado \| None]` |
 | `RegistrarEventoProductivoUseCase` | `(id_activo: int, dto: RegistrarEventoProductivoDTO, usuario: UsuarioActual) → EventoActivo` |
 | `RegistrarEventoReproductivoUseCase` | `(id_activo: int, dto: RegistrarEventoReproductivoDTO, usuario: UsuarioActual) → EventoActivo` |
 | `ConsultarAsociacionUseCase` | `(id_activo: int, tipo_consulta: str, usuario: UsuarioActual \| None = None) → HistorialInfraestructura \| list[HistorialInfraestructura] \| None` |
 | `ConsultarHistorialUseCase` | `(id_activo: int, dto: ConsultarHistorialDTO, usuario: UsuarioActual) → PaginaHistorial` |
 | `ConsultarFichaIntegralUseCase` | `(id_activo: int, usuario: UsuarioActual) → FichaIntegral` |
+| `ConsultarFichaLoteUseCase` | `(id_activo: int, usuario: UsuarioActual, *, ids_fincas_permitidas: list[int] \| None = None) → FichaLote` |
 | `RegistrarTransferenciaUseCase.listar_infraestructuras_disponibles` | `(id_activo: int, usuario: UsuarioActual) → list[dict]` |
 | `RegistrarTransferenciaUseCase.execute` | `(id_activo: int, dto: RegistrarTransferenciaDTO, usuario: UsuarioActual) → Transferencia` |
 | `AsociarSensorActivoUseCase` | `(id_activo: int, dto: AsociarSensorActivoDTO, usuario_actual: UsuarioActual) → AsociacionSensorActivo` |

@@ -83,6 +83,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             id_estado=orm.id_estado,
             id_usuario=orm.id_usuario,
             fecha_creacion=orm.fecha_creacion,
+            fecha_actualizacion=orm.fecha_actualizacion,
             nombre_estado=nombre_estado,
             detalle_individual=detalle_ind,
             detalle_poblacional=detalle_pob,
@@ -317,15 +318,26 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         ]
 
     def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
-        orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
-        if orm and orm.detalle_individual and activo.detalle_individual:
-            di = activo.detalle_individual
-            orm.detalle_individual.raza = di.raza
-            orm.detalle_individual.sexo = di.sexo
-            orm.detalle_individual.fecha_nacimeinto = di.fecha_nacimiento  # typo en DB
-            orm.detalle_individual.peso_inicial = di.peso_inicial
-        self.db.flush()
-        self.db.refresh(orm)
+        try:
+            orm = self.db.get(ActivoBiologicoModel, activo.id_activo_biologico)
+            if orm and orm.detalle_individual and activo.detalle_individual:
+                di = activo.detalle_individual
+                orm.detalle_individual.raza = di.raza
+                orm.detalle_individual.sexo = di.sexo
+                orm.detalle_individual.fecha_nacimeinto = di.fecha_nacimiento  # typo en DB
+                orm.detalle_individual.peso_inicial = di.peso_inicial
+            # RF-35: fecha_actualizacion vive en el padre (activos_biologicos),
+            # a diferencia de raza/sexo/... que viven en el hijo
+            # detalles_activos_individuales -- tocarla hace que flush() emita
+            # un UPDATE sobre el padre por primera vez en este método, lo que
+            # dispara trg_auditar_activo_biologico (AFTER UPDATE), que exige
+            # esta variable de sesión (mismo patrón que guardar()).
+            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': activo.id_usuario})
+            orm.fecha_actualizacion = activo.fecha_actualizacion
+            self.db.flush()
+            self.db.refresh(orm)
+        except Exception as exc:
+            raise_from_db_error(exc)
         return self._a_entidad(orm)
 
     def obtener_gestiones_fases(self, id_activo: int) -> list[GestionFase]:

@@ -46,6 +46,8 @@ from src.biological_assets.infrastructure.repositories.historico_estado_reposito
 )
 from src.biological_assets.application.use_cases.gestion.consultar_eventos_use_case import ConsultarEventosUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_evento_baja_use_case import RegistrarEventoBajaUseCase
+from src.biological_assets.application.use_cases.gestion.registrar_evento_ingreso_use_case import RegistrarEventoIngresoUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_ficha_lote_use_case import ConsultarFichaLoteUseCase
 from src.biological_assets.application.use_cases.gestion.registrar_evento_crecimiento_use_case import (
     RegistrarEventoCrecimientoUseCase,
 )
@@ -60,6 +62,7 @@ from src.biological_assets.application.use_cases.gestion.registrar_evento_sanita
 )
 from src.biological_assets.domain.entities.activo_biologico import EventoActivo
 from src.biological_assets.infrastructure.dto.registrar_evento_baja_dto import RegistrarEventoBajaDTO
+from src.biological_assets.infrastructure.dto.registrar_evento_ingreso_dto import RegistrarEventoIngresoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_crecimiento_dto import RegistrarEventoCrecimientoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_productivo_dto import RegistrarEventoProductivoDTO
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
@@ -112,11 +115,13 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     DetallePoblacionalResponse,
     EventoActivoResponse,
     EventoBajaResponse,
+    EventoIngresoResponse,
     EventoCrecimientoResponse,
     EventoProductivoResponse,
     EventoReproductivoResponse,
     EventoSanitarioResponse,
     FichaIntegralResponse,
+    FichaLoteResponse,
     GestionFaseResponse,
     HistorialActivoResponse,
     HistorialEventosResponse,
@@ -302,6 +307,7 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         nombre_estado=activo.nombre_estado,
         id_usuario=activo.id_usuario,
         fecha_creacion=activo.fecha_creacion,
+        fecha_actualizacion=activo.fecha_actualizacion,
         detalle_individual=di,
         detalle_poblacional=dp,
     )
@@ -570,6 +576,7 @@ def consultar_activo(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        412: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
     },
     summary='Actualizar atributos de activo individual (RF-35)',
@@ -583,6 +590,7 @@ def actualizar_activo_individual(
     use_case = ActualizarActivoIndividualUseCase(
         db=db,
         repo=SqlAlchemyActivoBiologicoRepository(db),
+        historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(
@@ -729,6 +737,15 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
             motivo_baja=b.detalles,
         )
 
+    ingreso = None
+    if evento.ingreso:
+        i = evento.ingreso
+        ingreso = EventoIngresoResponse(
+            cantidad_ingresada=i.cantidad_ingresada,
+            tipo=i.tipo,
+            motivo_ingreso=i.detalles,
+        )
+
     sanitario = None
     if evento.sanitario:
         s = evento.sanitario
@@ -774,6 +791,7 @@ def _evento_to_response(evento: EventoActivo) -> EventoActivoResponse:
         id_usuario=evento.id_usuario,
         crecimiento=crecimiento,
         baja=baja,
+        ingreso=ingreso,
         sanitario=sanitario,
         productivo=productivo,
         reproductivo=reproductivo,
@@ -904,6 +922,38 @@ def registrar_evento_baja(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         infra_port=InfraestructuraM09Adapter(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    evento = use_case.execute(id_activo, dto, usuario_actual)
+    return _evento_to_response(evento)
+
+
+@router.post(
+    '/{id_activo}/eventos/ingreso',
+    response_model=EventoActivoResponse,
+    status_code=201,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 1, rf_origen='RF36'))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse},
+        422: {'model': ErrorResponse},
+    },
+    summary='Registrar ingreso de individuos a un lote (RF-36)',
+)
+def registrar_evento_ingreso(
+    id_activo: int,
+    dto: RegistrarEventoIngresoDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> EventoActivoResponse:
+    use_case = RegistrarEventoIngresoUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        evento_repo=SqlAlchemyEventoActivoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     evento = use_case.execute(id_activo, dto, usuario_actual)
@@ -1222,6 +1272,66 @@ def consultar_ficha_integral(
         eventos_reproductivos=ficha.eventos_reproductivos,
         indicadores=ficha.indicadores,
         advertencias=ficha.advertencias,
+    )
+
+
+# ── CU03 — RF-36: Ficha de gestión de lote ──────────────────────────────────
+
+@router.get(
+    '/{id_activo}/ficha-lote',
+    response_model=FichaLoteResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF36'))],
+    responses={
+        400: {'model': ErrorResponse},
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar ficha operativa del lote (RF-36)',
+)
+def consultar_ficha_lote(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FichaLoteResponse:
+    use_case = ConsultarFichaLoteUseCase(
+        db=db,
+        activo_repo=SqlAlchemyActivoBiologicoRepository(db),
+        infra_port=InfraestructuraM09Adapter(db),
+        especie_port=EspecieM09Adapter(db),
+        transferencia_repo=SqlAlchemyTransferenciaRepository(db),
+        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+    )
+    ficha = use_case.execute(
+        id_activo, usuario_actual,
+        ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
+    )
+    return FichaLoteResponse(
+        id_activo_biologico=ficha.id_activo_biologico,
+        identificador=ficha.identificador,
+        especie=ficha.especie,
+        infraestructura_asociada=ficha.infraestructura_asociada,
+        estado_actual=ficha.estado_actual,
+        fecha_registro=ficha.fecha_registro,
+        cantidad_inicial=ficha.cantidad_inicial,
+        cantidad_actual=ficha.cantidad_actual,
+        peso_promedio_inicial=ficha.peso_promedio_inicial,
+        peso_promedio=ficha.peso_promedio,
+        biomasa_total=ficha.biomasa_total,
+        densidad=ficha.densidad,
+        densidad_maxima=ficha.densidad_maxima,
+        historial=[
+            RegistroHistorialResponse(
+                categoria=r.categoria,
+                fecha_evento=r.fecha_evento,
+                descripcion=r.descripcion,
+                detalle_especifico=r.detalle_especifico,
+                usuario_responsable=r.usuario_responsable,
+                modulo_origen=r.modulo_origen,
+            )
+            for r in ficha.historial
+        ],
+        total_registros_historial=ficha.total_registros_historial,
     )
 
 

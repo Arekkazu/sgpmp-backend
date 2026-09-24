@@ -79,7 +79,7 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
 
         categorias_a_consultar = {
             'CREACION', 'ESTADO', 'FASE_PRODUCTIVA', 'SANITARIO', 'CRECIMIENTO',
-            'PRODUCTIVO', 'REPRODUCTIVO', 'INDICADOR', 'BAJA', 'TRANSFERENCIA',
+            'PRODUCTIVO', 'REPRODUCTIVO', 'INDICADOR', 'BAJA', 'TRANSFERENCIA', 'INGRESO',
         }
         if categoria:
             cat_upper = categoria.upper()
@@ -110,7 +110,7 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
                     modulo_origen='modulo2',
                 ))
 
-        # ── Historial consolidado (vista cubre ESTADO, FASE, SANITARIO, CRECIMIENTO, PRODUCTIVO, REPRODUCTIVO, INDICADOR)
+        # ── Historial consolidado (vista cubre ESTADO, FASE, SANITARIO, CRECIMIENTO, PRODUCTIVO, REPRODUCTIVO, INDICADOR, INGRESO)
         vista_cats = categorias_a_consultar - {'BAJA', 'TRANSFERENCIA', 'CREACION'}
         if vista_cats:
             rows = self.db.execute(
