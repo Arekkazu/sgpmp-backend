@@ -83,6 +83,7 @@ def test_destino_inexistente_dice_no_existe():
         activo_repo=ActivoRepoFake(_activo(), _asociacion()),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake(activas={}, existentes=set()),
+        parametros_port=None,
     )
 
     with pytest.raises(BusinessRuleError) as exc:
@@ -99,6 +100,7 @@ def test_destino_inactivo_dice_se_encuentra_inactiva():
         activo_repo=ActivoRepoFake(_activo(), _asociacion()),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake(activas={}, existentes={50}),
+        parametros_port=None,
     )
 
     with pytest.raises(BusinessRuleError) as exc:

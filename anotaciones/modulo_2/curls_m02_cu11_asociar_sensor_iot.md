@@ -438,6 +438,15 @@ curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
 }
 ```
 
+**RBAC:** exige `(recurso 30, acción U=3)`. Roles autorizados: Administrador e
+Ingeniero de Campo (`admin_actualizar_asociacion_sensor_activo`,
+`ing_actualizar_asociacion_sensor_activo`) — Productor y Veterinario reciben
+`403`. **Corrección 2026-09-23**: ese permiso se había aplicado solo en
+`sgpmp`/`pruebas` y nunca llegó a `dev` vía migración — hasta la migración
+`1ee808f9ee6b_v5_4_0_rf49_permiso_patch_asociacion_sensor` este PATCH
+respondía `403` para los 4 roles en `dev`, incluido Administrador. Ver
+`cu11_gaps_bd_rf49.md` (iteración 2026-09-23).
+
 **Asociación inexistente, o de otro activo (404):**
 ```json
 {

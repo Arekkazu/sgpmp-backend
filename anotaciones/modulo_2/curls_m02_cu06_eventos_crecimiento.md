@@ -249,7 +249,13 @@ un activo fuera del alcance de finca del usuario se trata como inexistente
 
 ---
 
-## FA-10 — Densidad del lote supera el máximo permitido para la especie (INC-M02-38-G25, POBLACIONAL)
+## FA-10 — Densidad del lote supera el máximo permitido para la especie (INC-M02-48-G25, POBLACIONAL)
+
+**Precondiciones:**
+
+- la especie tiene `densidad_maxima_por_especie` configurada en M09;
+- el lote tiene una fase productiva activa;
+- `cantidad_actual / superficie` supera ese límite.
 
 ```bash
 curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/crecimiento \
@@ -265,8 +271,8 @@ curl -X POST http://localhost:8000/activos-biologicos/{ID_LOTE}/eventos/crecimie
   }'
 ```
 
-**Respuesta esperada (409)** si `cantidad_actual / superficie` de la infraestructura
-supera `capacidad_maxima / superficie` de esa misma infraestructura:
+**Respuesta esperada (409)** si `cantidad_actual / superficie` supera
+`modulo9.especies.densidad_maxima_por_especie`:
 ```json
 {
   "code": "DENSIDAD_MAXIMA_SUPERADA",
@@ -275,9 +281,7 @@ supera `capacidad_maxima / superficie` de esa misma infraestructura:
 }
 ```
 
-`cantidad_medida` es solo descriptivo del muestreo — no afecta esta validación
+`cantidad_medida` es solo descriptivo del muestreo: no afecta esta validación
 ni `cantidad_actual` (RF-36: `cantidad_actual` solo cambia por eventos de BAJA
-o ingresos). Si `modulo9.infraestructuras.capacidad_maxima` no está
-configurada para la infraestructura del lote (`NULL`, el estado real de todas
-las infraestructuras en `sgpmp_dev` al momento de este fix), la validación no
-bloquea nada.
+o ingresos). Si la especie no tiene el límite configurado, el sistema responde
+`422 DENSIDAD_MAXIMA_NO_CONFIGURADA`; no omite silenciosamente la regla.

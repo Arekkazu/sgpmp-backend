@@ -52,6 +52,16 @@ def _asociacion(estado: str, id_activo: int = 1, id_asociacion: int = 10):
     )
 
 
+def _asociacion_ambiental(estado: str, id_infraestructura: int = 5, id_asociacion: int = 20):
+    """RF-49 Tipo B: ancla a la infraestructura completa (id_activo_biologico=None)."""
+    return AsociacionSensorActivo(
+        id_activo_biologico=None, tipo_activo=None, tipo_asociacion='ambiental',
+        dispositivo_iot_id=1, sensor_id=1, id_infraestructura=id_infraestructura, id_usuario=1,
+        fecha_inicio=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        estado_asociacion=estado, id_asociacion_activo_sensor=id_asociacion,
+    )
+
+
 def _usuario():
     return UsuarioActual(id_usuario=1, id_token=1, id_rol=1)
 
@@ -110,3 +120,53 @@ def test_404_si_asociacion_es_de_otro_activo():
 
     with pytest.raises(NotFoundError):
         uc.execute(2, 10, CambiarEstadoAsociacionSensorDTO(estado_nuevo='INACTIVA'), _usuario())
+
+
+# INC-M02-50-G84 / #398: la asociación AMBIENTAL (RF-49 Tipo B) también debe
+# poder desactivarse/reactivarse -- Regla 5 no hace excepción por tipo.
+
+def test_infraestructura_desactiva_asociacion_ambiental_activa():
+    repo = RepoFake(_asociacion_ambiental('ACTIVA'))
+    uc = CambiarEstadoAsociacionSensorUseCase(db=DbFake(), repo=repo)
+
+    resultado = uc.execute_infraestructura(
+        5, 20, CambiarEstadoAsociacionSensorDTO(estado_nuevo='INACTIVA'), _usuario(),
+    )
+
+    assert resultado.estado_asociacion == 'INACTIVA'
+    assert resultado.fecha_fin is not None
+
+
+def test_infraestructura_reactiva_asociacion_ambiental_inactiva():
+    repo = RepoFake(_asociacion_ambiental('INACTIVA'))
+    uc = CambiarEstadoAsociacionSensorUseCase(db=DbFake(), repo=repo)
+
+    resultado = uc.execute_infraestructura(
+        5, 20, CambiarEstadoAsociacionSensorDTO(estado_nuevo='ACTIVA'), _usuario(),
+    )
+
+    assert resultado.estado_asociacion == 'ACTIVA'
+    assert resultado.fecha_fin is None
+
+
+def test_infraestructura_404_si_asociacion_es_de_otra_infraestructura():
+    repo = RepoFake(_asociacion_ambiental('ACTIVA', id_infraestructura=5, id_asociacion=20))
+    uc = CambiarEstadoAsociacionSensorUseCase(db=DbFake(), repo=repo)
+
+    with pytest.raises(NotFoundError):
+        uc.execute_infraestructura(
+            6, 20, CambiarEstadoAsociacionSensorDTO(estado_nuevo='INACTIVA'), _usuario(),
+        )
+
+
+def test_infraestructura_404_si_la_asociacion_es_de_un_activo_puntual():
+    """Una asociación DIRECTA/POBLACIONAL (con id_activo_biologico) no debe
+    poder tocarse a través del endpoint de infraestructura -- son recursos
+    distintos aunque compartan tabla."""
+    repo = RepoFake(_asociacion('ACTIVA', id_activo=1, id_asociacion=10))
+    uc = CambiarEstadoAsociacionSensorUseCase(db=DbFake(), repo=repo)
+
+    with pytest.raises(NotFoundError):
+        uc.execute_infraestructura(
+            1, 10, CambiarEstadoAsociacionSensorDTO(estado_nuevo='INACTIVA'), _usuario(),
+        )

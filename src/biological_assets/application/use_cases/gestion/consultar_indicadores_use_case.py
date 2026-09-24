@@ -14,7 +14,7 @@ from src.biological_assets.domain.repositories.indicadores_repository import Ind
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
+from src.shared.errors import BusinessRuleError, ConflictError, InfrastructureError, NotFoundError, ValidationError
 
 _ESTADOS_TERMINALES = {EstadoActivo.BAJA: 'baja', EstadoActivo.CERRADO: 'cierre'}
 
@@ -69,10 +69,7 @@ class ConsultarIndicadoresUseCase:
         )
 
         if dto.tipo_indicador != 'TODOS' and not any(ind.disponible for ind in resultado.indicadores):
-            motivo = resultado.advertencias[0] if resultado.advertencias else (
-                'No fue posible calcular el indicador solicitado con los datos disponibles.'
-            )
-            raise BusinessRuleError(code='INDICADOR_NO_DISPONIBLE', message=motivo)
+            self._rechazar_indicador_no_disponible(id_activo, resultado)
 
         registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
             rf_origen='RF51', tipo_evento='INDICADOR_CALCULADO',
@@ -84,6 +81,40 @@ class ConsultarIndicadoresUseCase:
         ))
 
         return resultado
+
+    @staticmethod
+    def _rechazar_indicador_no_disponible(id_activo: int, resultado: ResultadoIndicadores) -> None:
+        """Cada causa de RF-51 tiene su propio HTTP; "datos insuficientes" es el 422 por omisión.
+
+        Solo aplica a un indicador concreto: con TODOS la respuesta es 200 y cada
+        indicador no disponible viaja con su advertencia.
+        """
+        causas = {ind.causa_no_disponible: ind for ind in resultado.indicadores if not ind.disponible}
+
+        if 'OUTLIER_CRITICO' in causas:
+            raise InfrastructureError(
+                code='OUTLIER_CRITICO',
+                message=(
+                    f'Cálculo suspendido: Se detectaron valores atípicos (Outliers) en las métricas del '
+                    f'activo {id_activo}. El indicador resultante es biológicamente imposible. Revise los '
+                    'registros de telemetría o eventos manuales.'
+                ),
+            )
+
+        if 'CONSUMO_CERO' in causas:
+            raise ConflictError(
+                code='CONSUMO_ALIMENTO_CERO',
+                message=(
+                    f'Error de cálculo: No es posible generar el indicador '
+                    f'{causas["CONSUMO_CERO"].tipo} para el activo {id_activo} debido a que el consumo '
+                    'registrado es 0. Verifique los datos de Gestión de Suministros (M05).'
+                ),
+            )
+
+        motivo = resultado.advertencias[0] if resultado.advertencias else (
+            'No fue posible calcular el indicador solicitado con los datos disponibles.'
+        )
+        raise BusinessRuleError(code='INDICADOR_NO_DISPONIBLE', message=motivo)
 
     def _validar_compatibilidad_biologica(self, activo: ActivoBiologico, tipo_indicador: str) -> None:
         if tipo_indicador not in _INDICADORES_SOLO_HEMBRA:

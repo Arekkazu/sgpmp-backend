@@ -8,12 +8,17 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
+from src.biological_assets.application.use_cases.gestion._event_validations import (
+    validar_historial_consistente,
+    validar_sin_eventos_pendientes,
+)
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
+from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, NotFoundError
+from src.shared.errors import AppError, NotFoundError, PreconditionFailedError
 
 
 class ActualizarActivoIndividualUseCase:
@@ -21,10 +26,12 @@ class ActualizarActivoIndividualUseCase:
         self,
         db: Session,
         repo: ActivoBiologicoRepository,
+        historico_repo: HistoricoEstadoRepository,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
+        self.historico_repo = historico_repo
         self.bitacora_repo = bitacora_repo
 
     def execute(
@@ -64,6 +71,30 @@ class ActualizarActivoIndividualUseCase:
                 message=f'El activo biológico con ID {id_activo} no existe.',
             )
 
+        # Concurrencia optimista (RF-35): rechazar si el activo fue modificado
+        # desde que el cliente lo cargó. La doble rama existe porque
+        # `None != None` es False pero `datetime(tz) != None` es True -- ver
+        # patrón documentado en CLAUDE.md.
+        ts_actual = activo.fecha_actualizacion
+        ts_dto = dto.fecha_actualizacion
+        if ts_actual is not None and ts_dto is not None:
+            if ts_actual.astimezone(timezone.utc) != ts_dto.astimezone(timezone.utc):
+                raise PreconditionFailedError(
+                    code='CONFLICTO_CONCURRENCIA',
+                    message='El activo fue modificado por otro usuario. Recarga y reintenta.',
+                )
+        elif ts_actual != ts_dto:
+            raise PreconditionFailedError(
+                code='CONFLICTO_CONCURRENCIA',
+                message='El activo fue modificado por otro usuario. Recarga y reintenta.',
+            )
+
+        # RF-35: no editar mientras haya un evento sanitario pendiente sin
+        # cerrar, ni si el histórico de estados es inconsistente con el
+        # estado actual (señal de mutación fuera del flujo centralizado).
+        validar_sin_eventos_pendientes(activo)
+        validar_historial_consistente(activo, self.historico_repo)
+
         # actualizar_detalle_individual valida internamente que tipo == INDIVIDUAL
         activo.actualizar_detalle_individual(
             raza=dto.raza,
@@ -71,6 +102,7 @@ class ActualizarActivoIndividualUseCase:
             fecha_nacimiento=dto.fecha_nacimiento,
             peso_inicial=dto.peso_inicial,
         )
+        activo.fecha_actualizacion = datetime.now(timezone.utc)
 
         try:
             activo = self.repo.actualizar_detalle_individual(activo)

@@ -6,6 +6,7 @@ from typing import TypeVar
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import (
     BitacoraAuditoriaRepository,
@@ -66,22 +67,20 @@ def ejecutar_con_auditoria_de_rechazo(
 
         tipo_evento = (tipos_por_codigo or {}).get(exc.code, tipo_evento_rechazado)
 
-        try:
-            bitacora_repo.registrar(EventoAuditoria(
-                rf_origen=rf_origen,
-                tipo_evento=tipo_evento,
-                clasificacion_biologica=clasificacion_biologica,
-                resultado='RECHAZADO',
-                severidad_log='WARNING',
-                timestamp_evento=datetime.now(timezone.utc),
-                id_activo_biologico=(id_activo if activo is not None else None),
-                tipo_activo=getattr(activo, 'tipo', None),
-                descripcion=f'Operación rechazada: {exc.code}',
-                detalle_tecnico=detalle,
-                id_usuario_responsable=id_usuario,
-            ))
-            db.commit()
-        except Exception:
-            db.rollback()
+        # RF-52 E1: si la bitácora no responde, el rechazo queda en el buffer en vez
+        # de perderse (antes: rollback y silencio).
+        registrar_evento_bitacora(bitacora_repo, db, EventoAuditoria(
+            rf_origen=rf_origen,
+            tipo_evento=tipo_evento,
+            clasificacion_biologica=clasificacion_biologica,
+            resultado='RECHAZADO',
+            severidad_log='WARNING',
+            timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=(id_activo if activo is not None else None),
+            tipo_activo=getattr(activo, 'tipo', None),
+            descripcion=f'Operación rechazada: {exc.code}',
+            detalle_tecnico=detalle,
+            id_usuario_responsable=id_usuario,
+        ))
 
         raise

@@ -79,6 +79,7 @@ class ActivoBiologicoResponse(BaseModel):
     nombre_estado: Optional[str]
     id_usuario: int
     fecha_creacion: Optional[datetime]
+    fecha_actualizacion: Optional[datetime] = None
     detalle_individual: Optional[DetalleIndividualResponse]
     detalle_poblacional: Optional[DetallePoblacionalResponse]
 
@@ -128,6 +129,7 @@ class GestionFaseResponse(BaseModel):
     id_gestion_fases: Optional[int]
     id_activo_biologico: int
     id_ciclo_productiva: int
+    id_ciclos_productivo_biologico: Optional[int] = None
     nombre_ciclo: str
     nombre_fase_actual: Optional[str]
     paso_actual: Optional[int]
@@ -136,6 +138,7 @@ class GestionFaseResponse(BaseModel):
     fecha_finalizacion: Optional[datetime]
     es_activa: bool
     motivo_cambio: Optional[str]
+    es_transicion_no_estandar: bool = False
 
     model_config = {'from_attributes': True}
 
@@ -163,6 +166,14 @@ class EventoBajaResponse(BaseModel):
     cantidad_afectada: int
     tipo: str
     motivo_baja: Optional[str]
+
+    model_config = {'from_attributes': True}
+
+
+class EventoIngresoResponse(BaseModel):
+    cantidad_ingresada: int
+    tipo: str
+    motivo_ingreso: Optional[str]
 
     model_config = {'from_attributes': True}
 
@@ -212,6 +223,7 @@ class EventoActivoResponse(BaseModel):
     sanitario: Optional[EventoSanitarioResponse] = None
     productivo: Optional[EventoProductivoResponse] = None
     reproductivo: Optional[EventoReproductivoResponse] = None
+    ingreso: Optional[EventoIngresoResponse] = None
 
     model_config = {'from_attributes': True}
 
@@ -286,6 +298,24 @@ class FichaIntegralResponse(BaseModel):
     eventos_reproductivos: list[dict] = []
     indicadores: list[dict] = []
     advertencias: list[str] = []
+
+
+class FichaLoteResponse(BaseModel):
+    id_activo_biologico: int
+    identificador: Optional[str]
+    especie: Optional[str] = None
+    infraestructura_asociada: Optional[str] = None
+    estado_actual: str
+    fecha_registro: Optional[datetime] = None
+    cantidad_inicial: int
+    cantidad_actual: Optional[int] = None
+    peso_promedio_inicial: Optional[Decimal] = None
+    peso_promedio: Optional[Decimal] = None
+    biomasa_total: Optional[Decimal] = None
+    densidad: Optional[Decimal] = None
+    densidad_maxima: Optional[Decimal] = None
+    historial: list[RegistroHistorialResponse] = []
+    total_registros_historial: int = 0
 
 
 class TransferenciaResponse(BaseModel):
@@ -405,3 +435,11 @@ class BitacoraAuditoriaResponse(BaseModel):
     total_paginas: int
     registros_por_pagina: int
     registros: list[EventoAuditoriaResponse]
+
+
+class RegistroCorrectivoAuditoriaResponse(BaseModel):
+    tabla: str
+    id_registro: int
+    id_activo_biologico: Optional[int]
+    motivo: str
+    timestamp_evento: datetime

@@ -72,6 +72,7 @@ def _use_case(infras: dict[int, InfraestructuraConsulta]):
         activo_repo=ActivoRepoFake(activo, asociacion),
         transferencia_repo=TransferenciaRepoFake(),
         infra_port=InfraPortFake(infras),
+        parametros_port=None,
     )
 
 
