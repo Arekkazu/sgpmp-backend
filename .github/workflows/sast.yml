@@ -108,7 +108,7 @@ jobs:
   bearer-sast:
     name: Bearer SAST & Taint Analysis
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - name: Checkout del código fuente
@@ -119,23 +119,16 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/Bearer/bearer/main/contrib/install.sh | sh -s -- -b /usr/local/bin
           bearer --version
 
-      - name: Ejecutar Bearer SAST Scan
+      - name: Ejecutar Bearer SAST Scan y Control de Bloqueo
         run: |
-          echo "Ejecutando análisis de flujo de datos y taint con Bearer sobre src/..."
-          bearer scan src \
-            --config-file bearer.yml \
-            --ignore-file bearer.ignore \
-            --no-color > bearer-report.txt || true
-          cat bearer-report.txt
-
-      - name: Control de Bloqueo Bearer (Severidad Crítica y Alta)
-        run: |
-          echo "Verificando ausencia de vulnerabilidades de severidad CRÍTICA y ALTA no justificadas..."
+          echo "Ejecutando análisis de flujo de datos y control de severidad con Bearer sobre src/..."
+          set -o pipefail
           bearer scan src \
             --config-file bearer.yml \
             --ignore-file bearer.ignore \
             --fail-on-severity critical,high \
-            --hide-progress-bar
+            --no-color \
+            --hide-progress-bar | tee bearer-report.txt
 
       - name: Generar Reporte SARIF
         if: always()
@@ -145,7 +138,8 @@ jobs:
             --ignore-file bearer.ignore \
             --format sarif \
             --output bearer.sarif \
-            --exit-code 0 || true
+            --exit-code 0 \
+            --hide-progress-bar || true
 
       - name: Subir reporte Bearer como artefacto
         if: always()
@@ -156,4 +150,5 @@ jobs:
             bearer-report.txt
             bearer.sarif
           retention-days: 14
+
 
