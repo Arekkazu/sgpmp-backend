@@ -3,7 +3,7 @@
 Vista rápida de los 3 audits de solo lectura. Para el detalle caso por caso ver los documentos por
 módulo; para el porqué estructural, ver `gaps_flujo_alterno_patron_transversal.md`.
 
-> **Estado (2026-09-23): M1, M9 y M2 están corregidos. No queda ningún ❌ abierto en los tres módulos.**
+> **Estado (2026-09-23): M1, M9 y M2 están corregidos; solo queda la reconciliación de RF-52 E5 de M2, en un PR aparte.**
 > - Los 9 ❌ del **Módulo 1**: rama `fix/gaps-flujo-alterno-m01` → PR a `fix/m01`. Detalle
 >   en `modulo_1/gaps_flujo_alterno_modulo1.md` y `modulo_1/gaps_flujo_alterno_m01_correcciones.md`.
 > - Los 11 ❌ del **Módulo 9**: rama `fix/gaps-flujo-alterno-m09` → PR a `fix/m09`. Detalle
@@ -13,9 +13,9 @@ módulo; para el porqué estructural, ver `gaps_flujo_alterno_patron_transversal
 > - **Módulo 2**: 16 de 18 ❌ y los 4 ⚠️, en la rama `fix/gaps-flujo-alterno-m02` (derivada de
 >   `fix/inc-m02-51-g44-refresh-token-http-500`). Detalle en `modulo_2/gaps_flujo_alterno_modulo2.md`.
 >   Tres de los 16 ya los habían cerrado PRs posteriores a la auditoría: RF-49 especie (#354),
->   RF-49 dispositivo desconectado (#377) y RF-50 NIC 41 (#424). La reconciliación de RF-52 E5 va en
->   `feat/rf52-e5-reconciliacion-bitacora`, un PR aparte encima del anterior, porque su migración
->   (`094d4799c3ca`: tipo de evento de la alerta y permiso del correctivo) espera autorización del DBA.
+>   RF-49 dispositivo desconectado (#377) y RF-50 NIC 41 (#424). De RF-52 E5 (reconciliación
+>   RF-46↔RF-52) esta rama deja la llave del cruce; la reconciliación y el registro correctivo van en
+>   `feat/rf52-e5-reconciliacion-bitacora`, porque traen una migración de permiso que espera al DBA.
 
 ## Números
 
@@ -23,8 +23,8 @@ módulo; para el porqué estructural, ver `gaps_flujo_alterno_patron_transversal
 |---|---:|---:|---:|---:|---:|
 | M1 — Identity Access | 12 (+2 sin ficha) | 90 | 9 | **0** | 2 (+1 nuevo, ver abajo) |
 | M9 — Configuration | 17 (+1 sin ficha) | 118 | 11 | **0** | 17 |
-| M2 — Biological Assets | 17 (+3 sin ficha) | 104 | 18 | **0** | 4 → **0** |
-| **Total** | **46** | **312** | **38** | **0** | **23** |
+| M2 — Biological Assets | 17 (+3 sin ficha) | 104 | 18 | **1** | 4 → **0** |
+| **Total** | **46** | **312** | **38** | **1** | **23** |
 
 "❌ Gaps" es el hallazgo original de la auditoría; "Pendientes hoy" es lo que sigue abierto. El ⚠️
 nuevo de M1 es la mitad del caso de RF-04 que no se pudo implementar (no existe catálogo de acciones
@@ -45,12 +45,13 @@ M1 RF-08/RF-09, M9 RF-16, M2 RF-35/RF-36/RF-37.
 
 Ordenado por severidad: primero funcionalidad ausente (la regla no se aplica en absoluto), luego
 HTTP incorrecto en endpoints centrales (la regla sí se aplica, el código de estado no coincide).
-Las filas marcadas ✅ ya están corregidas: las 15.
+Las filas marcadas ✅ ya están corregidas: las 15. De RF-52 (fila 2) solo queda la reconciliación
+de E5.
 
 | # | Módulo · RF | Problema | Tipo |
 |---|---|---|---|
 | 1 | ✅ M2 · RF-49 | Sin validar compatibilidad de especie sensor↔activo; alerta de dispositivo offline hardcodeada a `None` | Funcionalidad ausente |
-| 2 | ✅ M2 · RF-52 | `registro_incompleto` nunca se activa — un campo faltante se rechaza (400) en vez de aceptarse-con-advertencia; sin buffer de auditoría, cola con prioridad ni reconciliación con RF-46 | Funcionalidad ausente |
+| 2 | ✅ M2 · RF-52 (E1, E2, E3) | `registro_incompleto` nunca se activa — un campo faltante se rechaza (400) en vez de aceptarse-con-advertencia; sin buffer de auditoría ni cola con prioridad. *La reconciliación de E5 va en un PR aparte* | Funcionalidad ausente |
 | 3 | ✅ M1 · RF-01 | "SMTP falla 3 veces → 503" es irreproducible: el correo se agenda tras el 201, sin reintentos reales | Funcionalidad ausente |
 | 4 | ✅ M9 · RF-17 | Sin ningún mecanismo de sincronización a nodos Edge al guardar un umbral ambiental | Funcionalidad ausente |
 | 5 | ✅ M2 · RF-50/RF-51 | Sin detección de valores físicamente imposibles (outliers) en indicadores ni datos consolidados | Funcionalidad ausente |
@@ -88,6 +89,6 @@ El resto era funcionalidad genuinamente ausente — sin fix de una línea, con d
 especie/sensor). De esa categoría ya se implementaron los dos de M1 (RF-01 SMTP→503 y RF-11 410
 Gone) y los tres de M9 (RF-17 sync a Edge vía INC-M09-104-G29, RF-25 204 y 504, RF-32 referencias
 huérfanas). De M2, RF-49 y el 422 de NIC 41 de RF-50 ya los habían cerrado otros PRs, y se
-implementaron los outliers de RF-50/RF-51 y E1 a E5 de RF-52. No queda nada abierto en la
-auditoría; lo único con dependencia externa es la migración de E5, que espera la autorización del
-DBA.
+implementaron los outliers de RF-50/RF-51 y E1/E2/E3 de RF-52. Lo único abierto en toda la
+auditoría es la reconciliación de RF-52 E5: la llave del cruce ya se emite, y el job diario y el
+registro correctivo esperan la autorización del DBA para su migración de permiso.

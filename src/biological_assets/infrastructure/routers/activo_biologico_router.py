@@ -95,15 +95,8 @@ from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import C
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
 from src.biological_assets.application.use_cases.gestion.consultar_bitacora_use_case import ConsultarBitacoraUseCase
-from src.biological_assets.application.use_cases.auditoria.registrar_correctivo_auditoria_use_case import (
-    RegistrarCorrectivoAuditoriaUseCase,
-)
 from src.biological_assets.infrastructure.dto.consultar_bitacora_dto import ConsultarBitacoraDTO
-from src.biological_assets.infrastructure.dto.registrar_correctivo_auditoria_dto import RegistrarCorrectivoAuditoriaDTO
 from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import SqlAlchemyBitacoraAuditoriaRepository
-from src.biological_assets.infrastructure.repositories.reconciliacion_auditoria_repository import (
-    SqlAlchemyReconciliacionAuditoriaRepository,
-)
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.infrastructure.rbac_auditoria import require_permission_m02
 from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_autorizado_use_case import (
@@ -145,7 +138,6 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     IndicadorZootecnicoResponse,
     DatosConsolidadosResponse,
     BitacoraAuditoriaResponse,
-    RegistroCorrectivoAuditoriaResponse,
     EventoAuditoriaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
@@ -525,42 +517,6 @@ def consultar_bitacora(
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
         registros=[_auditoria_to_response(r) for r in registros],
-    )
-
-
-# ── CU13 RF-52 E5 — Registro correctivo de auditoría ────────────────────────
-
-@router.post(
-    '/auditoria/registros-correctivos',
-    response_model=RegistroCorrectivoAuditoriaResponse,
-    status_code=201,
-    dependencies=[Depends(require_permission_m02(_RECURSO_BITACORA, 1, rf_origen='RF52'))],
-    responses={
-        400: {'model': ErrorResponse},
-        401: {'model': ErrorResponse},
-        403: {'model': ErrorResponse},
-        404: {'model': ErrorResponse, 'description': 'El registro no existe en el historial RF-46'},
-        409: {'model': ErrorResponse, 'description': 'El registro ya tiene su entrada en la bitácora'},
-    },
-    summary='Registrar un correctivo de auditoría para una fila del historial sin bitácora (CU13 - RF-52 E5)',
-)
-def registrar_correctivo_auditoria(
-    dto: RegistrarCorrectivoAuditoriaDTO,
-    db: Session = Depends(get_db),
-    usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> RegistroCorrectivoAuditoriaResponse:
-    use_case = RegistrarCorrectivoAuditoriaUseCase(
-        db=db,
-        repo=SqlAlchemyReconciliacionAuditoriaRepository(db),
-        bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
-    )
-    evento = use_case.execute(dto, usuario_actual)
-    return RegistroCorrectivoAuditoriaResponse(
-        tabla=dto.tabla,
-        id_registro=dto.id_registro,
-        id_activo_biologico=evento.id_activo_biologico,
-        motivo=dto.motivo,
-        timestamp_evento=evento.timestamp_evento,
     )
 
 

@@ -187,7 +187,6 @@ def test_todas_las_rutas_m02_protegidas_auditan_el_rf_que_las_origina() -> None:
         ('POST', '/activos-biologicos'): 'RF33',
         ('GET', '/activos-biologicos'): 'RF33',
         ('GET', '/activos-biologicos/auditoria'): 'RF52',
-        ('POST', '/activos-biologicos/auditoria/registros-correctivos'): 'RF52',
         ('GET', '/activos-biologicos/{id_activo}'): 'RF35',
         ('PATCH', '/activos-biologicos/{id_activo}'): 'RF35',
         ('POST', '/activos-biologicos/{id_activo}/fases'): 'RF37',

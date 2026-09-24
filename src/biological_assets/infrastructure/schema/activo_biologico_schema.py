@@ -435,11 +435,3 @@ class BitacoraAuditoriaResponse(BaseModel):
     total_paginas: int
     registros_por_pagina: int
     registros: list[EventoAuditoriaResponse]
-
-
-class RegistroCorrectivoAuditoriaResponse(BaseModel):
-    tabla: str
-    id_registro: int
-    id_activo_biologico: Optional[int]
-    motivo: str
-    timestamp_evento: datetime
