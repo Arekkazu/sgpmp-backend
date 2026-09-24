@@ -1565,6 +1565,9 @@ def cambiar_estado_asociacion_sensor(
         401: {'model': ErrorResponse},
         403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
+        409: {'model': ErrorResponse, 'description': 'Consumo de alimento en 0 (división por cero)'},
+        422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'Outliers críticos en las métricas del activo'},
     },
     summary='Consultar indicadores zootécnicos del activo biológico (CU12 - RF-51)',
 )
@@ -1644,6 +1647,7 @@ def consultar_indicadores(
         404: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
         429: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'Métricas físicamente imposibles (exportación cancelada)'},
     },
     summary='Exponer datos consolidados del activo biológico para módulos analíticos (CU12 - RF-50)',
 )

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
-from src.shared.errors import BusinessRuleError, ConflictError
+from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 # RF-39: estados que permiten registro de eventos
 _ESTADOS_PERMITEN_EVENTOS = {1, 3, 4}  # ACTIVO, EN_TRATAMIENTO, AISLADO
@@ -76,11 +76,14 @@ def validar_fecha_evento(
     activo: ActivoBiologico,
     evento_repo: EventoActivoRepository,
 ) -> None:
+    # RF-39/40/41/42 clasifican "Fecha inválida" como HTTP 400, no como regla de
+    # negocio: ValidationError, no BusinessRuleError. RF-43 no pasa por aquí, pide
+    # 422 para su propio caso de fecha.
     ahora = datetime.now(timezone.utc)
     fecha_utc = fecha.astimezone(timezone.utc)
 
     if fecha_utc > ahora:
-        raise BusinessRuleError(
+        raise ValidationError(
             code='FECHA_FUTURA',
             message='La fecha del evento no puede ser posterior a la fecha actual.',
         )
@@ -88,7 +91,7 @@ def validar_fecha_evento(
     if activo.fecha_creacion:
         creacion_utc = activo.fecha_creacion.astimezone(timezone.utc)
         if fecha_utc < creacion_utc:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code='FECHA_ANTERIOR_REGISTRO',
                 message='La fecha del evento es inválida o inconsistente con el historial.',
             )
@@ -97,7 +100,7 @@ def validar_fecha_evento(
     if ultima is not None:
         ultima_utc = ultima.astimezone(timezone.utc)
         if fecha_utc < ultima_utc:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code='FECHA_INCOHERENTE',
                 message='La fecha del evento es inválida o inconsistente con el historial.',
             )

@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._cambio_estado import aplicar_cambio_estado
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -155,7 +155,11 @@ class CerrarCicloUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Ciclo productivo cerrado: {dto.motivo_cierre}',
-            detalle_tecnico={'motivo': motivo_completo, 'fecha_cierre': dto.fecha_cierre.isoformat()},
+            detalle_tecnico={
+                'motivo': motivo_completo,
+                'fecha_cierre': dto.fecha_cierre.isoformat(),
+                'registros_rf46': registros_rf46(historicos_estados_activos=historico.id_historico),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

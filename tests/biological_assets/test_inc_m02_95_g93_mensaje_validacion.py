@@ -129,13 +129,12 @@ def test_fecha_malformada_usa_contrato_estable(cliente: TestClient) -> None:
     assert 'isoformat' not in respuesta.text.lower()
 
 
+# El historial (RF-46) ya no está aquí: su rango invertido es el flujo alterno
+# E-03, que el RF clasifica como 422 y rechaza el use case (ver
+# test_gaps_flujo_alterno_m02.py), no un 400 de parámetros.
 @pytest.mark.parametrize(
     ('ruta', 'parametros'),
     [
-        (
-            '/activos-biologicos/1/historial',
-            {'fecha_inicio': '2026-09-10', 'fecha_fin': '2026-09-09'},
-        ),
         (
             '/activos-biologicos/1/indicadores',
             {'fecha_inicio': '2026-09-10', 'fecha_fin': '2026-09-09'},

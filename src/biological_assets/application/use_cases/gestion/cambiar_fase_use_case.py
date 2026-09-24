@@ -8,7 +8,7 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, GestionFase
+from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, GestionFase, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
@@ -190,6 +190,7 @@ class CambiarFaseUseCase:
                 'fase': fase_objetivo.nombre_fase,
                 'ciclo': ciclo.nombre,
                 'es_transicion_no_estandar': es_no_estandar,
+                'registros_rf46': registros_rf46(gestiones_fases=gestion.id_gestion_fases),
             },
             id_usuario_responsable=usuario.id_usuario,
         ))

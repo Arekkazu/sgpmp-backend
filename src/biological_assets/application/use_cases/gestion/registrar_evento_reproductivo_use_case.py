@@ -18,6 +18,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     EventoActivo,
     EventoAuditoria,
     EventoReproductivo,
+    registros_rf46,
 )
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
@@ -25,7 +26,7 @@ from src.biological_assets.domain.repositories.evento_activo_repository import E
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.infrastructure.dto.registrar_evento_reproductivo_dto import RegistrarEventoReproductivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
 
 _CATEGORIAS_REQUIEREN_PADRE = {'servicio', 'inseminacion'}
 _CATEGORIAS_REQUIEREN_NUM_CRIAS = {'parto', 'aborto', 'nacimiento'}
@@ -113,8 +114,10 @@ class RegistrarEventoReproductivoUseCase:
         # FA-05: para servicio/inseminación, el padre es obligatorio y debe existir,
         # estar ACTIVO y pertenecer a la misma finca que el activo objetivo.
         if dto.categoria in _CATEGORIAS_REQUIEREN_PADRE:
+            # RF-42 "Datos obligatorios faltantes" -> 400, aunque el campo sea
+            # obligatorio solo para ciertas categorías.
             if dto.id_padre is None:
-                raise BusinessRuleError(
+                raise ValidationError(
                     code='PADRE_REQUERIDO',
                     message=f'El tipo de evento {dto.categoria} requiere especificar el activo padre (id_padre).',
                 )
@@ -168,7 +171,7 @@ class RegistrarEventoReproductivoUseCase:
 
         # Validar numero_crias para eventos que lo requieren
         if dto.categoria in _CATEGORIAS_REQUIEREN_NUM_CRIAS and dto.numero_crias < 1:
-            raise BusinessRuleError(
+            raise ValidationError(
                 code='NUMERO_CRIAS_REQUERIDO',
                 message=f'El tipo de evento {dto.categoria} requiere al menos 1 cría (numero_crias >= 1).',
             )
@@ -211,7 +214,10 @@ class RegistrarEventoReproductivoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Evento reproductivo registrado: {dto.categoria}',
-            detalle_tecnico={'categoria': dto.categoria},
+            detalle_tecnico={
+                'categoria': dto.categoria,
+                'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 

@@ -9,7 +9,7 @@ from src.biological_assets.application.use_cases.gestion._auditoria_rechazos imp
     ejecutar_con_auditoria_de_rechazo,
 )
 from src.biological_assets.application.use_cases.gestion._event_validations import validar_fecha_evento
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoCrecimiento, GestionFase
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoCrecimiento, GestionFase, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
@@ -221,7 +221,11 @@ class RegistrarEventoCrecimientoUseCase:
             severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
             id_activo_biologico=id_activo, tipo_activo=activo.tipo,
             descripcion=f'Evento de crecimiento: {dto.tipo_medicion} = {dto.valor_medicion} {dto.unidad_medida}',
-            detalle_tecnico={'tipo_medicion': dto.tipo_medicion, 'valor': str(dto.valor_medicion)},
+            detalle_tecnico={
+                'tipo_medicion': dto.tipo_medicion,
+                'valor': str(dto.valor_medicion),
+                'registros_rf46': registros_rf46(eventos_activos=resultado.id_eventos),
+            },
             id_usuario_responsable=usuario.id_usuario,
         ))
 
@@ -280,9 +284,25 @@ class RegistrarEventoCrecimientoUseCase:
                 id_usuario=usuario.id_usuario,
                 motivo_cambio='Avance automático por duración de fase',
             )
-            self.activo_repo.crear_gestion_fase(nueva_gestion)
+            nueva = self.activo_repo.crear_gestion_fase(nueva_gestion)
             self.db.commit()
-            return True
         except Exception:
             self.db.rollback()
             return False
+
+        # RF-52 "registro obligatorio sin excepción": este cambio de fase también es
+        # historial RF-46 y antes no dejaba ningún rastro en la bitácora.
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF37', tipo_evento='FASE_AVANZADA_AUTOMATICAMENTE',
+            clasificacion_biologica='TRANSFORMACION_BIOLOGICA', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            descripcion=f'Avance automático a la fase {siguiente.nombre_fase} por duración cumplida',
+            detalle_tecnico={
+                'fase': siguiente.nombre_fase,
+                'ciclo': ciclo.nombre,
+                'registros_rf46': registros_rf46(gestiones_fases=nueva.id_gestion_fases),
+            },
+            id_usuario_responsable=usuario.id_usuario,
+        ))
+        return True

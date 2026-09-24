@@ -14,7 +14,7 @@ from src.biological_assets.domain.repositories.indicadores_repository import Ind
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
+from src.shared.errors import BusinessRuleError, ConflictError, InfrastructureError, NotFoundError
 
 # INC-M02-92-G93: RF-50 exige registrar el "módulo solicitante" en la
 # auditoría. Las identidades técnicas de consumidores analíticos creadas para
@@ -32,6 +32,11 @@ _PATRON_ROL_MODULO = re.compile(r'^integraci[oó]n\s+m0*(\d+)$', re.IGNORECASE)
 # cuando no hay peso, comportamiento que RF-50 no prohíbe para ellos.
 _MODULO_CONSISTENCIA_FUERTE = 'modulo6'
 _TIPOS_DATO_CON_METRICAS = {'metricas', 'todos'}
+
+# RF-50 FA "Fallo de normalización de datos": magnitudes físicas que nunca pueden
+# ser negativas. ponytail: solo el signo; rangos plausibles por especie requieren
+# un catálogo en M09 que no existe (mismo límite que el umbral de RF-51).
+_METRICAS_NO_NEGATIVAS = ('peso_actual', 'biomasa_total', 'cantidad_actual')
 
 
 class ConsultarDatosConsolidadosUseCase:
@@ -100,6 +105,18 @@ class ConsultarDatosConsolidadosUseCase:
             pagina=dto.pagina,
             page_size=dto.page_size,
         )
+
+        # Antes de auditar el consumo: una exportación cancelada no se consumió.
+        metricas = resultado.secciones.metricas_actuales
+        if any((metricas.get(campo) or 0) < 0 for campo in _METRICAS_NO_NEGATIVAS):
+            raise InfrastructureError(
+                code='METRICAS_CORRUPTAS',
+                message=(
+                    f'Error de consistencia interna: Se detectaron métricas corruptas para el activo '
+                    f'{id_activo}. La exportación de datos se ha cancelado para proteger la integridad '
+                    'de los modelos analíticos.'
+                ),
+            )
 
         registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
             rf_origen='RF50', tipo_evento='DATOS_ANALITICOS_CONSULTADOS',
