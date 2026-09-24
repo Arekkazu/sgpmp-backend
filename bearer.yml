@@ -1,0 +1,18 @@
+# Configuración de Bearer SAST para Backend (FastAPI / Python)
+# Referencia: docs-sgpmp/seguridad/GUIA-OPERACION-SAST-CI-CD.md
+report:
+    fail-on-severity: critical,high
+    severity: critical,high,medium,low,warning
+scan:
+    scanner:
+        - sast
+        - secrets
+    skip-test: true
+    skip-path:
+        - "tests/**"
+        - "alembic/**"
+        - "anotaciones/**"
+        - "docs/**"
+        - "scripts/**"
+        - ".venv/**"
+        - "venv/**"
