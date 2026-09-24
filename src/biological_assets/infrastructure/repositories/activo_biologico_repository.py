@@ -410,14 +410,17 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
 
     def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str, usuario_id: int) -> None:
         self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario_id})
-        self.db.execute(
-            text(
-                'UPDATE modulo2.gestiones_fases '
-                'SET es_activa = false, fecha_finalizacion = :fecha, motivo_cambio = :motivo '
-                'WHERE id_activo_biologico = :id AND es_activa = true'
-            ),
-            {'id': id_activo, 'fecha': fecha_fin, 'motivo': motivo},
-        )
+        try:
+            self.db.execute(
+                text(
+                    'UPDATE modulo2.gestiones_fases '
+                    'SET es_activa = false, fecha_finalizacion = :fecha, motivo_cambio = :motivo '
+                    'WHERE id_activo_biologico = :id AND es_activa = true'
+                ),
+                {'id': id_activo, 'fecha': fecha_fin, 'motivo': motivo},
+            )
+        except Exception as exc:
+            raise_from_db_error(exc)
 
     def actualizar_detalle_poblacional(self, activo: ActivoBiologico) -> ActivoBiologico:
         try:

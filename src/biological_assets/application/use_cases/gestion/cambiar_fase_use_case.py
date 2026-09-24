@@ -12,6 +12,7 @@ from src.biological_assets.domain.entities.activo_biologico import EventoAuditor
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.ciclo_consulta_port import CicloConsultaPort
+from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFoundError, ValidationError
@@ -50,6 +51,17 @@ class CambiarFaseUseCase:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',
                 message=f'El activo biológico con ID {id_activo} no existe.',
+            )
+
+        # INC-M02-G34: RF-37 prohíbe cambiar de fase un activo CERRADO o en
+        # BAJA. El trigger de BD también lo impide, pero aquí da un 409 claro.
+        if activo.id_estado in (EstadoActivo.CERRADO, EstadoActivo.BAJA):
+            raise ConflictError(
+                code='ACTIVO_NO_OPERATIVO',
+                message=(
+                    f'El activo biológico se encuentra en estado {EstadoActivo(activo.id_estado).name}. '
+                    'No se permiten cambios de fase en activos cerrados o dados de baja.'
+                ),
             )
 
         # FA-02: ciclo productivo debe existir y tener fases
@@ -121,6 +133,17 @@ class CambiarFaseUseCase:
                     field='fase_destino_id',
                 )
             fase_objetivo = ciclo.fases[idx_objetivo]
+            activa = next((g for g in gestiones if g.es_activa), None)
+            if (
+                activa is not None
+                and activa.id_ciclo_productiva == dto.id_ciclo_productiva
+                and activa.id_ciclos_productivo_biologico == dto.fase_destino_id
+            ):
+                raise ConflictError(
+                    code='FASE_DESTINO_IGUAL_ACTUAL',
+                    message=f'El activo ya se encuentra en la fase "{fase_objetivo.nombre_fase}".',
+                    field='fase_destino_id',
+                )
             es_no_estandar = (
                 fase_estandar is None
                 or fase_objetivo.id_ciclos_productivo_biologico != fase_estandar.id_ciclos_productivo_biologico
@@ -137,6 +160,21 @@ class CambiarFaseUseCase:
                 )
 
         ahora = dto.fecha_inicio or datetime.now(timezone.utc)
+
+        # INC-M02-G34: la nueva fase no puede empezar antes del inicio de la
+        # fase actual ni del fin de una ya cerrada (RF-37, sin solapamientos).
+        # El trigger solo ve las cerradas: una fecha anterior al inicio de la
+        # fase activa la cerraría con fin < inicio sin ningún error.
+        limite = max((g.fecha_finalizacion or g.fecha_inicio for g in gestiones), default=None)
+        if limite is not None and ahora < limite:
+            raise ConflictError(
+                code='FASE_SOLAPADA',
+                message=(
+                    f'La fecha de inicio ({ahora.isoformat()}) se solapa con el historial de fases del '
+                    f'activo: debe ser igual o posterior a {limite.isoformat()}.'
+                ),
+                field='fecha_inicio',
+            )
 
         try:
             # Cerrar fase activa actual si existe (antes de insertar la nueva, por el trigger)

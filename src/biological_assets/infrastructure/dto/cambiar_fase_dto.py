@@ -31,4 +31,7 @@ class CambiarFaseDTO(BaseDTO):
             v_utc = v.astimezone(timezone.utc) if v.tzinfo else v.replace(tzinfo=timezone.utc)
             if v_utc > ahora:
                 raise ValueError('La fecha de inicio de la fase no puede ser futura.')
+            # Normalizada: el use case la compara con fechas timestamptz de la BD
+            # (que corre en GMT, así que una fecha naive ya se guardaba como UTC).
+            return v_utc
         return v

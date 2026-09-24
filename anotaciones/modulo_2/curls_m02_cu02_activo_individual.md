@@ -273,6 +273,43 @@ curl -X POST http://localhost:8000/activos-biologicos/51/fases \
 
 Respuesta esperada `400`: `La fecha de inicio de la fase no puede ser futura.`
 
+#### Caso FA: fase destino igual a la actual → 409 (INC-M02-G33, #428)
+
+```bash
+# El activo ya está en la fase 5; confirmar no cambia nada (RF-37: "la fase destino debe ser distinta a la actual")
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fase_destino_id": 5, "confirmacion_no_estandar": true}'
+```
+
+Respuesta esperada `409 FASE_DESTINO_IGUAL_ACTUAL` (`field: fase_destino_id`).
+
+#### Caso FA: fecha que se solapa con el historial → 409 (INC-M02-G34, #429)
+
+```bash
+# fecha_inicio anterior al inicio de la fase activa o al fin de la última fase cerrada
+curl -X POST http://localhost:8000/activos-biologicos/51/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 2, "fecha_inicio": "2020-01-01T00:00:00Z"}'
+```
+
+Respuesta esperada `409 FASE_SOLAPADA` (`field: fecha_inicio`). Antes: `500 ERROR_INTERNO`
+(trigger `trg_fase_solapamiento`, SQLSTATE `P0227`, sin traducir).
+
+#### Caso FA: activo CERRADO o en BAJA → 409 (INC-M02-G34, #429)
+
+```bash
+curl -X POST http://localhost:8000/activos-biologicos/8/fases \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_ciclo_productiva": 5}'
+```
+
+Respuesta esperada `409 ACTIVO_NO_OPERATIVO`. Antes: `500 ERROR_INTERNO`
+(trigger `trg_fase_activo_estado_valido`, SQLSTATE `P0228`, sin traducir).
+
 ---
 
 ### GET /activos-biologicos/{id}/fases — Historial de fases

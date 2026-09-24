@@ -61,6 +61,15 @@ _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA = "P0210"
 #: anterior al registro del activo) recibía 500 en vez de 400.
 _ERRCODE_EVENTO_FECHA_INVALIDA = "P0215"
 
+#: INC-M02-G34 (RF-37): triggers de `modulo2.gestiones_fases` — fase activa
+#: duplicada (P0226), fechas solapadas (P0227) y activo CERRADO/BAJA (P0228).
+#: Sin mapeo, cambiar de fase en esos casos salía como 500 en vez de 409.
+_ERRCODES_FASE_CONFLICTO = {
+    "P0226": "FASE_ACTIVA_DUPLICADA",
+    "P0227": "FASE_SOLAPADA",
+    "P0228": "ACTIVO_NO_OPERATIVO",
+}
+
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
 #: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
 #: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
@@ -182,6 +191,10 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA:
         mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
         raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate in _ERRCODES_FASE_CONFLICTO:
+        mensaje = diag_generico.message_primary or "El cambio de fase entra en conflicto con el historial del activo."
+        raise ConflictError(code=_ERRCODES_FASE_CONFLICTO[sqlstate], message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)
