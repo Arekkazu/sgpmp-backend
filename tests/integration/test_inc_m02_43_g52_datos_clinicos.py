@@ -95,9 +95,9 @@ def permiso_datos_clinicos(db_session: Session) -> None:
 def _crear_contexto_con_evento_sanitario(db_session: Session, id_usuario_dueno: int) -> int:
     """Veterinario e Ingeniero de Campo no son 'globales' en AlcanceFincaAdapter
     (solo Admin tiene actualizar/desactivar sobre el recurso fincas): quedan
-    restringidos a `modulo9.fincas.id_usuario = su propio id`. La finca del
-    activo de prueba debe pertenecer al usuario que la consulta, o el activo
-    le sale invisible (404) antes de llegar a la redacción que se está probando.
+    restringidos a sus fincas en `modulo9.usuarios_fincas` (INC-M02-61-G52). El
+    usuario que consulta necesita acceso a la finca del activo de prueba, o el
+    activo le sale invisible (404) antes de llegar a la redacción que se prueba.
     """
     tipo_infraestructura = "Corral"
     sid = _id_temporal()
@@ -111,6 +111,10 @@ def _crear_contexto_con_evento_sanitario(db_session: Session, id_usuario_dueno: 
             """
         ),
         {"id": sid, "nombre": _nombre_temporal("Finca Prueba Clinica"), "id_usuario": id_usuario_dueno},
+    )
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": id_usuario_dueno, "f": sid},
     )
     db_session.execute(
         text(
