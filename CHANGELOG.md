@@ -1,3 +1,18 @@
+## [1.0.0-rc.51](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.50...v1.0.0-rc.51) (2026-09-24)
+
+### Bug Fixes
+
+* **m01:** fijar ancla temporal en la paginacion de auditoria (TC-M01-71) ([fad57c3](https://github.com/Arekkazu/sgpmp-backend/commit/fad57c321f45fd7166fda73484440b17a5702b9b))
+* **rf01:** activar una cuenta ya activada responde 400 en vez de 422 ([4a07615](https://github.com/Arekkazu/sgpmp-backend/commit/4a0761553d4cb8fdcd0f40a2a66ffce0f398763d))
+* **rf01:** enviar el correo de activacion dentro del request para poder responder 503 ([a356009](https://github.com/Arekkazu/sgpmp-backend/commit/a3560093d2b570dd15da56f9a588806e45ff2d4d))
+* **rf03:** modificar el rol protegido responde 403 en vez de 422 ([d719b3c](https://github.com/Arekkazu/sgpmp-backend/commit/d719b3c005cd2029c8da78e220bd0aec9e259570))
+* **rf04:** quitar el "HTTP 403" del mensaje de un error 422 ([15abd14](https://github.com/Arekkazu/sgpmp-backend/commit/15abd147848881a2974e031a71d2c757c4bc88d0))
+* **rf04:** rechazar la accion Ejecutar sobre recursos que no son proceso especial ([9a7abd6](https://github.com/Arekkazu/sgpmp-backend/commit/9a7abd6f7ecf4dde120f173d97a113b5917c5ada))
+* **rf05:** la escalada de privilegios responde 403 y queda auditada ([215a77c](https://github.com/Arekkazu/sgpmp-backend/commit/215a77c18979e725207ffe013021c4a72efd762a))
+* **rf06:** transicion de estado invalida responde 409 y ultimo administrador 400 ([3e4147c](https://github.com/Arekkazu/sgpmp-backend/commit/3e4147cae93a5a1f05edb33b61aa44c5700bdfd6))
+* **rf11:** editar un usuario eliminado por otro admin responde 410 ([e7b1f93](https://github.com/Arekkazu/sgpmp-backend/commit/e7b1f936619318b1073f2ea388193835753a8423))
+* **rf14:** no notificar intentos de acceso a cuentas inactivas ([4763da0](https://github.com/Arekkazu/sgpmp-backend/commit/4763da0f22dd23c23e35cc33c0cb2f721900d08d))
+
 ## [1.0.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.49...v1.0.0-rc.50) (2026-09-24)
 
 ### Features
