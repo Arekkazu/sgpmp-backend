@@ -17,7 +17,7 @@ import pytest
 from PIL import Image
 
 from src.shared.almacen_logos import DIMENSION_MAX, guardar_logo
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import InfrastructureError, UnsupportedMediaTypeError, ValidationError
 
 
 def _png_bytes(size: tuple[int, int] = (10, 10)) -> bytes:
@@ -39,10 +39,12 @@ def test_fallo_de_escritura_se_traduce_a_error_de_almacenamiento(monkeypatch, tm
     assert "No se pudo guardar el logotipo" in excinfo.value.message
 
 
-def test_formato_no_permitido_se_rechaza_con_400() -> None:
-    with pytest.raises(ValidationError) as excinfo:
+def test_formato_no_permitido_se_rechaza_con_415() -> None:
+    """RF-26 pide 415 Unsupported Media Type, no 400, para un formato no admitido."""
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(b"GIF89a", "image/gif")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
+    assert UnsupportedMediaTypeError.status_code == 415
 
 
 def test_tamano_excedido_se_rechaza_con_400() -> None:
@@ -52,14 +54,14 @@ def test_tamano_excedido_se_rechaza_con_400() -> None:
 
 
 def test_contenido_que_no_es_una_imagen_real_se_rechaza_aunque_el_content_type_diga_png() -> None:
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(b"<?php system($_GET['c']); ?>", "image/png")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
 
 
 def test_svg_con_script_se_rechaza() -> None:
     svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(svg, "image/svg+xml")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
 

@@ -2,6 +2,12 @@
 
 Síntesis de los tres audits de solo lectura (`anotaciones/modulo_1/gaps_flujo_alterno_modulo1.md`,
 `anotaciones/modulo_9/gaps_flujo_alterno_modulo9.md`, `anotaciones/modulo_2/gaps_flujo_alterno_modulo2.md`).
+> **Estado (2026-09-22):** los 9 ❌ del Módulo 1 (rama `fix/gaps-flujo-alterno-m01`) y los 11 ❌ del
+> Módulo 9 (rama `fix/gaps-flujo-alterno-m09`) están corregidos. Este documento conserva el
+> diagnóstico estructural completo; las menciones ya resueltas se anotan con **(corregido)** donde
+> aplica. **M2 sigue sin tocar** — y como los 16 ❌ que quedan son todos suyos, este documento pasa
+> a ser sobre todo la hoja de ruta de M2. Los ⚠️ de M9 se dejaron deliberadamente como están: ver la
+> nota al final del Patrón 2.
 > **Estado (2026-09-23):** están corregidos los 9 ❌ del Módulo 1 (rama `fix/gaps-flujo-alterno-m01`),
 > los 11 ❌ del Módulo 9 (rama `fix/gaps-flujo-alterno-m09`) y 16 de los 18 ❌ del Módulo 2, más sus
 > 4 ⚠️ (rama `fix/gaps-flujo-alterno-m02`). Este documento conserva el diagnóstico estructural
@@ -39,6 +45,12 @@ justamente los que auditan en cero gaps de código HTTP.
 | Dirección | Dónde aparece | Ejemplo |
 |---|---|---|
 | DTO/Pydantic → 400, RF pide 422/403 (falta subir) | M1 RF-05 **(corregido)** | Escalada de privilegios (`extra="forbid"` en `EditarPerfilDTO`) rechazaba con 400 genérico de Pydantic antes de que el use case pudiera auditar el intento o lanzar `AuthorizationError`→403. El fix: declarar los campos críticos en el DTO propio para que el rechazo lo haga el use case |
+| | M2 RF-40/41/42 (vía `_event_validations.py::validar_fecha_evento`, compartida) | Fecha de evento inválida da 422, RF pide 400 — pero aquí es al revés: **use case sube a 422 algo que el RF llama validación básica (400)** |
+| | M2 RF-44 | Fecha futura / motivo vacío → 400 (Pydantic), RF pide 422 |
+| | M2 RF-46 | Filtro de fecha inicio>fin → 400 (Pydantic), RF pide 422 |
+| Use case/BusinessRuleError → 422, RF pide 400 (sobra) | M9 RF-17 **(corregido)** | Solapamiento de niveles de alerta → 422, RF pide 400. El fix fue literalmente cambiar `BusinessRuleError` por `ValidationError` en `_validar_rangos`, que registrar y editar comparten |
+| | M9 RF-20 **(corregido)** | Tipo de área no reconocido → 422, RF pide 400. La validación se quedó en el use case: el catálogo de tipos es tabla administrable, no enum, así que no puede bajar al DTO |
+| | M2 RF-43 (caso inverso al de RF-40/41/42) | 3 de 9 casos (fecha, cantidad, unidad) usan `ValidationError`(400) donde el propio RF-43 etiqueta explícitamente "Error de validación — HTTP 422" |
 | | M2 RF-40/41/42 (vía `_event_validations.py::validar_fecha_evento`, compartida) **(corregido)** | Fecha de evento inválida daba 422, RF pide 400 — aquí era al revés: **el use case subía a 422 algo que el RF llama validación básica (400)**. Un solo cambio de clase de error en la función compartida corrigió los tres RF |
 | | M2 RF-44 **(corregido)** | Fecha futura / motivo vacío → 400 (Pydantic), RF pide 422. Las dos reglas, y el rechazo de CERRADO/BAJA (E-07), pasaron del DTO al use case; el DTO solo rechaza un estado que no existe |
 | | M2 RF-46 **(corregido)** | Filtro de fecha inicio>fin → 400 (Pydantic), RF pide 422. El `model_validator` salió del DTO y el use case lo rechaza antes de cualquier consulta, como pide el RF |
@@ -140,6 +152,14 @@ existe en ningún punto del código, por lo que ni siquiera hay un HTTP "equivoc
 | M9 | RF-17 **(corregido)** | No existía notificación/sincronización a nodos Edge al guardar un umbral. Lo cerró INC-M09-104-G29 (PR #385) entre la auditoría y la corrección del módulo: `EdgeSincronizacionPort` propaga post-commit y el estado de sincronización se persiste |
 | M9 | RF-25 **(corregido)** | Nunca devolvía `204` para una finca sin catálogo (siempre `200`) ni `504` por timeout. El 204 exigió sumar `tiene_infraestructura` al read-model —el RF lo define sobre especies **e** infraestructura a la vez—; el 504 se impone de verdad con `SET LOCAL statement_timeout = 2000` y la traducción del SQLSTATE `57014`, no midiendo después de esperar de más |
 | M9 | RF-32 **(corregido)** | El snapshot se aplicaba sin revalidar sus referencias: una variable ambiental eliminada reventaba abajo como violación de FK, y después de haber desactivado ya la configuración de la especie destino. Ahora se verifica antes de tocar nada |
+| M2 | RF-49 | Sin validación de compatibilidad de especie sensor↔activo (el puerto `SensorConsulta` ni siquiera tiene el campo); advertencia de dispositivo IoT offline hardcodeada a `None`, nunca se evalúa el heartbeat real |
+| M2 | RF-50 / RF-51 | Sin detección de valores físicamente imposibles (outliers: peso negativo, etc.) en ningún punto de los indicadores zootécnicos ni de los datos consolidados |
+| M2 | RF-52 | El flag `registro_incompleto` existe de punta a punta en el modelo de datos pero ningún use case lo activa nunca — un campo faltante se **rechaza** (400) en vez de aceptarse-con-advertencia, que es exactamente lo opuesto al principio de resiliencia que pide el RF. Tampoco existen el buffer/reintento de auditoría (E1), la cola con priorización (E3) ni la reconciliación RF-46↔RF-52 (E5) |
+
+Estos son los hallazgos de mayor severidad real de toda la auditoría: en el Patrón 1/2/3 el sistema
+sí aplica la regla y solo falla el código HTTP; aquí la regla de negocio no se aplica en absoluto.
+Tras corregir M1 y M9, **todo lo que queda de este patrón es M2** (RF-49/50/51/52) — y es el bloque
+más caro de la auditoría entera.
 | M2 | RF-49 **(corregido)** | No había validación de compatibilidad de especie sensor↔activo ni aviso de dispositivo desconectado. Los dos los cerraron PRs posteriores a la auditoría (#354 y #377) antes de corregir el módulo: la auditoría quedó desactualizada, no hizo falta tocar código |
 | M2 | RF-50 / RF-51 **(corregido)** | No había detección de valores físicamente imposibles. RF-51 ya detectaba el outlier de ganancia de peso (PR #271), pero lo respondía con el 422 genérico: ahora da 500, y la división por cero da 409, con una `causa_no_disponible` explícita en el indicador. RF-50 cancela la exportación (500) si una métrica es negativa. El 422 de NIC 41 de RF-50 ya lo había cerrado el PR #424 |
 | M2 | RF-52 E1/E2 **(corregido)** | El flag `registro_incompleto` existía de punta a punta pero nada lo activaba. Ahora el repositorio, único punto por el que pasan todos los emisores, persiste el evento marcado y con la causa, sin rechazarlo. El archivo de fallback se volvió un buffer que se recupera en orden cronológico al volver la bitácora y deja registrado el periodo de indisponibilidad |
@@ -184,11 +204,9 @@ excepción en los tres audits:
 3. **No es un bug, es documentación desactualizada del RF:** Patrón 4.
 4. **Más caro, requiere diseño nuevo:** Patrón 5 — son features ausentes (buffer de auditoría, cola
    con prioridad, detección de outliers, validación cruzada de especie), no fixes de una línea.
-   *Los de M1 (RF-01 SMTP y RF-11 410), los de M9 (RF-17 sync a Edge, RF-25 204/504, RF-32
-   referencias huérfanas) y los de M2 (outliers de RF-50/51, RF-52 E1/E2/E3) ya se implementaron;
-   ninguno requirió infraestructura nueva: el buffer de E1 reutilizó el archivo de fallback que ya
-   existía, y la cola de E3 reutilizó ese buffer. Lo único que necesitó catálogo es E5: un tipo de
-   evento para la alerta y un permiso para el correctivo, sin cambios de esquema.*
+   *Los de M1 (RF-01 SMTP y RF-11 410) y los de M9 (RF-17 sync a Edge, RF-25 204/504, RF-32
+   referencias huérfanas) ya se implementaron; ninguno requirió infraestructura nueva. Lo que queda
+   —M2 RF-49/50/51/52— sí la requiere.*
 
 **Lección que dejan las dos correcciones:** de los 20 ❌ cerrados entre M1 y M9, uno (M9·RF-23) era
 un falso positivo de la auditoría —la regla existía, en el `model_validator` del DTO, donde el audit
