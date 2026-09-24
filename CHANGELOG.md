@@ -1,3 +1,9 @@
+## [1.0.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.53...v1.0.0-rc.54) (2026-09-24)
+
+### Bug Fixes
+
+* **m09:** otorgar GRANT solo a roles existentes en migración b9edb971f005 (INC-M09-103-G28) ([9b841ce](https://github.com/Arekkazu/sgpmp-backend/commit/9b841ce2ce09bac21a07f9198d1eb8e53f037e32))
+
 ## [1.0.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.52...v1.0.0-rc.53) (2026-09-24)
 
 ### Bug Fixes
