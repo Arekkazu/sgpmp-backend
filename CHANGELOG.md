@@ -1,3 +1,17 @@
+## [1.0.0-rc.50](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.49...v1.0.0-rc.50) (2026-09-24)
+
+### Features
+
+* **rf25:** contexto de interfaz devuelve 204 sin catalogo y 504 por timeout ([57e3def](https://github.com/Arekkazu/sgpmp-backend/commit/57e3defab5fe005a1caef4151953b993004afc7e))
+
+### Bug Fixes
+
+* **rf17:** solapamiento de niveles de alerta responde 400 en vez de 422 ([978fc0a](https://github.com/Arekkazu/sgpmp-backend/commit/978fc0a4bfa871cb359e32d517e0943055714ad1))
+* **rf20:** tipo de area no reconocido responde 400 en vez de 422 ([642a009](https://github.com/Arekkazu/sgpmp-backend/commit/642a00901dc7fe027ef6ac03342ba5a9b47cb55f))
+* **rf22:** area productiva inexistente o inactiva responde 404 en ambos casos ([e233447](https://github.com/Arekkazu/sgpmp-backend/commit/e23344757965c8d94a0ab18cea02348b984c627e))
+* **rf26:** logo en formato no admitido responde 415 en vez de 400 ([4fe27e1](https://github.com/Arekkazu/sgpmp-backend/commit/4fe27e1b24f523cb64d139ba2bf65a6e2063e1a3))
+* **rf32:** esquema legacy 422, concurrencia 409 y referencias huerfanas 400 ([4749413](https://github.com/Arekkazu/sgpmp-backend/commit/474941376c5f908ca2473fe060e9f906346e4b95))
+
 ## [1.0.0-rc.49](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.48...v1.0.0-rc.49) (2026-09-24)
 
 ### Features
