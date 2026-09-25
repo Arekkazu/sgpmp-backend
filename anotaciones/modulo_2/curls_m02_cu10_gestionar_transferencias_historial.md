@@ -220,7 +220,13 @@ Errores posibles:
 - `422 CAPACIDAD_EXCEDIDA` — la infra destino no tiene capacidad suficiente (C3)
 - `422 FECHA_TRANSFERENCIA_FUTURA` — fecha_transferencia es posterior al día actual (nombre de código corregido; el doc decía `FECHA_FUTURA`, el `code` real que devuelve la API es `FECHA_TRANSFERENCIA_FUTURA`, confirmado en `RegistrarTransferenciaUseCase._execute` E-10)
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
-- `403` — rol sin permiso de ejecución sobre activos biológicos (solo admin y productor)
+- `403` — rol sin permiso de ejecución (`E`) sobre el recurso 29 (`activos_biologicos`). Verificado
+  en vivo contra `modulo1.permisos` de `sgpmp_dev` (2026-09-24): **los 4 roles lo tienen**
+  (Administrador, Productor, Veterinario, Ingeniero de Campo), así que ninguno de ellos recibe 403. El
+  use case no verifica `id_rol`. Esta línea decía antes "(solo admin y productor)", lo que no era
+  cierto: ese es el alcance que pide RF-48 (actores Productor y Administrador), no el que aplica el
+  sistema. Que Veterinario e Ingeniero puedan transferir es parte del hallazgo transversal #5 de
+  `estado_M02.md` (RBAC más amplio que los actores del RF), pendiente de decisión del equipo de análisis.
 
 > **Nota (INC-M02-73-G80 → INC-M02-88-G83):** `SIN_INFRAESTRUCTURA_ORIGEN`,
 > `INFRAESTRUCTURA_ORIGEN_INCORRECTA` e `INFRAESTRUCTURA_DESTINO_INVALIDA` usaban
