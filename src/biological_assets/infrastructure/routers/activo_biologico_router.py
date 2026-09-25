@@ -90,7 +90,11 @@ from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_
 )
 from src.biological_assets.infrastructure.adapters.sensor_m09_adapter import SensorM09Adapter
 from src.biological_assets.application.use_cases.gestion.consultar_indicadores_use_case import ConsultarIndicadoresUseCase
-from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import ConsultarDatosConsolidadosUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import (
+    MODULO_PROPIO,
+    ConsultarDatosConsolidadosUseCase,
+    resolver_modulo_consumidor,
+)
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
@@ -183,11 +187,30 @@ _SCOPES_TIPO_DATO = {
     'metricas': _RECURSO_DATOS_METRICAS,
 }
 
+
+def _clave_consumidor_datos_consolidados(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> str:
+    """RF-50: el limite de 100/min es por modulo consumidor.
+
+    Las identidades tecnicas de otros modulos ('Integración M0<n>',
+    INC-M02-90-G92 / INC-M02-93-G93) comparten un solo contador por modulo,
+    sin importar cuantos usuarios tecnicos use ese modulo. Los humanos
+    (modulo2) siguen con un contador por usuario: agruparlos a todos en uno
+    solo haria que se bloquearan entre si.
+    """
+    modulo = resolver_modulo_consumidor(SqlAlchemyRolRepository(db), usuario_actual.id_rol)
+    if modulo == MODULO_PROPIO:
+        return f'usuario:{usuario_actual.id_usuario}'
+    return f'modulo:{modulo}'
+
+
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
-# 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
-# por-usuario que ofrece hoy este helper) queda bloqueado por INC-M02-90-G92
-# (no existe todavia una identidad de modulo autenticable).
-_LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
+# 100 solicitudes/minuto por modulo consumidor.
+_LIMITE_DATOS_CONSOLIDADOS = rate_limit(
+    100, 60, alcance="activos_datos_consolidados", clave=_clave_consumidor_datos_consolidados,
+)
 
 # TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
