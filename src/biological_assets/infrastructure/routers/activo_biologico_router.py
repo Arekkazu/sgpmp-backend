@@ -110,6 +110,7 @@ from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_a
     RegistrarAccesoNoAutorizadoUseCase,
 )
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
+    AccesoDirectoResponse,
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
@@ -155,7 +156,7 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import tiene_permiso_sobre
+from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -1320,7 +1321,40 @@ def consultar_ficha_integral(
         eventos_reproductivos=ficha.eventos_reproductivos,
         indicadores=ficha.indicadores,
         advertencias=ficha.advertencias,
+        accesos_directos=_accesos_directos_ficha(db, usuario_actual, id_activo),
     )
+
+
+# RF-47 Sección 8: cada acceso directo exige el mismo permiso (recurso 29 +
+# acción) que el endpoint al que apunta, así la ficha nunca ofrece una acción
+# que luego respondería 403.
+_ACCESOS_DIRECTOS_FICHA = (
+    ('historial', 'Historial completo', 'GET', '/activos-biologicos/{id}/historial', 'RF46', 2, None),
+    (
+        'registrar_evento', 'Registrar evento', 'POST', '/activos-biologicos/{id}/eventos/{tipo_evento}',
+        'RF39-RF43', 1, ['crecimiento', 'sanitario', 'reproductivo', 'productivo'],
+    ),
+    ('cambiar_estado', 'Cambiar estado', 'PATCH', '/activos-biologicos/{id}/estado', 'RF44', 5, None),
+    ('registrar_baja', 'Registrar baja', 'POST', '/activos-biologicos/{id}/eventos/baja', 'RF45', 1, None),
+)
+
+
+def _accesos_directos_ficha(
+    db: Session, usuario_actual: UsuarioActual, id_activo: int,
+) -> list[AccesoDirectoResponse]:
+    """RF-47: la Sección 8 solo muestra las acciones que el rol puede ejecutar (RF-04)."""
+    permitido: dict[int, bool] = {}
+    accesos = []
+    for codigo, nombre, metodo, ruta, rf_origen, id_accion, tipos_evento in _ACCESOS_DIRECTOS_FICHA:
+        if id_accion not in permitido:
+            permitido[id_accion] = tiene_permiso(db, usuario_actual.id_rol, _RECURSO, id_accion)
+        if permitido[id_accion]:
+            accesos.append(AccesoDirectoResponse(
+                codigo=codigo, nombre=nombre, metodo=metodo,
+                ruta=ruta.replace('{id}', str(id_activo)), rf_origen=rf_origen,
+                tipos_evento=tipos_evento,
+            ))
+    return accesos
 
 
 # ── CU03 — RF-36: Ficha de gestión de lote ──────────────────────────────────
