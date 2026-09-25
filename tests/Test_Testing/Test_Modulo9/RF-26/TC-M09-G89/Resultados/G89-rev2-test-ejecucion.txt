@@ -1,0 +1,20 @@
+TC-M09-169 / G89 rev2 TEST
+Ambiente: TEST https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Historico NO modificado: tc_m09_g89.json, TC-M09-G89-Newman.html, TC-M09-G89_rev1_dev.*
+
+Codigo laura: identidad_visual_router sin GET auditoria. Repo solo registrar().
+OpenAPI TEST: POST/GET/PATCH identidad-visual; no GET .../auditoria.
+Rama origin/fix/rf26-tc-m09-169-g89-auditoria-identidad-visual existe (GET /{id_finca}/auditoria) pero NO esta en TEST ni en laura. No se fusiono.
+
+Usuario: id=1 admin@pecuaria.co Administrador JWT [REDACTED]
+Snapshot finca 4: Granja La Esperanza / #4A7C2F / #B4D49A / /assets/logos/esperanza.png / version=1
+
+PATCH 200 2026-09-19T02:53:28Z nombre=QA-G89-rev2-169 primary=#4A7C2E version=2
+GET /auditoria/ no contiene el cambio (solo CONSULTA_AUDITORIA)
+GET .../4/auditoria -> 404
+GET .../auditoria -> 400 VAL_ENTRADA
+
+RESTORE PATCH 200 + GET: nombre/colores/logo originales, version=3
+
+Clasificacion: RECHAZADO
+Password/JWT/Bearer: [REDACTED]

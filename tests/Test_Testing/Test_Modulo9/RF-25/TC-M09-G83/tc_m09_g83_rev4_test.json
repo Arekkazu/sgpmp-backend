@@ -1,0 +1,118 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g83-rf25-rev4-test",
+    "name": "TC-M09-G83 rev4 TEST - RBAC sin permiso R sobre contexto_interfaz",
+    "description": "Reevaluacion TC-M09-158/G83 segun Desarrollo: usuario existente, rol existente, sin permiso R sobre recurso 22 contexto_interfaz. No usa rolInexistente ni JWT mutado. No modifica tc_m09_g83.json. Password via --env-var contrasena.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo", "value": "gestor.granja.test@pecuaria.co" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "idUsuarioEsperado", "value": "30" },
+    { "key": "idRolEsperado", "value": "7" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Gestor de Granja (sin R en contexto_interfaz)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) {",
+              "    throw new Error('BLOQUEADO: pasar --env-var contrasena');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "const json = pm.response.json();",
+              "const token = json.token || json.access_token;",
+              "pm.test('Retorna JWT', function () {",
+              "    pm.expect(token).to.be.a('string').and.not.empty;",
+              "});",
+              "if (token) {",
+              "    pm.collectionVariables.set('token', token);",
+              "    const partes = token.split('.');",
+              "    let b64 = partes[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "    while (b64.length % 4) { b64 += '='; }",
+              "    const payload = JSON.parse(atob(b64));",
+              "    pm.test('JWT sub=30 y rol=7 (Gestor de Granja, no se muta el token)', function () {",
+              "        pm.expect(String(payload.sub)).to.eql('30');",
+              "        pm.expect(String(payload.rol)).to.eql('7');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "02 - TC-M09-158 GET contexto_interfaz sin permiso R",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403 (autorizacion RBAC, no 401)', function () {",
+              "    pm.expect(pm.response.code).to.eql(403);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('error_code ACCESO_DENEGADO', function () {",
+              "    pm.expect(json.error_code).to.eql('ACCESO_DENEGADO');",
+              "});",
+              "pm.test('No expone contexto_interfaz protegido', function () {",
+              "    pm.expect(json).to.not.have.property('id_usuario');",
+              "    pm.expect(json).to.not.have.property('id_rol');",
+              "    pm.expect(json).to.not.have.property('nombre_rol');",
+              "    pm.expect(json).to.not.have.property('modulos_autorizados');",
+              "    pm.expect(json).to.not.have.property('especies_configuradas');",
+              "    pm.expect(json).to.not.have.property('identidad_visual');",
+              "    pm.expect(json).to.not.have.property('id_finca');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/interfaz/contexto",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "interfaz", "contexto"]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+TC-M09-G94 / RF-27 — reevaluación rev2 TEST
+Fecha: 2026-09-25
+Ambiente: TEST
+Frontend: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co (rol Administrador). Un POST /sesiones por corrida.
+Cypress 14.5.4 / Electron 130 / axe-core 4.13.0
+No se sobrescribió tc_m09_g94.cy.js ni evidencia rev1 DEV.
+
+---
+Implementación real (inspección, sin cambio de producto)
+
+RF-27 tema: GET/PATCH /configuracion/personalizacion/tema
+  1=Claro 2=Oscuro 3=Sistema. Resolución personal→global→defecto.
+
+Contraste / variante (backend):
+  src/configuration/domain/value_objects/color_hex.py
+    RATIO_MINIMO_AA=4.5, FONDO_CLARO=#FFFFFF, FONDO_OSCURO=#171A15
+    ajustar_para_contraste() — variante HLS
+  accesibilidad_visual.py — aviso por tema + color_ajustado
+  Expuesto en GET identidad-visual y GET /configuracion/interfaz/contexto (RF-25, recurso 22)
+
+Frontend local (SGPMP-FRONT-END-PWA):
+  tokens.css --brand-500 fijo #2e8634 / dark #52a057
+  useTheme.ts: data-theme + localStorage (no consume color_ajustado)
+  No hay axe/wcag/variante en src del frontend.
+
+---
+401 histórico DEV: NO se reproduce en TEST cuando el Bearer se envía en el momento de la request.
+GET contexto UI intercept: HTTP 200 hasAuth=true
+GET contexto cy.request (token diferido): HTTP 200
+GET tema: HTTP 200 theme_mode=1 fuente=personal id=6
+Causa del 401 DEV y del 401 intermedio rev2: Cypress cy.request capturaba Authorization con token aún null (error de prueba), no un defecto de RF-27.
+
+---
+TC-M09-178 APROBADO (tema Claro activo)
+Dashboard autenticado. data-theme=light. axe.run color-contrast: 0 violations, 12 nodos en passes.
+Enlace sidebar A.ds-sidebar__item blanco sobre rgba(46,134,52,0.12) ratio 4.59 (>=4.5).
+NAV.ds-sidebar color heredado negro sobre #141610 ratio 1.15: color del contenedor, no del texto de ítems (no aplicable como texto normal).
+Fondos transparentes en html/body/h1: ratio no calculable sobre rgba(0,0,0,0); axe no reportó fallo.
+Contexto finca 34 sin identidad_visual (accesibilidad null). 178 evalúa tokens de tema, no marca de finca.
+
+---
+TC-M09-179
+PATCH temporal identidad finca 4 primary=#FFFFFF (API RF-26, no CSS de producto).
+GET/PATCH respuesta: ratio=1.0 cumple_aa=false color_ajustado=#757575 aviso presente.
+CSS --brand-500 siguió #2e8634 (no #757575 ni #FFFFFF).
+Restaurado: primary=#4A7C2F secondary=#B4D49A (GET confirmado, version 9).
+Finca activa del admin=34 sin identidad: el dashboard no recibe esa marca por contexto.
+
+Clasificación 179: RECHAZADO en “aplicar la variante en la UI”.
+El backend SÍ detecta y calcula la variante (flujo alterno RF-27). El frontend TEST no la aplica a --brand-500.
+No es 401. No es credencial.
+
+---
+Git: no commit / push / add.

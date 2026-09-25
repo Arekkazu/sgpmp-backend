@@ -1,0 +1,154 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 3,
+    "passes": 1,
+    "pending": 0,
+    "failures": 2,
+    "start": "2026-09-25T07:13:55.930Z",
+    "end": "2026-09-25T07:14:05.944Z",
+    "duration": 10014,
+    "testsRegistered": 3,
+    "passPercent": 33.33333333333333,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "26d120ab-0676-462e-a466-26176ecb032a",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev3_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\tc_m09_g94_179_rev3_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "7dda0042-e7a0-40f5-bfe6-8c1316901d8b",
+          "title": "TC-M09-179 rev3 TEST - variante con finca activa correcta",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "precondicion GET contexto productor = finca 1 con identidad",
+              "fullTitle": "TC-M09-179 rev3 TEST - variante con finca activa correcta precondicion GET contexto productor = finca 1 con identidad",
+              "timedOut": null,
+              "duration": 5760,
+              "state": "passed",
+              "speed": "medium",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const contrasena = pass();\ncy.request({\n  method: 'POST',\n  url: `${TEST_API}/sesiones/`,\n  headers: {\n    'Content-Type': 'application/json'\n  },\n  body: {\n    correo_electronico: 'admin@pecuaria.co',\n    contrasena\n  },\n  failOnStatusCode: false\n}).then(r => {\n  expect(r.status, 'login admin API un intento').to.eq(200);\n  tokenAdmin = r.body.token;\n});\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctxNav');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('loginProd');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"]').clear().type('productor@pecuaria.co');\ncy.get('input[type=\"password\"]').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@loginProd').then(intc => {\n  expect(intc.response.statusCode, 'login productor UI un intento').to.eq(200);\n  tokenProd = intc.response.body.token;\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.wait('@ctxNav').then(intc => {\n  expect(intc.response.statusCode, 'GET contexto navegador').to.eq(200);\n  const body = intc.response.body;\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-contexto-inicial-browser.json`, {\n    id_usuario: body.id_usuario,\n    id_finca: body.id_finca,\n    finca_activa: body.finca_activa,\n    identidad_visual: body.identidad_visual,\n    accesibilidad: body.accesibilidad\n  });\n  expect(body.id_finca, 'finca activa').to.eq(1);\n  expect(body.identidad_visual, 'identidad no null').to.be.an('object');\n  expect(body.accesibilidad, 'accesibilidad no null').to.be.an('object');\n  expect(String(body.identidad_visual.primary_color).toUpperCase()).to.eq('#1A6B3C');\n});",
+              "err": {},
+              "uuid": "f28686aa-c157-4c3f-b137-e7cde0b5b264",
+              "parentUUID": "7dda0042-e7a0-40f5-bfe6-8c1316901d8b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "PATCH temporal tema=1 e identidad #FFFFFF; UI aplica color_ajustado de finca 1",
+              "fullTitle": "TC-M09-179 rev3 TEST - variante con finca activa correcta PATCH temporal tema=1 e identidad #FFFFFF; UI aplica color_ajustado de finca 1",
+              "timedOut": null,
+              "duration": 3472,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "expect(tokenAdmin).to.be.a('string');\nexpect(tokenProd).to.be.a('string');\napi('GET', `/configuracion/identidad-visual/${FINCA}`, tokenAdmin).then(idRes => {\n  expect(idRes.status).to.eq(200);\n  snapId = {\n    primary_color: idRes.body.primary_color,\n    secondary_color: idRes.body.secondary_color,\n    org_display_name: idRes.body.org_display_name,\n    version: idRes.body.version,\n    logo_path: idRes.body.logo_path\n  };\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-baseline-identidad.json`, snapId);\n});\napi('GET', '/configuracion/personalizacion/tema', tokenProd).then(tRes => {\n  expect(tRes.status).to.eq(200);\n  snapTema = tRes.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-baseline-tema.json`, {\n    theme_mode: snapTema,\n    fuente: tRes.body.fuente\n  });\n  return api('PATCH', '/configuracion/personalizacion/tema', tokenProd, {\n    theme_mode: 1\n  });\n}).then(pTema => {\n  expect(pTema.status, 'PATCH tema claro').to.eq(200);\n  patchedTema = true;\n});\napi('GET', `/configuracion/identidad-visual/${FINCA}`, tokenAdmin).then(idRes => {\n  return api('PATCH', `/configuracion/identidad-visual/${FINCA}`, tokenAdmin, {\n    primary_color: COLOR_BAJO,\n    secondary_color: snapId.secondary_color,\n    org_display_name: snapId.org_display_name,\n    version: idRes.body.version\n  });\n}).then(pId => {\n  expect(pId.status, 'PATCH #FFFFFF finca 1').to.be.oneOf([200, 201]);\n  patchedId = true;\n  const claro = pId.body.accesibilidad.primary_color.claro;\n  expect(claro.cumple_aa).to.eq(false);\n  expect(claro.ratio).to.be.lessThan(4.5);\n  expect(String(claro.color_ajustado).toUpperCase()).to.not.eq(COLOR_BAJO);\n  cy.wrap(claro).as('evalClaro');\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-patch-identidad.json`, {\n    id_finca: pId.body.id_finca,\n    primary_color: pId.body.primary_color,\n    claro\n  });\n});\ncy.intercept({\n  method: 'GET',\n  url: /\\/configuracion\\/interfaz\\/contexto\\/?$/\n}).as('ctxPost');\ncy.visit(`${TEST_FRONT}/dashboard`);\ncy.url().should('include', '/dashboard');\ncy.wait('@ctxPost').then(intc => {\n  const body = intc.response.body;\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-contexto-despues-browser.json`, {\n    http: intc.response.statusCode,\n    id_finca: body.id_finca,\n    identidad_visual: body.identidad_visual,\n    accesibilidad_primary_claro: body.accesibilidad && body.accesibilidad.primary_color && body.accesibilidad.primary_color.claro\n  });\n  expect(body.id_finca).to.eq(1);\n  expect(body.identidad_visual).to.be.an('object');\n  expect(String(body.identidad_visual.primary_color).toUpperCase()).to.eq(COLOR_BAJO);\n  const claro = body.accesibilidad.primary_color.claro;\n  expect(claro.cumple_aa).to.eq(false);\n  expect(claro.color_ajustado).to.be.a('string').and.not.empty;\n  cy.get('@evalClaro').then(evalClaro => {\n    expect(String(claro.color_ajustado).toUpperCase()).to.eq(String(evalClaro.color_ajustado).toUpperCase());\n  });\n  cy.document().then(doc => {\n    const css = doc.documentElement.style.getPropertyValue('--brand-500').trim() || getComputedStyle(doc.documentElement).getPropertyValue('--brand-500').trim();\n    const dataTheme = doc.documentElement.getAttribute('data-theme');\n    cy.writeFile(`${EVIDENCIA}/G94-rev3-179-css.json`, {\n      data_theme: dataTheme,\n      css_brand_500: css,\n      color_ajustado_claro: claro.color_ajustado,\n      aplica: css.replace(/\\s/g, '').toUpperCase() === String(claro.color_ajustado).toUpperCase()\n    });\n    expect(dataTheme, 'tema UI claro para #FFFFFF').to.eq('light');\n    expect(css.replace(/\\s/g, '').toUpperCase(), 'CSS --brand-500 = color_ajustado de finca 1').to.eq(String(claro.color_ajustado).toUpperCase());\n  });\n  cy.screenshot('G94-rev3-179-dashboard-variante');\n});\ncy.task('getAxeSource').then(src => {\n  cy.window().then(win => {\n    if (!win.axe) {\n      const script = win.document.createElement('script');\n      script.text = src;\n      win.document.documentElement.appendChild(script);\n    }\n  });\n});\ncy.window().should('have.property', 'axe');\ncy.window().then(win => win.axe.run(win.document, {\n  runOnly: {\n    type: 'rule',\n    values: ['color-contrast']\n  }\n})).then(results => {\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-axe.json`, {\n    violations: (results.violations || []).length,\n    passes_nodes: ((results.passes || []).find(p => p.id === 'color-contrast') || {}).nodes ? ((results.passes || []).find(p => p.id === 'color-contrast').nodes || []).length : 0\n  });\n});",
+              "err": {
+                "message": "AssertionError: tema UI claro para #FFFFFF: expected null to equal 'light'",
+                "estack": "AssertionError: tema UI claro para #FFFFFF: expected null to equal 'light'\n    at Context.eval (webpack:///./tc_m09_g94_179_rev3_test.cy.js:189:59)\n    at getRet (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121066:20)\n    at tryCatcher (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:1777:23)\n    at Promise.attempt.Promise.try (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:4285:29)\n    at Context.thenFn (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121077:66)\n    at Context.then (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121328:21)",
+                "diff": null
+              },
+              "uuid": "02b42993-9bcc-4162-b681-6491677511b3",
+              "parentUUID": "7dda0042-e7a0-40f5-bfe6-8c1316901d8b",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "validar restauracion GET identidad y contexto",
+              "fullTitle": "TC-M09-179 rev3 TEST - variante con finca activa correcta validar restauracion GET identidad y contexto",
+              "timedOut": null,
+              "duration": 664,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "restoreTodo();\npatchedId = false;\npatchedTema = false;\napi('GET', `/configuracion/identidad-visual/${FINCA}`, tokenAdmin).then(r => {\n  expect(String(r.body.primary_color).toUpperCase()).to.eq(String(snapId.primary_color).toUpperCase());\n  expect(String(r.body.secondary_color).toUpperCase()).to.eq(String(snapId.secondary_color).toUpperCase());\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-restauracion-identidad.json`, {\n    primary_color: r.body.primary_color,\n    secondary_color: r.body.secondary_color,\n    version: r.body.version,\n    org_display_name: r.body.org_display_name,\n    logo_path: r.body.logo_path\n  });\n});\napi('GET', '/configuracion/personalizacion/tema', tokenProd).then(r => {\n  expect(r.body.theme_mode).to.eq(snapTema);\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-restauracion-tema.json`, {\n    theme_mode: r.body.theme_mode\n  });\n});\napi('GET', '/configuracion/interfaz/contexto', tokenProd).then(r => {\n  expect(r.body.id_finca).to.eq(1);\n  expect(String(r.body.identidad_visual.primary_color).toUpperCase()).to.eq('#1A6B3C');\n  cy.writeFile(`${EVIDENCIA}/G94-rev3-179-contexto-final.json`, {\n    id_finca: r.body.id_finca,\n    primary: r.body.identidad_visual.primary_color,\n    secondary: r.body.identidad_visual.secondary_color\n  });\n});",
+              "err": {
+                "message": "AssertionError: restore theme_mode HTTP: expected 401 to equal 200",
+                "estack": "AssertionError: restore theme_mode HTTP: expected 401 to equal 200\n    at Context.eval (webpack:///./tc_m09_g94_179_rev3_test.cy.js:61:55)\n    at getRet (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121066:20)\n    at tryCatcher (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:1777:23)\n    at Promise.attempt.Promise.try (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:4285:29)\n    at Context.thenFn (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121077:66)\n    at Context.then (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121328:21)",
+                "diff": "- 401\n+ 200\n"
+              },
+              "uuid": "a0390c30-4622-4897-a2cd-c41811406ee0",
+              "parentUUID": "7dda0042-e7a0-40f5-bfe6-8c1316901d8b",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "f28686aa-c157-4c3f-b137-e7cde0b5b264"
+          ],
+          "failures": [
+            "02b42993-9bcc-4162-b681-6491677511b3",
+            "a0390c30-4622-4897-a2cd-c41811406ee0"
+          ],
+          "pending": [],
+          "skipped": [],
+          "duration": 9896,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G94_179_rev3_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G94\\Resultados",
+        "reportFilename": "TC-M09-G94_179_rev3_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

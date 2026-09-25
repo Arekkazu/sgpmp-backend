@@ -1,0 +1,90 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g82-rf25-rev4-test",
+    "name": "TC-M09-G82 rev4 TEST - TC-M09-157 finca existente no autorizada",
+    "description": "Tercera evaluacion TC-M09-157. No modifica tc_m09_g82.json. Matriz 20/999 no existe en TEST. Escenario ejecutado: productor@pecuaria.co GET /configuracion/fincas/19. Password via --env-var. No reejecutar Newman sobre esta coleccion para no duplicar login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo", "value": "productor@pecuaria.co" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "finca_id", "value": "19" }
+  ],
+  "item": [
+    {
+      "name": "00 - Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - TC-M09-157 GET finca 19 no autorizada",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "fincas", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403', function () { pm.expect(pm.response.code).to.eql(403); });",
+              "const json = pm.response.json();",
+              "pm.test('FINCA_NO_AUTORIZADA', function () { pm.expect(json.error_code).to.eql('FINCA_NO_AUTORIZADA'); });",
+              "pm.test('Sin datos de finca', function () {",
+              "    pm.expect(json).to.not.have.property('id_finca');",
+              "    pm.expect(json).to.not.have.property('nombre');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

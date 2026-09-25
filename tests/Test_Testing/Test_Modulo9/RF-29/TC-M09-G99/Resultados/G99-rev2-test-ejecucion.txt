@@ -1,0 +1,131 @@
+TC-M09-G99 / RF-29 — ejecución rev2 TEST
+Fecha: 2026-09-25T07:44:26.083Z
+Ambiente: TEST
+Frontend: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: productor@pecuaria.co
+Rol: Productor
+Resultado general: APROBADO
+TC-M09-189: APROBADO
+TC-M09-190: APROBADO
+TC-M09-191: APROBADO
+
+Logins realizados: 1
+Login HTTP: 200
+Refresh: [{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh"},{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh"}]
+
+Locale original: es-CO
+fuente original: personal
+version_perfil original: 6
+id_preferencia_idioma original: 2
+GET idioma inicial: {
+  "method": "GET",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/idioma",
+  "status": 200,
+  "requestBody": null,
+  "responseBody": {
+    "locale_code": "es-CO",
+    "fuente": "personal",
+    "id_preferencia_idioma": 2,
+    "version_perfil": 6
+  }
+}
+Textos iniciales: [object Object]
+
+PATCH es-CO (189): {
+  "method": "PATCH",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/idioma",
+  "status": 200,
+  "requestBody": {
+    "locale_code": "es-CO",
+    "version_perfil": 6
+  },
+  "responseBody": {
+    "id_preferencia_idioma": 2,
+    "id_usuario": 2,
+    "locale_code": "es-CO",
+    "es_por_defecto": false,
+    "fecha_actualizacion": "2026-09-25T07:44:35.113779Z",
+    "version_perfil": 6
+  }
+}
+Textos ES observados: Idioma, Guardar idioma, Mi preferencia, Bienvenido al sistema, Panel principal, Activos biológicos, Mi perfil
+html[lang] 189: es-CO
+localStorage sgpmp-locale 189: es-CO
+URL 189: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/configuracion
+
+PATCH en-US (190): {
+  "method": "PATCH",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/idioma",
+  "status": 200,
+  "requestBody": {
+    "locale_code": "en-US",
+    "version_perfil": 6
+  },
+  "responseBody": {
+    "id_preferencia_idioma": 2,
+    "id_usuario": 2,
+    "locale_code": "en-US",
+    "es_por_defecto": false,
+    "fecha_actualizacion": "2026-09-25T07:44:35.885950Z",
+    "version_perfil": 6
+  }
+}
+Textos EN observados: Language, Save language, My preference, Welcome to the system, Biological assets, My profile, Settings
+html[lang] 190: en-US
+localStorage sgpmp-locale 190: en-US
+URL antes 190: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/configuracion
+URL después 190: https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/configuracion
+
+Marcador esperado: g99-rev2-1790322266076
+Marcador antes 190: g99-rev2-1790322266076
+Marcador después 190: g99-rev2-1790322266076
+document.documentElement misma referencia: true
+performance.timeOrigin antes: 1790322271548.8
+performance.timeOrigin después: 1790322271548.8
+navigation.type antes/después: navigate / navigate
+PATCH idioma/global (debe ser 0): 0
+
+PATCH restaurar UI: {
+  "method": "PATCH",
+  "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/configuracion/personalizacion/idioma",
+  "status": 200,
+  "requestBody": {
+    "locale_code": "es-CO",
+    "version_perfil": 6
+  },
+  "responseBody": {
+    "id_preferencia_idioma": 2,
+    "id_usuario": 2,
+    "locale_code": "es-CO",
+    "es_por_defecto": false,
+    "fecha_actualizacion": "2026-09-25T07:44:36.719699Z",
+    "version_perfil": 6
+  }
+}
+Restauración: OK UI locale_code=es-CO
+GET idioma final: null
+
+Pasos:
+1. Abrir login TEST (único intento de escenario)
+2. Dashboard accesible
+3. Ir a /configuracion (observar refresh)
+4. Marcador de documento creado: g99-rev2-1790322266076
+5. Login POST /sesiones status=200
+6. POST /sesiones/refresh n=2 [{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh"},{"status":200,"url":"https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/refresh"}]
+7. GET /configuracion/personalizacion/idioma status=200
+8. Precheck locale=es-CO fuente=personal version_perfil=6
+9. TC-M09-189: seleccionar Español / Colombia en Mi preferencia y guardar
+10. PATCH personal es-CO status=200 locale_req=es-CO
+11. TC-M09-189 APROBADO
+12. TC-M09-190: seleccionar English / United States en Mi preferencia y guardar
+13. PATCH personal en-US status=200 locale_req=en-US
+14. TC-M09-190 APROBADO
+15. TC-M09-191: mismo documento tras es-CO → en-US (sin cy.visit ni logout)
+16. Restaurar locale original es-CO vía UI (misma sesión)
+17. TC-M09-191 APROBADO: cambio visible en el mismo document, sin reload/logout
+18. PATCH restaurar UI status=200 locale=es-CO
+
+Error: ninguno
+
+Herramienta: Cypress 14 (no Playwright). Panel: Mi preferencia. Sin JWT/password.

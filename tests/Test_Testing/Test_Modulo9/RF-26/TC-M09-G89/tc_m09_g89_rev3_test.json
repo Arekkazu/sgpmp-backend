@@ -1,0 +1,330 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g89-rf26-rev3-test",
+    "name": "TC-M09-G89 rev3 TEST - Auditoria identidad visual consultable",
+    "description": "Tercera evaluacion TC-M09-169 RF-26 en TEST. No modifica tc_m09_g89.json ni rev2. Comprueba GET /configuracion/identidad-visual/{id_finca}/auditoria desplegado, PATCH identificable, coincidencia del registro, restauracion y auditoria de restauracion. Password via --env-var. No reejecutar para no duplicar PATCH.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo", "value": "admin@pecuaria.co" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "finca_id", "value": "4" },
+    { "key": "qa_name", "value": "QA-G89-REV3-TEST" },
+    { "key": "qa_primary", "value": "#112233" },
+    { "key": "qa_secondary", "value": "#445566" },
+    { "key": "orig_name", "value": "" },
+    { "key": "orig_primary", "value": "" },
+    { "key": "orig_secondary", "value": "" },
+    { "key": "orig_logo", "value": "" },
+    { "key": "orig_version", "value": "" },
+    { "key": "patch_version", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 - Login Admin TEST",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": ["{{base_url}}"],
+          "path": ["sesiones", ""]
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.variables.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "if (json.token) { pm.collectionVariables.set('token', json.token); }"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Snapshot identidad visual finca",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET identidad 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Finca tiene identidad visual', function () {",
+              "  pm.expect(json).to.be.an('object');",
+              "  pm.expect(json.id_finca).to.eql(Number(pm.collectionVariables.get('finca_id')));",
+              "  pm.expect(json.org_display_name).to.be.a('string').and.not.empty;",
+              "  pm.expect(json.primary_color).to.match(/^#[0-9A-Fa-f]{6}$/);",
+              "  pm.expect(json.secondary_color).to.match(/^#[0-9A-Fa-f]{6}$/);",
+              "  pm.expect(json.version).to.be.a('number');",
+              "});",
+              "pm.collectionVariables.set('orig_name', json.org_display_name);",
+              "pm.collectionVariables.set('orig_primary', json.primary_color);",
+              "pm.collectionVariables.set('orig_secondary', json.secondary_color);",
+              "pm.collectionVariables.set('orig_logo', json.logo_path || '');",
+              "pm.collectionVariables.set('orig_version', String(json.version));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - PATCH cambio identificable QA",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "{{qa_primary}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{qa_secondary}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{qa_name}}", "type": "text" },
+            { "key": "version", "value": "{{orig_version}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('PATCH 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('PATCH aplica nombre y colores QA', function () {",
+              "  pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('qa_name'));",
+              "  pm.expect(json.primary_color.toUpperCase()).to.eql(pm.collectionVariables.get('qa_primary').toUpperCase());",
+              "  pm.expect(json.secondary_color.toUpperCase()).to.eql(pm.collectionVariables.get('qa_secondary').toUpperCase());",
+              "  pm.expect(json.logo_path).to.eql(pm.collectionVariables.get('orig_logo') || json.logo_path);",
+              "});",
+              "pm.collectionVariables.set('patch_version', String(json.version));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - GET auditoria identidad visual post-PATCH",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}/auditoria",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}", "auditoria"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET auditoria 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Historial con total e items', function () {",
+              "  pm.expect(json.total).to.be.a('number').and.to.be.at.least(1);",
+              "  pm.expect(json.items).to.be.an('array').and.to.have.lengthOf(json.total);",
+              "});",
+              "const qaName = pm.collectionVariables.get('qa_name');",
+              "const origName = pm.collectionVariables.get('orig_name');",
+              "const origPrimary = pm.collectionVariables.get('orig_primary');",
+              "const origSecondary = pm.collectionVariables.get('orig_secondary');",
+              "const qaPrimary = pm.collectionVariables.get('qa_primary');",
+              "const qaSecondary = pm.collectionVariables.get('qa_secondary');",
+              "const match = (json.items || []).find(function (it) {",
+              "  const neu = it.valor_nuevo || {};",
+              "  const ant = it.valor_anterior || {};",
+              "  return neu.org_display_name === qaName && ant.org_display_name === origName;",
+              "});",
+              "pm.test('Existe registro de ESTA modificacion QA', function () {",
+              "  pm.expect(match, 'no hay item con valor_nuevo=' + qaName + ' y valor_anterior=' + origName).to.exist;",
+              "});",
+              "if (match) {",
+              "  pm.test('Usuario, fecha, operacion, valores de esta modificacion', function () {",
+              "    pm.expect(match.id_usuario).to.eql(1);",
+              "    pm.expect(match.usuario).to.be.a('string').and.not.empty;",
+              "    pm.expect(match.fecha_creacion).to.be.a('string').and.not.empty;",
+              "    pm.expect(match.tipo_operacion).to.eql('UPDATE');",
+              "    pm.expect(match.id_finca).to.eql(Number(pm.collectionVariables.get('finca_id')));",
+              "    pm.expect((match.valor_anterior.primary_color || '').toUpperCase()).to.eql(origPrimary.toUpperCase());",
+              "    pm.expect((match.valor_anterior.secondary_color || '').toUpperCase()).to.eql(origSecondary.toUpperCase());",
+              "    pm.expect((match.valor_nuevo.primary_color || '').toUpperCase()).to.eql(qaPrimary.toUpperCase());",
+              "    pm.expect((match.valor_nuevo.secondary_color || '').toUpperCase()).to.eql(qaSecondary.toUpperCase());",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - PATCH restaurar valores originales",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "primary_color", "value": "{{orig_primary}}", "type": "text" },
+            { "key": "secondary_color", "value": "{{orig_secondary}}", "type": "text" },
+            { "key": "org_display_name", "value": "{{orig_name}}", "type": "text" },
+            { "key": "version", "value": "{{patch_version}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('RESTORE PATCH 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('RESTORE aplica nombre y colores originales', function () {",
+              "  pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('orig_name'));",
+              "  pm.expect(json.primary_color.toUpperCase()).to.eql(pm.collectionVariables.get('orig_primary').toUpperCase());",
+              "  pm.expect(json.secondary_color.toUpperCase()).to.eql(pm.collectionVariables.get('orig_secondary').toUpperCase());",
+              "  pm.expect(json.logo_path).to.eql(pm.collectionVariables.get('orig_logo') || json.logo_path);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - GET identidad visual post-restauracion",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET post-restore 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Configuracion restaurada (nombre, colores, logo)', function () {",
+              "  pm.expect(json.org_display_name).to.eql(pm.collectionVariables.get('orig_name'));",
+              "  pm.expect(json.primary_color.toUpperCase()).to.eql(pm.collectionVariables.get('orig_primary').toUpperCase());",
+              "  pm.expect(json.secondary_color.toUpperCase()).to.eql(pm.collectionVariables.get('orig_secondary').toUpperCase());",
+              "  pm.expect(json.logo_path).to.eql(pm.collectionVariables.get('orig_logo') || json.logo_path);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - GET auditoria identidad visual post-restauracion",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/identidad-visual/{{finca_id}}/auditoria",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "identidad-visual", "{{finca_id}}", "auditoria"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET auditoria restore 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const qaName = pm.collectionVariables.get('qa_name');",
+              "const origName = pm.collectionVariables.get('orig_name');",
+              "const match = (json.items || []).find(function (it) {",
+              "  const neu = it.valor_nuevo || {};",
+              "  const ant = it.valor_anterior || {};",
+              "  return neu.org_display_name === origName && ant.org_display_name === qaName;",
+              "});",
+              "pm.test('Existe registro de ESTA restauracion', function () {",
+              "  pm.expect(match, 'no hay item valor_nuevo=' + origName + ' valor_anterior=' + qaName).to.exist;",
+              "});",
+              "if (match) {",
+              "  pm.test('Restauracion auditada con usuario fecha operacion valores', function () {",
+              "    pm.expect(match.id_usuario).to.eql(1);",
+              "    pm.expect(match.usuario).to.be.a('string').and.not.empty;",
+              "    pm.expect(match.fecha_creacion).to.be.a('string').and.not.empty;",
+              "    pm.expect(match.tipo_operacion).to.eql('UPDATE');",
+              "    pm.expect((match.valor_anterior.primary_color || '').toUpperCase()).to.eql(pm.collectionVariables.get('qa_primary').toUpperCase());",
+              "    pm.expect((match.valor_nuevo.primary_color || '').toUpperCase()).to.eql(pm.collectionVariables.get('orig_primary').toUpperCase());",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
