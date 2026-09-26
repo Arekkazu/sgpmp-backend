@@ -1,5 +1,5 @@
 """
-TC-M02-G106 - REINTENTO 2 (2026-09-26, TEST, tras el merge de origin/test)
+TC-M02-G106 - REINTENTO 1 (2026-09-26, TEST, tras el merge de origin/test)
 
 Re-ejecucion tras el merge. Sin cambios de fondo: (267) siguen sin poblarse id_evento_correlacionado (ningun use case de
 biological_assets lo asigna -- verificado por grep) y RF-63 sigue sin exponer campo de correlacion; (269) sigue sin
