@@ -1,5 +1,5 @@
 """
-TC-M02-G104 (RF-52, CU13, CA-5 / CA-6) - REINTENTO 2 (2026-09-26, TEST, tras el merge de origin/test).
+TC-M02-G104 (RF-52, CU13, CA-5 / CA-6) - REINTENTO 1 (2026-09-26, TEST, tras el merge de origin/test).
 
 El archivo original queda intacto como evidencia historica. Cambios respecto a el:
 
@@ -18,7 +18,7 @@ de la peticion (1.00 s con una auditoria de 1.0 s). Defecto vigente.
 
 Como correrlo (desde la raiz del repo; en Windows, stub de fcntl no versionado):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"; $env:PYTHONPATH = "_win_fcntl_stub_borrar"
-    python -m pytest <ruta>\test_tc_m02_g104_independencia_y_filtro_contador_reintento2.py -v         --html=<ruta>\resultados\resultado_TC-M02-G104_reintento2.html --self-contained-html
+    python -m pytest <ruta>\test_tc_m02_g104_independencia_y_filtro_contador_reintento1.py -v         --html=<ruta>\resultados\resultado_TC-M02-G104_reintento1.html --self-contained-html
 """
 
 import sys
