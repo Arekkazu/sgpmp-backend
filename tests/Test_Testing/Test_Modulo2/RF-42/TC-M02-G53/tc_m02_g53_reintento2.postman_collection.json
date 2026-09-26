@@ -1,0 +1,215 @@
+{
+  "info": {
+    "name": "TC-M02-G53 - Reintento 2 (2026-09-26) - RECONFIRMACION post-merge: categoria=parto sigue en 500",
+    "description": "Re-ejecucion contra TEST el 2026-09-26, tras mergear ~656 commits de origin/test en la rama de QA. La coleccion original y el reintento1 (2026-09-15) quedan intactos como evidencia historica.\n\nMotivo de este reintento: el merge introdujo una PRECONDICION NUEVA no relacionada con el bug original -- todo evento reproductivo ahora exige que el activo tenga una fase de ciclo productivo activa (`FASE_NO_COMPATIBLE_REPRODUCCION`, ver INC-M02-78-G58/TC-M02-G58). Las fixtures viejas de este TC (activos 254/255, creadas 2026-09-10 antes de que existiera esta validacion) ya no tienen fase activa y quedan bloqueadas antes de llegar al codigo del bug -- un reintento contra ellas seria ambiguo (no distinguiria 'bloqueado por falta de fase' de 'parto sigue en 500'). Por eso esta version crea una fixture COMPLETAMENTE FRESCA (POST /activos-biologicos + POST /{id}/fases) y corre la secuencia completa servicio -> diagnostico -> parto sobre ella, aislando el bug de nuevo.\n\nEsto NO tiene relacion con la correccion de TC-M02-G56/G60 (id_padre/finca, INC-M02-77-G56) -- el padre usado aqui (activo 501) es intencionalmente de la MISMA finca/infraestructura que la fixture fresca, para que esa validacion nunca sea un factor en este TC.\n\nRESULTADO: categoria='parto' con numero_crias SIGUE devolviendo 500 ERROR_INTERNO, confirmado de nuevo sobre una fixture 100% limpia, con fase activa y secuencia previa completa (servicio + diagnostico exitoso). categoria='aborto' con los MISMOS datos (numero_crias incluido) SIGUE funcionando (201) -- se reconfirma que el bug esta aislado especificamente a categoria=parto, 11 dias despues del hallazgo original y a traves de un merge de codigo sustancial. Root cause sigue sin confirmar (sin acceso a logs/DB desde esta sesion), pero la sobrevivencia del bug a traves del merge sugiere que no fue tocado por ningun cambio reciente de RF-42.\n\nResponsable: Juan Pablo (re-verificacion QA post-merge). Herramienta: API - Postman (Newman).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Precondicion cumplida: inicio de sesion exitoso (HTTP 200)', function () { pm.response.to.have.status(200); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "console.log(pm.response.text());",
+              "if (pm.response.code === 200 && respuesta && respuesta.token) { pm.collectionVariables.set('token', respuesta.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": [ "{{base_url}}" ], "path": [ "sesiones", "" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Setup 1/2 - Crear activo madre fresco (misma finca que id_padre_fixture)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('identificador_fresco', 'QAG53R2-' + Date.now().toString().slice(-8));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('activo madre fresco creado (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "if (pm.response.code === 201 && respuesta) { pm.collectionVariables.set('id_activo_fresco', respuesta.id_activo_biologico); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie}},\n  \"fecha_inicio_ciclo\": \"2026-08-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"identificador\": \"{{identificador_fresco}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"Hembra\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Setup 2/2 - Registrar fase activa (requisito nuevo INC-M02-78-G58)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('fase activa registrada (HTTP 201)', function () { pm.response.to.have.status(201); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "// Ancla las fechas de los pasos siguientes al 'fecha_inicio' que devuelve el propio",
+              "// servidor (autoritativo), no al reloj del cliente Newman -- evita el problema de",
+              "// desincronizacion de reloj cliente/servidor ya documentado (ver hallazgo 'Sin campo",
+              "// fecha explicito' en la descripcion de este TC).",
+              "const anclaServidor = respuesta ? Date.parse(respuesta.fecha_inicio) : Date.now();",
+              "pm.collectionVariables.set('base_ts', anclaServidor);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA fixture TC-M02-G53 reintento2\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_fresco}}/fases", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_fresco}}", "fases" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1/4 - Servicio con id_padre de la misma finca (201)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": [ "pm.collectionVariables.set('fecha_paso', new Date(parseInt(pm.collectionVariables.get('base_ts'), 10) + 20).toISOString());" ] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('servicio aceptado (HTTP 201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"servicio\",\n  \"resultado\": \"exitoso\",\n  \"id_padre\": {{id_padre_fixture}},\n  \"fecha\": \"{{fecha_paso}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_fresco}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_fresco}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2/4 - Diagnostico exitoso (201)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": [ "pm.collectionVariables.set('fecha_paso', new Date(parseInt(pm.collectionVariables.get('base_ts'), 10) + 40).toISOString());" ] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('diagnostico aceptado (HTTP 201)', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"diagnostico\",\n  \"resultado\": \"exitoso\",\n  \"fecha\": \"{{fecha_paso}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_fresco}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_fresco}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 3/4 (TC-M02-103) - RECONFIRMADO: parto con numero_crias sigue en 500",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": [ "pm.collectionVariables.set('fecha_paso', new Date(parseInt(pm.collectionVariables.get('base_ts'), 10) + 60).toISOString());" ] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('BUG RECONFIRMADO post-merge: parto sigue devolviendo 500 ERROR_INTERNO', function () { pm.response.to.have.status(500); });",
+              "let respuesta; try { respuesta = pm.response.json(); } catch (e) { respuesta = null; }",
+              "pm.test('el error_code sigue siendo ERROR_INTERNO', function () { pm.expect(respuesta && respuesta.error_code).to.equal('ERROR_INTERNO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"parto\",\n  \"resultado\": \"exitoso\",\n  \"numero_crias\": 2,\n  \"fecha\": \"{{fecha_paso}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_fresco}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_fresco}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4/4 (Control) - Aborto con numero_crias SI funciona (aisla el bug a categoria=parto)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": [ "pm.collectionVariables.set('fecha_paso', new Date(parseInt(pm.collectionVariables.get('base_ts'), 10) + 80).toISOString());" ] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('CONTROL: aborto con numero_crias SI se acepta (HTTP 201) -- confirma que el bug es especifico de categoria=parto, no de numero_crias en general', function () { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"categoria\": \"aborto\",\n  \"resultado\": \"fallido\",\n  \"numero_crias\": 1,\n  \"fecha\": \"{{fecha_paso}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": { "raw": "{{base_url}}/activos-biologicos/{{id_activo_fresco}}/eventos/reproductivo", "host": [ "{{base_url}}" ], "path": [ "activos-biologicos", "{{id_activo_fresco}}", "eventos", "reproductivo" ] }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "admin_correo", "value": "admin@pecuaria.co" },
+    { "key": "admin_contrasena", "value": "Test1234!" },
+    { "key": "token", "value": "" },
+    { "key": "id_especie", "value": "4" },
+    { "key": "id_infraestructura", "value": "6" },
+    { "key": "id_ciclo_productiva", "value": "4" },
+    { "key": "id_padre_fixture", "value": "501" },
+    { "key": "identificador_fresco", "value": "" },
+    { "key": "id_activo_fresco", "value": "" },
+    { "key": "fecha_paso", "value": "" },
+    { "key": "base_ts", "value": "" }
+  ]
+}
