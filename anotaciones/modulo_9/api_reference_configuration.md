@@ -728,6 +728,7 @@
 | Método | Ruta | Permiso | Roles autorizados | Use Case |
 |--------|------|---------|-------------------|----------|
 | `GET` | `/{id_finca}` | `(23, R)` | Admin | `ObtenerIdentidadVisualUseCase` |
+| `GET` | `/{id_finca}/auditoria` | `(23, R)` | Admin | `ConsultarAuditoriaIdentidadVisualUseCase` |
 | `POST` | `/` | `(23, C)` | Admin | `GuardarIdentidadVisualUseCase` |
 | `PATCH` | `/{id_finca}` | `(23, U)` | Admin | `ActualizarIdentidadVisualUseCase` |
 
@@ -772,6 +773,17 @@
 | `logo` | `UploadFile \| None` | Opcional |
 
 **Response:** `IdentidadVisualResponse`
+
+---
+
+#### `GET /configuracion/identidad-visual/{id_finca}/auditoria` — Consultar auditoría
+
+Devuelve `HistorialAuditoriaIdentidadVisualResponse`, ordenado de forma descendente por
+fecha e identificador. Cada item contiene `id_usuario`, nombre del usuario, fecha,
+`tipo_operacion` (`CREATE`/`UPDATE`) y los snapshots `valor_anterior`/`valor_nuevo`.
+
+La consulta usa el permiso `(23, R)` y responde `404 IDENTIDAD_VISUAL_NO_ENCONTRADA` si la
+finca no tiene una identidad visual registrada.
 
 ---
 

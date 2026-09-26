@@ -34,6 +34,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             id_especie=orm.id_especie,
             nombre=NombreEspecie(orm.nombre),
             descripcion=orm.descripcion,
+            densidad_maxima_por_especie=orm.densidad_maxima_por_especie,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
             fecha_actualizacion=orm.fecha_actualizacion,
@@ -44,6 +45,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         return EspecieModel(
             nombre=especie.nombre.valor,
             descripcion=especie.descripcion,
+            densidad_maxima_por_especie=especie.densidad_maxima_por_especie,
             es_activo=especie.es_activo,
             fecha_creacion=especie.fecha_creacion or datetime.now(timezone.utc),
         )
@@ -80,6 +82,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         orm = self.db.get(EspecieModel, especie.id_especie)
         orm.nombre = especie.nombre.valor
         orm.descripcion = especie.descripcion
+        orm.densidad_maxima_por_especie = especie.densidad_maxima_por_especie
         orm.es_activo = especie.es_activo
         orm.fecha_actualizacion = especie.fecha_actualizacion
         try:

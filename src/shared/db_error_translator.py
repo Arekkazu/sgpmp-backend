@@ -13,6 +13,7 @@ from psycopg2 import errors as pg_errors
 from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.errors import (
+    BusinessRuleError,
     ConflictError,
     InfrastructureError,
     ServiceUnavailableError,
@@ -20,6 +21,62 @@ from src.shared.errors import (
 )
 
 _PREFIJOS_CONSTRAINT = ("uq_", "uk_", "fk_", "ck_", "chk_", "pk_", "idx_", "ix_")
+
+#: SQLSTATE de duplicados de nombre que triggers de `modulo9` señalan con
+#: `RAISE EXCEPTION ... USING ERRCODE`. Postgres los clasifica como clase
+#: `P0` (PL/pgSQL), que psycopg2/SQLAlchemy no mapea a `IntegrityError`
+#: (cae a `InternalError` genérico) — sin este mapeo explícito, un choque de
+#: nombre entre dos filas activas sale como 500 en vez de 409.
+_ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
+
+#: SQLSTATE de reglas de negocio de `modulo9.sensores_areas_asociadas`
+#: señaladas por trigger con `RAISE EXCEPTION ... USING ERRCODE`. Misma
+#: clase `P0` no mapeada por psycopg2 — sin esto, una condición de carrera
+#: que dispare el trigger sale como 500 en vez del error de negocio
+#: correspondiente (INC-M09-107-G64).
+_ERRCODE_ASOCIACION_YA_ACTIVA = "P0130"
+_ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
+
+#: INC-M02-76-G55: `trg_fn_evento_reproductivo_secuencia` (modulo2) ya impedía
+#: correctamente un evento reproductivo de categoría distinta a "nacimiento"
+#: sobre un activo POBLACIONAL, pero su ERRCODE tampoco caía en ninguna clase
+#: que psycopg2/SQLAlchemy traduzca — cualquier vía que llegue al trigger sin
+#: pasar por la validación de aplicación (`RegistrarEventoReproductivoUseCase`)
+#: salía como 500 en vez del 422 de negocio documentado en RF-42.
+_ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
+
+#: INC-M02-100-G31: `trg_fn_poblacional_cantidad_inmutable` (modulo2,
+#: `detalles_activos_biologicos_poblacionales`) protege `cantidad_inicial`
+#: (inmutable) y `cantidad_actual` (no negativa) con `RAISE EXCEPTION ...
+#: USING ERRCODE`. Misma clase P0 no mapeada por psycopg2/SQLAlchemy — antes
+#: de este mapeo, `POST .../eventos/crecimiento` sobre un lote que disparara
+#: el trigger devolvía 500 ERROR_INTERNO en vez del 400 de negocio que ya
+#: aplica la restricción CHECK gemela (`chk_poblacional_cantidad_actual_no_negativa`)
+#: cuando la violación llega por una vía distinta al CHECK nativo.
+_ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA = "P0210"
+
+#: INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, cualquier tabla
+#: de eventos vía `eventos_activos`) también señala con `RAISE ... USING
+#: ERRCODE`, sin mapeo — un cliente que sí mande una fecha inválida (futura o
+#: anterior al registro del activo) recibía 500 en vez de 400.
+_ERRCODE_EVENTO_FECHA_INVALIDA = "P0215"
+
+#: INC-M02-G34 (RF-37): triggers de `modulo2.gestiones_fases` — fase activa
+#: duplicada (P0226), fechas solapadas (P0227) y activo CERRADO/BAJA (P0228).
+#: Sin mapeo, cambiar de fase en esos casos salía como 500 en vez de 409.
+_ERRCODES_FASE_CONFLICTO = {
+    "P0226": "FASE_ACTIVA_DUPLICADA",
+    "P0227": "FASE_SOLAPADA",
+    "P0228": "ACTIVO_NO_OPERATIVO",
+}
+
+#: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
+#: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
+#: en la adaptación del parámetro, antes de que SQLAlchemy pueda envolverlo en
+#: IntegrityError/DataError/OperationalError. `BaseDTO` ya lo rechaza en la
+#: frontera para todo DTO de entrada; esto es la red de seguridad para
+#: cualquier valor que llegue a la base de datos por otra vía.
+_MENSAJE_BYTE_NULO_PSYCOPG2 = "A string literal cannot contain NUL (0x00) characters."
 
 
 def _campo(diag) -> str | None:
@@ -76,6 +133,7 @@ def raise_from_db_error(
       fallo del servidor.
     - ``DataError`` → ``ValidationError`` (HTTP 400).
     - ``OperationalError`` → ``ServiceUnavailableError`` (HTTP 503).
+    - ``ValueError`` de psycopg2 por byte nulo embebido → ``ValidationError`` (HTTP 400).
     - Cualquier otro caso → ``InfrastructureError`` (HTTP 500).
 
     Debe llamarse desde el bloque ``except`` del repositorio, antes de que
@@ -101,6 +159,43 @@ def raise_from_db_error(
         ServiceUnavailableError: Por fallo de conectividad con la base de datos.
         InfrastructureError: Por cualquier otro error de base de datos no mapeado.
     """
+    if isinstance(exc, ValueError) and str(exc) == _MENSAJE_BYTE_NULO_PSYCOPG2:
+        raise ValidationError(
+            code="VALOR_NO_PERMITIDO",
+            message="El texto no puede contener caracteres nulos.",
+        )
+
+    diag_generico = getattr(getattr(exc, "orig", None), "diag", None)
+    sqlstate = getattr(diag_generico, "sqlstate", None) if diag_generico is not None else None
+
+    if sqlstate in _ERRCODES_NOMBRE_DUPLICADO:
+        mensaje = diag_generico.message_primary or "Ya existe un registro con ese nombre."
+        raise ConflictError(code="RECURSO_DUPLICADO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_ASOCIACION_YA_ACTIVA:
+        mensaje = diag_generico.message_primary or "El sensor ya tiene una asociación activa en otra área."
+        raise ConflictError(code="ASOCIACION_YA_ACTIVA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_SENSOR_FINCA_DISTINTA:
+        mensaje = diag_generico.message_primary or "El área productiva pertenece a una finca distinta a la del dispositivo."
+        raise BusinessRuleError(code="SENSOR_FINCA_DISTINTA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
+        mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."
+        raise BusinessRuleError(code="EVENTO_NO_PERMITIDO_LOTE", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
+        mensaje = diag_generico.message_primary or "La fecha del evento es inválida."
+        raise ValidationError(code="FECHA_INVALIDA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA:
+        mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
+        raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate in _ERRCODES_FASE_CONFLICTO:
+        mensaje = diag_generico.message_primary or "El cambio de fase entra en conflicto con el historial del activo."
+        raise ConflictError(code=_ERRCODES_FASE_CONFLICTO[sqlstate], message=mensaje.split(": ", 1)[-1])
+
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)
         constraint = getattr(diag, "constraint_name", None)

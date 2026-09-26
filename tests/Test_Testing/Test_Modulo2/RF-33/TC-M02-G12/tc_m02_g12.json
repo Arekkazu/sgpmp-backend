@@ -1,0 +1,366 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g12-rf33",
+    "name": "TC-M02-G12 - Validacion de atributos dinamicos contra RF-16",
+    "description": "Pruebas de validacion de atributos dinamicos para RF-33 usando la configuracion real de RF-16 disponible en TEST.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "especie_id",
+      "value": ""
+    },
+    {
+      "key": "infraestructura_id",
+      "value": ""
+    },
+    {
+      "key": "metrica_peso_destete",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Login exitoso\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "pm.expect(json.token).to.be.a(\"string\").and.not.empty;",
+              "pm.collectionVariables.set(\"token\", json.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Consultar especie activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de especies exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const items = Array.isArray(json) ? json : (json.items || json.data || []);",
+              "const especie = items.find(e => {",
+              "    const id = e.id_especie ?? e.id;",
+              "    return id === 4 && (e.es_activo === true || e.estado_especie === true || e.estado === true);",
+              "});",
+              "",
+              "pm.expect(especie, \"Debe existir la especie 4 activa\").to.exist;",
+              "",
+              "const id = especie.id_especie ?? especie.id;",
+              "pm.collectionVariables.set(\"especie_id\", String(id));",
+              "console.log(\"Especie seleccionada:\", id, especie.nombre || especie.nombre_especie);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Consultar infraestructura activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=3",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "3"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de infraestructura exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const items = Array.isArray(json) ? json : (json.items || json.data || []);",
+              "const infra = items.find(i => {",
+              "    const id = i.id_infraestructura ?? i.id;",
+              "    return id === 6;",
+              "});",
+              "",
+              "pm.expect(infra, \"Debe existir la infraestructura 6\").to.exist;",
+              "",
+              "const id = infra.id_infraestructura ?? infra.id;",
+              "pm.collectionVariables.set(\"infraestructura_id\", String(id));",
+              "console.log(\"Infraestructura seleccionada:\", id, infra.nombre || infra.nombre_infraestructura);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Consultar configuracion RF-16 por especie",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/metricas?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ],
+          "query": [
+            {
+              "key": "id_especie",
+              "value": "{{especie_id}}"
+            },
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Consulta de metricas RF-16 exitosa\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const items = json.items || [];",
+              "const pesoDestete = items.find(m => String(m.nombre || \"\").trim().toLowerCase() === \"peso_destete\");",
+              "",
+              "if (pesoDestete) {",
+              "    pm.collectionVariables.set(\"metrica_peso_destete\", JSON.stringify(pesoDestete));",
+              "    console.log(\"peso_destete encontrada:\", JSON.stringify(pesoDestete, null, 2));",
+              "} else {",
+              "    pm.collectionVariables.set(\"metrica_peso_destete\", \"\");",
+              "    console.warn(\"peso_destete NO esta configurada para la especie \" + pm.collectionVariables.get(\"especie_id\"));",
+              "}",
+              "",
+              "console.log(\"Metricas activas RF-16:\", JSON.stringify(items, null, 2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - TC-M02-013 - Rechazar clave no configurada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09T00:00:00Z\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {\n    \"color_pelaje\": \"Negro\"\n  },\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/activos-biologicos",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "activos-biologicos"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"TC-M02-013 rechaza atributo no configurado con HTTP 400\", function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "",
+              "const json = pm.response.json();",
+              "const text = JSON.stringify(json).toLowerCase();",
+              "",
+              "pm.test(\"La respuesta contiene informacion de validacion de atributos\", function () {",
+              "    pm.expect(text).to.satisfy(t =>",
+              "        t.includes(\"atribut\") ||",
+              "        t.includes(\"configuracion\") ||",
+              "        t.includes(\"metrica\")",
+              "    );",
+              "});",
+              "",
+              "pm.test(\"La respuesta identifica la clave no configurada o la validacion\", function () {",
+              "    pm.expect(text).to.satisfy(t =>",
+              "        t.includes(\"color_pelaje\") ||",
+              "        t.includes(\"atributos dinamicos\") ||",
+              "        t.includes(\"atributos_dinamicos\") ||",
+              "        t.includes(\"no configur\") ||",
+              "        t.includes(\"no existe\")",
+              "    );",
+              "});",
+              "",
+              "console.log(\"Respuesta TC-M02-013:\", JSON.stringify(json, null, 2));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-014 - Verificar configuracion de peso_destete",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/metricas?id_especie={{especie_id}}&solo_activas=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "metricas"
+          ],
+          "query": [
+            {
+              "key": "id_especie",
+              "value": "{{especie_id}}"
+            },
+            {
+              "key": "solo_activas",
+              "value": "true"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const json = pm.response.json();",
+              "const items = json.items || [];",
+              "const pesoDestete = items.find(m => String(m.nombre || \"\").trim().toLowerCase() === \"peso_destete\");",
+              "",
+              "if (!pesoDestete) {",
+              "    console.warn(\"TC-M02-014 NO EJECUTABLE: peso_destete no esta configurada en RF-16 para la especie \" + pm.collectionVariables.get(\"especie_id\"));",
+              "    console.warn(\"Metricas disponibles:\", JSON.stringify(items, null, 2));",
+              "",
+              "    pm.test(\"TC-M02-014 - peso_destete no configurada en TEST\", function () {",
+              "        pm.expect(pesoDestete).to.be.undefined;",
+              "    });",
+              "",
+              "    pm.test(\"TC-M02-014 - configuracion insuficiente para probar rango\", function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else {",
+              "    pm.collectionVariables.set(\"metrica_peso_destete\", JSON.stringify(pesoDestete));",
+              "",
+              "    console.log(\"peso_destete encontrada:\", JSON.stringify(pesoDestete, null, 2));",
+              "",
+              "    pm.test(\"TC-M02-014 - peso_destete esta configurada\", function () {",
+              "        pm.expect(pesoDestete.nombre).to.be.a(\"string\");",
+              "    });",
+              "",
+              "    pm.test(\"TC-M02-014 - existe rango minimo y maximo\", function () {",
+              "        pm.expect(pesoDestete.valor_min).to.not.be.null;",
+              "        pm.expect(pesoDestete.valor_max).to.not.be.null;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

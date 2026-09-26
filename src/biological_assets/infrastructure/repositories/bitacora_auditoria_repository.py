@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.models.bitacora_auditoria_m02_model import BitacoraAuditoriaM02Model
+from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
+
+logger = logging.getLogger(__name__)
 
 
 def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
@@ -35,6 +40,14 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         self.db = db
 
     def registrar(self, evento: EventoAuditoria) -> None:
+        # RF-52 E2 se aplica aquí porque es el único punto por el que pasan todos
+        # los emisores de M02 (use cases, rechazos auditados y el handler de 400).
+        causas = evento.marcar_si_incompleto()
+        if causas:
+            logger.warning(
+                'RF-52: evento %s/%s persistido como registro_incompleto: %s',
+                evento.rf_origen, evento.tipo_evento, '; '.join(causas),
+            )
         ts_registro = datetime.now(timezone.utc)
         hash_integridad = _calcular_hash(evento, ts_registro)
         orm = BitacoraAuditoriaM02Model(
@@ -70,8 +83,32 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         fecha_fin: Optional[datetime],
         pagina: int,
         page_size: int,
+        *,
+        clasificaciones_permitidas: Optional[set[str]] = None,
+        rf_origenes_permitidos: Optional[set[str]] = None,
+        id_propietario_acceso_datos: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
+
+        if id_propietario_acceso_datos is not None:
+            q = q.outerjoin(
+                ActivoBiologicoModel,
+                BitacoraAuditoriaM02Model.id_activo_biologico
+                == ActivoBiologicoModel.id_activo_biologico,
+            ).filter(
+                or_(
+                    BitacoraAuditoriaM02Model.clasificacion_biologica != 'ACCESO_DATOS',
+                    ActivoBiologicoModel.id_usuario == id_propietario_acceso_datos,
+                )
+            )
+
+        if clasificaciones_permitidas is not None:
+            q = q.filter(
+                BitacoraAuditoriaM02Model.clasificacion_biologica.in_(clasificaciones_permitidas)
+            )
+
+        if rf_origenes_permitidos is not None:
+            q = q.filter(BitacoraAuditoriaM02Model.rf_origen.in_(rf_origenes_permitidos))
 
         if rf_origen is not None:
             q = q.filter(BitacoraAuditoriaM02Model.rf_origen == rf_origen)
@@ -101,6 +138,17 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             .all()
         )
         return [self._a_entidad(r) for r in registros_orm], total
+
+    def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
+        return (
+            self.db.query(ActivoBiologicoModel.id_activo_biologico)
+            .filter(
+                ActivoBiologicoModel.id_activo_biologico == id_activo,
+                ActivoBiologicoModel.id_usuario == id_usuario,
+            )
+            .first()
+            is not None
+        )
 
     def _a_entidad(self, orm: BitacoraAuditoriaM02Model) -> EventoAuditoria:
         return EventoAuditoria(

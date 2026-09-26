@@ -1,0 +1,290 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G51 Permisos por rol para areas productivas",
+    "description": "Automatiza TC-M09-102: Admin y Productor pueden consultar (listar/detalle) areas productivas, pero solo Admin puede crear, editar o desactivar (403 para Productor en las tres). Las verificaciones de escritura del Administrador solo comprueban que el gate RBAC lo deja pasar (no responde 403) -no que la operacion se complete con exito-: completar el registro/edicion de un area choca con el gap ya documentado en TC-M09-G48/NOTA_BLOQUEO.md (modulo9.tipos_area no existe en este entorno), que es un problema de negocio/infra distinto al RBAC que prueba este caso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "token_productor", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Login Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_productor', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102a - Admin puede listar areas productivas (R)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras"],
+          "query": [{ "key": "finca_id", "value": "1" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102b - Productor puede listar areas productivas (R)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras"],
+          "query": [{ "key": "finca_id", "value": "1" }]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102c - Productor puede ver el detalle de un area (R)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle permitido (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/1",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "1"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102d - Productor NO puede registrar areas productivas (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Productor\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102e - Productor NO puede editar areas productivas (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Editar Productor\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"fecha_actualizacion\": null\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras/1", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras", "1"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102f - Productor NO puede desactivar areas productivas (403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/1/desactivar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "1", "desactivar"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102g - Admin SI tiene permiso de crear (RBAC deja pasar, no 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El gate RBAC no lo bloquea (no 403)', function () { pm.expect(pm.response.code).to.not.eql(403); });",
+              "const json = pm.response.json();",
+              "console.log('Admin - crear area: status=' + pm.response.code + ' body=' + JSON.stringify(json));",
+              "console.log('Un 500 aqui es el gap ya documentado en TC-M09-G48 (tipos_area), no un problema de RBAC.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Admin RBAC\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 1\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102h - Admin SI tiene permiso de editar (RBAC deja pasar, no 403)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('El gate RBAC no lo bloquea (no 403)', function () { pm.expect(pm.response.code).to.not.eql(403); });",
+              "const json = pm.response.json();",
+              "console.log('Admin - editar area: status=' + pm.response.code + ' body=' + JSON.stringify(json));",
+              "console.log('Un 500 aqui es el gap ya documentado en TC-M09-G48 (tipos_area), no un problema de RBAC.');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Editar Admin RBAC\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"fecha_actualizacion\": null\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras/1", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras", "1"] }
+      },
+      "response": []
+    }
+  ]
+}

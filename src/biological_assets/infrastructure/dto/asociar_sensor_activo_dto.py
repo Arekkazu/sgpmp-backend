@@ -10,7 +10,11 @@ from src.shared.base_dto import BaseDTO
 
 class AsociarSensorActivoDTO(BaseDTO):
     tipo_activo: Literal['INDIVIDUAL', 'LOTE']
-    tipo_asociacion: Literal['DIRECTA', 'AMBIENTAL', 'POBLACIONAL']
+    # AMBIENTAL se retiró de este endpoint (INC-M02-39-G90 v2.0 / issue #351):
+    # una asociación ambiental debe anclarse a la infraestructura, no a un
+    # activo puntual del path. Ese caso ahora vive exclusivamente en
+    # POST /infraestructuras/{id_infraestructura}/sensores.
+    tipo_asociacion: Literal['DIRECTA', 'POBLACIONAL']
     dispositivo_iot_id: int
     sensor_id: int
     id_infraestructura: int

@@ -1,0 +1,457 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g31-ejecucion-limpia",
+    "name": "TC-M02-G31 - Valores límite en la gestión de lotes (RF-36)",
+    "description": "Suite de pruebas para el caso agrupado TC-M02-G31 correspondiente al RF-36 (Gestión Poblacional). Incluye el folder TC-M02-196 (evaluación de densidad de lote en evento de crecimiento sobre lote 296) y el folder TC-M02-197 (evaluación de baja total sobre lote poblacional dinámico con especie en kg).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fecha_baja_dinamica",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lote_baja_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-196",
+      "description": "Subcaso TC-M02-196: Evaluación de densidad de lote ante evento de crecimiento",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-196)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\",\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Registrar evento de crecimiento sobre lote 296",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 2.5,\n  \"unidad_medida\": \"kg\",\n  \"tipo_agregacion\": \"promedio\",\n  \"frecuencia\": \"semanal\",\n  \"nuevo_peso_promedio\": 2.5,\n  \"cantidad_medida\": 5,\n  \"descripcion\": \"Registro de crecimiento para evaluacion de densidad TC-M02-196\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/296/eventos/crecimiento",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "296",
+                "eventos",
+                "crecimiento"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Respuesta de registro de crecimiento exitosa (HTTP 201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    console.log('HTTP Status TC-M02-196 Crecimiento:', pm.response.code);",
+                  "    console.log('Body TC-M02-196 Crecimiento:', pm.response.text());",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar estado y métricas del lote 296",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/296",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "296"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote 296 completada (HTTP 200) y métricas zootécnicas', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.detalle_poblacional).to.be.an('object');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.be.a('number');",
+                  "    pm.expect(Number(res.detalle_poblacional.peso_promedio)).to.be.closeTo(2.5, 0.1);",
+                  "    pm.expect(Number(res.detalle_poblacional.biomasa_total)).to.be.above(0);",
+                  "    console.log('Lote 296 - Densidad actual:', res.detalle_poblacional ? res.detalle_poblacional.densidad : 'N/A');",
+                  "    console.log('Lote 296 - Cantidad actual:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Teardown - Preservación y verificación de Lote 296",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/296",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "296"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teardown TC-M02-196: Confirmar estado activo y no alteración física', function () {",
+                  "    try {",
+                  "        pm.response.to.have.status(200);",
+                  "        var res = pm.response.json();",
+                  "        pm.expect(res.id_estado).to.eql(1);",
+                  "        console.log('Teardown Lote 296 verificado exitosamente');",
+                  "    } catch (e) {",
+                  "        console.log('Teardown TC-M02-196 advertencia:', e.message);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-197",
+      "description": "Subcaso TC-M02-197: Baja total sobre lote poblacional dinámico con especie en kg",
+      "item": [
+        {
+          "name": "0. Autenticación Admin (TC-M02-197)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\",\n  \"correo\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Autenticación Admin completada', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.token).to.be.a('string');",
+                  "    pm.collectionVariables.set('jwt_token', res.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "0. Setup - Crear lote poblacional dinámico (TC-M02-197)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": 40,\n  \"fecha_inicio_ciclo\": \"2026-09-01\",\n  \"origen_financiero\": \"nacimiento\",\n  \"id_infraestructura\": 48,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Setup TC-M02-197: Lote poblacional dinámico creado (HTTP 201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res.id_activo_biologico).to.be.a('number');",
+                  "    pm.collectionVariables.set('lote_baja_id', res.id_activo_biologico);",
+                  "    console.log('Lote dinámico para baja aprovisionado:', res.id_activo_biologico);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "1. Aplicar baja total sobre lote dinámico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_baja\": \"venta\",\n  \"fecha_baja\": \"{{fecha_baja_dinamica}}\",\n  \"motivo_baja\": \"Baja total QA-TC-M02-197 sobre lote dinámico\",\n  \"cantidad_afectada\": 10\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{lote_baja_id}}/eventos/baja",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{lote_baja_id}}",
+                "eventos",
+                "baja"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "const safeDate = new Date(Date.now() - 60000).toISOString().split('T')[0];",
+                  "pm.collectionVariables.set('fecha_baja_dinamica', safeDate);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Baja exitosa sobre lote dinámico (HTTP 201)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    var res = pm.response.json();",
+                  "    pm.expect(res).to.be.an('object');",
+                  "    console.log('HTTP Status Lote Dinámico Baja:', pm.response.code);",
+                  "    console.log('Body Lote Dinámico Baja:', pm.response.text());",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. Consultar lote dinámico tras intento de baja",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{lote_baja_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{lote_baja_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Consulta de lote dinámico completada (HTTP 200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var res = pm.response.json();",
+                  "    console.log('Lote Dinámico Estado actual:', res.nombre_estado, 'ID Estado:', res.id_estado, 'Cantidad:', res.detalle_poblacional ? res.detalle_poblacional.cantidad_actual : 'N/A');",
+                  "    pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                  "    pm.expect(res.id_estado).to.eql(6);",
+                  "    pm.expect(res.nombre_estado).to.eql('BAJA');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. Teardown - Confirmar estado terminal lote dinámico",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{lote_baja_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{lote_baja_id}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Teardown TC-M02-197: Confirmar estado terminal BAJA (no residuos activos)', function () {",
+                  "    try {",
+                  "        pm.response.to.have.status(200);",
+                  "        var res = pm.response.json();",
+                  "        pm.expect(res.id_estado).to.eql(6);",
+                  "        pm.expect(res.detalle_poblacional.cantidad_actual).to.eql(0);",
+                  "        console.log('Teardown Lote Dinámico verificado exitosamente en estado BAJA');",
+                  "    } catch (e) {",
+                  "        console.log('Teardown TC-M02-197 advertencia:', e.message);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

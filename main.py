@@ -11,9 +11,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Falla el arranque con un mensaje claro si la configuración de entorno es
+# inválida (QA V2 M01): un typo en COOKIE_SAMESITE o una SECRET_KEY ausente
+# rompen la sesión en runtime; mejor no arrancar.
+from src.shared.configuracion import validar_configuracion  # noqa: E402
+
+validar_configuracion()
+
 logger = logging.getLogger(__name__)
 
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
+from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
 from src.configuration.infrastructure.routers.ciclo_router import router as ciclo_router
 from src.configuration.infrastructure.routers.configuracion_global_router import router as configuracion_global_router
 from src.configuration.infrastructure.routers.especie_router import router as especie_router
@@ -24,6 +32,7 @@ from src.configuration.infrastructure.routers.infraestructura_router import rout
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
+from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
 from src.configuration.infrastructure.routers.tema_visual_router import router as tema_visual_router
 from src.configuration.infrastructure.routers.dashboard_layout_router import router as dashboard_layout_router
@@ -69,8 +78,10 @@ from src.identity_access.infrastructure.routers.sesiones_routers import router a
 from src.identity_access.infrastructure.routers.usuarios_routers import router as usuarios_router
 from src.identity_access.infrastructure.routers.notificaciones_routers import router as notificaciones_router
 from src.shared import almacen_logos
+from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
-from src.shared.middlewares import RequestContextMiddleware
+from src.shared.migraciones import verificar_migraciones_aplicadas
+from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -413,8 +424,111 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
             db.close()
 
 
+async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
+    """RF-52 E1/E3: persiste por lotes, fuera del request, lo que quedó en el buffer
+    de la bitácora de M02 (cola de alta carga o eventos pendientes por una caída)."""
+    from src.biological_assets.application.use_cases._registrar_evento_bitacora import (
+        procesar_buffer_bitacora,
+    )
+    from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+        SqlAlchemyBitacoraAuditoriaRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    while True:
+        await asyncio.sleep(5)
+        db = SessionLocal()
+        try:
+            await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
+        except Exception:
+            logger.exception("Error vaciando el buffer de la bitácora de M02.")
+        finally:
+            db.close()
+
+
+async def _reconciliar_bitacora_m02_diariamente() -> None:
+    """RF-52 E5: a las 05:00 UTC cruza el historial RF-46 con la bitácora de M02
+    (después del archivado de RF-10, a las 04:00) y avisa al administrador si
+    encuentra filas sin su registro de auditoría."""
+    from datetime import datetime, time as dtime, timedelta, timezone
+
+    from src.biological_assets.application.use_cases.auditoria.notificar_inconsistencia_auditoria_use_case import (
+        NotificarInconsistenciaAuditoriaUseCase,
+    )
+    from src.biological_assets.application.use_cases.auditoria.reconciliar_bitacora_historial_use_case import (
+        ReconciliarBitacoraHistorialUseCase,
+    )
+    from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+        SqlAlchemyBitacoraAuditoriaRepository,
+    )
+    from src.biological_assets.infrastructure.repositories.reconciliacion_auditoria_repository import (
+        SqlAlchemyReconciliacionAuditoriaRepository,
+    )
+    from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
+    from src.identity_access.infrastructure.repositories.notificacion_repository import (
+        SqlAlchemyNotificacionRepository,
+    )
+    from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
+    from src.shared.database import SessionLocal
+
+    hora = dtime(5, 0)
+
+    def reconciliar():
+        db = SessionLocal()
+        try:
+            return ReconciliarBitacoraHistorialUseCase(
+                db=db,
+                repo=SqlAlchemyReconciliacionAuditoriaRepository(db),
+                bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+            ).execute()
+        finally:
+            db.close()
+
+    def avisar(inconsistencias) -> int:
+        db = SessionLocal()
+        try:
+            return NotificarInconsistenciaAuditoriaUseCase(
+                eventos_repo=SqlAlchemyEventoRepository(db),
+                notificaciones_repo=SqlAlchemyNotificacionRepository(db),
+                usuarios_repo=SqlAlchemyUsuarioRepository(db),
+                db=db,
+            ).execute(inconsistencias)
+        finally:
+            db.close()
+
+    while True:
+        ahora = datetime.now(timezone.utc)
+        proximo = ahora.replace(hour=hora.hour, minute=hora.minute, second=0, microsecond=0)
+        if proximo <= ahora:
+            proximo += timedelta(days=1)
+        await asyncio.sleep((proximo - ahora).total_seconds())
+
+        try:
+            resultado = await asyncio.to_thread(reconciliar)
+        except Exception:
+            logger.exception("RF-52 E5: la reconciliación entre historial y bitácora de M02 falló.")
+            continue
+        if not resultado.turno_adquirido:
+            logger.info("Reconciliación RF-52 E5 omitida: otra réplica tiene el bloqueo del proceso.")
+            continue
+        if resultado.inconsistencias:
+            # Un fallo del aviso no debe tumbar el bucle: la inconsistencia ya quedó
+            # como CRITICAL en la bitácora y en el log.
+            try:
+                avisados = await asyncio.to_thread(avisar, resultado.inconsistencias)
+                logger.info("Inconsistencia RF-52 E5 notificada a %d administrador(es).", avisados)
+            except Exception:
+                logger.exception("RF-52 E5: no se pudo notificar la inconsistencia al administrador.")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Solo advierte en logs si MQTT_BROKER_TOKEN quedó desincronizado de la BD;
+    # nunca escribe nada (ver docstring de la función).
+    verificar_token_configurado()
+    # Solo advierte en logs si la BD quedó atrás del código (INC-M02-51-G44).
+    verificar_migraciones_aplicadas(engine)
+
     tasks = [
         asyncio.create_task(_evaluar_dispositivos_periodicamente()),
         asyncio.create_task(_ejecutar_batch_ica_diario()),
@@ -423,6 +537,8 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(_procesar_cola_reportes_gastos_periodicamente()),
         asyncio.create_task(_procesar_cola_historial_suministros_periodicamente()),
         asyncio.create_task(_procesar_cola_exportaciones_auditoria_periodicamente()),
+        asyncio.create_task(_procesar_buffer_bitacora_m02_periodicamente()),
+        asyncio.create_task(_reconciliar_bitacora_m02_diariamente()),
     ]
     yield
     for task in tasks:
@@ -467,14 +583,20 @@ app.add_middleware(
 # user-agent y esos campos quedan vacíos en cada evento.
 app.add_middleware(RequestContextMiddleware)
 
-# RF-26: los logotipos institucionales se escriben en `uploads/logos` (ver
+# INC-M02-56-G04: agregado último para quedar como capa más externa — así
+# sella las cabeceras de seguridad en toda respuesta, incluidas las que
+# arma un error_handler antes de que la petición vuelva a subir por el resto
+# del stack de middlewares.
+app.add_middleware(SecurityHeadersMiddleware)
+
+# RF-26: los logotipos institucionales se escriben en `LOGOS_STORAGE_PATH` (ver
 # `src/shared/almacen_logos.py`). Sin este montaje el `logo_path` que la API
 # devuelve no es alcanzable por HTTP y ningún cliente puede pintar la marca.
 # `check_dir=False` porque el directorio solo aparece con el primer logotipo
 # subido; exigirlo al arrancar tumbaría un despliegue limpio.
 app.mount(
-    almacen_logos.RUTA_PUBLICA_BASE,
-    StaticFiles(directory=almacen_logos.DIRECTORIO_BASE, check_dir=False),
+    almacen_logos.RUTA_PUBLICA_LOGOS,
+    StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
 
@@ -491,6 +613,7 @@ if os.getenv("AGROFUSION_HUB_CLIENT_ID"):
     # un despliegue standalone sin credenciales configuradas.
     app.include_router(agrofusion_router)
 app.include_router(activo_biologico_router)
+app.include_router(infraestructura_sensor_router)
 app.include_router(especie_router)
 app.include_router(ciclo_router)
 app.include_router(patologia_router)

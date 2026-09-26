@@ -58,6 +58,9 @@ class Finca:
     def desactivar(self) -> None:
         self.es_activo = False
 
+    def activar(self) -> None:
+        self.es_activo = True
+
     def _snapshot(self) -> dict:
         return {
             "nombre": self.nombre.valor,

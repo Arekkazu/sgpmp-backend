@@ -64,6 +64,18 @@ class MetricaProduccionModel(Base):
         server_default='AMBOS',
         comment='Scope de aplicación: INDIVIDUAL, LOTE o AMBOS.',
     )
+    tipo_dato: Mapped[str] = mapped_column(
+        String(10),
+        nullable=False,
+        server_default='NUMERICO',
+        comment='Tipo primitivo del atributo dinámico: NUMERICO, ENTERO, TEXTO o BOOLEANO.',
+    )
+    es_obligatorio: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default='false',
+        comment='Indica si RF-33 exige el atributo al registrar el activo.',
+    )
     es_activo: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,

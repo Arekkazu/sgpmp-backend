@@ -1,4 +1,5 @@
 """DTO de entrada para el registro de una nueva especie productiva (Flujo A — RF-15)."""
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import field_validator
@@ -12,6 +13,7 @@ class RegistrarEspecieDTO(BaseDTO):
 
     nombre: str
     descripcion: Optional[str] = None
+    densidad_maxima_por_especie: Optional[Decimal] = None
 
     @field_validator("nombre")
     @classmethod
@@ -29,4 +31,11 @@ class RegistrarEspecieDTO(BaseDTO):
     def validar_descripcion(cls, v: Optional[str]) -> Optional[str]:
         if v is not None and len(v) > 255:
             raise ValueError("La descripción no puede superar los 255 caracteres.")
+        return v
+
+    @field_validator("densidad_maxima_por_especie")
+    @classmethod
+    def validar_densidad_maxima(cls, v: Optional[Decimal]) -> Optional[Decimal]:
+        if v is not None and v <= 0:
+            raise ValueError("La densidad máxima por especie debe ser mayor a cero.")
         return v

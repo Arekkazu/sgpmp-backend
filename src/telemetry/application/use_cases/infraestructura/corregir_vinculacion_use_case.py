@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,8 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 from src.telemetry.domain.entities.vinculacion_lectura import VinculacionLectura
 from src.telemetry.domain.repositories.vinculacion_lectura_repository import VinculacionLecturaRepository
 from src.telemetry.infrastructure.dto.corregir_vinculacion_dto import CorregirVinculacionDTO
+
+logger = logging.getLogger(__name__)
 
 
 class CorregirVinculacionUseCase:
@@ -19,9 +23,11 @@ class CorregirVinculacionUseCase:
         self,
         db: Session,
         vinculacion_repo: VinculacionLecturaRepository,
+        reclasificar_semaforo_use_case: Optional[object] = None,
     ) -> None:
         self.db = db
         self.vinculacion_repo = vinculacion_repo
+        self.reclasificar_semaforo_use_case = reclasificar_semaforo_use_case
 
     def execute(
         self, id_vinculacion_lectura: int, dto: CorregirVinculacionDTO, id_usuario: int
@@ -62,7 +68,22 @@ class CorregirVinculacionUseCase:
             ))
 
             self.db.commit()
-            return nueva
         except Exception:
             self.db.rollback()
             raise
+
+        # INC-M09-106-G31: reclasificar el semáforo contra RF-17 (best-effort, fuera de la transacción)
+        if self.reclasificar_semaforo_use_case is not None and nueva.id_activo_biologico:
+            try:
+                self.reclasificar_semaforo_use_case.execute(
+                    id_telemetria=nueva.id_telemetria,
+                    id_activo_biologico=nueva.id_activo_biologico,
+                )
+            except Exception:
+                logger.warning(
+                    'INC-M09-106-G31: fallo al reclasificar semáforo para vinculación %s.',
+                    id_vinculacion_lectura,
+                    exc_info=True,
+                )
+
+        return nueva

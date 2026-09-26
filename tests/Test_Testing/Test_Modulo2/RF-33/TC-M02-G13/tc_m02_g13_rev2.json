@@ -1,0 +1,444 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g13-rf33-rev2",
+    "name": "TC-M02-G13 rev2 - Inmutabilidad campos sistema / INC-M02-46-G13",
+    "description": "Segunda evaluacion TEST. Password via --env-var. Historial: categoria CREACION y detalle_especifico (no version/tipo_evento en API).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "loginOk", "value": "0" },
+    { "key": "finca_id", "value": "" },
+    { "key": "especie_id", "value": "" },
+    { "key": "infraestructura_id", "value": "" },
+    { "key": "activo_poblacional_id", "value": "" },
+    { "key": "altaPobOk", "value": "0" },
+    { "key": "activo_costo_id", "value": "" },
+    { "key": "altaCostoOk", "value": "0" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin (unico)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Token presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "  pm.environment.set('token', json.token);",
+              "  pm.collectionVariables.set('loginOk', '1');",
+              "} else { pm.collectionVariables.set('loginOk', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - GET fincas",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET fincas responde (TEST puede exigir departamento)', function () {",
+              "  pm.expect(pm.response.code).to.be.a('number');",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  const items = ((pm.response.json() || {}).items) || [];",
+              "  const finca = items.find(function (f) { return f.es_activo === true; }) || items[0];",
+              "  pm.test('Hay finca en lista', function () { pm.expect(finca).to.exist; });",
+              "  if (finca) { pm.collectionVariables.set('finca_id', String(finca.id_finca || finca.id)); }",
+              "} else {",
+              "  pm.collectionVariables.set('finca_id', '1');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/fincas"
+      }
+    },
+    {
+      "name": "03 - GET especies (preferir id 4 Cachama)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET especies HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = ((pm.response.json() || {}).items) || [];",
+              "const activas = items.filter(function (e) { return e.es_activo === true; });",
+              "const e4 = activas.find(function (e) { return Number(e.id_especie) === 4; });",
+              "const especie = e4 || activas[0];",
+              "pm.test('Hay especie activa', function () { pm.expect(especie).to.exist; });",
+              "if (especie) { pm.collectionVariables.set('especie_id', String(especie.id_especie)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "04 - GET infraestructuras",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (pm.collectionVariables.get('loginOk') !== '1' || !pm.collectionVariables.get('finca_id')) { pm.execution.skipRequest(); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET infra HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = (((pm.response.json() || {}).items) || []).filter(function (i) { return i.es_activo === true; });",
+              "pm.test('Hay infraestructura activa', function () { pm.expect(items.length).to.be.above(0); });",
+              "if (items[0]) { pm.collectionVariables.set('infraestructura_id', String(items[0].id_infraestructura)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id={{finca_id}}&solo_activas=true"
+      }
+    },
+    {
+      "name": "05 - POST poblacional con estado INACTIVO (015+020 alta)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (pm.collectionVariables.get('loginOk') !== '1' || !pm.collectionVariables.get('infraestructura_id')) { pm.execution.skipRequest(); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('infraestructura_id')) { pm.test.skip('Sin infra'); return; }",
+              "const json = pm.response.json();",
+              "pm.test('POST poblacional HTTP 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code !== 201) {",
+              "  pm.collectionVariables.set('altaPobOk', '0');",
+              "  return;",
+              "}",
+              "pm.collectionVariables.set('activo_poblacional_id', String(json.id_activo_biologico));",
+              "pm.collectionVariables.set('altaPobOk', '1');",
+              "const estado = String(json.nombre_estado || '').toUpperCase();",
+              "pm.test('015 respuesta nombre_estado ACTIVO', function () { pm.expect(estado).to.eql('ACTIVO'); });",
+              "pm.test('015 respuesta id_estado=1', function () { pm.expect(Number(json.id_estado)).to.eql(1); });",
+              "pm.test('015 no persistio INACTIVO en respuesta', function () { pm.expect(estado).to.not.eql('INACTIVO'); });",
+              "const pob = json.detalle_poblacional || {};",
+              "pm.test('020 POST cantidad_inicial=10', function () { pm.expect(Number(pob.cantidad_inicial)).to.eql(10); });",
+              "pm.test('020 POST cantidad_actual=10', function () { pm.expect(Number(pob.cantidad_actual)).to.eql(10); });",
+              "pm.test('020 POST peso_promedio_inicial=2.5', function () { pm.expect(Number(pob.peso_promedio_inicial)).to.eql(2.5); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"nacimiento\",\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5,\n  \"estado\": \"INACTIVO\"\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "06 - GET activo poblacional (015 persistido)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPobOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPobOk') !== '1') { pm.test.skip('015/020 alta no 201'); return; }",
+              "pm.test('GET activo HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('015 persistido nombre_estado ACTIVO', function () {",
+              "  pm.expect(String(json.nombre_estado || '').toUpperCase()).to.eql('ACTIVO');",
+              "});",
+              "pm.test('015 persistido id_estado=1', function () { pm.expect(Number(json.id_estado)).to.eql(1); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}"
+      }
+    },
+    {
+      "name": "07 - GET historial snapshot CREACION (020 / INC-M02-46-G13)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaPobOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaPobOk') !== '1') { pm.test.skip('Alta no 201'); return; }",
+              "pm.test('GET historial HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const registros = json.registros || [];",
+              "pm.test('020 historial tiene registros (INC-M02-46-G13)', function () {",
+              "  pm.expect(Number(json.total_registros)).to.be.above(0);",
+              "  pm.expect(registros.length).to.be.above(0);",
+              "});",
+              "const creacion = registros.find(function (r) { return String(r.categoria || '').toUpperCase() === 'CREACION'; });",
+              "pm.test('020 existe categoria CREACION', function () { pm.expect(creacion).to.exist; });",
+              "if (!creacion) { return; }",
+              "pm.test('020 API no expone version; no se inventa', function () {",
+              "  pm.expect(creacion.version).to.eql(undefined);",
+              "  pm.expect(creacion.tipo_evento).to.eql(undefined);",
+              "});",
+              "const det = creacion.detalle_especifico || {};",
+              "const pob = det.detalle_poblacional || {};",
+              "pm.test('020 snapshot cantidad_inicial=10', function () { pm.expect(Number(pob.cantidad_inicial)).to.eql(10); });",
+              "pm.test('020 snapshot cantidad_actual=10', function () { pm.expect(Number(pob.cantidad_actual)).to.eql(10); });",
+              "pm.test('020 snapshot cantidad_actual==cantidad_inicial', function () {",
+              "  pm.expect(Number(pob.cantidad_actual)).to.eql(Number(pob.cantidad_inicial));",
+              "});",
+              "pm.test('020 snapshot peso_promedio_inicial=2.5', function () {",
+              "  pm.expect(Number(pob.peso_promedio_inicial)).to.eql(2.5);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_poblacional_id}}/historial"
+      }
+    },
+    {
+      "name": "08 - POST individual costo_adquisicion=1000000 (021)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1' || !pm.collectionVariables.get('infraestructura_id')) { pm.execution.skipRequest(); }",
+              "pm.collectionVariables.set('identificador_costo', 'TCM02G13R2-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('infraestructura_id')) { pm.test.skip('Sin infra'); return; }",
+              "const json = pm.response.json();",
+              "pm.test('021 POST HTTP 201', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code !== 201) { pm.collectionVariables.set('altaCostoOk', '0'); return; }",
+              "pm.collectionVariables.set('activo_costo_id', String(json.id_activo_biologico));",
+              "pm.collectionVariables.set('altaCostoOk', '1');",
+              "pm.test('021 POST costo_adquisicion=1000000', function () {",
+              "  pm.expect(Number(json.costo_adquisicion)).to.eql(1000000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{especie_id}},\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 1000000,\n  \"soporte_documental\": \"soporte_TC-M02-021-rev2.pdf\",\n  \"id_infraestructura\": {{infraestructura_id}},\n  \"atributos_dinamicos\": {},\n  \"identificador\": \"{{identificador_costo}}\",\n  \"raza\": \"Cachama\",\n  \"sexo\": \"Macho\",\n  \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\",\n  \"peso_inicial\": 2.5,\n  \"cantidad_inicial\": null,\n  \"peso_promedio_inicial\": null\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    },
+    {
+      "name": "09 - GET activo costo inicial (021)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.test.skip('021 alta no 201'); return; }",
+              "pm.test('021 GET inicial HTTP 200', function () { pm.response.to.have.status(200); });",
+              "pm.test('021 GET costo=1000000', function () {",
+              "  pm.expect(Number(pm.response.json().costo_adquisicion)).to.eql(1000000);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      }
+    },
+    {
+      "name": "10 - PATCH RF-35 solo costo_adquisicion (021 intento A)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.test.skip('021 alta no 201'); return; }",
+              "const json = pm.response.json();",
+              "pm.test('021 intento A no es 201 de creacion', function () { pm.expect(pm.response.code).to.not.eql(201); });",
+              "pm.test('021 intento A no acepta costo como campo RF-35 (no 200 de update de costo)', function () {",
+              "  if (pm.response.code === 200) {",
+              "    pm.expect(Number(json.costo_adquisicion)).to.eql(1000000);",
+              "  } else {",
+              "    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+              "  }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"costo_adquisicion\": 2000000\n}" },
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      }
+    },
+    {
+      "name": "11 - PATCH RF-35 raza + costo extra (021 intento B)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.test.skip('021 alta no 201'); return; }",
+              "const json = pm.response.json();",
+              "pm.test('021 intento B HTTP 200 (actualiza raza, ignora costo)', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code === 200) {",
+              "  pm.test('021 intento B costo sigue 1000000', function () {",
+              "    pm.expect(Number(json.costo_adquisicion)).to.eql(1000000);",
+              "  });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\n  \"raza\": \"Cachama\",\n  \"costo_adquisicion\": 2000000\n}" },
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      }
+    },
+    {
+      "name": "12 - GET costo final (021)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('altaCostoOk') !== '1') { pm.test.skip('021 alta no 201'); return; }",
+              "pm.test('021 GET final HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const costo = Number(pm.response.json().costo_adquisicion);",
+              "pm.test('021 costo final=1000000', function () { pm.expect(costo).to.eql(1000000); });",
+              "pm.test('021 no quedo 2000000', function () { pm.expect(costo).to.not.eql(2000000); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{activo_costo_id}}"
+      }
+    }
+  ]
+}

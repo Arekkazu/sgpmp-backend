@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import datetime
 from decimal import Decimal
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, field_validator
 
@@ -33,6 +33,12 @@ class UmbralAmbientalResponse(BaseModel):
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
     niveles: List[NivelAlertaResponse]
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # PENDIENTE (recién guardado o sin ACK aún) / APLICADA (ACK recibido) /
+    # NO_CONF (se publicó pero no hubo ACK a tiempo).
+    estado_sincronizacion: str
+    fecha_ultima_sincronizacion: Optional[datetime.datetime] = None
+    motivo_fallo_sincronizacion: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
@@ -57,3 +63,22 @@ class VariableAmbientalResponse(BaseModel):
 class VariablesAmbientalesResponse(BaseModel):
     total: int
     items: List[VariableAmbientalResponse]
+
+
+class AuditoriaUmbralResponse(BaseModel):
+    """Registro de auditoría de un umbral ambiental (RF-17, TC-M09-64)."""
+
+    id_auditoria_umbral: int
+    id_umbral_ambiental: int
+    id_usuario: Optional[int]
+    tipo_operacion: str
+    valores_anteriores: Optional[dict[str, Any]]
+    valores_nuevos: dict[str, Any]
+    fecha_gestion: datetime.datetime
+
+    model_config = {'from_attributes': True}
+
+
+class AuditoriaUmbralesResponse(BaseModel):
+    total: int
+    items: List[AuditoriaUmbralResponse]

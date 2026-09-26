@@ -1,0 +1,194 @@
+{
+  "grupo": "TC-M09-G24",
+  "rf": "RF-17",
+  "tipo": "REEVALUACION V2",
+  "entorno": "TEST",
+  "rama": "qa/juan-esteban-re-evaluacion-M02",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "runId": "G24-REEVAL-V2-20260913-012209",
+  "fecha": "2026-09-13T06:25:26.503Z",
+  "caso": "TC-M09-53",
+  "intento": 1,
+  "resultado": "PASS",
+  "ambiente": "TEST",
+  "actor": {
+    "correo_electronico": "administador.dev@gmail.com",
+    "id_usuario": 104,
+    "nombre_rol": "Administrador",
+    "estado_cuenta": "Activo",
+    "permisosRecurso20": [
+      1,
+      2,
+      3,
+      4
+    ]
+  },
+  "preflight": [
+    {
+      "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 404,
+      "nota": "URL suministrada"
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/health",
+      "status": 200
+    },
+    {
+      "url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/openapi.json",
+      "status": 200
+    },
+    {
+      "contrato": "POST /configuracion/umbrales",
+      "respuestasDeclaradas": [
+        "201",
+        "401",
+        "403",
+        "404",
+        "409",
+        "422"
+      ]
+    }
+  ],
+  "especie": {
+    "id": 3,
+    "nombre": "Camarón Blanco",
+    "es_activo": true
+  },
+  "variable": {
+    "id": 3,
+    "nombre": "Oxígeno disuelto",
+    "unidad": "mg/L",
+    "fisicoMin": "0",
+    "fisicoMax": "20"
+  },
+  "limitesFisicos": {
+    "min": "0",
+    "max": "20"
+  },
+  "rangoGeneral": {
+    "valor_min": "5.00",
+    "valor_max": "14.00"
+  },
+  "niveles": [
+    {
+      "nivel": "normal",
+      "limite_inferior": "5.00",
+      "limite_superior": "8.00"
+    },
+    {
+      "nivel": "precaucion",
+      "limite_inferior": "8.00",
+      "limite_superior": "11.00"
+    },
+    {
+      "nivel": "critico",
+      "limite_inferior": "9.60",
+      "limite_superior": "14.00"
+    }
+  ],
+  "analisisPayload": {
+    "minMenorQueMax": true,
+    "tresNiveles": true,
+    "nombresContrato": true,
+    "cadaNivelInfMenorSup": true,
+    "fueraDelGeneral": [],
+    "solapamientos": [
+      "precaucion/critico [9.60, 11.00]"
+    ],
+    "huecos": []
+  },
+  "precondiciones": {
+    "especieActiva": true,
+    "variablePublicada": true,
+    "combinacionLibreAntes": true,
+    "umbralesPreviosEspecie": [
+      7,
+      41,
+      9,
+      8
+    ]
+  },
+  "endpoint": "POST /configuracion/umbrales",
+  "payloadEnviado": {
+    "id_especie": 3,
+    "id_variable_ambiental": 3,
+    "valor_min": "5.00",
+    "valor_max": "14.00",
+    "niveles": [
+      {
+        "nivel": "normal",
+        "limite_inferior": "5.00",
+        "limite_superior": "8.00"
+      },
+      {
+        "nivel": "precaucion",
+        "limite_inferior": "8.00",
+        "limite_superior": "11.00"
+      },
+      {
+        "nivel": "critico",
+        "limite_inferior": "9.60",
+        "limite_superior": "14.00"
+      }
+    ]
+  },
+  "cuerpoEnviado": "{\"id_especie\":3,\"id_variable_ambiental\":3,\"valor_min\":5.00,\"valor_max\":14.00,\"niveles\":[{\"nivel\":\"normal\",\"limite_inferior\":5.00,\"limite_superior\":8.00},{\"nivel\":\"precaucion\",\"limite_inferior\":8.00,\"limite_superior\":11.00},{\"nivel\":\"critico\",\"limite_inferior\":9.60,\"limite_superior\":14.00}]}",
+  "oraculo": {
+    "status": 422,
+    "error_code": "SOLAPAMIENTO_NIVELES",
+    "persiste": false
+  },
+  "status": 422,
+  "errorCode": "SOLAPAMIENTO_NIVELES",
+  "respuesta": {
+    "error_code": "SOLAPAMIENTO_NIVELES",
+    "message": "Los niveles de alerta deben ser contiguos sin huecos ni solapamientos. El nivel 'precaucion' termina en 11.0 pero el siguiente comienza en 9.6.",
+    "fields": [],
+    "timestamp": "2026-09-13T06:25:25.780225+00:00"
+  },
+  "idCreado": null,
+  "getPosterior": {
+    "endpoint": "GET /configuracion/umbrales?id_especie=3",
+    "status": 200,
+    "total": 4,
+    "ids": [
+      7,
+      41,
+      9,
+      8
+    ]
+  },
+  "persistencia": {
+    "registrosDeLaCombinacion": 0,
+    "previosConservados": true,
+    "detalle": []
+  },
+  "STOP_COMBINACION": false,
+  "eventos": [
+    {
+      "metodo": "POST",
+      "status": 422,
+      "respuesta": {
+        "error_code": "SOLAPAMIENTO_NIVELES",
+        "message": "Los niveles de alerta deben ser contiguos sin huecos ni solapamientos. El nivel 'precaucion' termina en 11.0 pero el siguiente comienza en 9.6.",
+        "fields": [],
+        "timestamp": "2026-09-13T06:25:25.780225+00:00"
+      },
+      "transportError": false
+    },
+    {
+      "metodo": "GET",
+      "status": 200,
+      "transportError": false
+    }
+  ],
+  "assertions": {
+    "total": 8,
+    "pending": 0,
+    "failed": 0
+  },
+  "failures": [],
+  "newman": "6.2.2",
+  "reporter": "newman-reporter-htmlextra 1.23.1",
+  "html": "newman/newman-TC-M09-53-v2.html"
+}

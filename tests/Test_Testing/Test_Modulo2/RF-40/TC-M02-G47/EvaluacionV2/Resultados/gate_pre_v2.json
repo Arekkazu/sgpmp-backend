@@ -1,0 +1,189 @@
+{
+ "ts_utc": "2026-09-19T06:18:14.628508+00:00",
+ "db_session": [
+  [
+   "member_qa",
+   "sgpmp_test",
+   "on"
+  ]
+ ],
+ "fixtures": [
+  [
+   "450",
+   "QAJE-G47-V2-PROD",
+   "ACTIVO",
+   "INDIVIDUAL",
+   "1",
+   "0",
+   "0"
+  ],
+  [
+   "451",
+   "QAJE-G47-V2-VET",
+   "ACTIVO",
+   "INDIVIDUAL",
+   "1",
+   "0",
+   "0"
+  ],
+  [
+   "452",
+   "QAJE-G47-V2-ING",
+   "ACTIVO",
+   "INDIVIDUAL",
+   "1",
+   "0",
+   "0"
+  ]
+ ],
+ "global": [
+  [
+   "166",
+   "354",
+   "61",
+   "6"
+  ]
+ ],
+ "historicos_xss": [
+  [
+   "234",
+   "279"
+  ],
+  [
+   "235",
+   "311"
+  ],
+  [
+   "236",
+   "312"
+  ],
+  [
+   "352",
+   "279"
+  ],
+  [
+   "353",
+   "311"
+  ],
+  [
+   "354",
+   "312"
+  ]
+ ],
+ "openapi": 200,
+ "endpoint_post": true,
+ "dto_required": [
+  "tipo_medicion",
+  "valor_medicion",
+  "unidad_medida"
+ ],
+ "dto_descripcion": {
+  "anyOf": [
+   {
+    "type": "string"
+   },
+   {
+    "type": "null"
+   }
+  ],
+  "title": "Descripcion"
+ },
+ "refresh_contract": {
+  "/sesiones/refresh": {
+   "post": {
+    "tags": [
+     "Sesiones"
+    ],
+    "summary": "Refrescar Sesion",
+    "description": "Canjea el refresh token de la cookie por un access token nuevo.\n\nSin RBAC, sin `get_current_user`: la confianza la da la cookie\n`HttpOnly`, no un JWT — este endpoint reemplaza justamente la necesidad\nde credenciales cuando el access token en memoria se perdió (recarga de\npágina) o expiró.",
+    "operationId": "refrescar_sesion_sesiones_refresh_post",
+    "parameters": [
+     {
+      "name": "refresh_token",
+      "in": "cookie",
+      "required": false,
+      "schema": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Refresh Token"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "Successful Response",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/LoginResponse"
+        }
+       }
+      }
+     },
+     "401": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Unauthorized"
+     },
+     "410": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ErrorResponse"
+        }
+       }
+      },
+      "description": "Gone"
+     },
+     "422": {
+      "description": "Validation Error",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/HTTPValidationError"
+        }
+       }
+      }
+     }
+    }
+   }
+  }
+ },
+ "acceso": {
+  "productor": {
+   "login": 200,
+   "sub": "35",
+   "esperado": 35,
+   "activo": 450,
+   "get_activo": 200,
+   "identificador": "QAJE-G47-V2-PROD"
+  },
+  "veterinario": {
+   "login": 200,
+   "sub": "3",
+   "esperado": 3,
+   "activo": 451,
+   "get_activo": 200,
+   "identificador": "QAJE-G47-V2-VET"
+  },
+  "ingeniero": {
+   "login": 200,
+   "sub": "4",
+   "esperado": 4,
+   "activo": 452,
+   "get_activo": 200,
+   "identificador": "QAJE-G47-V2-ING"
+  }
+ }
+}

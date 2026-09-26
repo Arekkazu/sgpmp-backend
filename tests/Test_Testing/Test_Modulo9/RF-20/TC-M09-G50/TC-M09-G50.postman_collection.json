@@ -1,0 +1,152 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G50 Edicion de un area productiva existente",
+    "description": "Automatiza TC-M09-101: lee el estado 'antes' de un area productiva existente, la edita con datos validos distintos (nombre, superficie) usando el fecha_actualizacion devuelto (FA-14), y compara contra el estado 'despues' leido de forma independiente. BLOQUEADO: EditarInfraestructuraUseCase revalida tipo_area contra modulo9.tipos_area en cada edicion (linea 73 de editar_infraestructura_use_case.py), igual que el registro (ver tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md) -- esa tabla no existe en el servidor de test compartido, asi que CUALQUIER edicion falla con 500 sin importar los datos enviados. Usa un area ya existente en el entorno (id=1) porque crear una nueva tambien esta bloqueada.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_infraestructura", "value": "1" },
+    { "key": "fecha_actualizacion_antes", "value": "" },
+    { "key": "nombre_antes", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Leer el area existente (estado 'antes')",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado ANTES: ' + JSON.stringify(json));",
+              "// Se guarda como fragmento JSON ya listo para insertar SIN comillas",
+              "// adicionales en el body: 'null' literal si nunca se edito (ver FA-14",
+              "// en curls_m09_cu04_infraestructura.md), o la fecha entre comillas.",
+              "const fechaFragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
+              "pm.collectionVariables.set('fecha_actualizacion_antes_raw', fechaFragmento);",
+              "pm.collectionVariables.set('fecha_actualizacion_antes', json.fecha_actualizacion);",
+              "pm.collectionVariables.set('nombre_antes', json.nombre_infraestructura);",
+              "pm.collectionVariables.set('superficie_antes', json.superficie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-101 - Editar el area con datos validos distintos [BLOQUEADO: ver NOTA_BLOQUEO de TC-M09-G48]",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Edicion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado DESPUES (respuesta del PATCH): ' + JSON.stringify(json));",
+              "",
+              "pm.test('nombre cambio respecto al estado anterior', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.not.eql(pm.collectionVariables.get('nombre_antes'));",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Estanque Editado TC-M09-G50');",
+              "});",
+              "pm.test('superficie actualizada correctamente', function () {",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(2750.5);",
+              "});",
+              "pm.test('fecha_actualizacion rotada respecto al estado anterior', function () {",
+              "    pm.expect(json.fecha_actualizacion).to.not.eql(pm.collectionVariables.get('fecha_actualizacion_antes'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque Editado TC-M09-G50\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2750.50\",\n  \"descripcion_infraestructura\": \"Editado por TC-M09-101\",\n  \"fecha_actualizacion\": {{fecha_actualizacion_antes_raw}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 4 - Confirmar que el area no cambio (la edicion fallida no debe alterar nada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "console.log('Estado tras el intento fallido: ' + JSON.stringify(json));",
+              "pm.test('nombre y superficie siguen siendo los originales', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql(pm.collectionVariables.get('nombre_antes'));",
+              "    pm.expect(json.superficie).to.eql(pm.collectionVariables.get('superficie_antes'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "infraestructuras", "{{id_infraestructura}}"]
+        }
+      },
+      "response": []
+    }
+  ]
+}

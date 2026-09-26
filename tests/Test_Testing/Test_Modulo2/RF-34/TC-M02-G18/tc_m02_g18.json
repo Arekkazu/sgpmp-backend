@@ -1,0 +1,418 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g18-rf34",
+    "name": "TC-M02-G18 - Consulta asociacion a infraestructura RF-34",
+    "description": "Pruebas TC-M02-022 a TC-M02-026 para RF-34. Consulta de asociacion activa, historial, activo inexistente, activo sin asociacion activa y rechazo de escritura sobre endpoint de solo lectura.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "activo_id",
+      "value": "181"
+    },
+    {
+      "key": "activo_sin_asociacion_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/sesiones/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "var d = {};",
+              "try {",
+              "    d = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "var token = d.token || d.access_token || (d.data && (d.data.token || d.data.access_token));",
+              "",
+              "pm.test('Token obtenido', function () {",
+              "    pm.expect(token, 'No se obtuvo token').to.exist;",
+              "});",
+              "",
+              "if (token) {",
+              "    pm.environment.set('access_token', String(token));",
+              "    pm.collectionVariables.set('access_token', String(token));",
+              "    console.log('Token establecido correctamente.');",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M02-022 - Consultar asociacion ACTIVA",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_id}}/infraestructura?tipo_consulta=ACTIVA"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-022 - HTTP 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "var d = {};",
+              "try {",
+              "    d = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "console.log('TC-M02-022 RESPUESTA ACTIVA:', d);",
+              "",
+              "var raw = JSON.stringify(d).toLowerCase();",
+              "",
+              "pm.test('TC-M02-022 - Respuesta contiene informacion de infraestructura', function () {",
+              "    pm.expect(raw).to.include('infraestructura');",
+              "});",
+              "",
+              "if (d.advertencia_integridad !== undefined) {",
+              "    pm.test('TC-M02-022 - advertencia_integridad es null', function () {",
+              "        pm.expect(d.advertencia_integridad).to.eql(null);",
+              "    });",
+              "}",
+              "",
+              "var asociacion = d.asociacion_actual || d.asociacion || d.infraestructura || d.data || d;",
+              "var fechaFin = asociacion.fecha_fin;",
+              "",
+              "if (fechaFin === undefined) {",
+              "    fechaFin = asociacion.fechaFin;",
+              "}",
+              "",
+              "if (fechaFin !== undefined) {",
+              "    pm.test('TC-M02-022 - Asociacion activa tiene fecha_fin null', function () {",
+              "        pm.expect(fechaFin).to.eql(null);",
+              "    });",
+              "}",
+              "",
+              "var tieneInfraestructura = false;",
+              "",
+              "if (asociacion.id_infraestructura !== undefined) {",
+              "    tieneInfraestructura = true;",
+              "}",
+              "",
+              "if (asociacion.nombre_infraestructura !== undefined) {",
+              "    tieneInfraestructura = true;",
+              "}",
+              "",
+              "if (raw.indexOf('infraestructura') !== -1) {",
+              "    tieneInfraestructura = true;",
+              "}",
+              "",
+              "pm.test('TC-M02-022 - Existe infraestructura asociada', function () {",
+              "    pm.expect(tieneInfraestructura).to.eql(true);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - TC-M02-023 - Consultar HISTORIAL completo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_id}}/infraestructura?tipo_consulta=HISTORIAL"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-023 - HTTP 200', function () {",
+              "    pm.expect(pm.response.code).to.eql(200);",
+              "});",
+              "",
+              "var d = {};",
+              "try {",
+              "    d = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "console.log('TC-M02-023 HISTORIAL:', d);",
+              "",
+              "var historial = [];",
+              "",
+              "if (Array.isArray(d.historial)) {",
+              "    historial = d.historial;",
+              "} else if (Array.isArray(d.registros)) {",
+              "    historial = d.registros;",
+              "} else if (Array.isArray(d.data)) {",
+              "    historial = d.data;",
+              "} else if (Array.isArray(d.items)) {",
+              "    historial = d.items;",
+              "} else if (d.data && Array.isArray(d.data.registros)) {",
+              "    historial = d.data.registros;",
+              "} else if (d.data && Array.isArray(d.data.items)) {",
+              "    historial = d.data.items;",
+              "}",
+              "",
+              "pm.test('TC-M02-023 - Existe estructura de historial', function () {",
+              "    pm.expect(historial).to.be.an('array');",
+              "});",
+              "",
+              "console.log('Cantidad de registros historicos:', historial.length);",
+              "",
+              "var ordenado = true;",
+              "",
+              "for (var i = 1; i < historial.length; i++) {",
+              "    var anteriorRaw = historial[i - 1].fecha_inicio || historial[i - 1].fechaInicio;",
+              "    var actualRaw = historial[i].fecha_inicio || historial[i].fechaInicio;",
+              "",
+              "    if (!anteriorRaw || !actualRaw) {",
+              "        continue;",
+              "    }",
+              "",
+              "    var anterior = new Date(anteriorRaw).getTime();",
+              "    var actual = new Date(actualRaw).getTime();",
+              "",
+              "    if (!Number.isNaN(anterior) && !Number.isNaN(actual) && actual < anterior) {",
+              "        ordenado = false;",
+              "        break;",
+              "    }",
+              "}",
+              "",
+              "pm.test('TC-M02-023 - Historial ordenado por fecha_inicio ASC', function () {",
+              "    pm.expect(ordenado).to.eql(true);",
+              "});",
+              "",
+              "if (d.total_registros !== undefined) {",
+              "    pm.test('TC-M02-023 - total_registros coincide', function () {",
+              "        pm.expect(Number(d.total_registros)).to.eql(historial.length);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - TC-M02-024 - Activo inexistente",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/99999/infraestructura?tipo_consulta=ACTIVA"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-024 - HTTP 404', function () {",
+              "    pm.expect(pm.response.code).to.eql(404);",
+              "});",
+              "",
+              "var d = {};",
+              "try {",
+              "    d = pm.response.json();",
+              "} catch (e) {}",
+              "",
+              "console.log('TC-M02-024 ERROR:', d);",
+              "",
+              "var raw = JSON.stringify(d).toLowerCase();",
+              "",
+              "pm.test('TC-M02-024 - Mensaje indica activo inexistente', function () {",
+              "    pm.expect(raw).to.satisfy(function (x) {",
+              "        return x.indexOf('no existe') !== -1 ||",
+              "               x.indexOf('activo biologico') !== -1 ||",
+              "               x.indexOf('activo_biologico') !== -1;",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - TC-M02-025 - Activo sin asociacion activa",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos/{{activo_sin_asociacion_id}}/infraestructura?tipo_consulta=ACTIVA"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var id = pm.variables.get('activo_sin_asociacion_id');",
+              "",
+              "if (!id) {",
+              "    console.warn('TC-M02-025 NO EJECUTABLE: no se encontro un activo existente sin asociacion activa en TEST.');",
+              "",
+              "    pm.test('TC-M02-025 - NO EJECUTABLE por falta de precondicion', function () {",
+              "        pm.expect(true).to.eql(true);",
+              "    });",
+              "} else {",
+              "    pm.test('TC-M02-025 - HTTP 404', function () {",
+              "        pm.expect(pm.response.code).to.eql(404);",
+              "    });",
+              "",
+              "    var d = {};",
+              "    try {",
+              "        d = pm.response.json();",
+              "    } catch (e) {}",
+              "",
+              "    console.log('TC-M02-025 RESPUESTA:', d);",
+              "",
+              "    var raw = JSON.stringify(d).toLowerCase();",
+              "",
+              "    pm.test('TC-M02-025 - Mensaje indica inconsistencia de infraestructura activa', function () {",
+              "        pm.expect(raw).to.satisfy(function (x) {",
+              "            return x.indexOf('infraestructura activa') !== -1 ||",
+              "                   x.indexOf('inconsistencia') !== -1 ||",
+              "                   x.indexOf('sin asociacion') !== -1;",
+              "        });",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - TC-M02-026 - PUT sobre endpoint solo lectura",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_id\": 6\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos/{{activo_id}}/infraestructura"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-026 - PUT HTTP 405', function () {",
+              "    pm.expect(pm.response.code).to.eql(405);",
+              "});",
+              "",
+              "console.log('TC-M02-026 PUT:', pm.response.code, pm.response.text());"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - TC-M02-026 - PATCH sobre endpoint solo lectura",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"infraestructura_id\": 6\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": "{{base_url}}/activos-biologicos/{{activo_id}}/infraestructura"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('TC-M02-026 - PATCH HTTP 405', function () {",
+              "    pm.expect(pm.response.code).to.eql(405);",
+              "});",
+              "",
+              "console.log('TC-M02-026 PATCH:', pm.response.code, pm.response.text());"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

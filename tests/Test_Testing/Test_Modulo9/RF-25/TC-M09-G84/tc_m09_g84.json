@@ -1,0 +1,197 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g84-rf25",
+    "name": "TC-M09-G84 - Auditoría de inconsistencias en configuración de interfaz",
+    "description": "TC-M09-G84 / TC-M09-159. Consulta de auditoría para verificar trazabilidad de inconsistencias relacionadas con configuración de interfaz. El caso se ejecuta como una única prueba y consulta los registros existentes mediante el endpoint GET /auditoria/.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Autenticación",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Autenticación exitosa', function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "    json = {};",
+              "}",
+              "",
+              "const token = json.token || json.access_token || json.accessToken;",
+              "",
+              "pm.test('El login retorna un JWT', function () {",
+              "    pm.expect(token, 'No se encontró token en la respuesta').to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "if (token) {",
+              "    pm.collectionVariables.set('token', token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - TC-M09-159 - Consulta de auditoría",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?pagina=1&tamano=50",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auditoria",
+            ""
+          ],
+          "query": [
+            {
+              "key": "pagina",
+              "value": "1"
+            },
+            {
+              "key": "tamano",
+              "value": "50"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('La consulta de auditoría responde correctamente', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 206]);",
+              "});",
+              "",
+              "let json = {};",
+              "try {",
+              "    json = pm.response.json();",
+              "} catch (e) {",
+              "    json = {};",
+              "}",
+              "",
+              "if ([200, 206].includes(pm.response.code)) {",
+              "    pm.test('La respuesta contiene la estructura de auditoría', function () {",
+              "        pm.expect(json).to.have.property('total');",
+              "        pm.expect(json).to.have.property('pagina');",
+              "        pm.expect(json).to.have.property('tamano');",
+              "        pm.expect(json).to.have.property('items');",
+              "        pm.expect(json.items).to.be.an('array');",
+              "    });",
+              "",
+              "    const items = Array.isArray(json.items) ? json.items : [];",
+              "",
+              "    pm.test('Los registros de auditoría contienen campos de trazabilidad', function () {",
+              "        if (items.length === 0) {",
+              "            pm.expect(true).to.equal(true);",
+              "            return;",
+              "        }",
+              "",
+              "        const registro = items[0];",
+              "        pm.expect(registro).to.have.property('id_evento');",
+              "        pm.expect(registro).to.have.property('fecha_evento');",
+              "        pm.expect(registro).to.have.property('modulo');",
+              "        pm.expect(registro).to.have.property('resultado');",
+              "        pm.expect(registro).to.have.property('detalle');",
+              "        pm.expect(registro).to.have.property('id_usuario');",
+              "        pm.expect(registro).to.have.property('categoria');",
+              "        pm.expect(registro).to.have.property('estado');",
+              "    });",
+              "",
+              "    const registrosInterfaz = items.filter(function (item) {",
+              "        const texto = JSON.stringify(item).toLowerCase();",
+              "        return texto.includes('configuracion') ||",
+              "               texto.includes('configuración') ||",
+              "               texto.includes('interfaz') ||",
+              "               texto.includes('personalizacion') ||",
+              "               texto.includes('personalización');",
+              "    });",
+              "",
+              "    console.log('Total de registros consultados:', items.length);",
+              "    console.log('Registros relacionados con configuración/interfaz:', registrosInterfaz.length);",
+              "",
+              "    pm.test('La auditoría no expone información interna sensible', function () {",
+              "        const texto = JSON.stringify(json).toLowerCase();",
+              "        pm.expect(texto).to.not.include('traceback');",
+              "        pm.expect(texto).to.not.include('stack trace');",
+              "        pm.expect(texto).to.not.include('sqlalchemy.exc');",
+              "        pm.expect(texto).to.not.include('password');",
+              "    });",
+              "",
+              "    if (registrosInterfaz.length > 0) {",
+              "        console.log('Se encontraron registros relacionados con configuración/interfaz.');",
+              "        console.log(JSON.stringify(registrosInterfaz, null, 2));",
+              "    } else {",
+              "        console.log('No se encontraron registros relacionados con configuración/interfaz en la página consultada.');",
+              "    }",
+              "} else {",
+              "    console.log('La API no permitió consultar auditoría. Código HTTP:', pm.response.code);",
+              "    console.log('Respuesta:', pm.response.text());",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

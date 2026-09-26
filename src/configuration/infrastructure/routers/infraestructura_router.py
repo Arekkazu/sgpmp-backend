@@ -29,6 +29,7 @@ from src.configuration.infrastructure.repositories.tipo_area_repository import S
 from src.configuration.infrastructure.schema.infraestructura_schema import InfraestructuraResponse, ListaInfraestructurasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -88,7 +89,14 @@ def listar_infraestructuras(
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
     )
-    infraestructuras = use_case.listar_por_finca(finca_id, usuario_actual, solo_activas=solo_activas)
+    infraestructuras = use_case.listar_por_finca(
+        finca_id,
+        usuario_actual,
+        solo_activas=solo_activas,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     items = [InfraestructuraResponse.from_entity(i) for i in infraestructuras]
     return ListaInfraestructurasResponse(total=len(items), items=items)
 
@@ -114,7 +122,12 @@ def obtener_infraestructura(
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
     )
-    infra = use_case.obtener(id_infraestructura)
+    infra = use_case.obtener(
+        id_infraestructura,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return InfraestructuraResponse.from_entity(infra)
 
 

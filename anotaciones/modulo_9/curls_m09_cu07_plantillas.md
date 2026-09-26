@@ -97,6 +97,69 @@ Errores posibles:
 
 ---
 
+## RF-30 — Auditoría de plantillas (Flujo H)
+
+### GET /configuracion/plantillas/auditoria
+
+INC-M09-01-109 (#319): antes solo quedaba una fila `CREATE`/`EXITOSO` por cada
+creación o versionado exitoso. Ahora también registra:
+- **Consultas** (`tipo_operacion=READ`): `GET /configuracion/plantillas`,
+  `GET /configuracion/plantillas/{id}` y `GET /configuracion/plantillas/historial`.
+- **Intentos fallidos de cualquier operación** (`resultado=FALLIDO`): creación,
+  versionado, aplicación o consulta que terminan en error (404/409/422/etc.).
+  `id_plantilla` puede venir `null` si el fallo ocurrió antes de que existiera
+  un id (p. ej. nombre duplicado al crear).
+
+```bash
+curl -X GET http://localhost:8000/configuracion/plantillas/auditoria \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta esperada `200`:
+```json
+{
+  "total": 3,
+  "items": [
+    {
+      "id_auditoria_plantilla": 3,
+      "id_plantilla": null,
+      "id_usuario": 1,
+      "tipo_operacion": "CREATE",
+      "resultado": "FALLIDO",
+      "valores_anteriores": null,
+      "valores_nuevos": {"template_name": "Tilapia Estándar", "id_especie": 3, "error": "..."},
+      "fecha_gestion": "2026-09-18T10:05:00Z"
+    },
+    {
+      "id_auditoria_plantilla": 2,
+      "id_plantilla": 1,
+      "id_usuario": 1,
+      "tipo_operacion": "READ",
+      "resultado": "EXITOSO",
+      "valores_anteriores": null,
+      "valores_nuevos": {"operacion": "detalle_plantilla"},
+      "fecha_gestion": "2026-09-18T10:04:00Z"
+    },
+    {
+      "id_auditoria_plantilla": 1,
+      "id_plantilla": 1,
+      "id_usuario": 1,
+      "tipo_operacion": "CREATE",
+      "resultado": "EXITOSO",
+      "valores_anteriores": null,
+      "valores_nuevos": {"id_plantilla": 1, "template_name": "Tilapia Estándar", "version": 1, "...": "..."},
+      "fecha_gestion": "2026-09-18T10:00:00Z"
+    }
+  ]
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre recurso 28 (FA-05)
+
+---
+
 ## RF-30 — Esquema vigente y changelog de versiones (Flujo F)
 
 ### GET /configuracion/plantillas/esquema
@@ -361,9 +424,20 @@ Errores posibles:
 - `403` — rol sin permiso E sobre recurso 28 (FA-05)
 - `404` — plantilla no existe
 - `404` — especie destino no existe (FA-03)
-- `412` — schema_version del snapshot incompatible con la versión actual (FA-02)
-- `412` — `fecha_actualizacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11)
+- `422` — schema_version del snapshot incompatible con la versión actual (FA-02) — `VERSION_SNAPSHOT_INCOMPATIBLE`
+- `409` — `fecha_actualizacion_especie_destino` no coincide con la especie en DB, conflicto de concurrencia (FA-11) — `CONFLICTO_CONCURRENCIA`
+- `400` — el snapshot referencia una variable ambiental que ya no existe o fue
+  desactivada (FA-07, referencias huérfanas) — `REFERENCIAS_HUERFANAS`. Se
+  verifica **antes** de desactivar nada de la especie destino, así que la
+  configuración anterior queda intacta
 - `422` — especie destino inactiva
+- `422` — `PLANTILLA_VERSION_NO_VIGENTE` (INC-M09-03-122, #317): el `id_plantilla`
+  de la URL ya no es la última versión de su `template_name` (existe una
+  versión posterior generada por Flujo G). El mensaje incluye el id de la
+  versión vigente. No hay un HTTP explícito para este caso en el "Flujo
+  alterno" de RF-32 — se usó 422 por consistencia con el otro caso de
+  "plantilla no apta para aplicar" (incompatibilidad de esquema, también 422
+  en el texto de RF-32)
 
 ### Verificación en DB tras aplicar
 

@@ -8,6 +8,7 @@ APLICADA (ACK recibido) o NO_CONF (se publicó pero no hubo ACK a tiempo).
 from __future__ import annotations
 
 import datetime
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -38,9 +39,17 @@ class ConfigurarRemotamenteUseCase:
         self.mqtt_port = mqtt_port
 
     def execute(
-        self, id_dispositivo_iot: int, dto: ConfigurarRemotamenteDTO, usuario_actual: UsuarioActual
+        self,
+        id_dispositivo_iot: int,
+        dto: ConfigurarRemotamenteDTO,
+        usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[ConfiguracionRemota, str]:
-        dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
+        dispositivo = self.dispositivo_repo.obtener_por_id(
+            id_dispositivo_iot,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
@@ -119,9 +128,29 @@ class ConfigurarRemotamenteUseCase:
 
 class ConsultarConfiguracionesUseCase:
 
-    def __init__(self, db: Session, config_repo: ConfiguracionRemotaRepository) -> None:
+    def __init__(
+        self,
+        db: Session,
+        config_repo: ConfiguracionRemotaRepository,
+        dispositivo_repo: DispositivoIotRepository,
+    ) -> None:
         self.db = db
         self.config_repo = config_repo
+        self.dispositivo_repo = dispositivo_repo
 
-    def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[ConfiguracionRemota]:
+    def listar_por_dispositivo(
+        self,
+        id_dispositivo_iot: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[ConfiguracionRemota]:
+        dispositivo = self.dispositivo_repo.obtener_por_id(
+            id_dispositivo_iot,
+            ids_fincas_permitidas=ids_fincas_permitidas,
+        )
+        if dispositivo is None:
+            raise NotFoundError(
+                code="DISPOSITIVO_NO_ENCONTRADO",
+                message=f"No existe un dispositivo IoT con ID {id_dispositivo_iot}.",
+            )
         return self.config_repo.listar_por_dispositivo(id_dispositivo_iot)

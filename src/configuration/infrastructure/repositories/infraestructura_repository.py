@@ -32,9 +32,18 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
             fecha_actualizacion=orm.fecha_actualizacion,
         )
 
-    def obtener_por_id(self, id_infraestructura: int) -> Optional[Infraestructura]:
+    def obtener_por_id(
+        self,
+        id_infraestructura: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[Infraestructura]:
         orm = self.db.get(InfraestructuraModel, id_infraestructura)
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        if ids_fincas_permitidas is not None and orm.id_finca not in ids_fincas_permitidas:
+            return None
+        return self._a_entidad(orm)
 
     def guardar(self, infraestructura: Infraestructura) -> Infraestructura:
         orm = InfraestructuraModel(
@@ -77,7 +86,15 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
             })
         return self._a_entidad(orm)
 
-    def listar_por_finca(self, id_finca: int, *, solo_activas: bool = False) -> list[Infraestructura]:
+    def listar_por_finca(
+        self,
+        id_finca: int,
+        *,
+        solo_activas: bool = False,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[Infraestructura]:
+        if ids_fincas_permitidas is not None and id_finca not in ids_fincas_permitidas:
+            return []
         query = self.db.query(InfraestructuraModel).filter(InfraestructuraModel.id_finca == id_finca)
         if solo_activas:
             query = query.filter(InfraestructuraModel.es_activo.is_(True))

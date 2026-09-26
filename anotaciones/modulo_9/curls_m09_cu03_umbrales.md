@@ -36,7 +36,7 @@ curl -X POST http://localhost:8000/configuracion/umbrales \
 
 **Nota:** El orden de los niveles en el arreglo no importa. El sistema los ordena internamente.
 
-Respuesta esperada `201`:
+Respuesta esperada `201` (solo si el Nodo Edge confirmó `APLICADA` — ver nota):
 ```json
 {
   "id_umbral_ambiental": 1,
@@ -51,17 +51,43 @@ Respuesta esperada `201`:
     { "nivel": "critico",    "limite_inferior": 15.0, "limite_superior": 18.0 },
     { "nivel": "normal",     "limite_inferior": 18.0, "limite_superior": 28.0 },
     { "nivel": "precaucion", "limite_inferior": 28.0, "limite_superior": 35.0 }
-  ]
+  ],
+  "estado_sincronizacion": "APLICADA",
+  "fecha_ultima_sincronizacion": "2026-09-19T12:00:00Z",
+  "motivo_fallo_sincronizacion": null
 }
 ```
 
+**INC-M09-104-G29 (RF-17):** `estado_sincronizacion` refleja el intento de propagar la
+configuración hacia el Nodo Edge (`PENDIENTE` / `APLICADA` / `NO_CONF`). El umbral y su
+estado de sincronización quedan guardados en base de datos **antes** de evaluar el
+resultado de la propagación (dos commits separados). Si el resultado no es `APLICADA`,
+el RF-17 (flujo alterno "Error de sincronización con el Nodo Edge") exige responder:
+
+```
+HTTP 500
+{
+  "error_code": "FALLO_SINCRONIZACION_EDGE",
+  "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión."
+}
+```
+
+Hoy el contrato real del broker MQTT para umbrales (destino, topic, payload, ACK) aún no
+está definido por el equipo de IoT, así que `EdgeSincronizacionStubAdapter` siempre
+degrada a `PENDIENTE` — en la práctica **todo** `POST`/`PATCH` de umbrales responde `500`
+hasta que exista una implementación real del adaptador. Esto es intencional por mandato
+del RF-17, no un defecto: la configuración queda igualmente guardada y consultable via
+`GET`, solo la respuesta HTTP de la escritura refleja que el Edge no confirmó. Ver
+`anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
+
 Errores posibles:
+- `500` — el Nodo Edge no confirmó la propagación (`PENDIENTE`/`NO_CONF`) — ver arriba
 - `422` — especie inactiva (FA-01)
 - `404` — variable ambiental no existe o inactiva
 - `409` — ya existe umbral para esa especie-variable (FA-02)
 - `400` — valor_min >= valor_max (FA-03)
 - `400` — valores fuera del rango físico de la variable (FA-04)
-- `422` — solapamiento o cobertura incompleta de niveles (FA-05)
+- `400` — solapamiento o cobertura incompleta de niveles (FA-05)
 - `400` — algún nivel fuera del rango general (FA-08)
 - `403` — sin permiso C sobre umbrales_ambientales
 
@@ -128,7 +154,11 @@ Errores posibles:
 - `422` — umbral inactivo
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
-- `422` — solapamiento de niveles (FA-05)
+- `400` — solapamiento de niveles (FA-05)
+- `500` — el Nodo Edge no confirmó la re-propagación (`PENDIENTE`/`NO_CONF`), igual que en el Flujo A
+
+Igual que en el Flujo A, la edición también dispara un intento de re-propagación hacia
+el Nodo Edge (INC-M09-104-G29): el `200` solo llega si el Edge confirmó `APLICADA`.
 
 ---
 

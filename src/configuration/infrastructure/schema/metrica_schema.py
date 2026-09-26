@@ -15,6 +15,8 @@ class MetricaProduccionResponse(BaseModel):
     unidad_medida: str
     tipo_medicion: str
     aplica_a_tipo_activo: str
+    tipo_dato: str
+    es_obligatorio: bool
     id_especie: Optional[int]
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]
@@ -38,6 +40,13 @@ class MetricaProduccionResponse(BaseModel):
     @field_validator("aplica_a_tipo_activo", mode="before")
     @classmethod
     def extraer_aplica(cls, v: object) -> str:
+        if hasattr(v, "value"):
+            return v.value  # type: ignore[attr-defined]
+        return str(v)
+
+    @field_validator("tipo_dato", mode="before")
+    @classmethod
+    def extraer_tipo_dato(cls, v: object) -> str:
         if hasattr(v, "value"):
             return v.value  # type: ignore[attr-defined]
         return str(v)

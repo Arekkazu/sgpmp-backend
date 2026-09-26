@@ -68,6 +68,34 @@ class EventoRepoFake:
         self.eventos.append(evento)
 
 
+class CorreoRecuperacionFake:
+    def __init__(self) -> None:
+        self.recuperaciones = []
+        self.activaciones = []
+
+    def programar_recuperacion(self, **datos) -> None:
+        self.recuperaciones.append(datos)
+
+    def programar_activacion(self, **datos) -> None:
+        self.activaciones.append(datos)
+
+
+class IntentoAnonimoRepoFake:
+    """Nunca alcanza el límite: existe solo para satisfacer la firma."""
+
+    def __init__(self) -> None:
+        self.registros: list[str] = []
+
+    def registrar(self, tipo, ip) -> None:
+        self.registros.append(tipo)
+
+    def contar_por_ip(self, _tipo, _ip, _desde) -> int:
+        return 1
+
+    def obtener_fecha_mas_antigua_por_ip(self, _tipo, _ip, _desde):
+        return None
+
+
 class UsuarioRepoFake:
     def __init__(self, usuario) -> None:
         self.usuario = usuario
@@ -98,6 +126,7 @@ class UsuarioFake:
 
     def __init__(self) -> None:
         self.nueva_contrasena = None
+        self.contrasena = SimpleNamespace(verificar=lambda _texto: False)
 
     def cambiar_contrasena(self, contrasena) -> None:
         self.nueva_contrasena = contrasena
@@ -126,14 +155,15 @@ class UsuarioCrearRepoFake:
         return self.usuario
 
 
-class CorreoActivacionPortFake:
+class NotificacionServiceFake:
     def __init__(self, db: DbFake) -> None:
         self.db = db
         self.llamadas = []
 
-    def programar_envio(self, **datos) -> None:
+    def notificar(self, **datos):
         assert self.db.commits == 1
         self.llamadas.append(datos)
+        return True
 
 
 class CaptchaVerifierFake:
@@ -171,7 +201,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
 
     cuentas_repo = CuentaCrearRepoFake()
     db = DbFake()
-    correos = CorreoActivacionPortFake(db)
+    correos = NotificacionServiceFake(db)
     captcha = CaptchaVerifierFake()
 
     monkeypatch.setattr(
@@ -196,9 +226,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
         usuarios_repo=UsuarioCrearRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
-        correo_activacion_port=correos,
         captcha_verifier=captcha,
         db=db,
+        notificacion_service=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -222,8 +252,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     assert captcha.llamadas == [("captcha-valido", "127.0.0.1")]
 
     assert correos.llamadas
-    assert correos.llamadas[0]["token"] == TOKEN_CRUDO
-    assert correos.llamadas[0]["token"] != TOKEN_HASH
+    cuerpo_correo = correos.llamadas[0]["contenido_html_email"]
+    assert TOKEN_CRUDO in cuerpo_correo
+    assert TOKEN_HASH not in cuerpo_correo
 
 
 def test_activar_cuenta_consulta_por_hash_y_consume_el_token() -> None:
@@ -250,7 +281,7 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
     cuenta = nueva_cuenta(Cuenta.ESTADO_ACTIVO)
     cuentas_repo = CuentaRepoFake(cuenta)
     usuario = UsuarioFake()
-    correos = []
+    correos = CorreoRecuperacionFake()
 
     monkeypatch.setattr(
         recuperar_module.secrets,
@@ -258,17 +289,13 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
         lambda _bytes: TOKEN_CRUDO,
     )
 
-    monkeypatch.setattr(
-        recuperar_module,
-        "send_email",
-        lambda **correo: correos.append(correo),
-    )
-
     recuperar_module.SolicitarRecuperacionUseCase(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
+        correo_recuperacion_port=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -279,9 +306,9 @@ def test_recuperacion_guarda_hash_y_envia_solo_el_token_crudo(
     assert cuentas_repo.guardada is not None
     assert cuentas_repo.guardada.token_activacion_actual == TOKEN_HASH
 
-    assert correos
-    assert TOKEN_CRUDO in correos[0]["html_body"]
-    assert TOKEN_HASH not in correos[0]["html_body"]
+    assert correos.recuperaciones
+    assert correos.recuperaciones[0]["token"] == TOKEN_CRUDO
+    assert correos.recuperaciones[0]["token"] != TOKEN_HASH
 
 
 def test_recuperacion_de_cuenta_pendiente_rota_el_token(
@@ -290,7 +317,7 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
     cuenta = nueva_cuenta(Cuenta.ESTADO_PENDIENTE)
     cuentas_repo = CuentaRepoFake(cuenta)
     usuario = UsuarioFake()
-    correos = []
+    correos = CorreoRecuperacionFake()
 
     monkeypatch.setattr(
         recuperar_module.secrets,
@@ -298,17 +325,13 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
         lambda _bytes: TOKEN_CRUDO,
     )
 
-    monkeypatch.setattr(
-        recuperar_module,
-        "send_email",
-        lambda **correo: correos.append(correo),
-    )
-
     recuperar_module.SolicitarRecuperacionUseCase(
         usuarios_repo=UsuarioRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=IntentoAnonimoRepoFake(),
         db=DbFake(),
+        correo_recuperacion_port=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -319,12 +342,12 @@ def test_recuperacion_de_cuenta_pendiente_rota_el_token(
     assert cuentas_repo.guardada is not None
     assert cuentas_repo.guardada.token_activacion_actual == TOKEN_HASH
 
-    assert correos
-    assert TOKEN_CRUDO in correos[0]["html_body"]
-    assert TOKEN_HASH not in correos[0]["html_body"]
+    assert correos.activaciones
+    assert correos.activaciones[0]["token"] == TOKEN_CRUDO
+    assert correos.activaciones[0]["token"] != TOKEN_HASH
 
 
-def test_restablecimiento_consulta_hash_y_lo_invalida(
+def test_restablecimiento_consulta_hash_y_marca_token_usado(
     monkeypatch,
 ) -> None:
     cuenta = nueva_cuenta(Cuenta.ESTADO_ACTIVO)
@@ -344,6 +367,7 @@ def test_restablecimiento_consulta_hash_y_lo_invalida(
         cuentas_repo=cuentas_repo,
         sesiones_repo=sesiones_repo,
         eventos_repo=EventoRepoFake(),
+        intentos_anonimos_repo=SimpleNamespace(),
         db=DbFake(),
     ).execute(
         SimpleNamespace(
@@ -356,7 +380,10 @@ def test_restablecimiento_consulta_hash_y_lo_invalida(
     assert cuentas_repo.hash_consultado == TOKEN_HASH
 
     assert cuentas_repo.guardada is not None
-    assert cuentas_repo.guardada.token_activacion_actual is None
+    # El hash se conserva (no se limpia) tras un uso exitoso: permite distinguir
+    # "token ya utilizado" (409) de "token nunca existió" (401) en un reintento.
+    assert cuentas_repo.guardada.token_activacion_actual == "hash-anterior"
+    assert cuentas_repo.guardada.token_usado is True
 
     assert usuario.nueva_contrasena is nueva_contrasena
     assert sesiones_repo.cuenta_invalidada == cuenta.id_cuenta_usuario

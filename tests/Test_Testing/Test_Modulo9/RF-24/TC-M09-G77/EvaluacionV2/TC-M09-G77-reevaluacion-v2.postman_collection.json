@@ -1,0 +1,90 @@
+{
+  "info": {
+    "name": "TC-M09-G77 REEVALUACION V2 — TC-M09-148 RBAC calibracion (RF-24)",
+    "description": "Reevaluacion V2 de TC-M09-148: un Productor autenticado, con una calibracion funcionalmente valida en todo lo demas, debe recibir 403 por RBAC y no debe persistir ninguna calibracion. Un unico POST por ejecucion.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC-M09-148",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": { "mode": "raw", "raw": "{{payload}}", "options": { "raw": { "language": "json" } } },
+        "url": {
+          "raw": "{{base_url}}/configuracion/sensores/{{id_sensor}}/calibrar",
+          "host": ["{{base_url}}"],
+          "path": ["configuracion", "sensores", "{{id_sensor}}", "calibrar"]
+        },
+        "description": "POST negativo ejecutado con la sesion del Productor. La unica invalidez del escenario es el rol."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ctx = JSON.parse(pm.environment.get('contexto'));",
+              "const enviado = JSON.parse(pm.environment.get('payload'));",
+              "let body = null; try { body = pm.response.json(); } catch (e) { body = null; }",
+              "const texto = JSON.stringify(body || '').toLowerCase();",
+              "",
+              "// --- Precondiciones del escenario (evidencia de que solo el rol es invalido) ---",
+              "pm.test('Actor autenticado con rol Productor', function () {",
+              "  pm.expect(ctx.actor.autenticado).to.eql(true);",
+              "  pm.expect(ctx.actor.nombre_rol).to.eql('Productor');",
+              "  pm.expect(ctx.actor.estado_cuenta).to.eql('Activo');",
+              "});",
+              "pm.test('Productor no pertenece a los roles autorizados por RF-24', function () {",
+              "  pm.expect(ctx.rolesAutorizadosRF24).to.not.include(ctx.actor.nombre_rol);",
+              "  pm.expect(ctx.actor.permisosRecurso12).to.not.include(1);",
+              "});",
+              "pm.test('Dispositivo IoT existente y activo', function () {",
+              "  pm.expect(ctx.dispositivo.es_activo).to.eql(true);",
+              "  pm.expect(enviado.id_dispositivo_iot).to.eql(ctx.dispositivo.id_dispositivo_iot);",
+              "});",
+              "pm.test('Sensor existente, activo y perteneciente al dispositivo', function () {",
+              "  pm.expect(ctx.sensor.es_activo).to.eql(true);",
+              "  pm.expect(ctx.sensor.id_dispositivo_iot).to.eql(ctx.dispositivo.id_dispositivo_iot);",
+              "});",
+              "pm.test('Area enviada es la asociacion vigente del sensor', function () {",
+              "  pm.expect(ctx.areaCorrecta.vigente).to.eql(true);",
+              "  pm.expect(enviado.id_infraestructura).to.eql(ctx.areaCorrecta.id_infraestructura);",
+              "});",
+              "pm.test('valor_referencia numerico e interior al rango tecnico', function () {",
+              "  const v = Number(enviado.valor_referencia);",
+              "  pm.expect(Number.isNaN(v)).to.eql(false);",
+              "  pm.expect(v).to.be.above(Number(ctx.rangoTecnico.min));",
+              "  pm.expect(v).to.be.below(Number(ctx.rangoTecnico.max));",
+              "});",
+              "",
+              "// --- Oraculo RF-24 ---",
+              "pm.test('El POST alcanzo el endpoint de calibracion', function () {",
+              "  pm.expect(pm.request.url.getPath()).to.include('/calibrar');",
+              "  pm.expect(pm.response.code).to.be.a('number');",
+              "});",
+              "pm.test('HTTP 403 Forbidden', function () {",
+              "  pm.response.to.have.status(403);",
+              "});",
+              "pm.test('El 403 proviene del RBAC del endpoint, no de infraestructura', function () {",
+              "  pm.expect(body, 'respuesta JSON de la aplicacion').to.not.eql(null);",
+              "  pm.expect(body.error_code).to.eql('ACCESO_DENEGADO');",
+              "  pm.expect(texto).to.include('permiso');",
+              "});",
+              "pm.test('La denegacion es por rol, no por cuenta inactiva ni por autenticacion', function () {",
+              "  pm.expect(body && body.error_code).to.not.eql('CUENTA_NO_ACTIVA');",
+              "  pm.expect(pm.response.code).to.not.eql(401);",
+              "});",
+              "pm.test('La respuesta no entrega ningun identificador de calibracion', function () {",
+              "  pm.expect(body).to.not.have.property('id_calibracion');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,11 +1,12 @@
 """Router FastAPI para la gestión de fincas (`/configuracion/fincas`).
 
-RF-19 — CU04:
+RF-19 — CU04 y alcance de RF-25:
   A) POST  /configuracion/fincas          — Registrar (Admin)
-  B) GET   /configuracion/fincas          — Listar (Admin=todas, Prod=las suyas)
+  B) GET   /configuracion/fincas          — Listar según el contexto del usuario
   C) GET   /configuracion/fincas/{id}    — Detalle
   D) PATCH /configuracion/fincas/{id}    — Editar (Admin; 412 concurrencia)
   E) PATCH /configuracion/fincas/{id}/desactivar — Desactivar (Admin; FA-04)
+  F) PATCH /configuracion/fincas/{id}/reactivar  — Reactivar (Admin)
 
 RBAC: id_recurso=9 (fincas).
   Admin: C=1, R=2, U=3, D=4
@@ -21,6 +22,7 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.fincas.consultar_fincas_use_case import ConsultarFincasUseCase
 from src.configuration.application.use_cases.fincas.desactivar_finca_use_case import DesactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.editar_finca_use_case import EditarFincaUseCase
+from src.configuration.application.use_cases.fincas.reactivar_finca_use_case import ReactivarFincaUseCase
 from src.configuration.application.use_cases.fincas.registrar_finca_use_case import RegistrarFincaUseCase
 from src.configuration.infrastructure.adapters.finca_dependency_adapter import FincaDependencyAdapter
 from src.configuration.infrastructure.dto.editar_finca_dto import EditarFincaDTO
@@ -29,6 +31,7 @@ from src.configuration.infrastructure.repositories.auditoria_finca_repository im
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.schema.finca_schema import FincaResponse, ListaFincasResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -36,8 +39,21 @@ from src.shared.schemas import ErrorResponse
 router = APIRouter(prefix="/configuracion/fincas", tags=["Configuración - Fincas"])
 
 _RECURSO = 9   # modulo1.recursos: 'fincas'
-_ROL_ADMIN = 1
-_ROL_PROD = 2
+
+
+def _ids_fincas_alcance_lectura(
+    db: Session,
+    usuario_actual: UsuarioActual,
+) -> Optional[list[int]]:
+    """Resuelve el alcance de datos sin depender de IDs fijos de roles.
+
+    Quien administra fincas (permiso de gestión sobre el recurso) conserva la
+    vista global (``None``). Un rol de solo lectura mantiene su permiso R, pero
+    queda limitado a las fincas a las que tiene acceso en ``modulo9.usuarios_fincas``.
+    """
+    return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario, usuario_actual.id_rol
+    )
 
 
 @router.post(
@@ -81,11 +97,9 @@ def listar_fincas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaFincasResponse:
-    id_filtro: Optional[int] = (
-        usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
-    )
+    ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
-    fincas = use_case.listar(id_usuario_filtro=id_filtro, solo_activas=solo_activas)
+    fincas = use_case.listar(ids_fincas_permitidas=ids_permitidas, solo_activas=solo_activas)
     items = [FincaResponse.from_entity(f) for f in fincas]
     return ListaFincasResponse(total=len(items), items=items)
 
@@ -106,11 +120,9 @@ def obtener_finca(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> FincaResponse:
-    id_filtro: Optional[int] = (
-        usuario_actual.id_usuario if usuario_actual.id_rol == _ROL_PROD else None
-    )
+    ids_permitidas = _ids_fincas_alcance_lectura(db, usuario_actual)
     use_case = ConsultarFincasUseCase(finca_repo=SqlAlchemyFincaRepository(db))
-    finca = use_case.obtener(id_finca, id_usuario_filtro=id_filtro)
+    finca = use_case.obtener(id_finca, ids_fincas_permitidas=ids_permitidas)
     return FincaResponse.from_entity(finca)
 
 
@@ -164,6 +176,32 @@ def desactivar_finca(
         finca_repo=SqlAlchemyFincaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
         dependency_port=FincaDependencyAdapter(db),
+    )
+    finca = use_case.execute(id_finca, usuario_actual)
+    return FincaResponse.from_entity(finca)
+
+
+@router.patch(
+    "/{id_finca}/reactivar",
+    response_model=FincaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Reactivar finca (Flujo F)",
+)
+def reactivar_finca(
+    id_finca: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> FincaResponse:
+    use_case = ReactivarFincaUseCase(
+        db=db,
+        finca_repo=SqlAlchemyFincaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaFincaRepository(db),
     )
     finca = use_case.execute(id_finca, usuario_actual)
     return FincaResponse.from_entity(finca)

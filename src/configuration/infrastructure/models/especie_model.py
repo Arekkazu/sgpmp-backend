@@ -6,9 +6,10 @@ Es la entidad de mayor centralidad del sistema (19 dependencias salientes, RF-15
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, Identity, Integer, PrimaryKeyConstraint, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Identity, Integer, Numeric, PrimaryKeyConstraint, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -51,4 +52,11 @@ class EspecieModel(Base):
         Boolean,
         nullable=False,
         comment='Indica si la especie está activa y disponible para su uso en otros módulos.',
+    )
+    densidad_maxima_por_especie: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(10, 4),
+        comment=(
+            'Densidad máxima permitida para lotes de la especie, expresada '
+            'en individuos por unidad de superficie (RF-36).'
+        ),
     )

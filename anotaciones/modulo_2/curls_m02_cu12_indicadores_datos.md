@@ -92,10 +92,15 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/indicadores" \
     "DATOS_INSUFICIENTES: no hay eventos productivos en el período solicitado.",
     "NO_APLICA_INDIVIDUAL: tasa_morbilidad solo aplica a activos POBLACIONALES.",
     "NO_APLICA_INDIVIDUAL: tasa_mortalidad solo aplica a activos POBLACIONALES.",
-    "REQUIERE_M05: El indicador conversion_alimenticia requiere datos de consumo de alimento del módulo M05, que aún no está implementado."
+    "DATOS_INSUFICIENTES: no hay consumo de alimento (kg) validado en el modulo M05 para el periodo solicitado."
   ]
 }
 ```
+
+> Nota (INC-M02-98-G96): `conversion_alimenticia` ahora se calcula con datos reales de
+> `modulo5.registros_consumo_alimentos` (kg de alimento validado / kg de ganancia neta
+> en el período) en vez de devolver siempre `REQUIERE_M05`. Solo se consideran registros
+> con `estado_registro='VALIDADO'` y `tipo_unidad` en kg.
 
 ---
 
@@ -178,6 +183,115 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/indicadores?tipo_indicad
 #### E-04 — Sin permisos (FA-05)
 **HTTP 403:** Lanzado automáticamente por `require_permission(29, 2)` si el rol no tiene permiso.
 
+#### E-05 — Rango fuera del ciclo de vida del activo (INC-M02-99-G97)
+
+`fecha_inicio` anterior al nacimiento o al inicio de ciclo del activo:
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2025-12-01&fecha_fin=2026-09-10" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "RANGO_FUERA_DE_CICLO_VIDA",
+  "message": "La fecha de inicio (2025-12-01) es anterior a la fecha de nacimiento del activo (2026-01-15).",
+  "field": "fecha_inicio"
+}
+```
+
+`fecha_fin` posterior a la baja (o cierre) del activo:
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/286/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-09-05" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "RANGO_FUERA_DE_CICLO_VIDA",
+  "message": "La fecha de fin (2026-09-05) es posterior a la fecha de baja del activo (2026-08-31).",
+  "field": "fecha_fin"
+}
+```
+
+#### E-06 — Outlier crítico en ganancia_peso (INC-M02-98-G96)
+
+Un `gpd` calculado que excede el umbral de plausibilidad biológica (>10 kg/día) no se
+publica como válido: se marca `disponible: false` y se agrega la advertencia
+`OUTLIER_CRITICO` en vez de exponer el valor atípico.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/280/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-08-01&fecha_fin=2026-08-02" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 200** (indicador rechazado, no expuesto como válido):
+```json
+{
+  "id_activo_biologico": 280,
+  "tipo_activo": "INDIVIDUAL",
+  "indicadores": [
+    {
+      "tipo": "ganancia_peso",
+      "valor": null,
+      "unidad": "kg/dia",
+      "variables_usadas": {
+        "peso_inicial_kg": 10.0,
+        "peso_final_kg": 510.0,
+        "dias": 1,
+        "total_mediciones": 2,
+        "valor_calculado_kg_dia": 500.0
+      },
+      "fecha_calculo": "2026-09-12T00:00:00Z",
+      "disponible": false
+    }
+  ],
+  "advertencias": [
+    "OUTLIER_CRITICO: el valor calculado (500.0000 kg/dia) excede el umbral de plausibilidad biologica y no se publica como valido. Requiere revision manual de las mediciones de peso registradas."
+  ]
+}
+```
+
+Como este endpoint se llamó con un `tipo_indicador` específico (no `TODOS`) y el único
+indicador resultante quedó `disponible: false`, la respuesta real es **422** (ver E-08),
+no 200 — el ejemplo de arriba muestra el indicador tal como queda armado internamente.
+
+#### E-07 — Indicador no aplicable por sexo (INC-M02-98-G96)
+
+`PRODUCCION` no aplica a un activo INDIVIDUAL de sexo Macho (no existe salida productiva
+tipo lactancia/postura que aplique). Se rechaza antes de calcular, sin depender de si hay
+o no eventos registrados:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/299/indicadores?tipo_indicador=PRODUCCION" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "INDICADOR_NO_APLICABLE_SEXO",
+  "message": "El indicador 'PRODUCCION' no aplica biológicamente a un activo de sexo Macho.",
+  "field": "tipo_indicador"
+}
+```
+
+#### E-08 — Indicador específico sin datos suficientes (INC-M02-98-G96)
+
+Cuando se pide un `tipo_indicador` específico (no `TODOS`) y ese indicador no puede
+calcularse con los datos disponibles, se rechaza con 422 en vez de 200 con
+`disponible: false` (ese formato de respuesta se conserva solo para `tipo_indicador=TODOS`,
+donde puede convivir con otros indicadores que sí tengan datos):
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/285/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-01&fecha_fin=2026-07-31" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 422:**
+```json
+{
+  "error_code": "INDICADOR_NO_DISPONIBLE",
+  "message": "DATOS_INSUFICIENTES: ganancia_peso requiere al menos 2 mediciones de peso."
+}
+```
+
 ---
 
 ## GET /activos-biologicos/{id_activo}/datos-consolidados
@@ -189,6 +303,19 @@ Query params opcionales:
 - `tipo_dato`: `eventos` | `fases` | `estado` | `metricas` | `todos` (default)
 - `fecha_inicio` / `fecha_fin`: filtro temporal sobre eventos (solo aplica a `tipo_dato=eventos` o `todos`)
 - `pagina` / `page_size`: paginación (default: 1 / 20, máximo page_size: 100)
+
+**Autorización (INC-M02-92-G93 / RF-50 FA-04):** además del permiso general
+sobre recurso 29/R (`require_permission_m02`), el rol autenticado necesita un
+scope activo por `tipo_dato` solicitado: recursos 59 (`datos_analiticos_eventos`),
+60 (`datos_analiticos_fases`), 61 (`datos_analiticos_estado`) y 62
+(`datos_analiticos_metricas`), todos acción R. `tipo_dato=todos` exige los 4
+scopes (rechazo estricto, ver E-07 abajo). Sembrado por la migración
+`d944f4d8c215` — ver `anotaciones/modulo_2/inc_m02_92_g93_scope_tipo_dato_datos_consolidados.md`.
+
+**Validación adicional para M06 (INC-M02-93-G93 / RF-50 FA-03):** cuando el
+consumidor es la identidad `'Integración M06'` y `tipo_dato` incluye
+métricas, se exige además al menos una medición de peso dentro del rango
+solicitado — ver E-08 abajo.
 
 ---
 
@@ -266,6 +393,27 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_
 Mismo formato pero `historial_eventos`, `historial_fases` y `historico_estados` vacíos.
 `metricas_actuales` contiene peso actual, cantidad actual e indicadores históricos almacenados.
 
+**Advertencia de rango (INC-M02-94-G93):** `metricas_actuales.peso_actual`/`.fecha_ultimo_peso`
+son deliberadamente el estado **más reciente** del activo, no filtrado por
+`fecha_inicio`/`fecha_fin` (ver `?tipo_dato=metricas&fecha_inicio=...&fecha_fin=...`
+abajo). Cuando se pide un rango y ese peso más reciente cae fuera de él,
+`metricas_actuales` incluye una clave adicional:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-08-31" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+```json
+{
+  "metricas_actuales": {
+    "peso_actual": 250.0,
+    "unidad_peso": "kg",
+    "fecha_ultimo_peso": "2026-09-10",
+    "advertencia_peso_fuera_de_rango": "El peso más reciente registrado (2026-09-10) está fuera del rango solicitado (2026-06-01 a 2026-08-31)."
+  }
+}
+```
+
 ---
 
 ### Flujo C — Filtrar solo eventos en un período
@@ -322,10 +470,132 @@ curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?fecha
 **HTTP 400:**
 ```json
 {
-  "code": "PARAMETROS_INVALIDOS",
-  "message": "Parámetro inválido: Invalid isoformat string: '2024-13-01'"
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "Formato de fecha inválido. Use el formato YYYY-MM-DD.",
+  "fields": []
 }
 ```
 
 #### E-04 — Sin permisos (FA-05)
 **HTTP 403:** Lanzado automáticamente por `require_permission(29, 2)` si el rol no tiene permiso.
+
+#### E-05 — Inconsistencia jerárquica del activo (INC-M02-97-G95)
+
+El activo mantiene una asociación vigente (`fecha_fin IS NULL` en
+`historial_infraestructura_activo`) hacia una infraestructura con `es_activo = false`.
+Se rechaza antes de construir el dataset — no expone ningún dato analítico del activo
+mientras la inconsistencia se mantenga:
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/289/datos-consolidados?tipo_dato=todos" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 409:**
+```json
+{
+  "error_code": "INCONSISTENCIA_JERARQUICA",
+  "message": "El activo mantiene una asociación vigente con la infraestructura \"Corral 49\", la cual está inactiva. Regulariza la jerarquía del activo antes de consultar datos consolidados."
+}
+```
+
+#### E-06 — Rango de fechas futuro (INC-M02-91-G93 / TC-M02-156-B)
+
+`fecha_inicio` posterior a la fecha actual: los datos consolidados son sobre eventos
+ya ocurridos, no tiene sentido un rango que empiece en el futuro.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-09-11&fecha_fin=2026-09-12" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+**HTTP 400:**
+```json
+{
+  "error_code": "PARAMETROS_INVALIDOS",
+  "message": "La fecha de inicio (2026-09-11) no puede ser una fecha futura: los datos consolidados son sobre eventos ya ocurridos.",
+  "fields": []
+}
+```
+
+Los errores de validación exponen únicamente el mensaje funcional. No incluyen el
+nombre interno del DTO, el input recibido, tipos de error ni enlaces de Pydantic
+(INC-M02-95-G93 / TC-M02-156-A).
+
+#### E-06 — Límite de tasa excedido (INC-M02-96-G94)
+
+RF-50 exige 100 solicitudes/minuto por consumidor. El límite es por usuario autenticado
+(ventana deslizante de 60s); el aislamiento por-módulo declarado en el RF queda pendiente
+de INC-M02-90-G92 (no existe todavía una identidad de módulo autenticable, ver ese issue).
+
+```bash
+for i in $(seq 1 101); do
+  curl -s -o /dev/null -w "%{http_code}\n" -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados" \
+    -H "Authorization: Bearer <TOKEN>"
+done
+```
+**HTTP 429** en la solicitud 101:
+```json
+{
+  "error_code": "LIMITE_TASA_EXCEDIDO",
+  "message": "Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos momentos."
+}
+```
+
+#### E-07 — Scope de tipo_dato no autorizado (INC-M02-92-G93 / TC-M02-155)
+
+El rol autenticado tiene el permiso general del endpoint (recurso 29/R) pero
+no el scope del `tipo_dato` solicitado. Ejemplo con la identidad técnica
+`Integración M04` (tiene scope en `eventos`/`fases`/`estado`, no en `metricas`
+— ver la migración `d944f4d8c215`):
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/1/datos-consolidados?tipo_dato=metricas" \
+  -H "Authorization: Bearer <TOKEN_M04>"
+```
+**HTTP 403:**
+```json
+{
+  "code": "SCOPE_TIPO_DATO_NO_AUTORIZADO",
+  "message": "Acceso denegado: El módulo solicitante no tiene autorización para consumir datos de tipo metricas."
+}
+```
+
+`tipo_dato=todos` exige los 4 scopes (rechazo estricto ante completitud
+mínima, RF-50): con la misma identidad M04, `?tipo_dato=todos` también
+devuelve 403 con `"...tipo metricas."` (primer scope faltante en el orden
+`eventos, fases, estado, metricas`).
+
+#### E-08 — Métricas de peso insuficientes para valoración NIC-41 (INC-M02-93-G93 / TC-M02-157)
+
+RF-50 FA-03: cuando el consumidor es M06 (`modulo_consumidor` resuelto desde
+el rol `'Integración M06'`) y el rango solicitado no tiene ninguna medición
+`tipo_medicion='peso'` en `modulo2.eventos_crecimeinto`, se rechaza antes de
+construir la respuesta. Solo aplica cuando `tipo_dato` incluye la sección de
+métricas (`metricas` o `todos`); para cualquier otro consumidor (Admin,
+Productor, Veterinario, Ingeniero de Campo, M04) el comportamiento no cambia
+— siguen recibiendo `200` con `metricas_actuales` en `null` cuando no hay
+peso, tal como hoy.
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/279/datos-consolidados?tipo_dato=metricas&fecha_inicio=2026-06-01&fecha_fin=2026-08-31" \
+  -H "Authorization: Bearer <TOKEN_M06>"
+```
+**HTTP 422:**
+```json
+{
+  "code": "METRICAS_PESO_INSUFICIENTES",
+  "message": "Información incompleta: El activo 279 no registra métricas de peso necesarias para el cálculo de transformación biológica en el rango de fechas solicitado."
+}
+```
+
+**Autorización de M06 (INC-M02-93-G93):** scope de valoración/NIC-41 — recurso
+62 (`datos_analiticos_metricas`), acción R. Sembrado por la migración
+`2b747aaae732` (depende de `d944f4d8c215`) — ver
+`anotaciones/modulo_2/inc_m02_93_g93_identidad_m06_metricas_peso.md`.
+
+---
+
+### Nota — ruta contractual (INC-M02-97-G95)
+
+La ruta oficial y desplegada de RF-50 es `/activos-biologicos/{id_activo}/datos-consolidados`
+(ver arriba). `/datos-analiticos`, referenciada en la matriz de pruebas de QA, no existe en
+este backend — es una discrepancia de la matriz, no del contrato OpenAPI vivo.

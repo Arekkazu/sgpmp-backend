@@ -6,7 +6,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -17,18 +17,17 @@ from src.identity_access.application.use_cases.registro.activar_cuenta_use_case 
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
 from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
     CaptchaVerifierPort,
-)
-from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
-    CorreoActivacionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
     GoogleRecaptchaAdapter,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
+from src.identity_access.infrastructure.dto.asignar_fincas_dto import AsignarFincasDTO
 from src.shared.rbac import require_permission
 from src.identity_access.infrastructure.dto.perfil_dto import (EditarPerfilAdminDTO, EditarPerfilDTO)
 from src.identity_access.infrastructure.dto.usuario_dto import ReenviarTokenDTO, UsuarioCreateDTO
@@ -146,6 +145,7 @@ def listar_usuarios_admin(
     )
     items = [
         UsuarioListadoResponse(
+            id_usuario=u.id_usuario,
             nombre_usuario=f"{u.nombre} {u.apellidos}",
             correo_electronico=u.correo_electronico,
             nombre_rol=u.nombre_rol,
@@ -178,7 +178,6 @@ def listar_usuarios_admin(
 def crear_usuario(
     dto: UsuarioCreateDTO,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     captcha_verifier: CaptchaVerifierPort = Depends(get_captcha_verifier),
 ):
@@ -188,9 +187,12 @@ def crear_usuario(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
-        correo_activacion_port=CorreoActivacionBackgroundAdapter(background_tasks),
         captcha_verifier=captcha_verifier,
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(dto, ip, user_agent)
@@ -224,7 +226,6 @@ def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depend
     responses={
         400: {"model": ErrorResponse},
         410: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
     },
 )
 
@@ -297,6 +298,7 @@ def consultar_perfil(
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
@@ -326,6 +328,7 @@ def editar_perfil_propio(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
@@ -378,7 +381,7 @@ def detalle_usuario(
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
     },
 )
 def gestionar_cuenta(
@@ -401,3 +404,27 @@ def gestionar_cuenta(
 )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}
+
+
+@router.put(
+    "/{id_usuario}/fincas",
+    response_model=MessageResponse,
+    dependencies=[Depends(require_permission(1, 3))],
+    responses={
+        400: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+    },
+    summary="Asignar o desasignar fincas a un usuario (RF-25)",
+)
+def asignar_fincas(
+    id_usuario: int,
+    dto: AsignarFincasDTO,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+):
+    use_case = AsignarFincasUsuarioUseCase(db=db)
+    resultado = use_case.execute(id_usuario, dto, usuario_actual)
+    return {
+        "message": f"Fincas asignadas al usuario {id_usuario}: {resultado['ids_fincas']}."
+    }

@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Cookie, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from src.identity_access.application.use_cases.sesiones.login_use_case import LoginUseCase
@@ -14,11 +14,13 @@ from src.identity_access.application.use_cases.sesiones.logout_use_case import L
 from src.identity_access.application.use_cases.sesiones.refresh_token_use_case import RefreshTokenUseCase
 from src.identity_access.application.use_cases.sesiones.sso_login_use_case import SsoLoginUseCase
 from src.identity_access.infrastructure.adapters.agrofusion_sso_adapter import AgroFusionSsoAdapter
+from src.identity_access.infrastructure.adapters.notificacion_sesion_background_adapter import (
+    NotificacionSesionBackgroundAdapter,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO, SsoLoginDTO
 from src.identity_access.infrastructure.repositories.cuenta_repository import SqlAlchemyCuentaRepository
 from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
-from src.identity_access.infrastructure.repositories.notificacion_repository import SqlAlchemyNotificacionRepository
 from src.identity_access.infrastructure.repositories.permiso_repository import SqlAlchemyPermisoRepository
 from src.identity_access.infrastructure.repositories.sesion_repository import SqlAlchemySesionRepository
 from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
@@ -26,12 +28,35 @@ from src.identity_access.infrastructure.schema.permisos_schema import PermisoRes
 from src.identity_access.infrastructure.schema.user_schema import LoginResponse
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError, ServiceUnavailableError
-from src.shared.notificacion_service import NotificacionService
 from src.shared.schemas import ErrorResponse, MessageResponse
 
 router = APIRouter(prefix="/sesiones", tags=["Sesiones"])
 
 NOMBRE_COOKIE_REFRESH = "refresh_token"
+
+
+def _leer_politica_cookie() -> tuple[bool, str]:
+    """Flags de la cookie refresh, controlados por variables explícitas.
+
+    ``COOKIE_SECURE`` / ``COOKIE_SAMESITE`` reemplazan al gate por
+    ``ENV == "production"`` (patrón poco confiable en el deploy actual: si
+    ``ENV`` no vale literalmente "production", la cookie sale ``Strict`` sin
+    ``Secure`` y, con front y backend en sitios distintos, el navegador nunca
+    la envía — el refresh falla y la sesión muere al navegar). Sin variables
+    explícitas se conserva el comportamiento previo para no romper
+    despliegues existentes.
+    """
+    valor_secure = os.getenv("COOKIE_SECURE")
+    if valor_secure is None:
+        es_produccion = os.getenv("ENV") == "production"
+    else:
+        es_produccion = valor_secure.strip().lower() in {"1", "true", "yes", "si", "sí"}
+    samesite = (os.getenv("COOKIE_SAMESITE") or ("none" if es_produccion else "strict")).strip().lower()
+    if samesite == "none" and not es_produccion:
+        # Los navegadores descartan SameSite=None sin Secure (salvo localhost):
+        # una combinación mal configurada equivaldría a no emitir la cookie.
+        es_produccion = True
+    return es_produccion, samesite
 
 
 def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datetime) -> None:
@@ -42,9 +67,11 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
 
     ``samesite``: en producción front y backend viven en dominios distintos
     (deploy actual), así que la cookie debe viajar cross-site — requiere
-    ``SameSite=None``, que a su vez exige ``Secure`` (ya activo en prod). Fuera
-    de producción se mantiene ``Strict`` (front y backend comparten site en local)."""
-    es_produccion = os.getenv("ENV") == "production"
+    ``SameSite=None``, que a su vez exige ``Secure``. Fuera de producción se
+    mantiene ``Strict`` (front y backend comparten site en local). Los flags
+    se controlan con ``COOKIE_SECURE``/``COOKIE_SAMESITE`` (ver
+    ``_leer_politica_cookie``)."""
+    es_produccion, samesite = _leer_politica_cookie()
     max_age = int((fecha_expiracion - datetime.now(timezone.utc)).total_seconds())
     response.set_cookie(
         key=NOMBRE_COOKIE_REFRESH,
@@ -52,7 +79,7 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
         max_age=max_age,
         httponly=True,
         secure=es_produccion,
-        samesite="none" if es_produccion else "strict",
+        samesite=samesite,
         path="/",
     )
 
@@ -68,7 +95,13 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+def iniciar_sesion(
+    dto: LoginDTO,
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
 
@@ -78,7 +111,7 @@ def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Sess
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
     jwt_str, fecha_expiracion, sesion_previa_cerrada, _, refresh_raw, fecha_expiracion_refresco = use_case.execute(
         dto, ip, user_agent
@@ -106,7 +139,13 @@ def iniciar_sesion(dto: LoginDTO, request: Request, response: Response, db: Sess
         503: {"model": ErrorResponse},
     },
 )
-def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, db: Session = Depends(get_db)):
+def iniciar_sesion_sso(
+    dto: SsoLoginDTO,
+    request: Request,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     """Login SSO vía handoff RS256 de AgroFusion (Mecanismo A).
 
     Sin `require_permission`: la confianza la da la firma RS256 verificada
@@ -129,7 +168,7 @@ def iniciar_sesion_sso(dto: SsoLoginDTO, request: Request, response: Response, d
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
         db=db,
-        notificacion_service=NotificacionService(port=SqlAlchemyNotificacionRepository(db), db=db),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
     (
         jwt_str,

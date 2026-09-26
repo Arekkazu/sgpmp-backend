@@ -78,11 +78,17 @@ quedaba sin cubrir en este módulo.
 
 ## Fuera de alcance
 
-No se tocó el flag `secure`/`samesite` de la cookie de refresco
+~~No se tocó el flag `secure`/`samesite` de la cookie de refresco
 (`os.getenv("ENV") == "production"` en `sesiones_routers.py`), que ya se
 identificó en su momento como un patrón poco confiable en Dokploy y se
 corrigió para CORS (`ALLOWED_ORIGINS`, PR #30) pero no para esta cookie. No
 hay evidencia de que sea la causa de este bug (el patrón de fallos —
 intermitente, justo tras login— no encaja con un `Secure`/`SameSite`
 mal seteado, que fallaría el 100% de las veces), pero conviene revisarlo por
-separado.
+separado.~~
+
+Cerrado con el fix de QA V2 M01 (TC-DIS-22/24/27): la cookie ahora respeta
+`COOKIE_SECURE` / `COOKIE_SAMESITE` explícitas (ver `_leer_politica_cookie`
+en `sesiones_routers.py`), manteniendo el fallback a `ENV` cuando las
+variables no están definidas para no romper despliegues existentes. Ver
+`tests/identity_access/test_cookie_refresh_politica.py`.

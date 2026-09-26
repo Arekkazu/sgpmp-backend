@@ -80,9 +80,8 @@ class UsuarioRepository(ABC):
         Args:
             usuario: Entidad cuya contraseña ya fue reemplazada por la nueva.
 
-        Raises:
-            ConflictError: Si la nueva contraseña fue usada recientemente (un
-                trigger de base de datos rechaza la reutilización). HTTP 409.
+        La validación de reutilización ocurre en el caso de uso, donde todavía
+        está disponible el texto transitorio para compararlo con el hash actual.
         """
         raise NotImplementedError
 

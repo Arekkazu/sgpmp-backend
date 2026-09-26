@@ -48,6 +48,7 @@ class IngerirTelemetriaUseCase:
         calibracion_port: CalibracionPort,
         vincular_use_case: Optional[Any] = None,
         evaluar_calidad_use_case: Optional[Any] = None,
+        reclasificar_semaforo_use_case: Optional[Any] = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -57,6 +58,7 @@ class IngerirTelemetriaUseCase:
         self.calibracion_port = calibracion_port
         self.vincular_use_case = vincular_use_case
         self.evaluar_calidad_use_case = evaluar_calidad_use_case
+        self.reclasificar_semaforo_use_case = reclasificar_semaforo_use_case
 
     def execute(
         self,
@@ -234,11 +236,24 @@ class IngerirTelemetriaUseCase:
             # --- RF-61-A: Vinculación automática (transacción independiente) ---
             if self.vincular_use_case is not None:
                 try:
-                    self.vincular_use_case.execute(
+                    vinculacion = self.vincular_use_case.execute(
                         id_telemetria=entidad.id_telemetria,
                         id_infraestructura=dispositivo.id_infraestructura,
                         timestamp_captura=dto.timestamp_captura,
                     )
+                    # INC-M09-106-G31: si quedó VINCULADA, reclasificar contra RF-17
+                    if self.reclasificar_semaforo_use_case is not None and vinculacion.id_activo_biologico:
+                        try:
+                            self.reclasificar_semaforo_use_case.execute(
+                                id_telemetria=entidad.id_telemetria,
+                                id_activo_biologico=vinculacion.id_activo_biologico,
+                            )
+                        except Exception:
+                            logger.warning(
+                                'INC-M09-106-G31: fallo al reclasificar semáforo para telemetría %s.',
+                                entidad.id_telemetria,
+                                exc_info=True,
+                            )
                 except Exception:
                     logger.warning(
                         'RF-61: fallo en vinculación automática para telemetría %s.',

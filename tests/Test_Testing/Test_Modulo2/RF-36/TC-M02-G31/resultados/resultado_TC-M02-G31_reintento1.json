@@ -1,0 +1,25 @@
+{
+  "tc": "TC-M02-G31",
+  "ronda": "V2",
+  "reintento": 1,
+  "fecha": "2026-09-15",
+  "run_id": "G31-REEVAL-V2-20260915-012500",
+  "veredicto": "Rechazado",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-196: Densidad en evento de crecimiento sobre lote 296",
+      "esperado": "HTTP 201 Created con actualización de densidad zootécnica",
+      "obtenido": "HTTP 500 ERROR_INTERNO por columna faltante metricas_produccion.tipo_dato (migración M09 pendiente)",
+      "estado": "FALLA",
+      "nota_qa": "Newman registró 0 fallos por aserción laxa (oneOf incluye 500). QA reclasifica a FALLA porque HTTP 500 incumple el criterio de aceptación. Fuente original: EvaluacionV2/RESULTADOS/G31-REEVAL-V2-20260915-012500/EvidenciasPorSubcaso/TC-M02-196_run.json + TC-M02-G31_reevaluacion_V2.md"
+    },
+    {
+      "paso": "TC-M02-197: Baja total sobre lote 344",
+      "esperado": "HTTP 201 Created con cantidad_actual=0 y transición a estado terminal BAJA",
+      "obtenido": "HTTP 201 Created, cantidad_actual=0, id_estado=6 (BAJA) verificado con éxito",
+      "estado": "OK",
+      "fuente": "EvaluacionV2/RESULTADOS/G31-REEVAL-V2-20260915-012500/EvidenciasPorSubcaso/TC-M02-197_run.json",
+      "nota_qa": "Ejecución exitosa documentada en EvaluacionV2/RESULTADOS/G31-REEVAL-V2-20260915-012500/EvidenciasPorSubcaso/TC-M02-197_run.json"
+    }
+  ]
+}

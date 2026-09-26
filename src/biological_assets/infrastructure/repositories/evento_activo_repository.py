@@ -14,6 +14,7 @@ from src.biological_assets.domain.entities.activo_biologico import (
     EventoActivo,
     EventoBaja,
     EventoCrecimiento,
+    EventoIngreso,
     EventoProductivo,
     EventoReproductivo,
     EventoSanitario,
@@ -22,6 +23,7 @@ from src.biological_assets.domain.repositories.evento_activo_repository import E
 from src.biological_assets.infrastructure.models.evento_activo_model import EventoActivoModel
 from src.biological_assets.infrastructure.models.evento_baja_model import EventoBajaModel
 from src.biological_assets.infrastructure.models.evento_crecimiento_model import EventoCrecimientoModel
+from src.biological_assets.infrastructure.models.evento_ingreso_model import EventoIngresoModel
 from src.biological_assets.infrastructure.models.evento_productivo_model import EventoProductivoModel
 from src.biological_assets.infrastructure.models.evento_reproductivo_model import EventoReproductivoModel
 from src.biological_assets.infrastructure.models.evento_sanitario_model import EventoSanitarioModel
@@ -60,6 +62,15 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                 cantidad_afectada=b.cantidad_afectada,
                 tipo=b.tipo,
                 detalles=b.detalles,
+            )
+
+        ingreso: Optional[EventoIngreso] = None
+        if orm.evento_ingreso:
+            i = orm.evento_ingreso
+            ingreso = EventoIngreso(
+                cantidad_ingresada=i.cantidad_ingresada,
+                tipo=i.tipo,
+                detalles=i.detalles,
             )
 
         if orm.evento_sanitario:
@@ -106,6 +117,7 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
             sanitario=sanitario,
             productivo=productivo,
             reproductivo=reproductivo,
+            ingreso=ingreso,
         )
 
     # ── Operaciones del puerto ───────────────────────────────────────────────
@@ -142,6 +154,14 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
                     cantidad_afectada=b.cantidad_afectada,
                     tipo=b.tipo,
                     detalles=b.detalles,
+                ))
+            elif evento.ingreso:
+                i = evento.ingreso
+                self.db.add(EventoIngresoModel(
+                    id_evento=orm.id_eventos,
+                    cantidad_ingresada=i.cantidad_ingresada,
+                    tipo=i.tipo,
+                    detalles=i.detalles,
                 ))
             elif evento.sanitario:
                 s = evento.sanitario

@@ -1,0 +1,60 @@
+{
+  "grupo": "TC-M09-G79",
+  "caso": "TC-M09-150",
+  "rf": "RF-24",
+  "cu": "CU-05",
+  "rol": "Ingeniero de campo",
+  "rama": "qa/juan-esteban-m09",
+  "frontendSHA": "966621df4e2c6a1f2c9233ea5ebefbb9e3bc2f56",
+  "backendSHA": "adc3932b9f0293a76ebec7e89ed877274791b6a1",
+  "base": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha": "2026-09-06T05:50:47.237648+00:00",
+  "plan": {
+    "permisosRecurso12": [
+      1,
+      2,
+      3
+    ],
+    "dispositivo": {
+      "id": 3,
+      "serial": "IOT-ALE01-HLA-003",
+      "es_activo": true
+    },
+    "sensor": {
+      "id": 6,
+      "nombre": "Sensor temperatura alevinera-01",
+      "categoria": "TEMPERATURA",
+      "es_activo": true,
+      "id_dispositivo_iot": 3
+    },
+    "area": {
+      "id_infraestructura": 3,
+      "punto_instalacion": "Zona de incubación, profundidad 15 cm",
+      "fecha_finalizacion": null
+    },
+    "rangoTecnico": {
+      "categoria": "TEMPERATURA",
+      "min": "0.0000",
+      "max": "45.0000",
+      "fuente": "GET /configuracion/sensores/rangos-calibracion"
+    },
+    "valor": "22.5000",
+    "historialTest": {
+      "total": 2,
+      "items": [
+        {
+          "id_calibracion": 11,
+          "valor_referencia": "45.0000",
+          "fecha_calibracion": "2026-09-06T04:23:01.536000Z",
+          "id_usuario": 4
+        },
+        {
+          "id_calibracion": 10,
+          "valor_referencia": "0.0000",
+          "fecha_calibracion": "2026-09-06T04:22:49.008000Z",
+          "id_usuario": 4
+        }
+      ]
+    }
+  }
+}

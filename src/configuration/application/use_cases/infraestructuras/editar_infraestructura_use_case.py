@@ -14,7 +14,7 @@ from src.configuration.domain.value_objects.nombre_infraestructura import Nombre
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError, ValidationError
 
 
 class EditarInfraestructuraUseCase:
@@ -72,7 +72,11 @@ class EditarInfraestructuraUseCase:
 
         tipo_area = self.tipo_area_repo.obtener_por_nombre(dto.tipo_area)
         if tipo_area is None or not tipo_area.es_activo:
-            raise BusinessRuleError(
+            # RF-20, flujo alterno "Tipo de area no reconocido": el RF lo
+            # clasifica como "Dato invalido ... HTTP 400: Bad Request", no como
+            # violacion de regla de negocio (422). Vive en el use case y no en el
+            # DTO porque el catalogo de tipos es dinamico (tabla, no enum).
+            raise ValidationError(
                 code="TIPO_AREA_NO_RECONOCIDO",
                 message=(
                     f"El tipo de área '{dto.tipo_area}' no corresponde a ningún tipo activo "

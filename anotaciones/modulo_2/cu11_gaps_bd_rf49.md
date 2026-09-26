@@ -73,12 +73,18 @@ INSERT INTO modulo1.permisos (id_rol, id_recurso, id_accion, nombre, es_activo) 
   (1, 30, 2, 'admin_leer_asociacion_sensor_activo', true),
   (4, 30, 1, 'ing_crear_asociacion_sensor_activo', true),
   (4, 30, 2, 'ing_leer_asociacion_sensor_activo', true),
+  (2, 30, 1, 'prod_crear_asociacion_sensor_activo', true),
   (2, 30, 2, 'prod_leer_asociacion_sensor_activo', true),
   (3, 30, 2, 'vet_leer_asociacion_sensor_activo', true);
 ```
 
-Roles con permiso de crear: Administrador (1), Ingeniero de campo (4).
-Roles con permiso solo de leer: Productor (2), Veterinario (3).
+Roles con permiso de crear: Administrador (1), Productor (2) e Ingeniero de campo (4).
+Rol con permiso solo de leer: Veterinario (3).
+
+> Actualización INC-M02-37-G87 v2.0 (#349, 2026-09-16): el CREATE del
+> Productor se formalizó mediante la migración Alembic v5.3.0
+> `1d7d6069da52_v5_3_0_rf49_permiso_productor_`. Los POST de RF-49 limitan
+> al Productor a activos e infraestructuras de sus propias fincas.
 
 ---
 
@@ -89,11 +95,25 @@ El modelo `modulo9.dispositivos_iot` no tiene campo `last_heartbeat` ni timestam
 **Decisión**: La asociación se registra normalmente. El campo `advertencia` en la respuesta queda `null`.
 Cuando el módulo de telemetría (M03) exponga el estado de conexión, se puede reactivar este warning.
 
-### Compatibilidad especie-sensor (FA-04 → HTTP 400)
-El catálogo I3P-1 (M09) que define compatibilidad entre `sensor.categoria` y `especie` no tiene
-tabla en la DB actual.
-**Decisión**: La validación de compatibilidad no se implementa en este CU. Se documenta como gap.
-Cuando la tabla de catálogo exista, agregar validación en el use case antes de V8.
+### Compatibilidad especie-sensor (FA-04 → HTTP 400) — resuelto 2026-09-16
+
+La revisión Alembic `281e99d58ecb` (`v5.3.0_rf49_compatibilidad_sensor_especie`)
+crea `modulo9.compatibilidad_sensores_especies` como lista blanca por sensor.
+La migración inicializa los pares que puede determinar sin inventar taxonomía:
+
+- especie explícita de la infraestructura donde el sensor está instalado;
+- especies compatibles con el tipo de esa infraestructura según el catálogo de RF-48.
+
+`AsociarSensorActivoUseCase` consulta el catálogo mediante `SensorConsultaPort`
+después de validar la coherencia territorial y antes de las cardinalidades V8.
+Un par no listado responde `400 INCOMPATIBILIDAD_ESPECIE_SENSOR` con el mensaje
+de FA-04. Un sensor sin ninguna regla también falla cerrado con
+`400 COMPATIBILIDAD_SENSOR_NO_CONFIGURADA`; la ausencia de configuración ya no
+equivale a compatibilidad universal.
+
+El I3P-1 de variables fisicoquímicas conserva su función existente. La nueva
+tabla separa explícitamente la compatibilidad biológica por sensor para evitar
+sobrecargar ese catálogo con una semántica distinta.
 
 ---
 
@@ -106,3 +126,59 @@ El campo `tipo` usa el tipo PG `enum_asociaciones_activos_sensores_tipo` con val
 
 El DTO acepta valores en MAYÚSCULAS (`DIRECTA`, `AMBIENTAL`, `POBLACIONAL`) y el use case
 normaliza a minúsculas antes de persistir.
+
+---
+
+## Iteración 2026-09-23 — Tarea Taiga "RF-49: Compatibilidad de especie sensor-activo y ciclo de vida completo"
+
+Tarea recibida describiendo dos gaps, ambos copiados literalmente de `estado_M02.md`
+(auditoría 2026-08-06): (1) "no existe validación de compatibilidad de especie... un
+sensor de aves podría asociarse hoy a un bovino sin rechazo"; (2) "solo existe `POST
+/{id}/sensores`... no hay endpoint para desactivar, reactivar ni listar". **Ambos ya
+estaban resueltos en `dev`** antes de recibir esta tarea:
+
+- Compatibilidad de especie: ya documentada arriba como "resuelto 2026-09-16"
+  (sección "Compatibilidad especie-sensor"), bloque **V7** de
+  `AsociarSensorActivoUseCase`, confirmado en vivo con 156 filas reales en
+  `modulo9.compatibilidad_sensores_especies`.
+- Ciclo de vida completo: `GET /{id}/sensores` (listar, con `tipo_consulta=ACTIVA|HISTORIAL`,
+  commit `2b3e3772`) y `PATCH /{id}/sensores/{id_asociacion}` (activar/desactivar,
+  commit `c1eaf765`, documentado en `inc_m02_65_g89_patch_ciclo_vida_asociacion_sensor.md`)
+  ya existen como endpoints reales, con tests dedicados pasando.
+
+### Gap real encontrado: el PATCH nunca funcionó en `dev` por RBAC faltante
+
+`inc_m02_65_g89_patch_ciclo_vida_asociacion_sensor.md` documenta que el PATCH exige
+`(recurso 30, accion U=3)`, y que ese permiso se insertó para Administrador (`id_rol=1`)
+e Ingeniero de Campo (`id_rol=4`) — pero el propio documento aclara que el INSERT se
+aplicó **directamente por SQL contra `sgpmp` y `pruebas`**, nunca se formalizó como
+migración Alembic. Confirmado en vivo contra `sgpmp_dev`:
+
+```sql
+SELECT * FROM modulo1.permisos WHERE id_recurso = 30 AND id_accion = 3;
+-- 0 filas
+```
+
+Es decir: el endpoint `PATCH /{id_activo}/sensores/{id_asociacion}` responde `403`
+silencioso para **los 4 roles, incluido Administrador**, en `dev` — el escenario
+exacto que el Paso 0 de `CLAUDE.md` pide verificar antes de dar por resuelta una
+tarea de RBAC.
+
+**Fix aplicado:** `alembic/versions/1ee808f9ee6b_v5_4_0_rf49_permiso_patch_asociacion_sensor.py`
+formaliza el mismo INSERT que ya está vigente en `sgpmp`/`pruebas` (mismos roles,
+mismo `nombre` de permiso), para que se aplique también en `dev` y en cualquier
+entorno futuro vía `alembic upgrade head`. Verificado en vivo (transacción revertida):
+`upgrade()` idempotente (correrlo dos veces no duplica filas, `ON CONFLICT DO NOTHING`
+para `admin_*`/`DO UPDATE` para `ing_*`), `downgrade()` elimina solo la fila `ing_*`
+— la fila `admin_*` es intencionalmente inmutable: `trg_fn_proteger_permisos_admin_delete`
+bloquea cualquier `DELETE` sobre permisos `admin_%` con `ADMIN_PERM_NO_DELETE`,
+confirmado al intentar revertirla en la misma verificación.
+
+No se decide aquí si Productor también debería tener `U` sobre este recurso —
+`inc_m02_65_g89...md` dejó esa pregunta explícitamente abierta para no invadir el
+alcance de otro issue (#212), y el RF no lo exige de forma inequívoca. Queda fuera
+de esta iteración.
+
+**Sin cambios de código de producción** — ambos gaps del RF ya estaban resueltos en
+código; el único trabajo real fue formalizar en Alembic un permiso RBAC que existía
+en otros entornos pero nunca llegó a `dev`.

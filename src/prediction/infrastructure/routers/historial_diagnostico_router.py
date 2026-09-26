@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.prediction.application.use_cases.historial_diagnostico.consultar_historial_use_case import ConsultarHistorialUseCase
-from src.prediction.infrastructure.adapters.activo_biologico_stub_adapter import ActivoBiologicoStubAdapter
+from src.prediction.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.prediction.infrastructure.repositories.evento_auditoria_m04_repository import SqlAlchemyEventoAuditoriaM04Repository
 from src.prediction.infrastructure.repositories.historial_diagnostico_repository import SqlAlchemyHistorialDiagnosticoRepository
 from src.prediction.infrastructure.schema.historial_diagnostico_schema import HistorialDiagnosticoResponse
@@ -57,7 +57,7 @@ def consultar_historial(
         db=db,
         repo=SqlAlchemyHistorialDiagnosticoRepository(db),
         auditoria_repo=SqlAlchemyEventoAuditoriaM04Repository(db),
-        activo_port=ActivoBiologicoStubAdapter(),
+        activo_port=ActivoBiologicoM02Adapter(db),
     )
     pagina = use_case.execute(
         id_activo_biologico=id_activo_biologico,

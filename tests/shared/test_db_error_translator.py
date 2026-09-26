@@ -11,6 +11,7 @@ from sqlalchemy.exc import DataError, IntegrityError, OperationalError
 
 from src.shared.db_error_translator import _campo, raise_from_db_error
 from src.shared.errors import (
+    BusinessRuleError,
     ConflictError,
     InfrastructureError,
     ServiceUnavailableError,
@@ -26,6 +27,7 @@ class Diag:
         self.constraint_name = kw.get("constraint_name")
         self.table_name = kw.get("table_name")
         self.message_primary = kw.get("message_primary")
+        self.sqlstate = kw.get("sqlstate")
 
 
 def _error_pg(clase, **kw):
@@ -142,6 +144,148 @@ def test_fk_inexistente_es_dato_invalido_del_cliente() -> None:
     assert exc_info.value.status_code == 400
 
 
+def test_errcode_duplicate_stage_es_409_no_500() -> None:
+    """RF-32 (#128/#129): DUPLICATE_STAGE (P0104) es un error de clase `P0`
+    (PL/pgSQL) que psycopg2 no clasifica como `IntegrityError`. Sin este mapeo
+    explícito caía al catch-all -> 500, aunque fuera un choque de nombre real."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0104",
+        message_primary='DUPLICATE_STAGE: Ya existe una etapa llamada "Engorde" para esta especie.',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "RECURSO_DUPLICADO"
+    assert exc_info.value.status_code == 409
+    assert "DUPLICATE_STAGE" not in exc_info.value.message
+    assert "Engorde" in exc_info.value.message
+
+
+def test_errcode_duplicate_metric_es_409_no_500() -> None:
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0109",
+        message_primary='DUPLICATE_METRIC: Ya existe una métrica productiva con el nombre "Peso".',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "RECURSO_DUPLICADO"
+    assert exc_info.value.status_code == 409
+
+
+def test_errcode_sensor_ya_activo_es_409_no_500() -> None:
+    """INC-M09-107-G64 (#135): el trigger `trg_sensor_asociacion_unica_activa`
+    de modulo9 señala P0130 (clase `P0`, no mapeada por psycopg2) — sin este
+    mapeo, una condición de carrera al asociar un sensor caía al 500
+    genérico en vez del conflicto de negocio correspondiente."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0130",
+        message_primary='SENSOR_ALREADY_ASSIGNED: El sensor ID 5 ya está activo en el área "Estanque-01".',
+    )
+
+    with pytest.raises(ConflictError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "ASOCIACION_YA_ACTIVA"
+    assert exc_info.value.status_code == 409
+    assert "SENSOR_ALREADY_ASSIGNED" not in exc_info.value.message
+
+
+def test_errcode_sensor_finca_distinta_es_422_no_500() -> None:
+    """INC-M09-107-G64 (#135): el trigger `trg_sensor_asociacion_finca_fija`
+    señala P0140 (misma clase `P0`) cuando el área destino pertenece a una
+    finca distinta a la del dispositivo del sensor."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0140",
+        message_primary="SENSOR_FINCA_DISTINTA: El sensor ID 5 pertenece al dispositivo de la finca ID 1.",
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "SENSOR_FINCA_DISTINTA"
+    assert exc_info.value.status_code == 422
+    assert "SENSOR_FINCA_DISTINTA:" not in exc_info.value.message
+
+
+def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
+    """INC-M02-76-G55: el trigger `trg_fn_evento_reproductivo_secuencia` (modulo2)
+    señala P0220 (misma clase `P0`, no mapeada por psycopg2) cuando un activo
+    POBLACIONAL recibe un evento reproductivo distinto a "nacimiento". El use
+    case ya valida esto antes de llegar a la DB, pero sin este mapeo cualquier
+    otra vía que dispare el trigger caía al 500 genérico en vez del 422 de
+    negocio documentado en RF-42."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0220",
+        message_primary=(
+            "TYPE_RESTRICTION: Para activos de tipo LOTE (poblacional) solo se "
+            "permite el evento reproductivo nacimiento. Categoría recibida: parto."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "EVENTO_NO_PERMITIDO_LOTE"
+    assert exc_info.value.status_code == 422
+    assert "TYPE_RESTRICTION:" not in exc_info.value.message
+
+
+def test_errcode_evento_fecha_invalida_es_400_no_500() -> None:
+    """INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, dispara para
+    cualquier tipo de evento vía `eventos_activos`) señala P0215 (misma clase
+    `P0`, no mapeada) cuando la fecha del evento es futura o anterior al
+    registro del activo. La causa raíz real del incidente era otra (`now()`
+    fijo por transacción rechazaba fechas válidas, corregido con
+    `clock_timestamp()` en la migración `68232a1efcc2`), pero si algún día una
+    fecha sí es genuinamente inválida, este mapeo evita que vuelva a salir
+    como 500 genérico."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0215",
+        message_primary=(
+            "INVALID_DATE: La fecha del evento (2026-09-13 00:00:00+00) no puede "
+            "ser futura. Fecha actual del sistema: 2026-09-12 00:00:00+00."
+        ),
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "FECHA_INVALIDA"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_DATE:" not in exc_info.value.message
+
+
+def test_errcode_poblacional_cantidad_invalida_es_400_no_500() -> None:
+    """INC-M02-100-G31 (#262): `trg_fn_poblacional_cantidad_inmutable` (modulo2)
+    señala P0210 (misma clase `P0`, no mapeada por psycopg2) cuando una
+    escritura sobre `detalles_activos_biologicos_poblacionales` deja
+    `cantidad_actual` en negativo o intenta modificar `cantidad_inicial`. Sin
+    este mapeo, `POST .../eventos/crecimiento` sobre un lote que dispare el
+    trigger devolvía 500 ERROR_INTERNO en vez del 400 que ya aplica la
+    restricción CHECK gemela para la misma regla de negocio."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0210",
+        message_primary="INVALID_VALUE: La cantidad_actual del lote no puede ser negativa. Valor intentado: -3.",
+    )
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400
+    assert "INVALID_VALUE:" not in exc_info.value.message
+
+
 def test_integrity_error_no_mapeado_es_500() -> None:
     exc = _integrity(pg_errors.NotNullViolation, constraint_name="algo")
 
@@ -175,3 +319,19 @@ def test_excepcion_desconocida_es_500() -> None:
 
     assert exc_info.value.code == "ERROR_INTERNO"
     assert exc_info.value.status_code == 500
+
+
+def test_byte_nulo_de_psycopg2_es_400_no_500() -> None:
+    """INC-M02-57-G06 (#93): psycopg2 rechaza un byte nulo embebido con un
+    ValueError de Python plano en la adaptación del parámetro — no una
+    subclase de IntegrityError/DataError/OperationalError — así que sin este
+    mapeo caía al catch-all -> 500, aunque el dato mal formado sea del cliente.
+    `BaseDTO` ya lo bloquea en la frontera; esto es la red de seguridad del
+    repositorio para cualquier valor que la esquive."""
+    exc = ValueError("A string literal cannot contain NUL (0x00) characters.")
+
+    with pytest.raises(ValidationError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "VALOR_NO_PERMITIDO"
+    assert exc_info.value.status_code == 400

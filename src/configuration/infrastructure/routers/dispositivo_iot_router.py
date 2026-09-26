@@ -43,13 +43,18 @@ from src.configuration.infrastructure.schema.dispositivo_iot_schema import Dispo
 from src.configuration.infrastructure.schema.sensor_schema import ListaSensoresResponse, SensorResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.errors import GatewayTimeoutError
+from src.shared.rate_limit import rate_limit
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/configuracion/dispositivos-iot", tags=["Configuración - Dispositivos IoT"])
 
 _RECURSO = 11  # modulo1.recursos: 'dispositivos_iot'
+# INC-M09-21-G125-02: sin este límite, una ráfaga de registros con seriales
+# secuenciales (enumeración masiva) se procesaba entera sin ningún 429.
+_LIMITE_REGISTRO = rate_limit(10, 60, alcance="dispositivos_iot_registrar")
 
 
 # ── RF-21: Registrar dispositivo ─────────────────────────────────────────────
@@ -58,13 +63,14 @@ _RECURSO = 11  # modulo1.recursos: 'dispositivos_iot'
     "",
     response_model=DispositivoIotResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(require_permission(_RECURSO, 1)), Depends(_LIMITE_REGISTRO)],
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
     },
     summary="Registrar dispositivo IoT (RF-21 Flujo A)",
 )
@@ -106,7 +112,13 @@ def listar_dispositivos_iot(
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaDispositivoIotRepository(db),
     )
-    dispositivos = use_case.listar(usuario_actual, solo_activos=solo_activos)
+    dispositivos = use_case.listar(
+        usuario_actual,
+        solo_activos=solo_activos,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     items = [DispositivoIotResponse.from_entity(d) for d in dispositivos]
     return ListaDispositivosIotResponse(total=len(items), items=items)
 
@@ -134,7 +146,13 @@ def obtener_dispositivo_iot(
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaDispositivoIotRepository(db),
     )
-    dispositivo = use_case.obtener(id_dispositivo_iot, usuario_actual)
+    dispositivo = use_case.obtener(
+        id_dispositivo_iot,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     return DispositivoIotResponse.from_entity(dispositivo)
 
 
@@ -253,7 +271,14 @@ def configurar_remotamente(
         tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
         mqtt_port=MqttHttpAdapter(),
     )
-    config, mensaje = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
+    config, mensaje = use_case.execute(
+        id_dispositivo_iot,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
 
     if config.estado == "NO_CONF":
         raise GatewayTimeoutError(
@@ -277,6 +302,7 @@ def configurar_remotamente(
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
     },
     summary="Historial de configuraciones remotas (RF-23)",
 )
@@ -288,7 +314,13 @@ def listar_configuraciones(
     use_case = ConsultarConfiguracionesUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
     )
-    configs = use_case.listar_por_dispositivo(id_dispositivo_iot)
+    configs = use_case.listar_por_dispositivo(
+        id_dispositivo_iot,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     items = [ConfiguracionRemotaResponse.from_entity(c) for c in configs]
     return ListaConfiguracionesRemotasResponse(total=len(items), items=items)

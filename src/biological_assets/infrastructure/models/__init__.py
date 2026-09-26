@@ -3,6 +3,7 @@ from .activo_biologico_model import ActivoBiologicoModel
 from .detalle_individual_model import DetalleActivoIndividualModel
 from .detalle_poblacional_model import DetalleActivoPoblacionalModel
 from .historial_infraestructura_activo_model import HistorialInfraestructuraActivoModel
+from .historial_activo_model import HistorialActivoModel
 from .gestion_fase_model import GestionFaseModel
 from .evento_activo_model import EventoActivoModel
 from .evento_crecimiento_model import EventoCrecimientoModel

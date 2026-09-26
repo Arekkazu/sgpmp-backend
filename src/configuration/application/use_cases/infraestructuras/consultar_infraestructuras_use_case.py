@@ -4,6 +4,8 @@ El DFD (paso 06) exige registrar auditoría tipo GET al listar.
 """
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.infraestructura import Infraestructura
@@ -26,9 +28,16 @@ class ConsultarInfraestructurasUseCase:
         self.auditoria_repo = auditoria_repo
 
     def listar_por_finca(
-        self, id_finca: int, usuario_actual: UsuarioActual, *, solo_activas: bool = False
+        self,
+        id_finca: int,
+        usuario_actual: UsuarioActual,
+        *,
+        solo_activas: bool = False,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[Infraestructura]:
-        items = self.infra_repo.listar_por_finca(id_finca, solo_activas=solo_activas)
+        items = self.infra_repo.listar_por_finca(
+            id_finca, solo_activas=solo_activas, ids_fincas_permitidas=ids_fincas_permitidas
+        )
         snapshot = {"id_finca": id_finca, "total": len(items), "solo_activas": solo_activas}
         for infra in items:
             try:
@@ -46,8 +55,15 @@ class ConsultarInfraestructurasUseCase:
             self.db.rollback()
         return items
 
-    def obtener(self, id_infraestructura: int) -> Infraestructura:
-        infra = self.infra_repo.obtener_por_id(id_infraestructura)
+    def obtener(
+        self,
+        id_infraestructura: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Infraestructura:
+        infra = self.infra_repo.obtener_por_id(
+            id_infraestructura, ids_fincas_permitidas=ids_fincas_permitidas
+        )
         if infra is None:
             raise NotFoundError(
                 code="INFRAESTRUCTURA_NO_ENCONTRADA",

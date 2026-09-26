@@ -54,6 +54,7 @@ class Cuenta:
     bloqueado_hasta: Optional[datetime] = None
     ultimo_intento_fallido: Optional[datetime] = None
     token_activacion_actual: Optional[str] = None
+    token_usado: bool = False
     fecha_cambio_estado: Optional[datetime] = None
     motivo_ultimo_cambio: Optional[str] = None
     id_cuenta_usuario: Optional[int] = None
@@ -102,21 +103,30 @@ class Cuenta:
     def asignar_token_activacion(self, token_hash: str, ahora: datetime) -> None:
         """Asigna el hash de un nuevo token de activación (reenvío)."""
         self.token_activacion_actual = token_hash
+        self.token_usado = False
         self.fecha_cambio_estado = ahora
 
     def asignar_token_recuperacion(self, token_hash: str, ahora: datetime) -> None:
         """Asigna el hash de un token de recuperación (misma columna que activación)."""
         self.token_activacion_actual = token_hash
+        self.token_usado = False
         self.fecha_cambio_estado = ahora
 
-    def limpiar_token(self) -> None:
-        """Consume el token de activación/recuperación vigente sin alterar el estado."""
-        self.token_activacion_actual = None
+    def marcar_token_usado(self) -> None:
+        """Consume el token de recuperación vigente sin alterar el estado.
+
+        A diferencia de la activación (que sí limpia el hash en ``activar()``),
+        aquí el hash se conserva a propósito: un reintento con el mismo token
+        debe poder distinguirse como "ya utilizado" (409) en vez de "nunca
+        existió" (401). Se limpia/resetea al emitir un token nuevo.
+        """
+        self.token_usado = True
 
     def poner_pendiente(self, token_hash: str, ahora: datetime) -> None:
         """Pasa la cuenta a PENDIENTE con el hash de un token de reverificación."""
         self.id_estado_cuenta = self.ESTADO_PENDIENTE
         self.token_activacion_actual = token_hash
+        self.token_usado = False
         self.fecha_cambio_estado = ahora
 
     # ── Contadores de seguridad (login) ─────────────────────────────────────

@@ -1,0 +1,2092 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "d9ed4a5d-bdc9-4a48-9a78-99a0ea894ac1",
+        "name": "TC-M02-309",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "99999",
+              "{{rf50Path}}"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "5feb806c-dc40-4855-a3e2-371e952f03f8",
+              "type": "text/javascript",
+              "exec": [
+                "const body=pm.response.json();",
+                "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                "pm.test('TC-M02-309 | HTTP 404',()=>pm.response.to.have.status(404));",
+                "",
+                "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+                "pm.test('TC-M02-309 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/activo.*(no existe|no encontrado|inexistente)/));"
+              ],
+              "_lastExecutionId": "ad7addb5-fe4d-4646-8f75-d72b3a53edea"
+            }
+          }
+        ]
+      },
+      {
+        "id": "78026a0c-5019-474e-bee3-c9a512f81178",
+        "name": "TC-M02-310",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id310}}",
+              "{{rf50Path}}"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "cb2282af-8ad8-40c5-bb58-fc06b708428d",
+              "type": "text/javascript",
+              "exec": [
+                "const body=pm.response.json();",
+                "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                "pm.test('TC-M02-310 | HTTP 409',()=>pm.response.to.have.status(409));",
+                "",
+                "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+                "pm.test('TC-M02-310 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/(inconsisten|integridad|jerarqu)/));"
+              ],
+              "_lastExecutionId": "6bea0fbb-1649-4445-be9b-57b07f8814ae"
+            }
+          }
+        ]
+      },
+      {
+        "id": "b29d7847-db1c-4f08-9a0a-e3ecbf1ef293",
+        "name": "TC-M02-311",
+        "request": {
+          "url": {
+            "path": [
+              "activos-biologicos",
+              "{{id311}}",
+              "{{rf50Path}}"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "metricas"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "55ad2105-5ad9-4a26-843c-4e445539dee8",
+              "type": "text/javascript",
+              "exec": [
+                "const body=pm.response.json();",
+                "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                "pm.test('TC-M02-311 | HTTP 200',()=>pm.response.to.have.status(200));",
+                "",
+                "const m=body.metricas_actuales;",
+                "pm.test('TC-M02-311 | Activo e identificador correctos',()=>{pm.expect(body.id_activo_biologico).to.eql(Number(pm.variables.get('id311')));pm.expect(body.identificador).to.eql(pm.variables.get('identificadorBd'));});",
+                "pm.test('TC-M02-311 | Peso numerico finito positivo',()=>{pm.expect(m.peso_actual).to.be.a('number');pm.expect(Number.isFinite(m.peso_actual)).to.eql(true);pm.expect(m.peso_actual).to.be.above(0);});",
+                "pm.test('TC-M02-311 | Peso API coincide con BD',()=>pm.expect(m.peso_actual).to.eql(Number(pm.variables.get('pesoBd'))));",
+                "pm.test('TC-M02-311 | Unidad API coincide con BD',()=>pm.expect(m.unidad_peso).to.eql(pm.variables.get('unidadBd')));",
+                "pm.test('TC-M02-311 | Fecha equivalente',()=>{pm.expect(new Date(m.fecha_ultimo_peso).getTime()).to.eql(new Date(pm.variables.get('fechaPesoBd')).getTime());});",
+                "pm.test('TC-M02-311 | Cantidad y biomasa coherentes',()=>{for(const [key,variable] of [['cantidad_actual','cantidadBd'],['biomasa_total','biomasaBd']]){if(key in m){const expected=JSON.parse(pm.variables.get(variable));if(expected===null)pm.expect(m[key]).to.eql(null);else{pm.expect(Number.isFinite(m[key])).to.eql(true);pm.expect(m[key]).to.eql(expected);}}}});",
+                "pm.test('TC-M02-311 | Sin metricas invalidas ni mezcla de activos',()=>{function walk(o){for(const [k,v] of Object.entries(o||{})){if(k==='id_activo_biologico')pm.expect(v).to.eql(Number(pm.variables.get('id311')));if(typeof v==='number')pm.expect(Number.isFinite(v)).to.eql(true);if(typeof v==='string')pm.expect(v).not.to.match(/^(NaN|[-+]?Infinity)$/);if(k.toLowerCase().includes('peso')&&typeof v==='number')pm.expect(v).to.be.at.least(0);if(v&&typeof v==='object')walk(v);}}walk(body);});"
+              ],
+              "_lastExecutionId": "427780fb-95ac-4d7e-8635-37b746659405"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "datos-consolidados",
+        "key": "rf50Path"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "token"
+      },
+      {
+        "type": "string",
+        "value": "289",
+        "key": "id310"
+      },
+      {
+        "type": "string",
+        "value": "279",
+        "key": "id311"
+      },
+      {
+        "type": "string",
+        "value": "250.00",
+        "key": "pesoBd"
+      },
+      {
+        "type": "string",
+        "value": "kg",
+        "key": "unidadBd"
+      },
+      {
+        "type": "string",
+        "value": "2026-09-19",
+        "key": "fechaPesoBd"
+      },
+      {
+        "type": "string",
+        "value": "QAJE-CREC-OK",
+        "key": "identificadorBd"
+      },
+      {
+        "type": "string",
+        "value": "null",
+        "key": "cantidadBd"
+      },
+      {
+        "type": "string",
+        "value": "null",
+        "key": "biomasaBd"
+      }
+    ],
+    "info": {
+      "_postman_id": "573e7895-2a5a-46ef-a945-9901b401eee4",
+      "name": "TC-M02-G95 - RF-50 reformulado",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Solo GET. Revalidar precondiciones BD y reemplazar variables antes de cada ejecucion. Token externo. Contrato vivo: metricas_actuales en raiz; ruta datos-consolidados CU12/RF-50. ID 310: infraestructura 49 inactiva, historial 236 abierto, fase 68 abierta sin cierre. Fuentes y evidencia de no mutacion en Resultados/TC-M02-G95_resultado.md.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "bb7b41cb-5744-4f3c-899c-ef24d33b3075",
+    "values": [
+      {
+        "type": "any",
+        "value": "<TOKEN_REDACTADO>",
+        "key": "token"
+      }
+    ]
+  },
+  "globals": {
+    "id": "cdc1769c-bf40-4420-b22b-2f054b1c8eb6",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 17,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 253.66666666666666,
+      "responseMin": 134,
+      "responseMax": 488,
+      "responseSd": 165.71126160349579,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1789814215141,
+      "completed": 1789814216103
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "6dfccdba-6d43-4c5e-ae04-52d887a6fa78",
+          "httpRequestId": "767a28b9-d560-46dc-8036-6e6e8b167644"
+        },
+        "item": {
+          "id": "d9ed4a5d-bdc9-4a48-9a78-99a0ea894ac1",
+          "name": "TC-M02-309",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "99999",
+                "{{rf50Path}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "5feb806c-dc40-4855-a3e2-371e952f03f8",
+                "type": "text/javascript",
+                "exec": [
+                  "const body=pm.response.json();",
+                  "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                  "pm.test('TC-M02-309 | HTTP 404',()=>pm.response.to.have.status(404));",
+                  "",
+                  "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+                  "pm.test('TC-M02-309 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/activo.*(no existe|no encontrado|inexistente)/));"
+                ],
+                "_lastExecutionId": "ad7addb5-fe4d-4646-8f75-d72b3a53edea"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "99999",
+              "datos-consolidados"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer <TOKEN_REDACTADO>"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "595a6f9a-6285-4069-a356-edf7c6f38b25",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "9c60153a-587b-4048-9ebb-d78c55dc6ae7",
+          "status": "Not Found",
+          "code": 404,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "182"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 19 Sep 2026 10:36:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "ca96d6eb-878e-4514-af2b-7d97fa9da87a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              95,
+              78,
+              79,
+              95,
+              69,
+              78,
+              67,
+              79,
+              78,
+              84,
+              82,
+              65,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              98,
+              105,
+              111,
+              108,
+              195,
+              179,
+              103,
+              105,
+              99,
+              111,
+              32,
+              99,
+              111,
+              110,
+              32,
+              73,
+              68,
+              32,
+              57,
+              57,
+              57,
+              57,
+              57,
+              32,
+              110,
+              111,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              101,
+              110,
+              32,
+              108,
+              111,
+              115,
+              32,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              101,
+              108,
+              32,
+              115,
+              105,
+              115,
+              116,
+              101,
+              109,
+              97,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              57,
+              84,
+              49,
+              48,
+              58,
+              51,
+              54,
+              58,
+              53,
+              53,
+              46,
+              52,
+              48,
+              55,
+              56,
+              49,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 488,
+          "responseSize": 182
+        },
+        "id": "d9ed4a5d-bdc9-4a48-9a78-99a0ea894ac1",
+        "assertions": [
+          {
+            "assertion": "Respuesta sin detalles internos ni secretos",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-309 | HTTP 404",
+            "skipped": false
+          },
+          {
+            "assertion": "Sin dataset ni datos de otro activo",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-309 | Causa esperada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "f37ee9d6-88cc-4c74-8419-aeef8b485847",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "7da151da-e1e7-423d-a85d-fc086816cdd9"
+        },
+        "item": {
+          "id": "78026a0c-5019-474e-bee3-c9a512f81178",
+          "name": "TC-M02-310",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id310}}",
+                "{{rf50Path}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "todos"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "cb2282af-8ad8-40c5-bb58-fc06b708428d",
+                "type": "text/javascript",
+                "exec": [
+                  "const body=pm.response.json();",
+                  "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                  "pm.test('TC-M02-310 | HTTP 409',()=>pm.response.to.have.status(409));",
+                  "",
+                  "pm.test('Sin dataset ni datos de otro activo',()=>{const forbidden=['metricas_actuales','historial_eventos','historial_fases','historico_estados','identificador','infraestructura_asociada','secciones'];function visit(o){if(!o||typeof o!=='object')return;for(const [k,v] of Object.entries(o)){if(forbidden.includes(k))pm.expect(v===null||(Array.isArray(v)&&v.length===0)||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);if(['data','dataset'].includes(k))pm.expect(v===null||(typeof v==='object'&&Object.keys(v).length===0)).to.eql(true);visit(v);}}visit(body);});",
+                  "pm.test('TC-M02-310 | Causa esperada',()=>pm.expect(JSON.stringify(body).toLowerCase()).to.match(/(inconsisten|integridad|jerarqu)/));"
+                ],
+                "_lastExecutionId": "6bea0fbb-1649-4445-be9b-57b07f8814ae"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "289",
+              "datos-consolidados"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "todos"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer <TOKEN_REDACTADO>"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "770e7923-64c9-4385-8dfe-73e8f9cc99b1",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "c0761565-3ffd-41d9-bc05-345876cc507f",
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "308"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 19 Sep 2026 10:36:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4a8fbd9e-73c1-4dbc-9b1e-bcf09c3f2acd"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              73,
+              78,
+              67,
+              79,
+              78,
+              83,
+              73,
+              83,
+              84,
+              69,
+              78,
+              67,
+              73,
+              65,
+              95,
+              74,
+              69,
+              82,
+              65,
+              82,
+              81,
+              85,
+              73,
+              67,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              109,
+              97,
+              110,
+              116,
+              105,
+              101,
+              110,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              32,
+              118,
+              105,
+              103,
+              101,
+              110,
+              116,
+              101,
+              32,
+              99,
+              111,
+              110,
+              32,
+              108,
+              97,
+              32,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              32,
+              92,
+              34,
+              67,
+              111,
+              114,
+              114,
+              97,
+              108,
+              32,
+              81,
+              65,
+              32,
+              74,
+              69,
+              32,
+              66,
+              97,
+              106,
+              97,
+              32,
+              76,
+              111,
+              103,
+              105,
+              99,
+              97,
+              92,
+              34,
+              44,
+              32,
+              108,
+              97,
+              32,
+              99,
+              117,
+              97,
+              108,
+              32,
+              101,
+              115,
+              116,
+              195,
+              161,
+              32,
+              105,
+              110,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              46,
+              32,
+              82,
+              101,
+              103,
+              117,
+              108,
+              97,
+              114,
+              105,
+              122,
+              97,
+              32,
+              108,
+              97,
+              32,
+              106,
+              101,
+              114,
+              97,
+              114,
+              113,
+              117,
+              195,
+              173,
+              97,
+              32,
+              100,
+              101,
+              108,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              32,
+              97,
+              110,
+              116,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              99,
+              111,
+              110,
+              115,
+              117,
+              108,
+              116,
+              97,
+              114,
+              32,
+              100,
+              97,
+              116,
+              111,
+              115,
+              32,
+              99,
+              111,
+              110,
+              115,
+              111,
+              108,
+              105,
+              100,
+              97,
+              100,
+              111,
+              115,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              57,
+              84,
+              49,
+              48,
+              58,
+              51,
+              54,
+              58,
+              53,
+              53,
+              46,
+              54,
+              52,
+              48,
+              55,
+              52,
+              49,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 134,
+          "responseSize": 308
+        },
+        "id": "78026a0c-5019-474e-bee3-c9a512f81178",
+        "assertions": [
+          {
+            "assertion": "Respuesta sin detalles internos ni secretos",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-310 | HTTP 409",
+            "skipped": false
+          },
+          {
+            "assertion": "Sin dataset ni datos de otro activo",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-310 | Causa esperada",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "8c4d7a4f-304d-450f-b183-db9af43719e5",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "e0a17f56-9981-49c8-ad1d-813b34fd1a35"
+        },
+        "item": {
+          "id": "b29d7847-db1c-4f08-9a0a-e3ecbf1ef293",
+          "name": "TC-M02-311",
+          "request": {
+            "url": {
+              "path": [
+                "activos-biologicos",
+                "{{id311}}",
+                "{{rf50Path}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "key": "tipo_dato",
+                  "value": "metricas"
+                },
+                {
+                  "key": "pagina",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "55ad2105-5ad9-4a26-843c-4e445539dee8",
+                "type": "text/javascript",
+                "exec": [
+                  "const body=pm.response.json();",
+                  "pm.test('Respuesta sin detalles internos ni secretos',()=>{pm.expect(pm.response.text()).not.to.match(/Traceback|sqlalchemy|psycopg|password|contrasena|Bearer\\s|eyJ[A-Za-z0-9_-]+\\./i);});",
+                  "pm.test('TC-M02-311 | HTTP 200',()=>pm.response.to.have.status(200));",
+                  "",
+                  "const m=body.metricas_actuales;",
+                  "pm.test('TC-M02-311 | Activo e identificador correctos',()=>{pm.expect(body.id_activo_biologico).to.eql(Number(pm.variables.get('id311')));pm.expect(body.identificador).to.eql(pm.variables.get('identificadorBd'));});",
+                  "pm.test('TC-M02-311 | Peso numerico finito positivo',()=>{pm.expect(m.peso_actual).to.be.a('number');pm.expect(Number.isFinite(m.peso_actual)).to.eql(true);pm.expect(m.peso_actual).to.be.above(0);});",
+                  "pm.test('TC-M02-311 | Peso API coincide con BD',()=>pm.expect(m.peso_actual).to.eql(Number(pm.variables.get('pesoBd'))));",
+                  "pm.test('TC-M02-311 | Unidad API coincide con BD',()=>pm.expect(m.unidad_peso).to.eql(pm.variables.get('unidadBd')));",
+                  "pm.test('TC-M02-311 | Fecha equivalente',()=>{pm.expect(new Date(m.fecha_ultimo_peso).getTime()).to.eql(new Date(pm.variables.get('fechaPesoBd')).getTime());});",
+                  "pm.test('TC-M02-311 | Cantidad y biomasa coherentes',()=>{for(const [key,variable] of [['cantidad_actual','cantidadBd'],['biomasa_total','biomasaBd']]){if(key in m){const expected=JSON.parse(pm.variables.get(variable));if(expected===null)pm.expect(m[key]).to.eql(null);else{pm.expect(Number.isFinite(m[key])).to.eql(true);pm.expect(m[key]).to.eql(expected);}}}});",
+                  "pm.test('TC-M02-311 | Sin metricas invalidas ni mezcla de activos',()=>{function walk(o){for(const [k,v] of Object.entries(o||{})){if(k==='id_activo_biologico')pm.expect(v).to.eql(Number(pm.variables.get('id311')));if(typeof v==='number')pm.expect(Number.isFinite(v)).to.eql(true);if(typeof v==='string')pm.expect(v).not.to.match(/^(NaN|[-+]?Infinity)$/);if(k.toLowerCase().includes('peso')&&typeof v==='number')pm.expect(v).to.be.at.least(0);if(v&&typeof v==='object')walk(v);}}walk(body);});"
+                ],
+                "_lastExecutionId": "427780fb-95ac-4d7e-8635-37b746659405"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "activos-biologicos",
+              "279",
+              "datos-consolidados"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "tipo_dato",
+                "value": "metricas"
+              },
+              {
+                "key": "pagina",
+                "value": "1"
+              },
+              {
+                "key": "page_size",
+                "value": "20"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer <TOKEN_REDACTADO>"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "20381787-217a-4e7a-a615-0a2e768cdb08",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "94ba7be5-9ef6-492f-b5f3-129e2c5f44bd",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "594"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 19 Sep 2026 10:36:55 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "364c48a3-ed22-430c-be52-c6812ad8937a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              55,
+              57,
+              44,
+              34,
+              105,
+              100,
+              101,
+              110,
+              116,
+              105,
+              102,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              34,
+              58,
+              34,
+              81,
+              65,
+              74,
+              69,
+              45,
+              67,
+              82,
+              69,
+              67,
+              45,
+              79,
+              75,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              34,
+              73,
+              78,
+              68,
+              73,
+              86,
+              73,
+              68,
+              85,
+              65,
+              76,
+              34,
+              44,
+              34,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              34,
+              66,
+              111,
+              118,
+              105,
+              110,
+              111,
+              32,
+              81,
+              97,
+              32,
+              74,
+              101,
+              34,
+              44,
+              34,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              34,
+              65,
+              67,
+              84,
+              73,
+              86,
+              79,
+              34,
+              44,
+              34,
+              105,
+              110,
+              102,
+              114,
+              97,
+              101,
+              115,
+              116,
+              114,
+              117,
+              99,
+              116,
+              117,
+              114,
+              97,
+              95,
+              97,
+              115,
+              111,
+              99,
+              105,
+              97,
+              100,
+              97,
+              34,
+              58,
+              34,
+              67,
+              111,
+              114,
+              114,
+              97,
+              108,
+              32,
+              81,
+              65,
+              32,
+              74,
+              69,
+              32,
+              79,
+              114,
+              105,
+              103,
+              101,
+              110,
+              34,
+              44,
+              34,
+              102,
+              97,
+              115,
+              101,
+              95,
+              112,
+              114,
+              111,
+              100,
+              117,
+              99,
+              116,
+              105,
+              118,
+              97,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              34,
+              58,
+              34,
+              67,
+              105,
+              99,
+              108,
+              111,
+              32,
+              81,
+              65,
+              32,
+              74,
+              69,
+              32,
+              66,
+              111,
+              118,
+              105,
+              110,
+              111,
+              34,
+              44,
+              34,
+              104,
+              105,
+              115,
+              116,
+              111,
+              114,
+              105,
+              97,
+              108,
+              95,
+              101,
+              118,
+              101,
+              110,
+              116,
+              111,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              104,
+              105,
+              115,
+              116,
+              111,
+              114,
+              105,
+              97,
+              108,
+              95,
+              102,
+              97,
+              115,
+              101,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              104,
+              105,
+              115,
+              116,
+              111,
+              114,
+              105,
+              99,
+              111,
+              95,
+              101,
+              115,
+              116,
+              97,
+              100,
+              111,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              109,
+              101,
+              116,
+              114,
+              105,
+              99,
+              97,
+              115,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              101,
+              115,
+              34,
+              58,
+              123,
+              34,
+              112,
+              101,
+              115,
+              111,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              50,
+              53,
+              48,
+              46,
+              48,
+              44,
+              34,
+              117,
+              110,
+              105,
+              100,
+              97,
+              100,
+              95,
+              112,
+              101,
+              115,
+              111,
+              34,
+              58,
+              34,
+              107,
+              103,
+              34,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              117,
+              108,
+              116,
+              105,
+              109,
+              111,
+              95,
+              112,
+              101,
+              115,
+              111,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              57,
+              34,
+              44,
+              34,
+              99,
+              97,
+              110,
+              116,
+              105,
+              100,
+              97,
+              100,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              98,
+              105,
+              111,
+              109,
+              97,
+              115,
+              97,
+              95,
+              116,
+              111,
+              116,
+              97,
+              108,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              44,
+              34,
+              105,
+              110,
+              100,
+              105,
+              99,
+              97,
+              100,
+              111,
+              114,
+              101,
+              115,
+              95,
+              104,
+              105,
+              115,
+              116,
+              111,
+              114,
+              105,
+              99,
+              111,
+              115,
+              34,
+              58,
+              91,
+              93,
+              125,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              34,
+              58,
+              48,
+              44,
+              34,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              34,
+              58,
+              49,
+              44,
+              34,
+              116,
+              111,
+              116,
+              97,
+              108,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              115,
+              34,
+              58,
+              49,
+              44,
+              34,
+              114,
+              101,
+              103,
+              105,
+              115,
+              116,
+              114,
+              111,
+              115,
+              95,
+              112,
+              111,
+              114,
+              95,
+              112,
+              97,
+              103,
+              105,
+              110,
+              97,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              103,
+              101,
+              110,
+              101,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              49,
+              57,
+              84,
+              49,
+              48,
+              58,
+              51,
+              54,
+              58,
+              53,
+              53,
+              46,
+              56,
+              50,
+              55,
+              53,
+              48,
+              52,
+              90,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 139,
+          "responseSize": 594
+        },
+        "id": "b29d7847-db1c-4f08-9a0a-e3ecbf1ef293",
+        "assertions": [
+          {
+            "assertion": "Respuesta sin detalles internos ni secretos",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Activo e identificador correctos",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Peso numerico finito positivo",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Peso API coincide con BD",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Unidad API coincide con BD",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Fecha equivalente",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Cantidad y biomasa coherentes",
+            "skipped": false
+          },
+          {
+            "assertion": "TC-M02-311 | Sin metricas invalidas ni mezcla de activos",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1084
+    },
+    "failures": [],
+    "error": null
+  }
+}

@@ -12,8 +12,55 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.entities.cuenta import Cuenta
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.models.permisos_model import Permisos
+from src.identity_access.infrastructure.models.recursos_model import Recursos
 from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
+
+
+def tiene_permiso(
+    db: Session,
+    id_rol: int,
+    id_recurso: int,
+    id_accion: int,
+) -> bool:
+    """Indica si un rol tiene activo un permiso sobre un recurso y acción."""
+    return (
+        db.query(Permisos)
+        .filter(
+            Permisos.id_rol == id_rol,
+            Permisos.id_recurso == id_recurso,
+            Permisos.id_accion == id_accion,
+            Permisos.es_activo.is_(True),
+        )
+        .first()
+        is not None
+    )
+
+
+def tiene_permiso_sobre(
+    db: Session,
+    id_rol: int,
+    nombre_recurso: str,
+    id_accion: int,
+) -> bool:
+    """Como ``tiene_permiso``, pero ubica el recurso por ``nombre_recurso`` (UNIQUE).
+
+    Para recursos sembrados por migraciones recientes: su ``id_recurso`` sale de
+    la secuencia y no coincide entre bases, así que un número fijo en el código
+    puede apuntar a otro recurso.
+    """
+    return (
+        db.query(Permisos)
+        .join(Recursos, Recursos.id_recurso == Permisos.id_recurso)
+        .filter(
+            Permisos.id_rol == id_rol,
+            Recursos.nombre_recurso == nombre_recurso,
+            Permisos.id_accion == id_accion,
+            Permisos.es_activo.is_(True),
+        )
+        .first()
+        is not None
+    )
 
 
 def require_permission(
@@ -70,17 +117,12 @@ def require_permission(
                 ),
             )
 
-        tiene_permiso = (
-            db.query(Permisos)
-            .filter(
-                Permisos.id_rol == usuario_actual.id_rol,
-                Permisos.id_recurso == id_recurso,
-                Permisos.id_accion == id_accion,
-                Permisos.es_activo.is_(True),
-            )
-            .first()
-        )
-        if tiene_permiso is None:
+        if not tiene_permiso(
+            db,
+            usuario_actual.id_rol,
+            id_recurso,
+            id_accion,
+        ):
             raise AuthorizationError(
                 code="ACCESO_DENEGADO",
                 message=(

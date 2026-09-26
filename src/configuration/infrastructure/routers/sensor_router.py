@@ -37,6 +37,7 @@ from src.configuration.infrastructure.schema.calibracion_schema import (
 from src.configuration.infrastructure.schema.sensor_area_schema import ListaSensorAreasResponse, SensorAreaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
+from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
 
@@ -74,6 +75,7 @@ def asociar_sensor_area(
         sensor_repo=SqlAlchemySensorRepository(db),
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaSensorAreaRepository(db),
     )
     asociacion = use_case.execute(id_sensor, dto, usuario_actual)
@@ -89,6 +91,7 @@ def asociar_sensor_area(
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
     },
     summary="Historial de asociaciones sensor-área (RF-22)",
 )
@@ -97,11 +100,17 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
+    ids_permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario, usuario_actual.id_rol
+    )
     use_case = ConsultarAsociacionesUseCase(
         db=db,
         sensor_area_repo=SqlAlchemySensorAreaRepository(db),
+        sensor_repo=SqlAlchemySensorRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        infra_repo=SqlAlchemyInfraestructuraRepository(db),
     )
-    asociaciones = use_case.listar_por_sensor(id_sensor)
+    asociaciones = use_case.listar_por_sensor(id_sensor, ids_fincas_permitidas=ids_permitidas)
     items = [SensorAreaResponse.from_entity(a) for a in asociaciones]
     return ListaSensorAreasResponse(total=len(items), items=items)
 

@@ -26,11 +26,14 @@ class ObtenerDashboardUseCase:
         pagina: int,
         por_pagina: int,
         id_rol_usuario: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EstadoSensorActual], list[ResumenUnidadProductiva], int]:
         sensores, total = self.monitoreo_repo.obtener_estados_sensores(
             id_infraestructura=id_infraestructura,
             pagina=pagina,
             por_pagina=por_pagina,
+            ids_fincas_permitidas=ids_fincas_permitidas,
         )
 
         for sensor in sensores:
@@ -44,7 +47,9 @@ class ObtenerDashboardUseCase:
 
         resumen: list[ResumenUnidadProductiva] = []
         if id_infraestructura is None:
-            resumen = self.monitoreo_repo.obtener_resumen_unidades()
+            resumen = self.monitoreo_repo.obtener_resumen_unidades(
+                ids_fincas_permitidas=ids_fincas_permitidas,
+            )
             # Aplicar mismo recálculo de semáforo al estado general de cada unidad
             estados_por_unidad: dict[int, list[str]] = {}
             for s in sensores:

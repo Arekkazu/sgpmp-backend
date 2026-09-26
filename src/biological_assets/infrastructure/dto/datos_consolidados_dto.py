@@ -50,4 +50,9 @@ class DatosConsolidadosDTO(BaseDTO):
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '
                 f'a la fecha de fin ({self.fecha_fin}).'
             )
+        if self.fecha_inicio and self.fecha_inicio > date.today():
+            raise ValueError(
+                f'La fecha de inicio ({self.fecha_inicio}) no puede ser una fecha futura: '
+                'los datos consolidados son sobre eventos ya ocurridos.'
+            )
         return self

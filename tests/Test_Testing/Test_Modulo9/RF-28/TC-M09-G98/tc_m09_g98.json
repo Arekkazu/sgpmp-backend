@@ -1,0 +1,117 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g98-rf28",
+    "name": "TC-M09-G98 - Restricción de rol para agregar widgets no autorizados",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Login Productor",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Login exitoso - HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La respuesta contiene token', function () {",
+              "    pm.expect(pm.response.json()).to.have.property('token');",
+              "});",
+              "",
+              "pm.collectionVariables.set('token', pm.response.json().token);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-M09-187 - Intentar agregar widget no autorizado",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"layout_config\": [\n    {\n      \"id_widget\": 13,\n      \"posicion_fila\": 1,\n      \"posicion_columna\": 1,\n      \"span_columnas\": 1,\n      \"visible\": true,\n      \"orden\": 0\n    }\n  ],\n  \"active_widget\": [\n    \"prod_bovinos\"\n  ]\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/personalizacion/dashboard",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "configuracion",
+            "personalizacion",
+            "dashboard"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('Status recibido:', pm.response.code);",
+              "console.log('Respuesta:', pm.response.text());",
+              "",
+              "pm.test('TC-M09-187 - Debe rechazar el widget no autorizado con HTTP 403', function () {",
+              "    pm.response.to.have.status(403);",
+              "});",
+              "",
+              "pm.test('La respuesta corresponde a un error de autorización', function () {",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('error_code');",
+              "    pm.expect(body.error_code).to.eq('WIDGET_NO_AUTORIZADO');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

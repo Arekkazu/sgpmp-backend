@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
@@ -30,6 +31,7 @@ class Especie:
     es_activo: bool
     id_especie: Optional[int] = None
     descripcion: Optional[str] = None
+    densidad_maxima_por_especie: Optional[Decimal] = None
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
 
@@ -39,6 +41,7 @@ class Especie:
         *,
         nombre: NombreEspecie,
         descripcion: Optional[str],
+        densidad_maxima_por_especie: Optional[Decimal] = None,
         fecha_creacion: datetime,
     ) -> Especie:
         """Construye una especie nueva, aún sin persistir.
@@ -49,6 +52,7 @@ class Especie:
         return cls(
             nombre=nombre,
             descripcion=descripcion,
+            densidad_maxima_por_especie=densidad_maxima_por_especie,
             es_activo=True,
             fecha_creacion=fecha_creacion,
         )
@@ -58,11 +62,13 @@ class Especie:
         *,
         nombre: NombreEspecie,
         descripcion: Optional[str],
+        densidad_maxima_por_especie: Optional[Decimal],
         fecha_actualizacion: datetime,
     ) -> None:
         """Aplica los nuevos valores tras una edición validada."""
         self.nombre = nombre
         self.descripcion = descripcion
+        self.densidad_maxima_por_especie = densidad_maxima_por_especie
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:

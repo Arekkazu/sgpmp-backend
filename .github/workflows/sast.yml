@@ -1,0 +1,104 @@
+name: SAST Security Scan
+
+# Workflow de Análisis Estático de Seguridad de Código (SAST)
+# Herramientas: Semgrep (OWASP Top 10, FastAPI, JWT) y Bandit (Python Core)
+# Referencia: docs-sgpmp/seguridad/GUIA-OPERACION-SAST-CI-CD.md
+# Triaje de hallazgos: Área de Análisis / Seguridad
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - develop
+      - main
+      - test
+    paths:
+      - "src/**"
+      - "requirements*.txt"
+      - ".github/workflows/sast.yml"
+      - ".semgrepignore"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep-sast:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout del código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar Semgrep
+        run: |
+          python -m pip install --upgrade pip
+          pip install semgrep
+
+      - name: Ejecutar Semgrep SAST Scan
+        run: |
+          echo "Ejecutando Semgrep sobre src/ con rulesets OWASP Top 10, Python, FastAPI y JWT..."
+          semgrep scan \
+            --config "p/owasp-top-ten" \
+            --config "p/python" \
+            --config "p/fastapi" \
+            --config "p/jwt" \
+            --exclude-rule python.sqlalchemy.security.audit.avoid-sqlalchemy-text.avoid-sqlalchemy-text \
+            --severity ERROR \
+            --sarif --sarif-output semgrep.sarif \
+            src/
+
+      - name: Subir reporte SARIF como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep.sarif
+          retention-days: 14
+
+  bandit-sast:
+    name: Bandit Python SAST Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout del código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar Bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit[toml]
+
+      - name: Generar Reporte de Auditoría Bandit (Media y Alta)
+        run: |
+          echo "Generando reporte de hallazgos Bandit (Severidad Media/Alta, Confianza Media/Alta)..."
+          bandit -r src -ll -ii -x "tests,alembic,.venv,venv,vendor,scripts" -f txt -o bandit-report.txt || true
+          cat bandit-report.txt
+
+      - name: Control de Bloqueo Bandit (Severidad Alta)
+        run: |
+          echo "Verificando ausencia de vulnerabilidades de severidad ALTA y confianza ALTA..."
+          bandit -r src -lll -iii -x "tests,alembic,.venv,venv,vendor,scripts" -f screen
+
+      - name: Subir reporte Bandit como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-report
+          path: bandit-report.txt
+          retention-days: 14

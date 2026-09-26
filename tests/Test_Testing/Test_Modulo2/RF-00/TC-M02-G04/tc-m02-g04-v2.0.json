@@ -1,0 +1,430 @@
+{
+  "info": {
+    "name": "TC-M02-G04 v2.0 - Configuracion segura del API: CORS, manejo de errores e inventario (OWASP API8/API9)",
+    "_postman_id": "tcm02g04v2-0000-0000-0000-000000000000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "base_domain", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io" },
+    { "key": "frontend_origin", "value": "http://localhost:3000" },
+    { "key": "frontend_real_origin", "value": "http://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io" },
+    { "key": "evil_origin", "value": "https://evil-attacker-qa-test.example.com" },
+    { "key": "admin_email", "value": "argeni.vargas1230@gmail.com" },
+    { "key": "admin_password", "value": "@Daniela1" },
+    { "key": "token_admin", "value": "" },
+    { "key": "id_especie_valida", "value": "" },
+    { "key": "id_infraestructura_valida", "value": "" },
+    { "key": "openapi_disponible", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0A - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/sesiones/",
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.response.code !== 200) {",
+              "    console.log('0A - RESPUESTA DEL LOGIN ADMIN (no fue 200): ' + pm.response.text());",
+              "}",
+              "pm.test('0A - Login admin devuelve 200 y token', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var body = pm.response.json();",
+              "    var token = body.token || body.access_token || (body.data && body.data.token);",
+              "    pm.expect(token, 'debe existir un token de acceso').to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180a - CORS: origen autorizado (localhost) refleja ese origen, no wildcard",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Origin", "value": "{{frontend_origin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const acao = pm.response.headers.get('Access-Control-Allow-Origin');",
+              "console.log('[CORS origen autorizado] ACAO=' + acao);",
+              "pm.test('TC-180a - La peticion se procesa correctamente (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('TC-180a - Access-Control-Allow-Origin NO es wildcard *', function () { pm.expect(acao).to.not.eql('*'); });",
+              "pm.test('TC-180a - Access-Control-Allow-Origin refleja exactamente el origen autorizado (localhost)', function () { pm.expect(acao).to.eql(pm.collectionVariables.get('frontend_origin')); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180a-bis - CORS: origen real del frontend de TEST (diagnostico, informativo)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Origin", "value": "{{frontend_real_origin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const acao = pm.response.headers.get('Access-Control-Allow-Origin');",
+              "console.log('[CORS origen real frontend TEST] ACAO=' + acao);",
+              "pm.test('TC-180a-bis - Access-Control-Allow-Origin NO es wildcard * (informativo)', function () { pm.expect(acao).to.not.eql('*'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180b - CORS: origen NO autorizado no recibe permiso (peticion real)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" },
+          { "key": "Origin", "value": "{{evil_origin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const acao = pm.response.headers.get('Access-Control-Allow-Origin');",
+              "console.log('[CORS origen NO autorizado] status=' + pm.response.code + ' ACAO=' + acao);",
+              "pm.test('TC-180b - Access-Control-Allow-Origin NO es wildcard *', function () { pm.expect(acao).to.not.eql('*'); });",
+              "pm.test('TC-180b - Access-Control-Allow-Origin NO refleja el origen no autorizado', function () { pm.expect(acao).to.not.eql(pm.collectionVariables.get('evil_origin')); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180c - CORS: preflight OPTIONS con origen NO autorizado",
+      "request": {
+        "method": "OPTIONS",
+        "header": [
+          { "key": "Origin", "value": "{{evil_origin}}" },
+          { "key": "Access-Control-Request-Method", "value": "GET" },
+          { "key": "Access-Control-Request-Headers", "value": "authorization" }
+        ],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const acao = pm.response.headers.get('Access-Control-Allow-Origin');",
+              "console.log('[CORS preflight origen NO autorizado] status=' + pm.response.code + ' ACAO=' + acao);",
+              "pm.test('TC-180c - El preflight no otorga permiso CORS al origen no autorizado', function () { pm.expect(acao).to.not.eql(pm.collectionVariables.get('evil_origin')); pm.expect(acao).to.not.eql('*'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180d - Cabeceras de seguridad presentes en la respuesta (retest del defecto original INC-M02-56-G04)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const nombres = ['x-content-type-options', 'x-frame-options', 'content-security-policy', 'strict-transport-security', 'referrer-policy'];",
+              "const presentes = [];",
+              "const ausentes = [];",
+              "nombres.forEach(function (n) {",
+              "    const v = pm.response.headers.get(n);",
+              "    if (v) { presentes.push(n + '=' + v); } else { ausentes.push(n); }",
+              "});",
+              "console.log('[CABECERAS] presentes=' + JSON.stringify(presentes) + ' ausentes=' + JSON.stringify(ausentes));",
+              "pm.test('TC-180d - X-Content-Type-Options: nosniff presente (retest INC-M02-56-G04)', function () { pm.expect(pm.response.headers.get('x-content-type-options')).to.eql('nosniff'); });",
+              "pm.test('TC-180d - X-Frame-Options presente (retest INC-M02-56-G04)', function () { pm.expect(pm.response.headers.get('x-frame-options')).to.exist; });",
+              "pm.test('TC-180d - Content-Security-Policy presente (retest INC-M02-56-G04)', function () { pm.expect(pm.response.headers.get('content-security-policy')).to.exist; });",
+              "pm.test('TC-180d - Strict-Transport-Security (HSTS) presente (retest INC-M02-56-G04)', function () { pm.expect(pm.response.headers.get('strict-transport-security')).to.exist; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-180e - Cabeceras de seguridad tambien presentes en /docs (con CSP relajada para permitir Swagger UI)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/docs"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const csp = pm.response.headers.get('content-security-policy');",
+              "console.log('[CABECERAS /docs] x-frame-options=' + pm.response.headers.get('x-frame-options') + ' csp=' + csp);",
+              "pm.test('TC-180e - X-Frame-Options tambien presente en /docs', function () { pm.expect(pm.response.headers.get('x-frame-options')).to.exist; });",
+              "pm.test('TC-180e - /docs no rompe (200) y, si trae CSP, no es tan estricta como para bloquear Swagger UI (no default-src none)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    if (csp) { pm.expect(csp).to.not.include(\"default-src 'none'\"); }",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-181 (previo) - Obtener una especie e infraestructura reales para el intento",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/activos-biologicos?pagina=1&page_size=1"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('TC-181 (previo) - Se obtiene al menos un activo biologico existente', function () { pm.response.to.have.status(200); });",
+              "const body = pm.response.json();",
+              "const registros = body.registros || [];",
+              "if (registros.length > 0) {",
+              "    pm.collectionVariables.set('id_especie_valida', registros[0].id_especie);",
+              "    pm.collectionVariables.set('id_infraestructura_valida', registros[0].id_infraestructura);",
+              "    console.log('[TC-181 previo] id_especie=' + registros[0].id_especie + ' id_infraestructura=' + registros[0].id_infraestructura);",
+              "} else {",
+              "    console.log('[TC-181 previo] ADVERTENCIA: no hay ningun activo biologico existente en TEST; TC-181 no podra ejecutarse.');",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-181 - Provocar error interno real (costo_adquisicion desborda Numeric) y revisar que no exponga detalles",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": { "mode": "raw", "raw": "{\n  \"tipo_activo\": \"INDIVIDUAL\",\n  \"id_especie\": {{id_especie_valida}},\n  \"id_infraestructura\": {{id_infraestructura_valida}},\n  \"fecha_inicio_ciclo\": \"2026-01-01\",\n  \"origen_financiero\": \"compra\",\n  \"costo_adquisicion\": 123456789012345.5,\n  \"soporte_documental\": \"Factura-QA-G04-v2\",\n  \"identificador\": \"QA-G04v2-{{$timestamp}}\",\n  \"raza\": \"QA\",\n  \"sexo\": \"MACHO\",\n  \"fecha_nacimiento\": \"2024-01-01T00:00:00Z\"\n}" }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "const status = pm.response.code;",
+              "const texto = pm.response.text();",
+              "console.log('[TC-181] status=' + status + ' body=' + texto);",
+              "if (status === 500 && texto.indexOf('ERROR_INTERNO') === -1) {",
+              "    console.log('[TC-181] NOTA: si este 500 no trae error_code ERROR_INTERNO ni el formato estandar, podria ser el defecto separado de TC-M02-G52 (creacion de activos) en vez del desborde numerico que busca esta prueba.');",
+              "}",
+              "pm.test('TC-181 - El servidor responde con un error controlado (400 esperado por DataError, o 500 si aun cae en la rama generica)', function () {",
+              "    pm.expect([400, 500]).to.include(status);",
+              "});",
+              "let body = {};",
+              "try { body = pm.response.json(); } catch (e) { }",
+              "pm.test('TC-181 - El cuerpo trae error_code y message genericos (formato estandar de error)', function () {",
+              "    pm.expect(body).to.have.property('error_code');",
+              "    pm.expect(body).to.have.property('message');",
+              "});",
+              "pm.test('TC-181 - El mensaje NO expone detalles internos (sin stack trace, SQL, rutas de archivo)', function () {",
+              "    const prohibidos = ['Traceback', '.py\"', 'File \"', 'psycopg2', 'sqlalchemy', 'SELECT ', 'site-packages', 'NumericValueOutOfRange', 'DataError', 'insert into'];",
+              "    prohibidos.forEach(function (p) {",
+              "        pm.expect(texto.toLowerCase()).to.not.include(p.toLowerCase());",
+              "    });",
+              "});",
+              "pm.test('TC-181 - No se revela informacion de infraestructura (host de base de datos, puertos, credenciales)', function () {",
+              "    pm.expect(texto.toLowerCase()).to.not.match(/host|puerto|password|credencial|jdbc|postgres:\\/\\//);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182a - Inventario documentado (OpenAPI): obtener especificacion",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/openapi.json"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[OPENAPI] status=' + pm.response.code);",
+              "if (pm.response.code === 200) {",
+              "    try {",
+              "        const spec = pm.response.json();",
+              "        const rutas = Object.keys(spec.paths || {});",
+              "        console.log('[OPENAPI] total rutas documentadas=' + rutas.length);",
+              "        pm.collectionVariables.set('openapi_disponible', 'true');",
+              "    } catch (e) { pm.collectionVariables.set('openapi_disponible', 'false'); }",
+              "} else {",
+              "    pm.collectionVariables.set('openapi_disponible', 'false');",
+              "}",
+              "pm.test('TC-182a - El inventario OpenAPI esta disponible', function () { pm.response.to.have.status(200); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182b - No existe version antigua /v1/activos-biologicos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/v1/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[v1] status=' + pm.response.code);",
+              "pm.test('TC-182b - No existe un endpoint activo en /v1/activos-biologicos (404)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182c - No existe version antigua /v2/activos-biologicos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/v2/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[v2] status=' + pm.response.code);",
+              "pm.test('TC-182c - No existe un endpoint activo en /v2/activos-biologicos (404)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182d - No existe una ruta /beta/activos-biologicos",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/beta/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[beta] status=' + pm.response.code);",
+              "pm.test('TC-182d - No existe un endpoint activo en /beta/activos-biologicos (404)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182e - No existe /api/v1/activos-biologicos (prefijo antiguo)",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_domain}}/api/v1/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[api/v1] status=' + pm.response.code);",
+              "pm.test('TC-182e - No existe un endpoint activo en /api/v1/activos-biologicos (404)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182f - No existe /activos-biologicos sin el prefijo documentado",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_domain}}/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[sin prefijo] status=' + pm.response.code);",
+              "pm.test('TC-182f - No existe una copia del recurso accesible fuera del prefijo documentado (404)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "TC-182g - Endpoint sensible sin token en ruta antigua tampoco queda accesible",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{base_url}}/v1/activos-biologicos"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "console.log('[v1 sin token] status=' + pm.response.code);",
+              "pm.test('TC-182g - La ruta antigua tampoco expone datos sin autenticacion (404, no 200)', function () { pm.response.to.have.status(404); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

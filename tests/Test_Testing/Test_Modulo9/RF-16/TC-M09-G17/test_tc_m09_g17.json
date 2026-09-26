@@ -1,0 +1,452 @@
+{
+	"info": {
+		"_postman_id": "tc-m09-g17-referential-integrity-especie-id",
+		"name": "TC-M09-G17 — Integridad referencial: id_especie inexistente o inactivo",
+		"description": "Verifica que el backend rechace la creación de parámetros (Etapas, Patologías, Métricas) cuando el id_especie referenciado no existe (id_especie=999, id_especie=-1), está inactivo (id_especie=1), o no es válido (id_especie='abc').",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+			"type": "string"
+		},
+		{
+			"key": "admin_email",
+			"value": "admin@pecuaria.co",
+			"type": "string"
+		},
+		{
+			"key": "admin_password",
+			"value": "Test1234!",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Paso 0: Auth Admin",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Auth Admin exitosa - HTTP 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Token JWT recibido', function () {",
+							"    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+							"});",
+							"pm.collectionVariables.set('jwt_token', resData.token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/sesiones/",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"sesiones",
+						""
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 1: TC-M09-40-A1 - Crear Etapa con id_especie Inexistente (999)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inexistente - HTTP 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Etapa Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A1\",\n  \"duracion_dias\": 30\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 2: TC-M09-40-A2 - Crear Patología con id_especie Inexistente (999)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inexistente - HTTP 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Patologia Especie Inexistente\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-A2\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/patologias",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"patologias"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 3: TC-M09-40-A3 - Crear Métrica con id_especie Inexistente (999)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inexistente - HTTP 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 999,\n  \"nombre\": \"Metrica Especie Inexistente\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/metricas",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"metricas"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 4: TC-M09-40-B1 - Crear Etapa con id_especie Inactiva (1)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inactiva - HTTP 422', function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_INACTIVA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Etapa Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B1\",\n  \"duracion_dias\": 30\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 5: TC-M09-40-B2 - Crear Patología con id_especie Inactiva (1)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inactiva - HTTP 422', function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_INACTIVA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Patologia Especie Inactiva\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-B2\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/patologias",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"patologias"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 6: TC-M09-40-B3 - Crear Métrica con id_especie Inactiva (1)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie inactiva - HTTP 422', function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_INACTIVA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_INACTIVA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": 1,\n  \"nombre\": \"Metrica Especie Inactiva\",\n  \"unidad_medida\": \"kg\",\n  \"tipo_medicion\": \"PESO\",\n  \"aplica_a_tipo_activo\": \"LOTE\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/metricas",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"metricas"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 7: TC-M09-40-C1 - Crear Etapa con id_especie Negativo (-1)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Especie no encontrada - HTTP 404', function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error ESPECIE_NO_ENCONTRADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('ESPECIE_NO_ENCONTRADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": -1,\n  \"nombre\": \"Etapa ID Negativo\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C1\",\n  \"duracion_dias\": 30\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		},
+		{
+			"name": "Paso 8: TC-M09-40-C2 - Crear Etapa con id_especie No Entero ('abc')",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Validación de entrada - HTTP 400', function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"var resData = pm.response.json();",
+							"pm.test('Código de error VAL_ENTRADA', function () {",
+							"    pm.expect(resData.error_code).to.eql('VAL_ENTRADA');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{jwt_token}}"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"id_especie\": \"abc\",\n  \"nombre\": \"Etapa ID No Entero\",\n  \"descripcion\": \"Prueba de integridad referencial TC-M09-40-C2\",\n  \"duracion_dias\": 30\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/configuracion/ciclos",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"configuracion",
+						"ciclos"
+					]
+				}
+			}
+		}
+	]
+}

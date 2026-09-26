@@ -1,0 +1,227 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g25-reeval-v2",
+    "name": "TC-M02-G25 - Gestión Poblacional de Activos Biológicos (RF-36 / RF-40) - Reevaluación V2",
+    "description": "Suite consolidada de reevaluación V2 para el caso TC-M02-G25 (RF-36 / RF-40, CU03), que unifica los subcasos TC-M02-051 y TC-M02-052 con autenticación compartida y cleanup lógico.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_lote",
+      "value": "345",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Iniciar sesión como Administrador",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo\": \"administador.dev@gmail.com\",\n  \"password\": \"Test1234!\",\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Checkpoint 0 - Autenticación exitosa (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect(res.token).to.be.a('string');",
+              "    pm.collectionVariables.set('jwt_token', res.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. TC-M02-051: Registrar baja con cantidad superior a existencia (RF-36)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_baja\": \"VENTA\",\n  \"fecha_baja\": \"2026-09-14\",\n  \"motivo_baja\": \"Prueba de validación de baja superior a existencia\",\n  \"cantidad_afectada\": 15,\n  \"responsable_id\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/baja",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "baja"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 400 Bad Request o 422 Unprocessable Entity', function () {",
+              "    pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "",
+              "pm.test('Mensaje de error contiene rechazo por cantidad superior a existencia', function () {",
+              "    var resText = pm.response.text();",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var valid = resText.includes('La cantidad de individuos no puede ser negativa') ||",
+              "                resText.includes('superior a la existencia') ||",
+              "                resText.includes('negativo') ||",
+              "                (resJson.error_code === 'CANTIDAD_BAJA_SUPERIOR_EXISTENCIA') ||",
+              "                (resJson.error_code === 'VAL_ENTRADA');",
+              "    pm.expect(valid).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. TC-M02-052: Registrar evento de crecimiento que excede densidad (RF-36 - Bloqueado)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_medicion\": \"PESO\",\n  \"valor_medicion\": 50,\n  \"unidad_medida\": \"kg\",\n  \"nuevo_peso_promedio\": 55,\n  \"cantidad_medida\": 250,\n  \"tipo_agregacion\": \"PROMEDIO\",\n  \"fecha\": \"2026-09-09T02:05:38Z\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/eventos/crecimiento",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "eventos",
+            "crecimiento"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Código HTTP esperado: 409 Conflict', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "",
+              "pm.test('Mensaje de error contiene rechazo por superación de densidad', function () {",
+              "    var resText = pm.response.text();",
+              "    var resJson = {};",
+              "    try { resJson = pm.response.json(); } catch(e) {}",
+              "    var valid = resText.includes('La densidad del lote supera el máximo permitido para la especie') ||",
+              "                resText.includes('supera el máximo permitido') ||",
+              "                (resJson.error_code && resJson.error_code.includes('DENSIDAD'));",
+              "    pm.expect(valid).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Cleanup: Inactivación lógica del lote sintético (RF-44)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{jwt_token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado_nuevo\": \"INACTIVO\",\n  \"fecha_cambio_estado\": \"2026-09-14\",\n  \"motivo_cambio\": \"Inactivación lógica de cleanup post-reevaluación V2 TC-M02-G25\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/activos-biologicos/{{id_lote}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "activos-biologicos",
+            "{{id_lote}}",
+            "estado"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Cleanup 3 - Lote sintético inactivado lógicamente (HTTP 200 OK)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var res = pm.response.json();",
+              "    pm.expect([2, 'INACTIVO']).to.include(res.estado_nuevo);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ Jerarquía de uso::
     ├── GoneError              410  Recurso que existió pero ya no aplica
     ├── PreconditionFailedError 412 Conflicto de concurrencia optimista
     ├── ConflictError          409  Recurso duplicado
+    ├── UnsupportedMediaTypeError 415 Tipo de archivo/medio no admitido
     ├── BusinessRuleError      422  Violación de regla de negocio
     ├── FlowError              422  Fallo a mitad de un proceso de varias etapas
     ├── LockedError            423  Recurso bloqueado temporalmente
@@ -153,6 +154,19 @@ class GoneError(AppError):
     """
 
     status_code = 410
+
+
+class UnsupportedMediaTypeError(AppError):
+    """El tipo de archivo enviado no es uno de los admitidos (HTTP 415).
+
+    Usar cuando el cliente sube un fichero cuyo formato no está en la lista
+    soportada por el endpoint — distinto de ``ValidationError`` (400), que es
+    para un dato mal formado dentro de un formato que sí se acepta. Caso de
+    referencia: el logotipo institucional de RF-26, que solo admite PNG, JPEG
+    o SVG.
+    """
+
+    status_code = 415
 
 
 class InfrastructureError(AppError):

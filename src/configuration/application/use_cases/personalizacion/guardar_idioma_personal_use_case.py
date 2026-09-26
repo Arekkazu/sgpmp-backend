@@ -6,20 +6,27 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.preferencia_idioma import PreferenciaIdioma
 from src.configuration.domain.repositories.preferencia_idioma_repository import PreferenciaIdiomaRepository
 from src.configuration.infrastructure.dto.guardar_idioma_dto import GuardarIdiomaDTO
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, ConflictError, InfrastructureError
+
+TIPO_CAMBIO_IDIOMA_PERSONAL = 27
 
 
 class GuardarIdiomaPersonalUseCase:
 
-    def __init__(self, db: Session, idioma_repo: PreferenciaIdiomaRepository) -> None:
+    def __init__(
+        self, db: Session, idioma_repo: PreferenciaIdiomaRepository, eventos_repo: EventoRepository
+    ) -> None:
         self.db = db
         self.idioma_repo = idioma_repo
+        self.eventos_repo = eventos_repo
 
     def execute(self, dto: GuardarIdiomaDTO, usuario_actual: UsuarioActual) -> PreferenciaIdioma:
         self._verificar_perfil_vigente(dto, usuario_actual)
 
         existente = self.idioma_repo.obtener_por_usuario(usuario_actual.id_usuario)
+        locale_anterior = existente.locale_code if existente is not None else None
 
         try:
             if existente is not None:
@@ -31,6 +38,14 @@ class GuardarIdiomaPersonalUseCase:
                     locale_code=dto.locale_code,
                 )
                 resultado = self.idioma_repo.guardar(nuevo)
+            # TC-M09-G103 (#311): antes el cambio se persistía sin dejar
+            # ningún rastro consultable en el historial de auditoría.
+            self.eventos_repo.registrar(
+                tipo_evento=TIPO_CAMBIO_IDIOMA_PERSONAL,
+                exitoso=True,
+                id_usuario=usuario_actual.id_usuario,
+                detalle={"locale_anterior": locale_anterior, "locale_nuevo": dto.locale_code},
+            )
             self.db.commit()
         except AppError:
             self.db.rollback()

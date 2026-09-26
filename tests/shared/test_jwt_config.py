@@ -74,3 +74,90 @@ def test_verify_token_distingue_expirado_de_invalido(monkeypatch) -> None:
     with pytest.raises(AuthenticationError) as exc_info:
         jwt_module.verify_token("esto-no-es-un-jwt-valido")
     assert exc_info.value.code == "TOKEN_INVALIDO"
+
+
+def test_leeway_por_defecto_y_configurable(monkeypatch) -> None:
+    monkeypatch.delenv("JWT_LEEWAY_SECONDS", raising=False)
+    assert jwt_module._leer_leeway_segundos() == 30
+
+    monkeypatch.setenv("JWT_LEEWAY_SECONDS", "60")
+    assert jwt_module._leer_leeway_segundos() == 60
+
+
+def test_verify_token_tolera_skew_dentro_del_leeway(monkeypatch) -> None:
+    """Un token expirado hace 30s sigue siendo válido con leeway=60 (skew de reloj)."""
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-de-prueba")
+    monkeypatch.setattr(jwt_module, "_LEEWAY_SECONDS", 60)
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload = {
+        "sub": "7",
+        "jti": "7",
+        "rol": 2,
+        "iat": ahora - jwt_module.timedelta(minutes=5),
+        "exp": ahora - jwt_module.timedelta(seconds=30),
+    }
+    token = jose_jwt.encode(payload, "clave-de-prueba", algorithm="HS256")
+
+    resultado = jwt_module.verify_token(token)
+
+    assert resultado["sub"] == "7"
+
+
+def test_verify_token_sigue_rechazando_expirado_fuera_del_leeway(monkeypatch) -> None:
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-de-prueba")
+    monkeypatch.setattr(jwt_module, "_LEEWAY_SECONDS", 30)
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload = {
+        "sub": "8",
+        "jti": "8",
+        "rol": 2,
+        "iat": ahora - jwt_module.timedelta(minutes=30),
+        "exp": ahora - jwt_module.timedelta(minutes=5),
+    }
+    token = jose_jwt.encode(payload, "clave-de-prueba", algorithm="HS256")
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        jwt_module.verify_token(token)
+    assert exc_info.value.code == "TOKEN_EXPIRADO"
+
+
+def test_env_example_declara_leeway_jwt() -> None:
+    raiz_proyecto = Path(__file__).resolve().parents[2]
+    contenido = (raiz_proyecto / ".env.example").read_text(encoding="utf-8")
+
+    assert "JWT_LEEWAY_SECONDS=30" in contenido.splitlines()
+
+
+def test_verify_token_rechaza_rol_forjado_con_otra_clave(monkeypatch) -> None:
+    """TC-M09-158-G83 / INC-M09-29-G83: un rol embebido en un JWT re-firmado
+    con una clave distinta a ``SECRET_KEY`` no puede colarse como válido.
+
+    Un token legítimo con ``rol=4`` no puede editarse a ``rol=999999`` sin
+    conocer ``SECRET_KEY`` (verificación HS256 en ``jose``, no propia). Quien
+    fuerza el claim solo puede volver a firmar con otra clave — y esa firma
+    nunca valida contra la real, así que ``verify_token`` lo rechaza antes de
+    que el claim llegue a influir en la autorización.
+    """
+    monkeypatch.setattr(jwt_module, "_SECRET_KEY", "clave-real-del-servidor")
+
+    ahora = jwt_module.datetime.now(jwt_module.timezone.utc)
+    payload_legitimo = {
+        "sub": "1",
+        "jti": "1",
+        "rol": 4,
+        "iat": ahora,
+        "exp": ahora + jwt_module.timedelta(hours=8),
+    }
+    token_legitimo = jose_jwt.encode(
+        payload_legitimo, "clave-real-del-servidor", algorithm="HS256"
+    )
+    assert jwt_module.verify_token(token_legitimo)["rol"] == 4
+
+    payload_forjado = dict(payload_legitimo, rol=999999)
+    token_forjado = jose_jwt.encode(
+        payload_forjado, "clave-que-no-es-la-del-servidor", algorithm="HS256"
+    )
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        jwt_module.verify_token(token_forjado)
+    assert exc_info.value.code == "TOKEN_INVALIDO"

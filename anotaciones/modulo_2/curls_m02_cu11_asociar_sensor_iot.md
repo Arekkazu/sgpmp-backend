@@ -5,6 +5,82 @@ Reemplazar `<TOKEN>` por el JWT de sesión activa.
 
 ---
 
+## GET /activos-biologicos/{id_activo}/sensores
+
+INC-M02-68-G91 / issue #218: antes de este fix, este método respondía `405
+Method Not Allowed` — no existía ningún endpoint de lectura para las
+asociaciones sensor-activo, aunque se persistían correctamente en
+`modulo2.asociaciones_activos_sensores`. Consulta las asociaciones del activo.
+
+**INC-M02-66-G90 (#217):** el resultado incluye tanto las asociaciones propias
+del activo (`id_activo_biologico` = el activo consultado) como las
+asociaciones AMBIENTAL heredadas de su infraestructura (`id_activo_biologico:
+null`, creadas vía `POST /infraestructuras/{id}/sensores` — ver más abajo).
+
+### Query params
+
+| Param | Tipo | Default | Notas |
+|-------|------|---------|-------|
+| `tipo_consulta` | `ACTIVA \| HISTORIAL` | `ACTIVA` | `ACTIVA` devuelve solo las vigentes; `HISTORIAL` incluye `INACTIVA` y `SUPERADA` |
+
+### Flujo — Consultar asociaciones vigentes (default)
+
+```bash
+curl -X GET http://localhost:8000/activos-biologicos/1/sensores \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_activo_biologico": 1,
+  "tipo_consulta": "ACTIVA",
+  "asociaciones": [
+    {
+      "id_asociacion_activo_sensor": 1,
+      "id_activo_biologico": 1,
+      "tipo_activo": "INDIVIDUAL",
+      "tipo_asociacion": "directa",
+      "dispositivo_iot_id": 1,
+      "sensor_id": 1,
+      "id_infraestructura": 1,
+      "fecha_inicio": "2026-06-29T14:00:00Z",
+      "fecha_fin": null,
+      "estado_asociacion": "ACTIVA",
+      "motivo": null,
+      "advertencia": null
+    }
+  ]
+}
+```
+
+### Flujo — Historial completo (incluye superadas/inactivas)
+
+```bash
+curl -X GET "http://localhost:8000/activos-biologicos/1/sensores?tipo_consulta=HISTORIAL" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+### Errores posibles
+
+**Activo inexistente (404)**
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "No existe un activo biológico con id 999."
+}
+```
+
+**`tipo_consulta` inválido (400)**
+```json
+{
+  "code": "TIPO_CONSULTA_INVALIDO",
+  "message": "tipo_consulta debe ser 'ACTIVA' o 'HISTORIAL'."
+}
+```
+
+---
+
 ## POST /activos-biologicos/{id_activo}/sensores
 
 Asocia un sensor IoT registrado en M09 a un activo biológico de M02.
@@ -44,6 +120,38 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 
 ---
 
+### Flujo alterno — Dispositivo IoT fuera de línea (INC-M02-35-G84 v2)
+
+Si el dispositivo IoT del sensor no ha enviado heartbeat en los últimos 30
+minutos (`modulo3.estados_dispositivos_iot.fecha_ultimo_contacto`), la
+asociación **igual se crea** (no bloquea la operación) pero la respuesta
+incluye `advertencia` con el aviso. Mismo request que el flujo principal;
+la diferencia está solo en el estado de conectividad del dispositivo.
+
+**Respuesta esperada (201 Created, con advertencia):**
+```json
+{
+  "id_asociacion_activo_sensor": 2,
+  "id_activo_biologico": 1,
+  "tipo_activo": "INDIVIDUAL",
+  "tipo_asociacion": "directa",
+  "dispositivo_iot_id": 4,
+  "sensor_id": 3,
+  "id_infraestructura": 1,
+  "fecha_inicio": "2026-09-18T15:00:00Z",
+  "fecha_fin": null,
+  "estado_asociacion": "ACTIVA",
+  "motivo": null,
+  "advertencia": "El dispositivo 4 se encuentra desconectado desde las 14:12:07. Las lecturas podrían no verse reflejadas de inmediato."
+}
+```
+
+Si M03 nunca evaluó el dispositivo (sin fila en `estados_dispositivos_iot`) o
+el último contacto está dentro de los 30 minutos, `advertencia` vuelve a ser
+`null` — mismo comportamiento que el flujo principal.
+
+---
+
 ### Flujo — Asociación AMBIENTAL (sensor compartido por infraestructura)
 
 ```bash
@@ -60,7 +168,7 @@ curl -X POST http://localhost:8000/activos-biologicos/2/sensores \
   }'
 ```
 
-**Nota**: Para AMBIENTAL, el mismo sensor puede estar activo para múltiples activos en la misma infraestructura.
+**Nota**: este flujo liga la asociación AMBIENTAL a **este activo puntual** (`id_activo_biologico=2`). Para AMBIENTAL, el mismo sensor puede estar activo para múltiples activos, pero antes de `INC-M02-66-G90/#217` la única forma de cubrir todos los activos de una infraestructura era repetir esta llamada una vez por activo. Para que un sensor ambiental aplique automáticamente a **todos** los activos de la infraestructura (RF-49 Tipo B) usar `POST /infraestructuras/{id_infraestructura}/sensores` — ver más abajo.
 
 ---
 
@@ -103,6 +211,20 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 ---
 
 ## Errores posibles
+
+### FA-01 — Activo biológico inexistente (422)
+
+Antes de INC-M02-63-G88 este caso respondía `404 ACTIVO_NO_ENCONTRADO`. El
+Flujo Alterno "Activo Biológico No Válido" del CU11 agrupa inexistente y BAJA
+bajo la misma respuesta — `422`, no `404` — y `ACTIVO_EN_BAJA` (abajo) ya lo
+hacía bien; solo faltaba alinear este caso con su vecino.
+
+```json
+{
+  "code": "ACTIVO_NO_ENCONTRADO",
+  "message": "No existe un activo biológico con id 99999."
+}
+```
 
 ### FA-02 — Activo en BAJA (422)
 
@@ -176,11 +298,159 @@ curl -X POST http://localhost:8000/activos-biologicos/1/sensores \
 }
 ```
 
+### FA-05b — Sensor POBLACIONAL ya activo en otro lote (409, INC-M02-64-G88)
+
+Restricción 4 del RF-49: un sensor POBLACIONAL solo puede estar activo en un
+único lote a la vez. Simétrico al caso anterior (ese valida por activo, este
+por sensor).
+
+```json
+{
+  "code": "SENSOR_YA_ASOCIADO_A_OTRO_LOTE",
+  "message": "El sensor 1 ya está asociado con tipo POBLACIONAL al activo 20. Un sensor solo puede estar activo en un único lote a la vez. Desactive esa asociación primero."
+}
+```
+
 ### FA-06 — Sin permiso (403)
 
 ```json
 {
   "code": "AUTHORIZATION_ERROR",
   "message": "No tienes permiso para realizar esta acción."
+}
+```
+
+---
+
+## POST /infraestructuras/{id_infraestructura}/sensores
+
+**INC-M02-66-G90 (issue #217, RF-49 Tipo B):** "Asociación Ambiental
+Compartida" — el sensor queda ligado a la infraestructura completa
+(`id_activo_biologico = NULL` en `modulo2.asociaciones_activos_sensores`), no
+a un activo puntual, y aplica automáticamente a todos los activos que residan
+en ella (cardinalidad 1 sensor → N activos, mediada por la infraestructura).
+`GET /activos-biologicos/{id_activo}/sensores` la refleja para cualquier
+activo de esta infraestructura (ver esa sección más arriba).
+
+No acepta `tipo_activo` ni `tipo_asociacion` en el body — solo crea
+asociaciones `AMBIENTAL`; `DIRECTA`/`POBLACIONAL` son inherentemente por
+activo y siguen usando `POST /activos-biologicos/{id_activo}/sensores`.
+Tampoco acepta `id_infraestructura` en el body — viene de la ruta.
+
+```bash
+curl -X POST http://localhost:8000/infraestructuras/1/sensores \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dispositivo_iot_id": 2,
+    "sensor_id": 3,
+    "motivo": "Monitoreo ambiental de todo el estanque"
+  }'
+```
+
+**Respuesta esperada (201):**
+```json
+{
+  "id_asociacion_activo_sensor": 30,
+  "id_activo_biologico": null,
+  "tipo_activo": null,
+  "tipo_asociacion": "ambiental",
+  "dispositivo_iot_id": 2,
+  "sensor_id": 3,
+  "id_infraestructura": 1,
+  "fecha_inicio": "2026-09-15T10:00:00Z",
+  "fecha_fin": null,
+  "estado_asociacion": "ACTIVA",
+  "motivo": "Monitoreo ambiental de todo el estanque",
+  "advertencia": null
+}
+```
+
+### Errores posibles
+
+- `422 INFRAESTRUCTURA_NO_ENCONTRADA` — la infraestructura no existe o no está activa
+- `404 SENSOR_NO_ENCONTRADO` — el sensor no existe
+- `422 SENSOR_INACTIVO` / `422 DISPOSITIVO_INACTIVO` — mismo criterio que el endpoint por activo
+- `422 SENSOR_SIN_AREA` — el sensor no tiene asociación activa a ninguna infraestructura (RF-22)
+- `409 INFRAESTRUCTURA_INCOMPATIBLE` — la infraestructura del sensor y la infraestructura destino están en fincas distintas
+- `409 ASOCIACION_AMBIENTAL_YA_EXISTE` — ya existe una asociación AMBIENTAL activa para este sensor sobre esta misma infraestructura (el índice único de BD no lo cubre: compara `id_activo_biologico`, y `NULL` nunca es igual a `NULL`)
+- `403` — sin permiso `C` sobre el recurso 30 (`asociacion_sensor_activo`), mismo recurso/acción que `POST /activos-biologicos/{id_activo}/sensores`
+
+---
+
+## PATCH /activos-biologicos/{id_activo}/sensores/{id_asociacion}
+
+**INC-M02-65-G89 (RF-49):** no existía ningún endpoint para gestionar el ciclo
+de vida de una asociación una vez creada — todo intento devolvía 404 por falta
+de ruta, incluida la transición inválida que debía rechazarse explícitamente.
+
+Transiciones manuales permitidas: `ACTIVA → INACTIVA` (desactivación),
+`INACTIVA → ACTIVA` (reactivación). `SUPERADA` es terminal y exclusivamente
+system-managed (la asigna `AsociarSensorActivoUseCase` al reemplazar una
+asociación) — no es alcanzable desde este endpoint bajo ninguna transición.
+
+### Desactivar una asociación ACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "INACTIVA", "motivo": "Sensor retirado para mantenimiento"}'
+```
+
+**Respuesta esperada (200):**
+```json
+{
+  "id_asociacion_activo_sensor": 1,
+  "estado_asociacion": "INACTIVA",
+  "fecha_fin": "2026-09-12T12:00:00Z",
+  "motivo": "Sensor retirado para mantenimiento",
+  "...": "resto de campos igual que en POST"
+}
+```
+
+### Reactivar una asociación INACTIVA
+
+```bash
+curl -X PATCH http://localhost:8000/activos-biologicos/1/sensores/1 \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"estado_nuevo": "ACTIVA"}'
+```
+
+**Resultado**: `fecha_fin` vuelve a `null`.
+
+### Errores
+
+**Transición inválida — ej. intentar fijar SUPERADA manualmente (422):**
+```json
+{
+  "error_code": "TRANSICION_INVALIDA",
+  "message": "La transición INACTIVA → SUPERADA no está permitida. Transiciones válidas desde INACTIVA: ACTIVA."
+}
+```
+
+**Estado redundante — ya está en el estado solicitado (409):**
+```json
+{
+  "error_code": "ESTADO_REDUNDANTE",
+  "message": "La asociación ya se encuentra en estado ACTIVA."
+}
+```
+
+**RBAC:** exige `(recurso 30, acción U=3)`. Roles autorizados: Administrador e
+Ingeniero de Campo (`admin_actualizar_asociacion_sensor_activo`,
+`ing_actualizar_asociacion_sensor_activo`) — Productor y Veterinario reciben
+`403`. **Corrección 2026-09-23**: ese permiso se había aplicado solo en
+`sgpmp`/`pruebas` y nunca llegó a `dev` vía migración — hasta la migración
+`1ee808f9ee6b_v5_4_0_rf49_permiso_patch_asociacion_sensor` este PATCH
+respondía `403` para los 4 roles en `dev`, incluido Administrador. Ver
+`cu11_gaps_bd_rf49.md` (iteración 2026-09-23).
+
+**Asociación inexistente, o de otro activo (404):**
+```json
+{
+  "error_code": "ASOCIACION_NO_ENCONTRADA",
+  "message": "No existe una asociación con id 999 para el activo 1."
 }
 ```

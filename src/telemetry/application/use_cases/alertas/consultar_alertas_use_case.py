@@ -31,6 +31,8 @@ class ConsultarAlertasUseCase:
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[Alerta], int]:
         return self.alerta_repo.listar(
             estado=estado,
@@ -43,10 +45,18 @@ class ConsultarAlertasUseCase:
             fecha_hasta=fecha_hasta,
             pagina=pagina,
             por_pagina=por_pagina,
+            ids_fincas_permitidas=ids_fincas_permitidas,
         )
 
-    def obtener_detalle(self, id_alerta: int) -> tuple[Alerta, list[HistoricoEstadoAlerta]]:
-        alerta = self.alerta_repo.obtener_por_id(id_alerta)
+    def obtener_detalle(
+        self,
+        id_alerta: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> tuple[Alerta, list[HistoricoEstadoAlerta]]:
+        alerta = self.alerta_repo.obtener_por_id(
+            id_alerta, ids_fincas_permitidas=ids_fincas_permitidas
+        )
         if alerta is None:
             raise NotFoundError(code="ALERTA_NO_ENCONTRADA", message=f"Alerta {id_alerta} no encontrada.")
         historico = self.historico_repo.obtener_por_alerta(id_alerta)

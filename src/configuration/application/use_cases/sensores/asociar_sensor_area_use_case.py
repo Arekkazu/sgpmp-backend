@@ -10,8 +10,11 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
+from typing import Optional
+
 from src.configuration.domain.entities.sensor_area import SensorArea
 from src.configuration.domain.repositories.auditoria_sensor_area_repository import AuditoriaSensorAreaRepository
+from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
 from src.configuration.domain.repositories.sensor_area_repository import SensorAreaRepository
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
@@ -29,12 +32,14 @@ class AsociarSensorAreaUseCase:
         sensor_repo: SensorRepository,
         sensor_area_repo: SensorAreaRepository,
         infra_repo: InfraestructuraRepository,
+        dispositivo_repo: DispositivoIotRepository,
         auditoria_repo: AuditoriaSensorAreaRepository,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
         self.sensor_area_repo = sensor_area_repo
         self.infra_repo = infra_repo
+        self.dispositivo_repo = dispositivo_repo
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_sensor: int, dto: AsociarSensorAreaDTO, usuario_actual: UsuarioActual) -> SensorArea:
@@ -50,16 +55,43 @@ class AsociarSensorAreaUseCase:
                 message=f"El sensor {id_sensor} no pertenece al dispositivo {dto.id_dispositivo_iot}.",
             )
 
+        dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
+        if dispositivo is None:
+            raise NotFoundError(
+                code="DISPOSITIVO_NO_ENCONTRADO",
+                message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
+            )
+
+        # RF-22, flujo alterno "Área productiva inexistente o inactiva": el RF
+        # describe un solo caso con un solo código —404— para las dos ramas. Antes
+        # el área inactiva salía como 422 y solo la inexistente como 404, así que
+        # el cliente veía dos contratos distintos para el mismo mensaje del RF.
         area = self.infra_repo.obtener_por_id(dto.id_infraestructura)
-        if area is None:
+        if area is None or not area.es_activo:
             raise NotFoundError(
                 code="AREA_NO_ENCONTRADA",
-                message=f"No existe un área productiva con ID {dto.id_infraestructura}.",
+                message=(
+                    "Ubicación inválida: El área productiva seleccionada no existe o se "
+                    "encuentra desactivada. No se pueden asociar sensores a "
+                    "infraestructuras fuera de operación."
+                ),
+                field="id_infraestructura",
             )
-        if not area.es_activo:
+
+        # INC-M09-22-G126-01: el dispositivo del sensor está instalado en una
+        # finca fija (su propia área de instalación). El sensor solo puede
+        # asociarse a áreas productivas de ESA MISMA finca — nunca a un área
+        # de una finca distinta, aunque el área exista y esté activa.
+        area_dispositivo = self.infra_repo.obtener_por_id(dispositivo.id_infraestructura)
+        if area_dispositivo is not None and area_dispositivo.id_finca != area.id_finca:
             raise BusinessRuleError(
-                code="AREA_NO_DISPONIBLE",
-                message="No se pueden asociar sensores a áreas productivas inactivas.",
+                code="SENSOR_FINCA_DISTINTA",
+                message=(
+                    f"El área productiva {dto.id_infraestructura} pertenece a una finca distinta "
+                    f"a la del dispositivo {dto.id_dispositivo_iot}. No se pueden asociar sensores "
+                    "entre fincas distintas."
+                ),
+                field="id_infraestructura",
             )
 
         asociacion_activa = self.sensor_area_repo.obtener_asociacion_activa(id_sensor)
@@ -119,9 +151,36 @@ class AsociarSensorAreaUseCase:
 
 class ConsultarAsociacionesUseCase:
 
-    def __init__(self, db: Session, sensor_area_repo: SensorAreaRepository) -> None:
+    def __init__(
+        self,
+        db: Session,
+        sensor_area_repo: SensorAreaRepository,
+        sensor_repo: SensorRepository,
+        dispositivo_repo: DispositivoIotRepository,
+        infra_repo: InfraestructuraRepository,
+    ) -> None:
         self.db = db
         self.sensor_area_repo = sensor_area_repo
+        self.sensor_repo = sensor_repo
+        self.dispositivo_repo = dispositivo_repo
+        self.infra_repo = infra_repo
 
-    def listar_por_sensor(self, id_sensor: int) -> list[SensorArea]:
+    def listar_por_sensor(
+        self, id_sensor: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[SensorArea]:
+        # INC-M09-22-G126-02: sin este chequeo, cualquier rol con permiso R
+        # sobre sensores (incluido Productor) podía leer el historial de
+        # asociaciones de un sensor de una finca totalmente ajena, solo
+        # cambiando el ID en la URL. Igual que ConsultarFincasUseCase.obtener,
+        # el filtro solo se aplica a un rol sin alcance global; un sensor ajeno
+        # responde 404, no 403, para no confirmar su existencia.
+        if ids_fincas_permitidas is not None:
+            sensor = self.sensor_repo.obtener_por_id(id_sensor)
+            dispositivo = self.dispositivo_repo.obtener_por_id(sensor.id_dispositivo_iot) if sensor else None
+            area = self.infra_repo.obtener_por_id(dispositivo.id_infraestructura) if dispositivo else None
+            if area is None or area.id_finca not in ids_fincas_permitidas:
+                raise NotFoundError(
+                    code="SENSOR_NO_ENCONTRADO",
+                    message=f"No existe un sensor con ID {id_sensor}.",
+                )
         return self.sensor_area_repo.listar_por_sensor(id_sensor)

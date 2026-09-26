@@ -13,7 +13,12 @@ class VinculacionLecturaRepository(ABC):
     def guardar(self, vinculacion: VinculacionLectura) -> VinculacionLectura: ...
 
     @abstractmethod
-    def obtener_por_id(self, id_vinculacion_lectura: int) -> Optional[VinculacionLectura]: ...
+    def obtener_por_id(
+        self,
+        id_vinculacion_lectura: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[VinculacionLectura]: ...
 
     @abstractmethod
     def actualizar(self, vinculacion: VinculacionLectura) -> VinculacionLectura: ...
@@ -29,4 +34,6 @@ class VinculacionLecturaRepository(ABC):
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[List[VinculacionLectura], int]: ...

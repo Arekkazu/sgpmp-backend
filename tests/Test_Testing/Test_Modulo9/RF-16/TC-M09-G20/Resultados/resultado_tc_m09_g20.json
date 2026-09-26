@@ -1,0 +1,2646 @@
+{
+  "collection": {
+    "_": {
+      "postman_id": "tc-m09-g20-auditoria-rf16"
+    },
+    "item": [
+      {
+        "id": "72ca79c7-ed6b-44ab-abc9-fb753c21a9a0",
+        "name": "Paso 0: Auth Admin",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "1d4f1c1b-20ba-456c-9234-94491a45b5ab",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Auth Admin exitosa - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Token JWT recibido', function () {",
+                "    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+                "});",
+                "pm.collectionVariables.set('jwt_token', resData.token);"
+              ],
+              "_lastExecutionId": "8478fb90-47cc-45e9-b4b8-7fcb75af36bf"
+            }
+          }
+        ]
+      },
+      {
+        "id": "c9be4674-3c2e-415d-a264-3af10e83c9cd",
+        "name": "Paso 1: TC-M09-44-1 - Crear Etapa (CREATE)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa Auditoria QA\",\n  \"descripcion\": \"Prueba de auditoria TC-M09-44\",\n  \"duracion_dias\": 25\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "7f9be5a2-c2be-46f0-a62f-fb3707edbab8",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Creación exitosa - HTTP 201', function () {",
+                "    pm.response.to.have.status(201);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('ID de etapa generado', function () {",
+                "    pm.expect(resData.id_ciclo_biologico).to.be.a('number');",
+                "});",
+                "pm.collectionVariables.set('id_ciclo_creado', resData.id_ciclo_biologico.toString());"
+              ],
+              "_lastExecutionId": "16c2caac-4e91-4882-8320-7b28d21cf352"
+            }
+          }
+        ]
+      },
+      {
+        "id": "24a46992-9910-489c-8446-9ff35d381f65",
+        "name": "Paso 2: TC-M09-44-2 - Editar Etapa (UPDATE)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos",
+              "{{id_ciclo_creado}}"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"nombre\": \"Etapa Auditoria QA Editada\",\n  \"descripcion\": \"Etapa editada para auditoria TC-M09-44\",\n  \"duracion_dias\": 35,\n  \"fecha_actualizacion\": null\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "343032f1-a0e7-4cca-96b9-5b716501d9b3",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Edición exitosa - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Nombre actualizado correctamente', function () {",
+                "    pm.expect(resData.nombre).to.eql('Etapa Auditoria QA Editada');",
+                "});"
+              ],
+              "_lastExecutionId": "a6794df5-2f12-4c09-97f0-eff1312bf2dc"
+            }
+          }
+        ]
+      },
+      {
+        "id": "487126e4-0514-4d3c-ab63-69c88a9786d0",
+        "name": "Paso 3: TC-M09-44-3 - Desactivar Etapa (DEACTIVATE)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos",
+              "{{id_ciclo_creado}}",
+              "desactivar"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "e5b4564f-2b8f-4876-91a1-ed02c871526c",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Desactivación exitosa - HTTP 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Etapa inactiva (es_activo = false)', function () {",
+                "    pm.expect(resData.es_activo).to.eql(false);",
+                "});"
+              ],
+              "_lastExecutionId": "6414c3bc-a640-4036-8bb6-f2886663be6b"
+            }
+          }
+        ]
+      },
+      {
+        "id": "78e77ffc-c901-45ae-a3fb-154dd4fa29a9",
+        "name": "Paso 4: TC-M09-44-4 - Edge Case (Intento Duplicado - HTTP 409)",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "{{baseUrl}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{jwt_token}}"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Fase juvenil cachama\",\n  \"descripcion\": \"Intento duplicado auditoria\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "7cce33b8-7552-4cf4-8b2a-121942f28c71",
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Operación duplicada rechazada - HTTP 409', function () {",
+                "    pm.response.to.have.status(409);",
+                "});",
+                "var resData = pm.response.json();",
+                "pm.test('Código de error ETAPA_DUPLICADA', function () {",
+                "    pm.expect(resData.error_code).to.eql('ETAPA_DUPLICADA');",
+                "});"
+              ],
+              "_lastExecutionId": "3fa4f21c-9ab2-4ff6-ba79-9ab4167717d2"
+            }
+          }
+        ]
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "string",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "baseUrl"
+      },
+      {
+        "type": "string",
+        "value": "admin@pecuaria.co",
+        "key": "admin_email"
+      },
+      {
+        "type": "string",
+        "value": "Test1234!",
+        "key": "admin_password"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "jwt_token"
+      },
+      {
+        "type": "string",
+        "value": "",
+        "key": "id_ciclo_creado"
+      }
+    ],
+    "info": {
+      "_postman_id": "tc-m09-g20-auditoria-rf16",
+      "name": "TC-M09-G20 — Auditoría de operaciones sobre parámetros de RF-16 (TC-M09-44)",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Suite E2E para TC-M09-G20 (sub-caso TC-M09-44, OWASP A09). Verifica que las operaciones CREATE, UPDATE y DEACTIVATE sobre etapas productivas registren eventos de auditoría inmutables en modulo9.auditorias_ciclos_biologicos y que los intentos fallidos (HTTP 409) no generen eventos de auditoría.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "9ced095c-a63e-4465-a48e-19b13cc13ba4",
+    "values": []
+  },
+  "globals": {
+    "id": "32bb5b94-a8f5-4fad-9fef-7b1949f69182",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 10,
+        "pending": 0,
+        "failed": 0
+      },
+      "testScripts": {
+        "total": 5,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 325.6,
+      "responseMin": 126,
+      "responseMax": 1057,
+      "responseSd": 366.1877114268036,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1788600419588,
+      "completed": 1788600421656
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 5,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "4e8c31c2-6478-475a-944f-15a0e92e18a5",
+          "httpRequestId": "098a74d3-5287-4d16-82b2-1b725a2e98a9"
+        },
+        "item": {
+          "id": "72ca79c7-ed6b-44ab-abc9-fb753c21a9a0",
+          "name": "Paso 0: Auth Admin",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "1d4f1c1b-20ba-456c-9234-94491a45b5ab",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth Admin exitosa - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Token JWT recibido', function () {",
+                  "    pm.expect(resData.token).to.be.a('string').that.is.not.empty;",
+                  "});",
+                  "pm.collectionVariables.set('jwt_token', resData.token);"
+                ],
+                "_lastExecutionId": "8478fb90-47cc-45e9-b4b8-7fcb75af36bf"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "ad55358f-30ab-46a4-8794-8c1be9f79294",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "76",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+          }
+        },
+        "response": {
+          "id": "954a40c8-84c5-4722-9145-4218bc3cc83a",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "404"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:26:57 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Set-Cookie",
+              "value": "refresh_token=WypLL_RRzkoGh_aKAPlvkStrK4yY99pWlByexT5Nk04; HttpOnly; Max-Age=604799; Path=/; SameSite=none; Secure"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "6e83dacb-f6d4-4d0f-83d9-b34258ef87a6"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              116,
+              111,
+              107,
+              101,
+              110,
+              34,
+              58,
+              34,
+              101,
+              121,
+              74,
+              104,
+              98,
+              71,
+              99,
+              105,
+              79,
+              105,
+              74,
+              73,
+              85,
+              122,
+              73,
+              49,
+              78,
+              105,
+              73,
+              115,
+              73,
+              110,
+              82,
+              53,
+              99,
+              67,
+              73,
+              54,
+              73,
+              107,
+              112,
+              88,
+              86,
+              67,
+              74,
+              57,
+              46,
+              101,
+              121,
+              74,
+              122,
+              100,
+              87,
+              73,
+              105,
+              79,
+              105,
+              73,
+              120,
+              73,
+              105,
+              119,
+              105,
+              97,
+              110,
+              82,
+              112,
+              73,
+              106,
+              111,
+              105,
+              77,
+              84,
+              77,
+              121,
+              77,
+              68,
+              65,
+              105,
+              76,
+              67,
+              74,
+              121,
+              98,
+              50,
+              119,
+              105,
+              79,
+              106,
+              69,
+              115,
+              73,
+              109,
+              86,
+              52,
+              99,
+              67,
+              73,
+              54,
+              77,
+              84,
+              99,
+              52,
+              79,
+              68,
+              89,
+              121,
+              79,
+              84,
+              73,
+              120,
+              79,
+              67,
+              119,
+              105,
+              97,
+              87,
+              70,
+              48,
+              73,
+              106,
+              111,
+              120,
+              78,
+              122,
+              103,
+              52,
+              78,
+              106,
+              65,
+              119,
+              78,
+              68,
+              69,
+              52,
+              102,
+              81,
+              46,
+              74,
+              102,
+              113,
+              80,
+              109,
+              118,
+              95,
+              106,
+              82,
+              72,
+              71,
+              77,
+              104,
+              80,
+              49,
+              111,
+              52,
+              52,
+              83,
+              72,
+              122,
+              84,
+              109,
+              106,
+              66,
+              78,
+              67,
+              73,
+              90,
+              68,
+              116,
+              95,
+              73,
+              122,
+              103,
+              120,
+              66,
+              80,
+              53,
+              66,
+              114,
+              79,
+              89,
+              34,
+              44,
+              34,
+              116,
+              105,
+              112,
+              111,
+              34,
+              58,
+              34,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              34,
+              44,
+              34,
+              101,
+              120,
+              112,
+              105,
+              114,
+              97,
+              95,
+              101,
+              110,
+              34,
+              58,
+              50,
+              56,
+              55,
+              57,
+              57,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              105,
+              110,
+              105,
+              99,
+              105,
+              97,
+              100,
+              97,
+              32,
+              101,
+              120,
+              105,
+              116,
+              111,
+              115,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              46,
+              32,
+              83,
+              101,
+              32,
+              104,
+              97,
+              32,
+              99,
+              101,
+              114,
+              114,
+              97,
+              100,
+              111,
+              32,
+              97,
+              117,
+              116,
+              111,
+              109,
+              195,
+              161,
+              116,
+              105,
+              99,
+              97,
+              109,
+              101,
+              110,
+              116,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              97,
+              99,
+              116,
+              105,
+              118,
+              97,
+              32,
+              101,
+              110,
+              32,
+              111,
+              116,
+              114,
+              111,
+              115,
+              32,
+              100,
+              105,
+              115,
+              112,
+              111,
+              115,
+              105,
+              116,
+              105,
+              118,
+              111,
+              115,
+              32,
+              112,
+              111,
+              114,
+              32,
+              112,
+              111,
+              108,
+              195,
+              173,
+              116,
+              105,
+              99,
+              97,
+              115,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              103,
+              117,
+              114,
+              105,
+              100,
+              97,
+              100,
+              32,
+              100,
+              101,
+              32,
+              115,
+              101,
+              115,
+              105,
+              195,
+              179,
+              110,
+              32,
+              195,
+              186,
+              110,
+              105,
+              99,
+              97,
+              46,
+              34,
+              44,
+              34,
+              112,
+              101,
+              114,
+              102,
+              105,
+              108,
+              95,
+              105,
+              110,
+              99,
+              111,
+              109,
+              112,
+              108,
+              101,
+              116,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 1057,
+          "responseSize": 404
+        },
+        "id": "72ca79c7-ed6b-44ab-abc9-fb753c21a9a0",
+        "assertions": [
+          {
+            "assertion": "Auth Admin exitosa - HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Token JWT recibido",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "5aa201f2-9c0f-473f-a623-dedc83369163",
+          "length": 5,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "656d0f19-64fd-49e5-b7fa-872cb868c249"
+        },
+        "item": {
+          "id": "c9be4674-3c2e-415d-a264-3af10e83c9cd",
+          "name": "Paso 1: TC-M09-44-1 - Crear Etapa (CREATE)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa Auditoria QA\",\n  \"descripcion\": \"Prueba de auditoria TC-M09-44\",\n  \"duracion_dias\": 25\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7f9be5a2-c2be-46f0-a62f-fb3707edbab8",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Creación exitosa - HTTP 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('ID de etapa generado', function () {",
+                  "    pm.expect(resData.id_ciclo_biologico).to.be.a('number');",
+                  "});",
+                  "pm.collectionVariables.set('id_ciclo_creado', resData.id_ciclo_biologico.toString());"
+                ],
+                "_lastExecutionId": "16c2caac-4e91-4882-8320-7b28d21cf352"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMyMDAiLCJyb2wiOjEsImV4cCI6MTc4ODYyOTIxOCwiaWF0IjoxNzg4NjAwNDE4fQ.JfqPmv_jRHGMhP1o44SHzTmjBNCIZDt_IzgxBP5BrOY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "70c7eaa3-6446-4265-a458-9a263dfe78e6",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "128",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WypLL_RRzkoGh_aKAPlvkStrK4yY99pWlByexT5Nk04",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Etapa Auditoria QA\",\n  \"descripcion\": \"Prueba de auditoria TC-M09-44\",\n  \"duracion_dias\": 25\n}"
+          }
+        },
+        "response": {
+          "id": "2fd3e219-1e5c-495e-92eb-2f54be9f010c",
+          "status": "Created",
+          "code": 201,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "179"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:26:58 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "23c78a66-fbc1-4924-bd81-f50a19fc3d44"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              34,
+              58,
+              34,
+              69,
+              116,
+              97,
+              112,
+              97,
+              32,
+              65,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              81,
+              65,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              80,
+              114,
+              117,
+              101,
+              98,
+              97,
+              32,
+              100,
+              101,
+              32,
+              97,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              84,
+              67,
+              45,
+              77,
+              48,
+              57,
+              45,
+              52,
+              52,
+              34,
+              44,
+              34,
+              100,
+              117,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              100,
+              105,
+              97,
+              115,
+              34,
+              58,
+              50,
+              53,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              52,
+              44,
+              34,
+              101,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              105,
+              122,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              110,
+              117,
+              108,
+              108,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 179,
+          "responseSize": 179
+        },
+        "id": "c9be4674-3c2e-415d-a264-3af10e83c9cd",
+        "assertions": [
+          {
+            "assertion": "Creación exitosa - HTTP 201",
+            "skipped": false
+          },
+          {
+            "assertion": "ID de etapa generado",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "a759583e-5a24-43a1-b8fe-c6a3c498e672",
+          "length": 5,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "ea5c733d-567f-4836-83a7-b4208674d253"
+        },
+        "item": {
+          "id": "24a46992-9910-489c-8446-9ff35d381f65",
+          "name": "Paso 2: TC-M09-44-2 - Editar Etapa (UPDATE)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos",
+                "{{id_ciclo_creado}}"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Etapa Auditoria QA Editada\",\n  \"descripcion\": \"Etapa editada para auditoria TC-M09-44\",\n  \"duracion_dias\": 35,\n  \"fecha_actualizacion\": null\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "343032f1-a0e7-4cca-96b9-5b716501d9b3",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Edición exitosa - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Nombre actualizado correctamente', function () {",
+                  "    pm.expect(resData.nombre).to.eql('Etapa Auditoria QA Editada');",
+                  "});"
+                ],
+                "_lastExecutionId": "a6794df5-2f12-4c09-97f0-eff1312bf2dc"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos",
+              "20"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMyMDAiLCJyb2wiOjEsImV4cCI6MTc4ODYyOTIxOCwiaWF0IjoxNzg4NjAwNDE4fQ.JfqPmv_jRHGMhP1o44SHzTmjBNCIZDt_IzgxBP5BrOY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "e6490ea1-2d24-485c-8cc9-ae2ac3580447",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "157",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WypLL_RRzkoGh_aKAPlvkStrK4yY99pWlByexT5Nk04",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"nombre\": \"Etapa Auditoria QA Editada\",\n  \"descripcion\": \"Etapa editada para auditoria TC-M09-44\",\n  \"duracion_dias\": 35,\n  \"fecha_actualizacion\": null\n}"
+          }
+        },
+        "response": {
+          "id": "8d82980f-9278-4b4a-bbe6-9d5109fa5d39",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "221"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:26:58 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d5012865-7211-4f29-b53e-56ff017bde4a"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              34,
+              58,
+              34,
+              69,
+              116,
+              97,
+              112,
+              97,
+              32,
+              65,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              81,
+              65,
+              32,
+              69,
+              100,
+              105,
+              116,
+              97,
+              100,
+              97,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              69,
+              116,
+              97,
+              112,
+              97,
+              32,
+              101,
+              100,
+              105,
+              116,
+              97,
+              100,
+              97,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              97,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              84,
+              67,
+              45,
+              77,
+              48,
+              57,
+              45,
+              52,
+              52,
+              34,
+              44,
+              34,
+              100,
+              117,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              100,
+              105,
+              97,
+              115,
+              34,
+              58,
+              51,
+              53,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              52,
+              44,
+              34,
+              101,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              116,
+              114,
+              117,
+              101,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              105,
+              122,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              50,
+              54,
+              58,
+              53,
+              57,
+              46,
+              52,
+              57,
+              49,
+              49,
+              57,
+              57,
+              90,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 133,
+          "responseSize": 221
+        },
+        "id": "24a46992-9910-489c-8446-9ff35d381f65",
+        "assertions": [
+          {
+            "assertion": "Edición exitosa - HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Nombre actualizado correctamente",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "234cff2d-2b06-4c4b-a4b8-b45f5f284e91",
+          "length": 5,
+          "cycles": 1,
+          "position": 3,
+          "iteration": 0,
+          "httpRequestId": "3702ef64-16ca-46e5-ab5f-d947967a743c"
+        },
+        "item": {
+          "id": "487126e4-0514-4d3c-ab63-69c88a9786d0",
+          "name": "Paso 3: TC-M09-44-3 - Desactivar Etapa (DEACTIVATE)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos",
+                "{{id_ciclo_creado}}",
+                "desactivar"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "PATCH",
+            "body": {
+              "mode": "raw",
+              "raw": ""
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "e5b4564f-2b8f-4876-91a1-ed02c871526c",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Desactivación exitosa - HTTP 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Etapa inactiva (es_activo = false)', function () {",
+                  "    pm.expect(resData.es_activo).to.eql(false);",
+                  "});"
+                ],
+                "_lastExecutionId": "6414c3bc-a640-4036-8bb6-f2886663be6b"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos",
+              "20",
+              "desactivar"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMyMDAiLCJyb2wiOjEsImV4cCI6MTc4ODYyOTIxOCwiaWF0IjoxNzg4NjAwNDE4fQ.JfqPmv_jRHGMhP1o44SHzTmjBNCIZDt_IzgxBP5BrOY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "16ee2356-19b4-4e95-83fc-a4d3af26503b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WypLL_RRzkoGh_aKAPlvkStrK4yY99pWlByexT5Nk04",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "0",
+              "system": true
+            }
+          ],
+          "method": "PATCH",
+          "body": {
+            "mode": "raw",
+            "raw": ""
+          }
+        },
+        "response": {
+          "id": "e468cf57-204f-4af9-8763-255d81767ed9",
+          "status": "OK",
+          "code": 200,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "222"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:26:58 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "45f6b898-4ed1-4806-a44c-1a3f69516e85"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              105,
+              100,
+              95,
+              99,
+              105,
+              99,
+              108,
+              111,
+              95,
+              98,
+              105,
+              111,
+              108,
+              111,
+              103,
+              105,
+              99,
+              111,
+              34,
+              58,
+              50,
+              48,
+              44,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              34,
+              58,
+              34,
+              69,
+              116,
+              97,
+              112,
+              97,
+              32,
+              65,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              81,
+              65,
+              32,
+              69,
+              100,
+              105,
+              116,
+              97,
+              100,
+              97,
+              34,
+              44,
+              34,
+              100,
+              101,
+              115,
+              99,
+              114,
+              105,
+              112,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              69,
+              116,
+              97,
+              112,
+              97,
+              32,
+              101,
+              100,
+              105,
+              116,
+              97,
+              100,
+              97,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              97,
+              117,
+              100,
+              105,
+              116,
+              111,
+              114,
+              105,
+              97,
+              32,
+              84,
+              67,
+              45,
+              77,
+              48,
+              57,
+              45,
+              52,
+              52,
+              34,
+              44,
+              34,
+              100,
+              117,
+              114,
+              97,
+              99,
+              105,
+              111,
+              110,
+              95,
+              100,
+              105,
+              97,
+              115,
+              34,
+              58,
+              51,
+              53,
+              44,
+              34,
+              105,
+              100,
+              95,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              34,
+              58,
+              52,
+              44,
+              34,
+              101,
+              115,
+              95,
+              97,
+              99,
+              116,
+              105,
+              118,
+              111,
+              34,
+              58,
+              102,
+              97,
+              108,
+              115,
+              101,
+              44,
+              34,
+              102,
+              101,
+              99,
+              104,
+              97,
+              95,
+              97,
+              99,
+              116,
+              117,
+              97,
+              108,
+              105,
+              122,
+              97,
+              99,
+              105,
+              111,
+              110,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              50,
+              54,
+              58,
+              53,
+              57,
+              46,
+              55,
+              48,
+              55,
+              53,
+              53,
+              57,
+              90,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 133,
+          "responseSize": 222
+        },
+        "id": "487126e4-0514-4d3c-ab63-69c88a9786d0",
+        "assertions": [
+          {
+            "assertion": "Desactivación exitosa - HTTP 200",
+            "skipped": false
+          },
+          {
+            "assertion": "Etapa inactiva (es_activo = false)",
+            "skipped": false
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "06a3fdb1-ca49-41de-842c-1c284d65e299",
+          "length": 5,
+          "cycles": 1,
+          "position": 4,
+          "iteration": 0,
+          "httpRequestId": "e0e2d11f-7fd0-4409-991b-6d9b8d869fe5"
+        },
+        "item": {
+          "id": "78e77ffc-c901-45ae-a3fb-154dd4fa29a9",
+          "name": "Paso 4: TC-M09-44-4 - Edge Case (Intento Duplicado - HTTP 409)",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "ciclos"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Fase juvenil cachama\",\n  \"descripcion\": \"Intento duplicado auditoria\",\n  \"duracion_dias\": 30\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7cce33b8-7552-4cf4-8b2a-121942f28c71",
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Operación duplicada rechazada - HTTP 409', function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "var resData = pm.response.json();",
+                  "pm.test('Código de error ETAPA_DUPLICADA', function () {",
+                  "    pm.expect(resData.error_code).to.eql('ETAPA_DUPLICADA');",
+                  "});"
+                ],
+                "_lastExecutionId": "3fa4f21c-9ab2-4ff6-ba79-9ab4167717d2"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "ciclos"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwianRpIjoiMTMyMDAiLCJyb2wiOjEsImV4cCI6MTc4ODYyOTIxOCwiaWF0IjoxNzg4NjAwNDE4fQ.JfqPmv_jRHGMhP1o44SHzTmjBNCIZDt_IzgxBP5BrOY"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "eeda3abd-0e1b-4cd0-ba16-e34250fae124",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "128",
+              "system": true
+            },
+            {
+              "key": "Cookie",
+              "value": "refresh_token=WypLL_RRzkoGh_aKAPlvkStrK4yY99pWlByexT5Nk04",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"Fase juvenil cachama\",\n  \"descripcion\": \"Intento duplicado auditoria\",\n  \"duracion_dias\": 30\n}"
+          }
+        },
+        "response": {
+          "id": "24203204-ff0f-478b-b68e-f527a06e190a",
+          "status": "Conflict",
+          "code": 409,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "285"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 05 Sep 2026 09:26:59 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "c8431515-f0c0-4634-9972-55121746d4fc"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              69,
+              84,
+              65,
+              80,
+              65,
+              95,
+              68,
+              85,
+              80,
+              76,
+              73,
+              67,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              89,
+              97,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              116,
+              97,
+              112,
+              97,
+              32,
+              99,
+              111,
+              110,
+              32,
+              101,
+              108,
+              32,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              32,
+              39,
+              70,
+              97,
+              115,
+              101,
+              32,
+              106,
+              117,
+              118,
+              101,
+              110,
+              105,
+              108,
+              32,
+              99,
+              97,
+              99,
+              104,
+              97,
+              109,
+              97,
+              39,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              89,
+              97,
+              32,
+              101,
+              120,
+              105,
+              115,
+              116,
+              101,
+              32,
+              117,
+              110,
+              97,
+              32,
+              101,
+              116,
+              97,
+              112,
+              97,
+              32,
+              99,
+              111,
+              110,
+              32,
+              101,
+              108,
+              32,
+              110,
+              111,
+              109,
+              98,
+              114,
+              101,
+              32,
+              39,
+              70,
+              97,
+              115,
+              101,
+              32,
+              106,
+              117,
+              118,
+              101,
+              110,
+              105,
+              108,
+              32,
+              99,
+              97,
+              99,
+              104,
+              97,
+              109,
+              97,
+              39,
+              32,
+              112,
+              97,
+              114,
+              97,
+              32,
+              101,
+              115,
+              116,
+              97,
+              32,
+              101,
+              115,
+              112,
+              101,
+              99,
+              105,
+              101,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              48,
+              53,
+              84,
+              48,
+              57,
+              58,
+              50,
+              54,
+              58,
+              53,
+              57,
+              46,
+              57,
+              50,
+              56,
+              50,
+              50,
+              57,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 126,
+          "responseSize": 285
+        },
+        "id": "78e77ffc-c901-45ae-a3fb-154dd4fa29a9",
+        "assertions": [
+          {
+            "assertion": "Operación duplicada rechazada - HTTP 409",
+            "skipped": false
+          },
+          {
+            "assertion": "Código de error ETAPA_DUPLICADA",
+            "skipped": false
+          }
+        ]
+      }
+    ],
+    "transfers": {
+      "responseTotal": 1311
+    },
+    "failures": [],
+    "error": null
+  }
+}

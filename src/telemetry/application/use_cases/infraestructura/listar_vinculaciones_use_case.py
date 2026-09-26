@@ -25,6 +25,8 @@ class ListarVinculacionesUseCase:
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
         return self.vinculacion_repo.listar(
             id_telemetria=id_telemetria,
@@ -35,4 +37,5 @@ class ListarVinculacionesUseCase:
             fecha_hasta=fecha_hasta,
             pagina=pagina,
             por_pagina=por_pagina,
+            ids_fincas_permitidas=ids_fincas_permitidas,
         )

@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
 from src.telemetry.domain.entities.vinculacion_lectura import VinculacionLectura
 from src.telemetry.domain.repositories.vinculacion_lectura_repository import VinculacionLecturaRepository
@@ -40,9 +41,26 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         except Exception as exc:
             raise_from_db_error(exc)
 
-    def obtener_por_id(self, id_vinculacion_lectura: int) -> Optional[VinculacionLectura]:
+    def obtener_por_id(
+        self,
+        id_vinculacion_lectura: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[VinculacionLectura]:
         orm = self.db.get(VinculacionLecturaModel, id_vinculacion_lectura)
-        return self._a_entidad(orm) if orm else None
+        if orm is None:
+            return None
+        if ids_fincas_permitidas is not None:
+            id_finca = (
+                self.db.execute(
+                    select(InfraestructuraModel.id_finca).where(
+                        InfraestructuraModel.id_infraestructura == orm.id_infraestructura
+                    )
+                ).scalar_one_or_none()
+            )
+            if id_finca not in ids_fincas_permitidas:
+                return None
+        return self._a_entidad(orm)
 
     def actualizar(self, vinculacion: VinculacionLectura) -> VinculacionLectura:
         try:
@@ -69,8 +87,16 @@ class SqlAlchemyVinculacionLecturaRepository(VinculacionLecturaRepository):
         fecha_hasta: Optional[datetime] = None,
         pagina: int = 1,
         por_pagina: int = 50,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> Tuple[List[VinculacionLectura], int]:
         q = select(VinculacionLecturaModel)
+        if ids_fincas_permitidas is not None:
+            q = q.join(
+                InfraestructuraModel,
+                VinculacionLecturaModel.id_infraestructura
+                == InfraestructuraModel.id_infraestructura,
+            ).where(InfraestructuraModel.id_finca.in_(ids_fincas_permitidas))
         if id_telemetria is not None:
             q = q.where(VinculacionLecturaModel.id_telemetria == id_telemetria)
         if estado_vinculacion:

@@ -17,6 +17,7 @@ Trazabilidad de los gaps que corrigen estas pruebas (auditoría
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
@@ -255,11 +256,35 @@ def test_enums_de_metrica_se_validan_contra_los_value_objects():
         "metricas_produccion": [{
             "nombre": "Peso promedio", "unidad_medida": "kg",
             "tipo_medicion": "INVENTADO", "aplica_a_tipo_activo": "ANIMAL",
+            "tipo_dato": "NUMERICO", "es_obligatorio": False,
         }],
     })
     assert len(errores) == 2
     assert all(m.value in errores[0] for m in TipoMedicion)
     assert all(a.value in errores[1] for a in AplicaTipoActivo)
+
+
+def test_metrica_sin_tipo_dato_ni_es_obligatorio_sigue_siendo_valida():
+    """#208 agregó tipo_dato/es_obligatorio como opcionales (schema v2): un
+    cliente que aún no los envía debe poder seguir creando plantillas."""
+    errores = validar_snapshot({
+        "metricas_produccion": [{
+            "nombre": "Peso promedio", "unidad_medida": "kg",
+            "tipo_medicion": "PESO", "aplica_a_tipo_activo": "INDIVIDUAL",
+        }],
+    })
+    assert errores == []
+
+
+def test_metrica_con_tipo_dato_invalido_se_rechaza_si_viene_informado():
+    errores = validar_snapshot({
+        "metricas_produccion": [{
+            "nombre": "Peso promedio", "unidad_medida": "kg",
+            "tipo_medicion": "PESO", "aplica_a_tipo_activo": "INDIVIDUAL",
+            "tipo_dato": "FECHA", "es_obligatorio": "si",
+        }],
+    })
+    assert len(errores) == 2
 
 
 def test_niveles_del_umbral_se_validan_aunque_la_clave_sea_opcional():
@@ -370,12 +395,29 @@ class _AuditoriaRepoFake:
         self.ultimo = kwargs
 
 
+class _VariableRepoFake:
+    """Variable de rango físico [15.0, 30.0], igual que 'Temperatura del agua'."""
+
+    def obtener_por_id(self, id_variable_ambiental):
+        if id_variable_ambiental is None:
+            return None
+        return SimpleNamespace(
+            id_variable_ambiental=id_variable_ambiental,
+            nombre="Temperatura del agua",
+            unidad="°C",
+            valor_fisico_min=Decimal("15.0"),
+            valor_fisico_max=Decimal("30.0"),
+            es_activo=True,
+        )
+
+
 def _use_case_registro():
     return RegistrarPlantillaUseCase(
         db=_DbFake(),
         plantilla_repo=_PlantillaRepoFake(),
         especie_repo=_EspecieRepoFake(),
         auditoria_repo=_AuditoriaRepoFake(),
+        variable_repo=_VariableRepoFake(),
     )
 
 
@@ -400,11 +442,13 @@ def test_scope_creep_lanza_422_y_no_toca_la_base():
     assert error.code == "ALCANCE_NO_PERMITIDO"
     assert "dispositivos_iot" in error.message
     assert error.field == "params_snapshot"
-    # Se corta antes de consultar la especie, guardar o auditar.
+    # Se corta antes de consultar la especie o guardar la plantilla...
     assert use_case.especie_repo.consultada is False
     assert use_case.plantilla_repo.guardadas == []
-    assert use_case.auditoria_repo.registros == 0
-    assert use_case.db.commits == 0
+    # ...pero INC-M09-02-115 (#318) exige auditar igual el intento fallido.
+    assert use_case.auditoria_repo.registros == 1
+    assert use_case.auditoria_repo.ultimo["resultado"] == "FALLIDO"
+    assert use_case.db.commits == 1
 
 
 @pytest.mark.parametrize("clave", sorted(CLAVES_FUERA_DE_ALCANCE))
@@ -425,6 +469,47 @@ def test_snapshot_dentro_del_alcance_no_dispara_el_422():
     assert plantilla.version == 1
     assert plantilla.params_snapshot["schema_version"] == SCHEMA_VERSION_ACTUAL
     assert use_case.db.commits == 1
+
+
+# ── RF-31 (#126) — rango físico de umbrales ambientales ──────────────────────
+# `_VariableRepoFake` simula una variable con rango físico real [15.0, 30.0].
+# Antes de este fix, un umbral fuera de ese rango pasaba sin ningún control: el
+# DTO solo valida tipo (número), no rango, porque no conoce la BD.
+
+_UMBRAL_FUERA_DE_RANGO = {
+    "id_variable_ambiental": 1, "unidad_medida": "°C",
+    "valor_min": "-999", "valor_max": "999",
+}
+_UMBRAL_DENTRO_DE_RANGO = {
+    "id_variable_ambiental": 1, "unidad_medida": "°C",
+    "valor_min": "18.0", "valor_max": "25.0",
+}
+
+
+def test_crear_con_umbral_fuera_de_rango_fisico_responde_422():
+    use_case = _use_case_registro()
+    dto = _dto_con({"umbrales_ambientales": [_UMBRAL_FUERA_DE_RANGO]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(dto, USUARIO)
+
+    error = exc_info.value
+    assert error.status_code == 422
+    assert error.code == "RANGO_FISICO_INVALIDO"
+    assert error.field == "params_snapshot"
+    assert use_case.plantilla_repo.guardadas == []
+    # INC-M09-02-115 (#318): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
+
+
+def test_crear_con_umbral_dentro_de_rango_fisico_no_dispara_422():
+    use_case = _use_case_registro()
+    dto = _dto_con({"umbrales_ambientales": [_UMBRAL_DENTRO_DE_RANGO]})
+
+    plantilla = use_case.execute(dto, USUARIO)
+
+    assert use_case.db.commits == 1
+    assert plantilla.params_snapshot["umbrales_ambientales"] == [_UMBRAL_DENTRO_DE_RANGO]
 
 
 # ── RF-30 / RF-31 — nombre único al crear, versionado explícito ──────────────
@@ -456,7 +541,8 @@ def test_crear_con_nombre_repetido_responde_409():
     assert error.code == "NOMBRE_PLANTILLA_DUPLICADO"
     assert "Config estándar" in error.message
     assert error.field == "template_name"
-    assert use_case.db.commits == 0
+    # INC-M09-02-115 (#318): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
     assert len(use_case.plantilla_repo.guardadas) == 1  # no se creó una v2
 
 
@@ -489,6 +575,7 @@ def _use_case_versionado(existentes):
         plantilla_repo=_PlantillaRepoFake(existentes),
         especie_repo=_EspecieRepoFake(),
         auditoria_repo=_AuditoriaRepoFake(),
+        variable_repo=_VariableRepoFake(),
     )
 
 
@@ -551,7 +638,8 @@ def test_versionar_una_plantilla_inexistente_responde_404():
         use_case.execute(99, _dto_version(), USUARIO)
 
     assert exc_info.value.code == "PLANTILLA_NO_ENCONTRADA"
-    assert use_case.db.commits == 0
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
 
 
 def test_versionar_con_especie_desactivada_responde_422():
@@ -563,7 +651,8 @@ def test_versionar_con_especie_desactivada_responde_422():
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.code == "ESPECIE_INACTIVA"
-    assert use_case.db.commits == 0
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
 
 
 def test_versionar_tambien_rechaza_el_scope_creep_con_422():
@@ -574,3 +663,17 @@ def test_versionar_tambien_rechaza_el_scope_creep_con_422():
         use_case.execute(1, dto, USUARIO)
 
     assert exc_info.value.code == "ALCANCE_NO_PERMITIDO"
+
+
+def test_versionar_tambien_rechaza_umbral_fuera_de_rango_fisico():
+    """Mismo gap que en creación: versionar persiste un snapshot nuevo e
+    inmutable, así que también debe validar el rango físico (#126)."""
+    use_case = _use_case_versionado([_plantilla_existente()])
+    dto = _dto_version({"umbrales_ambientales": [_UMBRAL_FUERA_DE_RANGO]})
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        use_case.execute(1, dto, USUARIO)
+
+    assert exc_info.value.code == "RANGO_FISICO_INVALIDO"
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1

@@ -1,17 +1,23 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, FichaIntegral
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError
+
+logger = logging.getLogger(__name__)
 
 
 class ConsultarFichaIntegralUseCase:
@@ -26,9 +32,15 @@ class ConsultarFichaIntegralUseCase:
         self.activo_repo = activo_repo
         self.bitacora_repo = bitacora_repo
 
-    def execute(self, id_activo: int, usuario: UsuarioActual) -> FichaIntegral:
+    def execute(
+        self,
+        id_activo: int,
+        usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> FichaIntegral:
         # E-01: el activo debe existir
-        activo = self.activo_repo.obtener_por_id(id_activo)
+        activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',
@@ -44,13 +56,15 @@ class ConsultarFichaIntegralUseCase:
         ).fetchone()
 
         # ── Sección 5: últimos 5 eventos por categoría
-        eventos_sanitarios = self._ultimos_sanitarios(id_activo)
-        eventos_productivos = self._ultimos_productivos(id_activo)
-        eventos_crecimiento = self._ultimos_crecimiento(id_activo)
-        eventos_reproductivos = self._ultimos_reproductivos(id_activo)
+        eventos_sanitarios = self._seccion('Eventos sanitarios', self._ultimos_sanitarios, id_activo, advertencias)
+        eventos_productivos = self._seccion('Eventos productivos', self._ultimos_productivos, id_activo, advertencias)
+        eventos_crecimiento = self._seccion('Eventos de crecimiento', self._ultimos_crecimiento, id_activo, advertencias)
+        eventos_reproductivos = self._seccion(
+            'Eventos reproductivos', self._ultimos_reproductivos, id_activo, advertencias,
+        )
 
         # ── Sección 6: indicadores zootécnicos
-        indicadores = self._indicadores(id_activo)
+        indicadores = self._seccion('Indicadores zootécnicos', self._indicadores, id_activo, advertencias)
 
         # ── Verificación de consistencia estado vs fase (E-04)
         if ficha_row:
@@ -64,18 +78,13 @@ class ConsultarFichaIntegralUseCase:
                 )
 
         def _emit_audit() -> None:
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF47', tipo_evento='FICHA_CONSULTADA',
-                        clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                        severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo,
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF47', tipo_evento='FICHA_CONSULTADA',
+                clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+                severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo,
+                id_usuario_responsable=usuario.id_usuario,
+            ))
 
         if ficha_row:
             ficha = FichaIntegral(
@@ -136,6 +145,26 @@ class ConsultarFichaIntegralUseCase:
         )
         _emit_audit()
         return ficha
+
+    def _seccion(
+        self,
+        nombre: str,
+        cargar: Callable[[int], list[dict]],
+        id_activo: int,
+        advertencias: list[str],
+    ) -> list[dict]:
+        """E-03: una sección que no carga se reporta sola; el resto de la ficha sigue (HTTP 200).
+
+        El savepoint es lo que lo hace posible: sin él, PostgreSQL aborta la
+        transacción al primer error y todas las secciones siguientes fallarían.
+        """
+        try:
+            with self.db.begin_nested():
+                return cargar(id_activo)
+        except SQLAlchemyError:
+            logger.exception('RF-47: la sección "%s" de la ficha del activo %s no cargó', nombre, id_activo)
+            advertencias.append(f'La sección {nombre} no pudo cargarse en este momento.')
+            return []
 
     def _ultimos_sanitarios(self, id_activo: int) -> list[dict]:
         rows = self.db.execute(

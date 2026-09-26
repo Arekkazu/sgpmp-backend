@@ -3,6 +3,8 @@
 - `RequestContextMiddleware`: inyecta `request_id`, IP y user-agent en `request.state`
   y expone el correlativo como cabecera `X-Request-ID` en la respuesta.
 - `AccessLogMiddleware`: registra método, ruta, código de respuesta y latencia.
+- `SecurityHeadersMiddleware`: agrega las cabeceras de seguridad HTTP recomendadas
+  (OWASP Secure Headers) a toda respuesta.
 - `setup_middlewares`: función de configuración que registra ambos middlewares.
   El CORS real está en `main.py` (con `allow_credentials=True` + orígenes
   explícitos, requerido por la cookie de refresh token); este módulo no
@@ -79,6 +81,33 @@ class AccessLogMiddleware(BaseHTTPMiddleware):
         elapsed = (time.time() - start) * 1000
         log.info("Response [%s] %s %s %d (%.1fms)",
                 req_id, request.method, request.url.path, response.status_code, elapsed)
+        return response
+
+
+#: INC-M02-56-G04: `/docs` y `/redoc` cargan Swagger UI / ReDoc desde un CDN;
+#: una Content-Security-Policy `default-src 'none'` los deja en blanco. El
+#: resto de cabeceras de esta clase sí se aplican tambien ahi.
+_RUTAS_SIN_CSP_ESTRICTA = frozenset({"/docs", "/redoc"})
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Agrega las cabeceras de seguridad HTTP recomendadas a toda respuesta.
+
+    INC-M02-56-G04: un escaneo pasivo de OWASP ZAP sobre las 197 rutas
+    documentadas del API confirmó que ninguna respuesta traía
+    `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy` ni
+    `Strict-Transport-Security`. El API es JSON puro (sin vistas propias), así
+    que una CSP `default-src 'none'` es correcta salvo en la documentación
+    interactiva.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains"
+        if request.url.path not in _RUTAS_SIN_CSP_ESTRICTA:
+            response.headers["Content-Security-Policy"] = "default-src 'none'"
         return response
 
 

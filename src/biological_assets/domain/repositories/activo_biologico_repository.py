@@ -7,6 +7,7 @@ from typing import Optional
 from src.biological_assets.domain.entities.activo_biologico import (
     ActivoBiologico,
     GestionFase,
+    HistorialActivo,
     HistorialInfraestructura,
 )
 
@@ -17,8 +18,17 @@ class ActivoBiologicoRepository(ABC):
         """Persiste el activo biológico y sus detalles en una sola transacción de DB."""
 
     @abstractmethod
-    def obtener_por_id(self, id_activo: int) -> Optional[ActivoBiologico]:
-        """Retorna el activo biológico con sus detalles, o None si no existe."""
+    def obtener_por_id(
+        self,
+        id_activo: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Optional[ActivoBiologico]:
+        """Retorna el activo biológico con sus detalles, o None si no existe.
+
+        Si ``ids_fincas_permitidas`` no es ``None``, devuelve ``None`` cuando el
+        activo pertenece a una finca ajena al alcance del usuario (RF-25).
+        """
 
     @abstractmethod
     def listar(
@@ -29,6 +39,8 @@ class ActivoBiologicoRepository(ABC):
         id_infraestructura: Optional[int],
         pagina: int,
         page_size: int,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[ActivoBiologico], int]:
         """Lista activos con filtros opcionales y paginación. Devuelve (registros, total)."""
 
@@ -38,11 +50,21 @@ class ActivoBiologicoRepository(ABC):
 
     @abstractmethod
     def obtener_asociacion_activa(self, id_activo: int) -> Optional[HistorialInfraestructura]:
-        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL)."""
+        """Retorna la asociación de infraestructura activa (fecha_fin IS NULL).
+
+        Incluye ``es_activo_infraestructura`` para detectar inconsistencia
+        jerárquica: una asociación vigente hacia una infraestructura inactiva.
+        """
 
     @abstractmethod
     def obtener_historial_infraestructura(self, id_activo: int) -> list[HistorialInfraestructura]:
         """Retorna el historial completo de asociaciones de infraestructura."""
+
+    @abstractmethod
+    def obtener_asociacion_en_fecha(
+        self, id_activo: int, fecha_referencia: datetime
+    ) -> Optional[HistorialInfraestructura]:
+        """Retorna la asociación de infraestructura vigente en una fecha pasada (CA-3, RF-61)."""
 
     @abstractmethod
     def actualizar_detalle_individual(self, activo: ActivoBiologico) -> ActivoBiologico:
@@ -75,3 +97,7 @@ class ActivoBiologicoRepository(ABC):
     @abstractmethod
     def obtener_fase_activa(self, id_activo: int) -> Optional[GestionFase]:
         """Retorna la gestión de fase activa del activo, o None si no tiene."""
+
+    @abstractmethod
+    def registrar_historial(self, historial: HistorialActivo) -> HistorialActivo:
+        """Inserta un snapshot versionado en historial_activos (RF-33: Evento 0 en el registro)."""

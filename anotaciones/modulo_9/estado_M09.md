@@ -27,7 +27,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF | Título | Veredicto | Cobertura aprox. |
 |----|--------|-----------|-------------------|
 | RF-15 | Catálogo de especies productivas | ⚠️ Cumple parcialmente | ~85% |
-| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~80% |
+| RF-16 | Etapas, patologías y métricas productivas por especie | ⚠️ Cumple parcialmente | ~90% |
 | RF-17 | Umbrales de monitoreo y niveles de alerta ambiental | ⚠️ Cumple parcialmente | ~90% |
 | RF-18 | Parámetros operativos del sistema (frecuencia/heartbeat) | ✅ Cumple | ~95% |
 | RF-19 | Registro y gestión de datos de la finca | ⚠️ Cumple parcialmente | ~85% |
@@ -37,7 +37,7 @@ medición exacta — sirven para priorizar, no como cifra oficial.
 | RF-23 | Configuración remota de dispositivos IoT | ✅ Cumple (MVP síncrono) | ~90% |
 | RF-24 | Calibración de dispositivos IoT | ✅ Cumple | ~100% |
 | RF-25 | Adaptación de interfaz operativa | ⚠️ Cumple parcialmente | ~60% |
-| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~90% |
+| RF-26 | Personalización de identidad visual del sistema | ✅ Cumple | ~95% |
 | RF-27 | Configuración visual del sistema (tema) | ✅ Cumple | ~90% |
 | RF-28 | Personalización del dashboard | ⚠️ Cumple parcialmente | ~65% |
 | RF-29 | Configuración de idioma | ✅ Cumple | ~90% |
@@ -118,10 +118,11 @@ inconsistencia de permisos ya documentada por el propio equipo.
 
 ## RF-16 — Configuración de etapas productivas, patologías y métricas por especie
 
-**Veredicto: ⚠️ Cumple parcialmente (~80%)** — de los tres sub-catálogos que pide el RF, las
-**etapas** tienen el chequeo de dependencias real (consulta una vista SQL), mientras que
-**patologías** y **métricas** lo tienen stubbeado a la espera de M04. (La discrepancia de
-"patologías global vs. por especie" fue **resuelta** en #1633, 2026-08-23 — ver abajo.)
+**Veredicto: ⚠️ Cumple parcialmente (~90%)** — los tres sub-catálogos tienen CRUD y chequeos
+reales de dependencias. La discrepancia de "patologías global vs. por especie" fue resuelta en
+#1633; los stubs de patologías y métricas fueron reemplazados por repositorios SQLAlchemy. El
+2026-09-17, INC-M09-06-G15 cerró además la incompatibilidad entre los tipos históricos de
+métricas y el dominio RF-16. Permanece el gap transversal de modo offline descrito abajo.
 
 ### Qué SÍ cumple
 
@@ -158,13 +159,13 @@ inconsistencia de permisos ya documentada por el propio equipo.
   `id_patologia` es opcional/NULL. M09 ya **no escribe** el catálogo M04 (antes lo hacía —
   mezcla de responsabilidades corregida). Ver `rf16-patologias-por-especie-mod9/resumen.md`
   y la migración `alembic/versions/192872fafd40_...py`.
-- **Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**
-  `desactivar_patologia_use_case.py` usa `DependenciaPatologiaPort`, implementado por
-  `infrastructure/adapters/dependencia_patologia_stub.py` (siempre `False`, pendiente de
-  M04). `desactivar_metrica_use_case.py` usa `DependenciaMetricaPort`, implementado por
-  `dependencia_metrica_stub.py` (mismo patrón). Los flujos alternos de RF-16 que piden
-  `HTTP 422` al intentar desactivar una patología con historial clínico o una métrica con
-  registros productivos existen en código pero no se disparan con ningún dato real hoy.
+- ~~**Los chequeos de dependencia de patologías y métricas nunca bloquean nada.**~~
+  **RESUELTO.** `SqlAlchemyDependenciaPatologiaRepository` consulta la vista de dependencias
+  clínicas y `SqlAlchemyDependenciaMetricaRepository` consulta
+  `modulo2.eventos_productivos`. TC-M09-37 confirmó el bloqueo de patologías. Para métricas,
+  INC-M09-06-G15 agregó la migración `v5.3.0_rf16_normalizar_tipos_medicion_legacy`: normaliza
+  `manual`/`calculada`/`TALLA`, corrige `tipo_dato` y valida el CHECK. TC-M09-38 llega ahora a
+  FA-09 y responde `422 METRICA_CON_REGISTROS` sin modificar la métrica.
 - **`modulo9.patologias` mezcla campos propios de M09 (RF-16) con campos de M04**
   (`nombre_tecnico`, `etiologia`, `categoria`, `codigo_cie`, `es_base`, `version_catalogo`,
   `descripcion_clinica`) — confirma que la tabla fue diseñada como catálogo compartido entre
@@ -259,8 +260,43 @@ detectaron gaps de fondo.
   recurso — el RF lo pide como flujo alterno ("dos administradores cambian la frecuencia al
   mismo tiempo"). `actualizar_configuracion_use_case.py` apareció en la búsqueda de
   `PreconditionFailedError`, lo que sugiere que sí está implementado, pero no se leyó el
-  archivo completo para confirmar el mecanismo exacto.
-- Ningún hallazgo adicional de peso — es el RF con menos superficie de gaps de todo el bloque.
+  archivo completo para confirmar el mecanismo exacto. **Corrección (TC-M09-G37/TC-M09-79):**
+  confirmado, `actualizar_configuracion_use_case.py` sí valida `fecha_actualizacion` contra la
+  DB y lanza `PreconditionFailedError` (412) en desalineación — mecanismo completo.
+  **Verificado end-to-end con dos escrituras concurrentes reales (TC-M09-G39/TC-M09-81,
+  2026-09-06):** `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G39/` — dos administradores
+  parten del mismo `fecha_actualizacion`; el primero en escribir gana y el segundo se
+  rechaza con 412 sin alterar el resultado del primero. PASA.
+- **Gap de auditoría consultable (encontrado al ejecutar TC-M09-G37/TC-M09-79):** la tabla
+  `modulo9.auditorias_configuraciones_globales` sí se escribe correctamente en cada
+  `CREATE`/`UPDATE` (confirmado leyendo `actualizar_configuracion_use_case.py` y
+  `SqlAlchemyAuditoriaConfigRepository`, y **verificado con `SELECT` directo contra la BD de
+  test el 2026-09-06**: fila `id_auditoria_config=4` con `valores_anteriores`/`valores_nuevos`
+  coincidiendo exactamente con la modificación hecha por la colección), pero **no existe
+  ningún endpoint REST que la exponga**. El único router de auditoría del sistema
+  (`/auditoria/`, en `identity_access`) lee `modulo1.eventos`, una tabla distinta que este
+  flujo nunca toca — la frase de esta sección ("solo lectura de auditoría") asumía
+  erróneamente que ese endpoint cubría también esta tabla. Efecto práctico: un cliente HTTP
+  (frontend, Postman/Newman, QA) no tiene forma de comprobar por API que la modificación
+  quedó en auditoría; requiere acceso directo a BD (como se hizo aquí) o agregar un endpoint.
+  Ver `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G37/` — la colección automatiza todo lo
+  verificable por API (200, valores reflejados, rotación de `fecha_actualizacion`, atribución
+  al `id_usuario` correcto). **TC-M09-79 queda funcionalmente PASA** (la trazabilidad sí
+  ocurre); el gap pendiente es de superficie de API, no de comportamiento: evaluar agregar
+  `GET /configuracion/parametros/auditoria` (o similar) para que quede consultable sin acceso
+  directo a BD.
+- **Rollback ante fallo de auditoría — verificado (TC-M09-G38/TC-M09-80, 2026-09-06):**
+  `actualizar_configuracion_use_case.py` envuelve `config_repo.actualizar()` +
+  `auditoria_repo.registrar()` en el mismo bloque try/`commit()`/`except: rollback()`. Se
+  probó forzando un fallo real del subsistema de auditoría (adaptador roto) contra
+  PostgreSQL real (no fakes en memoria) en
+  `tests/Test_Testing/Test_Modulo9/RF-18/TC-M09-G38/test_rf18_rollback_auditoria_parametros.py`
+  (usa los fixtures reales de `tests/integration/conftest.py` vía un `conftest.py` local):
+  ni la modificación de
+  `frecuencia_muestreo`/`heartbeat` ni una fila parcial de auditoría sobreviven al rollback
+  — confirmado con `SELECT` fresco tras la excepción, no con el objeto de dominio en
+  memoria. Un control positivo confirma que el mismo arnés sí persiste y sí audita en el
+  camino feliz (no está sesgado a fallar siempre). **TC-M09-80 PASA.**
 
 ---
 
@@ -288,13 +324,14 @@ más amplio del que el RF autoriza explícitamente.
 
 ### Qué NO cumple / gaps
 
-- **El chequeo de "no desactivar finca con infraestructura/activos asociados" está
-  stubbeado.** `finca_stub_adapter.py` siempre retorna `False`. El comentario del propio
-  adaptador dice "hasta que RF-21 (IoT) y RF-33 (Activos Biológicos) estén implementados" —
-  pero **ambos módulos ya existen** en el repo (`src/configuration` tiene dispositivos IoT
-  completos desde RF-21, y `src/biological_assets` ya está implementado). El comentario está
-  desactualizado y el stub nunca fue reemplazado por la consulta real, pese a que las tablas
-  necesarias para hacerla ya están disponibles.
+- ~~El chequeo de "no desactivar finca con infraestructura/activos asociados" está
+  stubbeado (`finca_stub_adapter.py` siempre retorna `False`)~~ — **ya no aplica: el stub no
+  existe en el repo actual.** El router usa `FincaDependencyAdapter` (real), que consulta
+  `modulo9.vw_rf19_dependencias_fincas` (dispositivos IoT activos) y `modulo2.activos_biologicos`
+  (activos con estado distinto de CERRADO/BAJA). **Confirmado con datos reales
+  (TC-M09-G45/TC-M09-93, 2026-09-06):** intentar desactivar una finca con dependencias activas
+  se rechaza con `422 FINCA_CON_DEPENDENCIAS` sin alterar su estado; una finca sin dependencias
+  se desactiva correctamente (TC-M09-92). Gap cerrado.
 - **El acceso de solo-lectura es más amplio que el texto literal del RF — DECISIÓN DE DISEÑO
   APROBADA (2026-08-22, issue #1634).** El RF dice: *"Los usuarios con rol Productor solo
   pueden consultar la información de las fincas a las que están asignados"* — listando a
@@ -304,14 +341,30 @@ más amplio del que el RF autoriza explícitamente.
   dinámico: es solo lectura y es operativamente defendible (un veterinario/ingeniero necesita
   saber en qué finca está un activo). Ya no es una desviación silenciosa. Ver
   `rf15-19-20-rbac-mod9/resumen_rbac_1634.md`.
-- No se verificó si el `R` de Productor está filtrado a "las fincas a las que está asignado"
-  (via `fincas.id_usuario`) o si un Productor puede ver el listado completo de todas las
-  fincas del sistema — este es un punto de aislamiento de datos entre productores que vale la
-  pena confirmar directamente en `consultar_fincas_use_case.py` antes de darlo por cumplido.
+- **Confirmado (TC-M09-G44/TC-M09-91, 2026-09-06):** el `R` de Productor sí está filtrado a
+  "las fincas a las que está asignado" — un Productor autenticado solo recibe en el listado
+  las fincas con `id_usuario` propio y obtiene `404 FINCA_NO_ENCONTRADA` (no `403`, evitando
+  filtrar existencia) al pedir el detalle de una finca ajena; Admin sí ve todas. Aislamiento
+  entre productores cumplido. Nota menor: `finca_router.py` decide el filtro comparando
+  `usuario_actual.id_rol == _ROL_PROD` con `_ROL_PROD = 2` hardcodeado en el router — no es
+  una decisión de acceso (RBAC sigue en `modulo1.permisos`), pero si el `id_rol` de Productor
+  cambiara alguna vez, el alcance de datos se rompería en silencio, sin error visible.
+- **Aislamiento de lectura — RESUELTO (2026-09-07, issue #176; rc.32).** El fix de `dev`
+  reemplaza el chequeo anterior: los roles con permiso `R` y sin permiso administrativo `U`
+  consultan exclusivamente las fincas vinculadas a su usuario mediante `fincas.id_usuario`;
+  el detalle de una finca ajena ahora responde `403` (antes `404`) sin exponer datos y el
+  listado omite recursos fuera del contexto. Se elimina el `_ROL_PROD = 2` hardcodeado: el
+  alcance global se resuelve por permisos activos, sin IDs de rol fijos. Ver
+  `inc_m09_g82_acceso_finca.md`. Pendiente reverificar TC-M09-G44/G91 con este cambio.
 - Mismo gap de unicidad "global y por productor" del nombre — no se confirmó si la
   restricción `UNIQUE` de `modulo9.fincas.nombre` es global (lo más probable, dado que no se
   encontró columna compuesta con `id_usuario`) o si además hay una unicidad específica por
   productor como pide el RF de forma redundante ("de manera global y por productor").
+- **Mismo gap de auditoría no consultable de RF-18 (TC-M09-G47/TC-M09-95, 2026-09-06):**
+  `modulo9.auditorias_fincas` se escribe correctamente en cada `CREATE`/`UPDATE`/`DEACTIVATE`
+  (verificado con `SELECT` directo: 3 filas exactas para una finca de prueba, con
+  `id_usuario` y snapshots correctos), pero no tiene endpoint REST — mismo `/auditoria/` que
+  solo lee `modulo1.eventos`. Ver `tests/Test_Testing/Test_Modulo9/RF-19/TC-M09-G47/`.
 
 ---
 
@@ -333,18 +386,36 @@ el RF describe.
 
 ### Qué NO cumple / gaps
 
-- **`tipos_area` no es el catálogo administrable que describe el RF.** El RF dice
-  explícitamente: *"el catálogo incluye por defecto: galpón, corral, potrero, estanque,
-  invernadero, pero el Administrador puede agregar nuevos tipos o desactivar los existentes
-  desde el módulo de Configuración"*. La implementación real es un **enum cerrado de
-  Postgres** (`enum_tipo_infraestructura`, exactamente esos 5 valores fijos) en la columna
-  `modulo9.infraestructuras.tipo` — no existe una tabla `tipos_area` gestionable. Ampliar el
-  catálogo hoy requiere una migración de esquema, no una operación de Administrador desde la
-  interfaz, contradiciendo directamente esa restricción del RF.
-- **Mismo patrón de stub que RF-19**: `infraestructura_stub_adapter.py` siempre retorna
-  `False` para el chequeo de "no desactivar área con dispositivos/activos asociados", con el
-  mismo comentario desactualizado sobre módulos "aún no implementados" que de hecho ya
-  existen.
+- ~~`tipos_area` no es el catálogo administrable que describe el RF (enum cerrado de
+  Postgres, sin tabla gestionable)~~ — **desactualizado: el catálogo administrable ya existe
+  en el código** (`tipo_area_router.py`, `registrar_tipo_area_use_case.py`,
+  `modulo9.tipos_area` vía migración `2dbb6d44046f`; ver `tests/integration/test_rf20_tipos_area.py`).
+  `registrar_infraestructura_use_case.py` ya valida `tipo_area` contra ese catálogo, no
+  contra el enum fijo. **Gap nuevo y más urgente (TC-M09-G48/TC-M09-96, 2026-09-06,
+  BLOQUEADO):** en el servidor de test compartido (`sgpmp_test`) la migración `2dbb6d44046f`
+  nunca se aplicó — `modulo9.tipos_area` no existe ahí — por lo que `POST
+  /configuracion/infraestructuras` con datos válidos crashea con `500 ERROR_INTERNO` en vez
+  de `201` (el `ProgrammingError` de tabla inexistente no está capturado en el use case).
+  Bloquea el camino feliz de RF-20 en ese entorno hasta que se corra `alembic upgrade head`
+  ahí — detalle y evidencia en `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md`.
+- ~~Mismo patrón de stub que RF-19: `infraestructura_stub_adapter.py` siempre retorna
+  `False`~~ — **ya no aplica: ese stub no existe en el repo actual.** El router usa
+  `InfraestructuraDependencyAdapter` (real), que consulta
+  `modulo9.vw_rf20_dependencias_infraestructuras` (dispositivos IoT activos) y
+  `modulo2.activos_biologicos`. **Confirmado con datos reales (TC-M09-G52/TC-M09-103/104,
+  2026-09-06):** desactivar un área sin dependencias funciona (200); con dependencias se
+  rechaza con `422 INFRAESTRUCTURA_CON_DEPENDENCIAS`.
+- **Bug nuevo encontrado en el camino (TC-M09-G52, 2026-09-06):** el chequeo de aplicación
+  y el trigger de BD que protege la misma regla usan criterios distintos. La app
+  (`InfraestructuraDependencyAdapter`) solo cuenta dispositivos IoT con `es_activo = TRUE`;
+  el trigger `trg_fn_infraestructura_no_desactivar_en_uso` cuenta filas vigentes
+  (`tiene_estado = TRUE`) en `modulo9.sensores_areas_asociadas` **sin mirar si el
+  dispositivo enlazado está activo**. Un área con sensores asociados a dispositivos
+  inactivos pasa el chequeo de la app (cree que no hay dependencias) pero el trigger la
+  rechaza igual — y como esa excepción (`AREA_IN_USE`) no está mapeada en
+  `db_error_translator.py`, sale como `500 ERROR_INTERNO` genérico en vez del `422
+  INFRAESTRUCTURA_CON_DEPENDENCIAS` que la app usa para los demás casos de dependencia.
+  Reproducido y detallado en `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G52/Resultados/TC-M09-G52-resultados.md`.
 - Mismo acceso de lectura más amplio que el texto del RF (Productor/Vet/Ing con `R`, cuando
   el RF solo lista "Administrador del sistema, Productor (consulta)") — **DECISIÓN DE DISEÑO
   APROBADA (2026-08-22, issue #1634)**: se mantiene como RBAC dinámico, igual que en RF-19.
@@ -354,6 +425,13 @@ el RF describe.
   (`infraestructuras.capacidad_maxima int`) aunque no aparece en la lista de "Entradas" del
   RF-20 tal como se entregó; no es un gap, es un campo adicional útil para módulos aguas
   abajo.
+- **Mismo gap de auditoría no consultable de RF-18/RF-19 (TC-M09-G53/TC-M09-105, 2026-09-06):**
+  `modulo9.auditorias_infraestructuras` se escribe correctamente para `GET` (solo al listar,
+  no en el detalle individual — así lo exige el DFD) y `DEACTIVATE` (verificado en vivo);
+  `CREATE` solo se pudo confirmar con 2 filas históricas (estructura correcta) y `UPDATE` no
+  tiene ninguna fila porque ambos flujos están bloqueados por el gap de `modulo9.tipos_area`
+  (`TC-M09-G48/NOTA_BLOQUEO.md`). Sin endpoint REST para consultar esta tabla, mismo patrón
+  que RF-18/RF-19. Ver `tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G53/`.
 
 ---
 
@@ -432,7 +510,9 @@ se reemplazó el stub por integración MQTT real vía `BROKER-MQTT-SGPMP` (repo 
 verificado end-to-end con backend + broker + Mosquitto reales. El 2026-08-24 (issue #1632) se
 agregaron los **rangos de configuración por tipo de dispositivo**, cerrando ese gap. Detalle
 del MVP en `anotaciones/modulo_9/cu08_gaps_bd_rf23_mqtt.md` y de los rangos por tipo en
-`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. Queda fuera de esta entrega el
+`anotaciones/modulo_9/cu08_gaps_bd_rf23_rangos_tipo.md`. El 2026-09-17 se cerró además el
+BOLA reportado en TC-M09-G71: configurar y consultar el historial validan el alcance por finca
+antes de acceder al dispositivo. Queda fuera de esta entrega el
 reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver "Qué NO cumple").
 
 ### Qué SÍ cumple
@@ -457,7 +537,10 @@ reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (ver
   la migración Alembic `7e2d5f3bf17a_rf23_mqtt_integracion.py` (primera migración real del
   proyecto; hasta ahora los gaps de Paso 0 se aplicaban directo a la BD vía MCP postgres).
 - Historial de configuración por dispositivo consultable
-  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`).
+  (`ConsultarConfiguracionesUseCase.listar_por_dispositivo`). Tanto este historial como el
+  POST de configuración aplican el alcance de `AlcanceFincaAdapter`: Administrador global e
+  Ingeniero limitado a las fincas vinculadas a su usuario. Un ID ajeno se presenta como
+  `404 DISPOSITIVO_NO_ENCONTRADO`, sin persistencia ni publicación MQTT (TC-M09-G71/#300).
 - Trigger `trg_configuracion_remota_tiempos_validos` valida los tiempos de
   `frecuencia_captura`/`intervalo_transmision` a nivel de DB; el DTO además valida
   `intervalo_transmision >= frecuencia_captura` con un `model_validator` de Pydantic.
@@ -648,7 +731,7 @@ sí solo.
 
 ## RF-26 — Personalización de identidad visual del sistema
 
-**Veredicto: ✅ Cumple (~90%)**
+**Veredicto: ✅ Cumple (~95%)**
 
 ### Qué SÍ cumple
 
@@ -667,7 +750,14 @@ sí solo.
 - **RBAC exacto**: recurso `identidad_visual` (id=23), solo Administrador con C/R/U —
   coincide exactamente con "Solo los usuarios con rol Administrador podrán modificar la
   identidad visual del sistema".
-- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`.
+- Auditoría vía `auditorias_visuales`, con `valor_anterior`/`valor_nuevo`, consultable por
+  `GET /configuracion/identidad-visual/{id_finca}/auditoria`. La respuesta incluye usuario,
+  fecha, operación y snapshots, y está protegida por el permiso `R` del recurso 23.
+- **TC-M09-169-G89 (#307) resuelto:** `/auditoria/` solo representa
+  `modulo1.eventos`; el historial de identidad visual ahora tiene su propio endpoint de
+  dominio. La migración `47038edfa2fc` elimina el trigger específico que duplicaba cada
+  `UPDATE`; los duplicados históricos se conservan, pero la API selecciona solo la fila
+  canónica con `id_finca` generada transaccionalmente por el caso de uso.
 
 ### Qué NO cumple / gaps
 

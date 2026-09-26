@@ -16,10 +16,16 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.plantilla import Plantilla
-from src.configuration.domain.esquema_plantilla import SCHEMA_VERSION_ACTUAL, claves_fuera_de_alcance
+from src.configuration.domain.esquema_plantilla import (
+    SCHEMA_VERSION_ACTUAL,
+    claves_fuera_de_alcance,
+    validar_rangos_fisicos_umbrales,
+)
+from src.configuration.application.use_cases.plantillas._auditoria_comun import registrar_intento_fallido
 from src.configuration.domain.repositories.auditoria_plantilla_repository import AuditoriaPlantillaRepository
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.repositories.plantilla_repository import PlantillaRepository
+from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.infrastructure.dto.versionar_plantilla_dto import VersionarPlantillaDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, NotFoundError
@@ -34,13 +40,32 @@ class VersionarPlantillaUseCase:
         plantilla_repo: PlantillaRepository,
         especie_repo: EspecieRepository,
         auditoria_repo: AuditoriaPlantillaRepository,
+        variable_repo: VariableAmbientalRepository,
     ) -> None:
         self.db = db
         self.plantilla_repo = plantilla_repo
         self.especie_repo = especie_repo
         self.auditoria_repo = auditoria_repo
+        self.variable_repo = variable_repo
 
     def execute(
+        self, id_plantilla: int, dto: VersionarPlantillaDTO, usuario_actual: UsuarioActual
+    ) -> Plantilla:
+        # INC-M09-01-109 (#319): auditar también los intentos fallidos de versionado.
+        try:
+            return self._ejecutar(id_plantilla, dto, usuario_actual)
+        except Exception as exc:
+            registrar_intento_fallido(
+                self.db,
+                self.auditoria_repo,
+                id_usuario=usuario_actual.id_usuario,
+                tipo_operacion="CREATE",
+                id_plantilla=id_plantilla,
+                detalle={"id_plantilla_base": id_plantilla, "error": str(exc)},
+            )
+            raise
+
+    def _ejecutar(
         self, id_plantilla: int, dto: VersionarPlantillaDTO, usuario_actual: UsuarioActual
     ) -> Plantilla:
         fuera_de_alcance = claves_fuera_de_alcance(dto.params_snapshot)
@@ -74,6 +99,8 @@ class VersionarPlantillaUseCase:
                 field="id_especie",
             )
 
+        validar_rangos_fisicos_umbrales(dto.params_snapshot, self.variable_repo)
+
         snapshot = dict(dto.params_snapshot)
         snapshot['schema_version'] = SCHEMA_VERSION_ACTUAL
 
@@ -89,18 +116,14 @@ class VersionarPlantillaUseCase:
             fecha_creacion=datetime.now(timezone.utc),
         )
 
-        try:
-            guardada = self.plantilla_repo.guardar(nueva)
-            self.auditoria_repo.registrar(
-                id_plantilla=guardada.id_plantilla,
-                id_usuario=usuario_actual.id_usuario,
-                tipo_operacion="CREATE",
-                valores_nuevos=guardada._snapshot(),
-                valores_anteriores=base._snapshot(),
-            )
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
+        guardada = self.plantilla_repo.guardar(nueva)
+        self.auditoria_repo.registrar(
+            id_plantilla=guardada.id_plantilla,
+            id_usuario=usuario_actual.id_usuario,
+            tipo_operacion="CREATE",
+            valores_nuevos=guardada._snapshot(),
+            valores_anteriores=base._snapshot(),
+        )
+        self.db.commit()
 
         return guardada

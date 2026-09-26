@@ -4,8 +4,9 @@ from __future__ import annotations
 import re
 from typing import Literal, Optional
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 
+from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.shared.base_dto import BaseDTO
 
 _NOMBRE_METRICA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 \-()/]*$")
@@ -20,6 +21,8 @@ class RegistrarMetricaDTO(BaseDTO):
     unidad_medida: str
     tipo_medicion: str
     aplica_a_tipo_activo: str = 'AMBOS'
+    tipo_dato: Optional[str] = None
+    es_obligatorio: bool = False
 
     @field_validator("nombre")
     @classmethod
@@ -58,3 +61,18 @@ class RegistrarMetricaDTO(BaseDTO):
         if v not in _APLICA_VALIDOS:
             raise ValueError(f"El valor de aplica_a_tipo_activo debe ser uno de: {', '.join(sorted(_APLICA_VALIDOS))}.")
         return v
+
+    @field_validator("tipo_dato")
+    @classmethod
+    def validar_tipo_dato(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        return TipoDatoAtributo.desde_string(v).value
+
+    @model_validator(mode="after")
+    def completar_tipo_dato_legacy(self) -> "RegistrarMetricaDTO":
+        if self.tipo_dato is None:
+            self.tipo_dato = TipoDatoAtributo.inferir_desde_tipo_medicion(
+                self.tipo_medicion
+            ).value
+        return self

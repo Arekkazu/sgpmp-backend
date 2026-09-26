@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from pydantic import field_validator
@@ -18,7 +18,13 @@ class CerrarCicloDTO(BaseDTO):
     @field_validator('fecha_cierre')
     @classmethod
     def fecha_no_futura(cls, v: date) -> date:
-        if v > date.today():
+        # INC-M02-29-g36 / #411 (RF-38): date.today() es la fecha LOCAL del
+        # proceso, no la UTC -- en un servidor cuya zona horaria va detrás de
+        # UTC, cerca de medianoche UTC un fecha_cierre = "hoy" en UTC se
+        # rechazaba aquí como futura porque localmente todavía era "ayer".
+        # fecha_cierre_dt se construye y persiste en UTC más abajo en el use
+        # case, así que la validación debe comparar contra la misma referencia.
+        if v > datetime.now(timezone.utc).date():
             raise ValueError('La fecha de cierre no puede ser futura.')
         return v
 

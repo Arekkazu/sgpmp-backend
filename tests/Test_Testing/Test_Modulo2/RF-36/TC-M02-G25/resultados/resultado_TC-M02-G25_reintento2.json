@@ -1,0 +1,35 @@
+{
+  "tc": "TC-M02-G25",
+  "ronda": "V3",
+  "reintento": 2,
+  "fecha": "2026-09-19",
+  "run_id": "G25-REEVAL-V3-20260919-053900",
+  "veredicto": "Rechazado",
+  "incidente_asociado": "INC-M02-38-G25",
+  "checkpoints": [
+    {
+      "paso": "0. Autenticación como Administrador (POST /sesiones/)",
+      "esperado": "HTTP 200 OK con token JWT",
+      "obtenido": "HTTP 200 OK - Token JWT obtenido correctamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "1. TC-M02-051: Registrar baja con cantidad superior a existencia (POST /activos-biologicos/345/eventos/baja)",
+      "esperado": "HTTP 400 Bad Request o 422 Unprocessable Entity con código CANTIDAD_BAJA_SUPERIOR_EXISTENCIA",
+      "obtenido": "HTTP 422 Unprocessable Entity - CANTIDAD_BAJA_SUPERIOR_EXISTENCIA (La cantidad a dar de baja (15) es superior a la existencia actual del lote (10))",
+      "estado": "OK"
+    },
+    {
+      "paso": "2. TC-M02-052: Registrar evento de crecimiento que excede densidad máxima (POST /activos-biologicos/345/eventos/crecimiento)",
+      "esperado": "HTTP 409 Conflict con código DENSIDAD_MAXIMA_SUPERADA",
+      "obtenido": "HTTP 422 Unprocessable Entity - SIN_FASE_ACTIVA (El activo no tiene una fase productiva activa. Asocie el activo a un ciclo productivo antes de registrar eventos de crecimiento)",
+      "estado": "FALLA"
+    },
+    {
+      "paso": "3. Cleanup: Inactivación lógica del lote sintético post-prueba (PATCH /activos-biologicos/345/estado)",
+      "esperado": "HTTP 200 OK con estado INACTIVO (id_estado = 2)",
+      "obtenido": "HTTP 200 OK - Lote inactivado lógicamente (estado_nuevo = 2)",
+      "estado": "OK"
+    }
+  ]
+}

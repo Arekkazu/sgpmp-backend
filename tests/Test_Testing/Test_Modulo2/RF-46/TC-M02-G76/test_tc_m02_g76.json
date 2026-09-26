@@ -1,0 +1,437 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g76-frontera-historial",
+    "name": "TC-M02-G76 - Consulta de historial de activos: filtro sin resultados, límite de paginación y rechazo de escritura (RF-46)",
+    "description": "Caso agrupado TC-M02-G76 (RF-46): Validación de escenarios de frontera en GET /activos-biologicos/{id_activo}/historial. Contiene TC-M02-210 (filtro sin resultados) y TC-M02-212 (rechazo de escritura HTTP 405 e inmutabilidad).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+      "type": "string"
+    },
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_activo",
+      "value": "130",
+      "type": "string"
+    },
+    {
+      "key": "total_registros_pre_escritura",
+      "value": "0",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "TC-M02-210",
+      "description": "Subcaso TC-M02-210: Consultar historial con filtro sin resultados (E-04)",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-210] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-210 - Consultar historial con filtro sin resultados (E-04)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial?categoria_evento=BAJA",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ],
+              "query": [
+                {
+                  "key": "categoria_evento",
+                  "value": "BAJA"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-210] Estado HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] total_registros es 0', function () {",
+                  "    pm.expect(pm.response.json().total_registros).to.eql(0);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] registros es array vacío', function () {",
+                  "    pm.expect(pm.response.json().registros).to.be.an('array').that.is.empty;",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-210] Mensaje informativo presente', function () {",
+                  "    const json = pm.response.json();",
+                  "    const mensaje = json.mensaje || json.message || json.detail || '';",
+                  "    pm.expect(mensaje.toLowerCase()).to.include('no se encontraron eventos');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "TC-M02-212",
+      "description": "Subcaso TC-M02-212: Rechazar operación de escritura sobre el endpoint de historial (POST, PATCH, DELETE)",
+      "item": [
+        {
+          "name": "00 - Autenticación Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/sesiones/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "sesiones",
+                ""
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-212] Autenticación exitosa (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var data = pm.response.json();",
+                  "    pm.expect(data).to.have.property('token');",
+                  "    pm.collectionVariables.set('jwt_token', data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "01 - GET Inicial Historial Línea Base",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-212] GET inicial exitoso (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('total_registros');",
+                  "    pm.collectionVariables.set('total_registros_pre_escritura', json.total_registros);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-212.1 - Rechazo de método de escritura POST",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"evento\": \"falso\",\n  \"categoria\": \"TEST\",\n  \"descripcion\": \"Intento de escritura no autorizada\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-212.1] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.1] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.1] Cuerpo indica Method Not Allowed', function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.detail).to.eql('Method Not Allowed');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-212.2 - Rechazo de método de escritura PATCH",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"descripcion\": \"Intento de modificacion no permitida\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-212.2] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.2] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-212.3 - Rechazo de método de escritura DELETE",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('[TC-M02-212.3] Estado HTTP debe ser 405 Method Not Allowed', function () {",
+                  "    pm.response.to.have.status(405);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.3] Encabezado Allow debe incluir GET', function () {",
+                  "    var allowHeader = pm.response.headers.get('Allow');",
+                  "    pm.expect(allowHeader).to.not.be.null;",
+                  "    pm.expect(allowHeader).to.include('GET');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-M02-212.4 - Verificación de inmutabilidad del historial tras intentos de escritura",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/activos-biologicos/{{id_activo}}/historial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "activos-biologicos",
+                "{{id_activo}}",
+                "historial"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// NOTA DE CONCURRENCIA: Este test requiere ejecución aislada sin escrituras concurrentes sobre el activo de prueba.",
+                  "pm.test('[TC-M02-212.4] Estado HTTP 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('[TC-M02-212.4] Historial inalterado tras intentos de escritura', function () {",
+                  "    var totalActual = pm.response.json().total_registros;",
+                  "    var totalPrevio = parseInt(pm.collectionVariables.get('total_registros_pre_escritura'), 10);",
+                  "    pm.expect(totalActual).to.eql(totalPrevio);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

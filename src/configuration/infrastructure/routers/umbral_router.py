@@ -16,17 +16,24 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.umbrales.consultar_auditoria_umbral_use_case import ConsultarAuditoriaUmbralUseCase
 from src.configuration.application.use_cases.umbrales.consultar_umbrales_use_case import ConsultarUmbralesUseCase
 from src.configuration.application.use_cases.umbrales.desactivar_umbral_use_case import DesactivarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.editar_umbral_use_case import EditarUmbralUseCase
 from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import RegistrarUmbralUseCase
+from src.configuration.infrastructure.adapters.edge_sincronizacion_stub_adapter import EdgeSincronizacionStubAdapter
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
 from src.configuration.infrastructure.dto.registrar_umbral_dto import RegistrarUmbralDTO
 from src.configuration.infrastructure.repositories.auditoria_umbral_repository import SqlAlchemyAuditoriaUmbralRepository
 from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.umbral_ambiental_repository import SqlAlchemyUmbralAmbientalRepository
 from src.configuration.infrastructure.repositories.variable_ambiental_repository import SqlAlchemyVariableAmbientalRepository
-from src.configuration.infrastructure.schema.umbral_schema import UmbralAmbientalResponse, UmbralesPorEspecieResponse
+from src.configuration.infrastructure.schema.umbral_schema import (
+    AuditoriaUmbralesResponse,
+    AuditoriaUmbralResponse,
+    UmbralAmbientalResponse,
+    UmbralesPorEspecieResponse,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
@@ -62,6 +69,7 @@ def registrar_umbral(
         especie_repo=SqlAlchemyEspecieRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        edge_port=EdgeSincronizacionStubAdapter(),
     )
     umbral = use_case.execute(dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)
@@ -88,6 +96,35 @@ def consultar_umbrales(
     return UmbralesPorEspecieResponse(total=len(items), items=items)
 
 
+@router.get(
+    '/{id_umbral_ambiental}/auditoria',
+    response_model=AuditoriaUmbralesResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 2))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Consultar auditoría de un umbral ambiental (TC-M09-64)',
+    description=(
+        'Historial de creación, edición y desactivación de un umbral. Antes de '
+        'este endpoint, la auditoría se persistía en '
+        '`modulo9.auditorias_umbrales_ambientales` pero no era consultable por '
+        'API, por lo que no podía correlacionarse con el `id_umbral_ambiental`.'
+    ),
+)
+def consultar_auditoria_umbral(
+    id_umbral_ambiental: int,
+    db: Session = Depends(get_db),
+) -> AuditoriaUmbralesResponse:
+    use_case = ConsultarAuditoriaUmbralUseCase(
+        auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
+    )
+    items = [AuditoriaUmbralResponse.model_validate(a) for a in use_case.execute(id_umbral_ambiental)]
+    return AuditoriaUmbralesResponse(total=len(items), items=items)
+
+
 @router.patch(
     '/{id_umbral_ambiental}',
     response_model=UmbralAmbientalResponse,
@@ -112,6 +149,7 @@ def editar_umbral(
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         variable_repo=SqlAlchemyVariableAmbientalRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaUmbralRepository(db),
+        edge_port=EdgeSincronizacionStubAdapter(),
     )
     umbral = use_case.execute(id_umbral_ambiental, dto, usuario_actual)
     return UmbralAmbientalResponse.model_validate(umbral)
