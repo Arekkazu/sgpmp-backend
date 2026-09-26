@@ -1,5 +1,5 @@
 """
-TC-M02-G99 (RF-52, CU13) - Reintento 2 (2026-09-26) - RF-52 E1: el buffer de
+TC-M02-G99 (RF-52, CU13) - Reintento 1 (2026-09-26) - RF-52 E1: el buffer de
 auditoria recuperable llego con el merge de origin/test.
 
 El archivo original (test_tc_m02_g99_bitacora_inmutabilidad_resiliencia.py) queda
@@ -12,7 +12,7 @@ recuperacion cronologica con un evento INDISPONIBILIDAD_AUDITORIA) y E3 (control
 de carga). El archivo original documentaba en rojo la AUSENCIA de este mecanismo;
 con el merge, ese mecanismo existe y este reintento lo verifica en verde.
 
-RECTIFICACIONES sobre el reintento1/original:
+RECTIFICACIONES sobre el original:
 
 (TC-M02-169) El test original esperaba `len(repo.persistidos) == 3` (los 3
 eventos generados, ni uno mas ni uno menos) y fallaba porque el codigo viejo
@@ -64,8 +64,8 @@ correccion de la herramienta de esta sesion, no del backend.
 Como correrlo (desde la raiz del repo):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
-    python -m pytest <ruta>\\test_tc_m02_g99_bitacora_inmutabilidad_resiliencia_reintento2.py -v \
-        --html=<ruta>\\resultados\\resultado_TC-M02-G99_reintento2.html --self-contained-html
+    python -m pytest <ruta>\\test_tc_m02_g99_bitacora_inmutabilidad_resiliencia_reintento1.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M02-G99_reintento1.html --self-contained-html
 """
 import time
 from datetime import date, datetime, timezone
