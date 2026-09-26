@@ -528,10 +528,16 @@
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `id_especie` | `int` | FK a especie |
-| `nombre` | `str` | 3–60 chars |
+| `nombre` | `str` | 3–60 chars. Letras, números, espacios, `-`, `_`, `()` y `/` (el `_` se acepta igual que en el dominio) |
 | `unidad_medida` | `str` | Obligatorio, máx 20 chars |
 | `tipo_medicion` | `str` | `PESO`, `VOLUMEN`, `LONGITUD`, `CONTEO`, `OTRO` |
 | `aplica_a_tipo_activo` | `str` | `INDIVIDUAL`, `LOTE`, `AMBOS` — default `AMBOS` |
+| `tipo_dato` | `str \| None` | `NUMERICO`, `ENTERO`, `TEXTO`, `BOOLEANO`; si falta se infiere de `tipo_medicion` |
+| `es_obligatorio` | `bool` | Default `false` |
+| `valor_min` | `Decimal \| None` | RFC-004 (TC-M02-G12, #460). Solo `NUMERICO`/`ENTERO`; `NUMERIC(10,4)`, finito |
+| `valor_max` | `Decimal \| None` | Igual que `valor_min`; si ambos vienen, `valor_min <= valor_max` |
+
+Errores del rango: `400 RANGO_METRICA_INVALIDO` (min > max) y `400 RANGO_METRICA_NO_APLICA` (rango con `TEXTO`/`BOOLEANO`).
 
 **Response `MetricaProduccionResponse`:**
 
@@ -542,6 +548,10 @@
 | `unidad_medida` | `str` |
 | `tipo_medicion` | `str` |
 | `aplica_a_tipo_activo` | `str` |
+| `tipo_dato` | `str` |
+| `es_obligatorio` | `bool` |
+| `valor_min` | `Decimal \| None` — serializado como cadena (`"20.0000"`) |
+| `valor_max` | `Decimal \| None` |
 | `id_especie` | `int \| None` |
 | `es_activo` | `bool` |
 | `fecha_actualizacion` | `datetime \| None` |
@@ -568,6 +578,9 @@
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `fecha_actualizacion` | `datetime \| None` | Control de concurrencia optimista |
+
+`valor_min`/`valor_max`: omitidos = se conserva el rango guardado; número = lo reemplaza; `null` = lo elimina.
+Se valida fusionado con lo guardado, y al pasar a `TEXTO`/`BOOLEANO` sin enviar rango el previo se limpia.
 
 **Response:** `MetricaProduccionResponse`
 

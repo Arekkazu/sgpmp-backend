@@ -281,6 +281,12 @@ curl -X POST http://localhost:8000/activos-biologicos/51/fases \
 
 Respuesta esperada `201` con `"es_transicion_no_estandar": true`.
 
+**INC-M02-37-G33 (#462):** ese valor queda **persistido** en `modulo2.gestiones_fases`
+(columna `es_transicion_no_estandar`). `GET /activos-biologicos/51/fases` devuelve la misma gestión
+(mismo `id_gestion_fases`) con `"es_transicion_no_estandar": true`; antes el historial la mostraba
+siempre `false` y solo quedaba el rastro en la bitácora (`FASE_CAMBIADA`). Las gestiones anteriores a la
+migración se recuperan desde esa bitácora cuando el evento trae la llave `registros_rf46`.
+
 #### Caso FA: fase_destino_id inexistente en el ciclo → 400
 
 ```bash
