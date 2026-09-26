@@ -9,12 +9,13 @@ from src.biological_assets.application.use_cases._registrar_evento_bitacora impo
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
-from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo
+from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, EventoAuditoria, HistorialActivo, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsultaPort
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
+from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, ConflictError, ValidationError
@@ -234,14 +235,25 @@ class RegistrarActivoBiologicoUseCase:
         # calculable desde el momento del registro, no solo tras el primer
         # evento de crecimiento — sin esto un lote recién creado queda con
         # densidad=null hasta su primera medición.
-        if activo.detalle_poblacional is not None and infra.superficie and infra.superficie > 0:
-            cantidad = Decimal(str(activo.detalle_poblacional.cantidad_actual))
-            activo.detalle_poblacional.densidad = cantidad / infra.superficie
+        if activo.detalle_poblacional is not None:
+            if infra.superficie is None:
+                raise BusinessRuleError(
+                    code='SUPERFICIE_INFRAESTRUCTURA_INVALIDA',
+                    message='La infraestructura debe tener una superficie mayor a cero para calcular la densidad.',
+                    field='id_infraestructura',
+                )
+            activo.detalle_poblacional.densidad = calcular_y_validar_densidad(
+                cantidad_actual=activo.detalle_poblacional.cantidad_actual,
+                superficie=infra.superficie,
+                densidad_maxima_por_especie=self.parametros_port.obtener_densidad_maxima(
+                    dto.id_especie
+                ),
+            )
 
         try:
             activo = self.repo.guardar(activo)
             # RF-33: snapshot inicial (Evento 0) — version=1, tipo_evento=CREACION
-            self.repo.registrar_historial(HistorialActivo(
+            historial = self.repo.registrar_historial(HistorialActivo(
                 id_activo_biologico=activo.id_activo_biologico,
                 version=1,
                 tipo_evento='CREACION',
@@ -271,6 +283,7 @@ class RegistrarActivoBiologicoUseCase:
             id_activo_biologico=activo.id_activo_biologico,
             tipo_activo=activo.tipo,
             descripcion=f'Activo biológico registrado: {activo.identificador or activo.id_activo_biologico}',
+            detalle_tecnico={'registros_rf46': registros_rf46(historial_activos=historial.id_historial_activo)},
             id_usuario_responsable=usuario.id_usuario,
         ))
 

@@ -1,13 +1,12 @@
-"""RF-44: el cambio manual de estado no puede fijar CERRADO ni BAJA.
+"""RF-44: el DTO del cambio manual de estado solo rechaza lo que no es un estado.
 
-CERRADO y BAJA quedan fuera de ``PATCH /{id}/estado`` (principio de
-centralización obligatoria de RF-44): solo se alcanzan vía cierre de ciclo
-(RF-38) y registro de baja (RF-45), que aplican sus propias validaciones y
-efectos secundarios.
+CERRADO/BAJA, fecha futura y motivo vacío son flujos alternos que RF-44
+clasifica como 422, así que los rechaza ``CambiarEstadoUseCase`` y no Pydantic
+(que saldría como 400). Esos casos viven en ``test_gaps_flujo_alterno_m02.py``.
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 
 import pytest
 from pydantic import ValidationError
@@ -25,28 +24,18 @@ def _dto(estado: str, **overrides) -> dict:
     return base
 
 
-@pytest.mark.parametrize('estado', ['ACTIVO', 'INACTIVO', 'EN_TRATAMIENTO', 'AISLADO'])
-def test_acepta_estados_manuales(estado: str) -> None:
+@pytest.mark.parametrize('estado', ['ACTIVO', 'INACTIVO', 'EN_TRATAMIENTO', 'AISLADO', 'CERRADO', 'BAJA'])
+def test_acepta_los_estados_del_sistema(estado: str) -> None:
     dto = CambiarEstadoDTO(**_dto(estado))
     assert dto.estado_nuevo == estado
 
 
-@pytest.mark.parametrize('estado', ['CERRADO', 'BAJA'])
-def test_rechaza_cerrado_y_baja(estado: str) -> None:
+def test_rechaza_estado_desconocido() -> None:
     with pytest.raises(ValidationError):
-        CambiarEstadoDTO(**_dto(estado))
+        CambiarEstadoDTO(**_dto('VENDIDO'))
 
 
 def test_mapa_id_estado_nuevo() -> None:
     assert CambiarEstadoDTO(**_dto('INACTIVO')).id_estado_nuevo == 2
     assert CambiarEstadoDTO(**_dto('AISLADO')).id_estado_nuevo == 4
-
-
-def test_fecha_futura_rechazada() -> None:
-    with pytest.raises(ValidationError):
-        CambiarEstadoDTO(**_dto('ACTIVO', fecha_cambio_estado=date.today() + timedelta(days=1)))
-
-
-def test_motivo_vacio_rechazado() -> None:
-    with pytest.raises(ValidationError):
-        CambiarEstadoDTO(**_dto('ACTIVO', motivo_cambio='   '))
+    assert CambiarEstadoDTO(**_dto('BAJA')).id_estado_nuevo == 6

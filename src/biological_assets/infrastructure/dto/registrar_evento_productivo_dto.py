@@ -11,6 +11,7 @@ from src.shared.base_dto import BaseDTO
 
 class RegistrarEventoProductivoDTO(BaseDTO):
     tipo_producto: str
+    # Cantidad > 0 se valida en el use case: RF-43 E-06 pide 422, no el 400 de Pydantic.
     cantidad_producida: Decimal
     unidad_medida: str
     fecha_evento: date
@@ -31,11 +32,4 @@ class RegistrarEventoProductivoDTO(BaseDTO):
         v = v.strip()
         if not v:
             raise ValueError('La unidad de medida no puede estar vacía.')
-        return v
-
-    @field_validator('cantidad_producida')
-    @classmethod
-    def cantidad_positiva(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError('La cantidad producida debe ser un valor numérico positivo mayor a cero.')
         return v

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -12,6 +13,8 @@ from src.biological_assets.domain.entities.activo_biologico import EventoAuditor
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.models.bitacora_auditoria_m02_model import BitacoraAuditoriaM02Model
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
+
+logger = logging.getLogger(__name__)
 
 
 def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
@@ -37,6 +40,14 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         self.db = db
 
     def registrar(self, evento: EventoAuditoria) -> None:
+        # RF-52 E2 se aplica aquí porque es el único punto por el que pasan todos
+        # los emisores de M02 (use cases, rechazos auditados y el handler de 400).
+        causas = evento.marcar_si_incompleto()
+        if causas:
+            logger.warning(
+                'RF-52: evento %s/%s persistido como registro_incompleto: %s',
+                evento.rf_origen, evento.tipo_evento, '; '.join(causas),
+            )
         ts_registro = datetime.now(timezone.utc)
         hash_integridad = _calcular_hash(evento, ts_registro)
         orm = BitacoraAuditoriaM02Model(

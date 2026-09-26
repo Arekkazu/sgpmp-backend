@@ -29,3 +29,21 @@ class ContextoInterfaz:
     # Administrador, así que ningún otro rol podría conocer su propia marca.
     identidad_visual: Optional[IdentidadVisual] = None
     accesibilidad: Optional[AccesibilidadVisual] = None
+    # Áreas productivas activas de la finca (RF-20). Solo interesa si hay o no:
+    # junto con `especies_configuradas` decide el flujo alterno de abajo.
+    tiene_infraestructura: bool = False
+
+    @property
+    def finca_sin_catalogo(self) -> bool:
+        """RF-25, flujo alterno "Finca sin especies productivas configuradas".
+
+        El RF lo define sobre las dos cosas a la vez —"no se han registrado
+        especies (RF-15) **ni** infraestructura (RF-20)"—, así que una finca con
+        áreas pero sin especies (o al revés) sigue teniendo contexto que pintar y
+        responde 200. Solo la finca recién creada, sin nada configurado, es 204.
+        """
+        return (
+            self.id_finca is not None
+            and not self.especies_configuradas
+            and not self.tiene_infraestructura
+        )
