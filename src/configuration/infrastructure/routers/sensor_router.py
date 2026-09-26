@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import ConsultarCalibracionesUseCase, RegistrarCalibracionUseCase
+from src.configuration.infrastructure.adapters.asociacion_sensor_activo_m02_adapter import AsociacionSensorActivoM02Adapter
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
 from src.configuration.infrastructure.repositories.auditoria_calibracion_repository import SqlAlchemyAuditoriaCalibracionRepository
@@ -77,6 +78,7 @@ def asociar_sensor_area(
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaSensorAreaRepository(db),
+        asociacion_sensor_activo_port=AsociacionSensorActivoM02Adapter(db),
     )
     asociacion = use_case.execute(id_sensor, dto, usuario_actual)
     return SensorAreaResponse.from_entity(asociacion)
