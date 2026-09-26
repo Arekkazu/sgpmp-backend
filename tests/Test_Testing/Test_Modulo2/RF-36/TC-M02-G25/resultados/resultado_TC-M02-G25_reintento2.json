@@ -5,31 +5,23 @@
   "fecha": "2026-09-19",
   "run_id": "G25-REEVAL-V3-20260919-053900",
   "veredicto": "Rechazado",
-  "incidente_asociado": "INC-M02-38-G25",
+  "incidente_asociado": "INC-M02-48-G25",
+  "nota_global": "Reevaluación V3 confirma rechazo del subcaso TC-M02-052: el fix preliminar (#330) no estaba desplegado en TEST (H-A), las infraestructuras tenían capacidad_maxima en NULL (H-D) y el backend no validaba la densidad por especie en M09 (H-C). En la suite ejecutada devolvió 422 SIN_FASE_ACTIVA y en preflight con lote activo respondió 201 Created sin validar densidad.",
   "checkpoints": [
     {
-      "paso": "0. Autenticación como Administrador (POST /sesiones/)",
-      "esperado": "HTTP 200 OK con token JWT",
-      "obtenido": "HTTP 200 OK - Token JWT obtenido correctamente",
-      "estado": "OK"
-    },
-    {
-      "paso": "1. TC-M02-051: Registrar baja con cantidad superior a existencia (POST /activos-biologicos/345/eventos/baja)",
+      "paso": "TC-M02-051: Registrar baja con cantidad superior a existencia (POST /activos-biologicos/345/eventos/baja)",
       "esperado": "HTTP 400 Bad Request o 422 Unprocessable Entity con código CANTIDAD_BAJA_SUPERIOR_EXISTENCIA",
       "obtenido": "HTTP 422 Unprocessable Entity - CANTIDAD_BAJA_SUPERIOR_EXISTENCIA (La cantidad a dar de baja (15) es superior a la existencia actual del lote (10))",
-      "estado": "OK"
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento2.html"
     },
     {
-      "paso": "2. TC-M02-052: Registrar evento de crecimiento que excede densidad máxima (POST /activos-biologicos/345/eventos/crecimiento)",
+      "paso": "TC-M02-052: Registrar evento de crecimiento que excede densidad máxima (POST /activos-biologicos/345/eventos/crecimiento)",
       "esperado": "HTTP 409 Conflict con código DENSIDAD_MAXIMA_SUPERADA",
-      "obtenido": "HTTP 422 Unprocessable Entity - SIN_FASE_ACTIVA (El activo no tiene una fase productiva activa. Asocie el activo a un ciclo productivo antes de registrar eventos de crecimiento)",
-      "estado": "FALLA"
-    },
-    {
-      "paso": "3. Cleanup: Inactivación lógica del lote sintético post-prueba (PATCH /activos-biologicos/345/estado)",
-      "esperado": "HTTP 200 OK con estado INACTIVO (id_estado = 2)",
-      "obtenido": "HTTP 200 OK - Lote inactivado lógicamente (estado_nuevo = 2)",
-      "estado": "OK"
+      "obtenido": "HTTP 422 Unprocessable Entity - SIN_FASE_ACTIVA (en suite sobre lote 345) / HTTP 201 Created (en preflight sobre lote 455 sin validación de densidad)",
+      "estado": "FALLA",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento2.html",
+      "nota_qa": "Rechazado por defecto activo INC-M02-48-G25: la lógica de densidad por especie no estaba operativa en TEST y el lote 345 carecía de fase activa tras el teardown previo."
     }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G31",
+  "ronda": "V4",
+  "reintento": 3,
+  "fecha": "2026-09-25",
+  "run_id": "G31-REEVAL-V4-20260925-175552",
+  "veredicto": "Aprobado",
+  "incidente_asociado": "INC-M02-100-G31",
+  "nota_global": "Reevaluación V4 en TEST completada con éxito. Intento 1 (lote 296) falló con HTTP 500 por dato contaminado histórico que disparó trigger P0212 no mapeado en db_error_translator. Intento 2 con lote virgen 281 ejecutado con éxito total: 7/7 requests y 7/7 assertions aprobadas, veredicto final Aprobado. Hallazgo separado P0212 reportado a Desarrollo.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-196: POST /activos-biologicos/130/eventos/crecimiento (densidad exacta al límite)",
+      "esperado": "HTTP 201 Created (aceptación de evento cuando densidad_actual == densidad_maxima)",
+      "obtenido": "HTTP 201 Created con id_eventos=386, peso_promedio=2.50 kg, densidad resultante 0.0008 ind/m² coincidente con límite configurado, estado ACTIVO",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G31_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-197: POST /activos-biologicos/281/eventos/baja (baja total hasta cantidad_actual=0)",
+      "esperado": "HTTP 201 Created con baja total de 100 inds, cantidad_actual=0, biomasa_total=0/null, transición automática a estado 6 (BAJA) y cierre de fase activa",
+      "obtenido": "HTTP 201 Created con id_eventos=387, cantidad_afectada=100. Consultas de verificación confirmaron id_estado=6 (BAJA), cantidad_actual=0 y fase activa cerrada (es_activa=FALSE)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G31_reintento3.html"
+    }
+  ]
+}

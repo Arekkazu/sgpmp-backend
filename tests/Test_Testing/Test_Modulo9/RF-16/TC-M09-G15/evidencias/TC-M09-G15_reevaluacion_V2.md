@@ -12,7 +12,7 @@
 * **Fecha de Reevaluación (Corrida de Confirmación)**: 2026-09-13
 * **Fecha de Corrida Histórica**: 2026-09-05 (Corrida previa donde TC-M09-37 y TC-M09-38 fueron rechazados por stubs del defecto `INC-M09-03`).
 * **Entorno de Ejecución**: TEST (`https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test`)
-* **Base de Datos**: PostgreSQL TEST (`158.69.200.27:5448/sgpmp_test`, usuario `member_qa`)
+* **Base de Datos**: PostgreSQL TEST (`$TEST_DB_HOST:$TEST_DB_PORT/$TEST_DB_NAME`, usuario `$TEST_DB_USER`)
 * **Herramienta**: Newman CLI v6.2.2 + `newman-reporter-htmlextra` v1.23.1
 * **Colección Ejecutada**: `tests/Test_Testing/Test_Modulo9/RF-16/TC-M09-G15/test_tc_m09_g15.json`
 * **Ruta del Reporte HTML Generado**: `tests/Test_Testing/Test_Modulo9/RF-16/TC-M09-G15/Resultados/reporte_tc_m09_g15_reevaluacion.html`
@@ -44,7 +44,7 @@ En esta reevaluación se completó la colección Newman para ejecutar de punta a
 
 ## 3. Estado Previo de la Base de Datos (Pre-condición)
 
-Inmediatamente antes de ejecutar la colección de pruebas en vivo, se ejecutó el script de verificación `tests/Test_Testing/Test_Modulo9/RF-16/TC-M09-G15/verificar_bd_pre_post.py` vía conexión de solo lectura (`member_qa`), reportando:
+Inmediatamente antes de ejecutar la colección de pruebas en vivo, se ejecutó el script de verificación `tests/Test_Testing/Test_Modulo9/RF-16/TC-M09-G15/verificar_bd_pre_post.py` vía conexión de solo lectura (`$TEST_DB_USER`), reportando:
 
 ```text
 === ESTADO DE BASE DE DATOS (TC-M09-G15) ===

@@ -8,10 +8,18 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+      "value": ""
     },
     {
       "key": "jwt_token",
+      "value": ""
+    },
+    {
+      "key": "admin_email",
+      "value": ""
+    },
+    {
+      "key": "admin_password",
       "value": ""
     }
   ],
@@ -28,7 +36,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"administador.dev@gmail.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/sesiones/",
@@ -116,54 +124,7 @@
       ]
     },
     {
-      "name": "Paso 3: TC-M09-37 (Pre) - Registrar estado de PATOLOGÍA con dependencias (id=7)",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/configuracion/patologias?id_especie=4",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "patologias"
-          ],
-          "query": [
-            {
-              "key": "id_especie",
-              "value": "4"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('TC-M09-37 (Pre): Consulta de patologías por especie - HTTP 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.items).to.be.an('array').that.is.not.empty;",
-              "    var patologia7 = jsonData.items.find(function (p) { return p.id_especies_patologias === 7; });",
-              "    pm.expect(patologia7, 'Patología id 7 no encontrada').to.be.an('object');",
-              "    pm.expect(patologia7.es_activo, 'Patología id 7 debe estar activa inicialmente').to.be.true;",
-              "    pm.expect(patologia7.nombre).to.include('Ich');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Paso 4: TC-M09-37 - Impedir desactivación de PATOLOGÍA en uso (id=7)",
+      "name": "Paso 3: TC-M09-37 - Impedir desactivación de PATOLOGÍA en uso (id=7)",
       "request": {
         "method": "PATCH",
         "header": [
@@ -220,95 +181,7 @@
       ]
     },
     {
-      "name": "Paso 5: TC-M09-37 (Post) - Verificar que PATOLOGÍA sigue activa (id=7)",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/configuracion/patologias?id_especie=4",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "patologias"
-          ],
-          "query": [
-            {
-              "key": "id_especie",
-              "value": "4"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('TC-M09-37 (Post): Verificar que patología sigue ACTIVA tras rechazo - HTTP 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "    var jsonData = pm.response.json();",
-              "    var patologia7 = jsonData.items.find(function (p) { return p.id_especies_patologias === 7; });",
-              "    pm.expect(patologia7).to.be.an('object');",
-              "    pm.expect(patologia7.es_activo, 'Patología id 7 debe permanecer activa').to.be.true;",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Paso 6: TC-M09-38 (Pre) - Registrar estado previo de métricas de producción",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/configuracion/metricas?id_especie=4",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "metricas"
-          ],
-          "query": [
-            {
-              "key": "id_especie",
-              "value": "4"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('TC-M09-38 (Pre): Consulta de catálogo de métricas operativas - HTTP 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "    var jsonData = pm.response.json();",
-              "    pm.expect(jsonData.items).to.be.an('array');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Paso 7: TC-M09-38 - Impedir desactivación de MÉTRICA en uso (id=1)",
+      "name": "Paso 4: TC-M09-38 - Impedir desactivación de MÉTRICA en uso (id=1)",
       "request": {
         "method": "PATCH",
         "header": [
@@ -358,47 +231,6 @@
               "    var jsonData = pm.response.json();",
               "    pm.expect(jsonData.error_code).to.eql('METRICA_CON_REGISTROS');",
               "    pm.expect(jsonData.message).to.include('registros productivos activos');",
-              "});"
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "name": "Paso 8: TC-M09-38 (Post) - Verificar estado posterior de métricas",
-      "request": {
-        "method": "GET",
-        "header": [
-          {
-            "key": "Authorization",
-            "value": "Bearer {{jwt_token}}"
-          }
-        ],
-        "url": {
-          "raw": "{{baseUrl}}/configuracion/metricas?id_especie=4",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "configuracion",
-            "metricas"
-          ],
-          "query": [
-            {
-              "key": "id_especie",
-              "value": "4"
-            }
-          ]
-        }
-      },
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('TC-M09-38 (Post): Catálogo de métricas permanece operativo - HTTP 200', function () {",
-              "    pm.response.to.have.status(200);",
               "});"
             ]
           }

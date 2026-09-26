@@ -10,7 +10,7 @@ Este documento constituye la evaluación técnica exhaustiva del grupo de prueba
 
 ### Sub-caso TC-M09-36: Desactivación de Etapa Productiva con Activos Asociados
 * **Objetivo:** Garantizar que el sistema bloquee con `HTTP 422` la desactivación de una etapa productiva si existen activos biológicos o ciclos asociados a la misma (regla FA-03).
-* **Método de Verificación:** Pruebas E2E en vivo mediante colección Newman contra la API de TEST (`PATCH /configuracion/ciclos/10/desactivar`) y verificación posterior de estado en base de datos PostgreSQL TEST vía conexión de solo lectura (`member_qa`).
+* **Método de Verificación:** Pruebas E2E en vivo mediante colección Newman contra la API de TEST (`PATCH /configuracion/ciclos/10/desactivar`) y verificación posterior de estado en base de datos PostgreSQL TEST vía conexión de solo lectura (`$TEST_DB_USER`).
 * **Etapa Objetivo:** *Fase juvenil cachama* (`id_ciclo_biologico = 10`, `id_especie = 4`), la cual registra **1 referencia activa** en la vista `modulo9.vw_rf16_dependencias_ciclos` derivada de `modulo9.ciclos_productivos_biologicos`.
 * **Resultado de Ejecución:**
   * Status Code HTTP: **`422 Unprocessable Entity`**

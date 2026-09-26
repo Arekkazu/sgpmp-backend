@@ -1,0 +1,57 @@
+{
+  "tc": "TC-M02-G84",
+  "ronda": "V3",
+  "reintento": 3,
+  "fecha": "2026-09-25",
+  "run_id": "G84-REEVAL-V3-20260925-200138",
+  "veredicto": "Aprobado",
+  "nota_global": "Reevaluación limpia tras corrección de diseño del test y fixes #397 (RBAC PATCH activo) y #398 (endpoint PATCH infraestructura). Los 4 subcasos funcionales y los 2 PATCH de ciclo de vida pasaron con 22/22 assertions OK. Los fixes quedan validados end-to-end.",
+  "nota_teardown": "Asociaciones creadas durante la corrida (IDs 98, 99, 100, 101) fueron desactivadas: 98 y 99 vía API PATCH durante la corrida; 100 y 101 vía script cleanup correctivo. Cero asociaciones ACTIVA remanentes. Cero huérfanas.",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-143: Asociar sensor DIRECTA a activo individual válido",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: directa",
+      "obtenido": "HTTP 201 Created, id_asociacion_activo_sensor: 98, ACTIVA, directa verificado (Sensor 22 en Activo 108)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-144: Asociar sensor AMBIENTAL compartido a infraestructura (Tipo B)",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: ambiental, id_activo_biologico: null, id_infraestructura: 3",
+      "obtenido": "HTTP 201 Created, id_asociacion_activo_sensor: 99, ACTIVA, ambiental verificado (Sensor 23 en Infraestructura 3, id_activo_biologico=null)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-145: Asociar sensor POBLACIONAL a lote activo",
+      "esperado": "HTTP 201 Created, estado_asociacion: ACTIVA, tipo_asociacion: poblacional",
+      "obtenido": "HTTP 201 Created, id_asociacion_activo_sensor: 100, ACTIVA, poblacional verificado (Sensor 24 en Lote 83)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-150: Advertencia informativa por dispositivo IoT desconectado",
+      "esperado": "HTTP 201 Created + advertencia informativa conteniendo aviso de desconexión",
+      "obtenido": "HTTP 201 Created, id_asociacion_activo_sensor: 101, advertencia: 'El dispositivo 3 se encuentra desconectado desde las 09:00:00. Las lecturas podrían no verse reflejadas de inmediato.'",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html",
+      "nota_qa": "Subcaso desbloqueado respecto a V2 (antes BLOCKED por dependencia M03). El campo 'advertencia' está operativo en TEST."
+    },
+    {
+      "paso": "TC-M02-G84 - Ciclo de vida Fix #397: Admin puede desactivar asociación de activo vía PATCH",
+      "esperado": "HTTP 200 OK al desactivar asociación con PATCH /activos-biologicos/{id}/sensores/{id_asoc}",
+      "obtenido": "HTTP 200 OK, estado_asociacion: INACTIVA, fecha_fin poblada. Asociación id=98 (creada en TC-M02-143) desactivada exitosamente por Admin.",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html",
+      "nota_qa": "Fix #397 validado end-to-end. Antes (V2): HTTP 403 ACCESO_DENEGADO. Ahora: HTTP 200 OK."
+    },
+    {
+      "paso": "TC-M02-G84 - Ciclo de vida Fix #398: Admin puede desactivar asociación ambiental vía PATCH",
+      "esperado": "HTTP 200 OK al desactivar asociación ambiental con PATCH /infraestructuras/{id}/sensores/{id_asoc}",
+      "obtenido": "HTTP 200 OK, estado_asociacion: INACTIVA, fecha_fin poblada. Asociación id=99 (creada en TC-M02-144) desactivada exitosamente por Admin.",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G84_reintento3.html",
+      "nota_qa": "Fix #398 validado end-to-end. Antes (V2): HTTP 404 Not Found (endpoint inexistente). Ahora: HTTP 200 OK."
+    }
+  ]
+}

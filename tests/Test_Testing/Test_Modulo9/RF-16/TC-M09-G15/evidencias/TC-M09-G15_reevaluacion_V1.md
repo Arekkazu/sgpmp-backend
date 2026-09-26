@@ -6,7 +6,7 @@
 * **Nombre:** Integridad — impedir desactivar parámetros (etapa/patología/métrica) en uso
 * **Módulo / Requisito:** Módulo 9 (Configuración / Parámetros Generales) / RF-16 (CU-02)
 * **Tipo de Prueba:** Integridad Referencial / Reglas de Negocio / Seguridad y Control de Datos
-* **Herramientas Utilizadas:** Newman (`cli`, `htmlextra`, `json`), Python 3.13 (`psycopg2` / `member_qa`), Auditoría de Código
+* **Herramientas Utilizadas:** Newman (`cli`, `htmlextra`, `json`), Python 3.13 (`psycopg2` / `$TEST_DB_USER`), Auditoría de Código
 * **Entorno de Ejecución:** TEST (`https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/`)
 * **Resultado TC-M09-36 (Etapa):** 🟢 **EXITOSO (HTTP 422 ETAPA_CON_ACTIVOS - 2/2 assertions PASSED)**
 * **Resultado TC-M09-37 & TC-M09-38 (Patología / Métrica):** 🔴 **HALLAZGO DE SEGURIDAD INC-M09-03 (SEVERIDAD ALTA/CRÍTICA)**
@@ -17,7 +17,7 @@
 
 | Sub-caso | Entidad / Condición Probada | Método de Verificación | Resultado Esperado | Resultado Real | Error Code / Estado | Veredicto |
 | :--- | :--- | :--- | :---: | :---: | :---: | :---: |
-| **TC-M09-36** | Desactivación de ETAPA con activos biológicos asociados (`id_ciclo_biologico = 10`) | Ejecución en vivo (Newman) + BD TEST (`member_qa`) | HTTP 422 | **HTTP 422** | `ETAPA_CON_ACTIVOS` | 🟢 PASSED (Bloqueo OK, `es_activo = true`) |
+| **TC-M09-36** | Desactivación de ETAPA con activos biológicos asociados (`id_ciclo_biologico = 10`) | Ejecución en vivo (Newman) + BD TEST (`$TEST_DB_USER`) | HTTP 422 | **HTTP 422** | `ETAPA_CON_ACTIVOS` | 🟢 PASSED (Bloqueo OK, `es_activo = true`) |
 | **TC-M09-37** | Desactivación de PATOLOGÍA con eventos sanitarios asociados | Auditoría de código (`patologia_router.py`) | HTTP 422 | **HTTP 200 (Vulnerable)** | **`INC-M09-03`** (Stub adaptador incondicional) | 🔴 VULNERABLE (Hallazgo de Seguridad) |
 | **TC-M09-38** | Desactivación de MÉTRICA referenciada por eventos productivos | Auditoría de código (`metrica_router.py`) | HTTP 422 | **HTTP 200 (Vulnerable)** | **`INC-M09-03`** (Stub adaptador incondicional) | 🔴 VULNERABLE (Hallazgo de Seguridad) |
 

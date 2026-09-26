@@ -1,18 +1,38 @@
-import psycopg2
+import os
 import sys
+import psycopg2
+
+
+def _obtener_config_bd() -> dict:
+    variables = ["TEST_DB_HOST", "TEST_DB_PORT", "TEST_DB_NAME", "TEST_DB_USER", "TEST_DB_PASSWORD"]
+    faltantes = [v for v in variables if not os.environ.get(v)]
+    if faltantes:
+        print(f"ERROR: Variables de entorno obligatorias no configuradas: {', '.join(faltantes)}")
+        sys.exit(1)
+
+    try:
+        port = int(os.environ["TEST_DB_PORT"])
+    except ValueError:
+        print("ERROR: La variable TEST_DB_PORT debe ser un número entero válido.")
+        sys.exit(1)
+
+    return {
+        "host": os.environ["TEST_DB_HOST"],
+        "port": port,
+        "dbname": os.environ["TEST_DB_NAME"],
+        "user": os.environ["TEST_DB_USER"],
+        "password": os.environ["TEST_DB_PASSWORD"],
+    }
+
 
 def main():
+    cfg = _obtener_config_bd()
+
     try:
-        conn = psycopg2.connect(
-            host="158.69.200.27",
-            port=5448,
-            dbname="sgpmp_test",
-            user="member_qa",
-            password="qaSGP2026"
-        )
+        conn = psycopg2.connect(**cfg)
         cur = conn.cursor()
         
-        print("Conectado a PostgreSQL TEST (member_qa). Verificando que la etapa 10 (Fase juvenil cachama) permanezca activa...")
+        print("Conectado a PostgreSQL TEST. Verificando que la etapa 10 (Fase juvenil cachama) permanezca activa...")
         
         cur.execute("SELECT id_ciclo_biologico, nombre, es_activo FROM modulo9.ciclos_biologicos WHERE id_ciclo_biologico = 10;")
         row = cur.fetchone()
