@@ -57,9 +57,9 @@ Mientras que **D** se reserva específicamente para el cierre de ciclo (`POST /{
 
 Nota sobre el trigger de BD: `trg_auditar_activo_biologico` exige `SET LOCAL app.usuario_id = ?` antes de cualquier INSERT/UPDATE sobre `modulo2.activos_biologicos`; el repositorio SQLAlchemy ejecuta esa sentencia al inicio de `guardar()`/`actualizar()` usando el `id_usuario` de la sesión JWT actual. Es decir, la sesión iniciada no solo protege el endpoint vía RBAC — es también la única fuente de `id_usuario` que llega hasta la capa de triggers de auditoría de la base de datos. Sin un usuario autenticado, ese trigger no tiene de dónde tomar el dato y la escritura fallaría.
 
-### Nota sobre transferencias (posible restricción adicional no-RBAC)
+### Nota sobre transferencias (sin restricción adicional a RBAC)
 
-`GET /{id_activo}/transferencias/disponibles` y `POST /{id_activo}/transferencias` exigen `(29, E)` por RBAC, y por tabla de permisos ese `E` lo tienen los 4 roles (Admin, Productor, Veterinario, Ingeniero). Sin embargo, `curls_m02_cu10_gestionar_transferencias_historial.md` documenta el error 403 como "rol sin permiso de ejecución **(solo admin y productor)**". Si ese comportamiento más restrictivo es real, no proviene de `modulo1.permisos` sino de una validación adicional dentro del use case — lo cual iría contra la regla del proyecto de no verificar roles en el use case. Vale la pena confirmarlo antes de asumir que Veterinario/Ingeniero pueden transferir activos en producción.
+`GET /{id_activo}/transferencias/disponibles` y `POST /{id_activo}/transferencias` exigen `(29, E)` por RBAC, y ese `E` lo tienen los 4 roles (Admin, Productor, Veterinario, Ingeniero). Esta nota dejaba abierta la duda de si había una restricción extra "solo admin y productor", porque así lo decía el doc de curls de CU10. **Confirmado el 2026-09-24 que no existe:** `RegistrarTransferenciaUseCase` no verifica `id_rol`, y en `sgpmp_dev` los 4 roles tienen el permiso. El doc de curls estaba desactualizado y ya se corrigió. Que Veterinario e Ingeniero puedan transferir va más allá de los actores de RF-48 (Productor y Administrador): es el hallazgo transversal #5 de `estado_M02.md`, pendiente de decisión del equipo de análisis.
 
 ---
 
@@ -507,7 +507,7 @@ Solo uno de los 6 sub-objetos viene poblado según el tipo de evento; los demás
 | `GET` | `/{id_activo}/transferencias/disponibles` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.listar_infraestructuras_disponibles` |
 | `POST` | `/{id_activo}/transferencias` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.execute` |
 
-> ¹ Ver la [nota sobre transferencias](#nota-sobre-transferencias-posible-restricción-adicional-no-rbac) — el RBAC en DB habilita a los 4 roles, pero la documentación de curls (CU10) sugiere que en la práctica solo Admin y Productor logran transferir.
+> ¹ Ver la [nota sobre transferencias](#nota-sobre-transferencias-sin-restricción-adicional-a-rbac). Los 4 roles pueden transferir; RF-48 solo lista a Productor y Administrador (hallazgo transversal #5).
 
 #### `GET /activos-biologicos/{id_activo}/infraestructura` — Consultar asociación a infraestructura
 
