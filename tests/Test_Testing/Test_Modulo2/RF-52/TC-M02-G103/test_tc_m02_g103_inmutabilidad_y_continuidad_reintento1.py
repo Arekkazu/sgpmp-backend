@@ -1,5 +1,5 @@
 """
-TC-M02-G103 (RF-52, CU13, CA-3 / CA-4 / E1) - Reintento 2 (2026-09-26) - RF-52 E1:
+TC-M02-G103 (RF-52, CU13, CA-3 / CA-4 / E1) - Reintento 1 (2026-09-26) - RF-52 E1:
 el buffer de auditoria recuperable llego con el merge de origin/test.
 
 El archivo original (test_tc_m02_g103_inmutabilidad_y_continuidad.py) queda
@@ -22,15 +22,15 @@ exacto_de_indisponibilidad`). No es una perdida ni un defecto: es la evidencia
 de recuperacion que la propia ficha (CA-4, "registro del periodo de
 indisponibilidad") exige. Este reintento corrige la aserción para contar solo
 los eventos de negocio al verificar cronologia, e incluye el mismo matiz de
-orden de insercion documentado en TC-M02-G99 reintento2 (el evento que dispara
+orden de insercion documentado en TC-M02-G99 reintento1 (el evento que dispara
 la recuperacion se inserta antes que el backlog que libera, aunque cada evento
 conserva su propio timestamp_evento real).
 
 Como correrlo (desde la raiz del repo):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
     $env:PYTHONPATH = "_win_fcntl_stub_borrar"
-    python -m pytest <ruta>\\test_tc_m02_g103_inmutabilidad_y_continuidad_reintento2.py -v \
-        --html=<ruta>\\resultados\\resultado_TC-M02-G103_reintento2.html --self-contained-html
+    python -m pytest <ruta>\\test_tc_m02_g103_inmutabilidad_y_continuidad_reintento1.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M02-G103_reintento1.html --self-contained-html
 """
 import sys
 import time
@@ -60,7 +60,7 @@ def _registro_objetivo(token: str) -> dict:
 
 class TestTCM02262InmutabilidadDeLaBitacora:
     """Sin cambios respecto al original -- se repite igual porque el scanner exige
-    un solo reporte por TC (este reintento2 pasa a ser el ganador)."""
+    un solo reporte por TC (este reintento1 pasa a ser el ganador)."""
 
     def test_ningun_intento_de_update_o_delete_por_api_tiene_exito(self):
         token = h.login(h.ADMIN)
@@ -126,7 +126,7 @@ class TestTCM02263Reintento2ContinuidadAnteFalloDelRepositorio:
         negocio + 1 INDISPONIBILIDAD_AUDITORIA, evidencia de recuperacion exigida por
         CA-4). Se corrige para verificar cronologia solo entre los 3 eventos de
         negocio (lo que la ficha realmente pide no perder ni desordenar), y se deja
-        constancia del mismo matiz de TC-M02-G99 reintento2: el evento que dispara la
+        constancia del mismo matiz de TC-M02-G99 reintento1: el evento que dispara la
         recuperacion se inserta antes que el backlog que libera, aunque cada evento
         conserva su propio timestamp_evento real."""
         repo = self._ciclo_con_caida(tmp_path, monkeypatch)
