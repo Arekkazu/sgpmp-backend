@@ -1,0 +1,230 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-175-rf27-rev1",
+    "name": "TC-M09-175 rev1 - Tema DEFAULT",
+    "description": "Reevaluacion TEST usuario 120. Solo lectura. 175 DEFAULT solo se afirma si GET resuelto fuente=defecto Y GET global admin no tiene fila. Password via --env-var. No PATCH.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token_175", "value": "" },
+    { "key": "token_admin", "value": "" },
+    { "key": "login175Ok", "value": "0" },
+    { "key": "loginAdminOk", "value": "0" },
+    { "key": "tienePersonal", "value": "" },
+    { "key": "fuenteResuelta", "value": "" },
+    { "key": "themeModeResuelto", "value": "" },
+    { "key": "idTemaResuelto", "value": "" },
+    { "key": "existeGlobal", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login usuario 120",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena_175')) { throw new Error('BLOQUEADO: --env-var contrasena_175'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login 175 HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Token 175 presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token_175', json.token);",
+              "  pm.collectionVariables.set('login175Ok', '1');",
+              "} else { pm.collectionVariables.set('login175Ok', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_175}}\",\n  \"contrasena\": \"{{contrasena_175}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - GET /usuarios/me id 120 Productor activo",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('login175Ok') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login175Ok') !== '1') { pm.test.skip('Login 175 no OK'); return; }",
+              "pm.test('GET me HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('id_usuario=120', function () { pm.expect(Number(json.id_usuario)).to.eql(120); });",
+              "pm.test('Rol Productor', function () { pm.expect(String(json.nombre_rol || '')).to.match(/productor/i); });",
+              "pm.test('Cuenta Activo', function () { pm.expect(String(json.estado_cuenta || '')).to.match(/activo/i); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_175}}" }],
+        "url": "{{base_url}}/usuarios/me"
+      }
+    },
+    {
+      "name": "03 - GET permisos recurso 24 lectura",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('login175Ok') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login175Ok') !== '1') { pm.test.skip('Login 175 no OK'); return; }",
+              "pm.test('GET permisos HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const permisos = ((pm.response.json() || {}).permisos) || [];",
+              "const lecturaTema = permisos.some(function (p) { return Number(p.id_recurso) === 24 && Number(p.id_accion) === 2; });",
+              "pm.test('Tiene recurso 24 accion 2 (GET tema)', function () { pm.expect(lecturaTema).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_175}}" }],
+        "url": "{{base_url}}/sesiones/me/permisos"
+      }
+    },
+    {
+      "name": "04 - GET /configuracion/personalizacion/tema (usuario 120)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('login175Ok') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('login175Ok') !== '1') { pm.test.skip('Login 175 no OK'); return; }",
+              "pm.test('GET tema HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json() || {};",
+              "pm.collectionVariables.set('fuenteResuelta', String(json.fuente || ''));",
+              "pm.collectionVariables.set('themeModeResuelto', String(json.theme_mode));",
+              "pm.collectionVariables.set('idTemaResuelto', String(json.id_tema_visual));",
+              "const personal = String(json.fuente || '') === 'personal';",
+              "pm.collectionVariables.set('tienePersonal', personal ? '1' : '0');",
+              "pm.test('Usuario 120 no tiene fuente=personal', function () {",
+              "  pm.expect(json.fuente).to.not.eql('personal');",
+              "});",
+              "if (personal) {",
+              "  pm.test.skip('175 BLOQUEADO: usuario 120 tiene tema personal; no se modifica');",
+              "  return;",
+              "}",
+              "if (String(json.fuente) === 'global') {",
+              "  pm.test.skip('175 NO se afirma DEFAULT: fuente=global (existe tema global compartido)');",
+              "} else if (String(json.fuente) === 'defecto') {",
+              "  pm.test('175 theme_mode=1', function () { pm.expect(Number(json.theme_mode)).to.eql(1); });",
+              "  pm.test('175 fuente=defecto', function () { pm.expect(json.fuente).to.eql('defecto'); });",
+              "  pm.test('175 id_tema_visual null en DEFAULT', function () { pm.expect(json.id_tema_visual).to.eql(null); });",
+              "} else {",
+              "  pm.test('fuente reconocida', function () { pm.expect.fail('fuente inesperada: ' + json.fuente); });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_175}}" }],
+        "url": "{{base_url}}/configuracion/personalizacion/tema"
+      }
+    },
+    {
+      "name": "05 - Login admin (solo GET global, sin PATCH)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena_admin')) { throw new Error('BLOQUEADO: --env-var contrasena_admin'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login admin HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token_admin', json.token);",
+              "  pm.collectionVariables.set('loginAdminOk', '1');",
+              "} else { pm.collectionVariables.set('loginAdminOk', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "06 - GET /configuracion/personalizacion/tema/global (admin, solo lectura)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginAdminOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginAdminOk') !== '1') { pm.test.skip('Login admin no OK'); return; }",
+              "pm.test('GET global HTTP 200 o 204/null', function () {",
+              "  pm.expect([200, 204]).to.include(pm.response.code);",
+              "});",
+              "let json = null;",
+              "try { json = pm.response.json(); } catch (e) { json = null; }",
+              "const existe = json && json.es_global === true;",
+              "pm.collectionVariables.set('existeGlobal', existe ? '1' : '0');",
+              "if (existe) {",
+              "  pm.test('Hay tema global (precondicion 175 NO cumplida)', function () {",
+              "    pm.expect(json.es_global).to.eql(true);",
+              "  });",
+              "  pm.test.skip('175 BLOQUEADO: no se elimina el global; no se afirma DEFAULT');",
+              "} else {",
+              "  pm.test('No hay tema global (precondicion 175 de global)', function () {",
+              "    pm.expect(existe).to.eql(false);",
+              "  });",
+              "  if (pm.collectionVariables.get('fuenteResuelta') === 'defecto' && pm.collectionVariables.get('tienePersonal') === '0') {",
+              "    pm.test('175 ejecutable: sin personal y sin global', function () { pm.expect(true).to.eql(true); });",
+              "  }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/personalizacion/tema/global"
+      }
+    }
+  ]
+}
