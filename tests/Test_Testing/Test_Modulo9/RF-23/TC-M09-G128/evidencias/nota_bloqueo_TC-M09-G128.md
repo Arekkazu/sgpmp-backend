@@ -25,3 +25,12 @@ al join server / logs de ese servidor; o (b) declarar TC-M09-254/255 fuera de al
 ## Estado propuesto
 Pendiente (sin reporte). Registrar en Taiga solo si el equipo confirma que LoRaWAN es requisito (entonces el
 defecto es el de TC-M09-G69 sub-caso 132: ausencia de soporte).
+
+## Actualizacion 2026-09-26 - confirmado con acceso real, sigue sin poder ejecutarse
+El usuario proveyo credenciales reales de un gateway (`sgpmp_gateway`) y el serial de una Raspberry Pi realmente
+activa (`TC-M09-G64-1789321890010`). Se uso ese acceso para TC-M09-G69/G127 (ver sus reintento2/3): confirma en
+vivo que **todo el tráfico real observado es MQTT** -- topicos `sgpmp/<serial>/command` y `sgpmp/<serial>/status`,
+sin ningun join-request, DevNonce ni clave de sesion LoRaWAN en ningun punto. La credencial del "gateway" autentica
+contra el mismo broker Mosquitto (puertos 1884/9001), no contra un servidor de red LoRaWAN. Esto no abre ninguna
+via nueva para TC-M09-254/255: siguen siendo propiedades de un protocolo que este sistema, ni siquiera con
+hardware real de por medio, implementa. La nota y el estado Pendiente se mantienen sin cambios.
