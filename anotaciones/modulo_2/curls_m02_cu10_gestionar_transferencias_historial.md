@@ -126,12 +126,36 @@ Respuesta esperada `200`:
   ],
   "eventos_reproductivos": [],
   "indicadores": [],
-  "advertencias": []
+  "advertencias": [],
+  "accesos_directos": [
+    {"codigo": "historial", "nombre": "Historial completo", "metodo": "GET",
+     "ruta": "/activos-biologicos/5/historial", "rf_origen": "RF46", "tipos_evento": null},
+    {"codigo": "registrar_evento", "nombre": "Registrar evento", "metodo": "POST",
+     "ruta": "/activos-biologicos/5/eventos/{tipo_evento}", "rf_origen": "RF39-RF43",
+     "tipos_evento": ["crecimiento", "sanitario", "reproductivo", "productivo"]},
+    {"codigo": "cambiar_estado", "nombre": "Cambiar estado", "metodo": "PATCH",
+     "ruta": "/activos-biologicos/5/estado", "rf_origen": "RF44", "tipos_evento": null},
+    {"codigo": "registrar_baja", "nombre": "Registrar baja", "metodo": "POST",
+     "ruta": "/activos-biologicos/5/eventos/baja", "rf_origen": "RF45", "tipos_evento": null}
+  ]
 }
 ```
 
 Comportamiento especial:
+- **Sección 7 (solo POBLACIONAL):** `densidad` es la del detalle poblacional
+  (`cantidad_actual / superficie`, que mantienen al día RF-36/RF-45/RF-48). Para un
+  activo INDIVIDUAL es `null`. Ejemplo en `sgpmp_dev`: el lote 6 responde
+  `"cantidad_actual": 4870, "densidad": "9.74..."`.
+- **Sección 8 (accesos directos):** solo incluye las acciones que el rol puede ejecutar.
+  Cada acceso exige el mismo permiso que su endpoint sobre el recurso 29:
+  `historial` → R, `registrar_evento` y `registrar_baja` → C, `cambiar_estado` → E.
+  Un rol con solo `R` (p.ej. `Integración M04`) recibe únicamente `historial`.
 - Si el activo está en estado `CERRADO` o `BAJA` pero tiene fase productiva activa, `advertencias` contendrá un mensaje de inconsistencia detectada.
+- **E-03 (fallo parcial, HTTP 200):** cada sección carga en su propio savepoint. Si una
+  falla, `advertencias` trae `"La sección <nombre> no pudo cargarse en este momento."` y
+  el resto de la ficha carga normalmente. Esto incluye la vista base (`Datos generales`,
+  secciones 1-4 y 7): si falla, la ficha responde con los datos del propio activo
+  (identificador, tipo, densidad) y los accesos directos.
 - Si la vista no devuelve datos (activo sin ciclo activo), se retornan las secciones vacías con `advertencias: ["No se pudo cargar la información completa del activo."]`.
 
 Errores posibles:

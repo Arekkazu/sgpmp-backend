@@ -582,15 +582,18 @@ Sin query params.
 | `fecha_ultimo_peso` | `date \| None` |
 | `cantidad_actual` | `int \| None` |
 | `biomasa_total` | `Decimal \| None` |
-| `densidad` | `Decimal \| None` |
+| `densidad` | `Decimal \| None` (solo POBLACIONAL; `cantidad_actual / superficie`) |
 | `eventos_sanitarios` | `list[dict]` |
 | `eventos_productivos` | `list[dict]` |
 | `eventos_crecimiento` | `list[dict]` |
 | `eventos_reproductivos` | `list[dict]` |
 | `indicadores` | `list[dict]` |
 | `advertencias` | `list[str]` |
+| `accesos_directos` | `list[AccesoDirectoResponse]` — Sección 8: `codigo`, `nombre`, `metodo`, `ruta`, `rf_origen`, `tipos_evento` |
 
-Si el activo está en `CERRADO`/`BAJA` con fase activa, o si las vistas subyacentes no devuelven datos, `advertencias` explica la inconsistencia en vez de fallar con error.
+Si el activo está en `CERRADO`/`BAJA` con fase activa, o si las vistas subyacentes no devuelven datos, `advertencias` explica la inconsistencia en vez de fallar con error. Si una sección falla (incluida la vista base), la ficha responde 200 con el aviso de esa sección (E-03).
+
+`accesos_directos` solo lista las acciones que el rol puede ejecutar: `historial` (29, R), `registrar_evento` (29, C), `cambiar_estado` (29, E), `registrar_baja` (29, C) — el mismo permiso que exige cada endpoint.
 
 ---
 
