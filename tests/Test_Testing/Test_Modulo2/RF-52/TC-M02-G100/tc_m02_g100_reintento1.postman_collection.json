@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "TC-M02-G100 - Reintento 2 (2026-09-26, TEST, post-merge)",
+    "name": "TC-M02-G100 - Reintento 1 (2026-09-26, TEST, post-merge)",
     "description": "Re-ejecucion contra TEST tras el merge de origin/test. Sin cambios de fondo: 172 (ACCESO_NO_AUTORIZADO auditado) sigue OK; 173 sigue con DEFECTO: 50 de 50 registros ASOCIACION_IOT_CREADA tienen id_evento_correlacionado nulo (el merge no agrego ninguna asignacion -- grep en src/biological_assets) y RF-63 (GET /iot/auditoria) no expone campo de correlacion. La coleccion original queda intacta.\n\nSub-casos TC-M02-172 y TC-M02-173, en vivo contra TEST. 172: el Productor pide eventos ACCESO_DATOS de un activo ajeno -> se espera 403 y un registro ACCESO_NO_AUTORIZADO en la propia bitacora. 173: los registros ASOCIACION_IOT_CREADA de RF-52 (generados por RF-49) deben llevar id_evento_correlacionado apuntando al registro de RF-63, y RF-63 debe exponer la correlacion de vuelta. Las aserciones afirman lo que pide la ficha; las que fallan son evidencia de defecto.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
