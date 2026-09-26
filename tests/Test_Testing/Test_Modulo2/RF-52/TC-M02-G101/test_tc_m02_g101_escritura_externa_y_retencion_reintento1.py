@@ -1,5 +1,5 @@
 """
-TC-M02-G101 (RF-52, CU13, OWASP API5 / ASVS V8) - REINTENTO 2 (2026-09-26, TEST, tras el merge de origin/test).
+TC-M02-G101 (RF-52, CU13, OWASP API5 / ASVS V8) - REINTENTO 1 (2026-09-26, TEST, tras el merge de origin/test).
 
     TC-M02-175  insercion directa fuera del flujo interno -> rechazada
     TC-M02-176  retencion: 5 anios (TRANSFORMACION_BIOLOGICA/SANITARIO), 2 anios (resto), configurable
@@ -19,8 +19,8 @@ cambiaron: el merge no los toco (verificado por grep en src/ y alembic/).
 
 Como correrlo (desde la raiz del repo; en Windows, stub de fcntl no versionado):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"; $env:PYTHONPATH = "_win_fcntl_stub_borrar"
-    python -m pytest <ruta>\\test_tc_m02_g101_escritura_externa_y_retencion_reintento2.py -v \
-        --html=<ruta>\\resultados\\resultado_TC-M02-G101_reintento2.html --self-contained-html
+    python -m pytest <ruta>\\test_tc_m02_g101_escritura_externa_y_retencion_reintento1.py -v \
+        --html=<ruta>\\resultados\\resultado_TC-M02-G101_reintento1.html --self-contained-html
 """
 import sys
 from pathlib import Path
