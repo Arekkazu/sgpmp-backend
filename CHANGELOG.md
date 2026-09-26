@@ -1,3 +1,9 @@
+## [1.0.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.54...v1.0.0-rc.55) (2026-09-26)
+
+### Bug Fixes
+
+* **m02:** agrupar rate limit de datos-consolidados por modulo consumidor (RF-50) ([d6324fc](https://github.com/Arekkazu/sgpmp-backend/commit/d6324fc430f799cafbd7b5ca79f3c794a0796886))
+
 ## [1.0.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.53...v1.0.0-rc.54) (2026-09-24)
 
 ### Bug Fixes
