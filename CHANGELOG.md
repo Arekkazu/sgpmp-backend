@@ -1,3 +1,9 @@
+## [1.0.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.55...v1.0.0-rc.56) (2026-09-26)
+
+### Features
+
+* **m02:** agregar accesos directos y densidad real a la ficha integral (RF-47) ([9528c8c](https://github.com/Arekkazu/sgpmp-backend/commit/9528c8c33ac78fc80bbfe6926fe098c3e6c28c0e))
+
 ## [1.0.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.54...v1.0.0-rc.55) (2026-09-26)
 
 ### Bug Fixes
