@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "TC-M02-G18 rev4",
+    "description": "GET infraestructura. No sobrescribe rev1-rev3. Veredicto pytest. Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 login admin",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var b = {}; try { b = pm.response.json(); } catch (e) {}",
+            "if (b.token) { pm.collectionVariables.set('token', b.token); }",
+            "pm.test('login http', function () { pm.expect(pm.response.code).to.be.a('number'); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 HISTORIAL activo 8",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/8/infraestructura?tipo_consulta=HISTORIAL"
+      }
+    },
+    {
+      "name": "03 ACTIVA activo 352",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/activos-biologicos/352/infraestructura?tipo_consulta=ACTIVA"
+      }
+    }
+  ]
+}
