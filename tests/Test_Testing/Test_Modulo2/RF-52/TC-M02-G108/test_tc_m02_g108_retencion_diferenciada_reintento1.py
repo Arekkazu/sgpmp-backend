@@ -1,5 +1,5 @@
 """
-TC-M02-G108 - REINTENTO 2 (2026-09-26, TEST, tras el merge de origin/test)
+TC-M02-G108 - REINTENTO 1 (2026-09-26, TEST, tras el merge de origin/test)
 
 Re-ejecucion tras el merge. Sin cambios de fondo: RF-52 sigue sin campo de retencion en sus registros y src/biological_assets
 sigue sin ninguna referencia a retencion (RF-63 si expone retencion_aplicable). Los registros nuevos de RF-52 (registro_incompleto,
