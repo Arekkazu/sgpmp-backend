@@ -10,7 +10,44 @@
 | Endpoint | `GET /activos-biologicos/{id_activo}/ficha-integral` |
 | Responsable | Juan Manuel · Prioridad Media |
 
-## Resultado (2026-09-19): 3/4 sub-casos PASS, 1 FAIL confirmado (falta la Sección 8), 1 no reproducible en vivo sin riesgo
+## Resultado vigente (2026-09-26): 12/13 assertions — TC-M02-127 sigue FAIL en TEST, pero ya corregido en `dev` (pendiente de despliegue)
+
+La colección se re-ejecutó **sin cambios** (sigue siendo de solo lectura: activos existentes 5, 10 y 8).
+
+| Sub-caso | Resultado (2026-09-26) |
+|---|---|
+| TC-M02-127 — Ficha completa | **FAIL en TEST**: secciones 1-7 presentes, pero la respuesta no trae `accesos_directos` (Sección 8) |
+| TC-M02-128 — Sección vacía | PASS: `eventos_sanitarios = []`, ficha 200 |
+| TC-M02-129 — Fallo parcial de módulo fuente | Corregido en código y desplegado; sigue sin forzarse en vivo (ver abajo) |
+| TC-M02-130 — Advertencia de inconsistencia | PASS: activo 8 `CERRADO` con fase activa, 200 con advertencia |
+
+### TC-M02-127: la Sección 8 está implementada en `dev`, pero no desplegada en TEST
+
+- `9528c8c3 feat(m02): agregar accesos directos y densidad real a la ficha integral (RF-47)` (2026-09-24) agrega
+  `accesos_directos` (historial, registrar evento, cambiar estado, registrar baja, filtrados por el permiso de cada
+  endpoint) al schema de respuesta.
+- TEST se despliega desde la rama `test` (`.github/workflows/migrate-test.yml`), y ese commit **está en `origin/dev`
+  pero todavía no en `origin/test`** (verificado con `git merge-base --is-ancestor`). La respuesta en vivo de
+  `GET /activos-biologicos/5/ficha-integral` no trae la clave.
+- No es un defecto nuevo de código sino una promoción pendiente de `dev` → `test`. La assertion ya exige el campo,
+  así que el caso pasará sin cambios cuando se despliegue.
+
+### TC-M02-129: fallo parcial ya manejado por sección
+
+`4f63a9dc fix(rf47): una seccion que no carga ya no tumba la ficha integral` (ya en `origin/test`) envuelve cada
+sección en `_seccion()` (`consultar_ficha_integral_use_case.py`): cada una carga en su propio savepoint y, si falla,
+la ficha responde 200 con `advertencias` = "La sección {nombre} no pudo cargarse en este momento." en vez de 500.
+Cubierto por tests unitarios del repo (`test_rf47_seccion_caida_no_tumba_la_ficha` en
+`tests/biological_assets/test_gaps_flujo_alterno_m02.py`, `test_vista_base_caida_no_tumba_la_ficha` en
+`test_rf47_ficha_integral.py`), no ejecutados en esta sesión (importan `fcntl`, que no existe en Windows). Forzar el
+fallo en vivo sigue requiriendo romper una vista compartida de TEST, así que no se hizo. El texto exacto del RF
+("Información no disponible. [Actualizar]") es responsabilidad del frontend.
+
+Evidencia: `RESULTADOS/TC-M02-G77_resultado.html` (Newman htmlextra, 2026-09-26).
+
+---
+
+## Histórico (2026-09-19): 3/4 sub-casos PASS, 1 FAIL confirmado (falta la Sección 8), 1 no reproducible en vivo sin riesgo
 
 **13/14 assertions PASS.** Re-confirmado hoy, mismo resultado exacto que las ejecuciones anteriores (2026-09-09 y
 2026-09-15) — este caso solo hace `GET /ficha-integral` sobre activos ya existentes, no crea nada, así que nunca

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "TC-M02-G34 - Validacion de fechas, secuencia y solapamiento en cambios de fase",
-    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-040 (fecha invalida), TC-M02-041 (salto sin confirmacion), TC-M02-043 (solapamiento) y TC-M02-044 (activo CERRADO). INC-M02-37-01 (crash de cambiar_fase) ya esta resuelto, asi que los 4 sub-casos ahora llegan a probar su logica de negocio real. Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado; ver README.md/NOTA_BLOQUEO.md para el detalle de que gaps siguen vigentes hoy.",
+    "description": "CU02 - Gestion de Fases del Ciclo Productivo - RF-37. Agrupa TC-M02-040 (fecha invalida), TC-M02-041 (salto sin confirmacion), TC-M02-043 (solapamiento) y TC-M02-044 (activo CERRADO). INC-M02-37-01 (crash de cambiar_fase) ya esta resuelto, asi que los 4 sub-casos ahora llegan a probar su logica de negocio real. Las assertions codifican el comportamiento QUE EXIGE el RF, no el observado; ver README.md/NOTA_BLOQUEO.md para el detalle de que gaps siguen vigentes hoy. Reevaluado 2026-09-26: fase_destino_id es el id de la fase dentro del ciclo (id_ciclos_productivo_biologico), no el numero de paso: en TEST el ciclo 2 tiene las fases 4 (paso 1), 5 (paso 2) y 6 (paso 3), por eso id_fase_destino=6.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -12,6 +12,7 @@
     { "key": "id_especie", "value": "2" },
     { "key": "id_infraestructura", "value": "6" },
     { "key": "id_ciclo_productiva", "value": "2" },
+    { "key": "id_fase_destino", "value": "6" },
     { "key": "id_activo_040", "value": "" },
     { "key": "id_activo_041", "value": "" },
     { "key": "id_activo_043", "value": "" },
@@ -96,7 +97,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token_admin}}" }],
         "url": "{{base_url}}/activos-biologicos/{{id_activo_041}}/fases",
-        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 salto sin confirmar\",\n  \"fase_destino_id\": 3\n}" }
+        "body": { "mode": "raw", "raw": "{\n  \"id_ciclo_productiva\": {{id_ciclo_productiva}},\n  \"motivo_cambio\": \"QA-G34 salto sin confirmar\",\n  \"fase_destino_id\": {{id_fase_destino}}\n}" }
       },
       "event": [{ "listen": "test", "script": { "exec": [
         "console.log('[TC-M02-041] status=' + pm.response.code + ' body=' + pm.response.text());",
