@@ -1,19 +1,25 @@
 """DTO de entrada para editar una métrica de producción (Flujo J — RF-16).
 
 Incluye ``fecha_actualizacion`` para control de concurrencia optimista.
+
+``valor_min``/``valor_max`` (RFC-004): si se omiten se conserva el rango guardado;
+enviarlos como ``null`` lo elimina. Se distingue con ``model_fields_set``.
 """
 from __future__ import annotations
 
 import re
 from datetime import datetime
+from decimal import Decimal
 from typing import Optional
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 
 from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.shared.base_dto import BaseDTO
 
-_NOMBRE_METRICA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 \-()/]*$")
+# Igual que `NombreMetrica`: acepta `_` (p. ej. `peso_destete`), o esas métricas no se podrían
+# ni editar por PATCH -- TC-M02-G12 solo había relajado el value object, no este DTO.
+_NOMBRE_METRICA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 _\-()/]*$")
 
 _TIPOS_VALIDOS = {'PESO', 'VOLUMEN', 'LONGITUD', 'CONTEO', 'OTRO'}
 _APLICA_VALIDOS = {'INDIVIDUAL', 'LOTE', 'AMBOS'}
@@ -26,6 +32,8 @@ class EditarMetricaDTO(BaseDTO):
     aplica_a_tipo_activo: str
     tipo_dato: Optional[str] = None
     es_obligatorio: Optional[bool] = None
+    valor_min: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=4, allow_inf_nan=False)
+    valor_max: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=4, allow_inf_nan=False)
     fecha_actualizacion: Optional[datetime] = None
 
     @field_validator("nombre")
@@ -36,7 +44,7 @@ class EditarMetricaDTO(BaseDTO):
             raise ValueError("El nombre de la métrica debe tener entre 3 y 60 caracteres.")
         if not _NOMBRE_METRICA.match(v):
             raise ValueError(
-                "El nombre de la métrica solo puede contener letras, números, espacios, guiones, paréntesis y barras."
+                "El nombre de la métrica solo puede contener letras, números, espacios, guiones, guiones bajos, paréntesis y barras."
             )
         return v
 
