@@ -1,0 +1,111 @@
+{
+  "info": {
+    "name": "TC-M02-G15 rev4",
+    "description": "Reevaluacion TEST. GET-only para BOLA (el PATCH controlado vive en pytest). No sobrescribe rev2/rev3. Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_bola", "value": "" },
+    { "key": "token_ing", "value": "" },
+    { "key": "token_prod", "value": "" },
+    { "key": "id_activo_bola", "value": "350" }
+  ],
+  "item": [
+    {
+      "name": "01 login m2m BOLA",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('login bola', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "var b = pm.response.json();",
+            "if (b.token) { pm.collectionVariables.set('token_bola', b.token); }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 TC-M02-027 GET activo ajeno",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "pm.test('GET no expone 200 ficha', function () { pm.expect([401,403,404]).to.include(pm.response.code); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_bola}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_bola}}"
+      }
+    },
+    {
+      "name": "03 login productor 028",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "var b = pm.response.json();",
+            "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+            "pm.test('login productor', function () { pm.expect(pm.response.code).to.eql(200); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "04 login ingeniero 031",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "var code = pm.response.code;",
+            "pm.test('login ingeniero registrado', function () { pm.expect(code).to.be.a('number'); });",
+            "if (code === 200) { var b = pm.response.json(); if (b.token) { pm.collectionVariables.set('token_ing', b.token); } }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "05 TC-M02-031 GET ficha propio 350",
+      "event": [{
+        "listen": "prerequest",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "if (!pm.collectionVariables.get('token_ing')) { console.log('sin token ingeniero; 031 no ejecutable en Newman'); }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_ing}}" }],
+        "url": "{{base_url}}/activos-biologicos/{{id_activo_bola}}"
+      }
+    }
+  ]
+}

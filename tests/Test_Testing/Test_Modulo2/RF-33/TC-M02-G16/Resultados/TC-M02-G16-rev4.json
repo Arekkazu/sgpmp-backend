@@ -1,0 +1,274 @@
+{
+  "caso": "TC-M02-G16",
+  "revision": 4,
+  "rf": "RF-33",
+  "cu": "CU01",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-26T18:12:57.682526+00:00",
+  "alcance": "Solo TC-M02-030. 029 y 032 no reejecutados (rev2).",
+  "subcasos": {
+    "TC-M02-029": {
+      "resultado": "APROBADO",
+      "origen": "rev2",
+      "nota": "No reejecutado. SQL-like rechazado o texto; NoSQL objeto 400; sin 500."
+    },
+    "TC-M02-032": {
+      "resultado": "APROBADO",
+      "origen": "rev2",
+      "nota": "No reejecutado. TEST devolvio 429 LIMITE_TASA_EXCEDIDO."
+    },
+    "TC-M02-030": {
+      "resultado": "APROBADO",
+      "endpoint": "POST /activos-biologicos  atributos_dinamicos",
+      "metrica_texto": {
+        "id_especie": 1,
+        "nombre_especie": "Tilapia Roja",
+        "especie_activa": true,
+        "id_metrica": 26,
+        "nombre": "Observaciones Veterinarias QA",
+        "tipo_dato": "TEXTO",
+        "estado": "activa",
+        "aplicabilidad": "AMBOS",
+        "es_obligatorio": false,
+        "tipo_activo_post": "INDIVIDUAL"
+      },
+      "control": {
+        "http": 201,
+        "content_type": "application/json",
+        "error_code": null,
+        "message": null,
+        "id_creado": 628,
+        "body": "{\"id_activo_biologico\": 628, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG16R4C181257682492\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {\"Observaciones Veterinarias QA\": \"valor_control_qa_g16r4\", \"Peso al nacer (Obligatorio QA)\": 1.0}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T18:13:18.062481Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 463, \"raza\": \"QA-G16-R4\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T18:13:18.062481Z\"}, \"detalle_poblacional\": null}",
+        "infra": 3,
+        "atributos_enviados": {
+          "Observaciones Veterinarias QA": "valor_control_qa_g16r4",
+          "Peso al nacer (Obligatorio QA)": 1.0
+        },
+        "get_http": 200,
+        "atributos_get": {
+          "Observaciones Veterinarias QA": "valor_control_qa_g16r4",
+          "Peso al nacer (Obligatorio QA)": 1.0
+        },
+        "restauracion": {
+          "id": 628,
+          "http_estado": 200,
+          "http_get": 200,
+          "estado": "INACTIVO"
+        }
+      },
+      "intentos": [
+        {
+          "http": 201,
+          "content_type": "application/json",
+          "error_code": null,
+          "message": null,
+          "id_creado": 629,
+          "body": "{\"id_activo_biologico\": 629, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG16R4X181257682492\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {\"Observaciones Veterinarias QA\": \"<script>alert(1)</script>\", \"Peso al nacer (Obligatorio QA)\": 1.0}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T18:13:22.593945Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 464, \"raza\": \"QA-G16-R4\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T18:13:22.593945Z\"}, \"detalle_poblacional\": null}",
+          "variante": "xss_script",
+          "valor_enviado": "<script>alert(1)</script>",
+          "atributos_enviados": {
+            "Observaciones Veterinarias QA": "<script>alert(1)</script>",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "get_http": 200,
+          "content_type_get": "application/json",
+          "atributos_get": {
+            "Observaciones Veterinarias QA": "<script>alert(1)</script>",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "persistido": true,
+          "get_es_json": true,
+          "get_es_html": false,
+          "script_en_json": true,
+          "html_sin_escapar": false,
+          "restauracion": {
+            "id": 629,
+            "http_estado": 200,
+            "http_get": 200,
+            "estado": "INACTIVO"
+          }
+        },
+        {
+          "http": 201,
+          "content_type": "application/json",
+          "error_code": null,
+          "message": null,
+          "id_creado": 630,
+          "body": "{\"id_activo_biologico\": 630, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG16R4S181257682492\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {\"Observaciones Veterinarias QA\": \"x'; SELECT 1--\", \"Peso al nacer (Obligatorio QA)\": 1.0}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T18:13:26.176440Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 465, \"raza\": \"QA-G16-R4\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T18:13:26.176440Z\"}, \"detalle_poblacional\": null}",
+          "variante": "inyeccion_texto",
+          "valor_enviado": "x'; SELECT 1--",
+          "atributos_enviados": {
+            "Observaciones Veterinarias QA": "x'; SELECT 1--",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "get_http": 200,
+          "content_type_get": "application/json",
+          "atributos_get": {
+            "Observaciones Veterinarias QA": "x'; SELECT 1--",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "persistido": true,
+          "get_es_json": true,
+          "get_es_html": false,
+          "script_en_json": true,
+          "html_sin_escapar": false,
+          "restauracion": {
+            "id": 630,
+            "http_estado": 200,
+            "http_get": 200,
+            "estado": "INACTIVO"
+          }
+        },
+        {
+          "http": 201,
+          "content_type": "application/json",
+          "error_code": null,
+          "message": null,
+          "id_creado": 631,
+          "body": "{\"id_activo_biologico\": 631, \"id_especie\": 1, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG16R4J181257682492\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {\"Observaciones Veterinarias QA\": \"{\\\"$gt\\\":\\\"\\\"}\", \"Peso al nacer (Obligatorio QA)\": 1.0}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T18:13:29.332165Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 466, \"raza\": \"QA-G16-R4\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T18:13:29.332165Z\"}, \"detalle_poblacional\": null}",
+          "variante": "operador_json_string",
+          "valor_enviado": "{\"$gt\":\"\"}",
+          "atributos_enviados": {
+            "Observaciones Veterinarias QA": "{\"$gt\":\"\"}",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "get_http": 200,
+          "content_type_get": "application/json",
+          "atributos_get": {
+            "Observaciones Veterinarias QA": "{\"$gt\":\"\"}",
+            "Peso al nacer (Obligatorio QA)": 1.0
+          },
+          "persistido": true,
+          "get_es_json": true,
+          "get_es_html": false,
+          "script_en_json": false,
+          "html_sin_escapar": false,
+          "restauracion": {
+            "id": 631,
+            "http_estado": 200,
+            "http_get": 200,
+            "estado": "INACTIVO"
+          }
+        },
+        {
+          "http": 422,
+          "content_type": "application/json",
+          "error_code": "ATRIBUTO_TIPO_INVALIDO",
+          "message": "El atributo 'Observaciones Veterinarias QA' debe ser de tipo texto.",
+          "id_creado": null,
+          "body": "{\"error_code\": \"ATRIBUTO_TIPO_INVALIDO\", \"message\": \"El atributo 'Observaciones Veterinarias QA' debe ser de tipo texto.\", \"fields\": [{\"field\": \"atributos_dinamicos.Observaciones Veterinarias QA\", \"message\": \"El atributo 'Observaciones Veterinarias QA' debe ser de tipo texto.\"}], \"timestamp\": \"2026-09-26T18:13:32.938560+00:00\"}",
+          "variante": "operador_json_objeto"
+        }
+      ],
+      "conclusion": "Metrica TEXTO 'Observaciones Veterinarias QA' especie 1. Control POST 201 y restaurado. XSS HTTP 201 persistido=True content-type GET=application/json. Inyeccion texto HTTP 201; operador string HTTP 201; objeto operador HTTP 422 ATRIBUTO_TIPO_INVALIDO. Sin 500, sin HTML, sin ejecucion. Cadena almacenada como dato JSON no es XSS.",
+      "busqueda_metricas": {
+        "especies_http": 200,
+        "especies_n": 30,
+        "consultas": [
+          {
+            "id_especie": 5,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 41,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 39,
+            "http": 200,
+            "n": 4,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 40,
+            "http": 200,
+            "n": 1,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 4,
+            "http": 200,
+            "n": 3,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 3,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 43,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 42,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 44,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 61,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 10,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 1,
+            "http": 200,
+            "n": 4,
+            "tipos": [
+              "NUMERICO",
+              "TEXTO"
+            ]
+          }
+        ],
+        "tipos_vistos": [
+          "NUMERICO",
+          "TEXTO"
+        ],
+        "texto_inactiva_o_especie_inactiva": null
+      }
+    }
+  },
+  "ids_creados": [],
+  "estado_global": "APROBADO",
+  "auditoria": "Rev2 y rev3 intactas. Sin DML. Sin POST metricas. Sin cambios productivos. Sin commit/push.",
+  "logins": {
+    "admin": {
+      "correo": "admin@pecuaria.co",
+      "http": 200,
+      "ok": true
+    },
+    "productor": {
+      "correo": "productor@pecuaria.co",
+      "http": 200,
+      "ok": true
+    }
+  }
+}
