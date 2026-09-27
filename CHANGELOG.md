@@ -1,3 +1,15 @@
+## [1.0.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.56...v1.0.0-rc.57) (2026-09-27)
+
+### Features
+
+* **rf16:** exponer y configurar valor_min/valor_max de las métricas (TC-M02-G12, RFC-004) ([e0c8df3](https://github.com/Arekkazu/sgpmp-backend/commit/e0c8df3c732de96c56e9034577faa889006b46aa))
+
+### Bug Fixes
+
+* **rf17:** responder 201/200 con sincronizacion PENDIENTE cuando no hay integracion edge (TC-M09-58-G22) ([6327e87](https://github.com/Arekkazu/sgpmp-backend/commit/6327e87759e5a9f852628d5ca53f7ac749027871)), closes [#459](https://github.com/Arekkazu/sgpmp-backend/issues/459)
+* **rf37:** persistir es_transicion_no_estandar en el historial de fases (INC-M02-37-G33) ([8ddc5b8](https://github.com/Arekkazu/sgpmp-backend/commit/8ddc5b88924f9df8524fcbc15b306944dc1d9507))
+* **shared:** traducir SQLSTATE de trigger sin mapear a 409/422 (RF-36, RF-20, INC-M02-56-G31, INC-M09-20-G49) ([6506515](https://github.com/Arekkazu/sgpmp-backend/commit/650651509aa684494884ea7536f530a7fedb45e6))
+
 ## [1.0.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.55...v1.0.0-rc.56) (2026-09-26)
 
 ### Features
