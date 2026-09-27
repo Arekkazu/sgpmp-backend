@@ -347,7 +347,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 '       gf.id_ciclos_productivo_biologico, '
                 '       cp.nombre AS nombre_ciclo, '
                 '       gf.fecha_inicio, gf.fecha_finalizacion, gf.es_activa, '
-                '       gf.id_usuario, gf.motivo_cambio, '
+                '       gf.id_usuario, gf.motivo_cambio, gf.es_transicion_no_estandar, '
                 '       (SELECT COUNT(*) FROM modulo9.ciclos_productivos_biologicos cpb2 '
                 '        WHERE cpb2.id_ciclo_productivo = gf.id_ciclo_productiva) AS total_pasos '
                 'FROM modulo2.gestiones_fases gf '
@@ -404,6 +404,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 es_activa=r.es_activa,
                 id_usuario=r.id_usuario,
                 motivo_cambio=r.motivo_cambio,
+                es_transicion_no_estandar=r.es_transicion_no_estandar,
             ))
 
         return result
@@ -494,6 +495,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             id_usuario=orm.id_usuario,
             fecha_finalizacion=orm.fecha_finalizacion,
             motivo_cambio=orm.motivo_cambio,
+            es_transicion_no_estandar=orm.es_transicion_no_estandar,
         )
 
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
@@ -502,9 +504,11 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 text(
                     'INSERT INTO modulo2.gestiones_fases '
                     '(id_activo_biologico, id_ciclo_productiva, id_ciclos_productivo_biologico, '
-                    'fecha_inicio, es_activa, id_usuario, motivo_cambio) '
-                    'VALUES (:id_activo, :id_ciclo, :id_fase_ciclo, :fecha_inicio, true, :id_usuario, :motivo) '
-                    'RETURNING id_gestion_fases, fecha_inicio, fecha_finalizacion, es_activa, id_usuario, motivo_cambio'
+                    'fecha_inicio, es_activa, id_usuario, motivo_cambio, es_transicion_no_estandar) '
+                    'VALUES (:id_activo, :id_ciclo, :id_fase_ciclo, :fecha_inicio, true, :id_usuario, :motivo, '
+                    ':es_no_estandar) '
+                    'RETURNING id_gestion_fases, fecha_inicio, fecha_finalizacion, es_activa, id_usuario, '
+                    'motivo_cambio, es_transicion_no_estandar'
                 ),
                 {
                     'id_activo': gestion.id_activo_biologico,
@@ -513,6 +517,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                     'fecha_inicio': gestion.fecha_inicio,
                     'id_usuario': gestion.id_usuario,
                     'motivo': gestion.motivo_cambio,
+                    'es_no_estandar': gestion.es_transicion_no_estandar,
                 },
             )
             row = result.fetchone()
@@ -529,7 +534,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             nombre_fase_actual=gestion.nombre_fase_actual,
             paso_actual=gestion.paso_actual,
             total_pasos=gestion.total_pasos,
-            es_transicion_no_estandar=gestion.es_transicion_no_estandar,
+            es_transicion_no_estandar=row.es_transicion_no_estandar,
             fecha_inicio=row.fecha_inicio,
             fecha_finalizacion=row.fecha_finalizacion,
             es_activa=row.es_activa,

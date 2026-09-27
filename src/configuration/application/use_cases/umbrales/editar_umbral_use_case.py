@@ -17,6 +17,7 @@ from src.configuration.domain.repositories.variable_ambiental_repository import 
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
 from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import (
+    ESTADOS_SINCRONIZACION_SIN_FALLO,
     MENSAJE_FALLO_SINCRONIZACION_EDGE,
     _validar_rangos,
 )
@@ -144,9 +145,9 @@ class EditarUmbralUseCase:
             raise
 
         # RF-17, flujo alterno "Error de sincronización con el Nodo Edge":
-        # ver RegistrarUmbralUseCase para el detalle de por qué esto debe
-        # responder 500 en vez de un 200 silencioso.
-        if resultado.estado != 'APLICADA':
+        # ver RegistrarUmbralUseCase para el detalle de cuándo responder 500
+        # y por qué un PENDIENTE (sin integración todavía) no lo es.
+        if resultado.estado not in ESTADOS_SINCRONIZACION_SIN_FALLO:
             raise InfrastructureError(
                 code='FALLO_SINCRONIZACION_EDGE',
                 message=MENSAJE_FALLO_SINCRONIZACION_EDGE,

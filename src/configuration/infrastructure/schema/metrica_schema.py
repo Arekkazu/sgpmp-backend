@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
@@ -17,6 +18,8 @@ class MetricaProduccionResponse(BaseModel):
     aplica_a_tipo_activo: str
     tipo_dato: str
     es_obligatorio: bool
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
     id_especie: Optional[int]
     es_activo: bool
     fecha_actualizacion: Optional[datetime.datetime]

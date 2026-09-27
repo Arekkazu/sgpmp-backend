@@ -314,6 +314,8 @@ Sin input adicional.
 
 **Response `HistorialFasesResponse`:** `id_activo_biologico: int`, `fases: list[GestionFaseResponse]`.
 
+`es_transicion_no_estandar` de cada fase es el valor **persistido** (INC-M02-37-G33): coincide con lo que devolvió el `POST` que la creó.
+
 ---
 
 ### Eventos biológicos — recurso 29 (`activos_biologicos`)

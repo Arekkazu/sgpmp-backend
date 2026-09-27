@@ -62,6 +62,25 @@ igual que antes), y **luego** lanzan `InfrastructureError('FALLO_SINCRONIZACION_
 resultado no fue `APLICADA` — el dato nunca se pierde, solo la respuesta HTTP refleja el fallo de
 sincronización tal como pide el RF.
 
+> **Actualización — TC-M09-58-G22 (#459, 2026-09-26): `PENDIENTE` ya no responde 500.**
+> El párrafo anterior decía "`500` si el resultado no fue `APLICADA`". Con el stub eso significa
+> que **toda** alta o edición válida responde 500 (el stub nunca intenta propagar y devuelve
+> siempre `PENDIENTE`), aunque no haya ningún fallo que reportar: QA lo reprodujo en los cuatro
+> casos de TC-M09-G22 — el umbral queda guardado y el cliente recibe un error. El flujo alterno
+> del RF-17 habla de una propagación que **falla**; "todavía no hay integración" no es eso.
+>
+> Criterio vigente (`ESTADOS_SINCRONIZACION_SIN_FALLO` en `registrar_umbral_use_case.py`):
+>
+> | `estado` del puerto | Significado | Respuesta |
+> |---|---|---|
+> | `APLICADA` | el Edge confirmó | 201 (alta) / 200 (edición) |
+> | `PENDIENTE` | no se intentó o quedó encolado (hoy: sin contrato con IoT) | 201 / 200, con `estado_sincronizacion: "PENDIENTE"` en el cuerpo |
+> | `NO_CONF` u otro | se intentó y falló (broker caído, timeout, sin ACK) | persiste y responde **500** `FALLO_SINCRONIZACION_EDGE` |
+>
+> Consecuencia para quien implemente el adaptador real: `EdgeSincronizacionPort` documenta que un
+> fallo de comunicación debe devolver `NO_CONF`, **no** `PENDIENTE`; si no, el 500 del RF-17 se
+> volvería a ocultar. El 500 se declara ahora en `responses` de `POST` y `PATCH` (OpenAPI).
+
 ## Fix
 
 **Dominio:**
@@ -139,16 +158,15 @@ correr `alembic upgrade head` de forma definitiva antes de mergear.
 
 ## Pruebas
 
-- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (11 casos, fakes sin
-  BD): llamada al edge port con el payload correcto, persistencia de cada estado
-  (`PENDIENTE`/`APLICADA`/`NO_CONF`) **antes** de responder, confirmación de que `PENDIENTE` y
-  `NO_CONF` lanzan `InfrastructureError` (500) tras persistir — no antes —, que `APLICADA` no
-  lanza nada, que `EditarUmbralUseCase` también re-propaga y responde igual, que el stub siempre
-  degrada a `PENDIENTE`, y el estado por defecto de un umbral recién creado.
-- Suite completa `tests/configuration -m "not integration"`: 250 passed.
-- Nota: mientras el contrato real del broker no exista, `EdgeSincronizacionStubAdapter` siempre
-  degrada a `PENDIENTE`, así que en la práctica todo `POST`/`PATCH` de umbrales responde `500`
-  hoy — comportamiento intencional por mandato literal de RF-17, no una regresión.
+- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (fakes sin BD):
+  llamada al edge port con el payload correcto, persistencia de cada estado
+  (`PENDIENTE`/`APLICADA`/`NO_CONF`) **antes** de responder, que `NO_CONF` y cualquier estado
+  desconocido lanzan `InfrastructureError` (500) tras persistir — no antes —, que `APLICADA` y
+  `PENDIENTE` no lanzan nada (#459), que `EditarUmbralUseCase` aplica el mismo criterio, que con
+  el stub real el alta válida ya no responde 500, y el estado por defecto de un umbral nuevo.
+- Mientras el contrato real del broker no exista, `EdgeSincronizacionStubAdapter` siempre
+  devuelve `PENDIENTE`: las altas y ediciones responden 201/200 con `estado_sincronizacion:
+  "PENDIENTE"` y el 500 solo aparecerá cuando un adaptador real reporte `NO_CONF`.
 
 ## Fuera de alcance
 
