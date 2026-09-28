@@ -57,9 +57,19 @@ CREATE VIEW modulo9.vw_rf17_umbrales_detalle_niveles AS
 # DROP VIEW no conserva los GRANT del objeto original -- se re-otorgan los mismos permisos que
 # ya tienen las vistas hermanas del módulo (vw_rf17_umbral_activo_por_especie_variable,
 # vw_rf17_variables_configuracion_especie), verificados en sgpmp_dev antes de esta migración.
+# Los roles rol_* existen en dev pero no en todos los ambientes (TEST no los tiene: el GRANT a
+# un rol inexistente abortaba todo el `upgrade head`), así que solo se otorga a los que existan.
 _GRANTS = """
-GRANT INSERT, SELECT, UPDATE, DELETE ON modulo9.vw_rf17_umbrales_detalle_niveles TO rol_dev, rol_impl, rol_migracion;
-GRANT INSERT, SELECT ON modulo9.vw_rf17_umbrales_detalle_niveles TO rol_aiot;
+DO $$
+DECLARE r text;
+BEGIN
+    FOR r IN SELECT rolname FROM pg_roles WHERE rolname IN ('rol_dev', 'rol_impl', 'rol_migracion') LOOP
+        EXECUTE format('GRANT INSERT, SELECT, UPDATE, DELETE ON modulo9.vw_rf17_umbrales_detalle_niveles TO %I', r);
+    END LOOP;
+    FOR r IN SELECT rolname FROM pg_roles WHERE rolname = 'rol_aiot' LOOP
+        EXECUTE format('GRANT INSERT, SELECT ON modulo9.vw_rf17_umbrales_detalle_niveles TO %I', r);
+    END LOOP;
+END $$;
 """
 
 
