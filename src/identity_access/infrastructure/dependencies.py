@@ -9,9 +9,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, Header
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
+from src.identity_access.infrastructure.models.roles_model import Roles
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
@@ -81,7 +83,8 @@ def get_current_user(
     # (RF-04). Se lee junto con la cuenta en una sola consulta porque el bloque
     # de inactividad de abajo necesita esa fila de todos modos.
     fila = (
-        db.query(Usuarios.id_rol, CuentasUsuarios)
+        db.query(Usuarios.id_rol, Roles.nombre_rol, CuentasUsuarios)
+        .join(Roles, Roles.id_rol == Usuarios.id_rol)
         .outerjoin(CuentasUsuarios, CuentasUsuarios.id_usuario == Usuarios.id_usuario)
         .filter(Usuarios.id_usuario == id_usuario)
         .first()
@@ -95,7 +98,7 @@ def get_current_user(
             message="El token de sesión ha sido revocado o es inválido.",
         )
 
-    id_rol_vigente, cuenta = fila
+    id_rol_vigente, nombre_rol_vigente, cuenta = fila
 
     # Verificar inactividad de 30 minutos
     ahora = datetime.now(timezone.utc)
@@ -129,6 +132,29 @@ def get_current_user(
     # RF-10: de este token el repositorio de auditoría deriva la sesión con la
     # que se registra cada evento del request.
     establecer_id_token(id_token)
+
+    # F2 del control de acceso por BD (RLS): punto único donde la identidad ya
+    # autenticada se declara a la transacción, para que las políticas de
+    # modulo1/modulo9 (`app_ctx.current_user_id()` / `app_ctx.current_role()`,
+    # migraciones 8d80fb56a30b / 5243bbbb28de) puedan leerla. `set_config(...,
+    # true)` es el equivalente parametrizado de `SET LOCAL`: muere en el
+    # COMMIT/ROLLBACK de este request, no sobrevive al siguiente uso de la
+    # conexión en el pool (ver test de no-fuga en tests/integration/). Se
+    # mantiene también `app.usuario_id` (entero, sin `app_ctx`) porque lo
+    # sigue leyendo el trigger `modulo2.trg_auditar_activo_biologico`, ajeno a
+    # este cambio.
+    db.execute(
+        text("SELECT set_config('app.current_user_id', :uid, true)"),
+        {"uid": str(id_usuario)},
+    )
+    db.execute(
+        text("SELECT set_config('app.current_role', :rol, true)"),
+        {"rol": nombre_rol_vigente},
+    )
+    db.execute(
+        text("SELECT set_config('app.usuario_id', :uid, true)"),
+        {"uid": str(id_usuario)},
+    )
 
     return UsuarioActual(
         id_usuario=id_usuario,
