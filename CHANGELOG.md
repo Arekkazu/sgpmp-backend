@@ -1,3 +1,9 @@
+## [1.0.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.57...v1.0.0-rc.58) (2026-09-28)
+
+### Bug Fixes
+
+* **alembic:** unificar heads de migraciones en dev ([0844e6e](https://github.com/Arekkazu/sgpmp-backend/commit/0844e6eb53dd6135baede2aa4edfca15a71af4ab))
+
 ## [1.0.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.56...v1.0.0-rc.57) (2026-09-27)
 
 ### Features
