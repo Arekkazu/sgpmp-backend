@@ -1,0 +1,60 @@
+{
+  "info": {
+    "name": "TC-M02-G16 rev2",
+    "description": "Reevaluacion TEST. No sobrescribe rev1. 032 vive en pytest (101 POST validos + restore). Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "contrasena", "value": "" },
+    { "key": "token_prod", "value": "" },
+    { "key": "token_admin", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 login productor",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var b = pm.response.json();",
+            "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+            "pm.test('login', function () { pm.expect(pm.response.code).to.eql(200); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 login admin metricas",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "var b = pm.response.json();",
+            "if (b.token) { pm.collectionVariables.set('token_admin', b.token); }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "03 GET metricas especie 5",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=5"
+      }
+    }
+  ]
+}

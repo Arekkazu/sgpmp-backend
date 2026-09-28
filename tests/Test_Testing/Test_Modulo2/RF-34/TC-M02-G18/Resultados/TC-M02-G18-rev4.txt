@@ -1,0 +1,259 @@
+TC-M02-G18 rev4 — RF-34 — TEST
+Fecha UTC: 2026-09-26T06:52:32.977063+00:00
+Global: APROBADO
+
+{
+  "TC-M02-022": "APROBADO",
+  "TC-M02-023": "APROBADO",
+  "TC-M02-024": "APROBADO",
+  "TC-M02-025": "APROBADO",
+  "TC-M02-026": "APROBADO"
+}
+
+{
+  "estado": "NO REPRODUCIBLE",
+  "reproduce": false,
+  "activo": 8,
+  "fechas": [
+    "2026-01-01T00:00:00Z",
+    "2026-02-01T00:00:00Z",
+    "2026-04-01T00:00:00Z"
+  ]
+}
+
+{
+  "TC-M02-022": {
+    "resultado": "APROBADO",
+    "endpoint": "GET /activos-biologicos/352/infraestructura?tipo_consulta=ACTIVA",
+    "conclusion": "HTTP 200, vigente hist=308 infra=1, sensores=4, advertencia_integridad=None.",
+    "id_activo": 352,
+    "verificacion_previa": {
+      "n": 1,
+      "n_vigentes": 1,
+      "n_cerradas": 0,
+      "vigentes": [
+        {
+          "id_historial": 308,
+          "id_infraestructura": 1,
+          "nombre_infraestructura": "Estanque-01",
+          "fecha_inicio": "2026-09-12T19:04:30.406435Z",
+          "fecha_fin": null
+        }
+      ],
+      "cerradas": [],
+      "registros": [
+        {
+          "id_historial": 308,
+          "id_infraestructura": 1,
+          "nombre_infraestructura": "Estanque-01",
+          "fecha_inicio": "2026-09-12T19:04:30.406435Z",
+          "fecha_fin": null
+        }
+      ],
+      "fechas_inicio": [
+        "2026-09-12T19:04:30.406435Z"
+      ],
+      "orden": "N/A",
+      "ordenado_asc": null,
+      "ordenado_desc": null,
+      "id": 352,
+      "get_activo_http": 200,
+      "error_code_activo": null,
+      "activo_existe": true,
+      "historial_http": 200
+    },
+    "http": 200,
+    "respuesta": "{\"tipo_consulta\": \"ACTIVA\", \"id_activo_biologico\": 352, \"asociacion_activa\": {\"id_historial\": 308, \"id_activo_biologico\": 352, \"id_infraestructura\": 1, \"nombre_infraestructura\": \"Estanque-01\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-09-12T19:04:30.406435Z\", \"fecha_fin\": null}, \"historial\": null, \"sensores_en_infraestructura\": [{\"id_sensor\": 1, \"nombre\": \"Sensor temperatura estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Entrada de agua, profundidad 30 cm\", \"categoria\": \"TEMPERATURA\"}, {\"id_sensor\": 2, \"nombre\": \"Sensor pH estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Centro del estanque, profundidad 50 cm\", \"categoria\": \"PH\"}, {\"id_sensor\": 3, \"nombre\": \"Sensor oxígeno disuelto estanque-01\", \"id_dispositivo_iot\": 1, \"punto_instalacion\": \"Salida de agua, profundidad 40 cm\", \"categoria\": \"OXIGENO\"}, {\"id_sensor\": 21, \"nombre\": \"Sensor Temperatura Test\", \"id_dispositivo_iot\": 13, \"punto_instalacion\": \"Esquina noroeste, metro 1.5\", \"categoria\": \"TEMPERATURA\"}], \"advertencia_integridad\": null}",
+    "fecha_fin": null,
+    "id_infraestructura": 1,
+    "id_historial": 308,
+    "n_sensores": 4,
+    "advertencia_integridad": null
+  },
+  "TC-M02-023": {
+    "resultado": "APROBADO",
+    "endpoint": "GET /activos-biologicos/8/infraestructura?tipo_consulta=HISTORIAL",
+    "conclusion": "HTTP 200, n=3 (cerradas=2, vigentes=1), fechas=['2026-01-01T00:00:00Z', '2026-02-01T00:00:00Z', '2026-04-01T00:00:00Z'], orden=ASC. Defecto historico DESC NO REPRODUCIBLE.",
+    "id_activo": 8,
+    "verificacion_previa": {
+      "n": 3,
+      "n_vigentes": 1,
+      "n_cerradas": 2,
+      "vigentes": [
+        {
+          "id_historial": 299,
+          "id_infraestructura": 30,
+          "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+          "fecha_inicio": "2026-04-01T00:00:00Z",
+          "fecha_fin": null
+        }
+      ],
+      "cerradas": [
+        {
+          "id_historial": 297,
+          "id_infraestructura": 15,
+          "nombre_infraestructura": "QA-G23-Estanque-B",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id_historial": 298,
+          "id_infraestructura": 28,
+          "nombre_infraestructura": "QA-G51-Infra-1789016821",
+          "fecha_inicio": "2026-02-01T00:00:00Z",
+          "fecha_fin": "2026-04-01T00:00:00Z"
+        }
+      ],
+      "registros": [
+        {
+          "id_historial": 297,
+          "id_infraestructura": 15,
+          "nombre_infraestructura": "QA-G23-Estanque-B",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-02-01T00:00:00Z"
+        },
+        {
+          "id_historial": 298,
+          "id_infraestructura": 28,
+          "nombre_infraestructura": "QA-G51-Infra-1789016821",
+          "fecha_inicio": "2026-02-01T00:00:00Z",
+          "fecha_fin": "2026-04-01T00:00:00Z"
+        },
+        {
+          "id_historial": 299,
+          "id_infraestructura": 30,
+          "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+          "fecha_inicio": "2026-04-01T00:00:00Z",
+          "fecha_fin": null
+        }
+      ],
+      "fechas_inicio": [
+        "2026-01-01T00:00:00Z",
+        "2026-02-01T00:00:00Z",
+        "2026-04-01T00:00:00Z"
+      ],
+      "orden": "ASC",
+      "ordenado_asc": true,
+      "ordenado_desc": false,
+      "id": 8,
+      "get_activo_http": 200,
+      "error_code_activo": null,
+      "activo_existe": true,
+      "historial_http": 200
+    },
+    "http": 200,
+    "respuesta": "{\"tipo_consulta\": \"HISTORIAL\", \"id_activo_biologico\": 8, \"asociacion_activa\": null, \"historial\": [{\"id_historial\": 297, \"id_activo_biologico\": 8, \"id_infraestructura\": 15, \"nombre_infraestructura\": \"QA-G23-Estanque-B\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-01-01T00:00:00Z\", \"fecha_fin\": \"2026-02-01T00:00:00Z\"}, {\"id_historial\": 298, \"id_activo_biologico\": 8, \"id_infraestructura\": 28, \"nombre_infraestructura\": \"QA-G51-Infra-1789016821\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-02-01T00:00:00Z\", \"fecha_fin\": \"2026-04-01T00:00:00Z\"}, {\"id_historial\": 299, \"id_activo_biologico\": 8, \"id_infraestructura\": 30, \"nombre_infraestructura\": \"QA-DIAG-Infra-1789018109\", \"tipo_infraestructura\": \"Estanque\", \"fecha_inicio\": \"2026-04-01T00:00:00Z\", \"fecha_fin\": null}], \"sensores_en_infraestructura\": [], \"advertencia_integridad\": null}",
+    "n": 3,
+    "n_vigentes": 1,
+    "n_cerradas": 2,
+    "registros": [
+      {
+        "id_historial": 297,
+        "id_infraestructura": 15,
+        "nombre_infraestructura": "QA-G23-Estanque-B",
+        "fecha_inicio": "2026-01-01T00:00:00Z",
+        "fecha_fin": "2026-02-01T00:00:00Z"
+      },
+      {
+        "id_historial": 298,
+        "id_infraestructura": 28,
+        "nombre_infraestructura": "QA-G51-Infra-1789016821",
+        "fecha_inicio": "2026-02-01T00:00:00Z",
+        "fecha_fin": "2026-04-01T00:00:00Z"
+      },
+      {
+        "id_historial": 299,
+        "id_infraestructura": 30,
+        "nombre_infraestructura": "QA-DIAG-Infra-1789018109",
+        "fecha_inicio": "2026-04-01T00:00:00Z",
+        "fecha_fin": null
+      }
+    ],
+    "fechas_inicio": [
+      "2026-01-01T00:00:00Z",
+      "2026-02-01T00:00:00Z",
+      "2026-04-01T00:00:00Z"
+    ],
+    "orden": "ASC",
+    "ordenado_asc": true,
+    "ordenado_desc": false,
+    "orden_esperado": "ASC",
+    "advertencia_integridad": null
+  },
+  "TC-M02-024": {
+    "resultado": "APROBADO",
+    "conclusion": "HTTP 404 ACTIVO_NO_ENCONTRADO.",
+    "endpoint": "GET /activos-biologicos/100352/infraestructura",
+    "id_activo": 100352,
+    "get_activo_http": 404,
+    "http": 404,
+    "respuesta": "{\"error_code\": \"ACTIVO_NO_ENCONTRADO\", \"message\": \"No existe un activo biológico con id 100352.\", \"fields\": [], \"timestamp\": \"2026-09-26T06:52:41.409201+00:00\"}",
+    "error_code": "ACTIVO_NO_ENCONTRADO"
+  },
+  "TC-M02-025": {
+    "resultado": "APROBADO",
+    "conclusion": "HTTP 404 ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA. Auditoria ADVERTENCIA=False. El use case lanza NotFound antes de bitacora de consulta; no hay alerta admin dedicada.",
+    "id_activo": 10,
+    "verificacion_previa": {
+      "n": 1,
+      "n_vigentes": 0,
+      "n_cerradas": 1,
+      "vigentes": [],
+      "cerradas": [
+        {
+          "id_historial": 294,
+          "id_infraestructura": 7,
+          "nombre_infraestructura": "Piscina-Cam-02",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "registros": [
+        {
+          "id_historial": 294,
+          "id_infraestructura": 7,
+          "nombre_infraestructura": "Piscina-Cam-02",
+          "fecha_inicio": "2026-01-01T00:00:00Z",
+          "fecha_fin": "2026-03-01T00:00:00Z"
+        }
+      ],
+      "fechas_inicio": [
+        "2026-01-01T00:00:00Z"
+      ],
+      "orden": "N/A",
+      "ordenado_asc": null,
+      "ordenado_desc": null,
+      "id": 10,
+      "get_activo_http": 200,
+      "error_code_activo": null,
+      "activo_existe": true,
+      "historial_http": 200
+    },
+    "endpoint": "GET /activos-biologicos/10/infraestructura?tipo_consulta=ACTIVA",
+    "http": 404,
+    "respuesta": "{\"error_code\": \"ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA\", \"message\": \"El activo 10 no tiene una asociación de infraestructura activa. Esto indica una inconsistencia: todo activo biológico debe tener una infraestructura vigente asignada.\", \"fields\": [], \"timestamp\": \"2026-09-26T06:52:42.647474+00:00\"}",
+    "error_code": "ASOCIACION_INFRAESTRUCTURA_NO_ENCONTRADA",
+    "message": "El activo 10 no tiene una asociación de infraestructura activa. Esto indica una inconsistencia: todo activo biológico debe tener una infraestructura vigente asignada.",
+    "auditoria_http": 200,
+    "auditoria_n": 3,
+    "auditoria_resultados": [
+      "EXITOSO"
+    ],
+    "auditoria_tipos": [
+      "INFRAESTRUCTURA_CONSULTADA"
+    ],
+    "alerta_advertencia": false
+  },
+  "TC-M02-026": {
+    "resultado": "APROBADO",
+    "conclusion": "PUT/PATCH HTTP 405. OpenAPI solo declara GET. Mencion RF-48: False.",
+    "endpoint": "PUT/PATCH /activos-biologicos/352/infraestructura",
+    "id_activo": 352,
+    "http_put": 405,
+    "http_patch": 405,
+    "put_body": "{\"detail\": \"Method Not Allowed\"}",
+    "patch_body": "{\"detail\": \"Method Not Allowed\"}",
+    "menciona_rf48": false
+  }
+}
+Rev1/rev2/rev3 no modificadas. Sin DML. Sin cambios productivos. Sin commit/push.

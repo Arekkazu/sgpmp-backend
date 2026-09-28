@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='es'><head><meta charset='utf-8'><title>TC-M02-G17 rev3</title></head><body><h1>TC-M02-G17 rev3</h1><p>Global: BLOQUEADO</p><h2>TC-M02-187</h2><p>Resultado: BLOQUEADO</p><pre>{
+  "resultado": "BLOQUEADO",
+  "endpoint": "POST /activos-biologicos",
+  "metrica": null,
+  "control": null,
+  "omision": null,
+  "null": null,
+  "conclusion": "BLOQUEADO: no hay metrica RF-16 activa, obligatoria y aplicable a INDIVIDUAL. No se inventa ni se modifica RF-16."
+}</pre><h2>TC-M02-188</h2><p>Resultado: APROBADO</p><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "POST /activos-biologicos",
+  "metrica": {
+    "id_especie": 40,
+    "id_metrica_produccion": 19,
+    "nombre": "Peso vivo QA JE",
+    "tipo_dato": "NUMERICO",
+    "es_obligatorio": false,
+    "aplica_a_tipo_activo": "AMBOS",
+    "es_activo": true
+  },
+  "intento": {
+    "http": 422,
+    "error_code": "ATRIBUTO_TIPO_INVALIDO",
+    "message": "El atributo 'Peso vivo QA JE' debe ser de tipo numérico.",
+    "fields": [
+      {
+        "field": "atributos_dinamicos.Peso vivo QA JE",
+        "message": "El atributo 'Peso vivo QA JE' debe ser de tipo numérico."
+      }
+    ],
+    "id_creado": null,
+    "body": "{\"error_code\": \"ATRIBUTO_TIPO_INVALIDO\", \"message\": \"El atributo 'Peso vivo QA JE' debe ser de tipo numérico.\", \"fields\": [{\"field\": \"atributos_dinamicos.Peso vivo QA JE\", \"message\": \"El atributo 'Peso vivo QA JE' debe ser de tipo numérico.\"}], \"timestamp\": \"2026-09-26T06:45:24.433490+00:00\"}",
+    "valor_enviado": {
+      "Peso vivo QA JE": "texto-no-numerico"
+    },
+    "tipo_configurado": "NUMERICO"
+  },
+  "conclusion": "Metrica 'Peso vivo QA JE' tipo=NUMERICO especie 40. POST HTTP 422 ATRIBUTO_TIPO_INVALIDO. Sin ID creado."
+}</pre><h2>TC-M02-189</h2><p>Resultado: APROBADO</p><pre>{
+  "resultado": "APROBADO",
+  "endpoint": "POST /activos-biologicos",
+  "campo_origen": "origen_financiero",
+  "valor_origen": "transferencia_interna",
+  "control": {
+    "http": 201,
+    "error_code": null,
+    "message": null,
+    "fields": null,
+    "id_creado": 603,
+    "body": "{\"id_activo_biologico\": 603, \"id_especie\": 5, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG17R3K064508141425\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"nacimiento\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T06:45:24.926996Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 438, \"raza\": \"QA-G17-R3\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T06:45:24.926996Z\"}, \"detalle_poblacional\": null}",
+    "restauracion": {
+      "id": 603,
+      "http_estado": 200,
+      "http_get": 200,
+      "estado": "INACTIVO"
+    }
+  },
+  "post": {
+    "http": 201,
+    "error_code": null,
+    "message": null,
+    "fields": null,
+    "id_creado": 604,
+    "body": "{\"id_activo_biologico\": 604, \"id_especie\": 5, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG17R3F064508141425\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"transferencia_interna\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T06:45:26.298111Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 439, \"raza\": \"QA-G17-R3\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T06:45:26.298111Z\"}, \"detalle_poblacional\": null}"
+  },
+  "get": {
+    "http": 200,
+    "origen_financiero": "transferencia_interna",
+    "costo_adquisicion": null,
+    "soporte_documental": null,
+    "nombre_estado": "ACTIVO",
+    "body": "{\"id_activo_biologico\": 604, \"id_especie\": 5, \"tipo\": \"INDIVIDUAL\", \"identificador\": \"QAG17R3F064508141425\", \"fecha_inicio_ciclo\": \"2026-09-09\", \"detalles_procedencia\": null, \"origen_financiero\": \"transferencia_interna\", \"costo_adquisicion\": null, \"soporte_documental\": null, \"descripcion\": null, \"id_infraestructura\": 3, \"atributos_dinamicos\": {}, \"id_estado\": 1, \"nombre_estado\": \"ACTIVO\", \"id_usuario\": 2, \"fecha_creacion\": \"2026-09-26T06:45:26.298111Z\", \"fecha_actualizacion\": null, \"detalle_individual\": {\"id_detalle\": 439, \"raza\": \"QA-G17-R3\", \"sexo\": \"Macho\", \"fecha_nacimiento\": \"2025-01-15T00:00:00Z\", \"peso_inicial\": \"2.500\", \"fecha_creacion\": \"2026-09-26T06:45:26.298111Z\"}, \"detalle_poblacional\": null}"
+  },
+  "restauracion": {
+    "id": 604,
+    "http_estado": 200,
+    "http_get": 200,
+    "estado": "INACTIVO"
+  },
+  "conclusion": "POST 201 id=604 origen=transferencia_interna sin costo/soporte. GET confirma nulls. Restaurado INACTIVO HTTP 200.",
+  "request_campos": {
+    "origen_financiero": "transferencia_interna",
+    "costo_adquisicion": null,
+    "soporte_documental": null
+  }
+}</pre><p>Sin secretos. Rev1/rev2 intactas.</p></body></html>

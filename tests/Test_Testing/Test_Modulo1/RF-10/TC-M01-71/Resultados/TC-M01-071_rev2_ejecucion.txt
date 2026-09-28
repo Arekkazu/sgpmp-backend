@@ -1,0 +1,58 @@
+TC-M01-071 / RF-10 — reevaluación rev2 TEST
+Fecha: 2026-09-25
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario indicado: admin.dev@gmail.com
+Logins en esta corrida: 1 (POST /sesiones/). No se reintentó. No se cambió de usuario.
+
+RESULTADO DE EJECUCIÓN NEWMAN REV2: no completada (login HTTP 401)
+error_code: CREDENCIALES_INVALIDAS
+mensaje: Credenciales incorrectas. Intento 2 de 5.
+Newman: 1 request, 2 assertions, 2 failed (ambas de login). El resto de requests no se ejecutó (setNextRequest null).
+
+No se pudo verificar en esta corrida: tamaños de página, total real actual, duplicados, ni HTTP 422 de tamano=51.
+
+HALLAZGOS DE INVESTIGACIÓN (sin depender del login 401):
+
+1) Evidencia histórica Resultados/TC-M01-71.html (tercera revisión):
+   - Assertions fallidas: 2
+     * Página 2: no repite eventos de página 1 → expected 1 to equal 0
+     * Página 3: no repite eventos de páginas anteriores → expected 1 to equal 0
+   - Endpoint y parámetros correctos: GET /auditoria/?pagina=&tamano=50
+   - Login de esa corrida sí fue 200
+   - total página1=10355, página2=10356, página3=10357
+   - 50 registros en cada página
+   - Duplicado exacto en el borde:
+     id_evento 10400 = último de página 1 = primero de página 2
+     id_evento 10351 = último de página 2 = primero de página 3
+   - No hubo duplicado página 1 vs 3
+   - Eso NO es un mal emparejamiento de IDs: es OFFSET desplazado en 1
+
+2) Causa de producto (código laura y use case):
+   ConsultarAuditoriaUseCase lista con OFFSET y DESPUÉS registra TIPO_CONSULTA_AUDITORIA=16.
+   Orden: fecha_evento DESC, id_evento DESC.
+   Cada GET inserta un evento nuevo al tope; la página siguiente con OFFSET 50
+   incluye el último de la página anterior. Coincide con total+1 por request.
+
+3) La prueba histórica estaba PARCIALMENTE bien:
+   - Endpoint, pagina/tamano, máximo 50, total>=120, no-duplicados: correctos y necesarios.
+   - No era error de autenticación ni de endpoint.
+   - El dato "120 registros" no era la base real (había >10k); la colección ya usaba total>=120 y página 3 = min(50, total-100), válido.
+   - No reutilizaba ancla temporal porque en esa fecha el API no la exponía.
+
+4) Contrato TEST actual (OpenAPI 200, sin auth):
+   GET /auditoria/ pagina (default 1), tamano (default 20, min 1, max 50)
+   fecha_hasta: si se omite, la respuesta fija ancla y hay que reenviarla (INC-M01-71).
+   Schema AuditoriaPaginadaResponse.fecha_hasta required.
+   origin/test commit fad57c32 no está en rama laura.
+
+5) Cypress: no hay spec TC-M01-071 de paginación en el repo.
+   Frontend useAuditoria default tamano=20; Siguiente solo cambia pagina;
+   no persiste ni reenvía fecha_hasta de la respuesta. No se ejecutó Cypress
+   (pertenece a Diseño / no implementado para este caso).
+
+6) Colección rev2 (no ejecutada completa): reenvía fecha_hasta; password por env;
+   añade HTTP 422 para tamano=51. No se relajaron las assertions de duplicados.
+
+Clasificación: BLOQUEADO por precondición de autenticación en TEST con el usuario
+indicado. No se declara APROBADO ni RECHAZADO del sistema en esta corrida.
+El rechazo histórico SÍ era defecto de paginación (no error de test).

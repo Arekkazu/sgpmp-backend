@@ -1,0 +1,150 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 0,
+    "pending": 0,
+    "failures": 1,
+    "start": "2026-09-25T06:25:47.384Z",
+    "end": "2026-09-25T06:25:56.972Z",
+    "duration": 9588,
+    "testsRegistered": 3,
+    "passPercent": 0,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 2,
+    "hasSkipped": true
+  },
+  "results": [
+    {
+      "uuid": "3daa5046-1bdc-41b0-ae23-6f98e96ffde2",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\tc_m09_g90_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\tc_m09_g90_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "8dd37cb5-c0bc-47db-ab8b-63530a0858d8",
+          "title": "TC-M09-G90 rev2 TEST - Temas Claro Oscuro Automatico",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-170 - Aplicar correctamente el tema Claro (theme_mode=1)",
+              "fullTitle": "TC-M09-G90 rev2 TEST - Temas Claro Oscuro Automatico TC-M09-170 - Aplicar correctamente el tema Claro (theme_mode=1)",
+              "timedOut": null,
+              "duration": 9539,
+              "state": "failed",
+              "speed": null,
+              "pass": false,
+              "fail": true,
+              "pending": false,
+              "context": null,
+              "code": "if (sesionInestable || Cypress.env('sesionInestable')) {\n  this.skip();\n}\nif (!uiTemaVisual) {\n  this.skip();\n}\ninterceptarTema();\nirATemaVisual();\ncy.screenshot('G90-rev2-170-01-tema-visual');\nguardarTema(/Claro/, 1);\nregistrarApariencia('170-claro').then(assertPresentacionClara);\ncy.screenshot('G90-rev2-170-02-claro-aplicado');\ncy.reload();\ncy.contains('Configuración del Sistema', {\n  timeout: 20000\n}).should('exist');\ncy.url().should('not.include', '/login');\ncy.contains('button, a, [role=\"tab\"], ion-segment-button', /^Personalización$/).click({\n  force: true\n});\ncy.contains('Tema Visual', {\n  timeout: 15000\n}).should('exist');\nregistrarApariencia('170-persistencia').then(assertPresentacionClara);\nsincronizarToken();\nconsultarTemaApi(body => {\n  expect(body.theme_mode, 'persistencia theme_mode=1').to.eq(1);\n});\ncy.contains('Claro').should('exist');\ncy.contains('Configuración del Sistema').should('exist');\ncy.screenshot('G90-rev2-170-03-persistencia');",
+              "err": {
+                "message": "AssertionError: GET tema HTTP: expected 401 to equal 200\n\nBecause this error occurred during a `before all` hook we are skipping the remaining tests in the current suite: `TC-M09-G90 rev2 TEST - Tema...`",
+                "estack": "AssertionError: GET tema HTTP: expected 401 to equal 200\n\nBecause this error occurred during a `before all` hook we are skipping the remaining tests in the current suite: `TC-M09-G90 rev2 TEST - Tema...`\n    at Context.eval (webpack:///./tc_m09_g90_rev2_test.cy.js:145:45)\n    at getRet (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121066:20)\n    at tryCatcher (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:1777:23)\n    at Promise.attempt.Promise.try (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:4285:29)\n    at Context.thenFn (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121077:66)\n    at Context.then (https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io/__cypress/runner/cypress_runner.js:121328:21)",
+                "diff": "- '401'\n+ '200'\n"
+              },
+              "uuid": "16c4b408-8b0f-41d4-b955-731d3e44e642",
+              "parentUUID": "8dd37cb5-c0bc-47db-ab8b-63530a0858d8",
+              "isHook": false,
+              "skipped": false
+            },
+            {
+              "title": "TC-M09-171 - Aplicar correctamente el tema Oscuro (theme_mode=2)",
+              "fullTitle": "TC-M09-G90 rev2 TEST - Temas Claro Oscuro Automatico TC-M09-171 - Aplicar correctamente el tema Oscuro (theme_mode=2)",
+              "timedOut": null,
+              "duration": 0,
+              "state": "skipped",
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "if (sesionInestable || Cypress.env('sesionInestable')) {\n  this.skip();\n}\nif (!uiTemaVisual) {\n  this.skip();\n}\ninterceptarTema();\nirATemaVisual();\ncy.screenshot('G90-rev2-171-01-tema-visual');\nguardarTema(/Oscuro/, 2);\nregistrarApariencia('171-oscuro').then(assertPresentacionOscura);\ncy.screenshot('G90-rev2-171-02-oscuro-aplicado');\ncy.reload();\ncy.contains('Configuración del Sistema', {\n  timeout: 20000\n}).should('exist');\ncy.url().should('not.include', '/login');\ncy.contains('button, a, [role=\"tab\"], ion-segment-button', /^Personalización$/).click({\n  force: true\n});\ncy.contains('Tema Visual', {\n  timeout: 15000\n}).should('exist');\nregistrarApariencia('171-persistencia').then(assertPresentacionOscura);\nsincronizarToken();\nconsultarTemaApi(body => {\n  expect(body.theme_mode, 'persistencia theme_mode=2').to.eq(2);\n});\ncy.contains('Oscuro').should('exist');\ncy.screenshot('G90-rev2-171-03-persistencia');",
+              "err": {},
+              "uuid": "8f1be4c0-6d74-4808-8545-ee2a459d59c1",
+              "parentUUID": "8dd37cb5-c0bc-47db-ab8b-63530a0858d8",
+              "isHook": false,
+              "skipped": true
+            },
+            {
+              "title": "TC-M09-172 - Aplicar automaticamente el tema segun el dispositivo (theme_mode=3)",
+              "fullTitle": "TC-M09-G90 rev2 TEST - Temas Claro Oscuro Automatico TC-M09-172 - Aplicar automaticamente el tema segun el dispositivo (theme_mode=3)",
+              "timedOut": null,
+              "duration": 0,
+              "state": "skipped",
+              "speed": null,
+              "pass": false,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "if (sesionInestable || Cypress.env('sesionInestable')) {\n  this.skip();\n}\nif (!uiTemaVisual) {\n  this.skip();\n}\ninterceptarTema();\nirATemaVisual();\ncy.screenshot('G90-rev2-172-01-tema-visual');\nguardarTema(/Automático/, 3);\nsincronizarToken();\nconsultarTemaApi(body => {\n  expect(body.theme_mode, 'theme_mode persistido=3').to.eq(3);\n});\nemularPrefersColorScheme('light').then(okLight => {\n  if (!okLight) {\n    cy.writeFile(`${EVIDENCIA}/G90-rev2-172-bloqueo-emulacion.txt`, 'BLOQUEADO: Emulation.setEmulatedMedia no actualizó matchMedia light.');\n    this.skip();\n    return;\n  }\n  cy.reload();\n  emularPrefersColorScheme('light');\n  cy.url().should('not.include', '/login');\n  consultarTemaApi(body => {\n    expect(body.theme_mode, 'theme_mode sigue en 3 con sistema claro').to.eq(3);\n  });\n  registrarApariencia('172-sistema-claro').then(assertPresentacionClara);\n  cy.screenshot('G90-rev2-172-02-sistema-claro');\n  emularPrefersColorScheme('dark').then(okDark => {\n    if (!okDark) {\n      cy.writeFile(`${EVIDENCIA}/G90-rev2-172-bloqueo-emulacion.txt`, 'BLOQUEADO: Emulation.setEmulatedMedia no actualizó matchMedia dark.');\n      this.skip();\n      return;\n    }\n    cy.reload();\n    emularPrefersColorScheme('dark');\n    cy.url().should('not.include', '/login');\n    consultarTemaApi(body => {\n      expect(body.theme_mode, 'theme_mode sigue en 3 con sistema oscuro').to.eq(3);\n    });\n    registrarApariencia('172-sistema-oscuro').then(assertPresentacionOscura);\n    cy.screenshot('G90-rev2-172-03-sistema-oscuro');\n  });\n});",
+              "err": {},
+              "uuid": "52bfaaf0-f665-4d63-a8ea-44eaecf990e5",
+              "parentUUID": "8dd37cb5-c0bc-47db-ab8b-63530a0858d8",
+              "isHook": false,
+              "skipped": true
+            }
+          ],
+          "suites": [],
+          "passes": [],
+          "failures": [
+            "16c4b408-8b0f-41d4-b955-731d3e44e642"
+          ],
+          "pending": [],
+          "skipped": [
+            "8f1be4c0-6d74-4808-8545-ee2a459d59c1",
+            "52bfaaf0-f665-4d63-a8ea-44eaecf990e5"
+          ],
+          "duration": 9539,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G90_rev2_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\Resultados",
+        "reportFilename": "TC-M09-G90_rev2_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}

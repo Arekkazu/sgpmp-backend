@@ -1,0 +1,163 @@
+{
+  "caso": "TC-M02-G16",
+  "revision": 3,
+  "rf": "RF-33",
+  "cu": "CU01",
+  "ambiente": "TEST",
+  "base_url": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+  "fecha_utc": "2026-09-26T18:03:07.672287+00:00",
+  "alcance": "Solo TC-M02-030. 029 y 032 no reejecutados (rev2).",
+  "subcasos": {
+    "TC-M02-029": {
+      "resultado": "APROBADO",
+      "origen": "rev2",
+      "nota": "No reejecutado. SQL-like rechazado o texto; NoSQL objeto 400; sin 500."
+    },
+    "TC-M02-032": {
+      "resultado": "APROBADO",
+      "origen": "rev2",
+      "nota": "No reejecutado. TEST devolvio 429 LIMITE_TASA_EXCEDIDO."
+    },
+    "TC-M02-030": {
+      "resultado": "BLOQUEADO",
+      "endpoint": "POST /activos-biologicos  atributos_dinamicos",
+      "metrica_texto": null,
+      "control": null,
+      "intentos": [],
+      "conclusion": "BLOQUEADO: GET /configuracion/metricas 200 en especies consultadas pero sigue sin metrica activa tipo TEXTO en especie activa. tipos=['NUMERICO', 'TEXTO']. Se observo TEXTO no usable: {'id_especie': 1, 'id_metrica': 26, 'nombre': 'Observaciones Veterinarias QA', 'tipo_dato': 'TEXTO', 'es_activo': True, 'aplicabilidad': 'AMBOS', 'especie_activa': False}. No se crea la metrica ni se modifica RF-16.",
+      "busqueda_metricas": {
+        "especies_http": 200,
+        "especies_n": 30,
+        "consultas": [
+          {
+            "id_especie": 5,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 41,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 39,
+            "http": 200,
+            "n": 4,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 40,
+            "http": 200,
+            "n": 1,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 4,
+            "http": 200,
+            "n": 3,
+            "tipos": [
+              "NUMERICO"
+            ]
+          },
+          {
+            "id_especie": 3,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 43,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 42,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 44,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 61,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 54,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 49,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 53,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 55,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "id_especie": 50,
+            "http": 200,
+            "n": 0,
+            "tipos": []
+          },
+          {
+            "omitidas": 15
+          }
+        ],
+        "tipos_vistos": [
+          "NUMERICO",
+          "TEXTO"
+        ],
+        "texto_inactiva_o_especie_inactiva": {
+          "id_especie": 1,
+          "id_metrica": 26,
+          "nombre": "Observaciones Veterinarias QA",
+          "tipo_dato": "TEXTO",
+          "es_activo": true,
+          "aplicabilidad": "AMBOS",
+          "especie_activa": false
+        }
+      }
+    }
+  },
+  "ids_creados": [],
+  "estado_global": "BLOQUEADO",
+  "auditoria": "Rev2 intacta. Sin DML. Sin POST metricas. Sin cambios productivos. Sin commit/push.",
+  "logins": {
+    "admin": {
+      "correo": "admin@pecuaria.co",
+      "http": 200,
+      "ok": true
+    },
+    "productor": {
+      "correo": "productor@pecuaria.co",
+      "http": 200,
+      "ok": true
+    }
+  }
+}

@@ -1,0 +1,1609 @@
+{
+  "collection": {
+    "item": [
+      {
+        "id": "34e04f41-f2cb-4a27-a14e-4c792941a7d4",
+        "name": "01 login productor",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "7a29d0b5-5a2b-4339-b00e-32bada6c3521",
+              "type": "text/javascript",
+              "exec": [
+                "var b = pm.response.json();",
+                "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                "pm.test('login', function () { pm.expect(pm.response.code).to.eql(200); });"
+              ],
+              "_lastExecutionId": "97c45d62-ba39-4391-b8e1-9a38413c8058"
+            }
+          }
+        ]
+      },
+      {
+        "id": "430b11aa-dd9f-4bab-9957-aa0437da31e5",
+        "name": "02 login admin metricas",
+        "request": {
+          "url": {
+            "path": [
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+          }
+        },
+        "response": [],
+        "event": [
+          {
+            "listen": "test",
+            "script": {
+              "id": "fc82324f-01b4-490a-9b47-c46c5206558d",
+              "type": "text/javascript",
+              "exec": [
+                "var b = pm.response.json();",
+                "if (b.token) { pm.collectionVariables.set('token_admin', b.token); }"
+              ],
+              "_lastExecutionId": "58feeb4b-e815-4598-b7ea-783f66039bbf"
+            }
+          }
+        ]
+      },
+      {
+        "id": "5eb837af-668a-45da-a2cd-7419bf81f023",
+        "name": "03 GET metricas especie 5",
+        "request": {
+          "url": {
+            "path": [
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "{{base_url}}"
+            ],
+            "query": [
+              {
+                "key": "id_especie",
+                "value": "5"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer {{token_admin}}"
+            }
+          ],
+          "method": "GET"
+        },
+        "response": [],
+        "event": []
+      }
+    ],
+    "event": [],
+    "variable": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "contrasena"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_prod"
+      },
+      {
+        "type": "any",
+        "value": "",
+        "key": "token_admin"
+      }
+    ],
+    "info": {
+      "_postman_id": "e7bceee9-098d-4bf9-86da-f16a3ddbc3d8",
+      "name": "TC-M02-G16 rev2",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+      "description": {
+        "content": "Reevaluacion TEST. No sobrescribe rev1. 032 vive en pytest (101 POST validos + restore). Password via --env-var.",
+        "type": "text/plain"
+      }
+    }
+  },
+  "environment": {
+    "id": "08334aec-384b-43d2-ad63-87f859220cf5",
+    "values": [
+      {
+        "type": "any",
+        "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+        "key": "base_url"
+      },
+      {
+        "type": "any",
+        "value": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend",
+        "key": "contrasena"
+      }
+    ]
+  },
+  "globals": {
+    "id": "5d247e3d-4a4b-42a5-9d57-7a3c3fe8efe3",
+    "values": []
+  },
+  "run": {
+    "stats": {
+      "iterations": {
+        "total": 1,
+        "pending": 0,
+        "failed": 0
+      },
+      "items": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "scripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "requests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "tests": {
+        "total": 3,
+        "pending": 0,
+        "failed": 0
+      },
+      "assertions": {
+        "total": 1,
+        "pending": 0,
+        "failed": 1
+      },
+      "testScripts": {
+        "total": 2,
+        "pending": 0,
+        "failed": 0
+      },
+      "prerequestScripts": {
+        "total": 0,
+        "pending": 0,
+        "failed": 0
+      }
+    },
+    "timings": {
+      "responseAverage": 363.6666666666667,
+      "responseMin": 147,
+      "responseMax": 747,
+      "responseSd": 271.82510717166815,
+      "dnsAverage": 0,
+      "dnsMin": 0,
+      "dnsMax": 0,
+      "dnsSd": 0,
+      "firstByteAverage": 0,
+      "firstByteMin": 0,
+      "firstByteMax": 0,
+      "firstByteSd": 0,
+      "started": 1790404268984,
+      "completed": 1790404270315
+    },
+    "executions": [
+      {
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "bce088aa-73a0-4fab-bcdf-eefb44edf76f",
+          "httpRequestId": "7d22acf8-ccfc-4a7c-b028-792454953d19"
+        },
+        "item": {
+          "id": "34e04f41-f2cb-4a27-a14e-4c792941a7d4",
+          "name": "01 login productor",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7a29d0b5-5a2b-4339-b00e-32bada6c3521",
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                  "pm.test('login', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ],
+                "_lastExecutionId": "97c45d62-ba39-4391-b8e1-9a38413c8058"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "738d8a56-7fe3-4d46-9484-e69c3b9acfd4",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "130",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\"\n}"
+          }
+        },
+        "response": {
+          "id": "a8c3754d-69b8-4b01-8c60-3174a071d1b6",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "212"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:31:09 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "d7d0d089-21f1-416c-b86a-19a369df2262"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              55,
+              48,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              99,
+              117,
+              101,
+              114,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              117,
+              110,
+              32,
+              74,
+              83,
+              79,
+              78,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              51,
+              49,
+              58,
+              48,
+              57,
+              46,
+              53,
+              57,
+              51,
+              57,
+              51,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 747,
+          "responseSize": 212
+        },
+        "id": "34e04f41-f2cb-4a27-a14e-4c792941a7d4",
+        "assertions": [
+          {
+            "assertion": "login",
+            "skipped": false,
+            "error": {
+              "name": "AssertionError",
+              "index": 0,
+              "test": "login",
+              "message": "expected 400 to deeply equal 200",
+              "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:1)"
+            }
+          }
+        ]
+      },
+      {
+        "cursor": {
+          "ref": "267c50ae-cdee-4e74-87eb-9ebf90f59f25",
+          "length": 3,
+          "cycles": 1,
+          "position": 1,
+          "iteration": 0,
+          "httpRequestId": "c3fbc0d9-b179-43c5-a666-752318fd4efb"
+        },
+        "item": {
+          "id": "430b11aa-dd9f-4bab-9957-aa0437da31e5",
+          "name": "02 login admin metricas",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "fc82324f-01b4-490a-9b47-c46c5206558d",
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_admin', b.token); }"
+                ],
+                "_lastExecutionId": "58feeb4b-e815-4598-b7ea-783f66039bbf"
+              }
+            }
+          ]
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "sesiones",
+              ""
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "eea3553c-4ef7-4ab6-8f7d-26d2aa6d0b5b",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            },
+            {
+              "key": "Content-Length",
+              "value": "126",
+              "system": true
+            }
+          ],
+          "method": "POST",
+          "body": {
+            "mode": "raw",
+            "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\"\n}"
+          }
+        },
+        "response": {
+          "id": "d502c7df-ddcc-4a47-a4e5-4e1cb234af4a",
+          "status": "Bad Request",
+          "code": 400,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "212"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:31:09 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "f57dc13c-76be-4208-914a-99f48dcbfdef"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              86,
+              65,
+              76,
+              95,
+              69,
+              78,
+              84,
+              82,
+              65,
+              68,
+              65,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              114,
+              114,
+              111,
+              114,
+              101,
+              115,
+              32,
+              100,
+              101,
+              32,
+              118,
+              97,
+              108,
+              105,
+              100,
+              97,
+              99,
+              105,
+              111,
+              110,
+              32,
+              101,
+              110,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              123,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              34,
+              58,
+              34,
+              54,
+              54,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              69,
+              108,
+              32,
+              99,
+              117,
+              101,
+              114,
+              112,
+              111,
+              32,
+              100,
+              101,
+              32,
+              108,
+              97,
+              32,
+              115,
+              111,
+              108,
+              105,
+              99,
+              105,
+              116,
+              117,
+              100,
+              32,
+              110,
+              111,
+              32,
+              101,
+              115,
+              32,
+              117,
+              110,
+              32,
+              74,
+              83,
+              79,
+              78,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              125,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              51,
+              49,
+              58,
+              48,
+              57,
+              46,
+              56,
+              48,
+              57,
+              53,
+              57,
+              54,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 147,
+          "responseSize": 212
+        },
+        "id": "430b11aa-dd9f-4bab-9957-aa0437da31e5"
+      },
+      {
+        "cursor": {
+          "ref": "d3be5387-8aae-48f6-be1a-4f21e6464539",
+          "length": 3,
+          "cycles": 1,
+          "position": 2,
+          "iteration": 0,
+          "httpRequestId": "6a5c1013-4c99-43c6-90ca-3720c09486f7"
+        },
+        "item": {
+          "id": "5eb837af-668a-45da-a2cd-7419bf81f023",
+          "name": "03 GET metricas especie 5",
+          "request": {
+            "url": {
+              "path": [
+                "configuracion",
+                "metricas"
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [
+                {
+                  "key": "id_especie",
+                  "value": "5"
+                }
+              ],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token_admin}}"
+              }
+            ],
+            "method": "GET"
+          },
+          "response": [],
+          "event": []
+        },
+        "request": {
+          "url": {
+            "protocol": "https",
+            "path": [
+              "api-sgpmp-test",
+              "configuracion",
+              "metricas"
+            ],
+            "host": [
+              "sigab-backendtest-389pcb-a48238-158-69-200-27",
+              "sslip",
+              "io"
+            ],
+            "query": [
+              {
+                "key": "id_especie",
+                "value": "5"
+              }
+            ],
+            "variable": []
+          },
+          "header": [
+            {
+              "key": "Authorization",
+              "value": "Bearer "
+            },
+            {
+              "key": "User-Agent",
+              "value": "PostmanRuntime/7.39.1",
+              "system": true
+            },
+            {
+              "key": "Accept",
+              "value": "*/*",
+              "system": true
+            },
+            {
+              "key": "Cache-Control",
+              "value": "no-cache",
+              "system": true
+            },
+            {
+              "key": "Postman-Token",
+              "value": "c0919bca-dcab-4d23-bebb-f4e521e9331e",
+              "system": true
+            },
+            {
+              "key": "Host",
+              "value": "sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io",
+              "system": true
+            },
+            {
+              "key": "Accept-Encoding",
+              "value": "gzip, deflate, br",
+              "system": true
+            },
+            {
+              "key": "Connection",
+              "value": "keep-alive",
+              "system": true
+            }
+          ],
+          "method": "GET"
+        },
+        "response": {
+          "id": "2d7f0a58-042a-4c0a-8bf9-52aeed1d8c29",
+          "status": "Unauthorized",
+          "code": 401,
+          "header": [
+            {
+              "key": "Alt-Svc",
+              "value": "h3=\":443\"; ma=2592000"
+            },
+            {
+              "key": "Content-Length",
+              "value": "168"
+            },
+            {
+              "key": "Content-Security-Policy",
+              "value": "default-src 'none'"
+            },
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "key": "Date",
+              "value": "Sat, 26 Sep 2026 06:31:09 GMT"
+            },
+            {
+              "key": "Server",
+              "value": "uvicorn"
+            },
+            {
+              "key": "Strict-Transport-Security",
+              "value": "max-age=63072000; includeSubDomains"
+            },
+            {
+              "key": "X-Content-Type-Options",
+              "value": "nosniff"
+            },
+            {
+              "key": "X-Frame-Options",
+              "value": "DENY"
+            },
+            {
+              "key": "X-Request-Id",
+              "value": "4520ee6b-dc9c-489f-9e54-994a62ce1493"
+            }
+          ],
+          "stream": {
+            "type": "Buffer",
+            "data": [
+              123,
+              34,
+              101,
+              114,
+              114,
+              111,
+              114,
+              95,
+              99,
+              111,
+              100,
+              101,
+              34,
+              58,
+              34,
+              84,
+              79,
+              75,
+              69,
+              78,
+              95,
+              82,
+              69,
+              81,
+              85,
+              69,
+              82,
+              73,
+              68,
+              79,
+              34,
+              44,
+              34,
+              109,
+              101,
+              115,
+              115,
+              97,
+              103,
+              101,
+              34,
+              58,
+              34,
+              83,
+              101,
+              32,
+              114,
+              101,
+              113,
+              117,
+              105,
+              101,
+              114,
+              101,
+              32,
+              97,
+              117,
+              116,
+              101,
+              110,
+              116,
+              105,
+              99,
+              97,
+              99,
+              105,
+              195,
+              179,
+              110,
+              46,
+              32,
+              80,
+              114,
+              111,
+              112,
+              111,
+              114,
+              99,
+              105,
+              111,
+              110,
+              97,
+              32,
+              117,
+              110,
+              32,
+              116,
+              111,
+              107,
+              101,
+              110,
+              32,
+              66,
+              101,
+              97,
+              114,
+              101,
+              114,
+              32,
+              118,
+              195,
+              161,
+              108,
+              105,
+              100,
+              111,
+              46,
+              34,
+              44,
+              34,
+              102,
+              105,
+              101,
+              108,
+              100,
+              115,
+              34,
+              58,
+              91,
+              93,
+              44,
+              34,
+              116,
+              105,
+              109,
+              101,
+              115,
+              116,
+              97,
+              109,
+              112,
+              34,
+              58,
+              34,
+              50,
+              48,
+              50,
+              54,
+              45,
+              48,
+              57,
+              45,
+              50,
+              54,
+              84,
+              48,
+              54,
+              58,
+              51,
+              49,
+              58,
+              49,
+              48,
+              46,
+              48,
+              50,
+              51,
+              55,
+              55,
+              51,
+              43,
+              48,
+              48,
+              58,
+              48,
+              48,
+              34,
+              125
+            ]
+          },
+          "cookie": [],
+          "responseTime": 197,
+          "responseSize": 168
+        },
+        "id": "5eb837af-668a-45da-a2cd-7419bf81f023"
+      }
+    ],
+    "transfers": {
+      "responseTotal": 592
+    },
+    "failures": [
+      {
+        "error": {
+          "name": "AssertionError",
+          "index": 0,
+          "test": "login",
+          "message": "expected 400 to deeply equal 200",
+          "stack": "AssertionError: expected 400 to deeply equal 200\n   at Object.eval sandbox-script.js:1:1)",
+          "checksum": "55f1bbb27e8e9e50f4ac15712ea60d67",
+          "id": "18885426-823c-477b-91e6-a12e16c38ce9",
+          "timestamp": 1790404269803,
+          "stacktrace": [
+            {
+              "fileName": "sandbox-script.js",
+              "lineNumber": 1,
+              "functionName": "Object.eval",
+              "typeName": "Object",
+              "methodName": "eval",
+              "columnNumber": 1,
+              "native": false
+            }
+          ]
+        },
+        "at": "assertion:0 in test-script",
+        "source": {
+          "id": "34e04f41-f2cb-4a27-a14e-4c792941a7d4",
+          "name": "01 login productor",
+          "request": {
+            "url": {
+              "path": [
+                "sesiones",
+                ""
+              ],
+              "host": [
+                "{{base_url}}"
+              ],
+              "query": [],
+              "variable": []
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "method": "POST",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "id": "7a29d0b5-5a2b-4339-b00e-32bada6c3521",
+                "type": "text/javascript",
+                "exec": [
+                  "var b = pm.response.json();",
+                  "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                  "pm.test('login', function () { pm.expect(pm.response.code).to.eql(200); });"
+                ],
+                "_lastExecutionId": "97c45d62-ba39-4391-b8e1-9a38413c8058"
+              }
+            }
+          ]
+        },
+        "parent": {
+          "item": [
+            {
+              "id": "34e04f41-f2cb-4a27-a14e-4c792941a7d4",
+              "name": "01 login productor",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "7a29d0b5-5a2b-4339-b00e-32bada6c3521",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_prod', b.token); }",
+                      "pm.test('login', function () { pm.expect(pm.response.code).to.eql(200); });"
+                    ],
+                    "_lastExecutionId": "97c45d62-ba39-4391-b8e1-9a38413c8058"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "430b11aa-dd9f-4bab-9957-aa0437da31e5",
+              "name": "02 login admin metricas",
+              "request": {
+                "url": {
+                  "path": [
+                    "sesiones",
+                    ""
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "POST",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "id": "fc82324f-01b4-490a-9b47-c46c5206558d",
+                    "type": "text/javascript",
+                    "exec": [
+                      "var b = pm.response.json();",
+                      "if (b.token) { pm.collectionVariables.set('token_admin', b.token); }"
+                    ],
+                    "_lastExecutionId": "58feeb4b-e815-4598-b7ea-783f66039bbf"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "5eb837af-668a-45da-a2cd-7419bf81f023",
+              "name": "03 GET metricas especie 5",
+              "request": {
+                "url": {
+                  "path": [
+                    "configuracion",
+                    "metricas"
+                  ],
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "id_especie",
+                      "value": "5"
+                    }
+                  ],
+                  "variable": []
+                },
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token_admin}}"
+                  }
+                ],
+                "method": "GET"
+              },
+              "response": [],
+              "event": []
+            }
+          ],
+          "event": [],
+          "variable": [
+            {
+              "type": "any",
+              "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+              "key": "base_url"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "contrasena"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_prod"
+            },
+            {
+              "type": "any",
+              "value": "",
+              "key": "token_admin"
+            }
+          ],
+          "info": {
+            "_postman_id": "e7bceee9-098d-4bf9-86da-f16a3ddbc3d8",
+            "name": "TC-M02-G16 rev2",
+            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+            "description": {
+              "content": "Reevaluacion TEST. No sobrescribe rev1. 032 vive en pytest (101 POST validos + restore). Password via --env-var.",
+              "type": "text/plain"
+            }
+          }
+        },
+        "cursor": {
+          "position": 0,
+          "iteration": 0,
+          "length": 3,
+          "cycles": 1,
+          "empty": false,
+          "eof": false,
+          "bof": true,
+          "cr": false,
+          "ref": "bce088aa-73a0-4fab-bcdf-eefb44edf76f",
+          "httpRequestId": "7d22acf8-ccfc-4a7c-b028-792454953d19",
+          "scriptId": "7a29d0b5-5a2b-4339-b00e-32bada6c3521",
+          "execution": "97c45d62-ba39-4391-b8e1-9a38413c8058"
+        }
+      }
+    ],
+    "error": null
+  }
+}

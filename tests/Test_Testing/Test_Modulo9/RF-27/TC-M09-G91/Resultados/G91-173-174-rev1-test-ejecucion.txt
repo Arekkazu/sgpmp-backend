@@ -1,0 +1,67 @@
+TC-M09-G91 / RF-27 — rev1 TEST (solo 173 y 174)
+Fecha: 2026-09-25
+Colección: tests/Test_Testing/Test_Modulo9/RF-27/TC-M09-G91/tc_m09_g91_173_174_rev1_test.json
+Ambiente: TEST
+API: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Newman: 15 requests, 39 aserciones, 0 FAIL
+TC-M09-175: NO EJECUTADO
+
+Histórico no sobrescrito: tc_m09_g91.json, tc_m09_g91_dev.json, Resultados rev2 DEV.
+
+Credenciales: --env-var contrasena (no se documentan). Tokens/JWT/cookies redactados en HTML/JSON.
+
+PATCH/GET global: admin@pecuaria.co (recurso 27). Productor GET global = 403 esperado.
+
+---
+TC-M09-173 APROBADO
+Usuario: productor@pecuaria.co (id 2)
+Sin PATCH personal ni PATCH global.
+
+SNAPSHOT GET tema:
+{"theme_mode":2,"fuente":"personal","id_tema_visual":2}
+
+SNAPSHOT GET global (admin):
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":1,"es_global":true,"fecha_actualizacion":"2026-09-07T21:05:06.490469Z"}
+
+GET resuelto (productor):
+{"theme_mode":2,"fuente":"personal","id_tema_visual":2}
+
+Demuestra PERSONAL (2) > GLOBAL (1).
+
+GET global productor: HTTP 403 ACCESO_DENEGADO (RBAC recurso 27). No invalida 173.
+
+Final: productor theme_mode=2 fuente=personal; global theme_mode=1.
+
+---
+TC-M09-174 APROBADO
+Usuario: contador@pecuaria.co (id 5)
+
+GET tema ANTES de PATCH:
+{"theme_mode":1,"fuente":"global","id_tema_visual":1}
+Confirmación ausencia de preferencia personal (fuente=global, no personal).
+
+Global ANTES: theme_mode=1 es_global=true id_tema_visual=1 id_usuario=1
+
+PATCH temporal admin {"theme_mode":2} HTTP 200
+GET global durante:
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":2,"es_global":true}
+
+GET resuelto contador:
+{"theme_mode":2,"fuente":"global","id_tema_visual":1}
+
+No se hizo PATCH personal. fuente permanece global.
+
+RESTORE PATCH {"theme_mode":1} HTTP 200
+GET global restaurado:
+{"id_tema_visual":1,"id_usuario":1,"theme_mode":1,"es_global":true}
+
+GET tema contador final:
+{"theme_mode":1,"fuente":"global","id_tema_visual":1}
+
+---
+TC-M09-175 NO EJECUTADO
+Requiere ausencia de fila es_global=true. TEST tiene singleton uq_tema_global.
+No se borró ni ocultó el global.
+
+---
+Git: no commit, no push, no add.

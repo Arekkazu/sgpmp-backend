@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-09-25T06:34:50.369Z",
+    "end": "2026-09-25T06:35:00.074Z",
+    "duration": 9705,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "bf47f4df-57fa-4376-8e51-47c865a48ead",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\tc_m09_g90_172_rev3_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\tc_m09_g90_172_rev3_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "d656910f-d1db-4f7a-b726-0254f8a726f5",
+          "title": "TC-M09-172 rev3 TEST - Tema automatico",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-172 - Aplicar automaticamente el tema segun el dispositivo (theme_mode=3)",
+              "fullTitle": "TC-M09-172 rev3 TEST - Tema automatico TC-M09-172 - Aplicar automaticamente el tema segun el dispositivo (theme_mode=3)",
+              "timedOut": null,
+              "duration": 8743,
+              "state": "passed",
+              "speed": "medium",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const correo = Cypress.env('correo') || 'admin@pecuaria.co';\nconst contrasena = Cypress.env('contrasena');\nexpect(contrasena, 'contrasena via Cypress.env').to.be.a('string').and.not.empty;\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('login');\ncy.intercept({\n  method: 'GET',\n  url: TEMA\n}).as('getTema');\ncy.intercept({\n  method: 'PATCH',\n  url: TEMA\n}).as('patchTema');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"], input[name=\"correo_electronico\"]').first().should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').first().should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar/i).click();\ncy.wait('@login').then(interception => {\n  expect(interception.response.statusCode, 'login HTTP').to.eq(200);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.url().should('not.include', '/login');\ncy.wait('@getTema').then(interception => {\n  expect(interception.response.statusCode, 'GET tema inicial HTTP').to.eq(200);\n  themeModeInicial = interception.response.body && interception.response.body.theme_mode;\n  cy.writeFile(`${EVIDENCIA}/G90-172-rev3-estado-inicial.json`, {\n    theme_mode: themeModeInicial,\n    fuente: interception.response.body && interception.response.body.fuente\n  });\n});\ncy.visit(`${TEST_FRONT}/configuracion`);\ncy.contains('Configuración del Sistema', {\n  timeout: 20000\n}).should('exist');\ncy.url().should('include', '/configuracion');\ncy.url().should('not.include', '/login');\ncy.contains('button, a, [role=\"tab\"], ion-segment-button', /^Personalización$/).click({\n  force: true\n});\ncy.contains('Tema Visual', {\n  timeout: 15000\n}).should('exist');\ncy.contains('Automático').should('exist');\ncy.contains('Automático').first().click({\n  force: true\n});\ncy.contains('button', /Guardar tema/i).first().click({\n  force: true\n});\ncy.wait('@patchTema').then(interception => {\n  expect(interception.response.statusCode, 'PATCH tema HTTP').to.be.oneOf([200, 201]);\n  const body = interception.request.body || {};\n  expect(body.theme_mode, 'PATCH envia theme_mode=3').to.eq(3);\n  const resp = interception.response.body || {};\n  expect(resp.theme_mode, 'PATCH respuesta almacena theme_mode=3').to.eq(3);\n  const headers = interception.request.headers || {};\n  const auth = headers.authorization || headers.Authorization;\n  expect(auth, 'Authorization del PATCH de la app').to.be.a('string');\n  tokenSesion = String(auth).replace(/^Bearer\\s+/i, '');\n  cy.writeFile(`${EVIDENCIA}/G90-172-rev3-patch.json`, {\n    request_theme_mode: body.theme_mode,\n    response_theme_mode: resp.theme_mode,\n    es_global: resp.es_global\n  });\n});\ncy.contains(/Tema guardado|El tema se aplicó correctamente/i, {\n  timeout: 10000\n}).should('exist');\ncy.url().should('not.include', '/login');\nemularPrefersColorScheme('light').then(okLight => {\n  if (!okLight) {\n    cy.writeFile(`${EVIDENCIA}/G90-172-rev3-bloqueo-emulacion.txt`, 'BLOQUEADO: Emulation.setEmulatedMedia no actualizo matchMedia light.');\n    this.skip();\n    return;\n  }\n  cy.window().then(win => {\n    if (win.document.documentElement.getAttribute('data-theme') !== 'light') {\n      cy.reload();\n      emularPrefersColorScheme('light');\n    }\n  });\n  esperarDataTheme('light');\n  snapshotApariencia('sistema-claro').then(snap => {\n    expect(snap.dataTheme).to.eq('light');\n    expect(snap.prefersDark).to.eq(false);\n    expect(snap.loggedIn).to.eq(true);\n  });\n  cy.contains('Configuración del Sistema').should('exist');\n  cy.contains('Tema Visual').should('exist');\n  cy.screenshot('G90-172-rev3-automatico-sistema-claro');\n});\nemularPrefersColorScheme('dark').then(okDark => {\n  if (!okDark) {\n    cy.writeFile(`${EVIDENCIA}/G90-172-rev3-bloqueo-emulacion.txt`, 'BLOQUEADO: Emulation.setEmulatedMedia no actualizo matchMedia dark.');\n    this.skip();\n    return;\n  }\n  cy.window().then(win => {\n    if (win.document.documentElement.getAttribute('data-theme') !== 'dark') {\n      cy.reload();\n      emularPrefersColorScheme('dark');\n    }\n  });\n  esperarDataTheme('dark');\n  snapshotApariencia('sistema-oscuro').then(snap => {\n    expect(snap.dataTheme).to.eq('dark');\n    expect(snap.prefersDark).to.eq(true);\n    expect(snap.loggedIn).to.eq(true);\n  });\n  cy.contains('Configuración del Sistema').should('exist');\n  cy.screenshot('G90-172-rev3-automatico-sistema-oscuro');\n});\ncy.intercept({\n  method: 'GET',\n  url: TEMA\n}).as('getTemaPostAuto');\ncy.contains('button, a, [role=\"tab\"], ion-segment-button', /^Catálogo$|^Catalogo$/).click({\n  force: true\n});\ncy.contains('button, a, [role=\"tab\"], ion-segment-button', /^Personalización$/).click({\n  force: true\n});\ncy.contains('Tema Visual', {\n  timeout: 15000\n}).should('exist');\ncy.wait('@getTemaPostAuto').then(interception => {\n  expect(interception.response.statusCode, 'GET tema post-escenarios HTTP').to.eq(200);\n  expect(interception.response.body.theme_mode, 'theme_mode sigue en 3').to.eq(3);\n  cy.writeFile(`${EVIDENCIA}/G90-172-rev3-persistencia.json`, {\n    theme_mode: interception.response.body.theme_mode,\n    fuente: interception.response.body.fuente,\n    via: 'GET posterior a light/dark, intercept nuevo'\n  });\n});\ncy.url().should('not.include', '/login');",
+              "err": {},
+              "uuid": "dff96229-62c1-4c78-b930-1d55460f210c",
+              "parentUUID": "d656910f-d1db-4f7a-b726-0254f8a726f5",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "dff96229-62c1-4c78-b930-1d55460f210c"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 8743,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G90-172_rev3_test",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-27\\TC-M09-G90\\Resultados",
+        "reportFilename": "TC-M09-G90-172_rev3_test",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}
