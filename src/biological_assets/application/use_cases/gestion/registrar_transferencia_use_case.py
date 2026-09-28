@@ -269,8 +269,8 @@ class RegistrarTransferenciaUseCase:
                 },
             )
 
-            # c) Actualizar id_infraestructura en activos_biologicos (trigger requiere app.usuario_id)
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario.id_usuario})
+            # c) Actualizar id_infraestructura en activos_biologicos (trigger requiere
+            # app.usuario_id, ya seteado una vez por request por get_current_user — F2)
             self.db.execute(
                 text(
                     'UPDATE modulo2.activos_biologicos '
