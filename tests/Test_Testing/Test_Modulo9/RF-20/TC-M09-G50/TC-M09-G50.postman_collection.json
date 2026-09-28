@@ -1,13 +1,13 @@
 {
   "info": {
     "name": "RF-20 - TC-M09-G50 Edicion de un area productiva existente",
-    "description": "Automatiza TC-M09-101: lee el estado 'antes' de un area productiva existente, la edita con datos validos distintos (nombre, superficie) usando el fecha_actualizacion devuelto (FA-14), y compara contra el estado 'despues' leido de forma independiente. BLOQUEADO: EditarInfraestructuraUseCase revalida tipo_area contra modulo9.tipos_area en cada edicion (linea 73 de editar_infraestructura_use_case.py), igual que el registro (ver tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md) -- esa tabla no existe en el servidor de test compartido, asi que CUALQUIER edicion falla con 500 sin importar los datos enviados. Usa un area ya existente en el entorno (id=1) porque crear una nueva tambien esta bloqueada.",
+    "description": "Automatiza TC-M09-101: lee el estado 'antes' de un area productiva existente, la edita con datos validos distintos (nombre, superficie) usando el fecha_actualizacion devuelto (FA-14), y compara contra el estado 'despues' leido de forma independiente. Reevaluado 2026-09-26: la migracion 2dbb6d44046f ya esta aplicada en TEST. Cada corrida crea su propia finca y area (en vez de editar el area compartida id=1) para no alterar datos de otros casos y para que la corrida sea repetible; el Paso 4 confirma de forma independiente que la edicion quedo persistida.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
     { "key": "token_admin", "value": "" },
-    { "key": "id_infraestructura", "value": "1" },
+    { "key": "id_infraestructura", "value": "" },
     { "key": "fecha_actualizacion_antes", "value": "" },
     { "key": "nombre_antes", "value": "" }
   ],
@@ -36,6 +36,78 @@
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1b - Registrar una finca propia para la prueba",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Edicion Area {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/fincas", "host": ["{{base_url}}"], "path": ["configuracion", "fincas"] }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1c - Registrar el area a editar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_infraestructura', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Estanque-01\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}}\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
       },
       "response": []
     },
@@ -74,7 +146,7 @@
       "response": []
     },
     {
-      "name": "TC-M09-101 - Editar el area con datos validos distintos [BLOQUEADO: ver NOTA_BLOQUEO de TC-M09-G48]",
+      "name": "TC-M09-101 - Editar el area con datos validos distintos",
       "event": [
         {
           "listen": "test",
@@ -119,7 +191,7 @@
       "response": []
     },
     {
-      "name": "Paso 4 - Confirmar que el area no cambio (la edicion fallida no debe alterar nada)",
+      "name": "Paso 4 - Confirmar de forma independiente que la edicion quedo persistida",
       "event": [
         {
           "listen": "test",
@@ -128,11 +200,13 @@
             "exec": [
               "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
               "const json = pm.response.json();",
-              "console.log('Estado tras el intento fallido: ' + JSON.stringify(json));",
-              "pm.test('nombre y superficie siguen siendo los originales', function () {",
-              "    pm.expect(json.nombre_infraestructura).to.eql(pm.collectionVariables.get('nombre_antes'));",
-              "    pm.expect(json.superficie).to.eql(pm.collectionVariables.get('superficie_antes'));",
-              "});"
+              "console.log('Estado DESPUES (lectura independiente): ' + JSON.stringify(json));",
+              "pm.test('nombre, superficie y descripcion persistidos con los valores editados', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Estanque Editado TC-M09-G50');",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(2750.5);",
+              "    pm.expect(json.descripcion_infraestructura).to.eql('Editado por TC-M09-101');",
+              "});",
+              "pm.test('fecha_actualizacion registrada', function () { pm.expect(json.fecha_actualizacion).to.not.eql(null); });"
             ]
           }
         }

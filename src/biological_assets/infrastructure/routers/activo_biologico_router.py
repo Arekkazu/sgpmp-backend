@@ -90,7 +90,11 @@ from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_
 )
 from src.biological_assets.infrastructure.adapters.sensor_m09_adapter import SensorM09Adapter
 from src.biological_assets.application.use_cases.gestion.consultar_indicadores_use_case import ConsultarIndicadoresUseCase
-from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import ConsultarDatosConsolidadosUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import (
+    MODULO_PROPIO,
+    ConsultarDatosConsolidadosUseCase,
+    resolver_modulo_consumidor,
+)
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
@@ -110,6 +114,7 @@ from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_a
     RegistrarAccesoNoAutorizadoUseCase,
 )
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
+    AccesoDirectoResponse,
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
@@ -155,7 +160,7 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import tiene_permiso_sobre
+from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -183,11 +188,30 @@ _SCOPES_TIPO_DATO = {
     'metricas': _RECURSO_DATOS_METRICAS,
 }
 
+
+def _clave_consumidor_datos_consolidados(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> str:
+    """RF-50: el limite de 100/min es por modulo consumidor.
+
+    Las identidades tecnicas de otros modulos ('Integración M0<n>',
+    INC-M02-90-G92 / INC-M02-93-G93) comparten un solo contador por modulo,
+    sin importar cuantos usuarios tecnicos use ese modulo. Los humanos
+    (modulo2) siguen con un contador por usuario: agruparlos a todos en uno
+    solo haria que se bloquearan entre si.
+    """
+    modulo = resolver_modulo_consumidor(SqlAlchemyRolRepository(db), usuario_actual.id_rol)
+    if modulo == MODULO_PROPIO:
+        return f'usuario:{usuario_actual.id_usuario}'
+    return f'modulo:{modulo}'
+
+
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
-# 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
-# por-usuario que ofrece hoy este helper) queda bloqueado por INC-M02-90-G92
-# (no existe todavia una identidad de modulo autenticable).
-_LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
+# 100 solicitudes/minuto por modulo consumidor.
+_LIMITE_DATOS_CONSOLIDADOS = rate_limit(
+    100, 60, alcance="activos_datos_consolidados", clave=_clave_consumidor_datos_consolidados,
+)
 
 # TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
@@ -1320,7 +1344,40 @@ def consultar_ficha_integral(
         eventos_reproductivos=ficha.eventos_reproductivos,
         indicadores=ficha.indicadores,
         advertencias=ficha.advertencias,
+        accesos_directos=_accesos_directos_ficha(db, usuario_actual, id_activo),
     )
+
+
+# RF-47 Sección 8: cada acceso directo exige el mismo permiso (recurso 29 +
+# acción) que el endpoint al que apunta, así la ficha nunca ofrece una acción
+# que luego respondería 403.
+_ACCESOS_DIRECTOS_FICHA = (
+    ('historial', 'Historial completo', 'GET', '/activos-biologicos/{id}/historial', 'RF46', 2, None),
+    (
+        'registrar_evento', 'Registrar evento', 'POST', '/activos-biologicos/{id}/eventos/{tipo_evento}',
+        'RF39-RF43', 1, ['crecimiento', 'sanitario', 'reproductivo', 'productivo'],
+    ),
+    ('cambiar_estado', 'Cambiar estado', 'PATCH', '/activos-biologicos/{id}/estado', 'RF44', 5, None),
+    ('registrar_baja', 'Registrar baja', 'POST', '/activos-biologicos/{id}/eventos/baja', 'RF45', 1, None),
+)
+
+
+def _accesos_directos_ficha(
+    db: Session, usuario_actual: UsuarioActual, id_activo: int,
+) -> list[AccesoDirectoResponse]:
+    """RF-47: la Sección 8 solo muestra las acciones que el rol puede ejecutar (RF-04)."""
+    permitido: dict[int, bool] = {}
+    accesos = []
+    for codigo, nombre, metodo, ruta, rf_origen, id_accion, tipos_evento in _ACCESOS_DIRECTOS_FICHA:
+        if id_accion not in permitido:
+            permitido[id_accion] = tiene_permiso(db, usuario_actual.id_rol, _RECURSO, id_accion)
+        if permitido[id_accion]:
+            accesos.append(AccesoDirectoResponse(
+                codigo=codigo, nombre=nombre, metodo=metodo,
+                ruta=ruta.replace('{id}', str(id_activo)), rf_origen=rf_origen,
+                tipos_evento=tipos_evento,
+            ))
+    return accesos
 
 
 # ── CU03 — RF-36: Ficha de gestión de lote ──────────────────────────────────

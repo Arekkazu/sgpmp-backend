@@ -14,7 +14,45 @@
 | Prioridad | Alta |
 | Endpoints | `POST /activos-biologicos/{id_activo}/fases` · `GET /activos-biologicos/{id_activo}/fases` |
 
-## Resultado (2026-09-19): TC-M02-039 PASS — TC-M02-042 FAIL (gap real, no de entorno)
+## Resultado vigente (2026-09-26): TC-M02-039 PASS — TC-M02-042 FAIL parcial (11/12 assertions)
+
+**El gap estructural del 2026-09-19 está implementado** (`15c4611e feat(m02): fase_destino/confirmacion_no_estandar
+... (RF-37)`, llegó con el merge de `dev`): el salto confirmado se acepta y respeta el destino pedido. Queda **un
+defecto residual real**: la marca de transición no estándar no se guarda en el historial de fases.
+
+Cambios en la colección (sin alterar lo que exige el RF):
+
+- `fase_destino_id` es el **id de la fase dentro del ciclo** (`id_ciclos_productivo_biologico`), no el número de
+  paso. La colección enviaba `3` (paso) y el sistema respondía `400 FASE_DESTINO_INVALIDA`, correctamente: en TEST el
+  ciclo 2 tiene las fases `4` (paso 1), `5` (paso 2) y `6` (paso 3, "Fase engorde trucha") — verificado en la BD de
+  TEST (solo lectura), ya que ningún endpoint expone esos ids. Nueva variable `id_fase_destino=6`.
+- Nuevo paso 4: `GET .../fases` tras el salto, para verificar el resultado esperado de la ficha ("fase actual se
+  cierra con `fecha_fin`" y "evidencia de la confirmación en el historial"), que antes no se comprobaba.
+
+| Caso | WHEN | Resultado real (2026-09-26) |
+|---|---|---|
+| TC-M02-039 | `POST /fases` con `id_ciclo_productiva=2` | **201**, fase 1 activa, visible en el historial — PASS |
+| TC-M02-042 (salto) | `POST /fases` con `fase_destino_id=6` + `confirmacion_no_estandar=true` | **201**, `paso_actual=3`, respuesta con `es_transicion_no_estandar=true` — PASS |
+| TC-M02-042 (cierre) | `GET /fases` | Fase 1 con `es_activa=false` y `fecha_finalizacion` = inicio de la fase 3 — PASS |
+| TC-M02-042 (evidencia) | `GET /fases` | **FAIL**: la fase 3 aparece con `es_transicion_no_estandar=false` |
+
+### Defecto: `es_transicion_no_estandar` no se persiste en el historial de fases
+
+- `POST /activos-biologicos/{id}/fases` responde `es_transicion_no_estandar: true`, pero `GET
+  /activos-biologicos/{id}/fases` devuelve esa **misma** fase (`id_gestion_fases`) con `false`.
+- Causa: `modulo2.gestiones_fases` no tiene columna para ese dato (verificado en la BD de TEST, solo lectura) y el
+  `INSERT` de `crear_gestion_fase` (`activo_biologico_repository.py`) no lo guarda: el POST solo devuelve el valor que
+  tenía en memoria y la lectura del historial siempre cae al valor por defecto (`False`).
+- La única evidencia persistida está en la bitácora de auditoría (`modulo2.bitacora_auditoria_m02`, evento
+  `FASE_CAMBIADA`, `detalle_tecnico.es_transicion_no_estandar = true`), que no es el historial de fases que consulta
+  el usuario.
+
+Activo propio creado por la corrida (`id_activo_biologico=618`). Evidencia:
+`RESULTADOS/TC-M02-G33_resultado.html` (Newman htmlextra, 2026-09-26).
+
+---
+
+## Histórico (2026-09-19): TC-M02-039 PASS — TC-M02-042 FAIL (gap real, no de entorno)
 
 **INC-M02-37-01 (el bug que bloqueaba TC-M02-039) está resuelto.** `POST /activos-biologicos/{id}/fases` ya
 responde `201`: la fase se crea, queda activa, y el historial la refleja correctamente. Ver

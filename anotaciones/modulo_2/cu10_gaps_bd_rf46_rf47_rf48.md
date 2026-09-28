@@ -160,3 +160,26 @@ se llega a *invocar* de verdad (preservando la intención original del test). Su
 
 **Sin cambios de código de producción, sin migración nueva, sin cambios de RBAC** — ambos gaps del RF ya
 estaban resueltos; el único trabajo real de esta iteración fue reparar la cobertura de regresión rota.
+
+## Iteración 2026-09-24 — Tarea Taiga "RF-47: Sección 8 (accesos directos), densidad real, fallo parcial por sección"
+
+Tarea recibida con tres gaps copiados de `estado_M02.md`. Contra `dev`:
+
+- **Fallo parcial por sección: casi resuelto.** `4f63a9dc fix(rf47): una seccion que no carga
+  ya no tumba la ficha integral` ya cargaba en savepoint las 4 subconsultas de eventos y la de
+  indicadores. Faltaba la vista base `vw_rf47_ficha_integral_activo` (secciones 1-4 y 7): si
+  fallaba, tumbaba toda la ficha con 500. Ahora también carga en savepoint como la sección
+  `Datos generales` y, si falla, la ficha usa el fallback con los datos del activo.
+- **Densidad: pendiente, corregido.** La ficha ponía `densidad=None` fijo. No hacía falta
+  calcularla: RF-36/RF-45/RF-48 ya la mantienen en
+  `modulo2.detalles_activos_biologicos_poblacionales.densidad` y el repositorio la carga en
+  `activo.detalle_poblacional`. Confirmado en `sgpmp_dev`: 5 de 6 lotes tienen densidad
+  guardada (el lote 6 responde `9.74`).
+- **Sección 8 (accesos directos): pendiente, implementada.** Nuevo campo
+  `accesos_directos` en `FichaIntegralResponse`, calculado en el router (el filtrado por
+  permisos es RBAC, que según `CLAUDE.md` vive en el router). Cada acceso exige el mismo
+  `(recurso 29, acción)` que su endpoint; un test compara la tabla de accesos contra la
+  dependencia RBAC real de cada ruta, para que no puedan desincronizarse.
+
+Sin DDL ni DML: no hay columnas, vistas ni permisos nuevos.
+

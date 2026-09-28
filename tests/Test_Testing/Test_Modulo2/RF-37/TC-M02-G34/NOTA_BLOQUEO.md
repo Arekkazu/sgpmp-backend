@@ -135,6 +135,10 @@ camino usado para preparar esta precondición.
 
 ## Qué falta para que los 4 sub-casos pasen (1 y 2 ya resueltos)
 
+> **Actualización 2026-09-26:** todos los puntos de esta lista están resueltos en TEST (`15c4611e` y `05b4cdec`,
+> llegaron con el merge de `dev`); los 4 sub-casos pasan (15/15). Ver `README.md`. Se conserva la lista como
+> registro histórico.
+
 1. ~~Aplicar el fix de una línea de INC-M02-37-01~~ — **RESUELTO**.
 2. ~~Corregir `trg_fn_baja_cantidad_valida` en la base de datos~~ — **RESUELTO**.
 3. Extender `raise_from_db_error` para traducir los SQLSTATE `P02xx` propios de `modulo2` (`P0227`, `P0228`, etc.)

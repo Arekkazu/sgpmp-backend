@@ -1,3 +1,21 @@
+## [1.0.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.55...v1.0.0-rc.56) (2026-09-26)
+
+### Features
+
+* **m02:** agregar accesos directos y densidad real a la ficha integral (RF-47) ([9528c8c](https://github.com/Arekkazu/sgpmp-backend/commit/9528c8c33ac78fc80bbfe6926fe098c3e6c28c0e))
+
+## [1.0.0-rc.55](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.54...v1.0.0-rc.55) (2026-09-26)
+
+### Bug Fixes
+
+* **m02:** agrupar rate limit de datos-consolidados por modulo consumidor (RF-50) ([d6324fc](https://github.com/Arekkazu/sgpmp-backend/commit/d6324fc430f799cafbd7b5ca79f3c794a0796886))
+
+## [1.0.0-rc.54](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.53...v1.0.0-rc.54) (2026-09-24)
+
+### Bug Fixes
+
+* **m09:** otorgar GRANT solo a roles existentes en migración b9edb971f005 (INC-M09-103-G28) ([9b841ce](https://github.com/Arekkazu/sgpmp-backend/commit/9b841ce2ce09bac21a07f9198d1eb8e53f037e32))
+
 ## [1.0.0-rc.53](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.52...v1.0.0-rc.53) (2026-09-24)
 
 ### Bug Fixes

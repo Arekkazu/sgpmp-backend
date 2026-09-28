@@ -17,7 +17,13 @@ anterior: `tests/Test_Testing/Test_Modulo2/RF-35/TC-M02-G23/NOTA_BLOQUEO.md`.
 
 Reportado como incidente: **INC-M02-37-01** (Crítico, Desarrollo).
 
-## 2. Gap adicional, específico de TC-M02-042 — SIGUE VIGENTE, no depende del bug anterior
+## 2. Gap adicional, específico de TC-M02-042 — [RESUELTO 2026-09-26, con un defecto residual]
+
+> **Actualización 2026-09-26:** `fase_destino_id`/`confirmacion_no_estandar` ya están implementados (`15c4611e`,
+> llegó con el merge de `dev`). El salto confirmado se acepta y respeta el destino (`paso_actual=3`). Queda un
+> defecto residual, documentado en `README.md`: `es_transicion_no_estandar` no se persiste en
+> `modulo2.gestiones_fases`, así que el historial (`GET .../fases`) lo muestra siempre en `false`. Se conserva el
+> detalle original abajo como registro histórico.
 
 `CambiarFaseDTO` (`src/biological_assets/infrastructure/dto/cambiar_fase_dto.py`) declara únicamente
 `id_ciclo_productiva`, `motivo_cambio` y `fecha_inicio`. **No existe** `confirmacion_no_estandar` ni

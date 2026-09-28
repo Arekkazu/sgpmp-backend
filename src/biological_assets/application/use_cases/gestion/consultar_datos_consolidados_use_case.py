@@ -22,6 +22,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, InfrastructureEr
 # cualquier otro rol (humano, viendo su propio módulo) conserva el valor
 # histórico 'modulo2'.
 _PATRON_ROL_MODULO = re.compile(r'^integraci[oó]n\s+m0*(\d+)$', re.IGNORECASE)
+MODULO_PROPIO = 'modulo2'
 
 # INC-M02-93-G93 (RF-50 FA-03): la validación de "métricas de peso
 # insuficientes" solo aplica a M06 -- RF-50 mismo distingue "políticas de
@@ -131,18 +132,24 @@ class ConsultarDatosConsolidadosUseCase:
         return resultado
 
     def _resolver_modulo_consumidor(self, id_rol: int) -> str:
-        """Deriva qué módulo consumió el dato, para RF-50/RF-52 (INC-M02-92-G93).
+        return resolver_modulo_consumidor(self.rol_repo, id_rol)
 
-        Antes de esto el campo quedaba siempre con el default `'modulo2'` de
-        `EventoAuditoria` — inútil para identificar el módulo externo real que
-        consultó (ver hallazgo de `estado_M02.md`, RF-50).
-        """
-        if self.rol_repo is None:
-            return 'modulo2'
-        rol = self.rol_repo.obtener_por_id(id_rol)
-        if rol is None:
-            return 'modulo2'
-        match = _PATRON_ROL_MODULO.match(rol.nombre_rol.strip())
-        if not match:
-            return 'modulo2'
-        return f'modulo{int(match.group(1))}'
+
+def resolver_modulo_consumidor(rol_repo: RolRepository | None, id_rol: int) -> str:
+    """Deriva qué módulo consumió el dato, para RF-50/RF-52 (INC-M02-92-G93).
+
+    Antes de esto el campo quedaba siempre con el default `'modulo2'` de
+    `EventoAuditoria` — inútil para identificar el módulo externo real que
+    consultó (ver hallazgo de `estado_M02.md`, RF-50). Es función de módulo
+    (no solo método) porque el limitador de tasa de RF-50 necesita la misma
+    identidad para agrupar su contador por módulo consumidor.
+    """
+    if rol_repo is None:
+        return MODULO_PROPIO
+    rol = rol_repo.obtener_por_id(id_rol)
+    if rol is None:
+        return MODULO_PROPIO
+    match = _PATRON_ROL_MODULO.match(rol.nombre_rol.strip())
+    if not match:
+        return MODULO_PROPIO
+    return f'modulo{int(match.group(1))}'

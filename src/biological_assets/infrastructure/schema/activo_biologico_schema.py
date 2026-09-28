@@ -273,6 +273,16 @@ class HistorialActivoResponse(BaseModel):
     mensaje: Optional[str] = None
 
 
+class AccesoDirectoResponse(BaseModel):
+    """RF-47 Sección 8: acción disponible desde la ficha para el rol del usuario."""
+    codigo: str
+    nombre: str
+    metodo: str
+    ruta: str
+    rf_origen: str
+    tipos_evento: Optional[list[str]] = None
+
+
 class FichaIntegralResponse(BaseModel):
     id_activo_biologico: int
     identificador: Optional[str]
@@ -298,6 +308,7 @@ class FichaIntegralResponse(BaseModel):
     eventos_reproductivos: list[dict] = []
     indicadores: list[dict] = []
     advertencias: list[str] = []
+    accesos_directos: list[AccesoDirectoResponse] = []
 
 
 class FichaLoteResponse(BaseModel):

@@ -522,9 +522,16 @@ nombre interno del DTO, el input recibido, tipos de error ni enlaces de Pydantic
 
 #### E-06 — Límite de tasa excedido (INC-M02-96-G94)
 
-RF-50 exige 100 solicitudes/minuto por consumidor. El límite es por usuario autenticado
-(ventana deslizante de 60s); el aislamiento por-módulo declarado en el RF queda pendiente
-de INC-M02-90-G92 (no existe todavía una identidad de módulo autenticable, ver ese issue).
+RF-50 exige 100 solicitudes/minuto por módulo consumidor (ventana deslizante de 60s).
+El contador se agrupa según quién llama:
+
+- Identidad técnica de otro módulo (rol `Integración M0<n>`, p.ej. `Integración M04`,
+  `Integración M06`): **un contador por módulo**. Todos los usuarios técnicos de M04
+  comparten los mismos 100/min.
+- Usuario humano (cualquier otro rol, `modulo_consumidor = 'modulo2'`): un contador por
+  usuario, para que los usuarios no se bloqueen entre sí.
+
+El consumo de un módulo no afecta el límite de otro módulo ni el de los humanos.
 
 ```bash
 for i in $(seq 1 101); do
