@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -19,6 +20,21 @@ from src.shared.configuracion import validar_configuracion  # noqa: E402
 validar_configuracion()
 
 logger = logging.getLogger(__name__)
+
+
+def _declarar_identidad_sistema(db) -> None:
+    """Identidad interina de sesión para tareas de fondo bajo RLS.
+
+    F2 del control de acceso por BD: las políticas ya activas de `modulo1`
+    (migraciones `8d80fb56a30b` y el fix que las acompaña) exigen
+    `app_ctx.current_role()`. Estas tareas corren con su propia `SessionLocal()`
+    sin usuario autenticado (Decisión D1 del plan, sin resolver todavía por
+    equipo + DBA: usuario de servicio dedicado vs. rol con `BYPASSRLS`).
+    Mientras tanto se declaran 'Administrador' -- la misma cadena que ya
+    reconocen las políticas -- para que no dejen de correr en silencio. Llamar
+    justo después de abrir la sesión, antes de cualquier query a modulo1/modulo9.
+    """
+    db.execute(text("SELECT set_config('app.current_role', 'Administrador', true)"))
 
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
@@ -224,6 +240,7 @@ async def _archivar_auditoria_diariamente() -> None:
         """
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             return NotificarFalloArchivadoUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -248,6 +265,7 @@ async def _archivar_auditoria_diariamente() -> None:
         def ejecutar_archivado():
             db = SessionLocal()
             try:
+                _declarar_identidad_sistema(db)
                 return ArchivarAuditoriaUseCase(
                     eventos_repo=SqlAlchemyEventoRepository(db),
                     db=db,
@@ -390,6 +408,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     while True:
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             intervalo = (
                 SqlAlchemyExportacionAuditoriaRepository(db)
                 .obtener_configuracion()
@@ -407,6 +426,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             cola_repo = SqlAlchemyExportacionAuditoriaRepository(db)
             use_case = ProcesarColaExportacionesUseCase(
                 db=db,
@@ -487,6 +507,7 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
     def avisar(inconsistencias) -> int:
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             return NotificarInconsistenciaAuditoriaUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
