@@ -175,6 +175,7 @@ _ROL_PRODUCTOR = 2
 # de la secuencia y difieren entre bases; con números fijos, datos clínicos y
 # el scope 'eventos' quedaron ambos en 59.
 _RECURSO_DATOS_CLINICOS = 'datos_clinicos_activo'
+_RECURSO_DATOS_FINANCIEROS = 'datos_financieros_activo'
 
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
 _RECURSO_DATOS_EVENTOS = 'datos_analiticos_eventos'
@@ -299,7 +300,17 @@ def _verificar_scope_tipo_dato(
         raise AuthorizationError(code='SCOPE_TIPO_DATO_NO_AUTORIZADO', message=mensaje)
 
 
-def _activo_to_response(activo) -> ActivoBiologicoResponse:
+def _activo_to_response(
+    activo,
+    *,
+    incluir_datos_financieros: bool = False,
+) -> ActivoBiologicoResponse:
+    """Construye la respuesta pública aplicando la visibilidad financiera.
+
+    El valor seguro por defecto es ocultar costo y soporte. De esta forma, un
+    endpoint nuevo no puede exponerlos por omitir explícitamente la evaluación
+    del permiso de lectura sobre ``datos_financieros_activo``.
+    """
     di = None
     if activo.detalle_individual:
         d = activo.detalle_individual
@@ -333,8 +344,8 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         fecha_inicio_ciclo=activo.fecha_inicio_ciclo,
         detalles_procedencia=activo.detalles_procedencia,
         origen_financiero=activo.origen_financiero,
-        costo_adquisicion=activo.costo_adquisicion,
-        soporte_documental=activo.soporte_documental,
+        costo_adquisicion=(activo.costo_adquisicion if incluir_datos_financieros else None),
+        soporte_documental=(activo.soporte_documental if incluir_datos_financieros else None),
         descripcion=activo.descripcion,
         id_infraestructura=activo.id_infraestructura,
         atributos_dinamicos=activo.atributos_dinamicos,
@@ -402,7 +413,12 @@ def registrar_activo(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(dto, usuario_actual)
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.get(
@@ -451,13 +467,19 @@ def listar_activos(
         dto,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
+    puede_ver_datos_financieros = tiene_permiso_sobre(
+        db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+    )
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
-        registros=[_activo_to_response(a) for a in registros],
+        registros=[
+            _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
+            for a in registros
+        ],
     )
 
 
@@ -635,7 +657,12 @@ def consultar_activo(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.patch(
@@ -671,7 +698,12 @@ def actualizar_activo_individual(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.post(

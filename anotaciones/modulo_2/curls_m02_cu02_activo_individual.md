@@ -41,6 +41,20 @@ Respuesta esperada `200`:
 }
 ```
 
+Los valores de `costo_adquisicion` y `soporte_documental` solo aparecen si el
+rol tiene lectura sobre el recurso RBAC `datos_financieros_activo`. Por
+ejemplo, el mismo activo consultado por un Ingeniero de Campo conserva `200` y
+los datos operativos, pero enmascara ambos campos:
+
+```json
+{
+  "id_activo_biologico": 51,
+  "identificador": "TRU-002",
+  "costo_adquisicion": null,
+  "soporte_documental": null
+}
+```
+
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo biológico no existe, **o pertenece a
   una finca fuera del alcance del usuario** (RF-25, INC-M02-39-G27: se
