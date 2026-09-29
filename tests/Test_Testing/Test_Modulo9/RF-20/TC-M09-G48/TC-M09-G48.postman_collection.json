@@ -101,7 +101,7 @@
               "    pm.expect(json.nombre_infraestructura).to.eql('Galpon Principal ' + pm.collectionVariables.get('sufijo_unico'));",
               "});",
               "pm.test('tipo_area almacenado tal cual', function () {",
-              "    pm.expect(json.tipo_area).to.eql('galpon');",
+              "    pm.expect(json.tipo_area).to.eql('Galpón');",
               "});",
               "pm.test('superficie positiva almacenada correctamente', function () {",
               "    pm.expect(parseFloat(json.superficie)).to.eql(2500);",
@@ -126,7 +126,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Principal {{sufijo_unico}}\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\"\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Principal {{sufijo_unico}}\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}},\n  \"descripcion_infraestructura\": \"Galpon principal de engorde\"\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }

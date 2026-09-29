@@ -1,6 +1,27 @@
-# TC-M09-G48 (TC-M09-96) — BLOQUEADO por migración faltante en el entorno de test
+# TC-M09-G48 (TC-M09-96) — Registro de un área productiva válida
 
 **RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+
+## Estado vigente — reevaluación 2026-09-28
+
+**Resultado: PASA** — 4 requests, 12 assertions, 0 failed.
+
+El bloqueo ya no existe: la migración `2dbb6d44046f` está aplicada en TEST. Tras aplicarla, la
+colección respondía 400 `TIPO_AREA_NO_RECONOCIDO` porque enviaba `tipo_area: "galpon"`; se
+ajustó al nombre del catálogo `modulo9.tipos_area` (`"Galpón"`), igual que en TC-M09-G49.
+
+```
+Paso 2 - Registrar finca activa                    -> 201 (id_finca=121)
+TC-M09-96 - Registrar área válida                  -> 201 (id_infraestructura=103, tipo_area="Galpón", superficie=2500.00)
+Paso 4 - Relectura independiente                   -> 200, mismos datos y asociación a la finca
+```
+
+Evidencia: `Resultados/reporte-TC-M09-G48.html` (Newman htmlextra, 2026-09-28).
+
+---
+
+## Resultado original (2026-09-05) — histórico
+
 **Estado: FALLA / BLOQUEADO** (no es un bug de código; es un gap de despliegue en el
 servidor de test compartido).
 
