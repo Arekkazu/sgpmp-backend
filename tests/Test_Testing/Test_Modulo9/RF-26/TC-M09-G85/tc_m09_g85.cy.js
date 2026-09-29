@@ -2,8 +2,8 @@ describe(
   'TC-M09-G85 - Registro exitoso de identidad visual con datos válidos',
   () => {
 
-    const email = 'admin@pecuaria.co';
-    const password = 'Test1234!';
+    const email = Cypress.env('correo') || 'admin@pecuaria.co';
+    const password = Cypress.env('contrasena') || 'Test1234!';
 
     it('TC-M09-160 - Guardar identidad visual con datos válidos', () => {
 
@@ -50,6 +50,26 @@ describe(
       cy.screenshot('G85-configuracion');
 
       // ============================================================
+      // 2b. ENTRAR A LA PESTAÑA "PERSONALIZACIÓN"
+      // (Identidad Visual vive ahi dentro, no en la pestaña por
+      // defecto "Catalogo" -- sin este clic el body nunca contiene
+      // el texto "Identidad Visual" y el caso queda BLOQUEADO por un
+      // problema de navegacion del propio test, no del producto).
+      // ============================================================
+
+      cy.contains(
+        'button, [role="tab"], a',
+        /^Personalización$/i,
+        { timeout: 10000 }
+      )
+        .should('be.visible')
+        .click({ force: true });
+
+      cy.wait(500);
+
+      cy.screenshot('G85-personalizacion');
+
+      // ============================================================
       // 3. BUSCAR IDENTIDAD VISUAL
       // ============================================================
 
@@ -87,17 +107,11 @@ ${texto}
       });
 
       // ============================================================
-      // 4. ENTRAR A IDENTIDAD VISUAL
+      // 4. "IDENTIDAD VISUAL" YA ESTA VISIBLE
+      // (es el titulo de la seccion dentro de la pestaña
+      // Personalizacion, no un link/boton propio -- no hay nada que
+      // clickear aqui, solo confirmar que la seccion cargo).
       // ============================================================
-
-      cy.contains(
-        'a, button, [role="button"]',
-        /Identidad Visual/i
-      )
-        .should('be.visible')
-        .click({ force: true });
-
-      cy.wait(500);
 
       cy.screenshot('G85-identidad-visual');
 

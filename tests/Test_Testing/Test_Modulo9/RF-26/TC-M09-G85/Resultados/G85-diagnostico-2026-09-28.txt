@@ -1,0 +1,16 @@
+TC-M09-G85 - Reejecucion 2026-09-28 contra https://api.inmero.co (login admin@pecuaria.co)
+
+Se corrigio un bug de navegacion del propio spec (no entraba a la pestaña
+"Personalizacion" antes de buscar "Identidad Visual"). Tras el fix, la seccion
+"Identidad Visual" SI existe y carga (esta bajo Configuracion > Personalizacion).
+
+Causa real del bloqueo: la pantalla muestra literalmente "No hay fincas activas
+disponibles." para la cuenta admin@pecuaria.co, y por eso no se renderiza ningun
+input de color -- no hay nada que probar sin una finca activa asociada a esta
+cuenta.
+
+Ver captura G85-personalizacion.png.
+
+Accion sugerida: confirmar con Desarrollo/DBA si admin@pecuaria.co deberia tener
+una finca activa en este ambiente, o dar el correo de una cuenta que si la
+tenga (ej. la cuenta usada en TC-M09-G86, que si mostro la finca "Costa Azul").
