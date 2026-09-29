@@ -1,0 +1,503 @@
+{
+  "info": {
+    "name": "RF-20 - TC-M09-G54 Modificaciones simultaneas sobre una misma area productiva",
+    "description": "Automatiza TC-M09-106 (FA-14, concurrencia optimista): dos administradores abren la misma area con la misma fecha_actualizacion; el primero en guardar obtiene 200 y el segundo, con la marca desactualizada, 412 CONFLICTO_CONCURRENCIA sin sobrescribir. Cubre las dos ramas del chequeo: marca null (area nunca editada) y marca con fecha ya superada. Reescrita 2026-09-28 (antes era un pytest que solo documentaba el bloqueo por la falta de modulo9.tipos_area). Cada corrida crea su propia finca y area.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_infraestructura",
+      "value": ""
+    },
+    {
+      "key": "fecha_leida_1",
+      "value": ""
+    },
+    {
+      "key": "fecha_leida_2",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Paso 1 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('token_admin', json.token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1b - Registrar una finca propia para la prueba",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca Concurrencia Area {{sufijo}}\",\n  \"ubicacion\": {\n    \"departamento\": \"Antioquia\",\n    \"municipio\": \"Medellin\",\n    \"vereda\": \"La Estrella\",\n    \"latitud\": \"6.25\",\n    \"longitud\": \"-75.56\"\n  },\n  \"tamano_h\": \"10.0\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 1c - Registrar el area a editar",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_infraestructura', json.id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Concurrencia {{sufijo}}\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"2500.00\",\n  \"finca_id\": {{id_finca}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 2 - Admin A y Admin B abren el area (misma marca: nunca editada)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Area recien creada: fecha_actualizacion null', function () { pm.expect(json.fecha_actualizacion).to.eql(null); });",
+              "const fragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
+              "pm.collectionVariables.set('fecha_leida_1', fragmento);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-106a - Admin A guarda primero (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Edicion de A aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('fecha_actualizacion avanza tras la edicion de A', function () { pm.expect(json.fecha_actualizacion).to.not.eql(null); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editada por Admin A\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": \"150.00\",\n  \"fecha_actualizacion\": {{fecha_leida_1}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-106b - Admin B guarda con la marca desactualizada (null) -> 412",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Edicion de B rechazada por concurrencia (412)', function () { pm.response.to.have.status(412); });",
+              "pm.test('error_code CONFLICTO_CONCURRENCIA', function () { pm.expect(pm.response.json().error_code).to.eql('CONFLICTO_CONCURRENCIA'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editada por Admin B\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": \"200.00\",\n  \"fecha_actualizacion\": {{fecha_leida_1}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 5 - Ambos refrescan la vista (marca vigente tras A)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Persisten los datos de A, no los de B', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Editada por Admin A');",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(150);",
+              "});",
+              "const fragmento = json.fecha_actualizacion === null ? 'null' : JSON.stringify(json.fecha_actualizacion);",
+              "pm.collectionVariables.set('fecha_leida_2', fragmento);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-106c - Admin A vuelve a guardar con la marca vigente (200)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Segunda edicion de A aceptada (200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editada por Admin A v2\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": \"175.00\",\n  \"fecha_actualizacion\": {{fecha_leida_2}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-106d - Admin B guarda con la marca ya superada (fecha) -> 412",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Edicion de B rechazada por concurrencia (412)', function () { pm.response.to.have.status(412); });",
+              "pm.test('error_code CONFLICTO_CONCURRENCIA', function () { pm.expect(pm.response.json().error_code).to.eql('CONFLICTO_CONCURRENCIA'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editada por Admin B v2\",\n  \"tipo_area\": \"Estanque\",\n  \"superficie\": \"225.00\",\n  \"fecha_actualizacion\": {{fecha_leida_2}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso 8 - Lectura independiente final",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle disponible (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Quedan los datos de la ultima edicion aceptada (A v2); B nunca sobrescribio', function () {",
+              "    pm.expect(json.nombre_infraestructura).to.eql('Editada por Admin A v2');",
+              "    pm.expect(parseFloat(json.superficie)).to.eql(175);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_infraestructura}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_infraestructura}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
