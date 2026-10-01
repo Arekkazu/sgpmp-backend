@@ -27,7 +27,7 @@ def _declarar_identidad_sistema(db) -> None:
 
     F2 del control de acceso por BD: las políticas ya activas de `modulo1`
     (migraciones `8d80fb56a30b` y el fix que las acompaña) exigen
-    `app_ctx.current_role()`. Estas tareas corren con su propia `SessionLocal()`
+    `modulo1.fn_rol_actual()`. Estas tareas corren con su propia `SessionLocal()`
     sin usuario autenticado (Decisión D1 del plan, sin resolver todavía por
     equipo + DBA: usuario de servicio dedicado vs. rol con `BYPASSRLS`).
     Mientras tanto se declaran 'Administrador' -- la misma cadena que ya

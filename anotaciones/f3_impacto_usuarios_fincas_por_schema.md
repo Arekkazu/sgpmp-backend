@@ -10,7 +10,7 @@ resuelve el alcance por finca contra esa tabla, no contra el viejo
 
 **Consecuencia central de este documento:** las políticas RLS de F1 para
 `modulo9.fincas` y `modulo9.infraestructuras` se escribieron usando el modelo
-**viejo** (`id_usuario = current_user_id()`), y **no** se actualizaron para
+**viejo** (`id_usuario = fn_id_usuario_actual()`), y **no** se actualizaron para
 usar `usuarios_fincas`. Hoy es inofensivo porque nada llama `set_config`
 todavía (ver `control_acceso_f2_contexto_sesion.md`). En cuanto la identidad
 viaje de verdad, la fila de RLS quedaría **más restrictiva** que el
@@ -44,7 +44,7 @@ $$;
 
 `SECURITY DEFINER` para no tener que otorgarle a `sgpmp_app` un `SELECT`
 directo sobre `usuarios_fincas` que podría usar para otro fin. Mismo patrón
-ya usado por `app_ctx.current_user_id()`/`current_role()`, salvo que estas sí
+ya usado por `modulo1.fn_id_usuario_actual()`/`fn_rol_actual()`, salvo que estas sí
 necesitan `SECURITY DEFINER` porque leen una tabla, no solo un GUC — **ojo**:
 si se crea así, hay que darle a `sgpmp_app` `GRANT USAGE ON SCHEMA modulo9` (ya
 lo tiene) y no hace falta `GRANT` sobre `usuarios_fincas` en sí.
@@ -59,8 +59,8 @@ solo pendiente de escribir.
 
 | Tabla | Política actual | Problema | Corrección propuesta |
 |---|---|---|---|
-| `fincas` | `pol_fincas_select`: `id_usuario = current_user_id() OR admin` | Ignora `usuarios_fincas`; un usuario con acceso M:N (no dueño) no ve la fila de la finca | `id_finca IN (SELECT modulo9.fn_fincas_del_usuario(current_user_id())) OR id_usuario = current_user_id() OR admin` (se conserva la rama de dueño porque `fincas.id_usuario` se sigue mostrando como "propietario", ver `anotaciones/modulo_1/rf46...` / INC-M02-61-G52) |
-| `infraestructuras` | `pol_infraestructuras_select`: `id_finca IN (SELECT id_finca FROM fincas WHERE id_usuario = current_user_id()) OR admin` | Misma raíz: solo mira `fincas.id_usuario`, nunca `usuarios_fincas` | `id_finca IN (SELECT modulo9.fn_fincas_del_usuario(current_user_id())) OR admin` |
+| `fincas` | `pol_fincas_select`: `id_usuario = fn_id_usuario_actual() OR admin` | Ignora `usuarios_fincas`; un usuario con acceso M:N (no dueño) no ve la fila de la finca | `id_finca IN (SELECT modulo9.fn_fincas_del_usuario(fn_id_usuario_actual())) OR id_usuario = fn_id_usuario_actual() OR admin` (se conserva la rama de dueño porque `fincas.id_usuario` se sigue mostrando como "propietario", ver `anotaciones/modulo_1/rf46...` / INC-M02-61-G52) |
+| `infraestructuras` | `pol_infraestructuras_select`: `id_finca IN (SELECT id_finca FROM fincas WHERE id_usuario = fn_id_usuario_actual()) OR admin` | Misma raíz: solo mira `fincas.id_usuario`, nunca `usuarios_fincas` | `id_finca IN (SELECT modulo9.fn_fincas_del_usuario(fn_id_usuario_actual())) OR admin` |
 
 Otros tres hallazgos de `modulo9`, de la misma familia (RLS activo desde F1,
 sin política — deny-all), verificados por consulta directa a
@@ -87,7 +87,7 @@ conviene resolverlas en el mismo lote que el fix de fincas/infraestructuras.
 No tiene `id_finca` ni ninguna tabla que llegue a `fincas` por FK (verificado
 contra `information_schema` — cero resultados para `modulo1` en la búsqueda
 de cadenas hacia `modulo9.fincas`). Su control es RBAC + auto-acceso
-(`id_usuario = current_user_id()`); no necesita `fn_fincas_del_usuario()`.
+(`id_usuario = fn_id_usuario_actual()`); no necesita `fn_fincas_del_usuario()`.
 
 ---
 

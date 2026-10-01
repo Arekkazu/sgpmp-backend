@@ -44,7 +44,7 @@ sesión (GUC) para RLS") queda actualizada para que este desface no se repita.
 - **Punto único de contexto**: `get_current_user`
   (`src/identity_access/infrastructure/dependencies.py`) setea, una vez por
   request, después del último `commit()` de la propia dependencia:
-  - `app.current_user_id` (bigint) — identidad, leída por `app_ctx.*`.
+  - `app.current_user_id` (bigint) — identidad, leída por `modulo1.fn_id_usuario_actual()`.
   - `app.current_role` (texto, nombre del rol) — requirió añadir
     `Roles.nombre_rol` al `JOIN` que ya arma la fila de `get_current_user`
     (antes solo traía `id_rol`).
@@ -98,6 +98,28 @@ que las ya existentes sobre las mismas tablas).
 `dev` — corrige migraciones de su autoría, y toda migración con DDL lo
 requiere (regla no negociable del repo).
 
+### 3.1 Reubicación de las funciones de contexto (migración `731fb3997631`)
+
+Directriz de SamuelPR21 en el PR #469: no mantener un schema dedicado
+(`app_ctx`) para las funciones de contexto; pertenecen a identidad y acceso.
+
+| Antes | Después |
+|---|---|
+| `app_ctx.current_user_id()` | `modulo1.fn_id_usuario_actual()` |
+| `app_ctx.current_role()` | `modulo1.fn_rol_actual()` |
+
+- `ALTER FUNCTION ... SET SCHEMA` + `RENAME`, no `CREATE`/`DROP`: las
+  políticas guardan la función por OID, así que ninguna `pol_*` se recrea.
+- El prefijo `fn_` sigue la convención; además `current_role` suelto es la
+  palabra reservada de SQL (devuelve el rol de Postgres, `sgpmp_app`).
+- Se recrean los dos triggers PL/pgSQL que nombran las funciones en texto
+  (`fn_prevenir_autocambio_rol`, `fn_proteger_activo_especie`), con el
+  mismo cuerpo.
+- `DROP SCHEMA app_ctx` sin `CASCADE`. El `GRANT USAGE` de `b53fe19f276e`
+  deja de hacer falta: `sgpmp_app` ya tiene `USAGE` sobre `modulo1`.
+- Orden acordado con el DBA: `d7c4e9a1b2f6 → b53fe19f276e → 731fb3997631 →`
+  su F3 (`315eaa6c5dc1`) rebasada encima.
+
 ## 4. Qué se dejó documentado y no se tocó en esta rama
 
 - **`correo_recuperacion_background_adapter.py` /
@@ -138,6 +160,19 @@ requiere (regla no negociable del repo).
   Se documenta la limitación en vez de simular una corrida que no se hizo.
 - `python -m py_compile` sobre todos los archivos `.py` tocados: sin errores
   de sintaxis.
+- Migración `731fb3997631` en un Postgres 17 desechable construido desde cero
+  con `alembic upgrade` (no toca ninguna base compartida). En cada estado
+  (`b53fe19f276e`, tras upgrade, tras downgrade, tras re-upgrade) se corrió
+  como `sgpmp_app` con la identidad declarada vía `set_config`: autocambio de
+  rol bloqueado (RF-05), Veterinario no puede desactivar especie y
+  Administrador sí (RF-15), y `pol_usuarios_select` limita al Veterinario a su
+  fila. Los OID de las funciones se conservan tras el upgrade y el downgrade.
+  En una base nueva, `sgpmp_app` hay que crearlo antes de `alembic upgrade`:
+  ninguna migración crea ese rol.
+- El downgrade completo hasta antes de F1 falla en `8d80fb56a30b`, también
+  sin las migraciones de esta rama: el downgrade de `5243bbbb28de` no borra
+  `pol_config_globales_insert`/`_update`, que dependen de `current_role()`.
+  Las migraciones de esta rama no lo introducen ni lo corrigen.
 
 ## 6. Pendiente / a confirmar
 
@@ -146,7 +181,8 @@ requiere (regla no negociable del repo).
   esta rama es interina.
 - **Cambio de `docker-compose.yml`** para bootstrapear `sgpmp_app`/`sgpmp_owner`
   en el Postgres de Dokploy — revisar con chebaztian.
-- **Autorización de SamuelPR21** para la migración `b53fe19f276e` antes de
-  mergear a `dev`.
+- **Autorización de SamuelPR21**: `b53fe19f276e` aprobada en comentario del
+  PR #469 (2026-10-01); `731fb3997631` pendiente de su revisión. Al mergear a
+  `dev`, avisarle para que rebase su F3 (`315eaa6c5dc1`).
 - Ver `anotaciones/f3_impacto_usuarios_fincas_por_schema.md` para el impacto
   de F3 (ya implementada) sobre las políticas RLS de F1/F4/F5.

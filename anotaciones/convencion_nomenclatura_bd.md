@@ -35,7 +35,7 @@ Extensión acordada al introducir el control de acceso por BD
 (`anotaciones/plan_control_acceso_bd_rls.md`): las políticas RLS siguen el
 prefijo `pol_` + tabla en singular + criterio, español, snake_case (ej.
 `pol_activo_biologico_por_finca`, `pol_especies_update`). Nombre siempre
-explícito, nunca autogenerado. Las funciones de apoyo (`app_ctx.current_role()`,
+explícito, nunca autogenerado. Las funciones de apoyo (`modulo1.fn_rol_actual()`,
 `modulo1.fn_alcance_global()`...) siguen usando el prefijo `fn_` ya establecido
 arriba.
 
@@ -47,17 +47,19 @@ usaba `app.usuario_id`/`app.id_rol`, pero el F1 realmente desplegado quedó con
 los nombres de abajo):
 
 - `app.current_user_id` (bigint) y `app.current_role` (texto, **nombre del
-  rol**, no `id_rol`) — leídos por `app_ctx.current_user_id()` /
-  `app_ctx.current_role()` (`STABLE`, schema `app_ctx`). Es lo que leen todas
+  rol**, no `id_rol`) — leídos por `modulo1.fn_id_usuario_actual()` /
+  `modulo1.fn_rol_actual()` (`STABLE`; hasta la migración `731fb3997631`
+  fueron `app_ctx.current_user_id()` / `app_ctx.current_role()`). Es lo que leen todas
   las políticas `pol_*` de `modulo1`/`modulo9`. Se setean una única vez por
   request en `get_current_user`
   (`src/identity_access/infrastructure/dependencies.py`).
-- `app.usuario_id` (entero) — GUC legado, sin `app_ctx`, leído directamente
+- `app.usuario_id` (entero) — GUC legado, sin función de contexto, leído directamente
   por el trigger `modulo2.trg_auditar_activo_biologico` (`VOLATILE`, sin
   `SECURITY DEFINER`). Se mantiene por compatibilidad; no confundir con
   `app.current_user_id` de arriba pese al nombre parecido.
 
-Cualquier función o trigger PL/pgSQL que llame `app_ctx.*` necesita que
-`sgpmp_app` tenga `GRANT USAGE ON SCHEMA app_ctx` — sin `SECURITY DEFINER`, la
-resolución del nombre calificado se hace con los privilegios del rol que
-ejecuta la sentencia, no del dueño de la función.
+Las funciones de contexto viven en `modulo1` (directriz del DBA, PR #469): no
+se crea un schema aparte para ellas. Una función o trigger PL/pgSQL sin
+`SECURITY DEFINER` resuelve los nombres calificados con los privilegios del rol
+que ejecuta la sentencia, así que si se llama una función de otro schema,
+`sgpmp_app` necesita `USAGE` sobre ese schema (sobre `modulo1` ya lo tiene).
