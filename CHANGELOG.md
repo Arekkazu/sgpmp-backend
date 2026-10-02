@@ -1,3 +1,10 @@
+## [1.0.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.59...v1.0.0-rc.60) (2026-10-02)
+
+### Bug Fixes
+
+* **alembic:** encadenar la migracion de datos financieros sobre 731fb3997631 (RF-34) ([44e5171](https://github.com/Arekkazu/sgpmp-backend/commit/44e5171dea1794b1a6680fed7447e3afe21c74a2)), closes [#469](https://github.com/Arekkazu/sgpmp-backend/issues/469) [#465](https://github.com/Arekkazu/sgpmp-backend/issues/465)
+* **rf34:** proteger datos financieros del activo ([a7556b3](https://github.com/Arekkazu/sgpmp-backend/commit/a7556b32e16af495d736170f21793a3f98784824))
+
 ## [1.0.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.58...v1.0.0-rc.59) (2026-10-02)
 
 ### Features
