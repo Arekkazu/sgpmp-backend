@@ -4,8 +4,6 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import func
-
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import src.biological_assets.infrastructure.models  # noqa: F401
@@ -125,7 +123,8 @@ class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
     def guardar(self, evento: EventoActivo) -> EventoActivo:
         ahora = evento.fecha or datetime.now(timezone.utc)
         try:
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': evento.id_usuario})
+            # F2: `app.usuario_id` ya lo setea get_current_user una vez por
+            # request (src/identity_access/infrastructure/dependencies.py).
             orm = EventoActivoModel(
                 id_activo_biologico=evento.id_activo_biologico,
                 fecha=ahora,

@@ -94,8 +94,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
         ahora = datetime.now(timezone.utc)
         try:
-            # El trigger trg_auditar_activo_biologico requiere esta variable de sesión
-            self.db.execute(text("SET LOCAL app.usuario_id = :uid"), {"uid": activo.id_usuario})
+            # El trigger trg_auditar_activo_biologico requiere app.usuario_id, ya
+            # seteado una vez por request por get_current_user (F2).
             orm = ActivoBiologicoModel(
                 id_especie=activo.id_especie,
                 tipo=activo.tipo,
@@ -331,8 +331,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             # detalles_activos_individuales -- tocarla hace que flush() emita
             # un UPDATE sobre el padre por primera vez en este método, lo que
             # dispara trg_auditar_activo_biologico (AFTER UPDATE), que exige
-            # esta variable de sesión (mismo patrón que guardar()).
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': activo.id_usuario})
+            # app.usuario_id — ya seteado una vez por request (F2, mismo
+            # patrón que guardar()).
             orm.fecha_actualizacion = activo.fecha_actualizacion
             self.db.flush()
             self.db.refresh(orm)
@@ -410,7 +410,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         return result
 
     def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str, usuario_id: int) -> None:
-        self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario_id})
+        # app.usuario_id ya lo setea get_current_user una vez por request (F2).
         try:
             self.db.execute(
                 text(
