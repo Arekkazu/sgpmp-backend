@@ -1,3 +1,14 @@
+## [1.0.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.58...v1.0.0-rc.59) (2026-10-02)
+
+### Features
+
+* **control-acceso:** F2 - contexto de sesion unico en get_current_user ([e727126](https://github.com/Arekkazu/sgpmp-backend/commit/e727126b2b0fa6d28fac0c3ba8ceeb5f6914fb1f))
+* **control-acceso:** identidad interina de sistema para tareas de fondo bajo RLS ([99a8bea](https://github.com/Arekkazu/sgpmp-backend/commit/99a8bea9dece9b5c85631e5ab16331f10b3d7dbc))
+
+### Bug Fixes
+
+* **control-acceso:** USAGE en app_ctx, Veterinario en especies y cola de auditoria ([5202d86](https://github.com/Arekkazu/sgpmp-backend/commit/5202d869fbc8a2431aecbb65006b7bb775599698))
+
 ## [1.0.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.57...v1.0.0-rc.58) (2026-09-28)
 
 ### Bug Fixes
