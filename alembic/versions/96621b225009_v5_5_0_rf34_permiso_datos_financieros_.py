@@ -1,7 +1,7 @@
 """v5.5.0_rf34_permiso_datos_financieros_activo
 
 Revision ID: 96621b225009
-Revises: d7c4e9a1b2f6
+Revises: 731fb3997631
 Create Date: 2026-09-28 11:07:33.098652
 
 TC-M02-031-G15 / issue #465: la lectura general del recurso 29 permitía que
@@ -21,7 +21,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '96621b225009'
-down_revision: Union[str, Sequence[str], None] = 'd7c4e9a1b2f6'
+down_revision: Union[str, Sequence[str], None] = '731fb3997631'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
