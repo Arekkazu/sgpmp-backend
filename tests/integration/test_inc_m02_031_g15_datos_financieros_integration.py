@@ -112,7 +112,7 @@ def _crear_activo(
         ),
         {
             'id': sid,
-            'nombre': _nombre_temporal('Finca Finanzas RF34'),
+            'nombre': _nombre_temporal('Finca Finanzas'),
             'id_usuario': id_usuario_dueno,
         },
     )
@@ -134,7 +134,7 @@ def _crear_activo(
             ) VALUES (:id, :nombre, :id, 100, true, 'Corral')
             """
         ),
-        {'id': sid, 'nombre': _nombre_temporal('Infra Finanzas RF34')},
+        {'id': sid, 'nombre': _nombre_temporal('Infra Finanzas')},
     )
     id_activo = _id_temporal()
     db_session.execute(
@@ -148,7 +148,7 @@ def _crear_activo(
                 soporte_documental, detalles_procedencia
             ) VALUES (
                 :id_activo, 2, :identificador, :id_infra, 'INDIVIDUAL',
-                current_date, 1, 'Integración TC-M02-031-G15', 'COMPRA',
+                current_date, 1, 'Integración TC-M02-031-G15', 'compra',
                 1500000, '{}', :id_usuario, now(),
                 'soporte_TC-M02-031.pdf', 'Compra documentada'
             )
