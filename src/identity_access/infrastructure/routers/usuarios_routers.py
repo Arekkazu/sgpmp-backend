@@ -16,7 +16,11 @@ from src.identity_access.application.use_cases.perfil.editar_perfil_use_case imp
 from src.identity_access.application.use_cases.registro.activar_cuenta_use_case import ActivarCuentaUseCase
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
-from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
+    ConsultarDetalleUsuarioUseCase,
+    enmascarar_identificacion,
+    puede_ver_identificacion_completa,
+)
 from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
@@ -346,7 +350,12 @@ def editar_perfil_admin(
         usuario_actual,
     )
 
-    return _a_usuario_response(usuario)
+    # SEG-M01-03: editar (U) no da derecho a ver el ID completo (E); mismo
+    # criterio que GET /{id_usuario}/detalle.
+    respuesta = _a_usuario_response(usuario)
+    if not puede_ver_identificacion_completa(SqlAlchemyPermisoRepository(db), usuario_actual):
+        respuesta.numero_identificacion = enmascarar_identificacion(respuesta.numero_identificacion)
+    return respuesta
 
 @router.get(
     "/{id_usuario}/detalle",
