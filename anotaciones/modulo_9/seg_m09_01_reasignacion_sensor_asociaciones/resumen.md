@@ -81,3 +81,16 @@ en la nueva área con el mismo sensor, ¿debería re-crearse la asociación
 automáticamente? No hay ningún RF que pida ese comportamiento y añadirlo
 sin pedido es inventar alcance de negocio; se deja documentado para que
 Análisis lo defina si lo considera necesario.
+
+## Actualización 2026-10-02 — respuesta informa las asociaciones superadas
+
+Análisis aprobó el PR y formalizó el comportamiento en RFC-007 (RF-22 v1.1, RF-49 v1.2): cerrar sí, recrear no. Su sugerencia no bloqueante se implementa aquí: la respuesta del `POST /configuracion/sensores/{id}/asociar` avisa qué asociaciones quedaron superadas, para no dejar el sensor sin monitoreo en silencio.
+
+- El puerto devuelve `list[AsociacionActivoSuperada]` (`id_asociacion_activo_sensor`, `id_activo_biologico`, `tipo`) en vez de solo ids.
+- `AsociarSensorAreaUseCase.execute` devuelve `(asociacion, superadas)`.
+- La respuesta del POST es `AsociarSensorAreaResponse`: `SensorAreaResponse` más `asociaciones_activo_superadas`. Es un campo nuevo, así que no rompe a los clientes actuales. El historial (`GET /asociaciones`) sigue con `SensorAreaResponse`.
+- El backend solo expone datos; el texto que vea el usuario lo pone el frontend (RF-29).
+
+La rama se actualizó también con `dev` (305 commits), y `d14798fe` registró `EventoIngresoModel` en el paquete de modelos de M02: RF-36 lo había olvidado y eso rompía los mappers fuera de la API.
+
+Pruebas, sobre Postgres 17 desechable construido con `alembic upgrade head`: la unitaria y la de integración comprueban la lista devuelta. Ambiental y poblacional la traen; directa y una primera asociación devuelven `[]`. Las suites completas no tienen fallos nuevos frente a `dev`.

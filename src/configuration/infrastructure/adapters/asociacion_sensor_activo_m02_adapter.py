@@ -19,6 +19,7 @@ from src.biological_assets.infrastructure.models.auditoria_asociacion_sensor_mod
     AuditoriaAsociacionSensorModel,
 )
 from src.configuration.domain.repositories.asociacion_sensor_activo_dependency_port import (
+    AsociacionActivoSuperada,
     AsociacionSensorActivoDependencyPort,
 )
 
@@ -33,7 +34,7 @@ class AsociacionSensorActivoM02Adapter(AsociacionSensorActivoDependencyPort):
         id_sensor: int,
         id_usuario: int,
         motivo: str,
-    ) -> list[int]:
+    ) -> list[AsociacionActivoSuperada]:
         activas = (
             self.db.query(AsociacionSensorActivoModel)
             .filter(
@@ -48,7 +49,7 @@ class AsociacionSensorActivoM02Adapter(AsociacionSensorActivoDependencyPort):
             return []
 
         ahora = datetime.now(timezone.utc)
-        ids_cerradas: list[int] = []
+        cerradas: list[AsociacionActivoSuperada] = []
         for asociacion in activas:
             valores_anteriores = {
                 'estado_asociacion': asociacion.estado_asociacion,
@@ -69,7 +70,11 @@ class AsociacionSensorActivoM02Adapter(AsociacionSensorActivoDependencyPort):
                     'motivo': motivo,
                 },
             ))
-            ids_cerradas.append(asociacion.id_asociacion_activo_sensor)
+            cerradas.append(AsociacionActivoSuperada(
+                id_asociacion_activo_sensor=asociacion.id_asociacion_activo_sensor,
+                id_activo_biologico=asociacion.id_activo_biologico,
+                tipo=asociacion.tipo,
+            ))
 
         self.db.flush()
-        return ids_cerradas
+        return cerradas

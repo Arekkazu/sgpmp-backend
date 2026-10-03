@@ -12,7 +12,8 @@ Verifica con fakes (sin BD):
 - sin asociación previa → crea la primera;
 - misma área activa → 409 ASOCIACION_DUPLICADA;
 - área distinta sin confirmar → 409 REASIGNACION_REQUIERE_CONFIRMACION, sin tocar nada;
-- área distinta con confirmar=True → termina la anterior y crea la nueva.
+- área distinta con confirmar=True → termina la anterior y crea la nueva;
+- #290: la respuesta del POST lista las asociaciones sensor→activo superadas.
 """
 from __future__ import annotations
 
@@ -23,11 +24,13 @@ from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.entities.sensor import Sensor
 from src.configuration.domain.entities.sensor_area import SensorArea
+from src.configuration.domain.repositories.asociacion_sensor_activo_dependency_port import AsociacionActivoSuperada
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
 from src.configuration.domain.value_objects.punto_instalacion import PuntoInstalacion
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
+from src.configuration.infrastructure.schema.sensor_area_schema import AsociarSensorAreaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
@@ -110,12 +113,13 @@ class AsociacionSensorActivoPortFake:
     """Issue #290: registra las llamadas para verificar que la reasignación
     de área dispara (o no) el cierre de asociaciones sensor→activo."""
 
-    def __init__(self) -> None:
+    def __init__(self, superadas: list[AsociacionActivoSuperada] | None = None) -> None:
         self.llamadas: list[dict] = []
+        self.superadas = superadas or []
 
     def superar_ambientales_y_poblacionales(self, id_sensor, id_usuario, motivo):
         self.llamadas.append({"id_sensor": id_sensor, "id_usuario": id_usuario, "motivo": motivo})
-        return []
+        return self.superadas
 
 
 def _sensor() -> Sensor:
@@ -184,9 +188,10 @@ def test_sin_asociacion_previa_crea_la_primera():
     uc, db = _use_case(SensorAreaRepoFake(activa=None), area, asociacion_sensor_activo_port=port)
     dto = AsociarSensorAreaDTO(id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_1, punto_instalacion="Esquina norte")
 
-    resultado = uc.execute(1, dto, USUARIO)
+    resultado, superadas = uc.execute(1, dto, USUARIO)
 
     assert resultado.id_infraestructura == ID_AREA_1
+    assert superadas == []
     assert db.commits == 1
     assert db.rollbacks == 0
     # Issue #290: sin reasignación (primera asociación) no hay nada que cerrar en M02.
@@ -230,13 +235,14 @@ def test_area_distinta_confirmada_termina_la_anterior_y_crea_la_nueva():
     area_2 = _area(ID_AREA_2, "Estanque Sur")
     activa = _asociacion_activa(ID_AREA_1)
     repo = SensorAreaRepoFake(activa=activa)
-    port = AsociacionSensorActivoPortFake()
+    superada = AsociacionActivoSuperada(id_asociacion_activo_sensor=77, id_activo_biologico=5, tipo="ambiental")
+    port = AsociacionSensorActivoPortFake(superadas=[superada])
     uc, db = _use_case(repo, area_1, area_2, asociacion_sensor_activo_port=port)
     dto = AsociarSensorAreaDTO(
         id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_2, punto_instalacion="Esquina sur", confirmar=True
     )
 
-    resultado = uc.execute(1, dto, USUARIO)
+    resultado, superadas = uc.execute(1, dto, USUARIO)
 
     assert resultado.id_infraestructura == ID_AREA_2
     assert len(repo.actualizadas) == 1
@@ -250,6 +256,14 @@ def test_area_distinta_confirmada_termina_la_anterior_y_crea_la_nueva():
     assert len(port.llamadas) == 1
     assert port.llamadas[0]["id_sensor"] == 1
     assert port.llamadas[0]["id_usuario"] == USUARIO.id_usuario
+    # Sugerencia de Análisis (PR #304): la respuesta avisa qué asociaciones
+    # quedaron SUPERADA para que el usuario re-asocie vía RF-49 si lo desea.
+    assert superadas == [superada]
+    respuesta = AsociarSensorAreaResponse.from_resultado(resultado, superadas).model_dump()
+    assert respuesta["id_infraestructura"] == ID_AREA_2
+    assert respuesta["asociaciones_activo_superadas"] == [
+        {"id_asociacion_activo_sensor": 77, "id_activo_biologico": 5, "tipo": "ambiental"}
+    ]
 
 
 def test_area_inactiva_no_permite_asociar():

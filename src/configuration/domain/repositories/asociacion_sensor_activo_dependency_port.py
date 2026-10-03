@@ -9,6 +9,22 @@ del sensor — se vincula al individuo, no al lugar — y no se toca.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass(frozen=True)
+class AsociacionActivoSuperada:
+    """Asociación sensor→activo que una reasignación de área dejó SUPERADA.
+
+    Se devuelve al cliente para que sepa qué activos dejó de monitorear el
+    sensor y pueda re-asociarlos vía RF-49 si lo desea (sugerencia de Análisis
+    en PR #304: no dejar el sensor "sin monitoreo" en silencio).
+    """
+
+    id_asociacion_activo_sensor: int
+    id_activo_biologico: Optional[int]
+    tipo: str
 
 
 class AsociacionSensorActivoDependencyPort(ABC):
@@ -19,10 +35,10 @@ class AsociacionSensorActivoDependencyPort(ABC):
         id_sensor: int,
         id_usuario: int,
         motivo: str,
-    ) -> list[int]:
+    ) -> list[AsociacionActivoSuperada]:
         """Marca SUPERADA toda asociación ACTIVA ambiental/poblacional de
         `id_sensor` y registra la auditoría correspondiente en modulo2.
 
-        Devuelve los ids de las asociaciones cerradas (lista vacía si el
-        sensor no tenía ninguna vigente de esos tipos).
+        Devuelve las asociaciones cerradas (lista vacía si el sensor no tenía
+        ninguna vigente de esos tipos).
         """

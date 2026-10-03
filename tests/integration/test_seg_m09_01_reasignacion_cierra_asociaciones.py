@@ -22,6 +22,7 @@ from src.biological_assets.infrastructure.models.auditoria_asociacion_sensor_mod
     AuditoriaAsociacionSensorModel,
 )
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase
+from src.configuration.domain.repositories.asociacion_sensor_activo_dependency_port import AsociacionActivoSuperada
 from src.configuration.infrastructure.adapters.asociacion_sensor_activo_m02_adapter import (
     AsociacionSensorActivoM02Adapter,
 )
@@ -150,7 +151,7 @@ def _crear_asociacion_sensor_activo(db_session: Session, escenario: dict, tipo: 
     return asociacion.id_asociacion_activo_sensor
 
 
-def _reasignar(db_session: Session, escenario: dict) -> None:
+def _reasignar(db_session: Session, escenario: dict) -> list[AsociacionActivoSuperada]:
     use_case = AsociarSensorAreaUseCase(
         db=db_session,
         sensor_repo=SqlAlchemySensorRepository(db_session),
@@ -167,13 +168,17 @@ def _reasignar(db_session: Session, escenario: dict) -> None:
         punto_instalacion="Punto nuevo",
         confirmar=True,
     )
-    use_case.execute(escenario["id_sensor"], dto, usuario)
+    _asociacion, superadas = use_case.execute(escenario["id_sensor"], dto, usuario)
+    return superadas
 
 
 def test_reasignar_area_supera_asociacion_ambiental(db_session: Session, escenario: dict) -> None:
     id_asociacion = _crear_asociacion_sensor_activo(db_session, escenario, "ambiental")
 
-    _reasignar(db_session, escenario)
+    superadas = _reasignar(db_session, escenario)
+
+    # Sugerencia de Análisis (PR #304): el resultado informa qué se superó.
+    assert superadas == [AsociacionActivoSuperada(id_asociacion, escenario["id_activo"], "ambiental")]
 
     fila = db_session.get(AsociacionSensorActivoModel, id_asociacion)
     assert fila.estado_asociacion == "SUPERADA"
@@ -200,7 +205,7 @@ def test_reasignar_area_supera_asociacion_poblacional(db_session: Session, escen
 def test_reasignar_area_no_toca_asociacion_directa(db_session: Session, escenario: dict) -> None:
     id_asociacion = _crear_asociacion_sensor_activo(db_session, escenario, "directa")
 
-    _reasignar(db_session, escenario)
+    assert _reasignar(db_session, escenario) == []
 
     fila = db_session.get(AsociacionSensorActivoModel, id_asociacion)
     assert fila.estado_asociacion == "ACTIVA"
