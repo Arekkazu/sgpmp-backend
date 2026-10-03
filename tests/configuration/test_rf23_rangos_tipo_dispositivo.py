@@ -50,7 +50,7 @@ class DispositivoRepoFake:
     def __init__(self, dispositivo) -> None:
         self._d = dispositivo
 
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, *, ids_fincas_permitidas=None):
         return self._d
 
 

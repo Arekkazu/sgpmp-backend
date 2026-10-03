@@ -41,9 +41,9 @@ class AgroFusionSsoAdapter(SsoProviderPort):
 
         Raises:
             InfrastructureError: La clave pública configurada no se pudo leer. HTTP 500.
-            AuthenticationError: Firma inválida, `aud`/`iss` incorrectos, token
-                expirado (recordar TTL de 2 minutos), o payload sin los claims
-                mínimos (`sub`, `email`). HTTP 401.
+            AuthenticationError: Firma inválida, `aud`/`iss`/`exp` incorrectos o
+                ausentes, token expirado (recordar TTL de 2 minutos), o payload
+                sin los claims mínimos (`sub`, `email`). HTTP 401.
         """
         try:
             with open(self._public_key_path, "r", encoding="utf-8") as f:
@@ -62,6 +62,9 @@ class AgroFusionSsoAdapter(SsoProviderPort):
                 algorithms=[_ALGORITHM],
                 audience=self._project_code,
                 issuer=self._issuer,
+                # SEG-M01-02: python-jose valida el valor de aud/exp solo si
+                # el claim viene; sin require_* un token sin ellos pasaba.
+                options={"require_aud": True, "require_exp": True, "require_iss": True},
             )
         except JWTError:
             raise AuthenticationError(

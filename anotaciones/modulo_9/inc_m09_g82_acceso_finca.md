@@ -40,3 +40,30 @@ No se requieren cambios de esquema ni migraciones.
 
 La copia temporal se eliminó después de ejecutar las pruebas. No se insertaron ni
 modificaron datos en la base de desarrollo.
+
+## Addendum — TC-M09-157-G82 (#305)
+
+QA reabrió el mismo escenario desde pruebas funcionales (issue #305): no puede ejecutar
+TC-M09-157 en el ambiente DEV compartido porque ningún usuario de prueba tiene finca
+asignada (las fincas 1-6 pertenecen a usuarios sin credenciales de QA).
+
+Re-verificado sobre `fix/m09` (rc.47, 2026-09-19): la corrección de este documento sigue
+vigente en el código actual sin cambios adicionales.
+
+- `src/configuration/infrastructure/routers/finca_router.py:44-57` resuelve el alcance de
+  lectura (`_id_usuario_alcance_lectura`) vía `AlcanceFincaAdapter`, nunca con `id_rol`
+  quemado.
+- `src/shared/alcance_finca_adapter.py` decide alcance global vs. restringido consultando
+  `modulo1.permisos` (`tiene_permiso` sobre `fincas`/actualizar/desactivar), no por catálogo
+  fijo de roles.
+- `src/configuration/application/use_cases/fincas/consultar_fincas_use_case.py:19-27`
+  (`ConsultarFincasUseCase.obtener`) lanza `AuthorizationError(code="FINCA_NO_AUTORIZADA")`
+  cuando `finca.id_usuario != id_usuario_filtro`.
+- Regresión ya existente y en verde: `tests/integration/test_inc_m09_g82_acceso_finca_integration.py`
+  (3 tests, PostgreSQL real) y `tests/configuration/test_inc_m09_g82_acceso_finca.py` (6 tests) —
+  `9 passed` re-ejecutados en `fix/m09` el 2026-09-19.
+
+No se modificó el ambiente DEV compartido ni se asignó una finca a ningún usuario existente
+para esta verificación. Lo que bloquea TC-M09-157 en DEV es la falta de un usuario de prueba
+con finca asignada, no el código: corresponde a QA/ops provisionar ese fixture (o una finca
+de prueba dedicada) fuera de los datos de un usuario real.

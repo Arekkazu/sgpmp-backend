@@ -7,7 +7,8 @@ Verifica (sin BD):
 - formato no permitido y tamaño excedido siguen rechazándose con 400;
 - el contenido real del archivo se valida (no solo el Content-Type
   declarado) y las imágenes se redimensionan a ``DIMENSION_MAX``;
-- un SVG con `<script>` se rechaza.
+- un SVG con `<script>` se rechaza, también en UTF-16 o con referencias de
+  carácter, y uno con entidades XML (billion laughs) no se expande (SEG-SAST-02).
 """
 from __future__ import annotations
 
@@ -17,7 +18,7 @@ import pytest
 from PIL import Image
 
 from src.shared.almacen_logos import DIMENSION_MAX, guardar_logo
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import InfrastructureError, UnsupportedMediaTypeError, ValidationError
 
 
 def _png_bytes(size: tuple[int, int] = (10, 10)) -> bytes:
@@ -39,10 +40,12 @@ def test_fallo_de_escritura_se_traduce_a_error_de_almacenamiento(monkeypatch, tm
     assert "No se pudo guardar el logotipo" in excinfo.value.message
 
 
-def test_formato_no_permitido_se_rechaza_con_400() -> None:
-    with pytest.raises(ValidationError) as excinfo:
+def test_formato_no_permitido_se_rechaza_con_415() -> None:
+    """RF-26 pide 415 Unsupported Media Type, no 400, para un formato no admitido."""
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(b"GIF89a", "image/gif")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
+    assert UnsupportedMediaTypeError.status_code == 415
 
 
 def test_tamano_excedido_se_rechaza_con_400() -> None:
@@ -52,14 +55,14 @@ def test_tamano_excedido_se_rechaza_con_400() -> None:
 
 
 def test_contenido_que_no_es_una_imagen_real_se_rechaza_aunque_el_content_type_diga_png() -> None:
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(b"<?php system($_GET['c']); ?>", "image/png")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
 
 
 def test_svg_con_script_se_rechaza() -> None:
     svg = b'<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'
-    with pytest.raises(ValidationError) as excinfo:
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
         guardar_logo(svg, "image/svg+xml")
     assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
 
@@ -71,6 +74,45 @@ def test_svg_valido_se_acepta(tmp_path, monkeypatch) -> None:
     ruta = guardar_logo(svg, "image/svg+xml")
 
     assert ruta.endswith(".svg")
+
+
+def test_svg_billion_laughs_se_rechaza_sin_expandir() -> None:
+    entidades = '<!ENTITY a "aaaaaaaaaa">' + "".join(
+        f'<!ENTITY {chr(98 + i)} "{("&" + chr(97 + i) + ";") * 10}">' for i in range(8)
+    )
+    svg = f'<?xml version="1.0"?><!DOCTYPE svg [{entidades}]><svg xmlns="http://www.w3.org/2000/svg">&i;</svg>'
+    assert len(svg) < 2048
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
+        guardar_logo(svg.encode(), "image/svg+xml")
+    assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
+
+
+@pytest.mark.parametrize(
+    "svg",
+    [
+        '<?xml version="1.0" encoding="UTF-16"?>'
+        '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'.encode("utf-16"),
+        b'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">'
+        b'<a xlink:href="jav&#x61;script:alert(1)"><circle r="5"/></a></svg>',
+    ],
+    ids=["utf16", "referencia_de_caracter"],
+)
+def test_svg_peligroso_no_esquiva_el_filtro(svg: bytes) -> None:
+    with pytest.raises(UnsupportedMediaTypeError) as excinfo:
+        guardar_logo(svg, "image/svg+xml")
+    assert excinfo.value.code == "FORMATO_IMAGEN_NO_PERMITIDO"
+
+
+def test_svg_con_doctype_estandar_se_acepta(tmp_path, monkeypatch) -> None:
+    """Los exportadores (Illustrator, Inkscape antiguo) incluyen el DOCTYPE de SVG 1.1."""
+    monkeypatch.setattr("src.shared.almacen_logos.DIRECTORIO_LOGOS", str(tmp_path / "logos"))
+
+    svg = (
+        b'<?xml version="1.0" encoding="utf-8"?>'
+        b'<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">'
+        b'<svg xmlns="http://www.w3.org/2000/svg"><circle r="5"/></svg>'
+    )
+    assert guardar_logo(svg, "image/svg+xml").endswith(".svg")
 
 
 def test_logo_valido_escribe_y_devuelve_ruta_publica(tmp_path, monkeypatch) -> None:

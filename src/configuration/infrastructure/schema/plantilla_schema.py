@@ -53,9 +53,10 @@ class AuditoriaPlantillaResponse(BaseModel):
     """Registro de auditoría de creación/versionado de una plantilla (RF-30)."""
 
     id_auditoria_plantilla: int
-    id_plantilla: int
+    id_plantilla: Optional[int]
     id_usuario: Optional[int]
     tipo_operacion: str
+    resultado: str
     valores_anteriores: Optional[dict[str, Any]]
     valores_nuevos: dict[str, Any]
     fecha_gestion: datetime.datetime

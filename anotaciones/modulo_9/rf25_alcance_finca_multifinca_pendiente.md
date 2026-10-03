@@ -1,5 +1,10 @@
 # RF-25 — Alcance por finca: deuda de modelo multi-finca
 
+> **Resuelto por INC-M02-61-G52** (migración `1b9536d4411c`): el acceso sale de
+> `modulo9.usuarios_fincas` (M:N) y `fincas.id_usuario` queda como propietario. Ver
+> `anotaciones/modulo_2/inc_m02_61_g52_usuarios_fincas.md`. Lo de abajo se conserva
+> como registro de la decisión original.
+
 ## Contexto
 
 RF-25 exige que cada usuario no administrador solo vea la información de la(s)

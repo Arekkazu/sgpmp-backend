@@ -97,3 +97,102 @@ def test_conversion_alimenticia_sin_consumo_no_falla_por_division_cero():
     assert ind.disponible is False
     assert ind.valor is None
     assert aviso is not None and aviso.startswith('DATOS_INSUFICIENTES')
+
+
+# ── INC-M02-93-G93 (RF-50 FA-03): conteo de métricas de peso por rango ──────
+
+def test_contar_metricas_peso_en_rango_cero():
+    fila_conteo = _Fila(total=0)
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila_conteo]]))
+
+    total = repo.contar_metricas_peso_en_rango(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert total == 0
+
+
+def test_contar_metricas_peso_en_rango_con_datos():
+    fila_conteo = _Fila(total=4)
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila_conteo]]))
+
+    total = repo.contar_metricas_peso_en_rango(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert total == 4
+
+
+# ── INC-M02-94-G93: advertencia cuando metricas_actuales queda fuera del
+# rango solicitado. `peso_actual`/`fecha_ultimo_peso` siguen siendo el
+# estado MÁS RECIENTE del activo (no se filtran por rango -- ese es su
+# significado), pero ahora se avisa explícitamente cuando ese valor no
+# corresponde al periodo que pidió el consumidor.
+
+def _fila_ficha(fecha_ultimo_peso) -> _Fila:
+    return _Fila(
+        peso_actual=Decimal('250.0'),
+        unidad_peso='kg',
+        fecha_ultimo_peso=fecha_ultimo_peso,
+        cantidad_actual=None,
+        biomasa_total=None,
+    )
+
+
+def test_metricas_peso_posterior_al_rango_agrega_advertencia():
+    fila = _fila_ficha(date(2026, 9, 10))
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert 'advertencia_peso_fuera_de_rango' in metricas
+    assert '2026-09-10' in metricas['advertencia_peso_fuera_de_rango']
+    assert '2026-06-01' in metricas['advertencia_peso_fuera_de_rango']
+    assert '2026-08-31' in metricas['advertencia_peso_fuera_de_rango']
+    # El valor no se filtra ni se oculta -- sigue devolviéndose tal cual.
+    assert metricas['peso_actual'] == 250.0
+    assert metricas['fecha_ultimo_peso'] == '2026-09-10'
+
+
+def test_metricas_peso_anterior_al_rango_agrega_advertencia():
+    fila = _fila_ficha(date(2026, 1, 1))
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert 'advertencia_peso_fuera_de_rango' in metricas
+
+
+def test_metricas_peso_dentro_del_rango_sin_advertencia():
+    fila = _fila_ficha(date(2026, 7, 15))
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert 'advertencia_peso_fuera_de_rango' not in metricas
+
+
+def test_metricas_sin_rango_solicitado_sin_advertencia():
+    fila = _fila_ficha(date(2026, 9, 10))
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, None, None)
+
+    assert 'advertencia_peso_fuera_de_rango' not in metricas
+
+
+def test_metricas_sin_peso_registrado_sin_advertencia():
+    fila = _fila_ficha(None)
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, date(2026, 6, 1), date(2026, 8, 31))
+
+    assert 'advertencia_peso_fuera_de_rango' not in metricas
+    assert metricas['fecha_ultimo_peso'] is None
+
+
+def test_metricas_rango_abierto_sin_fecha_fin_no_marca_fuera_de_rango():
+    # Solo fecha_inicio dada; el peso es posterior -- sin límite superior no
+    # hay "fuera de rango" por el lado derecho.
+    fila = _fila_ficha(date(2026, 9, 10))
+    repo = SqlAlchemyIndicadoresRepository(db=DbFake([[fila], []]))
+
+    metricas = repo._obtener_metricas(279, date(2026, 6, 1), None)
+
+    assert 'advertencia_peso_fuera_de_rango' not in metricas

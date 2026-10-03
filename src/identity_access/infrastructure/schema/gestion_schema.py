@@ -178,3 +178,10 @@ class AuditoriaPaginadaResponse(BaseModel):
     # Se llena sólo cuando la consulta supera el umbral de saturación y la
     # respuesta viaja con HTTP 206.
     mensaje: Optional[str] = None
+    # INC-M01-71: ancla temporal efectiva de esta consulta (fecha_hasta del
+    # cliente, o now() si no la mandó). El cliente debe reenviar este mismo
+    # valor como fecha_hasta en las páginas siguientes para obtener un
+    # conjunto estable — de lo contrario, eventos nuevos insertados entre
+    # páginas (incluida la propia auto-auditoría de esta consulta) desplazan
+    # el resultado y un mismo evento puede repetirse entre páginas.
+    fecha_hasta: datetime.datetime

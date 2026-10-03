@@ -45,7 +45,6 @@ def test_caso_de_uso_rechaza_captcha_antes_de_persistir() -> None:
         usuarios_repo=object(),
         cuentas_repo=object(),
         eventos_repo=object(),
-        correo_activacion_port=object(),
         captcha_verifier=captcha,
         db=db,
     )

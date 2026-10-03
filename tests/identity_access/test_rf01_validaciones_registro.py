@@ -1,22 +1,14 @@
-"""Pruebas unitarias de validaciones y correo asíncrono de RF-01."""
+"""Pruebas unitarias de validaciones y correo de activación de RF-01."""
 from __future__ import annotations
 
-import asyncio
 from datetime import date
 
 import pytest
-from fastapi import BackgroundTasks
 from pydantic import ValidationError as PydanticValidationError
 
 from src.identity_access.domain.entities.usuario import Usuario
 from src.identity_access.domain.value_objects.identificacion import (
     identificacion_valida,
-)
-from src.identity_access.infrastructure.adapters import (
-    correo_activacion_background_adapter as correo_adapter,
-)
-from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
-    CorreoActivacionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.dto.agrofusion_dto import (
     AgroFusionCreateUserDTO,
@@ -215,39 +207,6 @@ def test_perfil_delega_el_formato_al_use_case() -> None:
         dto.tipo_identificacion,
         dto.numero_identificacion,
     )
-
-
-def test_adaptador_programa_correo_sin_ejecutarlo_en_el_request(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    tareas = BackgroundTasks()
-    llamadas = []
-    monkeypatch.setattr(
-        correo_adapter,
-        "procesar_correo_activacion_background",
-        lambda **datos: llamadas.append(datos),
-    )
-
-    CorreoActivacionBackgroundAdapter(tareas).programar_envio(
-        correo="ana@example.com",
-        nombre="Ana",
-        token="token-crudo",
-        id_usuario=7,
-    )
-
-    assert llamadas == []
-    assert len(tareas.tasks) == 1
-
-    asyncio.run(tareas())
-
-    assert llamadas == [
-        {
-            "correo": "ana@example.com",
-            "nombre": "Ana",
-            "token": "token-crudo",
-            "id_usuario": 7,
-        }
-    ]
 
 
 def test_smtp_conserva_tres_intentos_y_dos_pausas_de_cinco_segundos(

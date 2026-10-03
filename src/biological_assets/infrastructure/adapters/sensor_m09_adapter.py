@@ -5,7 +5,11 @@ from typing import Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsulta, SensorConsultaPort
+from src.biological_assets.domain.repositories.sensor_consulta_port import (
+    CompatibilidadSensorEspecie,
+    SensorConsulta,
+    SensorConsultaPort,
+)
 
 
 class SensorM09Adapter(SensorConsultaPort):
@@ -44,4 +48,47 @@ class SensorM09Adapter(SensorConsultaPort):
             id_infraestructura_dispositivo=row.id_infraestructura_dispositivo,
             categoria=row.categoria,
             id_infraestructura_area=row.id_infraestructura_area,
+        )
+
+    def obtener_compatibilidad_especie(
+        self,
+        sensor_id: int,
+        especie_id: int,
+    ) -> Optional[CompatibilidadSensorEspecie]:
+        row = self.db.execute(
+            text(
+                'SELECT '
+                '  e.nombre AS nombre_especie_activo, '
+                '  EXISTS ('
+                '    SELECT 1 '
+                '    FROM modulo9.compatibilidad_sensores_especies c '
+                '    WHERE c.id_sensor = :sensor_id'
+                '  ) AS configurada, '
+                '  EXISTS ('
+                '    SELECT 1 '
+                '    FROM modulo9.compatibilidad_sensores_especies c '
+                '    WHERE c.id_sensor = :sensor_id '
+                '      AND c.id_especie = :especie_id'
+                '  ) AS es_compatible, '
+                '  ARRAY('
+                '    SELECT ec.nombre '
+                '    FROM modulo9.compatibilidad_sensores_especies c '
+                '    JOIN modulo9.especies ec ON ec.id_especie = c.id_especie '
+                '    WHERE c.id_sensor = :sensor_id '
+                '    ORDER BY ec.nombre'
+                '  ) AS especies_compatibles '
+                'FROM modulo9.especies e '
+                'WHERE e.id_especie = :especie_id'
+            ),
+            {'sensor_id': sensor_id, 'especie_id': especie_id},
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return CompatibilidadSensorEspecie(
+            configurada=bool(row.configurada),
+            es_compatible=bool(row.es_compatible),
+            nombre_especie_activo=row.nombre_especie_activo,
+            especies_compatibles=tuple(row.especies_compatibles or ()),
         )

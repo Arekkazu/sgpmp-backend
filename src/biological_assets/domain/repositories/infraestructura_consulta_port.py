@@ -26,6 +26,14 @@ class InfraestructuraConsultaPort(ABC):
         """Retorna la infraestructura si existe y está activa, None en caso contrario."""
 
     @abstractmethod
+    def existe(self, id_infraestructura: int) -> bool:
+        """Retorna True si la infraestructura existe, sin importar si está activa.
+
+        Usado para distinguir "no existe" de "existe pero está inactiva" en
+        mensajes de error (INC-M02-89-G83) -- `obtener_activa` devuelve None
+        en ambos casos y no permite esa distinción."""
+
+    @abstractmethod
     def listar_activas(self, excluir_id: Optional[int] = None) -> list[InfraestructuraConsulta]:
         """Lista infraestructuras activas, excluyendo opcionalmente una por id."""
 

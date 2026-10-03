@@ -101,6 +101,14 @@ class IdiomaRepoFake:
         return entidad
 
 
+class EventosRepoFake:
+    def __init__(self) -> None:
+        self.registros: list[dict] = []
+
+    def registrar(self, **kwargs) -> None:
+        self.registros.append(kwargs)
+
+
 def _preferencia(locale: str = "es-CO", *, global_: bool = False) -> PreferenciaIdioma:
     return PreferenciaIdioma(
         id_preferencia_idioma=99 if global_ else 42,
@@ -124,7 +132,7 @@ def test_locale_no_soportado_es_400_con_el_mensaje_del_rf() -> None:
     repo = IdiomaRepoFake()
 
     with pytest.raises(ValidationError) as error:
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(_dto("fr-FR"), PRODUCTOR)
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(_dto("fr-FR"), PRODUCTOR)
 
     assert error.value.code == "IDIOMA_NO_DISPONIBLE"
     assert error.value.status_code == 400
@@ -140,7 +148,7 @@ def test_locale_de_dos_letras_es_400() -> None:
 
     for locale in ("es", "en"):
         with pytest.raises(ValidationError) as error:
-            GuardarIdiomaPersonalUseCase(db=db, idioma_repo=IdiomaRepoFake()).execute(
+            GuardarIdiomaPersonalUseCase(db=db, idioma_repo=IdiomaRepoFake(), eventos_repo=EventosRepoFake()).execute(
                 _dto(locale), PRODUCTOR
             )
         assert error.value.code == "IDIOMA_NO_DISPONIBLE"
@@ -152,7 +160,7 @@ def test_es_co_y_en_us_son_los_unicos_aceptados(locale: str) -> None:
     db = DbFake()
     repo = IdiomaRepoFake()
 
-    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(
+    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(
         _dto(locale), PRODUCTOR
     )
 
@@ -167,7 +175,7 @@ def test_locale_invalido_no_persiste() -> None:
     repo = IdiomaRepoFake(personal=_preferencia("es-CO"))
 
     with pytest.raises(ValidationError):
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(_dto("it-IT"), PRODUCTOR)
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(_dto("it-IT"), PRODUCTOR)
 
     assert db.commits == 0
     assert repo.guardados == []
@@ -185,7 +193,7 @@ def test_fallo_de_persistencia_es_500_con_el_mensaje_del_rf() -> None:
     repo = IdiomaRepoFake(falla_al_escribir=RuntimeError("conexión perdida"))
 
     with pytest.raises(InfrastructureError) as error:
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(_dto("en-US"), PRODUCTOR)
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(_dto("en-US"), PRODUCTOR)
 
     assert error.value.code == "ERROR_PERSISTENCIA_IDIOMA"
     assert error.value.status_code == 500
@@ -205,7 +213,7 @@ def test_el_500_de_persistencia_no_traga_el_400_de_dominio() -> None:
     )
 
     with pytest.raises(ValidationError) as error:
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(_dto("de-DE"), PRODUCTOR)
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(_dto("de-DE"), PRODUCTOR)
 
     assert error.value.status_code == 400
 
@@ -221,7 +229,7 @@ def test_el_500_de_persistencia_no_traga_el_404_del_repositorio() -> None:
     )
 
     with pytest.raises(NotFoundError) as error:
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(_dto("en-US"), PRODUCTOR)
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(_dto("en-US"), PRODUCTOR)
 
     assert error.value.status_code == 404
     assert db.rollbacks == 1
@@ -236,7 +244,7 @@ def test_version_de_perfil_desfasada_es_409() -> None:
     repo = IdiomaRepoFake(personal=_preferencia("es-CO"), version=VERSION_PERFIL)
 
     with pytest.raises(ConflictError) as error:
-        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(
+        GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(
             _dto("en-US", version_perfil=VERSION_PERFIL - 1), PRODUCTOR
         )
 
@@ -253,7 +261,7 @@ def test_version_de_perfil_vigente_deja_guardar() -> None:
     db = DbFake()
     repo = IdiomaRepoFake(personal=_preferencia("es-CO"), version=VERSION_PERFIL)
 
-    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(
+    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(
         _dto("en-US", version_perfil=VERSION_PERFIL), PRODUCTOR
     )
 
@@ -267,7 +275,7 @@ def test_sin_version_de_perfil_el_guardado_sigue_funcionando() -> None:
     db = DbFake()
     repo = IdiomaRepoFake(personal=_preferencia("es-CO"), version=VERSION_PERFIL)
 
-    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(
+    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(
         _dto("en-US"), PRODUCTOR
     )
 
@@ -279,7 +287,7 @@ def test_usuario_sin_version_en_bd_no_bloquea_el_guardado() -> None:
     db = DbFake()
     repo = IdiomaRepoFake(personal=_preferencia("es-CO"), version=None)
 
-    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo).execute(
+    resultado = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=EventosRepoFake()).execute(
         _dto("en-US", version_perfil=1), PRODUCTOR
     )
 

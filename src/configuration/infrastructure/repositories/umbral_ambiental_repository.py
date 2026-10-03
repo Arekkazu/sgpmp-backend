@@ -65,6 +65,9 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
                 valor_max=umbral.valor_max,
                 es_activo=umbral.es_activo,
                 fecha_actualizacion=umbral.fecha_actualizacion,
+                estado_sincronizacion=umbral.estado_sincronizacion,
+                fecha_ultima_sincronizacion=umbral.fecha_ultima_sincronizacion,
+                motivo_fallo_sincronizacion=umbral.motivo_fallo_sincronizacion,
             )
             self._db.add(orm)
             self._db.flush()
@@ -92,6 +95,9 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             orm.es_activo = umbral.es_activo
             orm.fecha_actualizacion = umbral.fecha_actualizacion
             orm.id_usuario = umbral.id_usuario
+            orm.estado_sincronizacion = umbral.estado_sincronizacion
+            orm.fecha_ultima_sincronizacion = umbral.fecha_ultima_sincronizacion
+            orm.motivo_fallo_sincronizacion = umbral.motivo_fallo_sincronizacion
 
             # Reemplazar niveles (delete-then-insert via cascade)
             for nivel_orm in list(orm.niveles):
@@ -107,6 +113,18 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
                 )
                 self._db.add(nivel_orm)
 
+            self._db.flush()
+            self._db.refresh(orm)
+            return self._a_entidad(orm)
+        except Exception as exc:
+            raise_from_db_error(exc)
+
+    def actualizar_estado_sincronizacion(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        try:
+            orm = self._db.get(UmbralAmbientalModel, umbral.id_umbral_ambiental)
+            orm.estado_sincronizacion = umbral.estado_sincronizacion
+            orm.fecha_ultima_sincronizacion = umbral.fecha_ultima_sincronizacion
+            orm.motivo_fallo_sincronizacion = umbral.motivo_fallo_sincronizacion
             self._db.flush()
             self._db.refresh(orm)
             return self._a_entidad(orm)
@@ -170,4 +188,7 @@ class SqlAlchemyUmbralAmbientalRepository(UmbralAmbientalRepository):
             niveles=niveles,
             fecha_actualizacion=orm.fecha_actualizacion,
             id_usuario=orm.id_usuario,
+            estado_sincronizacion=orm.estado_sincronizacion,
+            fecha_ultima_sincronizacion=orm.fecha_ultima_sincronizacion,
+            motivo_fallo_sincronizacion=orm.motivo_fallo_sincronizacion,
         )

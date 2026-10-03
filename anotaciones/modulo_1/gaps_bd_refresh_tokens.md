@@ -1,12 +1,16 @@
 # Gaps de BD — Refresh token httpOnly (Paso 0)
 
-Aplicado en dev (`sgpmp`) y en la base de pruebas de integración (`pruebas`) el
-2026-08-17, vía MCP postgres / psql, previo a escribir código. Referencia de
-diseño original: `anotaciones/modulo_1/plan_access_refresh_tokens.md`
-(5-ago-2026, nunca implementado hasta ahora). No gestionado por migraciones
-(igual que el resto de gaps de `modulo1`, ver otros archivos `gaps_bd_*` en
-este directorio) — este repo no usa Alembic en la práctica (carpeta `alembic/`
-presente pero con 0 revisiones).
+Aplicado inicialmente en dev (`sgpmp`) y en la base de pruebas de integración
+(`pruebas`) el 2026-08-17, vía SQL manual, previo a escribir código. Referencia
+de diseño original: `anotaciones/modulo_1/plan_access_refresh_tokens.md`
+(5-ago-2026, nunca implementado hasta entonces).
+
+El 2026-09-17, TC-M09-G90 confirmó que el ajuste manual no se había propagado
+completo a `sgpmp_dev`: las columnas y el enum existían, pero faltaban los tipos
+de evento 23/24. La revisión Alembic
+`d8e232bc81a3_v5_3_0_sesiones_catalogo_eventos_refresh.py` formaliza esos dos
+registros para todos los ambientes. Los cambios estructurales anteriores se
+mantienen documentados aquí como contexto histórico.
 
 Motivación: `AuthContext.tsx` del frontend guarda el JWT solo en memoria
 (R-12/PR #7 del frontend) — correcto contra XSS, pero cualquier recarga de
@@ -81,6 +85,9 @@ INSERT INTO modulo1.tipos_eventos (id_tipo_evento, nombre, accion) VALUES
   (23, 'REFRESH_TOKEN_ROTADO', 'Renovacion de sesion via refresh token'),
   (24, 'REUSO_TOKEN_REFRESCO_DETECTADO', 'Reuso de refresh token detectado - sesion revocada');
 ```
+
+Estos dos registros ya no deben aplicarse manualmente: forman parte de la
+migración Alembic `v5.3.0_sesiones_catalogo_eventos_refresh`.
 
 ## 4. RBAC
 

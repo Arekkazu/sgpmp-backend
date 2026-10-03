@@ -152,9 +152,14 @@ fecha_inicio=2026-07-01&fecha_fin=2026-07-06&tipo_variable=TEMPERATURA_AMBIENTAL
       "id_infraestructura": 1,
       "infraestructura": "Galpón A",
       "finca": "Finca El Pinar",
-      "id_activo_biologico": null,
-      "especie": null,
-      "id_alerta": null
+      "id_activo_biologico": 55,
+      "especie": "Tilapia Roja",
+      "id_especie": 39,
+      "id_alerta": null,
+      "id_umbral_ambiental": 39,
+      "valor_min_umbral": "18.00",
+      "valor_max_umbral": "27.00",
+      "version_umbral": "2026-09-10T12:00:00Z"
     }
   ],
   "estadisticas": [
@@ -172,7 +177,13 @@ fecha_inicio=2026-07-01&fecha_fin=2026-07-06&tipo_variable=TEMPERATURA_AMBIENTAL
 }
 ```
 
-**Nota:** `estado_semaforo_historico = "GRIS"` mientras M09 no implemente umbrales versionados.
+**Nota (INC-M09-107-G32 / #298):** `estado_semaforo_historico` ahora se calcula contra el
+umbral RF-17 activo de la especie/variable de la lectura (`id_umbral_ambiental`,
+`valor_min_umbral`, `valor_max_umbral`, `version_umbral` identifican qué configuración se usó).
+Sigue en `"GRIS"` cuando no se pudo resolver la especie de la lectura (sin
+`vinculaciones_lecturas`/`activos_biologicos` asociado) o no existe un umbral activo para esa
+combinación especie+variable. M09 aún no versiona umbrales por vigencia temporal (RF-59
+Restricción 16): se usa el umbral activo actual, no el vigente histórico en `timestamp_captura`.
 
 ---
 
@@ -290,4 +301,4 @@ formato=PDF&fecha_inicio=2026-07-01&fecha_fin=2026-07-06" \
 | FA-09 | historial | 422 RANGO_MAXIMO_EXCEDIDO (>90 días sin filtros) |
 | FA-10 | historial | 422 VOLUMEN_EXCESIVO (>10.000 registros) |
 | FA-11 | historial/exportar | 400 EXPORTAR_SIN_FILTROS |
-| FA-13 | historial | semáforo GRIS (stub M09) |
+| FA-13 | historial | semáforo GRIS si no hay especie resuelta o umbral RF-17 activo (INC-M09-107-G32) |

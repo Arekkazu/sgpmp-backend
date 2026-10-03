@@ -5,13 +5,14 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, PaginaHistorial
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.transferencia_repository import TransferenciaRepository
 from src.biological_assets.infrastructure.dto.consultar_historial_dto import ConsultarHistorialDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class ConsultarHistorialUseCase:
@@ -36,6 +37,17 @@ class ConsultarHistorialUseCase:
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> PaginaHistorial:
+        # E-03: "No se ejecuta ninguna consulta" -- se valida antes de tocar la BD.
+        if dto.fecha_inicio and dto.fecha_fin and dto.fecha_inicio > dto.fecha_fin:
+            raise BusinessRuleError(
+                code='RANGO_FECHAS_INVALIDO',
+                message=(
+                    f'La fecha de inicio del filtro {dto.fecha_inicio.isoformat()} no puede ser posterior '
+                    f'a la fecha de fin {dto.fecha_fin.isoformat()}. Corrija el rango de fechas.'
+                ),
+                field='fecha_inicio',
+            )
+
         # E-01: el activo debe existir
         activo = self.activo_repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
         if activo is None:
@@ -60,17 +72,12 @@ class ConsultarHistorialUseCase:
                 'Puede ampliar el rango de fechas o cambiar la categoría de evento.'
             )
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF46', tipo_evento='HISTORIAL_CONSULTADO',
-                    clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo,
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF46', tipo_evento='HISTORIAL_CONSULTADO',
+            clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado

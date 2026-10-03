@@ -39,6 +39,9 @@ class InfraestructuraM09Adapter(InfraestructuraConsultaPort):
             return None
         return self._a_consulta(orm)
 
+    def existe(self, id_infraestructura: int) -> bool:
+        return self.db.get(InfraestructuraModel, id_infraestructura) is not None
+
     def listar_activas(self, excluir_id: Optional[int] = None) -> list[InfraestructuraConsulta]:
         q = self.db.query(InfraestructuraModel).filter(InfraestructuraModel.es_activo.is_(True))
         if excluir_id is not None:

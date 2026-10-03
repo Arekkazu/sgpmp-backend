@@ -49,6 +49,7 @@ def _validar_url_pruebas(url: str) -> None:
     nombre = (parsed.database or "").lower()
     if not parsed.drivername.startswith("postgresql"):
         pytest.fail("TEST_DATABASE_URL debe apuntar a PostgreSQL.")
+
     if "test" not in nombre and nombre not in BASES_PRUEBA_PERMITIDAS:
         pytest.fail(
             "Protección de seguridad: la base indicada por TEST_DATABASE_URL "
@@ -169,9 +170,6 @@ def client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[TestClient, None, None]:
     from src.identity_access.infrastructure.adapters import (
-        correo_activacion_background_adapter,
-    )
-    from src.identity_access.infrastructure.adapters import (
         correo_recuperacion_background_adapter,
     )
     from src.identity_access.infrastructure.adapters import (
@@ -206,11 +204,6 @@ def client(
     integration_app.dependency_overrides[get_db] = override_get_db
     integration_app.dependency_overrides[get_captcha_verifier] = (
         lambda: CaptchaValidoStub()
-    )
-    monkeypatch.setattr(
-        correo_activacion_background_adapter,
-        "SessionLocal",
-        crear_sesion_background,
     )
     monkeypatch.setattr(
         correo_recuperacion_background_adapter,

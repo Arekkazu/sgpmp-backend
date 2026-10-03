@@ -442,11 +442,13 @@ def test_scope_creep_lanza_422_y_no_toca_la_base():
     assert error.code == "ALCANCE_NO_PERMITIDO"
     assert "dispositivos_iot" in error.message
     assert error.field == "params_snapshot"
-    # Se corta antes de consultar la especie, guardar o auditar.
+    # Se corta antes de consultar la especie o guardar la plantilla...
     assert use_case.especie_repo.consultada is False
     assert use_case.plantilla_repo.guardadas == []
-    assert use_case.auditoria_repo.registros == 0
-    assert use_case.db.commits == 0
+    # ...pero INC-M09-02-115 (#318) exige auditar igual el intento fallido.
+    assert use_case.auditoria_repo.registros == 1
+    assert use_case.auditoria_repo.ultimo["resultado"] == "FALLIDO"
+    assert use_case.db.commits == 1
 
 
 @pytest.mark.parametrize("clave", sorted(CLAVES_FUERA_DE_ALCANCE))
@@ -496,7 +498,8 @@ def test_crear_con_umbral_fuera_de_rango_fisico_responde_422():
     assert error.code == "RANGO_FISICO_INVALIDO"
     assert error.field == "params_snapshot"
     assert use_case.plantilla_repo.guardadas == []
-    assert use_case.db.commits == 0
+    # INC-M09-02-115 (#318): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
 
 
 def test_crear_con_umbral_dentro_de_rango_fisico_no_dispara_422():
@@ -538,7 +541,8 @@ def test_crear_con_nombre_repetido_responde_409():
     assert error.code == "NOMBRE_PLANTILLA_DUPLICADO"
     assert "Config estándar" in error.message
     assert error.field == "template_name"
-    assert use_case.db.commits == 0
+    # INC-M09-02-115 (#318): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
     assert len(use_case.plantilla_repo.guardadas) == 1  # no se creó una v2
 
 
@@ -634,7 +638,8 @@ def test_versionar_una_plantilla_inexistente_responde_404():
         use_case.execute(99, _dto_version(), USUARIO)
 
     assert exc_info.value.code == "PLANTILLA_NO_ENCONTRADA"
-    assert use_case.db.commits == 0
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
 
 
 def test_versionar_con_especie_desactivada_responde_422():
@@ -646,7 +651,8 @@ def test_versionar_con_especie_desactivada_responde_422():
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.code == "ESPECIE_INACTIVA"
-    assert use_case.db.commits == 0
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1
 
 
 def test_versionar_tambien_rechaza_el_scope_creep_con_422():
@@ -669,4 +675,5 @@ def test_versionar_tambien_rechaza_umbral_fuera_de_rango_fisico():
         use_case.execute(1, dto, USUARIO)
 
     assert exc_info.value.code == "RANGO_FISICO_INVALIDO"
-    assert use_case.db.commits == 0
+    # INC-M09-01-109 (#319): el fallo se audita en una transacción propia.
+    assert use_case.db.commits == 1

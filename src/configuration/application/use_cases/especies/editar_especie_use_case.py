@@ -24,6 +24,11 @@ def _snapshot(especie: Especie) -> dict:
         "id_especie": especie.id_especie,
         "nombre": especie.nombre.valor,
         "descripcion": especie.descripcion,
+        "densidad_maxima_por_especie": (
+            str(especie.densidad_maxima_por_especie)
+            if especie.densidad_maxima_por_especie is not None
+            else None
+        ),
         "es_activo": especie.es_activo,
         "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
         "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
@@ -85,9 +90,14 @@ class EditarEspecieUseCase:
 
         snapshot_anterior = _snapshot(especie)
 
+        densidad_maxima = especie.densidad_maxima_por_especie
+        if "densidad_maxima_por_especie" in dto.model_fields_set:
+            densidad_maxima = dto.densidad_maxima_por_especie
+
         especie.actualizar(
             nombre=nombre_nuevo,
             descripcion=dto.descripcion,
+            densidad_maxima_por_especie=densidad_maxima,
             fecha_actualizacion=datetime.now(timezone.utc),
         )
 

@@ -42,7 +42,7 @@ class RegistrarAccesoNoAutorizadoUseCase:
         *,
         rf_origen: str,
         id_usuario: int,
-        id_recurso: int,
+        id_recurso: int | str,  # str: recurso ubicado por nombre (su id varía entre bases)
         id_accion: int,
         error_code: str,
         causa: str,

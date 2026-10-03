@@ -3,8 +3,12 @@
 Implementación concreta de ``AlcanceFincaPort``. La decisión "global vs.
 restringido" se resuelve por RBAC usando ``tiene_permiso`` sobre el recurso
 ``fincas`` (id_recurso=9): quien puede gestionarlas (actualizar/desactivar)
-conserva la vista global; el resto queda limitado a las fincas vinculadas a su
-usuario por ``modulo9.fincas.id_usuario``.
+conserva la vista global; el resto queda limitado a las fincas a las que tiene
+acceso activo en ``modulo9.usuarios_fincas``.
+
+INC-M02-61-G52: antes se leía ``modulo9.fincas.id_usuario`` (1 finca = 1 dueño).
+Un Veterinario o Ingeniero de Campo nunca es dueño de la finca que atiende, así
+que su lista quedaba vacía y cada activo le respondía 404.
 """
 from __future__ import annotations
 
@@ -21,7 +25,8 @@ _ACCION_ACTUALIZAR = 3
 _ACCION_DESACTIVAR = 4
 
 _SQL_FINCAS_DEL_USUARIO = text(
-    "SELECT id_finca FROM modulo9.fincas WHERE id_usuario = :id_usuario"
+    "SELECT id_finca FROM modulo9.usuarios_fincas "
+    "WHERE id_usuario = :id_usuario AND es_activo IS TRUE"
 )
 
 

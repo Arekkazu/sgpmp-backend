@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from src.shared.errors import ValidationError
 
-_FORMATO = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 \-()/]*$")
+_FORMATO = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚáéíóúÑñ0-9 _\-()/]*$")
 
 _MIN = 3
 _MAX = 60
@@ -33,7 +33,7 @@ class NombreMetrica:
         if not _FORMATO.match(v):
             raise ValidationError(
                 code="NOMBRE_METRICA_FORMATO_INVALIDO",
-                message="El nombre de la métrica solo puede contener letras, números, espacios, guiones, paréntesis y barras.",
+                message="El nombre de la métrica solo puede contener letras, números, espacios, guiones, guiones bajos, paréntesis y barras.",
                 field="nombre",
             )
         object.__setattr__(self, "valor", v)

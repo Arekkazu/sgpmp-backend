@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.cuenta_repository import CuentaRepository
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
-from src.shared.errors import FlowError, GoneError, ValidationError
+from src.shared.errors import GoneError, ValidationError
 
 TIPO_ACTIVACION_CUENTA = 2
 
@@ -53,9 +53,9 @@ class ActivarCuentaUseCase:
             user_agent: Cliente o navegador desde el cual se realiza la solicitud.
 
         Raises:
-            ValidationError: Si el token no existe o ya fue usado. HTTP 400.
+            ValidationError: Si el token no existe o la cuenta ya fue activada
+                con él. HTTP 400.
             GoneError: Si el token expiró. HTTP 410.
-            FlowError: Si la cuenta ya estaba activa. HTTP 422.
         """
         cuenta = self.cuentas_repo.obtener_por_hash_token(
             calcular_hash_token(token)
@@ -74,10 +74,16 @@ class ActivarCuentaUseCase:
                 message=f"El token de activación expiró el {expiracion.strftime('%d/%m/%Y')} a las {expiracion.strftime('%H:%M:%S')}. Solicita uno nuevo.",
             )
 
+        # RF-01 agrupa "token inexistente" y "token ya utilizado" en el mismo
+        # caso de flujo alterno (HTTP 400): desde el cliente son el mismo enlace
+        # inservible. Un FlowError -> 422 partía ese caso en dos códigos.
         if cuenta.esta_activa():
-            raise FlowError(
-                code="CUENTA_YA_ACTIVA",
-                message="La cuenta ya fue activada anteriormente.",
+            raise ValidationError(
+                code="TOKEN_INVALIDO",
+                message=(
+                    "Token de activación inválido. El enlace es incorrecto o la "
+                    "cuenta ya ha sido activada anteriormente."
+                ),
             )
 
         estado_anterior = cuenta.id_estado_cuenta

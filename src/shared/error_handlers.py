@@ -125,6 +125,9 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
     if not request.url.path.startswith("/activos-biologicos"):
         return
 
+    from src.biological_assets.application.use_cases._registrar_evento_bitacora import (
+        registrar_evento_bitacora,
+    )
     from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
     from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
         SqlAlchemyBitacoraAuditoriaRepository,
@@ -139,7 +142,8 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
 
     db = SessionLocal()
     try:
-        SqlAlchemyBitacoraAuditoriaRepository(db).registrar(EventoAuditoria(
+        # RF-52 E1: si la bitácora no responde, el evento queda en el buffer.
+        registrar_evento_bitacora(SqlAlchemyBitacoraAuditoriaRepository(db), db, EventoAuditoria(
             rf_origen="RF36",
             tipo_evento="VALIDACION_RECHAZADA",
             clasificacion_biologica="GESTION_OPERATIVA",
@@ -151,11 +155,59 @@ def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> N
             detalle_tecnico={"fields": fields},
             id_usuario_responsable=_usuario_del_token(request),
         ))
-        db.commit()
     except Exception:
+        # Defensivo: el 400 que recibe el cliente no puede depender de la auditoría.
         db.rollback()
     finally:
         db.close()
+
+
+#: Mensajes en español para los tipos de error que Pydantic genera al fallar
+#: la coerción de tipos (antes de llegar a los validadores propios del DTO).
+#: Sin este mapeo, un campo `Decimal`/`int`/`date`... con un valor no
+#: convertible sale con el mensaje interno de Pydantic en inglés
+#: (INC-M02-69-G44-01), inconsistente con el resto de mensajes de dominio.
+_MENSAJES_PYDANTIC_POR_TIPO: dict[str, str] = {
+    "decimal_parsing": "El valor ingresado no es un número decimal válido.",
+    "decimal_type": "El valor ingresado no es un número decimal válido.",
+    "int_parsing": "El valor ingresado no es un número entero válido.",
+    "int_type": "El valor ingresado debe ser un número entero.",
+    "float_parsing": "El valor ingresado no es un número válido.",
+    "float_type": "El valor ingresado debe ser un número.",
+    "bool_parsing": "El valor ingresado no es un valor booleano válido (use true o false).",
+    "bool_type": "El valor ingresado debe ser un valor booleano (true o false).",
+    "string_type": "El valor ingresado debe ser un texto.",
+    "date_parsing": "El valor ingresado no es una fecha válida.",
+    "date_type": "El valor ingresado no es una fecha válida.",
+    "datetime_parsing": "El valor ingresado no es una fecha y hora válida.",
+    "datetime_type": "El valor ingresado no es una fecha y hora válida.",
+    "missing": "Este campo es obligatorio.",
+    "json_invalid": "El cuerpo de la solicitud no es un JSON válido.",
+    "enum": "El valor ingresado no es una de las opciones permitidas.",
+    "literal_error": "El valor ingresado no es una de las opciones permitidas.",
+    "extra_forbidden": "Este campo no está permitido en esta solicitud.",
+}
+
+
+def _mensaje_legible(error: dict) -> str:
+    """Traduce un error de Pydantic al mensaje que ve el cliente.
+
+    Los validadores propios del DTO (`@field_validator` que lanza `ValueError`)
+    ya redactan su mensaje en español, pero Pydantic le antepone el prefijo
+    fijo `"Value error, "` en `msg` — `ctx.error` trae el mensaje original sin
+    ese prefijo, así que se prioriza cuando existe.
+
+    Para el resto de tipos (fallos de coerción de tipo, campo faltante, etc.)
+    se usa `_MENSAJES_PYDANTIC_POR_TIPO`; si el tipo no está mapeado, se cae
+    al mensaje de Pydantic tal cual, igual que antes de este fix.
+    """
+    if error.get("type") == "value_error":
+        ctx = error.get("ctx") or {}
+        if "error" in ctx:
+            return str(ctx["error"])
+        return str(error.get("msg", "")).removeprefix("Value error, ")
+
+    return _MENSAJES_PYDANTIC_POR_TIPO.get(error.get("type", ""), error.get("msg", "Error de validación"))
 
 
 async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -174,7 +226,7 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     for error in exc.errors():
         loc = error.get("loc", ())
         field = ".".join(str(l) for l in loc[1:]) if len(loc) > 1 else None
-        fields.append({"field": field, "message": error.get("msg", "Error de validacion")})
+        fields.append({"field": field, "message": _mensaje_legible(error)})
 
     # INC-M02-43-G29 / RF-36: las operaciones rechazadas antes de llegar al
     # use case (400 de Pydantic) también deben quedar en la bitácora de M02.

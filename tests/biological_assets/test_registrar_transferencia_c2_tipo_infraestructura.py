@@ -80,6 +80,7 @@ def _use_case(infra_port, id_especie):
     return RegistrarTransferenciaUseCase(
         db=None, activo_repo=ActivoRepoFake(activo, asociacion),
         transferencia_repo=TransferenciaRepoFake(), infra_port=infra_port,
+        parametros_port=None,
     )
 
 

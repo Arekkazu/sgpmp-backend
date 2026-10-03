@@ -126,12 +126,36 @@ Respuesta esperada `200`:
   ],
   "eventos_reproductivos": [],
   "indicadores": [],
-  "advertencias": []
+  "advertencias": [],
+  "accesos_directos": [
+    {"codigo": "historial", "nombre": "Historial completo", "metodo": "GET",
+     "ruta": "/activos-biologicos/5/historial", "rf_origen": "RF46", "tipos_evento": null},
+    {"codigo": "registrar_evento", "nombre": "Registrar evento", "metodo": "POST",
+     "ruta": "/activos-biologicos/5/eventos/{tipo_evento}", "rf_origen": "RF39-RF43",
+     "tipos_evento": ["crecimiento", "sanitario", "reproductivo", "productivo"]},
+    {"codigo": "cambiar_estado", "nombre": "Cambiar estado", "metodo": "PATCH",
+     "ruta": "/activos-biologicos/5/estado", "rf_origen": "RF44", "tipos_evento": null},
+    {"codigo": "registrar_baja", "nombre": "Registrar baja", "metodo": "POST",
+     "ruta": "/activos-biologicos/5/eventos/baja", "rf_origen": "RF45", "tipos_evento": null}
+  ]
 }
 ```
 
 Comportamiento especial:
+- **Sección 7 (solo POBLACIONAL):** `densidad` es la del detalle poblacional
+  (`cantidad_actual / superficie`, que mantienen al día RF-36/RF-45/RF-48). Para un
+  activo INDIVIDUAL es `null`. Ejemplo en `sgpmp_dev`: el lote 6 responde
+  `"cantidad_actual": 4870, "densidad": "9.74..."`.
+- **Sección 8 (accesos directos):** solo incluye las acciones que el rol puede ejecutar.
+  Cada acceso exige el mismo permiso que su endpoint sobre el recurso 29:
+  `historial` → R, `registrar_evento` y `registrar_baja` → C, `cambiar_estado` → E.
+  Un rol con solo `R` (p.ej. `Integración M04`) recibe únicamente `historial`.
 - Si el activo está en estado `CERRADO` o `BAJA` pero tiene fase productiva activa, `advertencias` contendrá un mensaje de inconsistencia detectada.
+- **E-03 (fallo parcial, HTTP 200):** cada sección carga en su propio savepoint. Si una
+  falla, `advertencias` trae `"La sección <nombre> no pudo cargarse en este momento."` y
+  el resto de la ficha carga normalmente. Esto incluye la vista base (`Datos generales`,
+  secciones 1-4 y 7): si falla, la ficha responde con los datos del propio activo
+  (identificador, tipo, densidad) y los accesos directos.
 - Si la vista no devuelve datos (activo sin ciclo activo), se retornan las secciones vacías con `advertencias: ["No se pudo cargar la información completa del activo."]`.
 
 Errores posibles:
@@ -142,6 +166,16 @@ Errores posibles:
 ---
 
 ## CU10C — RF-48: Registrar transferencia interna
+
+**Definición funcional oficial (INC-M02-87-G81, issue #238):** una transferencia
+interna mueve **siempre el activo completo** — el individuo entero, o la
+totalidad de `cantidad_actual` de un lote poblacional — a la infraestructura
+destino. `RegistrarTransferenciaDTO` no declara ningún campo de cantidad
+(`cantidad`, `cantidad_transferida`, etc.) **a propósito**: no es un vacío del
+contrato, es el mecanismo que impide expresar una transferencia parcial. No
+existe "dividir un lote entre dos infraestructuras" como operación de RF-48.
+Ver `inc_m02_87_g81_transferencia_siempre_completa.md` para el detalle de esta
+decisión.
 
 ### GET /activos-biologicos/{id_activo}/transferencias/disponibles — Listar infraestructuras destino compatibles
 
@@ -191,25 +225,38 @@ Respuesta esperada `201`:
 }
 ```
 
+Si el activo es `POBLACIONAL`, `GET /activos-biologicos/5` tras la transferencia refleja
+`densidad` recalculada contra la superficie de la infraestructura **destino**
+(`cantidad_actual / superficie`), no la de origen (DEF-RF48-02, INC-M02-41-G28).
+Sin superficie configurada en el destino, la densidad conserva el valor previo.
+
 Errores posibles:
 - `404 ACTIVO_NO_ENCONTRADO` — el activo no existe (FA-01)
 - `409 ACTIVO_NO_ACTIVO` — el activo no está en estado ACTIVO (FA-03)
 - `409 TRANSFERENCIA_CONCURRENTE` — hay una transferencia en progreso para el mismo activo (FA-07)
-- `400 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo)
-- `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). Mismo caso que el anterior
-- `400 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Mismo caso que el anterior
+- `422 SIN_INFRAESTRUCTURA_ORIGEN` — el activo no tiene asociación activa en historial (FA-04). Corregido en INC-M02-88-G83 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3/DESTINO_IGUAL_ORIGEN)
+- `400 INFRAESTRUCTURA_ORIGEN_INCORRECTA` — la infra origen del DTO no coincide con la del activo (FA-04). El contrato OpenAPI no declara 400 para este endpoint; comportamiento actual, no necesariamente el esperado (ver nota abajo) — no confirmado como defecto por QA, a diferencia de los dos anteriores
+- `422 INFRAESTRUCTURA_DESTINO_INVALIDA` — la infra destino no existe o está inactiva (FA-05). Corregido en INC-M02-88-G83 (antes respondía 400). Mensaje diferenciado desde INC-M02-89-G83: `"...no existe."` vs `"...se encuentra inactiva."` (antes un único mensaje genérico para ambos casos — mejora de usabilidad, no cambia el `error_code` ni el status)
 - `422 DESTINO_IGUAL_ORIGEN` — origen y destino son la misma infraestructura (FA-06). Corregido en INC-M02-73-G80 (antes respondía 400 pese a ser regla de negocio, igual que C1/C3)
 - `422 INCOMPATIBILIDAD_ESPECIE` — la infra destino no está habilitada para la especie del activo (C1)
 - `422 INCOMPATIBILIDAD_TIPO_INFRAESTRUCTURA` — el tipo de infraestructura destino no es compatible con la especie del activo (C2). Corregido en INC-M02-72-G80 (antes no existía ningún modelo de compatibilidad; un bovino se aceptaba en un Estanque) — ver `modulo9.compatibilidades_tipo_area_especie`; un tipo de infraestructura sin ninguna regla configurada sigue sin restricción
-- `422 DESTINO_OTRA_FINCA` — la infra destino pertenece a una finca distinta a la del activo (alcance por finca). Corregido en INC-M02-74-G80 — antes solo se filtraba en el listado de `disponibles`, no en el POST
+- `422 DESTINO_OTRA_FINCA` — la infra destino pertenece a una finca distinta a la del activo (alcance por finca). Corregido en INC-M02-74-G80 (commit `df73a16d`, 2026-09-12) — antes solo se filtraba en el listado de `disponibles`, no en el POST. QA reportó el mismo defecto de nuevo en `INC-M02-40-G28`/`TC-M02-201` (2026-09-08/09, contra `sgpmp_test`) — el entorno de TEST corría una revisión anterior a este fix; verificado que ya está resuelto en `dev`
 - `422 CAPACIDAD_EXCEDIDA` — la infra destino no tiene capacidad suficiente (C3)
-- `422 FECHA_FUTURA` — fecha_transferencia es posterior al día actual
+- `422 FECHA_TRANSFERENCIA_FUTURA` — fecha_transferencia es posterior al día actual (nombre de código corregido; el doc decía `FECHA_FUTURA`, el `code` real que devuelve la API es `FECHA_TRANSFERENCIA_FUTURA`, confirmado en `RegistrarTransferenciaUseCase._execute` E-10)
 - `401 TOKEN_REQUERIDO` — sin token o token inválido
-- `403` — rol sin permiso de ejecución sobre activos biológicos (solo admin y productor)
+- `403` — rol sin permiso de ejecución (`E`) sobre el recurso 29 (`activos_biologicos`). Verificado
+  en vivo contra `modulo1.permisos` de `sgpmp_dev` (2026-09-24): **los 4 roles lo tienen**
+  (Administrador, Productor, Veterinario, Ingeniero de Campo), así que ninguno de ellos recibe 403. El
+  use case no verifica `id_rol`. Esta línea decía antes "(solo admin y productor)", lo que no era
+  cierto: ese es el alcance que pide RF-48 (actores Productor y Administrador), no el que aplica el
+  sistema. Que Veterinario e Ingeniero puedan transferir es parte del hallazgo transversal #5 de
+  `estado_M02.md` (RBAC más amplio que los actores del RF), pendiente de decisión del equipo de análisis.
 
-> **Nota (INC-M02-73-G80):** `SIN_INFRAESTRUCTURA_ORIGEN`, `INFRAESTRUCTURA_ORIGEN_INCORRECTA`
-> e `INFRAESTRUCTURA_DESTINO_INVALIDA` usan `ValidationError` (400) igual que `DESTINO_IGUAL_ORIGEN`
-> usaba antes de este fix — el propio reporte de QA que originó este fix señala que podrían tener
-> el mismo defecto, pero explícitamente no lo confirma ("no deben considerarse defectos
-> funcionalmente confirmados con esta evidencia"). No se tocan aquí; quedan para un issue propio si
-> QA lo confirma.
+> **Nota (INC-M02-73-G80 → INC-M02-88-G83):** `SIN_INFRAESTRUCTURA_ORIGEN`,
+> `INFRAESTRUCTURA_ORIGEN_INCORRECTA` e `INFRAESTRUCTURA_DESTINO_INVALIDA` usaban
+> `ValidationError` (400) igual que `DESTINO_IGUAL_ORIGEN` usaba antes de `INC-M02-73-G80` —
+> ese fix señaló que podrían tener el mismo defecto, sin confirmarlo. `INC-M02-88-G83`
+> (`TC-M02-307`, `TC-M02-308-A/B`) confirmó y corrigió los dos primeros
+> (`SIN_INFRAESTRUCTURA_ORIGEN`, `INFRAESTRUCTURA_DESTINO_INVALIDA`) a `422`.
+> `INFRAESTRUCTURA_ORIGEN_INCORRECTA` sigue en `400` — QA no lo probó en este ticket, no se
+> toca hasta que se confirme igual que los otros.

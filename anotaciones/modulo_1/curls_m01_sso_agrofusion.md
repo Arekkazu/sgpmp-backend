@@ -35,7 +35,7 @@ Si el correo del token no existía en sgpmp, se provisiona una cuenta mínima (e
 |---|---|---|
 | 503 | `SSO_NO_CONFIGURADO` | Integración deshabilitada en este despliegue (env vars ausentes) |
 | 500 | `AGROFUSION_CLAVE_PUBLICA_NO_DISPONIBLE` | El path configurado no se pudo leer |
-| 401 | `SSO_TOKEN_INVALIDO` | Firma RS256 inválida, `aud`/`iss` incorrectos, token expirado (TTL 2 min), o payload sin `sub`/`email` |
+| 401 | `SSO_TOKEN_INVALIDO` | Firma RS256 inválida, `aud`/`iss`/`exp` incorrectos o **ausentes** (SEG-M01-02, #438), token expirado (TTL 2 min), o payload sin `sub`/`email` |
 | 423 | `CUENTA_BLOQUEADA` | Cuenta existente bloqueada temporalmente por intentos fallidos de login normal |
 | 403 | `CUENTA_DESHABILITADA` | Cuenta existente inactiva o eliminada |
 

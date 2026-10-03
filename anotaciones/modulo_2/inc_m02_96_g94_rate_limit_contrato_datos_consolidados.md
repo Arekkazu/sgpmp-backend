@@ -48,3 +48,23 @@ tampoco declaraba `429` en las respuestas posibles.
 ## Pruebas
 
 `pytest tests/biological_assets/` — 76 passed (incluye el test nuevo).
+
+## Actualización — aislamiento por módulo resuelto (RF-50)
+
+El punto 1 de "fuera de alcance" quedó resuelto una vez que existieron las
+identidades técnicas `Integración M04` (migración `d944f4d8c215`) y
+`Integración M06` (migración `2b747aaae732`):
+
+- `rate_limit` (`src/shared/rate_limit.py`) acepta un parámetro opcional
+  `clave`: una dependencia de FastAPI que devuelve el identificador del
+  contador. Sin ella se mantiene el comportamiento anterior (`id_usuario`), así
+  que los demás endpoints que usan el helper no cambian.
+- `datos-consolidados` usa `_clave_consumidor_datos_consolidados`, que resuelve
+  el módulo con la misma función que ya usa la auditoría
+  (`resolver_modulo_consumidor`, extraída del use case sin cambiar su lógica).
+  El resultado es `modulo:modulo<n>` para las identidades técnicas y
+  `usuario:<id>` para los humanos.
+- No hay `id_rol` hardcodeado: el módulo se deriva del nombre del rol, igual que
+  en la auditoría, porque los `id_rol` varían entre bases.
+- No requiere DDL/DML nuevo: las dos identidades ya las crean migraciones
+  existentes en `dev`.

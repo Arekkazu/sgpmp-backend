@@ -31,6 +31,13 @@ ESTADO_ENVIO_FALLIDO = "fallido"
 # Tipos de evento considerados de seguridad — se envían incluso si la cuenta está bloqueada
 TIPOS_EVENTO_SEGURIDAD = {4, 10}
 
+# RF-14 ("Evento de seguridad en Usuario Inactivo"): una cuenta INACTIVA no
+# recibe avisos de intentos de acceso, porque contestarlos confirmaría que la
+# cuenta existe. La única excepción es el cambio de estado, que es el aviso de
+# que la cuenta acaba de ser inactivada (INC-M01-18-092) y va dirigido a su
+# titular, no a quien intenta entrar.
+TIPOS_EVENTO_PERMITIDOS_INACTIVO = {10}
+
 _MENSAJES: dict[int, tuple[str, str]] = {
     1:  ("Bienvenido a SGPMP", "Tu cuenta ha sido registrada exitosamente."),
     2:  ("Cuenta activada", "Tu cuenta ha sido activada. Ya puedes iniciar sesión."),
@@ -133,7 +140,9 @@ class NotificacionService:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
         Aplica las siguientes reglas antes de enviar:
-        - Cuentas INACTIVAS (id=3) no reciben ninguna notificación.
+        - Cuentas INACTIVAS (id=3) solo reciben el aviso de cambio de estado
+          (``TIPOS_EVENTO_PERMITIDOS_INACTIVO``): RF-14 prohíbe notificarles
+          intentos de acceso para no confirmar que la cuenta existe.
         - Cuentas BLOQUEADAS (id=4) solo reciben eventos de seguridad
           (tipos definidos en ``TIPOS_EVENTO_SEGURIDAD``).
         - Si no existe un evento registrado para el usuario y tipo, se omite.
@@ -150,11 +159,16 @@ class NotificacionService:
 
         id_estado = self.port.buscar_estado_cuenta(id_usuario)
 
-        # Cuentas INACTIVAS/BLOQUEADAS solo reciben eventos de seguridad. Sin esta
-        # excepción, la notificación que informa AL USUARIO que su cuenta acaba de
-        # pasar a INACTIVO se autosuprime: para cuando notificar() corre (después
-        # del commit del cambio de estado), la cuenta ya está inactiva.
-        if id_estado in (ESTADO_INACTIVO, ESTADO_BLOQUEADO) and tipo_evento not in TIPOS_EVENTO_SEGURIDAD:
+        # Cuentas BLOQUEADAS solo reciben eventos de seguridad (intento fallido
+        # y bloqueo). Las INACTIVAS son más estrictas por privacidad: solo el
+        # aviso de cambio de estado, que es lo que informa AL USUARIO que su
+        # cuenta acaba de pasar a INACTIVO — sin esa excepción esa notificación
+        # se autosuprime, porque notificar() corre después del commit del
+        # cambio de estado, cuando la cuenta ya está inactiva.
+        if id_estado == ESTADO_BLOQUEADO and tipo_evento not in TIPOS_EVENTO_SEGURIDAD:
+            return None
+
+        if id_estado == ESTADO_INACTIVO and tipo_evento not in TIPOS_EVENTO_PERMITIDOS_INACTIVO:
             return None
 
         id_evento = self.port.buscar_ultimo_evento_id(id_usuario, tipo_evento)

@@ -1,4 +1,4 @@
-# INC-M02-62-G87 — Productor no podía asociar sensores a sus propios activos
+# INC-M02-37-G87 v2.0 — Productor no podía asociar sensores a sus propios activos
 
 **RF:** RF-49 (CU11) — Asociar sensor IoT al activo biológico
 **Endpoint:** `POST /activos-biologicos/{id_activo}/sensores`
@@ -23,18 +23,23 @@ WHERE p.id_recurso = 30;
 -- Productor: solo prod_leer_asociacion_sensor_activo (R). Sin fila de C.
 ```
 
-## Fix — solo datos, sin cambio de código de aplicación
+## Fix persistente — migración Alembic v5.3.0
 
-Insertado en `sgpmp` (dev) y `pruebas` (test), mismo patrón "Paso 0" usado en
-toda esta cadena de issues:
+La corrección deja de depender de un `INSERT` manual y se versiona en
+`1d7d6069da52_v5_3_0_rf49_permiso_productor_.py`. La migración valida los
+catálogos esperados y hace un upsert idempotente del permiso:
 
 ```sql
-INSERT INTO modulo1.permisos (nombre, descripcion, id_recurso, id_accion, id_rol, es_activo)
+INSERT INTO modulo1.permisos (nombre, descripcion, id_rol, id_recurso, id_accion, es_activo)
 VALUES (
     'prod_crear_asociacion_sensor_activo',
-    'Permite al Productor asociar sensores IoT a sus propios activos biologicos (RF-49/CU11).',
-    30, 1, 2, true
-);
+    'Permite al Productor asociar sensores IoT a activos e infraestructuras de sus propias fincas (RF-49).',
+    2, 30, 1, true
+)
+ON CONFLICT (id_rol, id_recurso, id_accion)
+DO UPDATE SET nombre = EXCLUDED.nombre,
+              descripcion = EXCLUDED.descripcion,
+              es_activo = true;
 ```
 
 Nombre del permiso sigue la convención `{rol}_{accion}_{recurso_singular}` ya
@@ -42,43 +47,25 @@ usada en el resto del proyecto (`prod_crear_asociacion_sensor_activo`, igual
 patrón que `admin_crear_asociacion_sensor_activo` / `ing_crear_asociacion_sensor_activo`
 ya existentes para Administrador e Ingeniero de Campo).
 
-## Advertencia explícita — alcance por finca sigue sin validarse aquí
+## Alcance por finca cerrado junto con la habilitación
 
-**Este fix NO cierra ningún riesgo de alcance por finca.** El router
-(`asociar_sensor_iot`) llama `use_case.execute(id_activo, dto, usuario_actual)`
-sin pasar ninguna lista de fincas permitidas, y `AsociarSensorActivoUseCase`
-resuelve el activo con `obtener_por_id(id_activo)` sin filtro de alcance —
-exactamente el mismo patrón de gap que INC-M02-71-G48 (#221, esta misma cadena)
-ya identificó y documentó como sistémico en casi todos los use cases de
-escritura de este módulo, incluyendo explícitamente `asociar_sensor_activo`.
+Conceder `C` hacía alcanzable una vulnerabilidad latente: el POST resolvía el
+activo sin filtrar las fincas del usuario. Ahora el router obtiene el alcance
+con `AlcanceFincaAdapter` y `AsociarSensorActivoUseCase` lo entrega a
+`obtener_por_id`. Un activo ajeno se enmascara como `ACTIVO_NO_ENCONTRADO`
+(422), sin revelar su existencia.
 
-Antes de este fix, esto era irrelevante porque el Productor no podía llegar
-siquiera al use case (403 en el RBAC). **Después de este fix, el Productor SÍ
-puede crear una asociación sensor-activo sobre un activo de CUALQUIER finca**,
-no solo la suya — el RF-49 exige lo contrario ("sus propios activos
-biológicos"). Esto no se corrige en este ticket porque:
-
-1. El alcance de INC-M02-62-G87 según el propio reporte de QA es puntualmente
-   el permiso RBAC faltante, no el alcance por finca.
-2. El fix sistémico de alcance por finca en escritura ya está identificado
-   como trabajo de auditoría separado (ver
-   `anotaciones/modulo_2/inc_m02_71_g48_alcance_finca_crecimiento.md`), y
-   mezclarlo aquí duplicaría ese esfuerzo en vez de resolverlo una sola vez
-   para los ~10 use cases afectados.
-
-**Se deja como hallazgo explícito para dicha auditoría, no como gap oculto.**
+El mismo permiso protege el POST de asociación ambiental por infraestructura.
+Por eso `AsociarSensorInfraestructuraUseCase` también valida que la
+infraestructura objetivo pertenezca al alcance del Productor y responde
+`INFRAESTRUCTURA_NO_ENCONTRADA` (422) cuando es ajena. Los roles que ya tenían
+CREATE antes de esta corrección conservan su alcance operativo existente.
 
 ## Pruebas
 
-`tests/integration/test_rbac_inc_m02_62_g87.py` (nuevo, requiere
-`TEST_DATABASE_URL` apuntando a `pruebas`): verifica que el Productor ya no
+`tests/integration/test_rbac_inc_m02_62_g87.py` verifica que el Productor ya no
 recibe 401/403 al llamar el endpoint (RBAC pasa; el use case falla aguas abajo
 por `id_activo`/`sensor_id` inexistentes, resultado irrelevante para esta
 prueba), y que el Veterinario —que nunca tuvo `C` sobre este recurso— sigue en
-403 como control negativo. Suite de integración completa: 164 passed, 7
-fallos preexistentes sin relación (ya caracterizados en
-`inc_m02_72_g80_compatibilidad_tipo_infraestructura.md`, RBAC de
-`/configuracion/tipos-area` y dos casos de M01).
-
-Suite unitaria de `tests/biological_assets/`: 102 passed, sin regresiones (no
-se tocó código de aplicación).
+403 como control negativo. Las pruebas unitarias nuevas cubren el rechazo de
+activos e infraestructuras fuera de alcance y preservan el acceso global.

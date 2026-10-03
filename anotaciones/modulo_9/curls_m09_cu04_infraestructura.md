@@ -265,6 +265,7 @@ Errores posibles:
 - `409` — nombre duplicado dentro de la misma finca (FA-08)
 - `400` — superficie cero, negativa o no numérica (FA-11)
 - `403` — rol sin permiso C sobre infraestructuras (FA-01)
+- `400` — `tipo_area` no existe en el catálogo o está desactivado (FA-13) — `TIPO_AREA_NO_RECONOCIDO`
 
 ---
 
@@ -332,6 +333,7 @@ Errores posibles:
 - `409` — nombre duplicado dentro de la misma finca (FA-08)
 - `412` — concurrencia: el área fue modificada por otro usuario (FA-14)
 - `400` — superficie inválida (FA-11)
+- `400` — `tipo_area` no existe en el catálogo o está desactivado (FA-13) — `TIPO_AREA_NO_RECONOCIDO`
 
 ---
 

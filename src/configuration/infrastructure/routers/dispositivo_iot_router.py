@@ -271,7 +271,14 @@ def configurar_remotamente(
         tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
         mqtt_port=MqttHttpAdapter(),
     )
-    config, mensaje = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
+    config, mensaje = use_case.execute(
+        id_dispositivo_iot,
+        dto,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
 
     if config.estado == "NO_CONF":
         raise GatewayTimeoutError(
@@ -295,6 +302,7 @@ def configurar_remotamente(
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
     },
     summary="Historial de configuraciones remotas (RF-23)",
 )
@@ -306,7 +314,13 @@ def listar_configuraciones(
     use_case = ConsultarConfiguracionesUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
     )
-    configs = use_case.listar_por_dispositivo(id_dispositivo_iot)
+    configs = use_case.listar_por_dispositivo(
+        id_dispositivo_iot,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
     items = [ConfiguracionRemotaResponse.from_entity(c) for c in configs]
     return ListaConfiguracionesRemotasResponse(total=len(items), items=items)

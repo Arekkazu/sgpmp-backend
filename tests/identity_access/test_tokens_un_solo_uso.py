@@ -155,14 +155,15 @@ class UsuarioCrearRepoFake:
         return self.usuario
 
 
-class CorreoActivacionPortFake:
+class NotificacionServiceFake:
     def __init__(self, db: DbFake) -> None:
         self.db = db
         self.llamadas = []
 
-    def programar_envio(self, **datos) -> None:
+    def notificar(self, **datos):
         assert self.db.commits == 1
         self.llamadas.append(datos)
+        return True
 
 
 class CaptchaVerifierFake:
@@ -200,7 +201,7 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
 
     cuentas_repo = CuentaCrearRepoFake()
     db = DbFake()
-    correos = CorreoActivacionPortFake(db)
+    correos = NotificacionServiceFake(db)
     captcha = CaptchaVerifierFake()
 
     monkeypatch.setattr(
@@ -225,9 +226,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
         usuarios_repo=UsuarioCrearRepoFake(usuario),
         cuentas_repo=cuentas_repo,
         eventos_repo=EventoRepoFake(),
-        correo_activacion_port=correos,
         captcha_verifier=captcha,
         db=db,
+        notificacion_service=correos,
     ).execute(
         SimpleNamespace(
             correo_electronico=usuario.correo,
@@ -251,8 +252,9 @@ def test_registro_persiste_hash_y_envia_el_token_crudo(monkeypatch) -> None:
     assert captcha.llamadas == [("captcha-valido", "127.0.0.1")]
 
     assert correos.llamadas
-    assert correos.llamadas[0]["token"] == TOKEN_CRUDO
-    assert correos.llamadas[0]["token"] != TOKEN_HASH
+    cuerpo_correo = correos.llamadas[0]["contenido_html_email"]
+    assert TOKEN_CRUDO in cuerpo_correo
+    assert TOKEN_HASH not in cuerpo_correo
 
 
 def test_activar_cuenta_consulta_por_hash_y_consume_el_token() -> None:

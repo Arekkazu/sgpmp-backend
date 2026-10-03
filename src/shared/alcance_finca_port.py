@@ -1,7 +1,7 @@
 """Puerto de alcance por finca (RF-25), transversal a todos los módulos.
 
 Determina si un usuario tiene alcance global (ve todas las fincas) o queda
-restringido a las fincas que le fueron asignadas por ``modulo9.fincas.id_usuario``.
+restringido a las fincas que le fueron asignadas en ``modulo9.usuarios_fincas``.
 La regla de "quién es global" se resuelve por RBAC (permiso de gestión sobre el
 recurso ``fincas``), nunca por ``id_rol`` quemado en código. Espejo del patrón
 ``AlcanceActivoPort``.

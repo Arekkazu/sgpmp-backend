@@ -49,7 +49,10 @@ def test_perfil_propio_usa_ruta_me_y_rechaza_estado_de_cuenta(
         },
     )
 
-    assert con_estado.status_code == 400
+    # RF-05: los datos críticos por el endpoint propio son escalada de
+    # privilegios (403 + auditoría), no un error de formato.
+    assert con_estado.status_code == 403
+    assert con_estado.json()["error_code"] == "ESCALADA_PRIVILEGIOS"
 
     assert any(
         campo["field"] == "id_estado_cuenta"
@@ -226,5 +229,6 @@ def test_gestion_protege_ultimo_usuario_activo_de_rol_protegido(
         },
     )
 
-    assert respuesta.status_code == 422
+    # RF-06 clasifica este caso como 400.
+    assert respuesta.status_code == 400
     assert respuesta.json()["error_code"] == "ULTIMO_ADMIN_PROTEGIDO"

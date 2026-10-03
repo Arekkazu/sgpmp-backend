@@ -5,6 +5,7 @@ from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.application.use_cases.gestion._auditoria_rechazos import (
     ejecutar_con_auditoria_de_rechazo,
 )
@@ -12,7 +13,7 @@ from src.biological_assets.application.use_cases.gestion._event_validations impo
     validar_estado_permite_eventos,
     validar_fecha_evento,
 )
-from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoSanitario, HistoricoEstado
+from src.biological_assets.domain.entities.activo_biologico import EventoActivo, EventoAuditoria, EventoSanitario, HistoricoEstado, registros_rf46
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
@@ -126,34 +127,30 @@ class RegistrarEventoSanitarioUseCase:
             raise
         except Exception as exc:
             self.db.rollback()
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_FALLIDO',
-                        clasificacion_biologica='SANITARIO', resultado='FALLIDO',
-                        severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                        detalle_tecnico={'error': str(exc), 'tipo_sanitario': dto.tipo},
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_FALLIDO',
+                clasificacion_biologica='SANITARIO', resultado='FALLIDO',
+                severidad_log='ERROR', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+                detalle_tecnico={'error': str(exc), 'tipo_sanitario': dto.tipo},
+                id_usuario_responsable=usuario.id_usuario,
+            ))
             raise
 
-        if self.bitacora_repo:
-            try:
-                self.bitacora_repo.registrar(EventoAuditoria(
-                    rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_REGISTRADO',
-                    clasificacion_biologica='SANITARIO', resultado='EXITOSO',
-                    severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                    id_activo_biologico=id_activo, tipo_activo=activo.tipo,
-                    descripcion=f'Evento sanitario registrado: {dto.tipo}',
-                    detalle_tecnico={'tipo_sanitario': dto.tipo},
-                    id_usuario_responsable=usuario.id_usuario,
-                ))
-                self.db.commit()
-            except Exception:
-                pass
+        registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+            rf_origen='RF41', tipo_evento='EVENTO_SANITARIO_REGISTRADO',
+            clasificacion_biologica='SANITARIO', resultado='EXITOSO',
+            severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo, tipo_activo=activo.tipo,
+            descripcion=f'Evento sanitario registrado: {dto.tipo}',
+            detalle_tecnico={
+                'tipo_sanitario': dto.tipo,
+                'registros_rf46': registros_rf46(
+                    eventos_activos=resultado.id_eventos,
+                    historicos_estados_activos=historico.id_historico if historico else None,
+                ),
+            },
+            id_usuario_responsable=usuario.id_usuario,
+        ))
 
         return resultado, historico

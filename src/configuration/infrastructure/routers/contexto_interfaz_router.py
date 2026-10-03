@@ -7,7 +7,7 @@ RBAC: id_recurso=22 (contexto_interfaz). Todos los roles con permiso R.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.personalizacion.obtener_contexto_use_case import ObtenerContextoUseCase
@@ -29,18 +29,28 @@ _RECURSO = 22  # modulo1.recursos: 'contexto_interfaz'
     response_model=ContextoInterfazResponse,
     dependencies=[Depends(require_permission(_RECURSO, 2))],
     responses={
+        204: {"description": "Finca sin especies ni infraestructura configuradas"},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        504: {"model": ErrorResponse},
     },
     summary="Obtener contexto adaptativo de interfaz del usuario (Flujo A)",
 )
 def obtener_contexto(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> ContextoInterfazResponse:
+) -> ContextoInterfazResponse | Response:
     use_case = ObtenerContextoUseCase(
         contexto_repo=SqlAlchemyContextoInterfazRepository(db),
         identidad_repo=SqlAlchemyIdentidadVisualRepository(db),
     )
     contexto = use_case.execute(usuario_actual)
+
+    # RF-25, flujo alterno "Finca sin especies productivas configuradas": 204. La
+    # decisión vive en el router y no en el use case porque el código HTTP es
+    # parte del contrato de transporte, no del dominio — el use case sigue
+    # devolviendo el contexto y el router elige cómo representarlo.
+    if contexto.finca_sin_catalogo:
+        return Response(status_code=204)
+
     return ContextoInterfazResponse.from_entity(contexto)

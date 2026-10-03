@@ -67,9 +67,18 @@ condicionales. `aviso` trae el texto del flujo alterno de RF-27 y es `null` cuan
 claro exige luminancia ≤ 0.175 y contra el oscuro ≥ 0.214: ningún color cumple en los dos a
 la vez. El cliente muestra el aviso del tema activo.
 
+Respuestas alternas:
+- `204` — la finca del usuario no tiene **ni** especies **ni** áreas productivas
+  configuradas (FA-19). Sin cuerpo: el cliente pinta la pantalla de "Finca sin
+  configuración". Un usuario **sin finca** sigue siendo `200` con `id_finca: null`
+  (FA-18, vista de bienvenida), no `204`.
+
 Errores posibles:
 - `401` — token ausente o inválido
 - `403` — rol sin permiso R sobre `contexto_interfaz` (FA-22)
+- `504` — la construcción del contexto superó el presupuesto de 2 s del RF
+  (FA-21) — `TIMEOUT_CONTEXTO_INTERFAZ`. Se impone con `statement_timeout` en la
+  transacción del request; una BD caída sigue dando `503`, no `504`.
 
 ---
 
@@ -148,7 +157,7 @@ Respuesta esperada `201`:
 
 Errores posibles:
 - `400` — color con formato inválido, nombre vacío o mayor de 50 chars (FA-24)
-- `400` — formato de imagen no permitido (gif, bmp, etc.) (FA-25)
+- `415` — formato de imagen no permitido (gif, bmp, webp, pdf...) (FA-25) — `FORMATO_IMAGEN_NO_PERMITIDO`
 - `400` — imagen supera 2 MB (FA-26)
 - `403` — rol sin permiso C sobre `identidad_visual` (sin RBAC)
 - `409` — ya existe identidad visual para esa finca (FA-23)
@@ -177,6 +186,56 @@ Errores posibles:
 - `403` — rol sin permiso U sobre `identidad_visual`
 - `404` — finca sin identidad visual registrada
 - `412` — versión enviada no coincide con la actual en BD (FA-27)
+
+---
+
+### Consultar auditoría de identidad visual de una finca (Flujo D — TC-M09-169)
+
+```bash
+curl -X GET http://localhost:8000/configuracion/identidad-visual/1/auditoria \
+  -H "Authorization: Bearer <TOKEN_ADMIN>"
+```
+
+Respuesta esperada `200`:
+
+```json
+{
+  "total": 1,
+  "items": [
+    {
+      "id_auditoria_visual": 45,
+      "id_finca": 1,
+      "id_usuario": 50,
+      "usuario": "Admin Camila",
+      "fecha_creacion": "2026-09-14T05:37:31.326593Z",
+      "tipo_operacion": "UPDATE",
+      "valor_anterior": {
+        "id_finca": 1,
+        "primary_color": "#C41E3A",
+        "version": 9
+      },
+      "valor_nuevo": {
+        "id_finca": 1,
+        "primary_color": "#3A7BD5",
+        "version": 10
+      }
+    }
+  ]
+}
+```
+
+`tipo_operacion` puede ser `CREATE` o `UPDATE`. El historial se ordena del cambio más
+reciente al más antiguo y devuelve una sola fila canónica por operación. Los duplicados
+históricos producidos por el trigger legado se conservan en BD, pero no se exponen porque
+carecen de `id_finca`; la migración `47038edfa2fc` detiene su generación futura.
+
+Este endpoint consulta `modulo9.auditorias_visuales`. `GET /auditoria/` continúa siendo la
+bitácora transversal de `modulo1.eventos` y no sustituye este historial de dominio.
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre `identidad_visual`
+- `404 IDENTIDAD_VISUAL_NO_ENCONTRADA` — la finca no tiene identidad visual registrada
 
 ---
 

@@ -23,6 +23,7 @@ from src.configuration.infrastructure.dto.guardar_idioma_dto import GuardarIdiom
 from src.configuration.infrastructure.repositories.preferencia_idioma_repository import SqlAlchemyPreferenciaIdiomaRepository
 from src.configuration.infrastructure.schema.preferencia_idioma_schema import IdiomaResueltoResponse, PreferenciaIdiomaResponse
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.shared.database import get_db
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -81,7 +82,7 @@ def guardar_idioma_personal(
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PreferenciaIdiomaResponse:
     repo = SqlAlchemyPreferenciaIdiomaRepository(db)
-    use_case = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo)
+    use_case = GuardarIdiomaPersonalUseCase(db=db, idioma_repo=repo, eventos_repo=SqlAlchemyEventoRepository(db))
     entidad = use_case.execute(dto, usuario_actual)
     return PreferenciaIdiomaResponse.from_entity(
         entidad,

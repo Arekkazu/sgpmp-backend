@@ -6,7 +6,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -16,14 +16,15 @@ from src.identity_access.application.use_cases.perfil.editar_perfil_use_case imp
 from src.identity_access.application.use_cases.registro.activar_cuenta_use_case import ActivarCuentaUseCase
 from src.identity_access.application.use_cases.registro.crear_usuario_use_case import CrearUsuarioUseCase
 from src.identity_access.application.use_cases.registro.reenviar_token_use_case import ReenviarTokenUseCase
-from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import ConsultarDetalleUsuarioUseCase
+from src.identity_access.application.use_cases.usuarios.consultar_detalle_usuario_use_case import (
+    ConsultarDetalleUsuarioUseCase,
+    enmascarar_identificacion,
+    puede_ver_identificacion_completa,
+)
 from src.identity_access.application.use_cases.usuarios.asignar_fincas_usuario_use_case import AsignarFincasUsuarioUseCase
 from src.identity_access.application.use_cases.usuarios.listar_usuarios_use_case import ListarUsuariosUseCase
 from src.identity_access.domain.repositories.captcha_verifier_port import (
     CaptchaVerifierPort,
-)
-from src.identity_access.infrastructure.adapters.correo_activacion_background_adapter import (
-    CorreoActivacionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
     GoogleRecaptchaAdapter,
@@ -181,7 +182,6 @@ def listar_usuarios_admin(
 def crear_usuario(
     dto: UsuarioCreateDTO,
     request: Request,
-    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     captcha_verifier: CaptchaVerifierPort = Depends(get_captcha_verifier),
 ):
@@ -191,9 +191,12 @@ def crear_usuario(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
-        correo_activacion_port=CorreoActivacionBackgroundAdapter(background_tasks),
         captcha_verifier=captcha_verifier,
         db=db,
+        notificacion_service=NotificacionService(
+            port=SqlAlchemyNotificacionRepository(db),
+            db=db,
+        ),
     )
 
     use_case.execute(dto, ip, user_agent)
@@ -227,7 +230,6 @@ def reenviar_token(dto: ReenviarTokenDTO, request: Request, db: Session = Depend
     responses={
         400: {"model": ErrorResponse},
         410: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
     },
 )
 
@@ -300,6 +302,7 @@ def consultar_perfil(
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
@@ -329,6 +332,7 @@ def editar_perfil_propio(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
+        410: {"model": ErrorResponse},
         412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
         503: {"model": ErrorResponse},
@@ -346,7 +350,12 @@ def editar_perfil_admin(
         usuario_actual,
     )
 
-    return _a_usuario_response(usuario)
+    # SEG-M01-03: editar (U) no da derecho a ver el ID completo (E); mismo
+    # criterio que GET /{id_usuario}/detalle.
+    respuesta = _a_usuario_response(usuario)
+    if not puede_ver_identificacion_completa(SqlAlchemyPermisoRepository(db), usuario_actual):
+        respuesta.numero_identificacion = enmascarar_identificacion(respuesta.numero_identificacion)
+    return respuesta
 
 @router.get(
     "/{id_usuario}/detalle",
@@ -381,7 +390,7 @@ def detalle_usuario(
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
     },
 )
 def gestionar_cuenta(
@@ -414,7 +423,6 @@ def gestionar_cuenta(
         400: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
-        409: {"model": ErrorResponse},
     },
     summary="Asignar o desasignar fincas a un usuario (RF-25)",
 )

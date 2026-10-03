@@ -29,3 +29,17 @@ class IndicadoresRepository(ABC):
         pagina: int,
         page_size: int,
     ) -> DatosConsolidados: ...
+
+    @abstractmethod
+    def contar_metricas_peso_en_rango(
+        self,
+        id_activo: int,
+        fecha_inicio: Optional[date],
+        fecha_fin: Optional[date],
+    ) -> int:
+        """Cuenta mediciones de peso (`eventos_crecimeinto.tipo_medicion='peso'`)
+        del activo dentro del rango. Usado por RF-50 FA-03 (INC-M02-93-G93)
+        para rechazar con 422 las consultas de valoración NIC-41 (M06) cuando
+        el activo no registra peso en el periodo solicitado.
+        """
+        ...

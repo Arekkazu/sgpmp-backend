@@ -46,7 +46,40 @@ class CambiarEstadoAsociacionSensorUseCase:
                 code='ASOCIACION_NO_ENCONTRADA',
                 message=f'No existe una asociación con id {id_asociacion} para el activo {id_activo}.',
             )
+        return self._aplicar_transicion(asociacion, dto, usuario_actual)
 
+    def execute_infraestructura(
+        self,
+        id_infraestructura: int,
+        id_asociacion: int,
+        dto: CambiarEstadoAsociacionSensorDTO,
+        usuario_actual: UsuarioActual,
+    ) -> AsociacionSensorActivo:
+        """Cambia el estado de una asociación AMBIENTAL (RF-49 Tipo B), anclada
+        a una infraestructura completa (``id_activo_biologico IS NULL``) en vez
+        de a un activo puntual. Misma máquina de transiciones que ``execute``;
+        solo cambia el criterio de pertenencia (INC-M02-50-G84 / #398)."""
+        asociacion = self.repo.obtener_por_id(id_asociacion)
+        if (
+            asociacion is None
+            or asociacion.id_infraestructura != id_infraestructura
+            or asociacion.id_activo_biologico is not None
+        ):
+            raise NotFoundError(
+                code='ASOCIACION_NO_ENCONTRADA',
+                message=(
+                    f'No existe una asociación ambiental con id {id_asociacion} '
+                    f'para la infraestructura {id_infraestructura}.'
+                ),
+            )
+        return self._aplicar_transicion(asociacion, dto, usuario_actual)
+
+    def _aplicar_transicion(
+        self,
+        asociacion: AsociacionSensorActivo,
+        dto: CambiarEstadoAsociacionSensorDTO,
+        usuario_actual: UsuarioActual,
+    ) -> AsociacionSensorActivo:
         estado_actual = asociacion.estado_asociacion
         estado_nuevo = dto.estado_nuevo
 

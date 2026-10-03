@@ -22,12 +22,18 @@ from src.shared.errors import (
 
 _PREFIJOS_CONSTRAINT = ("uq_", "uk_", "fk_", "ck_", "chk_", "pk_", "idx_", "ix_")
 
-#: SQLSTATE de duplicados de nombre que triggers de `modulo9` señalan con
+#: SQLSTATE de duplicados que triggers de `modulo9` señalan con
 #: `RAISE EXCEPTION ... USING ERRCODE`. Postgres los clasifica como clase
 #: `P0` (PL/pgSQL), que psycopg2/SQLAlchemy no mapea a `IntegrityError`
 #: (cae a `InternalError` genérico) — sin este mapeo explícito, un choque de
 #: nombre entre dos filas activas sale como 500 en vez de 409.
-_ERRCODES_NOMBRE_DUPLICADO = {"P0104", "P0109"}
+#: P0104 etapa, P0109 métrica, P0125 área productiva (INC-M09-20-G49: el
+#: trigger compara sin distinguir mayúsculas y salta antes que el UNIQUE),
+#: y los demás duplicados de `modulo9`: P0101 especie, P0107 patología,
+#: P0110 umbral, P0119/P0120 finca, P0128 serial de dispositivo.
+_ERRCODES_NOMBRE_DUPLICADO = {
+    "P0101", "P0104", "P0107", "P0109", "P0110", "P0119", "P0120", "P0125", "P0128",
+}
 
 #: SQLSTATE de reglas de negocio de `modulo9.sensores_areas_asociadas`
 #: señaladas por trigger con `RAISE EXCEPTION ... USING ERRCODE`. Misma
@@ -45,11 +51,49 @@ _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 #: salía como 500 en vez del 422 de negocio documentado en RF-42.
 _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
 
+#: INC-M02-100-G31: `trg_fn_poblacional_cantidad_inmutable` (modulo2,
+#: `detalles_activos_biologicos_poblacionales`) protege `cantidad_inicial`
+#: (inmutable) y `cantidad_actual` (no negativa) con `RAISE EXCEPTION ...
+#: USING ERRCODE`. Misma clase P0 no mapeada por psycopg2/SQLAlchemy — antes
+#: de este mapeo, `POST .../eventos/crecimiento` sobre un lote que disparara
+#: el trigger devolvía 500 ERROR_INTERNO en vez del 400 de negocio que ya
+#: aplica la restricción CHECK gemela (`chk_poblacional_cantidad_actual_no_negativa`)
+#: cuando la violación llega por una vía distinta al CHECK nativo.
+_ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA = "P0210"
+
 #: INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, cualquier tabla
 #: de eventos vía `eventos_activos`) también señala con `RAISE ... USING
 #: ERRCODE`, sin mapeo — un cliente que sí mande una fecha inválida (futura o
 #: anterior al registro del activo) recibía 500 en vez de 400.
 _ERRCODE_EVENTO_FECHA_INVALIDA = "P0215"
+
+#: INC-M02-G34 (RF-37): triggers de `modulo2.gestiones_fases` — fase activa
+#: duplicada (P0226), fechas solapadas (P0227) y activo CERRADO/BAJA (P0228).
+#: Sin mapeo, cambiar de fase en esos casos salía como 500 en vez de 409.
+_ERRCODES_FASE_CONFLICTO = {
+    "P0226": "FASE_ACTIVA_DUPLICADA",
+    "P0227": "FASE_SOLAPADA",
+    "P0228": "ACTIVO_NO_OPERATIVO",
+}
+
+#: INC-M02-56-G31 (#456): triggers de estado y de bajas de `modulo2`. Sin
+#: mapeo, `POST .../eventos/baja` sobre un activo con historial de estados
+#: desincronizado salía como 500 en vez de un error controlado. Los códigos
+#: y clases coinciden con los que ya lanza el dominio para las mismas reglas
+#: (`ActivoBiologico.cambiar_estado`, `RegistrarEventoBajaUseCase`).
+_ERRCODE_ESTADO_HISTORIAL_INCONSISTENTE = "P0212"
+_ERRCODE_BAJA_CANTIDAD_INVALIDA = "P0224"
+_ERRCODE_BAJA_SUPERA_EXISTENCIA = "P0225"
+
+#: P0211 lo comparten dos triggers de `modulo2` con etiquetas distintas
+#: (prefijo del mensaje). Solo `INVALID_TRANSITION` y `REDUNDANT_TRANSITION`
+#: son reglas de negocio; `MISSING_FIELD` y `DIRECT_STATE_CHANGE` delatan un
+#: bug de la propia aplicación y deben seguir siendo 500, no un 4xx.
+_ERRCODE_TRANSICION_ESTADO = "P0211"
+_TRANSICIONES_ESTADO = {
+    "INVALID_TRANSITION": (BusinessRuleError, "TRANSICION_INVALIDA"),
+    "REDUNDANT_TRANSITION": (ConflictError, "ESTADO_REDUNDANTE"),
+}
 
 #: INC-M02-57-G06: psycopg2 rechaza un byte nulo embebido en un parámetro de
 #: texto con un ValueError de Python plano (no una subclase de psycopg2.Error),
@@ -168,6 +212,33 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
         mensaje = diag_generico.message_primary or "La fecha del evento es inválida."
         raise ValidationError(code="FECHA_INVALIDA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_POBLACIONAL_CANTIDAD_INVALIDA:
+        mensaje = diag_generico.message_primary or "La cantidad del lote no es válida."
+        raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate in _ERRCODES_FASE_CONFLICTO:
+        mensaje = diag_generico.message_primary or "El cambio de fase entra en conflicto con el historial del activo."
+        raise ConflictError(code=_ERRCODES_FASE_CONFLICTO[sqlstate], message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_ESTADO_HISTORIAL_INCONSISTENTE:
+        mensaje = diag_generico.message_primary or "El historial de estados del activo está desincronizado."
+        raise ConflictError(code="ESTADO_ACTIVO_INCONSISTENTE", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_BAJA_CANTIDAD_INVALIDA:
+        mensaje = diag_generico.message_primary or "La cantidad afectada de la baja no es válida."
+        raise ValidationError(code="VALOR_NO_PERMITIDO", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_BAJA_SUPERA_EXISTENCIA:
+        mensaje = diag_generico.message_primary or "La cantidad a dar de baja supera la existencia del lote."
+        raise BusinessRuleError(code="CANTIDAD_BAJA_SUPERIOR_EXISTENCIA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_TRANSICION_ESTADO:
+        mensaje = diag_generico.message_primary or ""
+        etiqueta = mensaje.split(":", 1)[0]
+        if etiqueta in _TRANSICIONES_ESTADO:
+            clase, codigo = _TRANSICIONES_ESTADO[etiqueta]
+            raise clase(code=codigo, message=mensaje.split(": ", 1)[-1])
 
     if isinstance(exc, IntegrityError):
         diag = getattr(exc.orig, "diag", None)

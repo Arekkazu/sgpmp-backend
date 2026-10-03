@@ -103,20 +103,25 @@ class ConsultarHistorialUseCase:
     # ------------------------------------------------------------------
 
     def _semaforo_historico(self, lectura: LecturaHistorica) -> str:
+        if lectura.id_especie is None or lectura.valor is None:
+            return 'GRIS'
+
         umbral = self.umbral_port.obtener_umbral_vigente(
-            tipo_variable=lectura.tipo_variable,
-            id_especie=None,  # id_especie no disponible por ahora (stub M09)
+            id_variable_ambiental=lectura.id_variable,
+            id_especie=lectura.id_especie,
             timestamp=lectura.timestamp_captura,
         )
         if umbral is None:
             return 'GRIS'
-        if lectura.valor is None:
-            return 'GRIS'
-        return SemaforoCalculator.calcular(
+
+        lectura.id_umbral_ambiental = umbral['id_umbral_ambiental']
+        lectura.valor_min_umbral = umbral['umbral_min']
+        lectura.valor_max_umbral = umbral['umbral_max']
+        lectura.version_umbral = umbral['version']
+
+        return SemaforoCalculator.calcular_por_niveles(
             valor=lectura.valor,
-            umbral_min=umbral['umbral_min'],
-            umbral_max=umbral['umbral_max'],
-            tolerancia_pct=umbral.get('tolerancia_pct', 10.0),
+            niveles=umbral['niveles'],
         )
 
     # ------------------------------------------------------------------

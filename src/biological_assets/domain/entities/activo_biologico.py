@@ -48,6 +48,17 @@ class EventoBaja:
 
 
 @dataclass
+class EventoIngreso:
+    """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima,
+    ingreso de individuos"): alta de individuos a un lote POBLACIONAL --
+    contraparte de EventoBaja. `tipo` reutiliza los mismos 4 valores de
+    `origen_financiero` del registro inicial del activo."""
+    cantidad_ingresada: int
+    tipo: str
+    detalles: Optional[str] = None
+
+
+@dataclass
 class EventoSanitario:
     tipo: str
     diagnostico: Optional[str] = None
@@ -90,6 +101,7 @@ class EventoActivo:
     sanitario: Optional[EventoSanitario] = None
     productivo: Optional[EventoProductivo] = None
     reproductivo: Optional[EventoReproductivo] = None
+    ingreso: Optional[EventoIngreso] = None
 
 
 @dataclass
@@ -155,6 +167,31 @@ class FichaIntegral:
 
 
 @dataclass
+class FichaLote:
+    """RF-36 (tarea Taiga "Ficha de gestión de lote, densidad máxima,
+    ingreso de individuos"): ficha operativa dedicada a un activo
+    POBLACIONAL -- cantidad_actual + peso_promedio + biomasa_total +
+    densidad + estado + historial en una sola vista. Distinta de
+    `FichaIntegral` (RF-47, genérica para ambos tipos, sin `densidad` ni
+    `densidad_maxima`, "últimos 5 eventos" en vez de historial paginado)."""
+    id_activo_biologico: int
+    identificador: Optional[str]
+    especie: Optional[str]
+    infraestructura_asociada: Optional[str]
+    estado_actual: str
+    fecha_registro: Optional[datetime]
+    cantidad_inicial: int
+    cantidad_actual: Optional[int]
+    peso_promedio_inicial: Optional[Decimal]
+    peso_promedio: Optional[Decimal]
+    biomasa_total: Optional[Decimal]
+    densidad: Optional[Decimal]
+    densidad_maxima: Optional[Decimal]
+    historial: list[RegistroHistorial]
+    total_registros_historial: int
+
+
+@dataclass
 class GestionFase:
     id_activo_biologico: int
     id_ciclo_productiva: int
@@ -168,6 +205,12 @@ class GestionFase:
     total_pasos: Optional[int] = None
     fecha_finalizacion: Optional[datetime] = None
     motivo_cambio: Optional[str] = None
+    # RF-37 (tarea Taiga fase_destino/confirmacion_no_estandar): fase
+    # específica del ciclo (modulo9.ciclos_productivos_biologicos) que
+    # representa esta gestión -- necesaria para soportar transiciones no
+    # estándar sin perder la posición real del activo en la secuencia.
+    id_ciclos_productivo_biologico: Optional[int] = None
+    es_transicion_no_estandar: bool = False
 
 
 @dataclass
@@ -236,6 +279,9 @@ class IndicadorZootecnico:
     periodo_inicio: Optional[date] = None
     periodo_fin: Optional[date] = None
     variables_usadas: dict = field(default_factory=dict)
+    # Por qué no está disponible, cuando RF-51 le asigna un HTTP propio:
+    # CONSUMO_CERO (409) u OUTLIER_CRITICO (500). None = datos insuficientes (422).
+    causa_no_disponible: Optional[str] = None
 
 
 @dataclass
@@ -273,8 +319,12 @@ class DatosConsolidados:
 
 @dataclass
 class AsociacionSensorActivo:
-    id_activo_biologico: int
-    tipo_activo: str           # INDIVIDUAL | LOTE
+    # id_activo_biologico/tipo_activo son None para una asociación AMBIENTAL a
+    # nivel de infraestructura (RF-49 Tipo B, INC-M02-66-G90/#217): un único
+    # registro por sensor+infraestructura que aplica a todos los activos de
+    # esa infraestructura, en vez de una fila por activo.
+    id_activo_biologico: Optional[int]
+    tipo_activo: Optional[str]  # INDIVIDUAL | LOTE | None (asociación a nivel de infraestructura)
     tipo_asociacion: str       # directa | ambiental | poblacional
     dispositivo_iot_id: int
     sensor_id: int
@@ -286,6 +336,9 @@ class AsociacionSensorActivo:
     motivo: Optional[str] = None
     id_asociacion_activo_sensor: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
+    # No persistido -- advertencia informativa de la respuesta (RF-49 FA
+    # "Dispositivo IoT Fuera de Línea"), calculada por el use case tras guardar.
+    advertencia: Optional[str] = None
 
 
 @dataclass(eq=False)
@@ -307,6 +360,7 @@ class ActivoBiologico:
     detalle_poblacional: Optional[DetallePoblacional] = None
     id_activo_biologico: Optional[int] = None
     fecha_creacion: Optional[datetime] = None
+    fecha_actualizacion: Optional[datetime] = None
     nombre_estado: Optional[str] = None
 
     @classmethod
@@ -460,13 +514,33 @@ class ActivoBiologico:
         if dp.peso_promedio is not None:
             dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
 
+    def aplicar_evento_ingreso(self, cantidad_ingresada: int) -> None:
+        """RF-36: alta de individuos al lote -- contraparte de
+        `aplicar_evento_baja`. `cantidad_actual` solo crece por esta vía o
+        decrece por `aplicar_evento_baja`; ningún otro flujo la modifica."""
+        self._validar_tipo_poblacional()
+        dp = self.detalle_poblacional
+        dp.cantidad_actual = (dp.cantidad_actual or 0) + cantidad_ingresada
+        if dp.peso_promedio is not None:
+            dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
+
     def aplicar_evento_crecimiento(self, nuevo_peso_promedio: Decimal, superficie: Decimal) -> None:
         self._validar_tipo_poblacional()
         dp = self.detalle_poblacional
         dp.peso_promedio = nuevo_peso_promedio
         cantidad_actual = Decimal(str(dp.cantidad_actual or 0))
         dp.biomasa_total = cantidad_actual * nuevo_peso_promedio
+        self.recalcular_densidad(superficie)
+
+    def recalcular_densidad(self, superficie: Optional[Decimal]) -> None:
+        """Recalcula `densidad = cantidad_actual / superficie` (RF-36) contra
+        la superficie de la infraestructura donde reside el lote. Sin
+        superficie configurada, la densidad queda como estaba -- no hay con
+        qué calcularla."""
+        self._validar_tipo_poblacional()
+        dp = self.detalle_poblacional
         if superficie and superficie > 0:
+            cantidad_actual = Decimal(str(dp.cantidad_actual or 0))
             dp.densidad = cantidad_actual / superficie
 
     def __eq__(self, other: object) -> bool:
@@ -478,6 +552,11 @@ class ActivoBiologico:
 
     def __hash__(self) -> int:
         return hash(self.id_activo_biologico)
+
+
+# RF-52 E2: estas clasificaciones siempre describen a un activo concreto, así que
+# "activo_biologico_id ... obligatorio cuando el evento corresponde a un activo".
+_CLASIFICACIONES_DE_UN_ACTIVO = frozenset({'TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'CONTROL_ESTADO'})
 
 
 @dataclass
@@ -500,3 +579,50 @@ class EventoAuditoria:
     timestamp_registro: Optional[datetime] = None
     hash_integridad: Optional[str] = None
     registro_incompleto: bool = False
+
+    def marcar_si_incompleto(self) -> list[str]:
+        """RF-52 E2: un evento sin todos sus campos obligatorios no se rechaza.
+
+        Se persiste con lo que trae, marcado ``registro_incompleto`` y con la
+        causa en ``detalle_tecnico`` -- principio de no perder trazabilidad por
+        un error de formato del emisor. Devuelve las causas (vacío si está completo).
+        """
+        causas = [
+            f'{campo} vacío'
+            for campo in ('rf_origen', 'tipo_evento', 'clasificacion_biologica')
+            if not getattr(self, campo)
+        ]
+        if self.clasificacion_biologica in _CLASIFICACIONES_DE_UN_ACTIVO and self.id_activo_biologico is None:
+            causas.append(
+                f'activo_biologico_id ausente en un evento {self.clasificacion_biologica}, '
+                'que corresponde a un activo específico'
+            )
+        if causas:
+            self.registro_incompleto = True
+            self.detalle_tecnico = {**(self.detalle_tecnico or {}), 'causas_registro_incompleto': causas}
+        return causas
+
+
+@dataclass
+class RegistroRf46:
+    """Una fila del historial RF-46, identificada por su tabla de origen (RF-52 E5)."""
+    tabla: str
+    id: int
+    id_activo_biologico: Optional[int] = None
+
+
+@dataclass
+class MarcaReconciliacion:
+    """Hasta qué id de cada tabla del historial revisó una corrida de reconciliación."""
+    registrada_en: datetime
+    hasta: dict[str, int]
+
+
+def registros_rf46(**ids_por_tabla: Optional[int]) -> list[dict]:
+    """RF-52 E5: llave que une una entrada de la bitácora con las filas del historial
+    RF-46 que produjo la misma operación, para poder reconciliar una con otra.
+
+    ``registros_rf46(eventos_activos=12, historicos_estados_activos=None)``
+    -> ``[{'tabla': 'eventos_activos', 'id': 12}]``
+    """
+    return [{'tabla': tabla, 'id': id_} for tabla, id_ in ids_por_tabla.items() if id_ is not None]

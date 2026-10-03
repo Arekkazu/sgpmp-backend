@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_model import Base
@@ -26,3 +26,6 @@ class GestionFaseModel(Base):
         Integer, ForeignKey('modulo1.usuarios.id_usuario'), nullable=False
     )
     motivo_cambio: Mapped[str | None] = mapped_column(Text, nullable=True)
+    es_transicion_no_estandar: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text('false')
+    )

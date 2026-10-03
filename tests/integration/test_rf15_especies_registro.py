@@ -74,7 +74,11 @@ def test_registrar_especie_con_datos_validos_responde_201(
 
     respuesta = config_client.post(
         "/configuracion/especies",
-        json={"nombre": nombre, "descripcion": "Especie creada por prueba de regresión"},
+        json={
+            "nombre": nombre,
+            "descripcion": "Especie creada por prueba de regresión",
+            "densidad_maxima_por_especie": "12.5000",
+        },
         headers=headers,
     )
 
@@ -82,6 +86,7 @@ def test_registrar_especie_con_datos_validos_responde_201(
     cuerpo = respuesta.json()
     assert cuerpo["nombre"].upper() == nombre.upper()  # trigger de BD normaliza a Title Case
     assert cuerpo["es_activo"] is True
+    assert cuerpo["densidad_maxima_por_especie"] == "12.5000"
 
     auditoria = db_session.execute(
         text(
@@ -129,6 +134,7 @@ def test_editar_especie_activa_responde_200(
         json={
             "nombre": nombre,
             "descripcion": "Editada",
+            "densidad_maxima_por_especie": "8.7500",
             "fecha_actualizacion": fecha_actualizacion.isoformat(),
         },
         headers=headers,
@@ -136,3 +142,4 @@ def test_editar_especie_activa_responde_200(
 
     assert editada.status_code == 200, editada.text
     assert editada.json()["descripcion"] == "Editada"
+    assert editada.json()["densidad_maxima_por_especie"] == "8.7500"

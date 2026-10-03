@@ -84,6 +84,12 @@ def _crear_finca(db_session: Session, id_usuario: int) -> int:
             "id_usuario": id_usuario,
         },
     ).scalar_one()
+    # INC-M02-61-G52: igual que SqlAlchemyFincaRepository.guardar, el propietario
+    # recibe su acceso en usuarios_fincas; fincas.id_usuario ya no lo concede solo.
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": id_usuario, "f": id_finca},
+    )
     db_session.flush()
     return id_finca
 

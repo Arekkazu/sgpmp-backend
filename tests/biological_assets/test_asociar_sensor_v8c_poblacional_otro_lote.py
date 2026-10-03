@@ -13,7 +13,10 @@ from src.biological_assets.application.use_cases.gestion.asociar_sensor_activo_u
 )
 from src.biological_assets.domain.entities.activo_biologico import ActivoBiologico, AsociacionSensorActivo
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsulta
-from src.biological_assets.domain.repositories.sensor_consulta_port import SensorConsulta
+from src.biological_assets.domain.repositories.sensor_consulta_port import (
+    CompatibilidadSensorEspecie,
+    SensorConsulta,
+)
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.asociar_sensor_activo_dto import AsociarSensorActivoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -24,7 +27,7 @@ class ActivoRepoFake:
     def __init__(self, activo) -> None:
         self.activo = activo
 
-    def obtener_por_id(self, _id: int):
+    def obtener_por_id(self, _id: int, *, ids_fincas_permitidas=None):
         return self.activo
 
 
@@ -34,6 +37,14 @@ class SensorPortFake:
 
     def obtener_sensor_con_contexto(self, _id: int):
         return self.sensor
+
+    def obtener_compatibilidad_especie(self, _sensor_id: int, _especie_id: int):
+        return CompatibilidadSensorEspecie(
+            configurada=True,
+            es_compatible=True,
+            nombre_especie_activo='Bovino',
+            especies_compatibles=('Bovino',),
+        )
 
 
 class InfraPortFake:
