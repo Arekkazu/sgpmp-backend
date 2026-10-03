@@ -577,6 +577,82 @@ Respuesta esperada `200`:
 
 ---
 
+## RF-23 — Credencial MQTT por Raspberry (TC-M09-250/251)
+
+Cada Raspberry se conecta al broker con su propia credencial: usuario = serial
+del dispositivo del path, con permiso solo sobre los topics de ese serial y de
+los `ids_dispositivos_adicionales` (otros seriales que transmite la misma
+Raspberry, modelo "serial por ESP32"). La emite `BROKER-MQTT-SGPMP`
+(`/v1/devices/{serial}/credential`); este backend aplica RBAC, alcance por finca
+y audita en `modulo3.bitacora_auditoria_iot` (`componente_origen=RF23`). La
+contraseña **no se guarda**: se devuelve una sola vez.
+
+| Método | Ruta | RBAC (recurso 11) |
+|--------|------|-------------------|
+| POST | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | U(3) — Admin, Ing |
+| GET | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | R(2) — Admin, Ing, Prod |
+| DELETE | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | D(4) — Admin, Ing |
+
+### Emitir o rotar
+
+Rotar invalida la clave anterior y desconecta a la Raspberry hasta que se
+actualice su `/etc/sgpmp/edge-agent.env`.
+
+```bash
+curl -X POST http://localhost:8000/configuracion/dispositivos-iot/1/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"ids_dispositivos_adicionales": [2]}'
+```
+
+**Respuesta esperada (201, `Cache-Control: no-store`):**
+```json
+{
+  "usuario": "IOT-EST01-HLA-001",
+  "password": "<se muestra una sola vez>",
+  "seriales": ["IOT-EST01-HLA-001", "IOT-EST02-HLA-002"]
+}
+```
+
+| Código | `error_code` | Cuándo |
+|--------|--------------|--------|
+| 404 | `DISPOSITIVO_NO_ENCONTRADO` | El dispositivo (o un adicional) no existe o está fuera del alcance por finca |
+| 409 | `CREDENCIAL_MQTT_RECHAZADA` | El broker rechazó el serial (p. ej. coincide con un usuario MQTT reservado) |
+| 422 | `DISPOSITIVO_INACTIVO` | El dispositivo o un adicional está inactivo |
+| 429 | — | Más de 10 emisiones por minuto |
+| 503 | `BROKER_MQTT_NO_DISPONIBLE` | El broker no responde o no está configurado |
+
+### Consultar estado
+
+```bash
+curl http://localhost:8000/configuracion/dispositivos-iot/1/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada (200):**
+```json
+{"emitida": true, "habilitada": true, "conectada": false, "usuario": "IOT-EST01-HLA-001", "seriales": ["IOT-EST01-HLA-001"]}
+```
+
+`{"emitida": false, ...}` si el dispositivo no tiene credencial propia (todavía
+usa la compartida o transmite a través de otra Raspberry).
+
+### Revocar
+
+Desconecta a la Raspberry en el acto. Se permite sobre dispositivos inactivos.
+Desactivar el dispositivo (`PATCH .../desactivar`) ya revoca su credencial; si el
+broker no responde en ese momento, la desactivación se mantiene, el fallo queda
+en la bitácora y el broker la deshabilita al reconciliar con `modulo9`.
+
+```bash
+curl -X DELETE http://localhost:8000/configuracion/dispositivos-iot/1/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada:** `204` sin cuerpo. Errores: `404`, `503` como arriba.
+
+---
+
 ## Notas técnicas
 
 - **MQTT real (RF-23)**: `MqttHttpAdapter` llama a `BROKER-MQTT-SGPMP` (`POST /v1/commands`, autenticado con un token de servicio validado contra `modulo1.credenciales_servicio`). El broker publica en Mosquitto y espera el ACK; el resultado (`APLICADA`/`PENDIENTE`/`NO_CONF`) se traduce a `200`/`202`/`504`. El broker ya **no** escribe `modulo9.configuraciones_remotas` — esa tabla es propiedad exclusiva de este backend. Fuera de esta entrega: reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (requiere webhook broker→backend, contrato de topics aún no cerrado con el equipo IoT).
