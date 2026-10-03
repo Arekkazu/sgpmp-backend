@@ -1,3 +1,11 @@
+## [1.0.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.60...v1.0.0-rc.61) (2026-10-03)
+
+### Bug Fixes
+
+* **deps:** SEG-SCA-01 actualizar dependencias con CVEs HIGH ([cbcf0a4](https://github.com/Arekkazu/sgpmp-backend/commit/cbcf0a41946c924ea59612476b1c45145d9d3d97)), closes [#263](https://github.com/Arekkazu/sgpmp-backend/issues/263)
+* **identity-access:** SEG-M01-03 enmascarar el ID en PATCH /usuarios/{id} sin permiso E (RF-12) ([fa924bc](https://github.com/Arekkazu/sgpmp-backend/commit/fa924bc553042b5474bf950fc7c514af35aa58ec)), closes [#439](https://github.com/Arekkazu/sgpmp-backend/issues/439)
+* **rf26:** SEG-SAST-02 parsear el logo SVG con defusedxml y filtrar sobre el arbol ([ae699dc](https://github.com/Arekkazu/sgpmp-backend/commit/ae699dc7aebaf8b9cc8faf6ff3389f6002260d77)), closes [#x61](https://github.com/Arekkazu/sgpmp-backend/issues/x61) [#396](https://github.com/Arekkazu/sgpmp-backend/issues/396)
+
 ## [1.0.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.59...v1.0.0-rc.60) (2026-10-02)
 
 ### Bug Fixes
