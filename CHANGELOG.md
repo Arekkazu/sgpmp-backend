@@ -1,3 +1,9 @@
+## [1.0.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.65...v1.0.0-rc.66) (2026-10-03)
+
+### Bug Fixes
+
+* **alembic:** permitir crear detalle_tecnico en RF-37 si no existe (gap de migración anterior) ([693f355](https://github.com/Arekkazu/sgpmp-backend/commit/693f355a9abbbf9711fc1ea988ffc6186fdaba27))
+
 ## [1.0.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.64...v1.0.0-rc.65) (2026-10-03)
 
 ### Bug Fixes
