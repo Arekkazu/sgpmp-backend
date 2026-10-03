@@ -1,3 +1,14 @@
+## [1.0.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.61...v1.0.0-rc.62) (2026-10-03)
+
+### Features
+
+* **rf22-mod9:** informar en la respuesta las asociaciones sensor-activo superadas al reasignar ([#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)) ([f4196d7](https://github.com/Arekkazu/sgpmp-backend/commit/f4196d791f03d9eaba9b45975af5b1ee4b5996a3)), closes [#304](https://github.com/Arekkazu/sgpmp-backend/issues/304) [#1671](https://github.com/Arekkazu/sgpmp-backend/issues/1671)
+
+### Bug Fixes
+
+* **rf22-mod9:** cerrar asociaciones sensor-activo al reasignar de area (SEG-M09-01) ([3ca8eb0](https://github.com/Arekkazu/sgpmp-backend/commit/3ca8eb0f381315f52e9bd6d12dc74b088a394b23)), closes [#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)
+* **rf36:** registrar EventoIngresoModel en el paquete de modelos de M02 ([d14798f](https://github.com/Arekkazu/sgpmp-backend/commit/d14798fe0a973fa7c0ccba4d2b16e8a5309c35da)), closes [#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)
+
 ## [1.0.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.60...v1.0.0-rc.61) (2026-10-03)
 
 ### Bug Fixes
