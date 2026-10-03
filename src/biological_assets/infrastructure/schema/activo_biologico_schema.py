@@ -360,6 +360,7 @@ class InfraestructuraDisponibleResponse(BaseModel):
     nombre: str
     tipo: str
     capacidad_maxima: Optional[int] = None
+    ocupacion_actual: Optional[int] = None
     id_especie: Optional[int] = None
 
 

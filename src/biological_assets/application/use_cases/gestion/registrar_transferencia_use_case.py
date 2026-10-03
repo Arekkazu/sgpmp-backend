@@ -361,21 +361,24 @@ class RegistrarTransferenciaUseCase:
                 continue
             if not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
                 continue
+            ocupacion_actual = None
             if i.capacidad_maxima is not None:
                 ocupacion_actual = self.infra_port.calcular_ocupacion(i.id_infraestructura)
                 if ocupacion_actual + cantidad_activo > i.capacidad_maxima:
                     continue
-            disponibles.append(i)
+            disponibles.append((i, ocupacion_actual))
 
+        # La ocupación viaja para que el selector muestre el cupo real (TC-DIS-134).
         return [
             {
                 'id_infraestructura': i.id_infraestructura,
                 'nombre': i.nombre,
                 'tipo': i.tipo,
                 'capacidad_maxima': i.capacidad_maxima,
+                'ocupacion_actual': ocupacion,
                 'id_especie': i.id_especie,
             }
-            for i in disponibles
+            for i, ocupacion in disponibles
         ]
 
     @staticmethod
