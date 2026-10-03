@@ -1,11 +1,14 @@
 """Adaptador real de ``MqttPort`` -- llama a BROKER-MQTT-SGPMP por HTTP (RF-23).
 
 El broker publica el comando en MQTT y espera hasta ~30s el ACK del
-dispositivo antes de responder. Este adaptador nunca lanza: si la llamada
-falla (broker caído, timeout de red, error HTTP) degrada a "PENDIENTE",
-mismo espíritu que ``src/shared/firebase.py`` -- la fila ya quedó persistida
-como PENDIENTE antes de llamar acá, así que un broker inalcanzable no debe
-romper el flujo de negocio.
+dispositivo antes de responder. ``enviar_configuracion`` nunca lanza: si la
+llamada falla (broker caído, timeout de red, error HTTP) degrada a
+"PENDIENTE", mismo espíritu que ``src/shared/firebase.py`` -- la fila ya quedó
+persistida como PENDIENTE antes de llamar acá, así que un broker inalcanzable
+no debe romper el flujo de negocio.
+
+Las operaciones de credencial MQTT (TC-M09-250/251) sí lanzan: sin respuesta
+del broker no hay credencial que mostrar.
 """
 from __future__ import annotations
 
@@ -13,11 +16,18 @@ import hashlib
 import logging
 import os
 import threading
+from typing import Optional
 
 import httpx
 from sqlalchemy import text
 
-from src.configuration.domain.repositories.mqtt_port import MqttPort, ResultadoEnvioMqtt
+from src.configuration.domain.repositories.mqtt_port import (
+    CredencialMqtt,
+    EstadoCredencialMqtt,
+    MqttPort,
+    ResultadoEnvioMqtt,
+)
+from src.shared.errors import AppError, ConflictError, NotFoundError, ServiceUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +92,8 @@ _semaforo_llamadas_broker = threading.Semaphore(10)
 # Configurable por si el contrato de 30s cambia.
 _TIMEOUT_HTTP_SEGUNDOS = float(os.environ.get("MQTT_BROKER_HTTP_TIMEOUT", "35"))
 _MENSAJE_BROKER_NO_DISPONIBLE = "No se pudo contactar al broker MQTT. La configuración quedará pendiente."
+# El broker resuelve las credenciales en < 5s (timeout de dynamic-security allá).
+_TIMEOUT_CREDENCIAL_SEGUNDOS = 10.0
 
 
 class MqttHttpAdapter(MqttPort):
@@ -109,3 +121,80 @@ class MqttHttpAdapter(MqttPort):
             except httpx.HTTPError as exc:
                 logger.error("Broker MQTT no disponible al configurar %s: %r", serial, exc)
                 return ResultadoEnvioMqtt(estado="PENDIENTE", mensaje=_MENSAJE_BROKER_NO_DISPONIBLE)
+
+    # ── Credencial MQTT por Raspberry (TC-M09-250/251) ─────────────────────────
+
+    def emitir_credencial(
+        self, serial: str, seriales_adicionales: list[str]
+    ) -> CredencialMqtt:
+        respuesta = self._credencial("POST", serial, {"seriales_adicionales": seriales_adicionales})
+        if respuesta.status_code != 201:
+            raise self._error_broker(respuesta, serial)
+        cuerpo = respuesta.json()  # trae la contraseña: no loguear
+        return CredencialMqtt(
+            usuario=cuerpo["usuario"], password=cuerpo["password"], seriales=cuerpo["seriales"]
+        )
+
+    def consultar_credencial(self, serial: str) -> Optional[EstadoCredencialMqtt]:
+        respuesta = self._credencial("GET", serial)
+        if respuesta.status_code == 404:
+            return None
+        if respuesta.status_code != 200:
+            raise self._error_broker(respuesta, serial)
+        cuerpo = respuesta.json()
+        return EstadoCredencialMqtt(
+            usuario=cuerpo["usuario"],
+            habilitada=cuerpo["habilitada"],
+            conectada=cuerpo["conectada"],
+            seriales=cuerpo["seriales"],
+        )
+
+    def revocar_credencial(self, serial: str) -> None:
+        respuesta = self._credencial("DELETE", serial)
+        if respuesta.status_code != 204:
+            raise self._error_broker(respuesta, serial)
+
+    def _credencial(self, metodo: str, serial: str, cuerpo: Optional[dict] = None) -> httpx.Response:
+        if not self._base_url or not self._token:
+            logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- credencial MQTT omitida.")
+            raise ServiceUnavailableError(
+                code="BROKER_MQTT_NO_DISPONIBLE",
+                message="El broker MQTT no está configurado en este ambiente.",
+            )
+        try:
+            return httpx.request(
+                metodo,
+                f"{self._base_url}/v1/devices/{serial}/credential",
+                json=cuerpo,
+                headers={"Authorization": f"Bearer {self._token}"},
+                timeout=_TIMEOUT_CREDENCIAL_SEGUNDOS,
+            )
+        except httpx.HTTPError as exc:
+            logger.error("Broker MQTT no disponible (credencial de %s): %r", serial, exc)
+            raise ServiceUnavailableError(
+                code="BROKER_MQTT_NO_DISPONIBLE",
+                message="No se pudo contactar al broker MQTT. Intente de nuevo en unos minutos.",
+                original_error=exc,
+            ) from exc
+
+    @staticmethod
+    def _error_broker(respuesta: httpx.Response, serial: str) -> AppError:
+        # Solo se llega acá con respuestas de error, que nunca traen contraseña.
+        try:
+            detalle = str(respuesta.json().get("detail", ""))
+        except ValueError:
+            detalle = respuesta.text[:200]
+        if respuesta.status_code == 404:
+            return NotFoundError(code="DISPOSITIVO_NO_ENCONTRADO", message=detalle)
+        if respuesta.status_code == 409:
+            return ConflictError(code="CREDENCIAL_MQTT_RECHAZADA", message=detalle)
+        logger.error(
+            "Broker MQTT respondió %s a la credencial de %s: %s",
+            respuesta.status_code,
+            serial,
+            detalle,
+        )
+        return ServiceUnavailableError(
+            code="BROKER_MQTT_NO_DISPONIBLE",
+            message="El broker MQTT no pudo procesar la credencial. Intente de nuevo en unos minutos.",
+        )
