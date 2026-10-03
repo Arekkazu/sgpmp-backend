@@ -31,6 +31,7 @@ class BitacoraAuditoriaRepository(ABC):
         clasificaciones_permitidas: Optional[set[str]] = None,
         rf_origenes_permitidos: Optional[set[str]] = None,
         id_propietario_acceso_datos: Optional[int] = None,
+        id_usuario_responsable: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         """Retorna (registros, total_count) aplicando filtros, alcance y paginación."""
 

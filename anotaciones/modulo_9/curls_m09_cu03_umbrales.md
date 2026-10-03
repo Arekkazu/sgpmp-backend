@@ -61,8 +61,18 @@ Respuesta esperada `201` (solo si el Nodo Edge confirmó `APLICADA` — ver nota
 **INC-M09-104-G29 (RF-17):** `estado_sincronizacion` refleja el intento de propagar la
 configuración hacia el Nodo Edge (`PENDIENTE` / `APLICADA` / `NO_CONF`). El umbral y su
 estado de sincronización quedan guardados en base de datos **antes** de evaluar el
-resultado de la propagación (dos commits separados). Si el resultado no es `APLICADA`,
-el RF-17 (flujo alterno "Error de sincronización con el Nodo Edge") exige responder:
+resultado de la propagación (dos commits separados).
+
+**TC-M09-58-G22 (#459) — cuándo responde 201 y cuándo 500:**
+
+| `estado_sincronizacion` | Significado | Respuesta |
+|---|---|---|
+| `APLICADA` | el Edge confirmó | `201` (alta) / `200` (edición) |
+| `PENDIENTE` | no se intentó o quedó encolado (hoy: aún no hay contrato de publicación con IoT) | `201` / `200`, con `"estado_sincronizacion": "PENDIENTE"` en el cuerpo |
+| `NO_CONF` u otro | se intentó y falló (broker caído, timeout, sin ACK) | `500` `FALLO_SINCRONIZACION_EDGE` |
+
+Solo el último caso es el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17, que exige
+responder:
 
 ```
 HTTP 500
@@ -74,14 +84,13 @@ HTTP 500
 
 Hoy el contrato real del broker MQTT para umbrales (destino, topic, payload, ACK) aún no
 está definido por el equipo de IoT, así que `EdgeSincronizacionStubAdapter` siempre
-degrada a `PENDIENTE` — en la práctica **todo** `POST`/`PATCH` de umbrales responde `500`
-hasta que exista una implementación real del adaptador. Esto es intencional por mandato
-del RF-17, no un defecto: la configuración queda igualmente guardada y consultable via
-`GET`, solo la respuesta HTTP de la escritura refleja que el Edge no confirmó. Ver
+devuelve `PENDIENTE`: **las altas y ediciones válidas responden `201`/`200` con
+`estado_sincronizacion: "PENDIENTE"`** (antes respondían `500` aunque no hubiera ningún fallo que
+reportar). El `500` aparecerá cuando un adaptador real reporte `NO_CONF`. Ver
 `anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
 
 Errores posibles:
-- `500` — el Nodo Edge no confirmó la propagación (`PENDIENTE`/`NO_CONF`) — ver arriba
+- `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`), tras haber guardado — ver arriba
 - `422` — especie inactiva (FA-01)
 - `404` — variable ambiental no existe o inactiva
 - `409` — ya existe umbral para esa especie-variable (FA-02)
@@ -155,10 +164,11 @@ Errores posibles:
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
 - `400` — solapamiento de niveles (FA-05)
-- `500` — el Nodo Edge no confirmó la re-propagación (`PENDIENTE`/`NO_CONF`), igual que en el Flujo A
+- `500` — el Nodo Edge no confirmó la re-propagación (`NO_CONF`), igual que en el Flujo A
 
 Igual que en el Flujo A, la edición también dispara un intento de re-propagación hacia
-el Nodo Edge (INC-M09-104-G29): el `200` solo llega si el Edge confirmó `APLICADA`.
+el Nodo Edge (INC-M09-104-G29): el `200` llega con `APLICADA` o `PENDIENTE` (TC-M09-58-G22, #459)
+y el `500` solo si el intento falló.
 
 ---
 

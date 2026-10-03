@@ -31,6 +31,13 @@ MENSAJE_FALLO_SINCRONIZACION_EDGE = (
     "anteriores hasta que se restablezca la conexión."
 )
 
+#: Estados de sincronización con el Nodo Edge que NO son un error (TC-M09-58-G22, #459).
+#: PENDIENTE = la propagación no se intentó o quedó encolada (hoy no hay contrato de
+#: publicación con IoT y el adaptador es un stub): la configuración ya está guardada y
+#: se responde 201/200 con `estado_sincronizacion=PENDIENTE`. El 500 del RF-17 se
+#: reserva para una propagación que se intentó y falló (NO_CONF u otro estado).
+ESTADOS_SINCRONIZACION_SIN_FALLO = ("APLICADA", "PENDIENTE")
+
 
 def _validar_rangos(
     valor_min: Decimal,
@@ -215,11 +222,12 @@ class RegistrarUmbralUseCase:
             raise
 
         # RF-17, flujo alterno "Error de sincronización con el Nodo Edge": el
-        # umbral ya quedó guardado (commits anteriores), pero si no se pudo
-        # confirmar la propagación al Edge, el contrato exige responder 500
-        # -- no un 200/201 silencioso -- para que el cliente sepa que las
-        # alertas en campo pueden seguir operando con los valores anteriores.
-        if resultado.estado != 'APLICADA':
+        # umbral ya quedó guardado (commits anteriores), pero si la propagación
+        # al Edge se intentó y falló, el contrato exige responder 500 -- no un
+        # 201 silencioso -- para que el cliente sepa que las alertas en campo
+        # pueden seguir operando con los valores anteriores. Un PENDIENTE (sin
+        # integración todavía) no es un fallo: ver ESTADOS_SINCRONIZACION_SIN_FALLO.
+        if resultado.estado not in ESTADOS_SINCRONIZACION_SIN_FALLO:
             raise InfrastructureError(
                 code='FALLO_SINCRONIZACION_EDGE',
                 message=MENSAJE_FALLO_SINCRONIZACION_EDGE,

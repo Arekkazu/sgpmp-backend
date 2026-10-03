@@ -13,12 +13,17 @@ nunca bloquea el flujo de negocio -- mismo espíritu que MqttHttpAdapter
 (RF-23) cuando el broker real no está disponible.
 
 RF-17 (flujo alterno "Error de sincronización con el Nodo Edge") exige que,
-si la propagación no queda confirmada como APLICADA, el sistema marque la
+si la propagación al Edge se intentó y falló, el sistema marque la
 configuración como "Pendiente de Sincronización" (ya persistida) y responda
-HTTP 500 con el mensaje del contrato -- a diferencia de ConfiguracionRemota
-(RF-23), que sí tolera el broker no disponible como resultado válido. Se
-respeta la redacción literal del RF: el 500 llega después de que el umbral
+HTTP 500 con el mensaje del contrato. El 500 llega después de que el umbral
 y su estado de sincronización ya quedaron confirmados en base de datos.
+
+TC-M09-58-G22 (#459) corrigió el criterio de cuándo aplica: el stub nunca
+intenta propagar (no hay contrato con IoT) y devuelve siempre PENDIENTE, así
+que con el criterio anterior (`estado != APLICADA`) TODA alta o edición válida
+respondía 500 aunque no hubiera ningún fallo que reportar. Ahora PENDIENTE
+(sin integración / encolado) responde 201/200 con estado_sincronizacion=
+PENDIENTE, y el 500 se reserva para NO_CONF u otro estado (fallo real).
 """
 from __future__ import annotations
 
@@ -180,20 +185,40 @@ class TestRegistrarUmbralPropagacionEdge:
         assert payload['valor_max'] == '40'
         assert len(payload['niveles']) == 3
 
-    def test_estado_pendiente_se_persiste_y_luego_responde_500(self) -> None:
-        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='broker no disponible'))
+    def test_estado_pendiente_se_persiste_y_responde_ok_sin_500(self) -> None:
+        """TC-M09-58-G22 (#459): PENDIENTE (sin integración Edge todavía) no es un
+        fallo -- el alta válida debe responder 201, con el estado a la vista."""
+        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='sin contrato de publicación'))
         repo = UmbralRepoFake()
         uc = self._uc(edge_port, repo)
+
+        resultado = uc.execute(_registrar_dto(), _usuario())
+
+        assert resultado.estado_sincronizacion == 'PENDIENTE'
+        persistido = repo.estados_sincronizacion_persistidos[0]
+        assert persistido.estado_sincronizacion == 'PENDIENTE'
+        assert persistido.motivo_fallo_sincronizacion == 'sin contrato de publicación'
+        assert len(repo.estados_sincronizacion_persistidos) == 1
+
+    def test_estado_desconocido_se_trata_como_fallo(self) -> None:
+        """Lo que no es APLICADA ni PENDIENTE es un fallo: ante la duda, el 500 del RF."""
+        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='ESTADO_RARO', mensaje='?'))
+        uc = self._uc(edge_port)
 
         with pytest.raises(InfrastructureError) as exc_info:
             uc.execute(_registrar_dto(), _usuario())
 
         assert exc_info.value.code == 'FALLO_SINCRONIZACION_EDGE'
-        assert 'nodos Edge' in exc_info.value.message
-        persistido = repo.estados_sincronizacion_persistidos[0]
-        assert persistido.estado_sincronizacion == 'PENDIENTE'
-        assert persistido.motivo_fallo_sincronizacion == 'broker no disponible'
-        assert len(repo.estados_sincronizacion_persistidos) == 1
+
+    def test_con_el_stub_real_el_alta_valida_no_responde_500(self) -> None:
+        """El escenario exacto de QA: adaptador vigente (stub) -> antes 500, ahora ok."""
+        repo = UmbralRepoFake()
+        uc = self._uc(EdgeSincronizacionStubAdapter(), repo)
+
+        resultado = uc.execute(_registrar_dto(), _usuario())
+
+        assert resultado.estado_sincronizacion == 'PENDIENTE'
+        assert repo.guardado is not None
 
     def test_estado_aplicada_marca_fecha_de_sincronizacion(self) -> None:
         edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='APLICADA', mensaje='ok'))
@@ -225,7 +250,7 @@ class TestRegistrarUmbralPropagacionEdge:
         sincronización (segundo commit) ocurren ambos antes de que se lance
         el 500 -- el umbral nunca se pierde aunque la respuesta HTTP sea de
         error."""
-        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='PENDIENTE', mensaje='x'))
+        edge_port = EdgePortFake(ResultadoEnvioMqtt(estado='NO_CONF', mensaje='x'))
         repo = UmbralRepoFake()
         db = DbFake()
         uc = RegistrarUmbralUseCase(
@@ -272,13 +297,35 @@ class TestEditarUmbralPropagacionEdge:
             fecha_actualizacion=None,
         )
 
-        with pytest.raises(InfrastructureError):
-            uc.execute(1, dto, _usuario())
+        resultado = uc.execute(1, dto, _usuario())  # PENDIENTE ya no es 500 (#459)
 
         assert len(edge_port.llamadas) == 1
         _, _, payload = edge_port.llamadas[0]
         assert payload['valor_min'] == '15'
         assert repo.actualizado.estado_sincronizacion == 'PENDIENTE'
+        assert resultado.estado_sincronizacion == 'PENDIENTE'
+
+    def test_editar_con_fallo_real_de_propagacion_responde_500_tras_persistir(self) -> None:
+        existente = _umbral_existente()
+        repo = UmbralRepoFake(existente=existente)
+        uc = self._uc(EdgePortFake(ResultadoEnvioMqtt(estado='NO_CONF', mensaje='sin ACK')), repo)
+
+        dto = EditarUmbralDTO(
+            valor_min=Decimal('15'),
+            valor_max=Decimal('45'),
+            niveles=[
+                NivelDTO(nivel='normal', limite_inferior=Decimal('15'), limite_superior=Decimal('25')),
+                NivelDTO(nivel='precaucion', limite_inferior=Decimal('25'), limite_superior=Decimal('35')),
+                NivelDTO(nivel='critico', limite_inferior=Decimal('35'), limite_superior=Decimal('45')),
+            ],
+            fecha_actualizacion=None,
+        )
+
+        with pytest.raises(InfrastructureError) as exc_info:
+            uc.execute(1, dto, _usuario())
+
+        assert exc_info.value.code == 'FALLO_SINCRONIZACION_EDGE'
+        assert repo.actualizado.estado_sincronizacion == 'NO_CONF'
 
     def test_reenvia_el_umbral_editado_y_confirma_sin_error(self) -> None:
         existente = _umbral_existente()

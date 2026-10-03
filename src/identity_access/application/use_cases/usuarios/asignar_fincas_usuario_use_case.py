@@ -5,8 +5,8 @@ La lista enviada es el conjunto completo de fincas a las que el usuario accede,
 en ``modulo9.usuarios_fincas`` (M:N). Varias personas pueden atender una misma
 finca (RF-46: el Veterinario consulta los activos de la finca asignada), así
 que una finca con otro dueño ya no se rechaza con 409 (INC-M02-61-G52). Retirar
-una finca de la lista desactiva el acceso; ``fincas.id_usuario`` (propietario)
-no se toca.
+una finca de la lista desactiva el acceso (la columna ``fincas.id_usuario`` se
+retiró en F3: no hay otro registro de propietario).
 """
 from __future__ import annotations
 

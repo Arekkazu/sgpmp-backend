@@ -35,6 +35,38 @@ class SensorAreaResponse(BaseModel):
         )
 
 
+class AsociacionActivoSuperadaResponse(BaseModel):
+    id_asociacion_activo_sensor: int
+    id_activo_biologico: Optional[int]
+    tipo: str
+
+
+class AsociarSensorAreaResponse(SensorAreaResponse):
+    """Respuesta de POST /sensores/{id}/asociar.
+
+    Issue #290: si fue una reasignación de área, `asociaciones_activo_superadas`
+    lista las asociaciones sensor→activo AMBIENTAL/POBLACIONAL que quedaron
+    SUPERADA, para que el cliente avise al usuario y este re-asocie vía RF-49
+    si lo desea. Vacía en una primera asociación o si no había ninguna.
+    """
+
+    asociaciones_activo_superadas: list[AsociacionActivoSuperadaResponse] = []
+
+    @classmethod
+    def from_resultado(cls, sensor_area, superadas) -> AsociarSensorAreaResponse:
+        return cls(
+            **SensorAreaResponse.from_entity(sensor_area).model_dump(),
+            asociaciones_activo_superadas=[
+                AsociacionActivoSuperadaResponse(
+                    id_asociacion_activo_sensor=s.id_asociacion_activo_sensor,
+                    id_activo_biologico=s.id_activo_biologico,
+                    tipo=s.tipo,
+                )
+                for s in superadas
+            ],
+        )
+
+
 class ListaSensorAreasResponse(BaseModel):
     total: int
     items: list[SensorAreaResponse]

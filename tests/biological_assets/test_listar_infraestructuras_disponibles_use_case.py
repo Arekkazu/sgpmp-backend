@@ -123,6 +123,7 @@ def test_excluye_infraestructura_sin_capacidad_disponible():
     resultado = uc.listar_infraestructuras_disponibles(296, usuario=None)
 
     assert [i['id_infraestructura'] for i in resultado] == [3]
+    assert resultado[0]['ocupacion_actual'] == 30
 
 
 def test_sin_origen_activo_no_filtra_por_finca():

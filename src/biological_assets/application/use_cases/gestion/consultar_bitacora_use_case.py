@@ -119,6 +119,7 @@ class ConsultarBitacoraUseCase:
             clasificaciones_permitidas=clasificaciones_permitidas,
             rf_origenes_permitidos=rf_origenes_permitidos,
             id_propietario_acceso_datos=id_propietario_acceso_datos,
+            id_usuario_responsable=dto.id_usuario_responsable,
         )
 
     def _denegar(

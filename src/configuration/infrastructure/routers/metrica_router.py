@@ -43,6 +43,7 @@ _RECURSO = 19  # modulo1.recursos: 'metricas_produccion'
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
+        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -92,6 +93,7 @@ def consultar_metricas(
     response_model=MetricaProduccionResponse,
     dependencies=[Depends(require_permission(_RECURSO, 3))],
     responses={
+        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},

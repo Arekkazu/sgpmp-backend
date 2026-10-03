@@ -55,6 +55,7 @@ _RECURSO = 20  # modulo1.recursos: 'umbrales_ambientales'
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17).'},
     },
     summary='Registrar umbral ambiental con niveles de alerta (Flujo A)',
 )
@@ -135,6 +136,7 @@ def consultar_auditoria_umbral(
         404: {'model': ErrorResponse},
         412: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
+        500: {'model': ErrorResponse, 'description': 'FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17).'},
     },
     summary='Editar umbral ambiental y reemplazar niveles de alerta (Flujo B)',
 )

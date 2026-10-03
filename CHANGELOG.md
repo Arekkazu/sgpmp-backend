@@ -1,3 +1,84 @@
+## [1.0.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.64...v1.0.0-rc.65) (2026-10-03)
+
+### Bug Fixes
+
+* **control-acceso:** retirar fincas.id_usuario en F3 sin romper el alta de fincas (RF-19, RF-46) ([4daeb74](https://github.com/Arekkazu/sgpmp-backend/commit/4daeb740180e1fe497a2926707ddc78eb37758b0))
+
+## [1.0.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.63...v1.0.0-rc.64) (2026-10-03)
+
+### Features
+
+* **rf33:** exponer los atributos dinámicos de la especie para el registro de activos ([d3430f4](https://github.com/Arekkazu/sgpmp-backend/commit/d3430f4d95f42c06c21d9087c2ded46e4d5d7475)), closes [Arekkazu/SGPMP-FRONT-END-PWA#194](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/194)
+* **rf48:** informar la ocupación actual de cada destino de transferencia ([2fea4a3](https://github.com/Arekkazu/sgpmp-backend/commit/2fea4a36ebf61814f0a7951e5a57c944c3880d58))
+* **rf52:** filtrar la bitácora de M02 por usuario responsable ([9ec7da5](https://github.com/Arekkazu/sgpmp-backend/commit/9ec7da53f6e543605f573f97506d2f3f3b9cea15))
+
+### Bug Fixes
+
+* **rf19-rf21-mod9:** no validar al leer filas guardadas antes de endurecer el formato ([afd269f](https://github.com/Arekkazu/sgpmp-backend/commit/afd269f8b3896f757f723b882dc031ad28529e57)), closes [Arekkazu/SGPMP-FRONT-END-PWA#166](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/166) [Arekkazu/SGPMP-FRONT-END-PWA#178](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/178)
+* **rf36:** acotar la densidad del lote a 4 decimales en las respuestas ([419cd4c](https://github.com/Arekkazu/sgpmp-backend/commit/419cd4c5c4ffb5c6a1e7f32e1edeb8c8862212cd)), closes [Arekkazu/SGPMP-FRONT-END-PWA#213](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/213)
+* **rf48:** no mostrar "El activo None" al rechazar la transferencia de un lote ([834b244](https://github.com/Arekkazu/sgpmp-backend/commit/834b2449213da55e631f4bdc29fdc2ff2904e5a8)), closes [Arekkazu/SGPMP-FRONT-END-PWA#212](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/212)
+
+## [1.0.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.62...v1.0.0-rc.63) (2026-10-03)
+
+### Bug Fixes
+
+* **rf20-rf34:** sembrar recurso RBAC tipos_area y asociación vigente faltante ([6b597f9](https://github.com/Arekkazu/sgpmp-backend/commit/6b597f9aa03ba7e5377e76ef24db3eaba725bfff)), closes [Arekkazu/SGPMP-FRONT-END-PWA#167](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/167) [Arekkazu/SGPMP-FRONT-END-PWA#226](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/226)
+
+## [1.0.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.61...v1.0.0-rc.62) (2026-10-03)
+
+### Features
+
+* **rf22-mod9:** informar en la respuesta las asociaciones sensor-activo superadas al reasignar ([#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)) ([f4196d7](https://github.com/Arekkazu/sgpmp-backend/commit/f4196d791f03d9eaba9b45975af5b1ee4b5996a3)), closes [#304](https://github.com/Arekkazu/sgpmp-backend/issues/304) [#1671](https://github.com/Arekkazu/sgpmp-backend/issues/1671)
+
+### Bug Fixes
+
+* **rf22-mod9:** cerrar asociaciones sensor-activo al reasignar de area (SEG-M09-01) ([3ca8eb0](https://github.com/Arekkazu/sgpmp-backend/commit/3ca8eb0f381315f52e9bd6d12dc74b088a394b23)), closes [#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)
+* **rf36:** registrar EventoIngresoModel en el paquete de modelos de M02 ([d14798f](https://github.com/Arekkazu/sgpmp-backend/commit/d14798fe0a973fa7c0ccba4d2b16e8a5309c35da)), closes [#290](https://github.com/Arekkazu/sgpmp-backend/issues/290)
+
+## [1.0.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.60...v1.0.0-rc.61) (2026-10-03)
+
+### Bug Fixes
+
+* **deps:** SEG-SCA-01 actualizar dependencias con CVEs HIGH ([cbcf0a4](https://github.com/Arekkazu/sgpmp-backend/commit/cbcf0a41946c924ea59612476b1c45145d9d3d97)), closes [#263](https://github.com/Arekkazu/sgpmp-backend/issues/263)
+* **identity-access:** SEG-M01-03 enmascarar el ID en PATCH /usuarios/{id} sin permiso E (RF-12) ([fa924bc](https://github.com/Arekkazu/sgpmp-backend/commit/fa924bc553042b5474bf950fc7c514af35aa58ec)), closes [#439](https://github.com/Arekkazu/sgpmp-backend/issues/439)
+* **rf26:** SEG-SAST-02 parsear el logo SVG con defusedxml y filtrar sobre el arbol ([ae699dc](https://github.com/Arekkazu/sgpmp-backend/commit/ae699dc7aebaf8b9cc8faf6ff3389f6002260d77)), closes [#x61](https://github.com/Arekkazu/sgpmp-backend/issues/x61) [#396](https://github.com/Arekkazu/sgpmp-backend/issues/396)
+
+## [1.0.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.59...v1.0.0-rc.60) (2026-10-02)
+
+### Bug Fixes
+
+* **alembic:** encadenar la migracion de datos financieros sobre 731fb3997631 (RF-34) ([44e5171](https://github.com/Arekkazu/sgpmp-backend/commit/44e5171dea1794b1a6680fed7447e3afe21c74a2)), closes [#469](https://github.com/Arekkazu/sgpmp-backend/issues/469) [#465](https://github.com/Arekkazu/sgpmp-backend/issues/465)
+* **rf34:** proteger datos financieros del activo ([a7556b3](https://github.com/Arekkazu/sgpmp-backend/commit/a7556b32e16af495d736170f21793a3f98784824))
+
+## [1.0.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.58...v1.0.0-rc.59) (2026-10-02)
+
+### Features
+
+* **control-acceso:** F2 - contexto de sesion unico en get_current_user ([e727126](https://github.com/Arekkazu/sgpmp-backend/commit/e727126b2b0fa6d28fac0c3ba8ceeb5f6914fb1f))
+* **control-acceso:** identidad interina de sistema para tareas de fondo bajo RLS ([99a8bea](https://github.com/Arekkazu/sgpmp-backend/commit/99a8bea9dece9b5c85631e5ab16331f10b3d7dbc))
+
+### Bug Fixes
+
+* **control-acceso:** USAGE en app_ctx, Veterinario en especies y cola de auditoria ([5202d86](https://github.com/Arekkazu/sgpmp-backend/commit/5202d869fbc8a2431aecbb65006b7bb775599698))
+
+## [1.0.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.57...v1.0.0-rc.58) (2026-09-28)
+
+### Bug Fixes
+
+* **alembic:** unificar heads de migraciones en dev ([0844e6e](https://github.com/Arekkazu/sgpmp-backend/commit/0844e6eb53dd6135baede2aa4edfca15a71af4ab))
+
+## [1.0.0-rc.57](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.56...v1.0.0-rc.57) (2026-09-27)
+
+### Features
+
+* **rf16:** exponer y configurar valor_min/valor_max de las métricas (TC-M02-G12, RFC-004) ([e0c8df3](https://github.com/Arekkazu/sgpmp-backend/commit/e0c8df3c732de96c56e9034577faa889006b46aa))
+
+### Bug Fixes
+
+* **rf17:** responder 201/200 con sincronizacion PENDIENTE cuando no hay integracion edge (TC-M09-58-G22) ([6327e87](https://github.com/Arekkazu/sgpmp-backend/commit/6327e87759e5a9f852628d5ca53f7ac749027871)), closes [#459](https://github.com/Arekkazu/sgpmp-backend/issues/459)
+* **rf37:** persistir es_transicion_no_estandar en el historial de fases (INC-M02-37-G33) ([8ddc5b8](https://github.com/Arekkazu/sgpmp-backend/commit/8ddc5b88924f9df8524fcbc15b306944dc1d9507))
+* **shared:** traducir SQLSTATE de trigger sin mapear a 409/422 (RF-36, RF-20, INC-M02-56-G31, INC-M09-20-G49) ([6506515](https://github.com/Arekkazu/sgpmp-backend/commit/650651509aa684494884ea7536f530a7fedb45e6))
+
 ## [1.0.0-rc.56](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.55...v1.0.0-rc.56) (2026-09-26)
 
 ### Features

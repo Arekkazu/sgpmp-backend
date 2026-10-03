@@ -15,6 +15,7 @@ from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAt
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
 from src.configuration.infrastructure.models.metrica_produccion_model import MetricaProduccionModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
@@ -30,7 +31,7 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         # a ValidationError (400), consistente con el resto del error handling.
         return MetricaProduccion(
             id_metrica_produccion=orm.id_metrica_produccion,
-            nombre=NombreMetrica(orm.nombre),
+            nombre=rehidratar(NombreMetrica, orm.nombre),
             unidad_medida=orm.unidad_medida,
             tipo_medicion=TipoMedicion.desde_string(orm.tipo_medicion),
             aplica_a_tipo_activo=AplicaTipoActivo.desde_string(orm.aplica_a_tipo_activo),
@@ -39,6 +40,8 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
             id_especie=orm.id_especie,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,
+            valor_min=orm.valor_min,
+            valor_max=orm.valor_max,
         )
 
     def obtener_por_id(self, id_metrica_produccion: int) -> Optional[MetricaProduccion]:
@@ -79,6 +82,8 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
             aplica_a_tipo_activo=metrica.aplica_a_tipo_activo.value,
             tipo_dato=metrica.tipo_dato.value,
             es_obligatorio=metrica.es_obligatorio,
+            valor_min=metrica.valor_min,
+            valor_max=metrica.valor_max,
             id_especie=metrica.id_especie,
             es_activo=metrica.es_activo,
             # tiene_estado es campo legacy de M04 — se inserta False por defecto
@@ -100,6 +105,8 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
         orm.aplica_a_tipo_activo = metrica.aplica_a_tipo_activo.value
         orm.tipo_dato = metrica.tipo_dato.value
         orm.es_obligatorio = metrica.es_obligatorio
+        orm.valor_min = metrica.valor_min
+        orm.valor_max = metrica.valor_max
         orm.es_activo = metrica.es_activo
         orm.fecha_actualizacion = metrica.fecha_actualizacion
         try:

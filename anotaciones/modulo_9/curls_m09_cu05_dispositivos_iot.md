@@ -202,9 +202,7 @@ Respuesta esperada `200`:
 
 ### Asociar sensor a área productiva (Flujo B)
 
-El sensor queda vinculado de por vida a la infraestructura de la primera asociación.
-Si ya tiene una asociación activa en esa área, devuelve `409`.
-Si se intenta asociar a una infraestructura diferente a su historial, devuelve `422`.
+Un sensor tiene una sola asociación de área activa. Asociarlo a la misma área en la que ya está activo devuelve `409 ASOCIACION_DUPLICADA`. Asociarlo a otra área es una **reasignación** (RF-22 v1.1): sin `confirmar` responde `409 REASIGNACION_REQUIERE_CONFIRMACION`; con `"confirmar": true` termina la asociación anterior y crea la nueva.
 
 ```bash
 curl -X POST http://localhost:8000/configuracion/sensores/1/asociar \
@@ -217,7 +215,7 @@ curl -X POST http://localhost:8000/configuracion/sensores/1/asociar \
   }'
 ```
 
-Respuesta esperada `201`:
+Respuesta esperada `201` (primera asociación):
 ```json
 {
   "id_sensores_area_asociada": 1,
@@ -228,16 +226,51 @@ Respuesta esperada `201`:
   "tiene_estado": true,
   "fecha_asociacion": "2026-06-21T18:34:11Z",
   "fecha_finalizacion": null,
-  "id_usuario": 1
+  "id_usuario": 1,
+  "asociaciones_activo_superadas": []
+}
+```
+
+#### Reasignación confirmada a otra área
+
+```bash
+curl -X POST http://localhost:8000/configuracion/sensores/1/asociar \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id_dispositivo_iot": 1,
+    "id_infraestructura": 2,
+    "punto_instalacion": "Borde sur",
+    "confirmar": true
+  }'
+```
+
+Respuesta esperada `201`. Las asociaciones sensor→activo `ambiental` y `poblacional` vigentes del sensor quedan `SUPERADA` en la misma transacción, con auditoría (issue #290, RF-22 v1.1 / RF-49 v1.2); las `directa` no se tocan. `asociaciones_activo_superadas` lista las que se cerraron para que el frontend avise al usuario y este las re-asocie vía RF-49 si quiere. No se recrean solas en la nueva área.
+```json
+{
+  "id_sensores_area_asociada": 2,
+  "id_sensor": 1,
+  "id_dispositivo_iot": 1,
+  "id_infraestructura": 2,
+  "punto_instalacion": "Borde sur",
+  "tiene_estado": true,
+  "fecha_asociacion": "2026-10-02T15:10:00Z",
+  "fecha_finalizacion": null,
+  "id_usuario": 1,
+  "asociaciones_activo_superadas": [
+    { "id_asociacion_activo_sensor": 14, "id_activo_biologico": 279, "tipo": "ambiental" }
+  ]
 }
 ```
 
 Errores posibles:
-- `404` — sensor no existe (FA-02)
+- `404` — sensor no existe (FA-02) — `SENSOR_NO_ENCONTRADO`
+- `404` — dispositivo no existe — `DISPOSITIVO_NO_ENCONTRADO`
 - `404` — área productiva no existe **o está inactiva** (FA-03) — `AREA_NO_ENCONTRADA`
 - `422` — sensor no pertenece al dispositivo indicado (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
-- `422` — intento de reasignar a infraestructura diferente — `SENSOR_INFRAESTRUCTURA_FIJA`
+- `422` — área de una finca distinta a la del dispositivo — `SENSOR_FINCA_DISTINTA`
 - `409` — sensor ya está activo en esa área (FA-06) — `ASOCIACION_DUPLICADA`
+- `409` — sensor activo en otra área y la petición no trae `"confirmar": true` — `REASIGNACION_REQUIERE_CONFIRMACION`
 - `403` — rol sin permiso C sobre sensores (FA-01)
 
 ---

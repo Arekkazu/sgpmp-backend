@@ -140,6 +140,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
+    ParametroEspecieResponse,
     SensorEnInfraestructuraResponse,
     RegistrarEventoCrecimientoResponse,
     RegistrarEventoReproductivoResponse,
@@ -175,6 +176,7 @@ _ROL_PRODUCTOR = 2
 # de la secuencia y difieren entre bases; con números fijos, datos clínicos y
 # el scope 'eventos' quedaron ambos en 59.
 _RECURSO_DATOS_CLINICOS = 'datos_clinicos_activo'
+_RECURSO_DATOS_FINANCIEROS = 'datos_financieros_activo'
 
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
 _RECURSO_DATOS_EVENTOS = 'datos_analiticos_eventos'
@@ -299,7 +301,17 @@ def _verificar_scope_tipo_dato(
         raise AuthorizationError(code='SCOPE_TIPO_DATO_NO_AUTORIZADO', message=mensaje)
 
 
-def _activo_to_response(activo) -> ActivoBiologicoResponse:
+def _activo_to_response(
+    activo,
+    *,
+    incluir_datos_financieros: bool = False,
+) -> ActivoBiologicoResponse:
+    """Construye la respuesta pública aplicando la visibilidad financiera.
+
+    El valor seguro por defecto es ocultar costo y soporte. De esta forma, un
+    endpoint nuevo no puede exponerlos por omitir explícitamente la evaluación
+    del permiso de lectura sobre ``datos_financieros_activo``.
+    """
     di = None
     if activo.detalle_individual:
         d = activo.detalle_individual
@@ -333,8 +345,8 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         fecha_inicio_ciclo=activo.fecha_inicio_ciclo,
         detalles_procedencia=activo.detalles_procedencia,
         origen_financiero=activo.origen_financiero,
-        costo_adquisicion=activo.costo_adquisicion,
-        soporte_documental=activo.soporte_documental,
+        costo_adquisicion=(activo.costo_adquisicion if incluir_datos_financieros else None),
+        soporte_documental=(activo.soporte_documental if incluir_datos_financieros else None),
         descripcion=activo.descripcion,
         id_infraestructura=activo.id_infraestructura,
         atributos_dinamicos=activo.atributos_dinamicos,
@@ -402,7 +414,12 @@ def registrar_activo(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(dto, usuario_actual)
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.get(
@@ -451,13 +468,19 @@ def listar_activos(
         dto,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
+    puede_ver_datos_financieros = tiene_permiso_sobre(
+        db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+    )
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
-        registros=[_activo_to_response(a) for a in registros],
+        registros=[
+            _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
+            for a in registros
+        ],
     )
 
 
@@ -507,6 +530,7 @@ def consultar_bitacora(
     ),
     resultado: str | None = Query(default=None, description='EXITOSO | FALLIDO | RECHAZADO | ADVERTENCIA'),
     severidad_log: str | None = Query(default=None, description='INFO | WARNING | ERROR | CRITICAL'),
+    id_usuario_responsable: int | None = Query(default=None, description='Usuario que originó el evento (TC-DIS-144)'),
     fecha_inicio: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-01-01T00:00:00Z)'),
     fecha_fin: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-12-31T23:59:59Z)'),
     pagina: int = Query(default=1, ge=1),
@@ -523,6 +547,7 @@ def consultar_bitacora(
             clasificacion_biologica=clasificacion_biologica,
             resultado=resultado,
             severidad_log=severidad_log,
+            id_usuario_responsable=id_usuario_responsable,
             fecha_inicio=_dt.fromisoformat(fecha_inicio.replace('Z', '+00:00')) if fecha_inicio else None,
             fecha_fin=_dt.fromisoformat(fecha_fin.replace('Z', '+00:00')) if fecha_fin else None,
             pagina=pagina,
@@ -553,6 +578,29 @@ def consultar_bitacora(
         registros_por_pagina=page_size,
         registros=[_auditoria_to_response(r) for r in registros],
     )
+
+
+# ── RF-33 FA-07 — Atributos dinámicos de la especie (#194) ─────────────────
+# Bajo el permiso de activos (no el de métricas, recurso 19): Productor e
+# Ingeniero registran activos pero no administran la configuración de M09.
+
+@router.get(
+    '/parametros-especie',
+    response_model=list[ParametroEspecieResponse],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF33'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+    },
+    summary='Atributos dinámicos que exige la especie al registrar un activo (RF-33)',
+)
+def listar_parametros_especie(
+    id_especie: int = Query(..., ge=1),
+    tipo_activo: Literal['INDIVIDUAL', 'POBLACIONAL'] = Query(...),
+    db: Session = Depends(get_db),
+) -> list[ParametroEspecieResponse]:
+    parametros = ParametrosEspecieM09Adapter(db).listar_por_especie(id_especie, tipo_activo)
+    return [ParametroEspecieResponse.model_validate(p) for p in parametros]
 
 
 # ── CU13 RF-52 E5 — Registro correctivo de auditoría ────────────────────────
@@ -635,7 +683,12 @@ def consultar_activo(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.patch(
@@ -671,7 +724,12 @@ def actualizar_activo_individual(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.post(

@@ -12,6 +12,7 @@ from src.configuration.domain.value_objects.nombre_infraestructura import Nombre
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
@@ -23,9 +24,9 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
     def _a_entidad(orm: InfraestructuraModel) -> Infraestructura:
         return Infraestructura(
             id_infraestructura=orm.id_infraestructura,
-            nombre=NombreInfraestructura(orm.nombre),
+            nombre=rehidratar(NombreInfraestructura, orm.nombre),
             tipo=orm.tipo,
-            superficie=Superficie(Decimal(str(orm.superficie))),
+            superficie=rehidratar(Superficie, Decimal(str(orm.superficie))),
             id_finca=orm.id_finca,
             descripcion=orm.descripcion,
             es_activo=orm.es_activo,

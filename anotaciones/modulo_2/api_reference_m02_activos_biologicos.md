@@ -31,13 +31,18 @@ Cada endpoint declara `dependencies=[Depends(require_permission(id_recurso, id_a
 
 Esto implica que **sin un JWT válido no se llega ni siquiera a evaluar el permiso**: `require_permission` depende internamente de la misma resolución de sesión que `get_current_user`, así que un token ausente o inválido corta la petición con **401** antes de que el 403 de RBAC entre en juego. No hay ninguna ruta de este módulo que omita esa cadena.
 
-### Los 3 recursos RBAC del módulo
+### Recursos RBAC principales del módulo
 
 | `id_recurso` | Nombre | Qué protege |
 |---|---|---|
 | **29** | `activos_biologicos` | Todas las operaciones sobre el activo biológico en sí: alta, consulta, edición, cambios de estado/fase, eventos, historial, transferencias, indicadores. Es, con diferencia, el recurso más usado del módulo (22 de los 25 endpoints). |
 | **30** | `asociacion_sensor_activo` | Asociar un sensor IoT a un activo (`POST /{id_activo}/sensores`). Recurso separado porque sus reglas de actor son distintas a las del resto (ver tabla de permisos). |
 | **31** | `bitacora_auditoria_m02` | Solo lectura de la bitácora de auditoría del módulo (`GET /auditoria`). Recurso de solo-R; no existe acción de escritura porque los registros de auditoría se generan automáticamente desde los demás use cases, nunca desde un endpoint dedicado. |
+| dinámico | `datos_financieros_activo` | Visibilidad de `costo_adquisicion` y `soporte_documental` en las respuestas de activos. Sin READ, ambos campos se enmascaran como `null`. |
+
+Los recursos dinámicos `datos_clinicos_activo` y `datos_analiticos_*` agregan
+granularidad de campo/scope a RF-41/RF-46 y RF-50, respectivamente; se resuelven
+por nombre porque su identificador puede variar entre bases.
 
 ### Códigos de acción usados en este módulo
 
@@ -110,8 +115,8 @@ Validadores de modelo: `validar_segun_tipo` (reglas INDIVIDUAL/POBLACIONAL de ar
 | `fecha_inicio_ciclo` | `date \| None` |
 | `detalles_procedencia` | `str \| None` |
 | `origen_financiero` | `str` |
-| `costo_adquisicion` | `Decimal \| None` |
-| `soporte_documental` | `str \| None` |
+| `costo_adquisicion` | `Decimal \| None` — `null` sin permiso R sobre `datos_financieros_activo` |
+| `soporte_documental` | `str \| None` — `null` sin permiso R sobre `datos_financieros_activo` |
 | `descripcion` | `str \| None` |
 | `id_infraestructura` | `int` |
 | `atributos_dinamicos` | `dict \| None` |
@@ -162,6 +167,10 @@ orden por `fecha_creacion DESC, id_activo_biologico DESC`.
 | `registros` | `list[ActivoBiologicoResponse]` |
 
 Cada item de `registros` es un `ActivoBiologicoResponse` completo (ver `POST /` arriba).
+El permiso general `(activos_biologicos, R)` habilita la consulta operativa,
+pero no implica acceso financiero: `costo_adquisicion` y
+`soporte_documental` se enmascaran como `null` si el rol no tiene además
+`(datos_financieros_activo, R)`.
 
 **Errores** (body estándar `{ error_code, message, fields, timestamp }`):
 
@@ -185,6 +194,11 @@ Cada item de `registros` es un `ActivoBiologicoResponse` completo (ver `POST /` 
 Sin input adicional (path param `id_activo: int`).
 
 **Response:** `ActivoBiologicoResponse` (mismo esquema de arriba).
+
+La autorización se aplica también a nivel de campo. Administrador, Productor e
+Integración M06 reciben el permiso R sobre `datos_financieros_activo` mediante
+Alembic; un Ingeniero de Campo conserva `HTTP 200` y los datos operativos del
+activo, pero recibe `costo_adquisicion: null` y `soporte_documental: null`.
 
 ---
 
@@ -313,6 +327,8 @@ Validaciones adicionales (tarea Taiga fase_destino/confirmacion_no_estandar):
 Sin input adicional.
 
 **Response `HistorialFasesResponse`:** `id_activo_biologico: int`, `fases: list[GestionFaseResponse]`.
+
+`es_transicion_no_estandar` de cada fase es el valor **persistido** (INC-M02-37-G33): coincide con lo que devolvió el `POST` que la creó.
 
 ---
 
@@ -844,12 +860,14 @@ Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `
 | 29 | `activos_biologicos` | C,R,U,D,E | C,R,U,D,E | C,R,D,E | C,R,U,E | — |
 | 30 | `asociacion_sensor_activo` | C,R | C,R | R | C,R | — |
 | 31 | `bitacora_auditoria_m02` | R | R | R | — | R |
+| dinámico | `datos_financieros_activo` | R | R | — | — | — |
 
 Notas:
 - **Veterinario** no tiene `U` sobre `activos_biologicos` (no puede usar `PATCH /{id_activo}`, sí puede `PATCH /{id_activo}/estado` que es `E`).
 - **Ingeniero de Campo** no tiene `D` sobre `activos_biologicos` (no puede cerrar ciclo, `POST /{id_activo}/cierre`), y no tiene ningún permiso sobre `bitacora_auditoria_m02`.
 - **Contador** solo tiene acceso de lectura a la bitácora de auditoría (`31, R`); no participa en ninguna otra operación del módulo.
 - **Productor** tiene `C,R` sobre `asociacion_sensor_activo`, limitado en escritura a activos e infraestructuras de sus propias fincas; **Veterinario** conserva solo `R`. Admin e Ingeniero también pueden crear asociaciones.
+- **Integración M06** también tiene `R` sobre `datos_financieros_activo` para valoración NIC-41.
 
 ---
 

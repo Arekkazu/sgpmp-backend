@@ -81,7 +81,7 @@ class RegistrarTransferenciaUseCase:
             raise ConflictError(
                 code='ACTIVO_NO_ACTIVO',
                 message=(
-                    f'El activo {activo.identificador} se encuentra en estado {activo.nombre_estado}. '
+                    f'El activo {activo.identificador or id_activo} se encuentra en estado {activo.nombre_estado}. '
                     'Solo se pueden transferir activos en estado ACTIVO.'
                 ),
             )
@@ -95,7 +95,7 @@ class RegistrarTransferenciaUseCase:
             raise BusinessRuleError(
                 code='SIN_INFRAESTRUCTURA_ORIGEN',
                 message=(
-                    f'El activo {activo.identificador} no tiene una infraestructura origen registrada. '
+                    f'El activo {activo.identificador or id_activo} no tiene una infraestructura origen registrada. '
                     'Asocie el activo a una infraestructura antes de realizar la transferencia.'
                 ),
             )
@@ -269,8 +269,8 @@ class RegistrarTransferenciaUseCase:
                 },
             )
 
-            # c) Actualizar id_infraestructura en activos_biologicos (trigger requiere app.usuario_id)
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario.id_usuario})
+            # c) Actualizar id_infraestructura en activos_biologicos (trigger requiere
+            # app.usuario_id, ya seteado una vez por request por get_current_user — F2)
             self.db.execute(
                 text(
                     'UPDATE modulo2.activos_biologicos '
@@ -361,21 +361,24 @@ class RegistrarTransferenciaUseCase:
                 continue
             if not self.infra_port.es_tipo_compatible(i.tipo, activo.id_especie):
                 continue
+            ocupacion_actual = None
             if i.capacidad_maxima is not None:
                 ocupacion_actual = self.infra_port.calcular_ocupacion(i.id_infraestructura)
                 if ocupacion_actual + cantidad_activo > i.capacidad_maxima:
                     continue
-            disponibles.append(i)
+            disponibles.append((i, ocupacion_actual))
 
+        # La ocupación viaja para que el selector muestre el cupo real (TC-DIS-134).
         return [
             {
                 'id_infraestructura': i.id_infraestructura,
                 'nombre': i.nombre,
                 'tipo': i.tipo,
                 'capacidad_maxima': i.capacidad_maxima,
+                'ocupacion_actual': ocupacion,
                 'id_especie': i.id_especie,
             }
-            for i in disponibles
+            for i, ocupacion in disponibles
         ]
 
     @staticmethod
