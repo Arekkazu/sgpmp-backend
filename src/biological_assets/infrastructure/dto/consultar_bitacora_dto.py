@@ -15,6 +15,7 @@ class ConsultarBitacoraDTO(BaseDTO):
     clasificacion_biologica: Optional[str] = None
     resultado: Optional[str] = None
     severidad_log: Optional[str] = None
+    id_usuario_responsable: Optional[int] = Field(default=None, ge=1)
     fecha_inicio: Optional[datetime] = None
     fecha_fin: Optional[datetime] = None
     pagina: int = Field(default=1, ge=1)
