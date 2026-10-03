@@ -1,3 +1,9 @@
+## [1.0.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.62...v1.0.0-rc.63) (2026-10-03)
+
+### Bug Fixes
+
+* **rf20-rf34:** sembrar recurso RBAC tipos_area y asociación vigente faltante ([6b597f9](https://github.com/Arekkazu/sgpmp-backend/commit/6b597f9aa03ba7e5377e76ef24db3eaba725bfff)), closes [Arekkazu/SGPMP-FRONT-END-PWA#167](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/167) [Arekkazu/SGPMP-FRONT-END-PWA#226](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/226)
+
 ## [1.0.0-rc.62](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.61...v1.0.0-rc.62) (2026-10-03)
 
 ### Features
