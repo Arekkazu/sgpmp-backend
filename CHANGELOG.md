@@ -1,3 +1,9 @@
+## [1.0.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.64...v1.0.0-rc.65) (2026-10-03)
+
+### Bug Fixes
+
+* **control-acceso:** retirar fincas.id_usuario en F3 sin romper el alta de fincas (RF-19, RF-46) ([4daeb74](https://github.com/Arekkazu/sgpmp-backend/commit/4daeb740180e1fe497a2926707ddc78eb37758b0))
+
 ## [1.0.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.63...v1.0.0-rc.64) (2026-10-03)
 
 ### Features
