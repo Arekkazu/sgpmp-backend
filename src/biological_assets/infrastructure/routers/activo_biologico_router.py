@@ -140,6 +140,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
+    ParametroEspecieResponse,
     SensorEnInfraestructuraResponse,
     RegistrarEventoCrecimientoResponse,
     RegistrarEventoReproductivoResponse,
@@ -529,6 +530,7 @@ def consultar_bitacora(
     ),
     resultado: str | None = Query(default=None, description='EXITOSO | FALLIDO | RECHAZADO | ADVERTENCIA'),
     severidad_log: str | None = Query(default=None, description='INFO | WARNING | ERROR | CRITICAL'),
+    id_usuario_responsable: int | None = Query(default=None, description='Usuario que originó el evento (TC-DIS-144)'),
     fecha_inicio: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-01-01T00:00:00Z)'),
     fecha_fin: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-12-31T23:59:59Z)'),
     pagina: int = Query(default=1, ge=1),
@@ -545,6 +547,7 @@ def consultar_bitacora(
             clasificacion_biologica=clasificacion_biologica,
             resultado=resultado,
             severidad_log=severidad_log,
+            id_usuario_responsable=id_usuario_responsable,
             fecha_inicio=_dt.fromisoformat(fecha_inicio.replace('Z', '+00:00')) if fecha_inicio else None,
             fecha_fin=_dt.fromisoformat(fecha_fin.replace('Z', '+00:00')) if fecha_fin else None,
             pagina=pagina,
@@ -575,6 +578,29 @@ def consultar_bitacora(
         registros_por_pagina=page_size,
         registros=[_auditoria_to_response(r) for r in registros],
     )
+
+
+# ── RF-33 FA-07 — Atributos dinámicos de la especie (#194) ─────────────────
+# Bajo el permiso de activos (no el de métricas, recurso 19): Productor e
+# Ingeniero registran activos pero no administran la configuración de M09.
+
+@router.get(
+    '/parametros-especie',
+    response_model=list[ParametroEspecieResponse],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF33'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+    },
+    summary='Atributos dinámicos que exige la especie al registrar un activo (RF-33)',
+)
+def listar_parametros_especie(
+    id_especie: int = Query(..., ge=1),
+    tipo_activo: Literal['INDIVIDUAL', 'POBLACIONAL'] = Query(...),
+    db: Session = Depends(get_db),
+) -> list[ParametroEspecieResponse]:
+    parametros = ParametrosEspecieM09Adapter(db).listar_por_especie(id_especie, tipo_activo)
+    return [ParametroEspecieResponse.model_validate(p) for p in parametros]
 
 
 # ── CU13 RF-52 E5 — Registro correctivo de auditoría ────────────────────────

@@ -25,6 +25,7 @@ def _a_parametro(r: MetricaProduccionModel) -> ParametroEspecie:
         es_obligatorio=r.es_obligatorio,
         valor_min=r.valor_min,
         valor_max=r.valor_max,
+        unidad_medida=r.unidad_medida,
     )
 
 

@@ -304,3 +304,12 @@ def test_endpoint_reproduce_tc_m02_266_con_http_403(cliente_productor_ajeno) -> 
     assert respuesta.json()['error_code'] == 'ALCANCE_BITACORA_DENEGADO'
     assert repo.consulta is None
     assert repo.registrados[0].tipo_evento == 'ACCESO_NO_AUTORIZADO'
+
+
+def test_filtra_por_usuario_responsable() -> None:
+    """TC-DIS-144 (RF-52): la bitácora se puede filtrar por el usuario que originó el evento."""
+    caso, _db, repo = _caso('Administrador')
+
+    caso.execute(ConsultarBitacoraDTO(id_usuario_responsable=12), _usuario(id_rol=1))
+
+    assert repo.consulta['id_usuario_responsable'] == 12
