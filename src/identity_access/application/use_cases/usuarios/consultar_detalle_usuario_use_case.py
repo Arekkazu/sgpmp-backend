@@ -32,6 +32,53 @@ MAX_CONSULTAS_DETALLE_POR_VENTANA = 20
 VENTANA_CONSULTAS_MINUTOS = 1
 
 
+def puede_ver_identificacion_completa(
+    permisos_repo: PermisoRepository, usuario_actual: UsuarioActual
+) -> bool:
+    """Indica si el actor tiene activo el permiso E sobre el recurso Usuarios.
+
+    Lo comparten la consulta de detalle y la edición administrativa (SEG-M01-03):
+    cualquier respuesta que devuelva el número de otro usuario debe pasar por aquí.
+
+    Ante cualquier fallo al resolver el permiso retorna ``False``: RF-12
+    exige priorizar la privacidad sobre la visualización, así que un
+    servicio de permisos caído enmascara en vez de tumbar la consulta.
+
+    Se exige ``es_activo`` porque ``PermisoRepository.buscar`` no lo filtra
+    —``AsignarPermisoUseCase`` lo usa para detectar duplicados y necesita
+    ver también los inactivos—, mientras que ``require_permission`` sí lo
+    hace. Sin esta condición un permiso desactivado seguiría concediendo el
+    número completo.
+    """
+    try:
+        permiso = permisos_repo.buscar(
+            id_rol=usuario_actual.id_rol,
+            id_recurso=ID_RECURSO_USUARIOS,
+            id_accion=ID_ACCION_EJECUTAR,
+        )
+    except Exception:
+        return False
+    return permiso is not None and bool(permiso.es_activo)
+
+
+def enmascarar_identificacion(numero: Optional[str]) -> Optional[str]:
+    """Enmascara el número de identificación dejando visibles los 4 primeros dígitos.
+
+    Args:
+        numero: Número de identificación completo, o ``None`` en una cuenta
+            SSO mínima (``Pendiente Datos``) que aún no lo tiene.
+
+    Returns:
+        Número con los últimos caracteres reemplazados por asteriscos, o
+        ``None`` si no había número que enmascarar.
+    """
+    if numero is None:
+        return None
+    if len(numero) <= 4:
+        return "*" * len(numero)
+    return numero[:4] + "*" * (len(numero) - 4)
+
+
 class ConsultarDetalleUsuarioUseCase:
     """Orquesta la consulta del detalle de un usuario con enmascarado condicional de ID."""
 
@@ -83,12 +130,12 @@ class ConsultarDetalleUsuarioUseCase:
                 message="Consulta fallida: El usuario solicitado no existe o ha sido retirado del sistema.",
             )
 
-        tiene_id_completo = self._puede_ver_identificacion_completa(usuario_actual)
+        tiene_id_completo = puede_ver_identificacion_completa(self.permisos_repo, usuario_actual)
 
         numero_identificacion = (
             detalle.numero_identificacion
             if tiene_id_completo
-            else self._enmascarar(detalle.numero_identificacion)
+            else enmascarar_identificacion(detalle.numero_identificacion)
         )
 
         # La auditoría es condición para entregar los datos, no un efecto
@@ -145,29 +192,6 @@ class ConsultarDetalleUsuarioUseCase:
         ).mappings().all()
         return [{"id_finca": f["id_finca"], "nombre": f["nombre"]} for f in filas]
 
-    def _puede_ver_identificacion_completa(self, usuario_actual: UsuarioActual) -> bool:
-        """Indica si el actor tiene activo el permiso E sobre el recurso Usuarios.
-
-        Ante cualquier fallo al resolver el permiso retorna ``False``: RF-12
-        exige priorizar la privacidad sobre la visualización, así que un
-        servicio de permisos caído enmascara en vez de tumbar la consulta.
-
-        Se exige ``es_activo`` porque ``PermisoRepository.buscar`` no lo filtra
-        —``AsignarPermisoUseCase`` lo usa para detectar duplicados y necesita
-        ver también los inactivos—, mientras que ``require_permission`` sí lo
-        hace. Sin esta condición un permiso desactivado seguiría concediendo el
-        número completo.
-        """
-        try:
-            permiso = self.permisos_repo.buscar(
-                id_rol=usuario_actual.id_rol,
-                id_recurso=ID_RECURSO_USUARIOS,
-                id_accion=ID_ACCION_EJECUTAR,
-            )
-        except Exception:
-            return False
-        return permiso is not None and bool(permiso.es_activo)
-
     def _verificar_ritmo_de_consulta(self, usuario_actual: UsuarioActual) -> None:
         """Corta la consulta si el actor está extrayendo fichas de forma masiva.
 
@@ -214,19 +238,3 @@ class ConsultarDetalleUsuarioUseCase:
             ),
         )
 
-    def _enmascarar(self, numero: Optional[str]) -> Optional[str]:
-        """Enmascara el número de identificación dejando visibles los 4 primeros dígitos.
-
-        Args:
-            numero: Número de identificación completo, o ``None`` en una cuenta
-                SSO mínima (``Pendiente Datos``) que aún no lo tiene.
-
-        Returns:
-            Número con los últimos caracteres reemplazados por asteriscos, o
-            ``None`` si no había número que enmascarar.
-        """
-        if numero is None:
-            return None
-        if len(numero) <= 4:
-            return "*" * len(numero)
-        return numero[:4] + "*" * (len(numero) - 4)

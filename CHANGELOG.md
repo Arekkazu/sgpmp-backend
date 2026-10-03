@@ -1,3 +1,29 @@
+## [1.0.0-rc.61](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.60...v1.0.0-rc.61) (2026-10-03)
+
+### Bug Fixes
+
+* **deps:** SEG-SCA-01 actualizar dependencias con CVEs HIGH ([cbcf0a4](https://github.com/Arekkazu/sgpmp-backend/commit/cbcf0a41946c924ea59612476b1c45145d9d3d97)), closes [#263](https://github.com/Arekkazu/sgpmp-backend/issues/263)
+* **identity-access:** SEG-M01-03 enmascarar el ID en PATCH /usuarios/{id} sin permiso E (RF-12) ([fa924bc](https://github.com/Arekkazu/sgpmp-backend/commit/fa924bc553042b5474bf950fc7c514af35aa58ec)), closes [#439](https://github.com/Arekkazu/sgpmp-backend/issues/439)
+* **rf26:** SEG-SAST-02 parsear el logo SVG con defusedxml y filtrar sobre el arbol ([ae699dc](https://github.com/Arekkazu/sgpmp-backend/commit/ae699dc7aebaf8b9cc8faf6ff3389f6002260d77)), closes [#x61](https://github.com/Arekkazu/sgpmp-backend/issues/x61) [#396](https://github.com/Arekkazu/sgpmp-backend/issues/396)
+
+## [1.0.0-rc.60](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.59...v1.0.0-rc.60) (2026-10-02)
+
+### Bug Fixes
+
+* **alembic:** encadenar la migracion de datos financieros sobre 731fb3997631 (RF-34) ([44e5171](https://github.com/Arekkazu/sgpmp-backend/commit/44e5171dea1794b1a6680fed7447e3afe21c74a2)), closes [#469](https://github.com/Arekkazu/sgpmp-backend/issues/469) [#465](https://github.com/Arekkazu/sgpmp-backend/issues/465)
+* **rf34:** proteger datos financieros del activo ([a7556b3](https://github.com/Arekkazu/sgpmp-backend/commit/a7556b32e16af495d736170f21793a3f98784824))
+
+## [1.0.0-rc.59](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.58...v1.0.0-rc.59) (2026-10-02)
+
+### Features
+
+* **control-acceso:** F2 - contexto de sesion unico en get_current_user ([e727126](https://github.com/Arekkazu/sgpmp-backend/commit/e727126b2b0fa6d28fac0c3ba8ceeb5f6914fb1f))
+* **control-acceso:** identidad interina de sistema para tareas de fondo bajo RLS ([99a8bea](https://github.com/Arekkazu/sgpmp-backend/commit/99a8bea9dece9b5c85631e5ab16331f10b3d7dbc))
+
+### Bug Fixes
+
+* **control-acceso:** USAGE en app_ctx, Veterinario en especies y cola de auditoria ([5202d86](https://github.com/Arekkazu/sgpmp-backend/commit/5202d869fbc8a2431aecbb65006b7bb775599698))
+
 ## [1.0.0-rc.58](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.57...v1.0.0-rc.58) (2026-09-28)
 
 ### Bug Fixes
