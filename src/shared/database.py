@@ -16,8 +16,10 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
-
 from src.shared.errors import ServiceUnavailableError
+from tests.shared.rollback.infraestructure.testing_sandbox import get_or_create_test_session
+from tests.shared.tesing_context import test_run_id_context
+
 
 load_dotenv()
 
@@ -99,15 +101,20 @@ def _conectar_con_reintentos(db: Session) -> None:
 
 
 def get_db():
-    """Generador de sesiones SQLAlchemy para inyección de dependencias FastAPI.
 
-    Yields:
-        Session: Sesión de base de datos activa para el request actual.
-
-    Raises:
-        ServiceUnavailableError: Si la base de datos no responde al inicio del
-            request. Código ``BD_NO_DISPONIBLE``, HTTP 503.
-    """
+    run_id = test_run_id_context.get()
+    
+    if run_id:
+        # Estamos en un request de Newman. Obtenemos la sesión enclaustrada en el SAVEPOINT.
+        test_session = get_or_create_test_session(run_id)
+        try:
+            # La devolvemos directamente. No validamos reintentos porque la conexión ya está viva.
+            yield test_session
+        except Exception:
+            raise
+        # NO CERRAMOS LA SESIÓN AQUÍ (finally db.close()). 
+        # La conexión debe seguir viva para la siguiente petición de la colección.
+        return
     db = SessionLocal()
     try:
         _conectar_con_reintentos(db)
