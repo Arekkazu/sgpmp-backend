@@ -197,3 +197,26 @@ los fixes de `control_acceso_f2_contexto_sesion.md`):**
 - La cadena de `modulo5`/`modulo7` (3-4 saltos) es la más cara: candidata a
   medirse primero en el piloto de F4 antes de decidir función auxiliar vs.
   desnormalización de `id_finca`.
+
+---
+
+## Actualización 2026-10-03 — migración `315eaa6c5dc1` (PR #475): D2 = se retira `fincas.id_usuario`
+
+La migración del DBA cierra la deuda "ya viva" de arriba y decide D2 al revés
+de lo que asumía este documento: `fincas.id_usuario` **se elimina**, así que
+la rama "dueño" de `pol_fincas_select` desaparece y el acceso vive solo en
+`usuarios_fincas`. Ajustes hechos sobre el PR para que nada se rompa:
+
+| Problema en el PR original | Corrección |
+|---|---|
+| `down_revision = 96621b225009` dejaba dos heads con `4c1700760710` (#477) | `down_revision = 4c1700760710` |
+| `trg_fn_finca_nombre_unique` lee `NEW.id_usuario`: todo `INSERT` y `UPDATE OF nombre` sobre `fincas` fallaba con `record "new" has no field "id_usuario"` | Se reescribe antes del `DROP COLUMN` sin la unicidad por productor (P0120), redundante con la global (P0119). El `downgrade` restaura el cuerpo original byte a byte |
+| `fn_fincas_del_usuario` no filtraba `es_activo`: un acceso retirado seguía viendo la finca por RLS | `AND es_activo IS TRUE`, como `AlcanceFincaAdapter` |
+| `DROP VIEW` de las tres vistas perdía sus `GRANT` | Se re-otorgan los de `sgpmp_dev`, solo a roles existentes (patrón de `b9edb971f005`) |
+| `FincaModel` mapeaba la columna: toda consulta de fincas daba 500 | `id_usuario` pasa a `column_property` de solo lectura: el primer acceso activo en `usuarios_fincas` (el asignado al registrar). El contrato de `/configuracion/fincas` no cambia para el frontend |
+
+Tests de integración que insertaban `fincas.id_usuario` ahora dan el acceso en
+`usuarios_fincas`. Verificado en Postgres 17 desechable: `upgrade`/`downgrade`/
+`upgrade`, unitarios (1048) y la suite de integración con los mismos fallos
+preexistentes que `dev` en esa base, y RLS como `sgpmp_app` (acceso activo ve
+la finca, acceso retirado no, Administrador sí).

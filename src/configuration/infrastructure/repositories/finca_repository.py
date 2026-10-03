@@ -56,22 +56,21 @@ class SqlAlchemyFincaRepository(FincaRepository):
             es_activo=finca.es_activo,
             fecha_creacion=finca.fecha_creacion,
             fecha_actualizacion=finca.fecha_actualizacion,
-            id_usuario=finca.id_usuario,
         )
         try:
             self.db.add(orm)
             self.db.flush()
-            self.db.refresh(orm)
-            # INC-M02-61-G52: el alcance ya no se deduce de `fincas.id_usuario`,
-            # así que el propietario necesita su fila de acceso o no vería su finca.
-            if orm.id_usuario is not None:
+            # F3: `fincas` ya no guarda dueño; el usuario indicado al registrar
+            # entra como primer acceso de la finca (y así se lee de vuelta).
+            if finca.id_usuario is not None:
                 self.db.execute(
                     text(
                         "INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) "
                         "VALUES (:id_usuario, :id_finca)"
                     ),
-                    {"id_usuario": orm.id_usuario, "id_finca": orm.id_finca},
+                    {"id_usuario": finca.id_usuario, "id_finca": orm.id_finca},
                 )
+            self.db.refresh(orm)
         except Exception as exc:
             raise_from_db_error(exc)
         return self._a_entidad(orm)
@@ -83,7 +82,6 @@ class SqlAlchemyFincaRepository(FincaRepository):
         orm.tamano_h = finca.tamano_h.valor
         orm.es_activo = finca.es_activo
         orm.fecha_actualizacion = finca.fecha_actualizacion
-        orm.id_usuario = finca.id_usuario
         try:
             self.db.flush()
             self.db.refresh(orm)

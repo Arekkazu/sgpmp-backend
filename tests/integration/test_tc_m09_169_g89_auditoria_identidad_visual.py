@@ -47,9 +47,9 @@ def _crear_finca(db_session: Session, id_usuario: int) -> int:
             """
             INSERT INTO modulo9.fincas (
                 nombre, ubicacion, tamano_h, fecha_actualizacion,
-                fecha_creacion, es_activo, id_usuario
+                fecha_creacion, es_activo
             ) VALUES (
-                :nombre, CAST(:ubicacion AS jsonb), 10.00, now(), now(), true, :id_usuario
+                :nombre, CAST(:ubicacion AS jsonb), 10.00, now(), now(), true
             )
             RETURNING id_finca
             """
@@ -57,9 +57,12 @@ def _crear_finca(db_session: Session, id_usuario: int) -> int:
         {
             "nombre": _nombre_finca(),
             "ubicacion": ubicacion,
-            "id_usuario": id_usuario,
         },
     ).scalar_one()
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": id_usuario, "f": id_finca},
+    )
     db_session.flush()
     return id_finca
 
