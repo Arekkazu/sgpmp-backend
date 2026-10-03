@@ -25,7 +25,7 @@ from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix="/configuracion/tipos-area", tags=["Configuración - Tipos de Área"])
 
-_RECURSO = 58  # modulo1.recursos: 'tipos_area' — confirmar contra la BD antes de aplicar el RBAC
+_RECURSO = 58  # modulo1.recursos: 'tipos_area' (sembrado por la migración 4c1700760710)
 
 
 @router.post(
