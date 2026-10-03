@@ -39,6 +39,7 @@ class ClasificacionRegistro(str, Enum):
 
 
 class ComponenteOrigen(str, Enum):
+    RF23 = 'RF23'  # credencial MQTT por Raspberry (TC-M09-250/251)
     RF53 = 'RF53'
     RF54 = 'RF54'
     RF55 = 'RF55'
