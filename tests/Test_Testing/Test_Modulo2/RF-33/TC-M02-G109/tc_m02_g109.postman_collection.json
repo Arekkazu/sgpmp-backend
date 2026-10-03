@@ -1,0 +1,580 @@
+{
+  "info": {
+    "name": "TC-M02-G109 - Atributos dinamicos contra la metadata de RF-16: rango, tipos y opcionalidad (RFC-004 / RF-33 v1.2)",
+    "description": "RF-33 v1.2: valor fuera de rango, tipo incompatible -> HTTP 422; atributo no obligatorio ausente/null se acepta. Crea metricas QA en la especie 4 y las desactiva al final.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0A. Login admin.test",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('fecha_hoy', new Date().toISOString().slice(0,10));",
+              "pm.collectionVariables.set('rid', String(Date.now()));",
+              "pm.collectionVariables.set('fecha_inicio', new Date(Date.now() - 0*86400000).toISOString().slice(0,10));",
+              "pm.collectionVariables.set('ids_creadas','[]');",
+              "pm.collectionVariables.set('rid', String(Date.now()).slice(-8));"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/sesiones/",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Setup - metrica QA ENTERO (tipo_dato=ENTERO, es_obligatorio=false)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Metrica QA creada (201)', function () { pm.response.to.have.status(201); });",
+              "const b = pm.response.json(); const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 ent {{rid}}\",\n  \"unidad_medida\": \"unidades\",\n  \"tipo_medicion\": \"CONTEO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"ENTERO\",\n  \"es_obligatorio\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Setup - metrica QA BOOLEANO (tipo_dato=BOOLEANO, es_obligatorio=false)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Metrica QA creada (201)', function () { pm.response.to.have.status(201); });",
+              "const b = pm.response.json(); const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 bool {{rid}}\",\n  \"unidad_medida\": \"si-no\",\n  \"tipo_medicion\": \"OTRO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"BOOLEANO\",\n  \"es_obligatorio\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Setup - metrica QA TEXTO (tipo_dato=TEXTO, es_obligatorio=false)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Metrica QA creada (201)', function () { pm.response.to.have.status(201); });",
+              "const b = pm.response.json(); const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); ids.push(b.id_metrica_produccion); pm.collectionVariables.set('ids_creadas', JSON.stringify(ids));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": 4,\n  \"nombre\": \"qa rfc004 txt {{rid}}\",\n  \"unidad_medida\": \"texto\",\n  \"tipo_medicion\": \"OTRO\",\n  \"aplica_a_tipo_activo\": \"AMBOS\",\n  \"tipo_dato\": \"TEXTO\",\n  \"es_obligatorio\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "Control - valores validos para los 3 tipos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[Control] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('Control - claves y tipos validos: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-ctl-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": { \"qa rfc004 ent {{rid}}\": 3, \"qa rfc004 bool {{rid}}\": true, \"qa rfc004 txt {{rid}}\": \"abc\" } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-315 - Rechazar valor por debajo de valor_min o por encima de valor_max",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET metricas responde 200', function () { pm.response.to.have.status(200); });",
+              "const b = pm.response.json(); const hay = (b.items || []).some((m) => 'valor_min' in m);",
+              "console.log('[TC-M02-315] el backend expone valor_min/valor_max: ' + hay);",
+              "if (!hay) { pm.test.skip('TC-M02-315 NO EJECUTABLE: el backend de TEST no expone valor_min/valor_max en las metricas (ver TC-M09-G130, RF-16 v1.2 sin implementar)'); } else { pm.test('TC-M02-315 requiere definir el rango en una metrica QA: completar esta coleccion', function () { pm.expect.fail('Backend ya expone valor_min/valor_max: completar el caso'); }); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4&solo_activas=true"
+      }
+    },
+    {
+      "name": "TC-M02-316 - Aceptar valores exactamente en valor_min y valor_max",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET metricas responde 200', function () { pm.response.to.have.status(200); });",
+              "const b = pm.response.json(); const hay = (b.items || []).some((m) => 'valor_min' in m);",
+              "console.log('[TC-M02-316] el backend expone valor_min/valor_max: ' + hay);",
+              "if (!hay) { pm.test.skip('TC-M02-316 NO EJECUTABLE: el backend de TEST no expone valor_min/valor_max en las metricas (ver TC-M09-G130, RF-16 v1.2 sin implementar)'); } else { pm.test('TC-M02-316 requiere definir el rango en una metrica QA: completar esta coleccion', function () { pm.expect.fail('Backend ya expone valor_min/valor_max: completar el caso'); }); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4&solo_activas=true"
+      }
+    },
+    {
+      "name": "TC-M02-317a - ENTERO con decimal (3.5)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-317a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-317a - ENTERO con decimal: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-317a-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": { \"qa rfc004 ent {{rid}}\": 3.5 } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-317b - BOOLEANO con texto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-317b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-317b - BOOLEANO con texto: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-317b-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": { \"qa rfc004 bool {{rid}}\": \"si\" } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-317c - TEXTO con numero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-317c] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-317c - TEXTO con numero: HTTP 422', function () { pm.response.to.have.status(422); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-317c-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": { \"qa rfc004 txt {{rid}}\": 123 } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-318a - atributo no obligatorio ausente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-318a] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-318a - atributo opcional ausente: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-318a-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": {} }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-318b - atributo no obligatorio null",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[TC-M02-318b] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('TC-M02-318b - atributo opcional null: HTTP 201', function () { pm.response.to.have.status(201); });",
+              "let b; try { b = pm.response.json(); } catch (e) { b = {}; }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/activos-biologicos",
+        "body": {
+          "mode": "raw",
+          "raw": "{ \"tipo_activo\":\"INDIVIDUAL\",\"id_especie\":4,\"fecha_inicio_ciclo\":\"{{fecha_hoy}}\",\"origen_financiero\":\"nacimiento\",\"id_infraestructura\":8,\"identificador\":\"QA-G109-318b-{{rid}}\",\"raza\":\"QA G109\",\"sexo\":\"Macho\",\"fecha_nacimiento\":\"2025-01-15T00:00:00Z\",\"peso_inicial\":2.5,\"atributos_dinamicos\": { \"qa rfc004 ent {{rid}}\": null } }",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "TC-M02-319 - Metrica legacy sin tipo_dato: sin validacion estricta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('GET metricas responde 200', function () { pm.response.to.have.status(200); });",
+              "const b = pm.response.json(); const legacy = (b.items || []).filter((m) => !m.tipo_dato);",
+              "console.log('[TC-M02-319] metricas legacy sin tipo_dato: ' + legacy.length);",
+              "if (legacy.length === 0) { pm.test.skip('TC-M02-319 NO EJECUTABLE: TEST no tiene metricas legacy sin tipo_dato; requiere una fixture de BD'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    },
+    {
+      "name": "Limpieza - desactivar metricas QA",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const ids = JSON.parse(pm.collectionVariables.get('ids_creadas') || '[]'); const base = pm.collectionVariables.get('base_url'); const tok = pm.collectionVariables.get('token_admin'); ids.forEach(function (id) { pm.sendRequest({ url: base + '/configuracion/metricas/' + id + '/desactivar', method: 'PATCH', header: { Authorization: 'Bearer ' + tok } }, function () {}); });"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Limpieza ejecutada (GET 200)', function () { pm.response.to.have.status(200); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.inmero.co/back-sigab-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": "4"
+    },
+    {
+      "key": "id_infraestructura",
+      "value": "8"
+    },
+    {
+      "key": "id_ciclo_productiva",
+      "value": "2"
+    },
+    {
+      "key": "id_activo",
+      "value": ""
+    },
+    {
+      "key": "rid",
+      "value": ""
+    },
+    {
+      "key": "fecha_inicio",
+      "value": ""
+    },
+    {
+      "key": "ids_creadas",
+      "value": "[]"
+    }
+  ]
+}
