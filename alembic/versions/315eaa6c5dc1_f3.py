@@ -1,21 +1,108 @@
-"""F3: Mover funciones de contexto a modulo1, crear fn_fincas_del_usuario,
-actualizar politicas modulo9 y retirar fincas.id_usuari
+"""F3: crear fn_fincas_del_usuario, actualizar politicas modulo9 y retirar
+fincas.id_usuario
 
 Revision ID: 315eaa6c5dc1
-Revises: d7c4e9a1b2f6
+Revises: 4c1700760710
 Create Date: 2026-09-30 23:14:52.967017
+
+D2 resuelta como "se retira": el acceso vive solo en modulo9.usuarios_fincas
+(creada en 1b9536d4411c). Antes de borrar la columna se reescribe
+trg_fn_finca_nombre_unique, que leia NEW.id_usuario: sin ese cambio todo INSERT
+y todo UPDATE OF nombre sobre fincas falla con 'record "new" has no field
+"id_usuario"'. La unicidad por productor (P0120) era redundante: la global
+(P0119) ya impide cualquier nombre repetido.
 
 """
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 
-revision: str = '315eaa6c5dc1'         
-down_revision: Union[str, Sequence[str], None] = '96621b225009'  
+revision: str = '315eaa6c5dc1'
+down_revision: Union[str, Sequence[str], None] = '4c1700760710'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
+
+
+# Cuerpo de baseline (identico al de sgpmp_dev). {declarar_productor} y
+# {validar_productor} quedan vacios en upgrade y se restauran en downgrade.
+_FN_NOMBRE_UNIQUE = r"""
+CREATE OR REPLACE FUNCTION modulo9.trg_fn_finca_nombre_unique() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $_$
+DECLARE
+    v_count_global    INTEGER;
+{declarar_productor}BEGIN
+    NEW.nombre := TRIM(NEW.nombre);
+
+    -- Validar formato: solo letras, espacios, acentos y ñ  (operador !~ correcto)
+    IF NEW.nombre !~ '^[A-Za-záéíóúÁÉÍÓÚñÑüÜ\s]+$' THEN
+        RAISE EXCEPTION
+            'INVALID_FORMAT: El nombre de la finca solo permite letras, espacios '
+            'y caracteres del español. No se admiten números ni símbolos. Valor: "%".',
+            NEW.nombre
+        USING ERRCODE = 'P0118';
+    END IF;
+
+    -- Validar unicidad global
+    SELECT COUNT(*) INTO v_count_global
+    FROM modulo9.fincas
+    WHERE LOWER(TRIM(nombre)) = LOWER(NEW.nombre)
+      AND id_finca <> COALESCE(NEW.id_finca, -1);
+
+    IF v_count_global > 0 THEN
+        RAISE EXCEPTION
+            'DUPLICATE_FARM_GLOBAL: Ya existe una finca con el nombre "%" '
+            'en el sistema (unicidad global).',
+            NEW.nombre
+        USING ERRCODE = 'P0119';
+    END IF;
+{validar_productor}
+    RETURN NEW;
+END;
+$_$;
+"""
+
+_DECLARAR_PRODUCTOR = "    v_count_productor INTEGER;\n"
+
+_VALIDAR_PRODUCTOR = """
+    -- Validar unicidad por productor
+    IF NEW.id_usuario IS NOT NULL THEN
+        SELECT COUNT(*) INTO v_count_productor
+        FROM modulo9.fincas
+        WHERE LOWER(TRIM(nombre)) = LOWER(NEW.nombre)
+          AND id_usuario = NEW.id_usuario
+          AND id_finca <> COALESCE(NEW.id_finca, -1);
+
+        IF v_count_productor > 0 THEN
+            RAISE EXCEPTION
+                'DUPLICATE_FARM_PRODUCER: El productor ya tiene una finca '
+                'registrada con el nombre "%".',
+                NEW.nombre
+            USING ERRCODE = 'P0120';
+        END IF;
+    END IF;
+"""
+
+# DROP VIEW no conserva los GRANT: se re-otorgan los que tienen hoy las tres
+# vistas en sgpmp_dev, solo a los roles que existan (TEST no tiene los rol_*).
+_GRANTS_VISTAS = """
+DO $$
+DECLARE r text; v text;
+BEGIN
+    FOREACH v IN ARRAY ARRAY['vw_rf19_fincas_nombre_normalizado',
+                             'vw_rf19_fincas_productor_resumen',
+                             'vw_rf20_fincas_activas_selector'] LOOP
+        FOR r IN SELECT rolname FROM pg_roles
+                 WHERE rolname IN ('sgpmp_app', 'rol_app', 'rol_dev', 'rol_impl', 'rol_migracion') LOOP
+            EXECUTE format('GRANT INSERT, SELECT, UPDATE, DELETE ON modulo9.%I TO %I', v, r);
+        END LOOP;
+        FOR r IN SELECT rolname FROM pg_roles WHERE rolname = 'rol_aiot' LOOP
+            EXECUTE format('GRANT INSERT, SELECT ON modulo9.%I TO %I', v, r);
+        END LOOP;
+    END LOOP;
+END $$;
+"""
 
 
 def upgrade() -> None:
@@ -30,7 +117,8 @@ def upgrade() -> None:
         SECURITY DEFINER
         SET search_path = pg_catalog, modulo9
         AS $$
-            SELECT id_finca FROM modulo9.usuarios_fincas WHERE id_usuario = p_usuario_id;
+            SELECT id_finca FROM modulo9.usuarios_fincas
+            WHERE id_usuario = p_usuario_id AND es_activo IS TRUE;
         $$;
     """)
     op.execute("REVOKE ALL ON FUNCTION modulo9.fn_fincas_del_usuario(bigint) FROM PUBLIC;")
@@ -73,6 +161,8 @@ def upgrade() -> None:
     op.execute("DROP VIEW IF EXISTS modulo9.vw_rf19_fincas_productor_resumen;")
     op.execute("DROP VIEW IF EXISTS modulo9.vw_rf20_fincas_activas_selector;")
 
+    # El trigger lee NEW.id_usuario; se reescribe antes de que la columna desaparezca.
+    op.execute(_FN_NOMBRE_UNIQUE.format(declarar_productor="", validar_productor=""))
     op.execute("ALTER TABLE modulo9.fincas DROP COLUMN id_usuario;")
 
     op.execute("""
@@ -139,6 +229,7 @@ def upgrade() -> None:
         ) a ON a.id_finca = f.id_finca
         WHERE f.es_activo IS TRUE;
     """)
+    op.execute(_GRANTS_VISTAS)
 
 
 def downgrade() -> None:
@@ -147,6 +238,14 @@ def downgrade() -> None:
     op.execute("DROP VIEW IF EXISTS modulo9.vw_rf19_fincas_nombre_normalizado;")
 
     op.execute("ALTER TABLE modulo9.fincas ADD COLUMN id_usuario integer;")
+    op.execute(
+        "ALTER TABLE modulo9.fincas ADD CONSTRAINT finca_id_usuario_fkey "
+        "FOREIGN KEY (id_usuario) REFERENCES modulo1.usuarios(id_usuario) NOT VALID;"
+    )
+    op.execute(
+        "COMMENT ON COLUMN modulo9.fincas.id_usuario IS "
+        "'Usuario propietario o responsable de la finca (opcional).';"
+    )
     op.execute("""
         UPDATE modulo9.fincas f
         SET id_usuario = sub.id_usuario
@@ -193,6 +292,10 @@ def downgrade() -> None:
         WHERE f.es_activo IS TRUE
         GROUP BY f.id_finca, f.nombre, f.ubicacion, f.es_activo, u.nombre, u.apellidos;
     """)
+    op.execute(_GRANTS_VISTAS)
+    op.execute(_FN_NOMBRE_UNIQUE.format(
+        declarar_productor=_DECLARAR_PRODUCTOR, validar_productor=_VALIDAR_PRODUCTOR,
+    ))
 
     op.execute("DROP POLICY IF EXISTS pol_infraestructuras_select ON modulo9.infraestructuras;")
     op.execute("""

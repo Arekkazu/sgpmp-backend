@@ -106,14 +106,13 @@ def _crear_activo(
             """
             INSERT INTO modulo9.fincas (
                 id_finca, nombre, ubicacion, tamano_h, fecha_actualizacion,
-                fecha_creacion, es_activo, id_usuario
-            ) VALUES (:id, :nombre, '{}', 10, now(), now(), true, :id_usuario)
+                fecha_creacion, es_activo
+            ) VALUES (:id, :nombre, '{}', 10, now(), now(), true)
             """
         ),
         {
             'id': sid,
             'nombre': _nombre_temporal('Finca Finanzas'),
-            'id_usuario': id_usuario_dueno,
         },
     )
     for id_usuario in usuarios_con_acceso:
