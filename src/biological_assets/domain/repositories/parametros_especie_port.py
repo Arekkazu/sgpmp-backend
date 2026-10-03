@@ -15,6 +15,7 @@ class ParametroEspecie:
     es_obligatorio: bool
     valor_min: Optional[Decimal] = field(default=None)
     valor_max: Optional[Decimal] = field(default=None)
+    unidad_medida: Optional[str] = field(default=None)
 
 
 @dataclass

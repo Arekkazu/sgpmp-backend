@@ -54,6 +54,18 @@ class DetalleIndividualResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class ParametroEspecieResponse(BaseModel):
+    """Atributo dinámico que la especie exige o admite al registrar un activo (#194)."""
+    nombre: str
+    tipo_dato: str
+    es_obligatorio: bool
+    unidad_medida: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+
+    model_config = {'from_attributes': True}
+
+
 class DetallePoblacionalResponse(BaseModel):
     id_detalle: Optional[int]
     cantidad_inicial: int
