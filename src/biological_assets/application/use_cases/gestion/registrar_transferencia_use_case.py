@@ -81,7 +81,7 @@ class RegistrarTransferenciaUseCase:
             raise ConflictError(
                 code='ACTIVO_NO_ACTIVO',
                 message=(
-                    f'El activo {activo.identificador} se encuentra en estado {activo.nombre_estado}. '
+                    f'El activo {activo.identificador or id_activo} se encuentra en estado {activo.nombre_estado}. '
                     'Solo se pueden transferir activos en estado ACTIVO.'
                 ),
             )
@@ -95,7 +95,7 @@ class RegistrarTransferenciaUseCase:
             raise BusinessRuleError(
                 code='SIN_INFRAESTRUCTURA_ORIGEN',
                 message=(
-                    f'El activo {activo.identificador} no tiene una infraestructura origen registrada. '
+                    f'El activo {activo.identificador or id_activo} no tiene una infraestructura origen registrada. '
                     'Asocie el activo a una infraestructura antes de realizar la transferencia.'
                 ),
             )
