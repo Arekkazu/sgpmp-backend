@@ -87,6 +87,7 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         clasificaciones_permitidas: Optional[set[str]] = None,
         rf_origenes_permitidos: Optional[set[str]] = None,
         id_propietario_acceso_datos: Optional[int] = None,
+        id_usuario_responsable: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
 
@@ -122,6 +123,8 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             q = q.filter(BitacoraAuditoriaM02Model.resultado == resultado)
         if severidad_log is not None:
             q = q.filter(BitacoraAuditoriaM02Model.severidad_log == severidad_log)
+        if id_usuario_responsable is not None:
+            q = q.filter(BitacoraAuditoriaM02Model.id_usuario_responsable == id_usuario_responsable)
         if fecha_inicio is not None:
             q = q.filter(BitacoraAuditoriaM02Model.timestamp_evento >= fecha_inicio)
         if fecha_fin is not None:

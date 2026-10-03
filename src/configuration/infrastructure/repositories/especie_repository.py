@@ -18,6 +18,7 @@ from src.configuration.domain.repositories.especie_repository import EspecieRepo
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.infrastructure.models.especie_model import EspecieModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyEspecieRepository(EspecieRepository):
@@ -32,7 +33,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
     def _a_entidad(orm: EspecieModel) -> Especie:
         return Especie(
             id_especie=orm.id_especie,
-            nombre=NombreEspecie(orm.nombre),
+            nombre=rehidratar(NombreEspecie, orm.nombre),
             descripcion=orm.descripcion,
             densidad_maxima_por_especie=orm.densidad_maxima_por_especie,
             es_activo=orm.es_activo,

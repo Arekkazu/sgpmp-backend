@@ -11,6 +11,7 @@ from src.configuration.domain.value_objects.frecuencia_muestreo import Frecuenci
 from src.configuration.domain.value_objects.heartbeat import Heartbeat
 from src.configuration.infrastructure.models.configuracion_global_model import ConfiguracionGlobalModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
@@ -22,8 +23,8 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
     def _a_entidad(orm: ConfiguracionGlobalModel) -> ConfiguracionGlobal:
         return ConfiguracionGlobal(
             id_configuracion_global=orm.id_configuracion_global,
-            frecuencia_muestreo=FrecuenciaMuestreo(orm.frecuencia_muestreo),
-            heartbeat=Heartbeat(orm.heartbeat),
+            frecuencia_muestreo=rehidratar(FrecuenciaMuestreo, orm.frecuencia_muestreo),
+            heartbeat=rehidratar(Heartbeat, orm.heartbeat),
             fecha_actualizacion=orm.fecha_actualizacion,
             id_usuario=orm.id_usuario,
             es_activo=orm.es_activo,

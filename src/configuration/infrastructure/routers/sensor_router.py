@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import ConsultarCalibracionesUseCase, RegistrarCalibracionUseCase
+from src.configuration.infrastructure.adapters.asociacion_sensor_activo_m02_adapter import AsociacionSensorActivoM02Adapter
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
 from src.configuration.infrastructure.repositories.auditoria_calibracion_repository import SqlAlchemyAuditoriaCalibracionRepository
@@ -34,7 +35,11 @@ from src.configuration.infrastructure.schema.calibracion_schema import (
     ListaRangosCalibracionResponse,
     RangoCalibracionResponse,
 )
-from src.configuration.infrastructure.schema.sensor_area_schema import ListaSensorAreasResponse, SensorAreaResponse
+from src.configuration.infrastructure.schema.sensor_area_schema import (
+    AsociarSensorAreaResponse,
+    ListaSensorAreasResponse,
+    SensorAreaResponse,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
@@ -50,7 +55,7 @@ _RECURSO = 12  # modulo1.recursos: 'sensores'
 
 @router.post(
     "/{id_sensor}/asociar",
-    response_model=SensorAreaResponse,
+    response_model=AsociarSensorAreaResponse,
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
@@ -69,7 +74,7 @@ def asociar_sensor_area(
     dto: AsociarSensorAreaDTO,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
-) -> SensorAreaResponse:
+) -> AsociarSensorAreaResponse:
     use_case = AsociarSensorAreaUseCase(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
@@ -77,9 +82,10 @@ def asociar_sensor_area(
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaSensorAreaRepository(db),
+        asociacion_sensor_activo_port=AsociacionSensorActivoM02Adapter(db),
     )
-    asociacion = use_case.execute(id_sensor, dto, usuario_actual)
-    return SensorAreaResponse.from_entity(asociacion)
+    asociacion, superadas = use_case.execute(id_sensor, dto, usuario_actual)
+    return AsociarSensorAreaResponse.from_resultado(asociacion, superadas)
 
 
 # ── RF-22: Historial de asociaciones del sensor ───────────────────────────────

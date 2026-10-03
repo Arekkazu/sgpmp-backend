@@ -11,6 +11,7 @@ from src.configuration.domain.value_objects.serial_dispositivo import SerialDisp
 from src.configuration.infrastructure.models.dispositivo_iot_model import DispositivoIotModel
 from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
@@ -22,7 +23,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
     def _a_entidad(orm: DispositivoIotModel) -> DispositivoIot:
         return DispositivoIot(
             id_dispositivo_iot=orm.id_dispositivo_iot,
-            serial=SerialDispositivo(orm.serial),
+            serial=rehidratar(SerialDispositivo, orm.serial),
             descripcion=orm.descripcion,
             id_infraestructura=orm.id_infraestructura,
             id_tipo_dispositivo=orm.id_tipo_dispositivo,

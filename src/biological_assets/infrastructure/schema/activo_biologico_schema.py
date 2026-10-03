@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel
+
+# #213: la columna `densidad` es NUMERIC sin escala; la división en BD llega con
+# 20 decimales ("0.01000000000000000000") o en notación científica ("0E-20").
+Densidad = Annotated[Decimal, AfterValidator(lambda d: d.quantize(Decimal('0.0001')))]
 
 
 # ── Schemas de CU04 (RF-44, RF-38) ──────────────────────────────────────────
@@ -50,6 +54,18 @@ class DetalleIndividualResponse(BaseModel):
     model_config = {'from_attributes': True}
 
 
+class ParametroEspecieResponse(BaseModel):
+    """Atributo dinámico que la especie exige o admite al registrar un activo (#194)."""
+    nombre: str
+    tipo_dato: str
+    es_obligatorio: bool
+    unidad_medida: Optional[str] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
+
+    model_config = {'from_attributes': True}
+
+
 class DetallePoblacionalResponse(BaseModel):
     id_detalle: Optional[int]
     cantidad_inicial: int
@@ -57,7 +73,7 @@ class DetallePoblacionalResponse(BaseModel):
     peso_promedio_inicial: Optional[Decimal]
     peso_promedio: Optional[Decimal]
     biomasa_total: Optional[Decimal]
-    densidad: Optional[Decimal]
+    densidad: Optional[Densidad]
 
     model_config = {'from_attributes': True}
 
@@ -301,7 +317,7 @@ class FichaIntegralResponse(BaseModel):
     fecha_ultimo_peso: Optional[date] = None
     cantidad_actual: Optional[int] = None
     biomasa_total: Optional[Decimal] = None
-    densidad: Optional[Decimal] = None
+    densidad: Optional[Densidad] = None
     eventos_sanitarios: list[dict] = []
     eventos_productivos: list[dict] = []
     eventos_crecimiento: list[dict] = []
@@ -323,7 +339,7 @@ class FichaLoteResponse(BaseModel):
     peso_promedio_inicial: Optional[Decimal] = None
     peso_promedio: Optional[Decimal] = None
     biomasa_total: Optional[Decimal] = None
-    densidad: Optional[Decimal] = None
+    densidad: Optional[Densidad] = None
     densidad_maxima: Optional[Decimal] = None
     historial: list[RegistroHistorialResponse] = []
     total_registros_historial: int = 0
@@ -344,6 +360,7 @@ class InfraestructuraDisponibleResponse(BaseModel):
     nombre: str
     tipo: str
     capacidad_maxima: Optional[int] = None
+    ocupacion_actual: Optional[int] = None
     id_especie: Optional[int] = None
 
 

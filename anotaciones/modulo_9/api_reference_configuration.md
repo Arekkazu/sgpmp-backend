@@ -336,8 +336,9 @@
 | `id_dispositivo_iot` | `int` | — |
 | `id_infraestructura` | `int` | — |
 | `punto_instalacion` | `str` | Obligatorio, máx 100 chars |
+| `confirmar` | `bool` | Default `false`; `true` confirma la reasignación a otra área |
 
-**Response `SensorAreaResponse`:**
+**Response `AsociarSensorAreaResponse`** (`SensorAreaResponse` + `asociaciones_activo_superadas`):
 
 | Campo | Tipo |
 |-------|------|
@@ -350,6 +351,7 @@
 | `fecha_asociacion` | `datetime` |
 | `fecha_finalizacion` | `datetime \| None` |
 | `id_usuario` | `int` |
+| `asociaciones_activo_superadas` | `list[{id_asociacion_activo_sensor: int, id_activo_biologico: int \| None, tipo: str}]` — asociaciones sensor→activo `ambiental`/`poblacional` que la reasignación dejó `SUPERADA` (#290); vacía en una primera asociación |
 
 ---
 
