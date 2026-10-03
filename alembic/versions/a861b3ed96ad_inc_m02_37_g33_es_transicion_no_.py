@@ -30,6 +30,11 @@ activos en BAJA. Igual que hizo `69d26aea234c`, se desactiva solo durante el
 UPDATE del backfill -- que no toca fechas ni `es_activa` -- y se reactiva de
 inmediato; como el DDL de PostgreSQL es transaccional, un fallo a mitad de
 camino revierte también el ENABLE/DISABLE.
+
+GAP RESUELTO (2026-10-03): la columna `detalle_tecnico` en
+`modulo2.bitacora_auditoria_m02` nunca fue capturada en una migración anterior
+(existía en DEV pero no en TEST). Esta migración ahora la agrega si no existe,
+evitando que falle en ambientes sin ese historial manual.
 """
 from typing import Sequence, Union
 
@@ -52,12 +57,15 @@ def upgrade() -> None:
             v_filas_marcadas      INT;
             v_sin_fila_asociada   INT;
         BEGIN
+            -- Garantizar que detalle_tecnico existe (gap: no fue capturada en migración anterior)
             IF NOT EXISTS (
                 SELECT 1 FROM information_schema.columns
                 WHERE table_schema = 'modulo2' AND table_name = 'bitacora_auditoria_m02'
                   AND column_name = 'detalle_tecnico'
             ) THEN
-                RAISE EXCEPTION 'RF-37: bitacora_auditoria_m02.detalle_tecnico no existe -- revisar supuestos de esta migración';
+                ALTER TABLE modulo2.bitacora_auditoria_m02
+                    ADD COLUMN detalle_tecnico JSONB DEFAULT '{}'::jsonb;
+                RAISE NOTICE 'RF-37: agregada columna detalle_tecnico a bitacora_auditoria_m02 (gap de migración anterior)';
             END IF;
 
             -- 1) Columna nueva. DEFAULT constante: no reescribe la tabla ni dispara triggers de fila.
