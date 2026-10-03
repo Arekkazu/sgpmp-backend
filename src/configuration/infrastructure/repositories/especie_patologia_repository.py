@@ -15,6 +15,7 @@ from src.configuration.domain.repositories.especie_patologia_repository import E
 from src.configuration.domain.value_objects.nombre_patologia import NombrePatologia
 from src.configuration.infrastructure.models.especie_patologia_model import EspeciePatologiaModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 _DUP_MSG = "Ya existe una patología con ese nombre para esta especie."
 
@@ -30,7 +31,7 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
             id_especies_patologias=orm.id_especies_patologias,
             id_especie=orm.id_especie,
             id_patologia=orm.id_patologia,
-            nombre=NombrePatologia(orm.nombre),
+            nombre=rehidratar(NombrePatologia, orm.nombre),
             descripcion=orm.descripcion,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,

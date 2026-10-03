@@ -12,6 +12,7 @@ from src.configuration.domain.value_objects.duracion_dias import DuracionDias
 from src.configuration.domain.value_objects.nombre_etapa import NombreEtapa
 from src.configuration.infrastructure.models.ciclo_biologico_model import CicloBiologicoModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
@@ -23,9 +24,9 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
     def _a_entidad(orm: CicloBiologicoModel) -> CicloBiologico:
         return CicloBiologico(
             id_ciclo_biologico=orm.id_ciclo_biologico,
-            nombre=NombreEtapa(orm.nombre),
+            nombre=rehidratar(NombreEtapa, orm.nombre),
             descripcion=orm.descripcion,
-            duracion_dias=DuracionDias(orm.duracion_dias),
+            duracion_dias=rehidratar(DuracionDias, orm.duracion_dias),
             id_especie=orm.id_especie,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,

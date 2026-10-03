@@ -15,6 +15,7 @@ from src.configuration.domain.value_objects.tamano_h import TamanoH
 from src.configuration.domain.value_objects.ubicacion_finca import UbicacionFinca
 from src.configuration.infrastructure.models.finca_model import FincaModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyFincaRepository(FincaRepository):
@@ -26,9 +27,9 @@ class SqlAlchemyFincaRepository(FincaRepository):
     def _a_entidad(orm: FincaModel) -> Finca:
         return Finca(
             id_finca=orm.id_finca,
-            nombre=NombreFinca(orm.nombre),
+            nombre=rehidratar(NombreFinca, orm.nombre),
             ubicacion=UbicacionFinca.from_dict(orm.ubicacion),
-            tamano_h=TamanoH(Decimal(str(orm.tamano_h))),
+            tamano_h=rehidratar(TamanoH, Decimal(str(orm.tamano_h))),
             es_activo=bool(orm.es_activo),
             fecha_creacion=orm.fecha_creacion,
             fecha_actualizacion=orm.fecha_actualizacion,
