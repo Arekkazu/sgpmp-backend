@@ -1,3 +1,17 @@
+## [1.0.0-rc.64](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.63...v1.0.0-rc.64) (2026-10-03)
+
+### Features
+
+* **rf33:** exponer los atributos dinámicos de la especie para el registro de activos ([d3430f4](https://github.com/Arekkazu/sgpmp-backend/commit/d3430f4d95f42c06c21d9087c2ded46e4d5d7475)), closes [Arekkazu/SGPMP-FRONT-END-PWA#194](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/194)
+* **rf48:** informar la ocupación actual de cada destino de transferencia ([2fea4a3](https://github.com/Arekkazu/sgpmp-backend/commit/2fea4a36ebf61814f0a7951e5a57c944c3880d58))
+* **rf52:** filtrar la bitácora de M02 por usuario responsable ([9ec7da5](https://github.com/Arekkazu/sgpmp-backend/commit/9ec7da53f6e543605f573f97506d2f3f3b9cea15))
+
+### Bug Fixes
+
+* **rf19-rf21-mod9:** no validar al leer filas guardadas antes de endurecer el formato ([afd269f](https://github.com/Arekkazu/sgpmp-backend/commit/afd269f8b3896f757f723b882dc031ad28529e57)), closes [Arekkazu/SGPMP-FRONT-END-PWA#166](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/166) [Arekkazu/SGPMP-FRONT-END-PWA#178](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/178)
+* **rf36:** acotar la densidad del lote a 4 decimales en las respuestas ([419cd4c](https://github.com/Arekkazu/sgpmp-backend/commit/419cd4c5c4ffb5c6a1e7f32e1edeb8c8862212cd)), closes [Arekkazu/SGPMP-FRONT-END-PWA#213](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/213)
+* **rf48:** no mostrar "El activo None" al rechazar la transferencia de un lote ([834b244](https://github.com/Arekkazu/sgpmp-backend/commit/834b2449213da55e631f4bdc29fdc2ff2904e5a8)), closes [Arekkazu/SGPMP-FRONT-END-PWA#212](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/212)
+
 ## [1.0.0-rc.63](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.62...v1.0.0-rc.63) (2026-10-03)
 
 ### Bug Fixes
