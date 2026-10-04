@@ -1,0 +1,139 @@
+{
+  "caso": "TC-M03-G36",
+  "revision": 1,
+  "modulo": "M03",
+  "cu": "CU-02",
+  "rf": "RF-55",
+  "rf_especifico": "RF-55.1",
+  "tipo": "Funcional / Resiliencia",
+  "herramienta": "Python + pytest + inspeccion (simulacion Edge no presente en el repo)",
+  "fecha_utc": "2026-09-28T04:21:13.141359+00:00",
+  "criterio_tiempo_ms": 500,
+  "inspeccion": {
+    "repo_root": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend",
+    "existe_test_modulo3_previo": false,
+    "hits_src": [
+      {
+        "path": "src/telemetry/infrastructure/dto/recibir_evento_edge_dto.py",
+        "por_nombre": false,
+        "por_contenido": true,
+        "snippet": "lasificacion_rf55: str       # NORMAL | DESVIACION_SIMPLE | DESVIACION_COMPUESTA | ERROR_CONFIGURACION     severidad: Op"
+      },
+      {
+        "path": "src/telemetry/domain/entities/telemetria.py",
+        "por_nombre": false,
+        "por_contenido": true,
+        "snippet": "e(str, Enum):     NORMAL = \"NORMAL\"     DESVIACION_SIMPLE = \"DESVIACION_SIMPLE\"     DESVIACION_COMPUESTA = \"DESVIACION_C"
+      },
+      {
+        "path": "src/telemetry/application/use_cases/inferencia/consolidar_paquete_inferencia_use_case.py",
+        "por_nombre": false,
+        "por_contenido": true,
+        "snippet": null
+      },
+      {
+        "path": "src/telemetry/application/use_cases/inferencia/recibir_evento_edge_use_case.py",
+        "por_nombre": false,
+        "por_contenido": true,
+        "snippet": "on_rf55 in (             TipoEventoEdge.DESVIACION_SIMPLE,             TipoEventoEdge.DESVIACION_COMPUESTA,         )   "
+      }
+    ],
+    "hits_tests_edge": [],
+    "recibir_evento_edge": {
+      "modulo": "src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case",
+      "clase": "RecibirEventoEdgeUseCase",
+      "rol": "RF-56: recibe evento YA clasificado por RF-55 (AIOT). No implementa RF-55.1.",
+      "dto_campos": [
+        "access_key",
+        "clasificacion_rf55",
+        "device_id",
+        "estado_conectividad",
+        "metadata_edge",
+        "origen",
+        "sensor_id",
+        "severidad",
+        "timestamp_captura",
+        "timestamp_procesamiento_edge",
+        "variables_involucradas",
+        "version_modelo_objetivo"
+      ],
+      "dto_exige_clasificacion_entrada": true,
+      "execute_asigna_clasificacion_desde_dto": true,
+      "execute_evalua_umbral_local": false,
+      "no_es_procesador_rf55_1": true
+    },
+    "nodo_edge_stub": {
+      "modulo": "src.prediction.infrastructure.adapters.nodo_edge_stub_adapter",
+      "clase": "NodoEdgeStubAdapter",
+      "metodos": [
+        "hay_nodos_activos"
+      ],
+      "implementa_clasificacion_rf55": false,
+      "rol": "Stub M04 (hay_nodos_activos). No procesa mediciones."
+    },
+    "documentacion_m03": {
+      "pendientes_frontend_m03.md": {
+        "existe": true,
+        "rf55_fuera_de_alcance_dev": true
+      },
+      "M03-SPLIT.md": {
+        "existe": false,
+        "rf55_fuera_de_alcance_dev": false
+      }
+    },
+    "mecanismo_procesamiento_edge": false,
+    "umbral_local_en_nodo": false,
+    "simulacion_edge_en_tests": false,
+    "buffer_local_nodo": false,
+    "mock_conectividad_nodo": false,
+    "nota_buffer_backend": "SqlAlchemyEventoEdgeRepository.guardar pone almacendado_buffer=not estado_conectividad cuando el backend YA recibio el evento. Eso no demuestra buffer local del nodo sin red.",
+    "motivo_bloqueo": "BLOQUEADO: no se puede ejecutar RF-55.1 en este repositorio. Falta: mecanismo funcional de procesamiento Edge RF-55.1 (evaluar medicion vs umbral local y emitir NORMAL/DESVIACION_SIMPLE); umbral disponible localmente en el nodo Edge (no se inventa desde M09/backend); utilidad/fixture de simulacion Edge en tests/; buffer local del nodo (RF-54 / AIOT); almacendado_buffer del backend no es el buffer del Edge; mock/mecanismo de conectividad del nodo Edge. Documentacion: RF-54 y RF-55 son AIOT (firmware/Edge), fuera de alcance Dev. POST /iot/eventos-edge es RF-56 y exige clasificacion_rf55 de entrada; usarlo implicaria inventar la clasificacion. No se fabrican mediciones ni umbrales."
+  },
+  "subcasos": {
+    "TC-M03-075": {
+      "resultado": "BLOQUEADO",
+      "clasificacion_obtenida": null,
+      "tiempo_procesamiento_ms": null,
+      "medicion": null,
+      "umbral": null,
+      "evento_edge": null,
+      "conectividad": true,
+      "buffer_local": null,
+      "pytest": "skipped (precondicion)",
+      "precondiciones": {
+        "mecanismo_procesamiento_edge": false,
+        "variable_valida_en_nodo": false,
+        "umbral_local": false,
+        "medicion_valida": false,
+        "buffer_local": false
+      },
+      "no_ejecutado": true,
+      "conclusion": "BLOQUEADO: no se puede ejecutar RF-55.1 en este repositorio. Falta: mecanismo funcional de procesamiento Edge RF-55.1 (evaluar medicion vs umbral local y emitir NORMAL/DESVIACION_SIMPLE); umbral disponible localmente en el nodo Edge (no se inventa desde M09/backend); utilidad/fixture de simulacion Edge en tests/; buffer local del nodo (RF-54 / AIOT); almacendado_buffer del backend no es el buffer del Edge; mock/mecanismo de conectividad del nodo Edge. Documentacion: RF-54 y RF-55 son AIOT (firmware/Edge), fuera de alcance Dev. POST /iot/eventos-edge es RF-56 y exige clasificacion_rf55 de entrada; usarlo implicaria inventar la clasificacion. No se fabrican mediciones ni umbrales.",
+      "objetivo": "Procesar medicion valida dentro de umbral local RF-55.1 y clasificar NORMAL, con conectividad habilitada. Envio a backend es secundario."
+    },
+    "TC-M03-080": {
+      "resultado": "BLOQUEADO",
+      "clasificacion_obtenida": null,
+      "tiempo_procesamiento_ms": null,
+      "medicion": null,
+      "umbral": null,
+      "evento_edge": null,
+      "conectividad": false,
+      "buffer_local": null,
+      "pytest": "skipped (precondicion)",
+      "precondiciones": {
+        "mecanismo_procesamiento_edge": false,
+        "variable_valida_en_nodo": false,
+        "umbral_local": false,
+        "medicion_valida": false,
+        "buffer_local": false,
+        "conectividad_off": "no simulable: no hay mock de nodo Edge"
+      },
+      "no_ejecutado": true,
+      "conclusion": "BLOQUEADO: no se puede ejecutar RF-55.1 en este repositorio. Falta: mecanismo funcional de procesamiento Edge RF-55.1 (evaluar medicion vs umbral local y emitir NORMAL/DESVIACION_SIMPLE); umbral disponible localmente en el nodo Edge (no se inventa desde M09/backend); utilidad/fixture de simulacion Edge en tests/; buffer local del nodo (RF-54 / AIOT); almacendado_buffer del backend no es el buffer del Edge; mock/mecanismo de conectividad del nodo Edge. Documentacion: RF-54 y RF-55 son AIOT (firmware/Edge), fuera de alcance Dev. POST /iot/eventos-edge es RF-56 y exige clasificacion_rf55 de entrada; usarlo implicaria inventar la clasificacion. No se fabrican mediciones ni umbrales.",
+      "objetivo": "Procesar medicion valida RF-55.1 sin conectividad: clasificacion local y persistencia en buffer del nodo, sin depender de HTTP del backend."
+    }
+  },
+  "estado_global": "BLOQUEADO",
+  "auditoria": "Sin cambios en src/. Sin DML. Sin inventar IDs/umbrales/mediciones. Sin usar POST /iot/eventos-edge como clasificador RF-55.1."
+}
