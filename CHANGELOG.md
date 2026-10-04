@@ -1,3 +1,10 @@
+## [1.0.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.67...v1.0.0-rc.68) (2026-10-04)
+
+### Bug Fixes
+
+* **alembic:** include missing gap revision ([7b0359e](https://github.com/Arekkazu/sgpmp-backend/commit/7b0359e07c7ec0c26930317902bfc8abcd1cb977))
+* **alembic:** merge migration heads ([9b15c91](https://github.com/Arekkazu/sgpmp-backend/commit/9b15c91ca71834c2ce56cfb45950883fcf80b507))
+
 ## [1.0.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.66...v1.0.0-rc.67) (2026-10-04)
 
 ### Features
