@@ -2,7 +2,30 @@
 
 **RF-20 / CU-04 — Gestionar Infraestructura Productiva**
 
-## Estado vigente — reevaluación 2026-09-26
+## Estado vigente — reevaluación 2026-10-04
+
+**Resultado: PASA** — los 4 sub-casos pasan; el defecto de TC-M09-99 está corregido en TEST.
+
+| Sub-caso | Verificación | Resultado |
+|---|---|---|
+| TC-M09-97 | `finca_id` inexistente → `404 FINCA_NO_ENCONTRADA`; finca inactiva → `422 FINCA_INACTIVA` | ✅ PASA |
+| TC-M09-98 | Superficie `0` y `-5` → `400 VAL_ENTRADA`; `0.01` → `201` con superficie `0.01` | ✅ PASA |
+| TC-M09-99 | Nombre duplicado en la misma finca variando mayúsculas → `409` | ✅ PASA |
+| TC-M09-100 | `Estanque` → `201`; `TipoQueNoExiste` → `400 TIPO_AREA_NO_RECONOCIDO` | ✅ PASA |
+
+**Totales Newman:** 13 requests, 21 assertions, 0 failed. Colección sin cambios respecto a la
+reevaluación anterior.
+
+TC-M09-99 ahora responde
+`409 {"error_code":"RECURSO_DUPLICADO","message":"Ya existe un área productiva con el nombre \"GALPON DUPLICADO TEST\" en esta finca (case-insensitive)."}`.
+Lo corrige el commit `65065150` (`fix(shared): traducir SQLSTATE de trigger sin mapear a 409/422`),
+que ya está en la rama `test` desplegada: `P0125` se traduce a conflicto en vez de error interno.
+
+Evidencia: `Resultados/reporte-TC-M09-G49.html` (Newman htmlextra, 2026-10-04).
+
+---
+
+## Reevaluación 2026-09-26 — histórico
 
 **Resultado: FALLA (1 defecto real)** — 4 de 5 verificaciones pasan; TC-M09-99 falla con 500.
 
@@ -44,7 +67,7 @@ la realidad del catálogo, sin cambiar lo que valida cada sub-caso:
 - Esto resuelve la duda de la nota original: la unicidad real es **case-insensitive** (vía
   trigger), no case-sensitive como dice `curls_m09_cu04_infraestructura.md`.
 
-Evidencia: `Resultados/reporte-TC-M09-G49.html` (Newman htmlextra, 2026-09-26).
+Evidencia de esa ejecución reemplazada por la del 2026-10-04.
 
 ---
 

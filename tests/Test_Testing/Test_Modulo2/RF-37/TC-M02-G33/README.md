@@ -14,7 +14,25 @@
 | Prioridad | Alta |
 | Endpoints | `POST /activos-biologicos/{id_activo}/fases` · `GET /activos-biologicos/{id_activo}/fases` |
 
-## Resultado vigente (2026-09-26): TC-M02-039 PASS — TC-M02-042 FAIL parcial (11/12 assertions)
+## Resultado vigente (2026-10-04): TC-M02-039 PASS — TC-M02-042 PASS (12/12 assertions)
+
+**El defecto residual del 2026-09-26 está corregido en TEST.** `8ddc5b88 fix(rf37): persistir
+es_transicion_no_estandar en el historial de fases (INC-M02-37-G33)` agrega la columna a `modulo2.gestiones_fases`
+(migración `a861b3ed96ad`) y la guarda en el `INSERT`; llegó a `juanma` al traer `origin/test`. Colección sin cambios.
+
+| Caso | WHEN | Resultado real (2026-10-04) |
+|---|---|---|
+| TC-M02-039 | `POST /fases` con `id_ciclo_productiva=2` | **201**, fase 1 activa, visible en el historial — PASS |
+| TC-M02-042 (salto) | `POST /fases` con `fase_destino_id=6` + `confirmacion_no_estandar=true` | **201**, `paso_actual=3`, `es_transicion_no_estandar=true` — PASS |
+| TC-M02-042 (cierre) | `GET /fases` | Fase 1 con `es_activa=false` y `fecha_finalizacion` = inicio de la fase 3 — PASS |
+| TC-M02-042 (evidencia) | `GET /fases` | Fase 3 (`id_gestion_fases=241`) con `es_transicion_no_estandar=true` — **PASS** |
+
+Activo propio creado por la corrida (`id_activo_biologico=705`). Evidencia:
+`RESULTADOS/TC-M02-G33_resultado.html` (Newman htmlextra, 2026-10-04).
+
+---
+
+## Histórico (2026-09-26): TC-M02-039 PASS — TC-M02-042 FAIL parcial (11/12 assertions)
 
 **El gap estructural del 2026-09-19 está implementado** (`15c4611e feat(m02): fase_destino/confirmacion_no_estandar
 ... (RF-37)`, llegó con el merge de `dev`): el salto confirmado se acepta y respeta el destino pedido. Queda **un
@@ -47,8 +65,8 @@ Cambios en la colección (sin alterar lo que exige el RF):
   `FASE_CAMBIADA`, `detalle_tecnico.es_transicion_no_estandar = true`), que no es el historial de fases que consulta
   el usuario.
 
-Activo propio creado por la corrida (`id_activo_biologico=618`). Evidencia:
-`RESULTADOS/TC-M02-G33_resultado.html` (Newman htmlextra, 2026-09-26).
+Activo propio creado por la corrida (`id_activo_biologico=618`). Evidencia de esa ejecución reemplazada por la del
+2026-10-04.
 
 ---
 

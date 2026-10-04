@@ -10,7 +10,26 @@
 | Endpoint | `GET /activos-biologicos/{id_activo}/ficha-integral` |
 | Responsable | Juan Manuel · Prioridad Media |
 
-## Resultado vigente (2026-09-26): 12/13 assertions — TC-M02-127 sigue FAIL en TEST, pero ya corregido en `dev` (pendiente de despliegue)
+## Resultado vigente (2026-10-04): 13/13 assertions — TC-M02-127 PASA en TEST
+
+La colección se re-ejecutó **sin cambios** (solo lectura: activos existentes 5, 10 y 8).
+
+| Sub-caso | Resultado (2026-10-04) |
+|---|---|
+| TC-M02-127 — Ficha completa | **PASS**: secciones 1-7 presentes y `accesos_directos` (Sección 8) con historial, registrar evento, cambiar estado y registrar baja |
+| TC-M02-128 — Sección vacía | PASS: `eventos_sanitarios = []`, ficha 200 |
+| TC-M02-129 — Fallo parcial de módulo fuente | Sin cambios: corregido en código (`4f63a9dc`), sigue sin forzarse en vivo (ver sección 2026-09-26) |
+| TC-M02-130 — Advertencia de inconsistencia | PASS: activo 8 `CERRADO` con fase activa, 200 con advertencia |
+
+`9528c8c3 feat(m02): agregar accesos directos y densidad real a la ficha integral (RF-47)` ya está en `origin/test` y
+desplegado: la respuesta en vivo de `GET /activos-biologicos/5/ficha-integral` trae `accesos_directos`. La promoción
+pendiente `dev` → `test` del 2026-09-26 quedó cerrada.
+
+Evidencia: `RESULTADOS/TC-M02-G77_resultado.html` (Newman htmlextra, 2026-10-04).
+
+---
+
+## Histórico (2026-09-26): 12/13 assertions — TC-M02-127 sigue FAIL en TEST, pero ya corregido en `dev` (pendiente de despliegue)
 
 La colección se re-ejecutó **sin cambios** (sigue siendo de solo lectura: activos existentes 5, 10 y 8).
 
@@ -43,7 +62,7 @@ Cubierto por tests unitarios del repo (`test_rf47_seccion_caida_no_tumba_la_fich
 fallo en vivo sigue requiriendo romper una vista compartida de TEST, así que no se hizo. El texto exacto del RF
 ("Información no disponible. [Actualizar]") es responsabilidad del frontend.
 
-Evidencia: `RESULTADOS/TC-M02-G77_resultado.html` (Newman htmlextra, 2026-09-26).
+Evidencia de esa ejecución reemplazada por la del 2026-10-04.
 
 ---
 
