@@ -1,0 +1,64 @@
+{
+  "info": {
+    "name": "TC-M03-276 (a) - Enrutamiento de alertas tecnicas por rol (RF-60 CA-13)",
+    "description": "Ejecutado 2026-10-04 contra TEST. Endpoint real: `GET /iot/alertas-tecnicas` (RBAC recurso 36, accion 2) y `PATCH /iot/alertas-tecnicas/{id_alerta}/estado` (RBAC recurso 36, accion U) -- NO `GET /api/v1/alerts/technical` como dice la ficha (mismo patron Swagger-ficticio).\n\n**(a) CONFIRMADO exactamente como pide la ficha**: Administrador e Ingeniero de Campo -> 200; Productor, Veterinario y Contador -> 403 `ACCESO_DENEGADO`, tanto en el listado como en el acceso directo por ID (`PATCH .../1/estado`, probado con Productor -- la RBAC se evalua ANTES de buscar el recurso, asi que da 403 y no 404 incluso con un id que no existe). La separacion por rol SI se resuelve en el servidor (OWASP API5), no en el cliente.\n\n**(b)/(c)**: ver `test_tc_m03_276_contrato_payload_y_antiduplicado.py` (mismo TC, pytest) -- el contrato de payload hacia RF-57 no coincide con el que describe la ficha, y el anti-duplicado de (c) SI esta confirmado por el mismo mecanismo que TC-M03-269 ya documento (guard `periodo_existente is None`).\n\nResponsable: Juan Pablo. Herramienta: API - Postman (Newman). Burp/Pact no se cubrieron en esta pasada (fuera del alcance de las herramientas de esta sesion).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {"name": "Login admin", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('200', function(){pm.response.to.have.status(200);}); let r=pm.response.json(); pm.collectionVariables.set('tok_admin', r.token);"]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"admin@pecuaria.co\",\"contrasena\":\"Test1234!\"}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}}, "response": []},
+    {"name": "Login ingeniero", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('200', function(){pm.response.to.have.status(200);}); let r=pm.response.json(); pm.collectionVariables.set('tok_ingeniero', r.token);"]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"ingeniero@pecuaria.co\",\"contrasena\":\"Test1234!\"}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}}, "response": []},
+    {"name": "Login productor", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('200', function(){pm.response.to.have.status(200);}); let r=pm.response.json(); pm.collectionVariables.set('tok_productor', r.token);"]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"m2m.nuevo@ejemplo.com\",\"contrasena\":\"Test1234!\"}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}}, "response": []},
+    {"name": "Login veterinario", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('200', function(){pm.response.to.have.status(200);}); let r=pm.response.json(); pm.collectionVariables.set('tok_veterinario', r.token);"]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"juan.carlos@email.com\",\"contrasena\":\"Test1234!\"}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}}, "response": []},
+    {"name": "Login contador", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('200', function(){pm.response.to.have.status(200);}); let r=pm.response.json(); pm.collectionVariables.set('tok_contador', r.token);"]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\"correo_electronico\":\"contador@pecuaria.co\",\"contrasena\":\"Test1234!\"}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}}, "response": []},
+    {"name": "Admin -> 200 (listado)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('200', function(){pm.response.to.have.status(200);});"]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{tok_admin}}"}],
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas?por_pagina=5", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas"], "query": [{"key": "por_pagina", "value": "5"}]}}, "response": []},
+    {"name": "Ingeniero de campo -> 200 (listado)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('200', function(){pm.response.to.have.status(200);});"]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{tok_ingeniero}}"}],
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas?por_pagina=5", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas"], "query": [{"key": "por_pagina", "value": "5"}]}}, "response": []},
+    {"name": "Productor -> 403 (listado)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('403 ACCESO_DENEGADO', function(){pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('ACCESO_DENEGADO');});"]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{tok_productor}}"}],
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas?por_pagina=5", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas"], "query": [{"key": "por_pagina", "value": "5"}]}}, "response": []},
+    {"name": "Veterinario -> 403 (listado)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('403 ACCESO_DENEGADO', function(){pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('ACCESO_DENEGADO');});"]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{tok_veterinario}}"}],
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas?por_pagina=5", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas"], "query": [{"key": "por_pagina", "value": "5"}]}}, "response": []},
+    {"name": "Contador -> 403 (listado)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('403 ACCESO_DENEGADO', function(){pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('ACCESO_DENEGADO');});"]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{tok_contador}}"}],
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas?por_pagina=5", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas"], "query": [{"key": "por_pagina", "value": "5"}]}}, "response": []},
+    {"name": "Productor -> 403 (acceso directo por ID, PATCH, RBAC antes de existencia)", "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text()); pm.test('403 ACCESO_DENEGADO incluso con un id que no existe -- RBAC se evalua antes de buscar el recurso', function(){pm.response.to.have.status(403); pm.expect(pm.response.json().error_code).to.equal('ACCESO_DENEGADO');});"]}}],
+      "request": {"method": "PATCH", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{tok_productor}}"}],
+        "body": {"mode": "raw", "raw": "{\"estado_alerta\":\"EN_ATENCION\"}"},
+        "url": {"raw": "{{base_url}}/iot/alertas-tecnicas/1/estado", "host": ["{{base_url}}"], "path": ["iot", "alertas-tecnicas", "1", "estado"]}}, "response": []}
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "tok_admin", "value": ""}, {"key": "tok_ingeniero", "value": ""}, {"key": "tok_productor", "value": ""},
+    {"key": "tok_veterinario", "value": ""}, {"key": "tok_contador", "value": ""}
+  ]
+}
