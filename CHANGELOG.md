@@ -1,3 +1,10 @@
+## [1.0.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.66...v1.0.0-rc.67) (2026-10-04)
+
+### Features
+
+* **rf21:** gateway edge de los dispositivos IoT con relacion N:1 y desactivacion en cascada (RF-23, TC-M09-250/251) ([80176e1](https://github.com/Arekkazu/sgpmp-backend/commit/80176e19792fd5eb1d6a091ea00a0933a8fc3559))
+* **rf23:** emitir, consultar y revocar la credencial MQTT de una Raspberry (TC-M09-250/251) ([944b7de](https://github.com/Arekkazu/sgpmp-backend/commit/944b7de69c166b53c3491bdbfe0581d359efe7e1))
+
 ## [1.0.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.65...v1.0.0-rc.66) (2026-10-03)
 
 ### Bug Fixes
