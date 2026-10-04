@@ -1,3 +1,35 @@
+## [1.0.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.69...v1.0.0-rc.70) (2026-10-04)
+
+### Features
+
+* **rf23:** reintentar o cancelar una configuracion remota PENDIENTE o NO_CONF ([6c964ee](https://github.com/Arekkazu/sgpmp-backend/commit/6c964ee151fda2c057f33489b83e8b98a6af5c7a))
+
+## [1.0.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.68...v1.0.0-rc.69) (2026-10-04)
+
+### Bug Fixes
+
+* **alembic:** retirar revisión con ID de 35 caracteres que bloquea el upgrade ([2bc6ad3](https://github.com/Arekkazu/sgpmp-backend/commit/2bc6ad345cf06ffe08cc46248952f9d01258979e)), closes [#481](https://github.com/Arekkazu/sgpmp-backend/issues/481)
+
+## [1.0.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.67...v1.0.0-rc.68) (2026-10-04)
+
+### Bug Fixes
+
+* **alembic:** include missing gap revision ([7b0359e](https://github.com/Arekkazu/sgpmp-backend/commit/7b0359e07c7ec0c26930317902bfc8abcd1cb977))
+* **alembic:** merge migration heads ([9b15c91](https://github.com/Arekkazu/sgpmp-backend/commit/9b15c91ca71834c2ce56cfb45950883fcf80b507))
+
+## [1.0.0-rc.67](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.66...v1.0.0-rc.67) (2026-10-04)
+
+### Features
+
+* **rf21:** gateway edge de los dispositivos IoT con relacion N:1 y desactivacion en cascada (RF-23, TC-M09-250/251) ([80176e1](https://github.com/Arekkazu/sgpmp-backend/commit/80176e19792fd5eb1d6a091ea00a0933a8fc3559))
+* **rf23:** emitir, consultar y revocar la credencial MQTT de una Raspberry (TC-M09-250/251) ([944b7de](https://github.com/Arekkazu/sgpmp-backend/commit/944b7de69c166b53c3491bdbfe0581d359efe7e1))
+
+## [1.0.0-rc.66](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.65...v1.0.0-rc.66) (2026-10-03)
+
+### Bug Fixes
+
+* **alembic:** permitir crear detalle_tecnico en RF-37 si no existe (gap de migración anterior) ([693f355](https://github.com/Arekkazu/sgpmp-backend/commit/693f355a9abbbf9711fc1ea988ffc6186fdaba27))
+
 ## [1.0.0-rc.65](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.64...v1.0.0-rc.65) (2026-10-03)
 
 ### Bug Fixes

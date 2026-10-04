@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import re
+from typing import Optional
 
-from pydantic import field_validator
+from pydantic import PositiveInt, field_validator
 
 from src.shared.base_dto import BaseDTO
 
@@ -19,6 +20,8 @@ class RegistrarDispositivoIotDTO(BaseDTO):
     id_infraestructura: int
     id_tipo_dispositivo: int
     es_activo: bool = True
+    # RF-21: Gateway Edge que lo atiende (opcional; nunca para un GATEWAY_EDGE).
+    id_dispositivo_gateway: Optional[PositiveInt] = None
 
     @field_validator("serial")
     @classmethod

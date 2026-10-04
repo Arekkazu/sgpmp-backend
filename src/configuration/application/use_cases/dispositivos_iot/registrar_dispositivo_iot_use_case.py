@@ -1,12 +1,24 @@
-"""Caso de uso: Registrar dispositivo IoT (POST RF-21)."""
+"""Caso de uso: Registrar dispositivo IoT (POST RF-21).
+
+Un dispositivo puede registrarse ya vinculado a su Gateway Edge
+(``id_dispositivo_gateway``); un dispositivo de tipo GATEWAY_EDGE es el Edge.
+"""
 from __future__ import annotations
+
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.dispositivos_iot.gateway_edge_use_case import (
+    sincronizar_gateways,
+    validar_gateway_edge,
+)
 from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.repositories.auditoria_dispositivo_iot_repository import AuditoriaDispositivoIotRepository
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
+from src.configuration.domain.repositories.mqtt_port import MqttPort
 from src.configuration.domain.repositories.tipo_dispositivo_iot_repository import TipoDispositivoIotRepository
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.infrastructure.dto.registrar_dispositivo_iot_dto import RegistrarDispositivoIotDTO
@@ -23,12 +35,16 @@ class RegistrarDispositivoIotUseCase:
         infra_repo: InfraestructuraRepository,
         tipo_repo: TipoDispositivoIotRepository,
         auditoria_repo: AuditoriaDispositivoIotRepository,
+        mqtt_port: Optional[MqttPort] = None,
+        bitacora: Optional[BitacoraIotPort] = None,
     ) -> None:
         self.db = db
         self.dispositivo_repo = dispositivo_repo
         self.infra_repo = infra_repo
         self.tipo_repo = tipo_repo
         self.auditoria_repo = auditoria_repo
+        self.mqtt_port = mqtt_port
+        self.bitacora = bitacora
 
     def execute(self, dto: RegistrarDispositivoIotDTO, usuario_actual: UsuarioActual) -> DispositivoIot:
         area = self.infra_repo.obtener_por_id(dto.id_infraestructura)
@@ -43,10 +59,22 @@ class RegistrarDispositivoIotUseCase:
                 message="No se puede registrar el dispositivo porque el área productiva seleccionada está desactivada.",
             )
 
-        if self.tipo_repo.obtener_por_id(dto.id_tipo_dispositivo) is None:
+        tipo = self.tipo_repo.obtener_por_id(dto.id_tipo_dispositivo)
+        if tipo is None:
             raise NotFoundError(
                 code="TIPO_DISPOSITIVO_NO_ENCONTRADO",
                 message=f"No existe un tipo de dispositivo con ID {dto.id_tipo_dispositivo}.",
+            )
+
+        gateway = None
+        if dto.id_dispositivo_gateway is not None:
+            gateway = validar_gateway_edge(
+                dispositivo_repo=self.dispositivo_repo,
+                infra_repo=self.infra_repo,
+                tipo_repo=self.tipo_repo,
+                id_dispositivo_gateway=dto.id_dispositivo_gateway,
+                tipo_dispositivo=tipo,
+                id_infraestructura=dto.id_infraestructura,
             )
 
         serial = SerialDispositivo(dto.serial)
@@ -65,6 +93,7 @@ class RegistrarDispositivoIotUseCase:
             id_infraestructura=dto.id_infraestructura,
             id_tipo_dispositivo=dto.id_tipo_dispositivo,
             es_activo=dto.es_activo,
+            id_dispositivo_gateway=dto.id_dispositivo_gateway,
         )
 
         try:
@@ -80,4 +109,6 @@ class RegistrarDispositivoIotUseCase:
             self.db.rollback()
             raise
 
+        if gateway is not None:  # el Edge gana los topics del dispositivo nuevo
+            sincronizar_gateways(self.mqtt_port, self.bitacora, [gateway], usuario_actual.id_usuario)
         return dispositivo_guardado

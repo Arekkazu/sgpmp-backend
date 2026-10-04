@@ -2,8 +2,9 @@
 
 Estado: PENDIENTE (guardado, en vuelo o dispositivo offline) / APLICADA
 (ACK confirmado) / NO_CONF (se publicó pero el ACK no llegó dentro del
-timeout) / CANCELADA (no escrito por ningún código hoy).
+timeout) / CANCELADA (el usuario la descartó).
 Cada cambio de configuración crea un nuevo registro; la tabla es el historial.
+Solo PENDIENTE y NO_CONF se pueden reintentar o cancelar.
 """
 from __future__ import annotations
 
@@ -46,6 +47,16 @@ class ConfiguracionRemota:
 
     def marcar_no_confirmada(self) -> None:
         self.estado = "NO_CONF"
+
+    def marcar_pendiente(self) -> None:
+        self.estado = "PENDIENTE"
+
+    def cancelar(self) -> None:
+        self.estado = "CANCELADA"
+
+    @property
+    def sin_aplicar(self) -> bool:
+        return self.estado in ("PENDIENTE", "NO_CONF")
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ConfiguracionRemota):
