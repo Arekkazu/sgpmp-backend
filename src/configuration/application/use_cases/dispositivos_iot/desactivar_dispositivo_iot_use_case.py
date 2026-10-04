@@ -1,4 +1,10 @@
-"""Caso de uso: Desactivar dispositivo IoT (PATCH /{id}/desactivar RF-21)."""
+"""Caso de uso: Desactivar dispositivo IoT (PATCH /{id}/desactivar RF-21).
+
+Si el dispositivo es un Gateway Edge, sus dispositivos activos se desactivan en
+cascada en la misma transacción (cada uno con su auditoría DEACTIVATE): sin el
+Edge no tienen por dónde comunicarse. El vínculo id_dispositivo_gateway se
+conserva para saber de dónde venía cada uno. No hay reactivación en cascada.
+"""
 from __future__ import annotations
 
 import logging
@@ -9,7 +15,7 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.dispositivos_iot.credencial_mqtt_use_case import revocar_y_auditar
 from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.repositories.auditoria_dispositivo_iot_repository import AuditoriaDispositivoIotRepository
-from src.configuration.domain.repositories.bitacora_credencial_mqtt_port import BitacoraCredencialMqttPort
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
 from src.configuration.domain.repositories.configuracion_remota_repository import ConfiguracionRemotaRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.mqtt_port import MqttPort
@@ -17,6 +23,8 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 
 logger = logging.getLogger(__name__)
+
+MOTIVO_CASCADA = "gateway_edge_desactivado"
 
 
 class DesactivarDispositivoIotUseCase:
@@ -28,14 +36,14 @@ class DesactivarDispositivoIotUseCase:
         config_repo: ConfiguracionRemotaRepository,
         auditoria_repo: AuditoriaDispositivoIotRepository,
         mqtt_port: Optional[MqttPort] = None,
-        bitacora_credencial: Optional[BitacoraCredencialMqttPort] = None,
+        bitacora: Optional[BitacoraIotPort] = None,
     ) -> None:
         self.db = db
         self.dispositivo_repo = dispositivo_repo
         self.config_repo = config_repo
         self.auditoria_repo = auditoria_repo
         self.mqtt_port = mqtt_port
-        self.bitacora_credencial = bitacora_credencial
+        self.bitacora = bitacora
 
     def execute(self, id_dispositivo_iot: int, usuario_actual: UsuarioActual) -> DispositivoIot:
         dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
@@ -55,42 +63,71 @@ class DesactivarDispositivoIotUseCase:
                 message="El dispositivo tiene una configuración pendiente de aplicación. Espere a que se aplique antes de desactivarlo.",
             )
 
-        snapshot_anterior = dispositivo._snapshot()
-        dispositivo.desactivar()
+        # Solo un Gateway Edge tiene dispositivos que apunten a él (lo valida RF-21).
+        atendidos = self.dispositivo_repo.listar_por_gateway(id_dispositivo_iot)
+        con_pendiente = [
+            d.serial.valor
+            for d in atendidos
+            if self.config_repo.obtener_pendiente(d.id_dispositivo_iot) is not None
+        ]
+        if con_pendiente:
+            raise BusinessRuleError(
+                code="CONFIG_PENDIENTE_EN_DISPOSITIVOS_DEL_EDGE",
+                message=(
+                    "No se puede desactivar el Gateway Edge: estos dispositivos que atiende tienen "
+                    f"una configuración pendiente de aplicación: {', '.join(con_pendiente)}."
+                ),
+            )
 
         try:
-            dispositivo_actualizado = self.dispositivo_repo.actualizar(dispositivo)
-            self.auditoria_repo.registrar(
-                id_dispositivo_iot=dispositivo_actualizado.id_dispositivo_iot,
-                id_usuario=usuario_actual.id_usuario,
-                tipo_operacion="DEACTIVATE",
-                valores_nuevos=dispositivo_actualizado._snapshot(),
-                valores_anteriores=snapshot_anterior,
-            )
+            dispositivo_actualizado = self._desactivar(dispositivo, usuario_actual, motivo=None)
+            desactivados = [
+                self._desactivar(d, usuario_actual, motivo=MOTIVO_CASCADA) for d in atendidos
+            ]
             self.db.commit()
         except Exception:
             self.db.rollback()
             raise
 
         # POST-commit (TC-M09-250/251): un dispositivo desactivado no debe poder
-        # seguir conectándose al broker con su credencial MQTT. Best-effort: si el
-        # broker no responde, la desactivación se mantiene, el fallo queda en la
-        # bitácora y el broker deshabilita la credencial al reconciliar con modulo9
-        # la próxima vez que el gateway conecte.
-        if self.mqtt_port is not None and self.bitacora_credencial is not None:
-            try:
-                revocar_y_auditar(
-                    self.mqtt_port,
-                    self.bitacora_credencial,
-                    dispositivo_actualizado,
-                    usuario_actual.id_usuario,
-                    motivo="dispositivo_desactivado",
-                )
-            except AppError:
-                logger.warning(
-                    "No se pudo revocar la credencial MQTT de %s al desactivarlo.",
-                    dispositivo_actualizado.serial.valor,
-                    exc_info=True,
-                )
+        # seguir conectándose al broker ni ser atendido por un Edge. Best-effort:
+        # si el broker no responde, la desactivación se mantiene, el fallo queda en
+        # la bitácora y el broker lo corrige al reconciliar con modulo9 la próxima
+        # vez que el gateway conecte.
+        self._revocar(dispositivo_actualizado, usuario_actual, "dispositivo_desactivado")
+        for d in desactivados:
+            self._revocar(d, usuario_actual, MOTIVO_CASCADA)
 
         return dispositivo_actualizado
+
+    def _desactivar(
+        self, dispositivo: DispositivoIot, usuario_actual: UsuarioActual, *, motivo: Optional[str]
+    ) -> DispositivoIot:
+        snapshot_anterior = dispositivo._snapshot()
+        dispositivo.desactivar()
+        actualizado = self.dispositivo_repo.actualizar(dispositivo)
+        valores_nuevos = actualizado._snapshot()
+        if motivo is not None:
+            valores_nuevos["motivo"] = motivo
+        self.auditoria_repo.registrar(
+            id_dispositivo_iot=actualizado.id_dispositivo_iot,
+            id_usuario=usuario_actual.id_usuario,
+            tipo_operacion="DEACTIVATE",
+            valores_nuevos=valores_nuevos,
+            valores_anteriores=snapshot_anterior,
+        )
+        return actualizado
+
+    def _revocar(self, dispositivo: DispositivoIot, usuario_actual: UsuarioActual, motivo: str) -> None:
+        if self.mqtt_port is None or self.bitacora is None:
+            return
+        try:
+            revocar_y_auditar(
+                self.mqtt_port, self.bitacora, dispositivo, usuario_actual.id_usuario, motivo=motivo
+            )
+        except AppError:
+            logger.warning(
+                "No se pudo revocar la credencial MQTT de %s al desactivarlo.",
+                dispositivo.serial.valor,
+                exc_info=True,
+            )

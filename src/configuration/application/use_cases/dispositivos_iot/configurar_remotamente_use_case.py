@@ -67,6 +67,11 @@ class ConfigurarRemotamenteUseCase:
                 code="TIPO_DISPOSITIVO_NO_ENCONTRADO",
                 message=f"No existe el tipo de dispositivo con ID {dispositivo.id_tipo_dispositivo}.",
             )
+        if tipo.es_gateway_edge:
+            raise BusinessRuleError(
+                code="CONFIGURACION_NO_APLICA_A_GATEWAY_EDGE",
+                message="Un Gateway Edge no captura datos: la configuración remota se hace sobre los dispositivos que atiende.",
+            )
         violacion = tipo.verificar_rango(dto.frecuencia_captura, dto.intervalo_transmision)
         if violacion is not None:
             raise ValidationError(

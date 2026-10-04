@@ -1,4 +1,4 @@
-"""Schemas de respuesta de la credencial MQTT por Raspberry (RF-23, TC-M09-250/251)."""
+"""Schemas de respuesta de la credencial MQTT del Gateway Edge (RF-23, TC-M09-250/251)."""
 from __future__ import annotations
 
 from typing import Optional
@@ -22,7 +22,7 @@ class CredencialMqttResponse(BaseModel):
 
 class EstadoCredencialMqttResponse(BaseModel):
     # emitida=False: el dispositivo no tiene credencial propia (usa la compartida
-    # o transmite a través de otra Raspberry).
+    # o se comunica a través de su Gateway Edge).
     emitida: bool
     habilitada: bool = False
     conectada: bool = False

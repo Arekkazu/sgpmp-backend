@@ -29,6 +29,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             id_tipo_dispositivo=orm.id_tipo_dispositivo,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
+            id_dispositivo_gateway=orm.id_dispositivo_gateway,
         )
 
     def obtener_por_id(
@@ -65,6 +66,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             id_tipo_dispositivo=dispositivo.id_tipo_dispositivo,
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
+            id_dispositivo_gateway=dispositivo.id_dispositivo_gateway,
         )
         try:
             self.db.add(orm)
@@ -81,12 +83,25 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
     def actualizar(self, dispositivo: DispositivoIot) -> DispositivoIot:
         orm = self.db.get(DispositivoIotModel, dispositivo.id_dispositivo_iot)
         orm.es_activo = dispositivo.es_activo
+        orm.id_dispositivo_gateway = dispositivo.id_dispositivo_gateway
         try:
             self.db.flush()
             self.db.refresh(orm)
         except Exception as exc:
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
+
+    def listar_por_gateway(self, id_dispositivo_gateway: int) -> list[DispositivoIot]:
+        filas = (
+            self.db.query(DispositivoIotModel)
+            .filter(
+                DispositivoIotModel.id_dispositivo_gateway == id_dispositivo_gateway,
+                DispositivoIotModel.es_activo.is_(True),
+            )
+            .order_by(DispositivoIotModel.serial)
+            .all()
+        )
+        return [self._a_entidad(orm) for orm in filas]
 
     def listar(
         self,

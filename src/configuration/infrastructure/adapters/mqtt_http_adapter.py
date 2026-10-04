@@ -122,12 +122,10 @@ class MqttHttpAdapter(MqttPort):
                 logger.error("Broker MQTT no disponible al configurar %s: %r", serial, exc)
                 return ResultadoEnvioMqtt(estado="PENDIENTE", mensaje=_MENSAJE_BROKER_NO_DISPONIBLE)
 
-    # ── Credencial MQTT por Raspberry (TC-M09-250/251) ─────────────────────────
+    # ── Credencial MQTT del Gateway Edge (TC-M09-250/251) ──────────────────────
 
-    def emitir_credencial(
-        self, serial: str, seriales_adicionales: list[str]
-    ) -> CredencialMqtt:
-        respuesta = self._credencial("POST", serial, {"seriales_adicionales": seriales_adicionales})
+    def emitir_credencial(self, serial: str) -> CredencialMqtt:
+        respuesta = self._credencial("POST", serial)
         if respuesta.status_code != 201:
             raise self._error_broker(respuesta, serial)
         cuerpo = respuesta.json()  # trae la contraseña: no loguear
@@ -154,7 +152,12 @@ class MqttHttpAdapter(MqttPort):
         if respuesta.status_code != 204:
             raise self._error_broker(respuesta, serial)
 
-    def _credencial(self, metodo: str, serial: str, cuerpo: Optional[dict] = None) -> httpx.Response:
+    def sincronizar_credencial(self, serial: str) -> None:
+        respuesta = self._credencial("POST", serial, sufijo="/sync")
+        if respuesta.status_code not in (204, 404):  # 404: el Edge aún no tiene credencial
+            raise self._error_broker(respuesta, serial)
+
+    def _credencial(self, metodo: str, serial: str, *, sufijo: str = "") -> httpx.Response:
         if not self._base_url or not self._token:
             logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- credencial MQTT omitida.")
             raise ServiceUnavailableError(
@@ -164,8 +167,7 @@ class MqttHttpAdapter(MqttPort):
         try:
             return httpx.request(
                 metodo,
-                f"{self._base_url}/v1/devices/{serial}/credential",
-                json=cuerpo,
+                f"{self._base_url}/v1/devices/{serial}/credential{sufijo}",
                 headers={"Authorization": f"Bearer {self._token}"},
                 timeout=_TIMEOUT_CREDENCIAL_SEGUNDOS,
             )

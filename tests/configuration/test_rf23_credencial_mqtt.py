@@ -1,10 +1,12 @@
-"""RF-23 / TC-M09-250/251: credencial MQTT por Raspberry.
+"""RF-23 / TC-M09-250/251: credencial MQTT del Gateway Edge.
 
-El backend no habla MQTT: valida (alcance por finca, dispositivo activo), llama
-al broker por HTTPS y audita. Con dobles para el repositorio, el broker y la
-bitácora.
+El backend no habla MQTT: valida (alcance por finca, dispositivo activo, que no
+dependa de un Edge), llama al broker por HTTPS y audita. Con dobles para el
+repositorio, el broker y la bitácora.
 """
 from __future__ import annotations
+
+from typing import Optional
 
 import httpx
 import pytest
@@ -16,14 +18,10 @@ from src.configuration.application.use_cases.dispositivos_iot.credencial_mqtt_us
     EmitirCredencialMqttUseCase,
     RevocarCredencialMqttUseCase,
 )
-from src.configuration.application.use_cases.dispositivos_iot.desactivar_dispositivo_iot_use_case import (
-    DesactivarDispositivoIotUseCase,
-)
 from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 from src.configuration.domain.repositories.mqtt_port import CredencialMqtt, EstadoCredencialMqtt
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.infrastructure.adapters import mqtt_http_adapter
-from src.configuration.infrastructure.dto.emitir_credencial_mqtt_dto import EmitirCredencialMqttDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.shared.database import get_db
 from src.shared.error_handlers import register_error_handlers
@@ -32,13 +30,16 @@ from src.shared.errors import BusinessRuleError, NotFoundError, ServiceUnavailab
 USUARIO = UsuarioActual(id_usuario=4, id_token=1, id_rol=4)
 
 
-def _dispositivo(id_: int, serial: str, activo: bool = True) -> DispositivoIot:
+def _dispositivo(
+    id_: int, serial: str, activo: bool = True, gateway: Optional[int] = None
+) -> DispositivoIot:
     d = DispositivoIot.crear(
         serial=SerialDispositivo(serial),
         descripcion="d",
         id_infraestructura=1,
         id_tipo_dispositivo=1,
         es_activo=activo,
+        id_dispositivo_gateway=gateway,
     )
     d.id_dispositivo_iot = id_
     return d
@@ -64,21 +65,18 @@ class RepoFake:
         self.alcances.append(ids_fincas_permitidas)
         return self.por_id.get(id_)
 
-    def actualizar(self, d):
-        return d
-
 
 class BrokerFake:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
-        self.emitidas: list[tuple] = []
+        self.emitidas: list[str] = []
         self.revocadas: list[str] = []
 
-    def emitir_credencial(self, serial, adicionales):
+    def emitir_credencial(self, serial):
         if self.error:
             raise self.error
-        self.emitidas.append((serial, adicionales))
-        return CredencialMqtt(usuario=serial, password="clave-secreta-xyz", seriales=[serial, *adicionales])
+        self.emitidas.append(serial)
+        return CredencialMqtt(usuario=serial, password="clave-secreta-xyz", seriales=[serial, "ESP-2"])
 
     def consultar_credencial(self, serial):
         return None if serial == "SIN-CRED" else EstadoCredencialMqtt(serial, True, False, [serial])
@@ -97,41 +95,41 @@ class BitacoraFake:
         self.eventos.append(evento)
 
 
-def _emitir(repo, broker, bitacora, ids_adicionales=(), alcance=None):
-    use_case = EmitirCredencialMqttUseCase(DbFake(), repo, broker, bitacora)
-    dto = EmitirCredencialMqttDTO(ids_dispositivos_adicionales=list(ids_adicionales))
-    return use_case.execute(1, dto, USUARIO, ids_fincas_permitidas=alcance)
+def _emitir(repo, broker, bitacora, alcance=None):
+    return EmitirCredencialMqttUseCase(DbFake(), repo, broker, bitacora).execute(
+        1, USUARIO, ids_fincas_permitidas=alcance
+    )
 
 
-def test_emitir_pide_al_broker_la_credencial_de_la_raspberry_y_sus_seriales():
-    repo = RepoFake(_dispositivo(1, "RPI-1"), _dispositivo(2, "ESP-2"))
-    broker, bitacora = BrokerFake(), BitacoraFake()
+def test_emitir_pide_al_broker_la_credencial_del_edge():
+    repo, broker, bitacora = RepoFake(_dispositivo(1, "EDGE-1")), BrokerFake(), BitacoraFake()
 
-    credencial = _emitir(repo, broker, bitacora, ids_adicionales=[2, 1, 2], alcance=[7])
+    credencial = _emitir(repo, broker, bitacora, alcance=[7])
 
-    assert broker.emitidas == [("RPI-1", ["ESP-2"])]  # principal fuera, sin repetidos
-    assert credencial.password == "clave-secreta-xyz"
-    assert repo.alcances == [[7], [7]]  # el alcance por finca aplica a todos
+    # los seriales que atiende los saca el broker de modulo9, no los manda el backend
+    assert broker.emitidas == ["EDGE-1"]
+    assert credencial.seriales == ["EDGE-1", "ESP-2"]
+    assert repo.alcances == [[7]]
     (evento,) = bitacora.eventos
     assert evento["evento"] == "CREDENCIAL_MQTT_EMITIDA" and evento["exitoso"] is True
-    assert evento["id_usuario"] == 4
-    # la contraseña nunca va a la auditoría
-    assert "clave-secreta-xyz" not in repr(bitacora.eventos)
+    assert evento["detalle"] == {"seriales": ["EDGE-1", "ESP-2"]}
+    assert "clave-secreta-xyz" not in repr(bitacora.eventos)  # nunca a la auditoría
 
 
 @pytest.mark.parametrize(
-    ("dispositivos", "adicionales", "error"),
+    ("dispositivos", "error", "codigo"),
     [
-        ((), (), NotFoundError),  # no existe o fuera del alcance por finca
-        ((_dispositivo(1, "RPI-1", activo=False),), (), BusinessRuleError),
-        ((_dispositivo(1, "RPI-1"), _dispositivo(2, "ESP-2", activo=False)), (2,), BusinessRuleError),
-        ((_dispositivo(1, "RPI-1"),), (99,), NotFoundError),
+        ((), NotFoundError, "DISPOSITIVO_NO_ENCONTRADO"),  # o fuera del alcance por finca
+        ((_dispositivo(1, "EDGE-1", activo=False),), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
+        # se comunica por su Edge: la credencial es la del Edge
+        ((_dispositivo(1, "ESP-2", gateway=40),), BusinessRuleError, "DISPOSITIVO_DEPENDE_DE_GATEWAY_EDGE"),
     ],
 )
-def test_emitir_solo_para_dispositivos_activos_y_en_alcance(dispositivos, adicionales, error):
+def test_emitir_solo_para_quien_se_conecta_al_broker(dispositivos, error, codigo):
     broker = BrokerFake()
-    with pytest.raises(error):
-        _emitir(RepoFake(*dispositivos), broker, BitacoraFake(), ids_adicionales=adicionales)
+    with pytest.raises(error) as exc:
+        _emitir(RepoFake(*dispositivos), broker, BitacoraFake())
+    assert exc.value.code == codigo
     assert broker.emitidas == []
 
 
@@ -139,64 +137,24 @@ def test_si_el_broker_falla_se_audita_y_se_propaga():
     caida = ServiceUnavailableError(code="BROKER_MQTT_NO_DISPONIBLE", message="caído")
     bitacora = BitacoraFake()
     with pytest.raises(ServiceUnavailableError):
-        _emitir(RepoFake(_dispositivo(1, "RPI-1")), BrokerFake(error=caida), bitacora)
+        _emitir(RepoFake(_dispositivo(1, "EDGE-1")), BrokerFake(error=caida), bitacora)
     (evento,) = bitacora.eventos
     assert evento["exitoso"] is False and evento["detalle"]["error"] == "BROKER_MQTT_NO_DISPONIBLE"
 
 
 def test_revocar_se_permite_sobre_un_dispositivo_inactivo():
     broker, bitacora = BrokerFake(), BitacoraFake()
-    use_case = RevocarCredencialMqttUseCase(DbFake(), RepoFake(_dispositivo(1, "RPI-1", activo=False)), broker, bitacora)
+    repo = RepoFake(_dispositivo(1, "EDGE-1", activo=False))
 
-    use_case.execute(1, USUARIO)
+    RevocarCredencialMqttUseCase(DbFake(), repo, broker, bitacora).execute(1, USUARIO)
 
-    assert broker.revocadas == ["RPI-1"]
+    assert broker.revocadas == ["EDGE-1"]
     assert bitacora.eventos[0]["evento"] == "CREDENCIAL_MQTT_REVOCADA"
 
 
 def test_consultar_sin_credencial_propia_devuelve_none():
     use_case = ConsultarCredencialMqttUseCase(DbFake(), RepoFake(_dispositivo(1, "SIN-CRED")), BrokerFake())
     assert use_case.execute(1) is None
-
-
-class ConfigRepoSinPendientes:
-    def obtener_pendiente(self, _id):
-        return None
-
-
-class AuditoriaDispositivoFake:
-    def registrar(self, **_kwargs):
-        pass
-
-
-def _desactivar(broker):
-    db, bitacora = DbFake(), BitacoraFake()
-    use_case = DesactivarDispositivoIotUseCase(
-        db=db,
-        dispositivo_repo=RepoFake(_dispositivo(1, "RPI-1")),
-        config_repo=ConfigRepoSinPendientes(),
-        auditoria_repo=AuditoriaDispositivoFake(),
-        mqtt_port=broker,
-        bitacora_credencial=bitacora,
-    )
-    return use_case.execute(1, USUARIO), db, bitacora
-
-
-def test_desactivar_un_dispositivo_revoca_su_credencial_mqtt():
-    broker = BrokerFake()
-    dispositivo, db, bitacora = _desactivar(broker)
-
-    assert not dispositivo.es_activo and db.commits == 1
-    assert broker.revocadas == ["RPI-1"]
-    assert bitacora.eventos[0]["detalle"]["motivo"] == "dispositivo_desactivado"
-
-
-def test_si_el_broker_no_responde_la_desactivacion_igual_se_mantiene():
-    caida = ServiceUnavailableError(code="BROKER_MQTT_NO_DISPONIBLE", message="caído")
-    dispositivo, db, bitacora = _desactivar(BrokerFake(error=caida))
-
-    assert not dispositivo.es_activo and db.commits == 1
-    assert bitacora.eventos[0]["exitoso"] is False  # queda rastro para revocar a mano
 
 
 # ── Adaptador HTTP hacia el broker ──────────────────────────────────────────
@@ -221,21 +179,29 @@ def adaptador(monkeypatch: pytest.MonkeyPatch):
 
 def test_adaptador_emite_por_https_con_el_token_de_servicio(adaptador):
     adapter, llamadas, respuestas = adaptador
-    respuestas.append(httpx.Response(201, json={"usuario": "RPI-1", "password": "p", "seriales": ["RPI-1", "ESP-2"]}))
+    respuestas.append(httpx.Response(201, json={"usuario": "EDGE-1", "password": "p", "seriales": ["EDGE-1"]}))
 
-    credencial = adapter.emitir_credencial("RPI-1", ["ESP-2"])
-
-    assert credencial == CredencialMqtt("RPI-1", "p", ["RPI-1", "ESP-2"])
+    assert adapter.emitir_credencial("EDGE-1") == CredencialMqtt("EDGE-1", "p", ["EDGE-1"])
     ((metodo, url, cuerpo, headers),) = llamadas
-    assert (metodo, url) == ("POST", "https://broker.test/v1/devices/RPI-1/credential")
-    assert cuerpo == {"seriales_adicionales": ["ESP-2"]}
+    assert (metodo, url, cuerpo) == ("POST", "https://broker.test/v1/devices/EDGE-1/credential", None)
     assert headers == {"Authorization": "Bearer tok"}
+
+
+@pytest.mark.parametrize("codigo", [204, 404])  # 404: el Edge todavía no tiene credencial
+def test_adaptador_sincroniza_sin_rotar(adaptador, codigo):
+    adapter, llamadas, respuestas = adaptador
+    respuestas.append(httpx.Response(codigo, json={"detail": "x"}) if codigo == 404 else httpx.Response(204))
+
+    adapter.sincronizar_credencial("EDGE-1")
+
+    ((metodo, url, _cuerpo, _headers),) = llamadas
+    assert (metodo, url) == ("POST", "https://broker.test/v1/devices/EDGE-1/credential/sync")
 
 
 def test_adaptador_consultar_sin_credencial_es_none(adaptador):
     adapter, _llamadas, respuestas = adaptador
     respuestas.append(httpx.Response(404, json={"detail": "sin credencial"}))
-    assert adapter.consultar_credencial("RPI-1") is None
+    assert adapter.consultar_credencial("EDGE-1") is None
 
 
 @pytest.mark.parametrize(
@@ -246,13 +212,13 @@ def test_adaptador_sin_broker_lanza_503_en_vez_de_degradar(adaptador, respuesta)
     adapter, _llamadas, respuestas = adaptador
     respuestas.append(respuesta)
     with pytest.raises(ServiceUnavailableError):
-        adapter.revocar_credencial("RPI-1")
+        adapter.revocar_credencial("EDGE-1")
 
 
 def test_adaptador_sin_configurar_lanza_503(monkeypatch):
     monkeypatch.setenv("MQTT_BROKER_URL", "")
     with pytest.raises(ServiceUnavailableError):
-        mqtt_http_adapter.MqttHttpAdapter().emitir_credencial("RPI-1", [])
+        mqtt_http_adapter.MqttHttpAdapter().emitir_credencial("EDGE-1")
 
 
 # ── Router ──────────────────────────────────────────────────────────────────
@@ -261,7 +227,7 @@ def test_endpoint_emitir_responde_201_sin_cache(monkeypatch: pytest.MonkeyPatch)
     from src.configuration.infrastructure.routers import dispositivo_iot_router as modulo
     from src.shared import rbac
 
-    repo, broker = RepoFake(_dispositivo(1, "RPI-1")), BrokerFake()
+    repo, broker = RepoFake(_dispositivo(1, "EDGE-1")), BrokerFake()
 
     class AlcanceFake:
         def __init__(self, _db):
@@ -274,7 +240,7 @@ def test_endpoint_emitir_responde_201_sin_cache(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(modulo, "AlcanceFincaAdapter", AlcanceFake)
     monkeypatch.setattr(modulo, "SqlAlchemyDispositivoIotRepository", lambda _db: repo)
     monkeypatch.setattr(modulo, "MqttHttpAdapter", lambda: broker)
-    monkeypatch.setattr(modulo, "BitacoraCredencialMqttM03Adapter", lambda _db: BitacoraFake())
+    monkeypatch.setattr(modulo, "BitacoraIotM03Adapter", lambda _db: BitacoraFake())
 
     app = FastAPI()
     register_error_handlers(app)
@@ -285,13 +251,17 @@ def test_endpoint_emitir_responde_201_sin_cache(monkeypatch: pytest.MonkeyPatch)
     )
 
     with TestClient(app, raise_server_exceptions=False) as client:
-        emitida = client.post("/configuracion/dispositivos-iot/1/credencial-mqtt", json={})
+        emitida = client.post("/configuracion/dispositivos-iot/1/credencial-mqtt")
         estado = client.get("/configuracion/dispositivos-iot/1/credencial-mqtt")
         revocada = client.delete("/configuracion/dispositivos-iot/1/credencial-mqtt")
 
     assert emitida.status_code == 201
-    assert emitida.json() == {"usuario": "RPI-1", "password": "clave-secreta-xyz", "seriales": ["RPI-1"]}
+    assert emitida.json() == {
+        "usuario": "EDGE-1",
+        "password": "clave-secreta-xyz",
+        "seriales": ["EDGE-1", "ESP-2"],
+    }
     assert emitida.headers["cache-control"] == "no-store"
     assert estado.status_code == 200 and estado.json()["emitida"] is True
     assert revocada.status_code == 204
-    assert broker.revocadas == ["RPI-1"]
+    assert broker.revocadas == ["EDGE-1"]

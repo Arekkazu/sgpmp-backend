@@ -15,6 +15,7 @@ class DispositivoIotResponse(BaseModel):
     id_tipo_dispositivo: int
     es_activo: bool
     fecha_creacion: datetime.datetime
+    id_dispositivo_gateway: Optional[int] = None
 
     model_config = {"from_attributes": True}
 
@@ -28,6 +29,7 @@ class DispositivoIotResponse(BaseModel):
             id_tipo_dispositivo=dispositivo.id_tipo_dispositivo,
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
+            id_dispositivo_gateway=dispositivo.id_dispositivo_gateway,
         )
 
 

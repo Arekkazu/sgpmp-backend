@@ -8,8 +8,8 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.configuration.domain.repositories.bitacora_credencial_mqtt_port import (
-    BitacoraCredencialMqttPort,
+from src.configuration.domain.repositories.bitacora_iot_port import (
+    BitacoraIotPort,
 )
 from src.telemetry.application.use_cases.auditoria.registrar_evento_auditoria_iot_use_case import (
     RegistrarEventoAuditoriaIotUseCase,
@@ -25,7 +25,7 @@ from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository
 )
 
 
-class BitacoraCredencialMqttM03Adapter(BitacoraCredencialMqttPort):
+class BitacoraIotM03Adapter(BitacoraIotPort):
 
     def __init__(self, db: Session) -> None:
         self.db = db

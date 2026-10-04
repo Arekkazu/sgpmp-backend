@@ -3,7 +3,7 @@
 La implementación real (MqttHttpAdapter) llama al broker MQTT
 (BROKER-MQTT-SGPMP) por HTTPS: este backend nunca habla MQTT. El broker
 publica el comando y espera de forma acotada la confirmación (ACK) del
-dispositivo, y gestiona las credenciales MQTT de las Raspberry.
+dispositivo, y gestiona las credenciales MQTT de los Gateway Edge.
 """
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ class ResultadoEnvioMqtt:
 
 @dataclass(frozen=True)
 class CredencialMqtt:
-    """Credencial MQTT recién emitida para una Raspberry (TC-M09-250/251).
+    """Credencial MQTT recién emitida para un Gateway Edge (TC-M09-250/251).
 
     `password` existe solo en esta respuesta: no se persiste en ningún lado.
     """
@@ -58,11 +58,15 @@ class MqttPort(ABC):
     # ServiceUnavailableError, porque quien las pide necesita el resultado.
 
     @abstractmethod
-    def emitir_credencial(
-        self, serial: str, seriales_adicionales: list[str]
-    ) -> CredencialMqtt:
-        """Crea o rota la credencial de la Raspberry `serial` (usuario MQTT) con
-        permiso sobre sus topics y los de `seriales_adicionales`."""
+    def emitir_credencial(self, serial: str) -> CredencialMqtt:
+        """Crea o rota la credencial de `serial` (usuario MQTT) con permiso sobre
+        sus topics y los de los dispositivos que atiende según modulo9."""
+        ...
+
+    @abstractmethod
+    def sincronizar_credencial(self, serial: str) -> None:
+        """Recalcula desde modulo9 los topics de la credencial de `serial` sin
+        rotar la clave. No hace nada si `serial` no tiene credencial."""
         ...
 
     @abstractmethod
@@ -73,5 +77,5 @@ class MqttPort(ABC):
     @abstractmethod
     def revocar_credencial(self, serial: str) -> None:
         """Deshabilita la credencial de `serial` y le quita sus topics a cualquier
-        Raspberry que transmita por él. Idempotente."""
+        Gateway Edge que lo atienda. Idempotente."""
         ...
