@@ -1,4 +1,4 @@
-# TC-M02-G33 — [RESUELTO 2026-09-19] INC-M02-37-01, más un gap estructural que sigue vigente
+# TC-M02-G33 — [RESUELTO 2026-09-19] INC-M02-37-01, más un gap estructural [RESUELTO 2026-10-04]
 
 ## 1. Bloqueo compartido — INC-M02-37-01 [RESUELTO]
 
@@ -24,6 +24,9 @@ Reportado como incidente: **INC-M02-37-01** (Crítico, Desarrollo).
 > defecto residual, documentado en `README.md`: `es_transicion_no_estandar` no se persiste en
 > `modulo2.gestiones_fases`, así que el historial (`GET .../fases`) lo muestra siempre en `false`. Se conserva el
 > detalle original abajo como registro histórico.
+>
+> **Actualización 2026-10-04:** defecto residual corregido (`8ddc5b88`, migración `a861b3ed96ad`). El historial ya
+> muestra `es_transicion_no_estandar=true` en la fase del salto. TC-M02-G33 pasa 12/12 — ver `README.md`.
 
 `CambiarFaseDTO` (`src/biological_assets/infrastructure/dto/cambiar_fase_dto.py`) declara únicamente
 `id_ciclo_productiva`, `motivo_cambio` y `fecha_inicio`. **No existe** `confirmacion_no_estandar` ni
