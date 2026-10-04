@@ -1,3 +1,9 @@
+## [1.0.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.68...v1.0.0-rc.69) (2026-10-04)
+
+### Bug Fixes
+
+* **alembic:** retirar revisión con ID de 35 caracteres que bloquea el upgrade ([2bc6ad3](https://github.com/Arekkazu/sgpmp-backend/commit/2bc6ad345cf06ffe08cc46248952f9d01258979e)), closes [#481](https://github.com/Arekkazu/sgpmp-backend/issues/481)
+
 ## [1.0.0-rc.68](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.67...v1.0.0-rc.68) (2026-10-04)
 
 ### Bug Fixes
