@@ -1,3 +1,9 @@
+## [1.0.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.69...v1.0.0-rc.70) (2026-10-04)
+
+### Features
+
+* **rf23:** reintentar o cancelar una configuracion remota PENDIENTE o NO_CONF ([6c964ee](https://github.com/Arekkazu/sgpmp-backend/commit/6c964ee151fda2c057f33489b83e8b98a6af5c7a))
+
 ## [1.0.0-rc.69](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.68...v1.0.0-rc.69) (2026-10-04)
 
 ### Bug Fixes
