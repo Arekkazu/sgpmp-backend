@@ -18,6 +18,10 @@ class ConfiguracionRemotaRepository(ABC):
         ...
 
     @abstractmethod
+    def obtener_por_id(self, id_configuracion_remota: int) -> Optional[ConfiguracionRemota]:
+        ...
+
+    @abstractmethod
     def obtener_pendiente(self, id_dispositivo_iot: int) -> Optional[ConfiguracionRemota]:
         """Retorna la configuración con estado='PENDIENTE' si existe, o None."""
         ...
