@@ -577,6 +577,145 @@ Respuesta esperada `200`:
 
 ---
 
+## RF-21 — Gateway Edge de los dispositivos (relación N:1)
+
+El **Gateway Edge** es la computadora de borde del sitio (hoy una Raspberry), el
+"Gateway IoT" que describe M03: recibe por radio los datos de varios
+dispositivos, los pasa a IP y es lo único que habla MQTT con el broker. Se
+registra como un dispositivo más, con el tipo `GATEWAY_EDGE`, y cada dispositivo
+que atiende apunta a él con `id_dispositivo_gateway` (autorreferencia en
+`modulo9.dispositivos_iot`, migración `4254acf5798b`). Cualquier tipo de
+dispositivo (un ESP32 u otro hardware) puede depender de un Edge.
+
+Reglas (las valida el caso de uso):
+- Solo se puede apuntar a un `GATEWAY_EDGE` **activo** de la **misma finca**
+  (puede estar en otra área). Un Edge no depende de otro Edge.
+- Desactivar un Edge **desactiva en cascada** a sus dispositivos activos, en la
+  misma transacción y con una auditoría `DEACTIVATE` por cada uno
+  (`valores_nuevos.motivo = "gateway_edge_desactivado"`). El vínculo se conserva.
+  Si alguno tiene una configuración RF-23 pendiente, no se desactiva nada.
+- Cada cambio se le avisa al broker para que recalcule los topics de la
+  credencial MQTT del Edge (sin rotar la clave). Se audita en
+  `modulo3.bitacora_auditoria_iot` (`DISPOSITIVO_GATEWAY_EDGE_ASIGNADO`).
+- RF-23 no aplica a un Edge (`CONFIGURACION_NO_APLICA_A_GATEWAY_EDGE`): la
+  configuración se hace sobre los dispositivos que atiende.
+
+### Registrar un dispositivo vinculado a su Edge
+
+Igual que "Registrar dispositivo IoT", con el campo opcional `id_dispositivo_gateway`:
+
+```bash
+curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"serial": "IOT-EST02-HLA-002", "descripcion": "Nodo estanque 02",
+       "id_infraestructura": 2, "id_tipo_dispositivo": 1, "id_dispositivo_gateway": 40}'
+```
+
+### Asignar, cambiar o quitar el Edge de un dispositivo
+
+```bash
+curl -X PATCH http://localhost:8000/configuracion/dispositivos-iot/2/gateway \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"id_dispositivo_gateway": 40}'   # null para quitarlo
+```
+
+Respuesta `200`: el dispositivo con su `id_dispositivo_gateway`. Permiso U (3) del recurso 11.
+
+| Código | `error_code` | Cuándo |
+|--------|--------------|--------|
+| 404 | `DISPOSITIVO_NO_ENCONTRADO` / `GATEWAY_EDGE_NO_ENCONTRADO` | No existe o está fuera del alcance por finca |
+| 422 | `NO_ES_GATEWAY_EDGE` | El destino no es de tipo `GATEWAY_EDGE` |
+| 422 | `GATEWAY_EDGE_INACTIVO` | El Edge está inactivo |
+| 422 | `GATEWAY_EDGE_OTRA_FINCA` | El Edge es de otra finca |
+| 422 | `EDGE_NO_TIENE_GATEWAY` | Se intenta darle un Edge a un Edge |
+| 422 | `DISPOSITIVO_INACTIVO` | El dispositivo está inactivo |
+
+### Desactivar un Edge (cascada)
+
+`PATCH /configuracion/dispositivos-iot/{id}/desactivar` sobre un Edge desactiva
+también a sus dispositivos. Error adicional: `422 CONFIG_PENDIENTE_EN_DISPOSITIVOS_DEL_EDGE`
+(lista los seriales con configuración pendiente).
+
+---
+
+## RF-23 — Credencial MQTT del Gateway Edge (TC-M09-250/251)
+
+Lo que se conecta al broker es el Gateway Edge (o un dispositivo **sin** Edge, que
+se conecta directo). Cada uno tiene su propia credencial: usuario = su serial,
+con permiso solo sobre sus topics y los de los dispositivos que atiende, que el
+broker lee de `id_dispositivo_gateway`. Un dispositivo que depende de un Edge no
+tiene credencial propia. La emite `BROKER-MQTT-SGPMP`
+(`/v1/devices/{serial}/credential`); este backend aplica RBAC, alcance por finca
+y audita en `modulo3.bitacora_auditoria_iot` (`componente_origen=RF23`). La
+contraseña **no se guarda**: se devuelve una sola vez.
+
+| Método | Ruta | RBAC (recurso 11) |
+|--------|------|-------------------|
+| POST | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | U(3) — Admin, Ing |
+| GET | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | R(2) — Admin, Ing, Prod |
+| DELETE | `/configuracion/dispositivos-iot/{id}/credencial-mqtt` | D(4) — Admin, Ing |
+
+### Emitir o rotar
+
+Rotar invalida la clave anterior y desconecta al Edge hasta que se actualice su
+`/etc/sgpmp/edge-agent.env`. Sin cuerpo.
+
+```bash
+curl -X POST http://localhost:8000/configuracion/dispositivos-iot/40/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada (201, `Cache-Control: no-store`):**
+```json
+{
+  "usuario": "EDGE-REMANSO-01",
+  "password": "<se muestra una sola vez>",
+  "seriales": ["EDGE-REMANSO-01", "IOT-EST01-HLA-001", "IOT-EST02-HLA-002"]
+}
+```
+
+| Código | `error_code` | Cuándo |
+|--------|--------------|--------|
+| 404 | `DISPOSITIVO_NO_ENCONTRADO` | No existe o está fuera del alcance por finca |
+| 409 | `CREDENCIAL_MQTT_RECHAZADA` | El broker rechazó el serial (p. ej. coincide con un usuario MQTT reservado) |
+| 422 | `DISPOSITIVO_INACTIVO` | El dispositivo está inactivo |
+| 422 | `DISPOSITIVO_DEPENDE_DE_GATEWAY_EDGE` | Se comunica por su Edge: la credencial es la del Edge |
+| 429 | — | Más de 10 emisiones por minuto |
+| 503 | `BROKER_MQTT_NO_DISPONIBLE` | El broker no responde o no está configurado |
+
+### Consultar estado
+
+```bash
+curl http://localhost:8000/configuracion/dispositivos-iot/40/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada (200):**
+```json
+{"emitida": true, "habilitada": true, "conectada": false, "usuario": "EDGE-REMANSO-01", "seriales": ["EDGE-REMANSO-01", "IOT-EST01-HLA-001"]}
+```
+
+`{"emitida": false, ...}` si no tiene credencial propia (todavía usa la
+compartida o se comunica a través de su Edge).
+
+### Revocar
+
+Desconecta al Edge en el acto. Se permite sobre dispositivos inactivos.
+Desactivar el dispositivo ya revoca su credencial; si el broker no responde en
+ese momento, la desactivación se mantiene, el fallo queda en la bitácora y el
+broker lo corrige al reconciliar con `modulo9`.
+
+```bash
+curl -X DELETE http://localhost:8000/configuracion/dispositivos-iot/40/credencial-mqtt \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+**Respuesta esperada:** `204` sin cuerpo. Errores: `404`, `503` como arriba.
+
+---
+
 ## Notas técnicas
 
 - **MQTT real (RF-23)**: `MqttHttpAdapter` llama a `BROKER-MQTT-SGPMP` (`POST /v1/commands`, autenticado con un token de servicio validado contra `modulo1.credenciales_servicio`). El broker publica en Mosquitto y espera el ACK; el resultado (`APLICADA`/`PENDIENTE`/`NO_CONF`) se traduce a `200`/`202`/`504`. El broker ya **no** escribe `modulo9.configuraciones_remotas` — esa tabla es propiedad exclusiva de este backend. Fuera de esta entrega: reenvío automático cuando un dispositivo `PENDIENTE` reconecta más tarde (requiere webhook broker→backend, contrato de topics aún no cerrado con el equipo IoT).
