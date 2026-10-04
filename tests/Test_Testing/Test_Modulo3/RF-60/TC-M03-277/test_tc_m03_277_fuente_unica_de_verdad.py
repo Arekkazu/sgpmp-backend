@@ -2,48 +2,83 @@
 TC-M03-277 (RF-60 Restricción 12/aclaración v1.2/Fase 5, CU-02) - Fuente única
 de verdad del estado.
 
-(a) HALLAZGO GRAVE: NO hay una sola fuente de verdad -- hay (al menos) DOS
-tablas de "estado de conectividad" independientes. RF-60 escribe
-`modulo3.estados_dispositivos_iot.estado_actual` (via `aplicar_transicion()`,
-el algoritmo centralizado). El dashboard de RF-58 (`GET /iot/monitoreo/dashboard`)
-NO lee esa tabla -- lee `estado_actual_sensor.estado_conectividad`
-(`monitoreo_repository.py`, alias `eas`), una columna de texto con los MISMOS
-valores nominales (ACTIVO/SIN_SEÑAL/BUFFER_ACTIVO/INACTIVO, según el
-comentario de `monitoreo.py:23`) pero en una tabla DISTINTA, por SENSOR
-(no por dispositivo). Búsqueda exhaustiva en `src/telemetry`: ningún caso de
-uso escribe en `EstadoActualSensorModel` -- ni `recibir_heartbeat_use_case.py`
-ni `evaluar_estado_dispositivos_use_case.py` la tocan, y no existe NINGÚN otro
-código en el repo (`INSERT`/`UPDATE` sobre esa tabla) que lo haga. O bien esa
-columna la puebla un trigger de BD invisible desde este repo, o simplemente
-nunca se actualiza desde que se creó el esquema -- en cualquier caso, el
-`estado_conectividad` que ve el dashboard NO proviene demostrablemente del
-algoritmo centralizado de RF-60. Comparar "dashboard RF-58 vs
-`GET /iot/dispositivos/{id}/estado` (RF-60) vs RF-59 vs M08" para el MISMO
-dispositivo en el mismo instante no es posible además porque: RF-59 no
-expone estado de dispositivo en absoluto (ver TC-M03-275) y M08 no está
-implementado (`M08_NO_DISPONIBLE`, confirmado en `monitoreo_router.py`).
+CORRECCIÓN IMPORTANTE sobre una versión anterior de este mismo archivo (commit
+previo): esa versión concluía, a partir de una búsqueda solo en código Python,
+que el dashboard de RF-58 (`estados_actuales_sensores.estado_conectividad`) y
+el estado de RF-60 (`estados_dispositivos_iot.estado_actual`) eran DOS fuentes
+de verdad desconectadas. Eso era INCORRECTO: la sincronización existe, pero a
+nivel de BASE DE DATOS, vía triggers (`alembic/baseline/esquema_baseline.sql`),
+no en código Python -- una búsqueda que solo mira `src/` nunca la iba a
+encontrar. Se retracta esa conclusión.
 
-(b) HALLAZGO (matiz): existe UN lugar que fija `estado_actual` sin pasar por
-`evaluar_transicion()`/`aplicar_transicion()`: la inicialización de un
-dispositivo que envía su PRIMER heartbeat
-(`recibir_heartbeat_use_case.py` línea ~95, `estado_actual='ACTIVO'`
-escrito directamente en el constructor de `EstadoDispositivoIoT`). Es
-defendible como un "estado inicial" razonable (no hay transición previa que
-evaluar), pero es un contraejemplo literal a la afirmación absoluta de la
-aclaración v1.2 ("ningún componente determina el estado por fuera del
-algoritmo"). Fuera de ese único punto, confirmado que NINGÚN otro archivo de
-`src/telemetry` asigna `estado_actual=` directamente (todas las demás
-asignaciones pasan por `aplicar_transicion()` o son el repositorio
-reflejando lo que la entidad ya decidió).
+ARQUITECTURA REAL (confirmada leyendo las funciones de trigger completas):
+  - `trg_rf60_01_procesar_heartbeat` (AFTER INSERT ON heartbeats) ->
+    `fn_procesar_heartbeat()`: ante CUALQUIER heartbeat, resuelve el estado
+    (ACTIVO, o EN_MANTENIMIENTO si ya estaba ahí -- nunca BUFFER_ACTIVO, ese
+    valor NO existe en esta función) y hace UPDATE/INSERT directo sobre
+    `estados_dispositivos_iot`, TODO ANTES de que el código Python de
+    `recibir_heartbeat_use_case.py` llegue a leer esa fila.
+  - `trg_rf60_02_log_transicion_estado` (AFTER UPDATE ON estados_dispositivos_iot,
+    cuando `estado_actual` cambia) -> `fn_log_transicion_dispositivo()`: inserta
+    en `historico_transiciones_dispositivos` Y abre un `periodos_inactividad`
+    (SIN_SEÑAL/INACTIVO/BUFFER_ACTIVO) automáticamente, sin importar qué
+    proceso causó el UPDATE.
+  - `trg_rf60_05_marcar_sensores_sin_senal` (mismo disparador) ->
+    `fn_marcar_sensores_sin_senal()`: ESTA es la sincronización que la versión
+    anterior de este archivo no encontró -- actualiza
+    `estados_actuales_sensores.estado_conectividad` (la tabla que lee el
+    dashboard de RF-58) cada vez que `estado_actual` cambia. SÍ hay una
+    fuente de verdad única de hecho -- vive en la base de datos, no en
+    Python.
+  - `trg_rf60_03/04_transiciones_no_update/no_delete` ->
+    `fn_transiciones_dispositivo_append_only()`: `RAISE EXCEPTION` incondicional
+    ante cualquier UPDATE o DELETE sobre `historico_transiciones_dispositivos`
+    (confirma TC-M03-278 (a) a nivel de BD, no solo de aplicación).
 
-(c) CONFIRMADO: un dispositivo `EN_MANTENIMIENTO` está doblemente protegido:
-`evaluar_transicion()` retorna `None` de inmediato si `estado_actual ==
-'EN_MANTENIMIENTO'` (ni siquiera evalúa el tiempo transcurrido), Y
-`listar_activos()` (la tarea periódica) EXCLUYE esos dispositivos de la
-consulta por completo (`WHERE estado_actual != 'EN_MANTENIMIENTO'`) -- un
-dispositivo en mantenimiento sin contacto durante 8 horas (o cualquier
-tiempo) nunca transiciona a SIN_SEÑAL/INACTIVO ni genera alertas de
-inactividad.
+HALLAZGO NUEVO, más grave que el que se retracta: como
+`trg_rf60_02_log_transicion_estado` se dispara en CUALQUIER UPDATE de
+`estado_actual` -- incluido el que hace el propio trigger
+`fn_procesar_heartbeat` -- Y el código Python de ambos casos de uso
+(`recibir_heartbeat_use_case.py`, `evaluar_estado_dispositivos_use_case.py`)
+TAMBIÉN inserta explícitamente en `historico_transiciones_dispositivos` y
+abre/cierra `periodos_inactividad` por su cuenta, el mismo evento de
+transición automática queda registrado DOS VECES (una por el trigger, otra
+por el código Python) -- exactamente lo que el propio equipo de desarrollo ya
+documentó como "doble-registro preexistente, fuera de alcance" en
+`anotaciones/modulo_3/implementacion_dev_m03_rf60_rf62.md` (sección final),
+pero sin haber conectado ahí que el mismo patrón aplica también a
+`periodos_inactividad`, no solo al histórico. Para el job periódico esto
+tiene un efecto más serio: cuando el trigger abre el periodo primero (en el
+mismo UPDATE), el guard `periodo_existente is None` que usa el código Python
+para decidir si genera la alerta técnica (ver TC-M03-269 CA-20) encontraría
+el periodo que el trigger YA abrió -- en la base de datos real (no en los
+dobles de prueba usados en TC-M03-269/270/273/275/276, que nunca ejecutan
+estos triggers), es plausible que la alerta de CA-20 NUNCA se genere en la
+práctica, lo opuesto a lo que ese TC confirmó en aislamiento. **No se pudo
+verificar en vivo porque `POST /iot/heartbeat` está roto en TEST (TC-M03-273)
+y el job periódico no es invocable manualmente desde HTTP** -- queda como
+hallazgo estructural, no confirmado end-to-end, y debe tratarse como una nota
+que matiza TC-M03-269/270/273/275/276 (construidos con dobles de prueba que
+no reproducen estos triggers), no como una corrección de esos archivos.
+
+Esta corrección aplica el mismo criterio que la corrección "id_padre" de
+Módulo 2 (sesión 2026-09-26): un hallazgo inicial basado solo en código
+Python, sin revisar los triggers de BD, puede estar incompleto o equivocado.
+
+(a) y (c) de la ficha original se mantienen:
+(a) Con la corrección anterior, SÍ existe una fuente única de verdad -- vive
+parcialmente en la BD (triggers), no solo en el algoritmo Python. RF-59
+sigue sin exponer estado de dispositivo (TC-M03-275) y M08 sigue sin
+implementarse, asi que la comparación de 4 vías que pide la ficha no se
+puede hacer completa, pero las DOS vías que sí existen (RF-60 propio y el
+dashboard de RF-58) SÍ están sincronizadas.
+
+(c) CONFIRMADO, sin cambios: `fn_procesar_heartbeat()` respeta
+`EN_MANTENIMIENTO` explícitamente (`IF v_estado_actual = 'EN_MANTENIMIENTO'
+THEN v_estado_nuevo := 'EN_MANTENIMIENTO'`), y a nivel Python
+`evaluar_transicion()` retorna `None` de inmediato y `listar_activos()`
+excluye esos dispositivos de la evaluación periódica. Doblemente protegido,
+en ambas capas.
 
 Cómo correrlo (desde la raíz del repo; stub de fcntl en Windows):
     $env:DATABASE_URL = "postgresql://user:pass@localhost:5432/db"
@@ -66,85 +101,95 @@ from src.telemetry.application.use_cases.infraestructura.evaluar_estado_disposit
 from src.telemetry.domain.entities.estado_dispositivo_iot import EstadoDispositivoIoT
 
 REPO_ROOT = Path(__file__).resolve().parents[5]
+BASELINE = REPO_ROOT / 'alembic' / 'baseline' / 'esquema_baseline.sql'
 T0 = datetime(2026, 9, 26, 12, 0, 0, tzinfo=timezone.utc)
 
 
-class TestGrupoADosFuentesDeVerdadDesconectadas:
+class TestGrupoAFuenteDeVerdadSincronizadaViaTriggerDeBD:
 
-    def test_ningun_caso_de_uso_de_rf60_escribe_en_estado_actual_sensor(self):
-        archivos = [
-            REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/recibir_heartbeat_use_case.py',
-            REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py',
-        ]
-        menciones = [a.name for a in archivos if 'EstadoActualSensor' in a.read_text(encoding='utf-8') or 'estado_actual_sensor' in a.read_text(encoding='utf-8')]
-        assert menciones == [], f'se esperaba que RF-60 nunca tocara estado_actual_sensor; se encontro en: {menciones}'
+    def test_existe_el_trigger_que_sincroniza_el_dashboard_con_el_estado_del_dispositivo(self):
+        texto = BASELINE.read_text(encoding='utf-8')
+        assert 'trg_rf60_05_marcar_sensores_sin_senal' in texto
+        assert 'fn_marcar_sensores_sin_senal' in texto
+        # La funcion debe escribir en la MISMA tabla que lee el dashboard de RF-58.
+        inicio = texto.index('CREATE FUNCTION modulo3.fn_marcar_sensores_sin_senal')
+        cuerpo = texto[inicio:inicio + 1200]
+        assert 'estados_actuales_sensores' in cuerpo
+        assert 'estado_conectividad' in cuerpo
 
-    def test_ningun_codigo_del_repo_escribe_estado_conectividad_en_estado_actual_sensor(self):
-        archivos_modelo = list((REPO_ROOT / 'src').rglob('*estado_actual_sensor*'))
-        escritores = []
-        for p in (REPO_ROOT / 'src').rglob('*.py'):
-            texto = p.read_text(encoding='utf-8', errors='ignore')
-            if 'EstadoActualSensorModel' in texto and re.search(r'\.add\(|session\.merge\(|UPDATE\s+estado_actual_sensor', texto):
-                escritores.append(str(p.relative_to(REPO_ROOT)))
-        pytest.fail(
-            f"HALLAZGO (a): ningun archivo de src/ inserta ni actualiza EstadoActualSensorModel "
-            f"(solo se encontro su definicion y una lectura SELECT en monitoreo_repository.py). El "
-            f"'estado_conectividad' que muestra el dashboard de RF-58 no se puede demostrar que venga "
-            f"del algoritmo centralizado de RF-60 -- son dos tablas de estado independientes "
-            f"({[str(p.relative_to(REPO_ROOT)) for p in archivos_modelo]})."
-        ) if not escritores else None
-
-    def test_rf59_y_m08_no_permiten_la_comparacion_que_pide_la_ficha(self):
-        """Complementa TC-M03-275: RF-59 no expone estado de dispositivo, y M08 no esta implementado."""
+    def test_rf59_y_m08_siguen_sin_exponer_estado_de_dispositivo(self):
+        """Sin cambios respecto a la version anterior: RF-59 no expone estado de dispositivo
+        (TC-M03-275) y M08 sigue sin implementarse -- la comparacion de 4 vias de la ficha
+        sigue siendo imposible de hacer completa, aunque las 2 vias que si existen si coinciden."""
         router = REPO_ROOT / 'src/telemetry/infrastructure/routers/monitoreo_router.py'
-        assert 'M08_NO_DISPONIBLE' in router.read_text(encoding='utf-8'), 'se esperaba confirmar que M08 sigue sin implementarse'
+        assert 'M08_NO_DISPONIBLE' in router.read_text(encoding='utf-8')
 
 
-class TestGrupoBUnBypassLiteralEnLaInicializacion:
+class TestGrupoBBypassLiteralEnLaInicializacionYDobleRegistro:
 
-    def test_el_primer_heartbeat_de_un_dispositivo_fija_ACTIVO_sin_pasar_por_el_algoritmo(self):
-        from dataclasses import replace
-        from src.telemetry.application.use_cases.infraestructura.recibir_heartbeat_use_case import RecibirHeartbeatUseCase
-        from src.telemetry.infrastructure.dto.heartbeat_dto import HeartbeatDTO
+    def test_el_primer_heartbeat_de_un_dispositivo_nuevo_lo_resuelve_el_trigger_no_python(self):
+        """Matiz sobre el hallazgo anterior: el bootstrap 'estado_actual=ACTIVO' que hace
+        recibir_heartbeat_use_case.py (rama 'estado is None') es en la practica, contra la BD
+        real, CODIGO MUERTO para un dispositivo genuinamente nuevo: fn_procesar_heartbeat ya
+        inserto la fila (con 'ACTIVO') en la MISMA transaccion, antes de que Python la busque,
+        asi que Python siempre la encuentra 'ya existente' y entra por la rama 'else', nunca por
+        la rama 'estado is None'. El bypass real del algoritmo ocurre en el trigger de BD, no en
+        el codigo Python que se habia senalado antes."""
+        texto = BASELINE.read_text(encoding='utf-8')
+        inicio = texto.index('CREATE FUNCTION modulo3.fn_procesar_heartbeat')
+        cuerpo = texto[inicio:inicio + 900]
+        assert 'INSERT INTO modulo3.estados_dispositivos_iot' in cuerpo
+        assert "'ACTIVO'" in cuerpo
 
-        estado_repo = MagicMock()
-        estado_repo.obtener_por_dispositivo.return_value = None  # dispositivo nunca visto antes
-        estado_guardado = {}
-        estado_repo.guardar.side_effect = lambda e: (estado_guardado.update(instancia=e), e)[1]
-        dispositivo_port = MagicMock()
-        dispositivo_port.validar_dispositivo_heartbeat.return_value = MagicMock(es_activo=True, id_infraestructura=5)
-        heartbeat_repo = MagicMock()
-        heartbeat_repo.guardar.side_effect = lambda hb: replace(hb, id_heartbeat=1)
-
-        uc = RecibirHeartbeatUseCase(
-            db=MagicMock(), dispositivo_port=dispositivo_port, heartbeat_repo=heartbeat_repo,
-            estado_repo=estado_repo, transicion_repo=MagicMock(), periodo_repo=MagicMock(),
-            alerta_repo=MagicMock(), historico_alerta_repo=MagicMock(),
+    def test_el_trigger_de_transicion_nunca_implementa_buffer_activo(self):
+        """fn_procesar_heartbeat SI menciona BUFFER_ACTIVO (para detectar si el estado ANTERIOR
+        era ese, al decidir si cerrar un periodo), pero v_estado_nuevo -- lo que el trigger
+        realmente ASIGNA como estado resultante -- solo toma 'ACTIVO' o 'EN_MANTENIMIENTO' en
+        todo el cuerpo de la funcion. BUFFER_ACTIVO como RESULTADO solo lo decide el codigo
+        Python (evaluar_transicion). Si Python no llegara a ejecutarse (p.ej. por el bug de
+        TC-M03-273), un dispositivo con buffer activo quedaria marcado ACTIVO por el trigger,
+        sin distincion."""
+        texto = BASELINE.read_text(encoding='utf-8')
+        inicio = texto.index('CREATE FUNCTION modulo3.fn_procesar_heartbeat')
+        fin = texto.index('$$;', inicio)
+        cuerpo = texto[inicio:fin]
+        asignaciones_v_estado_nuevo = re.findall(r"v_estado_nuevo\s*:?=\s*'([A-Z_Ñ]+)'", cuerpo)
+        assert set(asignaciones_v_estado_nuevo) == {'ACTIVO', 'EN_MANTENIMIENTO'}, (
+            f'se esperaba que v_estado_nuevo solo se asignara a ACTIVO/EN_MANTENIMIENTO; '
+            f'se encontro: {asignaciones_v_estado_nuevo}'
         )
-        uc.execute(HeartbeatDTO(tipo_mensaje='PERIODICO', fecha_registro=T0), device_id=1, access_key='k')
 
-        assert estado_guardado['instancia'].estado_actual == 'ACTIVO'
+    def test_doble_registro_documentado_por_el_equipo_dev_tambien_aplica_a_periodos_inactividad(self):
+        """fn_log_transicion_dispositivo (disparado por CUALQUIER UPDATE de estado_actual) abre
+        un periodo de inactividad por su cuenta; evaluar_estado_dispositivos_use_case.py TAMBIEN
+        lo abre explicitamente despues de su propio UPDATE. Contra la BD real esto duplicaria la
+        fila -- no verificado end-to-end (heartbeat roto, ver TC-M03-273), se deja como hallazgo
+        estructural."""
+        texto = BASELINE.read_text(encoding='utf-8')
+        inicio = texto.index('CREATE FUNCTION modulo3.fn_log_transicion_dispositivo')
+        fin = texto.index('$$;', inicio)
+        cuerpo = texto[inicio:fin]
+        assert 'INSERT INTO modulo3.periodos_inactividad' in cuerpo
+        job = REPO_ROOT / 'src/telemetry/application/use_cases/infraestructura/evaluar_estado_dispositivos_use_case.py'
+        assert 'periodo_repo.abrir' in job.read_text(encoding='utf-8')
         pytest.fail(
-            "HALLAZGO (b): el primer heartbeat de un dispositivo nuevo construye "
-            "EstadoDispositivoIoT(estado_actual='ACTIVO', ...) directamente (recibir_heartbeat_use_case.py "
-            "~linea 95), sin pasar por evaluar_transicion()/aplicar_transicion(). Es un bootstrap razonable, "
-            "pero es un contraejemplo literal a 'ningun componente determina el estado por fuera del algoritmo'."
-        )
-
-    def test_ningun_otro_archivo_asigna_estado_actual_directamente(self):
-        archivos = (REPO_ROOT / 'src' / 'telemetry').rglob('*.py')
-        asignaciones_directas = []
-        for p in archivos:
-            for i, linea in enumerate(p.read_text(encoding='utf-8', errors='ignore').splitlines(), start=1):
-                if re.search(r"estado_actual\s*=\s*'[A-Z_Ñ]+'", linea) and 'recibir_heartbeat_use_case.py' not in str(p):
-                    asignaciones_directas.append(f'{p.name}:{i}: {linea.strip()}')
-        assert asignaciones_directas == [], (
-            f'se esperaba que SOLO recibir_heartbeat_use_case.py (bootstrap) asignara estado_actual '
-            f'directamente; tambien se encontro en: {asignaciones_directas}'
+            "HALLAZGO ESTRUCTURAL (no confirmado end-to-end): tanto el trigger "
+            "fn_log_transicion_dispositivo como el codigo Python del job periodico abren un "
+            "periodos_inactividad para la MISMA transicion automatica -- doble registro, mismo "
+            "patron que el equipo dev ya documento para historico_transiciones_dispositivos. "
+            "No verificable en vivo porque POST /iot/heartbeat esta roto (TC-M03-273)."
         )
 
 
-class TestGrupoCEnMantenimientoInmune:
+class TestGrupoCEnMantenimientoInmuneEnAmbasCapas:
+
+    def test_el_trigger_de_bd_tambien_respeta_en_mantenimiento(self):
+        texto = BASELINE.read_text(encoding='utf-8')
+        inicio = texto.index('CREATE FUNCTION modulo3.fn_procesar_heartbeat')
+        fin = texto.index('$$;', inicio)
+        cuerpo = texto[inicio:fin]
+        assert "v_estado_actual = 'EN_MANTENIMIENTO'" in cuerpo
+        assert "v_estado_nuevo := 'EN_MANTENIMIENTO'" in cuerpo
 
     def test_en_mantenimiento_retorna_none_sin_evaluar_el_tiempo(self):
         estado = EstadoDispositivoIoT(
@@ -157,8 +202,7 @@ class TestGrupoCEnMantenimientoInmune:
 
     def test_listar_activos_excluye_en_mantenimiento_de_la_evaluacion_periodica(self):
         archivo = REPO_ROOT / 'src/telemetry/infrastructure/repositories/estado_dispositivo_iot_repository.py'
-        texto = archivo.read_text(encoding='utf-8')
-        assert "estado_actual != 'EN_MANTENIMIENTO'" in texto or 'EN_MANTENIMIENTO' in texto
+        assert "EN_MANTENIMIENTO" in archivo.read_text(encoding='utf-8')
 
     def test_8_horas_sin_contacto_en_mantenimiento_no_genera_transicion_ni_alerta(self):
         import src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case as modulo
@@ -169,11 +213,8 @@ class TestGrupoCEnMantenimientoInmune:
             causa_primaria=None, causas_secundarias=None, fecha_ultima_actualizacion=T0, id_usuario=None,
         )
         estado_repo = MagicMock()
-        # listar_activos() en la vida real excluye EN_MANTENIMIENTO por SQL; aqui se simula que,
-        # aunque por algun motivo llegara a la lista, el algoritmo mismo tambien lo protege.
         estado_repo.listar_activos.return_value = [estado]
         alerta_repo = MagicMock()
-
         job = EvaluarEstadoDispositivosUseCase(
             db=MagicMock(), estado_repo=estado_repo, transicion_repo=MagicMock(),
             periodo_repo=MagicMock(), alerta_repo=alerta_repo, historico_alerta_repo=MagicMock(),
