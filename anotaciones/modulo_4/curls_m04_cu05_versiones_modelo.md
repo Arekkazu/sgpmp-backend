@@ -23,7 +23,7 @@ echo "Hash: $HASH"
 
 curl -X POST "http://localhost:8000/prediccion/modelos" \
   -H "X-RF71-Internal-Key: <RF71_KEY>" \
-  -F "tipo_modelo=ESPECIES_PEQUEÑAS" \
+  -F "tipo_modelo=MODELO_ESPECIES_MEDIANAS" \
   -F "hash_artefacto_sha256=$HASH" \
   -F "dataset_entrenamiento_hash=a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4" \
   -F 'metricas_validacion={"f1_score_global":0.85,"recall_clase_riesgo_alto":0.88,"precision_global":0.82,"accuracy":0.90,"roc_auc_score":0.91,"recall_por_clase":{"0":0.95,"1":0.88},"matriz_confusion":[[90,10],[12,88]]}' \
@@ -37,8 +37,8 @@ Respuesta esperada `201` (métricas ≥ umbrales → APROBADO):
 ```json
 {
   "id_version_modelo": 1,
-  "nombre_version": "ESPECIES_PEQUEÑAS_20260712_550e8400",
-  "tipo_modelo": "ESPECIES_PEQUEÑAS",
+  "nombre_version": "MODELO_ESPECIES_MEDIANAS_20260712_550e8400",
+  "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
   "estado_version": "APROBADO",
   "formato_artefacto": "ONNX",
   "tamanio_artefacto_bytes": 2,
@@ -92,7 +92,7 @@ curl -X GET "http://localhost:8000/prediccion/modelos" \
   -H "Authorization: Bearer <TOKEN>"
 
 # Filtrar por tipo_modelo y estado
-curl -X GET "http://localhost:8000/prediccion/modelos?tipo_modelo=ESPECIES_PEQUEÑAS&estado=APROBADO" \
+curl -X GET "http://localhost:8000/prediccion/modelos?tipo_modelo=MODELO_ESPECIES_MEDIANAS&estado=APROBADO" \
   -H "Authorization: Bearer <TOKEN>"
 
 # Paginación
@@ -107,8 +107,8 @@ Respuesta esperada `200`:
   "items": [
     {
       "id_version_modelo": 1,
-      "nombre_version": "ESPECIES_PEQUEÑAS_20260712_550e8400",
-      "tipo_modelo": "ESPECIES_PEQUEÑAS",
+      "nombre_version": "MODELO_ESPECIES_MEDIANAS_20260712_550e8400",
+      "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
       "estado_version": "APROBADO",
       "f1_score": "0.850000",
       "fecha_registro": "2026-07-12T10:30:00+00:00"
@@ -184,8 +184,8 @@ Respuesta esperada `200`:
 ```json
 {
   "id_version_modelo": 1,
-  "nombre_version": "ESPECIES_PEQUEÑAS_20260712_550e8400",
-  "tipo_modelo": "ESPECIES_PEQUEÑAS",
+  "nombre_version": "MODELO_ESPECIES_MEDIANAS_20260712_550e8400",
+  "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
   "estado_version": "ACTIVO",
   "esta_produccion": true,
   "fecha_despliegue": "2026-07-12T11:00:00+00:00"
