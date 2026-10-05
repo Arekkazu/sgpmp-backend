@@ -89,9 +89,11 @@ class RegistrarDispositivoIotUseCase:
 
         tipo = self.tipo_repo.obtener_por_id(dto.id_tipo_dispositivo)
         if tipo is None:
-            raise NotFoundError(
+            # RF-21 v2.0, FA "Tipo/categoría de dispositivo inexistente": HTTP 422.
+            raise BusinessRuleError(
                 code="TIPO_DISPOSITIVO_NO_ENCONTRADO",
-                message=f"No existe un tipo de dispositivo con ID {dto.id_tipo_dispositivo}.",
+                message="Error de catálogo: El tipo de dispositivo indicado no existe. Seleccione un tipo válido del catálogo.",
+                field="id_tipo_dispositivo",
             )
         resolucion, fps, area_cobertura_m2 = _atributos_vision(tipo, dto)
 

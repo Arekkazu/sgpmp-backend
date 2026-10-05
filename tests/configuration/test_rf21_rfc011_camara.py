@@ -96,3 +96,10 @@ def test_camara_no_admite_sensores_escalares():
     with pytest.raises(BusinessRuleError) as e:
         uc.execute(7, RegistrarSensorDTO(nombre="Temperatura", categoria="TEMPERATURA"), USUARIO)
     assert e.value.code == "CAMARA_SIN_SENSORES"
+
+
+def test_tipo_de_dispositivo_inexistente_es_422():
+    with pytest.raises(BusinessRuleError) as e:
+        _registrar(RepoFake(), "SEN-9", 999)
+    assert e.value.status_code == 422 and e.value.code == "TIPO_DISPOSITIVO_NO_ENCONTRADO"
+    assert e.value.message.startswith("Error de catálogo")
