@@ -21,7 +21,7 @@ class VersionModeloModel(Base):
         Sequence("versiones_modelos_id_version_modelo_seq", schema="modulo4"),
         primary_key=True,
     )
-    nombre_version: Mapped[str] = mapped_column(String(100), nullable=False)
+    nombre_version: Mapped[str] = mapped_column(String(40), nullable=False)  # varchar(40) en BD
     algoritmo: Mapped[Optional[str]] = mapped_column(String(40))
     tipo_modelo: Mapped[Optional[str]] = mapped_column(String(40))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -52,3 +52,6 @@ class VersionModeloModel(Base):
         DateTime(timezone=True), nullable=False, server_default=text("now()")
     )
     fecha_despliegue: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    # RF-69 v2.0 (RFC-009): solo POBLACIONAL.
+    componente: Mapped[Optional[str]] = mapped_column(String(20))
+    metricas_poblacionales: Mapped[Optional[dict]] = mapped_column(JSONB)
