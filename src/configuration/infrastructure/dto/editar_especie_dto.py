@@ -11,6 +11,7 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.tipo_modelo import TipoModeloAsignable
 from src.shared.regex import NOMBRE
 
 
@@ -20,6 +21,8 @@ class EditarEspecieDTO(BaseDTO):
     nombre: str
     descripcion: Optional[str] = None
     densidad_maxima_por_especie: Optional[Decimal] = None
+    # RFC-009: familia de modelo de IA de la especie (RF-20 valida contra ella).
+    tipo_modelo: Optional[TipoModeloAsignable] = None
     fecha_actualizacion: datetime
 
     @field_validator("nombre")

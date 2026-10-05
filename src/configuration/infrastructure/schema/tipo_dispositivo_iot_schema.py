@@ -11,6 +11,7 @@ class TipoDispositivoIotResponse(BaseModel):
     frecuencia_captura_max: int
     intervalo_transmision_min: int
     intervalo_transmision_max: int
+    categoria: str
 
     @classmethod
     def from_entity(cls, tipo) -> TipoDispositivoIotResponse:
@@ -21,6 +22,7 @@ class TipoDispositivoIotResponse(BaseModel):
             frecuencia_captura_max=tipo.frecuencia_captura_max,
             intervalo_transmision_min=tipo.intervalo_transmision_min,
             intervalo_transmision_max=tipo.intervalo_transmision_max,
+            categoria=tipo.categoria,
         )
 
 

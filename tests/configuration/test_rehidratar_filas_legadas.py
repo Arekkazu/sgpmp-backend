@@ -33,7 +33,7 @@ def test_serial_legado_se_lee():
     orm = SimpleNamespace(
         id_dispositivo_iot=54, serial="' OR '1'='1' -- 1788623493750", descripcion="x",
         id_infraestructura=1, id_tipo_dispositivo=1, es_activo=False, fecha_creacion=None,
-        id_dispositivo_gateway=None,
+        id_dispositivo_gateway=None, resolucion=None, fps=None, area_cobertura_m2=None,
     )
     dispositivo = SqlAlchemyDispositivoIotRepository._a_entidad(orm)
     assert dispositivo.serial.valor == orm.serial

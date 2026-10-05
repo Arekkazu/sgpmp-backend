@@ -284,6 +284,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         detalle: dict,
         id_sesion: Optional[int] = None,
         descripcion: Optional[str] = None,
+        modulo: str = "MODULO1",
     ) -> None:
         # El hash SHA-256 cubre los campos clave del evento para detectar
         # modificaciones posteriores en la tabla de auditoría.
@@ -324,7 +325,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 "fecha_evento": fecha.isoformat(),
                 "id_usuario": id_usuario,
                 "resultado": resultado.value,
-                "modulo": "MODULO1",
+                "modulo": modulo,
                 "detalle": detalle_completo,
             }, sort_keys=True, default=str)
             hash_integridad = hashlib.sha256(contenido_hash.encode("utf-8")).hexdigest()
@@ -332,7 +333,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             evento = Eventos(
                 tipo_evento=tipo_evento,
                 fecha_evento=fecha,
-                modulo="MODULO1",
+                modulo=modulo,
                 resultado=resultado,
                 detalle=detalle_completo,
                 id_usuario=id_usuario,

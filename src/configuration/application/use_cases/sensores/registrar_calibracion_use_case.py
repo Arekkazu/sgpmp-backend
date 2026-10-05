@@ -3,10 +3,15 @@
 Valida: dispositivo activo, sensor pertenece al dispositivo, sensor tiene
 asociación activa con el área indicada, y que valor_referencia/offset caigan
 dentro del rango de seguridad definido para el tipo de sensor (categoria).
+
+RF-24 v1.1 (RFC-006, OWASP A09): todo intento rechazado (404/422/400 aquí, 403 en
+el router) queda en el historial de RF-10 con resultado FALLIDO.
 """
 from __future__ import annotations
 
+import logging
 from decimal import Decimal, InvalidOperation
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,8 +23,52 @@ from src.configuration.domain.repositories.rango_calibracion_repository import R
 from src.configuration.domain.repositories.sensor_area_repository import SensorAreaRepository
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
+from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, InfrastructureError, NotFoundError, ValidationError
+from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, NotFoundError, ValidationError
+
+logger = logging.getLogger(__name__)
+
+TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
+
+
+def auditar_rechazo_calibracion(
+    db: Session,
+    eventos_repo: EventoRepository,
+    *,
+    id_usuario: int,
+    id_sensor: int,
+    error: AppError,
+    id_dispositivo_iot: Optional[int] = None,
+    id_infraestructura: Optional[int] = None,
+) -> None:
+    """Deja el intento rechazado en el historial de RF-10 con resultado FALLIDO.
+
+    Best-effort: en un rechazo no hay calibración que revertir, así que si la
+    escritura falla se deja constancia en el log y el rechazo conserva su 4xx en
+    vez de volverse un 500 (a diferencia del camino exitoso).
+    """
+    try:
+        eventos_repo.registrar(
+            tipo_evento=TIPO_EVENTO_CALIBRACION_RECHAZADA,
+            exitoso=False,
+            id_usuario=id_usuario,
+            detalle={
+                "operacion": "CALIBRACION_SENSOR",
+                "id_sensor": id_sensor,
+                "id_dispositivo_iot": id_dispositivo_iot,
+                "id_infraestructura": id_infraestructura,
+                "codigo_http": error.status_code,
+                "codigo_error": error.code,
+                "motivo": error.message,
+            },
+            descripcion=f"Calibración rechazada (HTTP {error.status_code} {error.code})",
+            modulo="MODULO9",
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("RF-24: no se pudo auditar el rechazo de calibración del sensor %s", id_sensor)
 
 
 class RegistrarCalibracionUseCase:
@@ -33,6 +82,7 @@ class RegistrarCalibracionUseCase:
         calibracion_repo: CalibracionRepository,
         rango_repo: RangoCalibracionRepository,
         auditoria_repo: AuditoriaCalibracionRepository,
+        eventos_repo: EventoRepository,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
@@ -41,8 +91,64 @@ class RegistrarCalibracionUseCase:
         self.calibracion_repo = calibracion_repo
         self.rango_repo = rango_repo
         self.auditoria_repo = auditoria_repo
+        self.eventos_repo = eventos_repo
 
     def execute(self, id_sensor: int, dto: RegistrarCalibracionDTO, usuario_actual: UsuarioActual) -> Calibracion:
+        try:
+            valor, offset = self._validar(id_sensor, dto)
+        except (NotFoundError, BusinessRuleError, ValidationError) as exc:
+            auditar_rechazo_calibracion(
+                self.db,
+                self.eventos_repo,
+                id_usuario=usuario_actual.id_usuario,
+                id_sensor=id_sensor,
+                error=exc,
+                id_dispositivo_iot=dto.id_dispositivo_iot,
+                id_infraestructura=dto.id_infraestructura,
+            )
+            raise
+
+        calibracion = Calibracion.crear(
+            id_dispositivo_iot=dto.id_dispositivo_iot,
+            id_sensor=id_sensor,
+            valor_referencia=valor,
+            fecha_calibracion=dto.fecha_calibracion,
+            id_usuario=usuario_actual.id_usuario,
+            ganancia=Decimal(str(dto.ganancia)),
+            offset=offset,
+            observaciones=dto.observaciones,
+        )
+
+        try:
+            calibracion_guardada = self.calibracion_repo.guardar(calibracion)
+            # RF-24 FA / RF-10: traza en el historial de auditoría inmutable. Si falla,
+            # el rollback deshace la calibración y se responde 500 (no queda calibración
+            # sin trazabilidad).
+            try:
+                self.auditoria_repo.registrar(
+                    id_calibracion=calibracion_guardada.id_calibracion,
+                    id_usuario=usuario_actual.id_usuario,
+                    tipo_operacion="CREATE",
+                    valores_nuevos=calibracion_guardada._snapshot(),
+                )
+            except Exception as exc:
+                raise InfrastructureError(
+                    code="AUDITORIA_CALIBRACION_FALLIDA",
+                    message=(
+                        "Error de integridad: No se pudo garantizar la trazabilidad de la "
+                        "calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
+                    ),
+                    original_error=exc,
+                )
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise
+
+        return calibracion_guardada
+
+    def _validar(self, id_sensor: int, dto: RegistrarCalibracionDTO) -> tuple[Decimal, Decimal]:
+        """Flujos alternos de RF-24. Devuelve (valor_referencia, offset) ya convertidos."""
         dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
         if dispositivo is None:
             raise NotFoundError(
@@ -108,45 +214,7 @@ class RegistrarCalibracionUseCase:
                 message="El valor de referencia debe ser un número positivo.",
                 field="valor_referencia",
             )
-
-        calibracion = Calibracion.crear(
-            id_dispositivo_iot=dto.id_dispositivo_iot,
-            id_sensor=id_sensor,
-            valor_referencia=valor,
-            fecha_calibracion=dto.fecha_calibracion,
-            id_usuario=usuario_actual.id_usuario,
-            ganancia=Decimal(str(dto.ganancia)),
-            offset=offset,
-            observaciones=dto.observaciones,
-        )
-
-        try:
-            calibracion_guardada = self.calibracion_repo.guardar(calibracion)
-            # RF-24 FA / RF-10: traza en el historial de auditoría inmutable. Si falla,
-            # el rollback deshace la calibración y se responde 500 (no queda calibración
-            # sin trazabilidad).
-            try:
-                self.auditoria_repo.registrar(
-                    id_calibracion=calibracion_guardada.id_calibracion,
-                    id_usuario=usuario_actual.id_usuario,
-                    tipo_operacion="CREATE",
-                    valores_nuevos=calibracion_guardada._snapshot(),
-                )
-            except Exception as exc:
-                raise InfrastructureError(
-                    code="AUDITORIA_CALIBRACION_FALLIDA",
-                    message=(
-                        "Error de integridad: No se pudo garantizar la trazabilidad de la "
-                        "calibración. El ajuste no ha sido aplicado; por favor, intente de nuevo."
-                    ),
-                    original_error=exc,
-                )
-            self.db.commit()
-        except Exception:
-            self.db.rollback()
-            raise
-
-        return calibracion_guardada
+        return valor, offset
 
 
 class ConsultarCalibracionesUseCase:

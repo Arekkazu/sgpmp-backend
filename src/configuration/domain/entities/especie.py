@@ -32,6 +32,8 @@ class Especie:
     id_especie: Optional[int] = None
     descripcion: Optional[str] = None
     densidad_maxima_por_especie: Optional[Decimal] = None
+    # RFC-009: familia de modelo de IA; RF-20 exige que el modelo del área coincida.
+    tipo_modelo: Optional[str] = None
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
 
@@ -42,6 +44,7 @@ class Especie:
         nombre: NombreEspecie,
         descripcion: Optional[str],
         densidad_maxima_por_especie: Optional[Decimal] = None,
+        tipo_modelo: Optional[str] = None,
         fecha_creacion: datetime,
     ) -> Especie:
         """Construye una especie nueva, aún sin persistir.
@@ -53,6 +56,7 @@ class Especie:
             nombre=nombre,
             descripcion=descripcion,
             densidad_maxima_por_especie=densidad_maxima_por_especie,
+            tipo_modelo=tipo_modelo,
             es_activo=True,
             fecha_creacion=fecha_creacion,
         )
@@ -64,11 +68,13 @@ class Especie:
         descripcion: Optional[str],
         densidad_maxima_por_especie: Optional[Decimal],
         fecha_actualizacion: datetime,
+        tipo_modelo: Optional[str] = None,
     ) -> None:
         """Aplica los nuevos valores tras una edición validada."""
         self.nombre = nombre
         self.descripcion = descripcion
         self.densidad_maxima_por_especie = densidad_maxima_por_especie
+        self.tipo_modelo = tipo_modelo
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:

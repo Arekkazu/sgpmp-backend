@@ -22,7 +22,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "ESPECIES_PEQUEÑAS",
+    "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
     "umbral_riesgo_alto": 0.70,
     "umbral_alerta_critica": 0.85,
     "ventana_temporal_min": 10,
@@ -37,7 +37,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
 ```json
 {
   "id_configuracion_motor": 1,
-  "tipo_modelo": "ESPECIES_PEQUEÑAS",
+  "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
   "umbral_riesgo_alto": "0.700",
   "umbral_alerta_critica": "0.850",
   "ventana_temporal_min": 10,
@@ -78,7 +78,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "ESPECIES_MEDIANAS",
+    "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
     "umbral_riesgo_alto": 0.65,
     "umbral_alerta_critica": 0.80,
     "ventana_temporal_min": 12,
@@ -103,7 +103,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "ESPECIES_PEQUEÑAS",
+    "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
     "umbral_riesgo_alto": 0.30,
     "umbral_alerta_critica": 0.80,
     "ventana_temporal_min": 10,
@@ -132,7 +132,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "ESPECIES_PEQUEÑAS",
+    "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
     "umbral_riesgo_alto": 0.80,
     "umbral_alerta_critica": 0.70,
     "ventana_temporal_min": 10,
@@ -162,7 +162,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "ESPECIES_GRANDES",
+    "tipo_modelo": "MODELO_ESPECIES_GRANDES",
     "umbral_riesgo_alto": 0.70,
     "umbral_alerta_critica": 0.85,
     "ventana_temporal_min": 10,
@@ -192,7 +192,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "CONTAGIO",
+    "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
     "umbral_riesgo_alto": 0.70,
     "umbral_alerta_critica": 0.85,
     "ventana_temporal_min": 10,
@@ -222,7 +222,7 @@ curl -s -X POST http://localhost:8000/prediccion/motor-ia \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "tipo_modelo": "CONTAGIO",
+    "tipo_modelo": "MODELO_RIESGO_CONTAGIO",
     "umbral_riesgo_alto": 0.70,
     "umbral_alerta_critica": 0.85,
     "ventana_temporal_min": 10,
@@ -260,13 +260,13 @@ curl -s -X GET http://localhost:8000/prediccion/motor-ia \
   "items": [
     {
       "id_configuracion_motor": 1,
-      "tipo_modelo": "ESPECIES_MEDIANAS",
+      "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
       "config_version": 1,
       ...
     },
     {
       "id_configuracion_motor": 2,
-      "tipo_modelo": "ESPECIES_PEQUEÑAS",
+      "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
       "config_version": 3,
       ...
     }
@@ -281,7 +281,7 @@ curl -s -X GET http://localhost:8000/prediccion/motor-ia \
 **RBAC**: R sobre recurso 41
 
 ```bash
-curl -s -X GET http://localhost:8000/prediccion/motor-ia/ESPECIES_PEQUEÑAS \
+curl -s -X GET http://localhost:8000/prediccion/motor-ia/MODELO_ESPECIES_MEDIANAS \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
@@ -289,7 +289,7 @@ curl -s -X GET http://localhost:8000/prediccion/motor-ia/ESPECIES_PEQUEÑAS \
 ```json
 {
   "id_configuracion_motor": 1,
-  "tipo_modelo": "ESPECIES_PEQUEÑAS",
+  "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
   "umbral_riesgo_alto": "0.700",
   "umbral_alerta_critica": "0.850",
   "ventana_temporal_min": 10,

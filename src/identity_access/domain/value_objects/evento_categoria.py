@@ -62,6 +62,9 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Alerta de la reconciliación diaria de M02 (RF-52 E5): historial sin su
     # registro de auditoría. Proceso automático sobre auditoría, igual que el 25.
     28: EventoCategoria.MODIFICACION,
+    # Intento de calibración de sensor rechazado en M09 (RF-24 v1.1, RFC-006,
+    # OWASP A09). La calibración es una modificación de configuración técnica.
+    29: EventoCategoria.MODIFICACION,
 }
 
 
@@ -99,6 +102,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     26: "EXPORTACION_AUDITORIA",
     27: "CAMBIO_IDIOMA_PERSONAL",
     28: "INCONSISTENCIA_AUDITORIA_M02",
+    29: "CALIBRACION_RECHAZADA",
 }
 
 

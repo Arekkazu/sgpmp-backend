@@ -92,3 +92,12 @@ class EspecieRepository(ABC):
             Lista de entidades :class:`Especie` ordenadas por nombre.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def contar_areas_con_modelo_distinto(self, id_especie: int, tipo_modelo: Optional[str]) -> int:
+        """RF-20 v1.1 (RFC-009): áreas de la especie con un modelo de IA asignado que no es ``tipo_modelo``.
+
+        Con ``tipo_modelo=None`` cuenta todas las que tengan modelo asignado: sin familia,
+        ninguno es coherente. Incluye áreas inactivas, que pueden reactivarse.
+        """
+        raise NotImplementedError

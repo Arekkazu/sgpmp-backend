@@ -154,12 +154,14 @@ def test_rf20_tipo_de_area_no_reconocido_es_400(tipo) -> None:
         finca_repo=_FincaActivaFake(),
         tipo_area_repo=_TipoAreaRepoFake(tipo),
         auditoria_repo=_NuncaEscribeFake(),
+        especie_repo=_NuncaEscribeFake(),
     )
     dto = RegistrarInfraestructuraDTO(
         nombre_infraestructura="Galpón 1",
         tipo_area="Cueva",
         superficie=Decimal("120"),
         finca_id=1,
+        especie_id=1,
     )
 
     with pytest.raises(ValidationError) as error:

@@ -31,6 +31,8 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
             descripcion=orm.descripcion,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,
+            id_especie=orm.id_especie,
+            tipo_modelo_asignado=orm.tipo_modelo_asignado,
         )
 
     def obtener_por_id(
@@ -55,6 +57,8 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
             descripcion=infraestructura.descripcion,
             es_activo=infraestructura.es_activo,
             fecha_actualizacion=infraestructura.fecha_actualizacion,
+            id_especie=infraestructura.id_especie,
+            tipo_modelo_asignado=infraestructura.tipo_modelo_asignado,
         )
         try:
             self.db.add(orm)
@@ -76,6 +80,8 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         orm.descripcion = infraestructura.descripcion
         orm.es_activo = infraestructura.es_activo
         orm.fecha_actualizacion = infraestructura.fecha_actualizacion
+        orm.id_especie = infraestructura.id_especie
+        orm.tipo_modelo_asignado = infraestructura.tipo_modelo_asignado
         try:
             self.db.flush()
             self.db.refresh(orm)
