@@ -30,6 +30,9 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
             id_dispositivo_gateway=orm.id_dispositivo_gateway,
+            resolucion=orm.resolucion,
+            fps=orm.fps,
+            area_cobertura_m2=orm.area_cobertura_m2,
         )
 
     def obtener_por_id(
@@ -67,6 +70,9 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
             id_dispositivo_gateway=dispositivo.id_dispositivo_gateway,
+            resolucion=dispositivo.resolucion,
+            fps=dispositivo.fps,
+            area_cobertura_m2=dispositivo.area_cobertura_m2,
         )
         try:
             self.db.add(orm)

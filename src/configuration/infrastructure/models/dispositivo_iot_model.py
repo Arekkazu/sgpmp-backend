@@ -6,9 +6,10 @@ a un área productiva (id_infraestructura).
 from __future__ import annotations
 
 import datetime
+from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric, PrimaryKeyConstraint, Sequence, SmallInteger, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
@@ -50,6 +51,10 @@ class DispositivoIotModel(Base):
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     # RF-21: Gateway Edge que atiende a este dispositivo (autorreferencia N:1).
     id_dispositivo_gateway: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # RF-21 v2.0 (RFC-011): atributos de visión, solo para tipos de categoría CAMARA.
+    resolucion: Mapped[Optional[str]] = mapped_column(String(20))
+    fps: Mapped[Optional[int]] = mapped_column(SmallInteger)
+    area_cobertura_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
 
     sensores: Mapped[list] = relationship(
         'SensorModel',
