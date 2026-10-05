@@ -7,6 +7,7 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.tipo_modelo import TipoModelo
 
 
 class RegistrarInfraestructuraDTO(BaseDTO):
@@ -15,6 +16,10 @@ class RegistrarInfraestructuraDTO(BaseDTO):
     superficie: Decimal
     finca_id: int
     descripcion_infraestructura: Optional[str] = None
+    # RF-20 v1.1 (RFC-009): especie obligatoria; el modelo de IA es opcional y
+    # el use case valida su coherencia con la especie (422).
+    especie_id: int
+    tipo_modelo_asignado: Optional[TipoModelo] = None
 
     @field_validator("nombre_infraestructura")
     @classmethod

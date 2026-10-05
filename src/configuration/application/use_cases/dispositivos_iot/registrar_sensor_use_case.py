@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.sensor import Sensor
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.sensor_repository import SensorRepository
+from src.configuration.domain.repositories.tipo_dispositivo_iot_repository import TipoDispositivoIotRepository
 from src.configuration.infrastructure.dto.registrar_sensor_dto import RegistrarSensorDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import NotFoundError
+from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class RegistrarSensorUseCase:
@@ -21,10 +22,12 @@ class RegistrarSensorUseCase:
         db: Session,
         sensor_repo: SensorRepository,
         dispositivo_repo: DispositivoIotRepository,
+        tipo_repo: TipoDispositivoIotRepository,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
         self.dispositivo_repo = dispositivo_repo
+        self.tipo_repo = tipo_repo
 
     def execute(self, id_dispositivo_iot: int, dto: RegistrarSensorDTO, usuario_actual: UsuarioActual) -> Sensor:
         dispositivo = self.dispositivo_repo.obtener_por_id(id_dispositivo_iot)
@@ -32,6 +35,16 @@ class RegistrarSensorUseCase:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
                 message=f"No existe un dispositivo IoT con ID {id_dispositivo_iot}.",
+            )
+        # RF-21 v2.0 (RFC-011): una cámara se asocia al área, nunca a un sensor escalar.
+        tipo = self.tipo_repo.obtener_por_id(dispositivo.id_tipo_dispositivo)
+        if tipo is not None and tipo.es_camara:
+            raise BusinessRuleError(
+                code="CAMARA_SIN_SENSORES",
+                message=(
+                    "Una cámara no admite sensores escalares: se asocia directamente al área "
+                    "productiva donde está instalada."
+                ),
             )
 
         sensor = Sensor.crear(

@@ -239,6 +239,7 @@ def registrar_sensor(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
     )
     sensor = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
     return SensorResponse.from_entity(sensor)

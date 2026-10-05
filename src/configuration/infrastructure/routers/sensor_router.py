@@ -17,7 +17,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
-from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import ConsultarCalibracionesUseCase, RegistrarCalibracionUseCase
+from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    ConsultarCalibracionesUseCase,
+    RegistrarCalibracionUseCase,
+    auditar_rechazo_calibracion,
+)
 from src.configuration.infrastructure.adapters.asociacion_sensor_activo_m02_adapter import AsociacionSensorActivoM02Adapter
 from src.configuration.infrastructure.dto.asociar_sensor_area_dto import AsociarSensorAreaDTO
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
@@ -41,7 +45,9 @@ from src.configuration.infrastructure.schema.sensor_area_schema import (
     SensorAreaResponse,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.identity_access.infrastructure.repositories.evento_repository import SqlAlchemyEventoRepository
 from src.shared.database import get_db
+from src.shared.errors import AuthorizationError
 from src.shared.alcance_finca_adapter import AlcanceFincaAdapter
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -123,11 +129,30 @@ def listar_asociaciones(
 
 # ── RF-24: Registrar calibración de sensor ────────────────────────────────────
 
+def _permiso_calibrar_auditado(
+    id_sensor: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> None:
+    """La misma compuerta RBAC de siempre; RF-24 v1.1 (RFC-006) pide además auditar el 403."""
+    try:
+        require_permission(_RECURSO, 1)(db=db, usuario_actual=usuario_actual)
+    except AuthorizationError as exc:
+        auditar_rechazo_calibracion(
+            db,
+            SqlAlchemyEventoRepository(db),
+            id_usuario=usuario_actual.id_usuario,
+            id_sensor=id_sensor,
+            error=exc,
+        )
+        raise
+
+
 @router.post(
     "/{id_sensor}/calibrar",
     response_model=CalibracionResponse,
     status_code=201,
-    dependencies=[Depends(require_permission(_RECURSO, 1))],
+    dependencies=[Depends(_permiso_calibrar_auditado)],
     responses={
         400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
@@ -152,6 +177,7 @@ def registrar_calibracion(
         calibracion_repo=SqlAlchemyCalibracionRepository(db),
         rango_repo=SqlAlchemyRangoCalibracionRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaCalibracionRepository(db),
+        eventos_repo=SqlAlchemyEventoRepository(db),
     )
     calibracion = use_case.execute(id_sensor, dto, usuario_actual)
     return CalibracionResponse.from_entity(calibracion)

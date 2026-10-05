@@ -60,3 +60,7 @@ class EspecieModel(Base):
             'en individuos por unidad de superficie (RF-36).'
         ),
     )
+    tipo_modelo: Mapped[Optional[str]] = mapped_column(
+        String(30),
+        comment='Familia de modelo de IA de la especie (RFC-009); base de la coherencia de RF-20.',
+    )

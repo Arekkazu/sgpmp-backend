@@ -1,4 +1,5 @@
-"""Tests del use case de calibración (RF-24): rango, auditoría→500, no-numérico→400.
+"""Tests del use case de calibración (RF-24): rango, auditoría→500, no-numérico→400,
+y auditoría FALLIDO de cada intento rechazado (RF-24 v1.1, RFC-006).
 
 Fakes en memoria, sin DB ni framework. Ejecutable con `pytest` o `python -m`.
 """
@@ -9,7 +10,7 @@ from types import SimpleNamespace
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import RegistrarCalibracionUseCase
 from src.configuration.domain.entities.rango_calibracion import RangoCalibracion
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
-from src.shared.errors import InfrastructureError, ValidationError
+from src.shared.errors import AuthorizationError, BusinessRuleError, InfrastructureError, NotFoundError, ValidationError
 
 
 class _Db:
@@ -40,16 +41,29 @@ class _AuditoriaRota:
     def registrar(self, **kw): raise RuntimeError("fallo escribiendo auditoría")
 
 
-def _uc(db, auditoria):
-    sensor = SimpleNamespace(id_dispositivo_iot=1, categoria="TEMPERATURA")
+class _Eventos:  # modulo1.eventos (RF-10)
+    def __init__(self, roto=False): self.eventos, self.roto = [], roto
+    def registrar(self, **kw):
+        if self.roto:
+            raise RuntimeError("BD caída")
+        self.eventos.append(kw)
+
+
+_SENSOR = SimpleNamespace(id_dispositivo_iot=1, categoria="TEMPERATURA")
+_DISPOSITIVO = SimpleNamespace(es_activo=True)
+_ASOCIACION = SimpleNamespace(id_infraestructura=1)
+
+
+def _uc(db, auditoria, eventos=None, sensor=_SENSOR, dispositivo=_DISPOSITIVO, asociacion=_ASOCIACION):
     return RegistrarCalibracionUseCase(
         db=db,
         sensor_repo=_Repo(obj=sensor),
-        dispositivo_repo=_Repo(obj=SimpleNamespace(es_activo=True)),
-        sensor_area_repo=_Repo(obj=SimpleNamespace(id_infraestructura=1)),
+        dispositivo_repo=_Repo(obj=dispositivo),
+        sensor_area_repo=_Repo(obj=asociacion),
         calibracion_repo=_CalRepo(),
         rango_repo=_Repo(obj=RangoCalibracion("TEMPERATURA", Decimal("0"), Decimal("45"))),
         auditoria_repo=auditoria,
+        eventos_repo=eventos if eventos is not None else _Eventos(),
     )
 
 
@@ -64,9 +78,10 @@ _USUARIO = SimpleNamespace(id_usuario=1)
 
 
 def test_happy_path_escribe_auditoria():
-    db, aud = _Db(), _AuditoriaOk()
-    cal = _uc(db, aud).execute(1, _dto(Decimal("25")), _USUARIO)
+    db, aud, eventos = _Db(), _AuditoriaOk(), _Eventos()
+    cal = _uc(db, aud, eventos).execute(1, _dto(Decimal("25")), _USUARIO)
     assert aud.calls == 1 and db.committed and cal.offset == Decimal("25")
+    assert eventos.eventos == []  # el camino exitoso no deja evento de rechazo
 
 
 def test_fallo_auditoria_rollback_500():
@@ -96,9 +111,74 @@ def test_fuera_de_rango_devuelve_400():
         assert e.code == "VALOR_FUERA_DE_RANGO" and e.status_code == 400
 
 
+# ── RFC-006: cada rechazo queda auditado con resultado FALLIDO ────────────────
+
+_RECHAZOS = (
+    # (overrides del use case, valor, error esperado, código)
+    ({"dispositivo": None}, Decimal("25"), NotFoundError, "DISPOSITIVO_NO_ENCONTRADO"),
+    ({"dispositivo": SimpleNamespace(es_activo=False)}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
+    ({"sensor": None}, Decimal("25"), NotFoundError, "SENSOR_NO_ENCONTRADO"),
+    ({"asociacion": SimpleNamespace(id_infraestructura=7)}, Decimal("25"), ValidationError, "SENSOR_AREA_INVALIDA"),
+    ({}, "abc", ValidationError, "VALOR_CALIBRACION_INVALIDO"),
+    ({}, Decimal("500"), ValidationError, "VALOR_FUERA_DE_RANGO"),
+)
+
+
+def test_cada_rechazo_queda_auditado_como_fallido():
+    for overrides, valor, error, codigo in _RECHAZOS:
+        db, eventos = _Db(), _Eventos()
+        try:
+            _uc(db, _AuditoriaOk(), eventos, **overrides).execute(1, _dto(valor), _USUARIO)
+            assert False, f"debió rechazar con {codigo}"
+        except error as e:
+            assert e.code == codigo
+        [evento] = eventos.eventos
+        assert evento["tipo_evento"] == 29 and evento["exitoso"] is False
+        assert evento["modulo"] == "MODULO9" and evento["id_usuario"] == 1
+        assert evento["detalle"]["codigo_error"] == codigo
+        assert evento["detalle"]["codigo_http"] == error.status_code
+        assert evento["detalle"]["id_sensor"] == 1
+        assert db.committed  # el evento se confirma aunque la operación se rechace
+
+
+def test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx():
+    db = _Db()
+    try:
+        _uc(db, _AuditoriaOk(), _Eventos(roto=True), sensor=None).execute(1, _dto(Decimal("25")), _USUARIO)
+        assert False, "debió lanzar NotFoundError"
+    except NotFoundError as e:
+        assert e.status_code == 404  # no se convierte en 500
+    assert db.rolledback
+
+
+def test_403_del_router_queda_auditado():
+    import src.shared.rbac as rbac
+    from src.configuration.infrastructure.routers import sensor_router
+
+    eventos = _Eventos()
+    originales = rbac.tiene_permiso, sensor_router.SqlAlchemyEventoRepository
+    rbac.tiene_permiso = lambda *a, **k: False
+    sensor_router.SqlAlchemyEventoRepository = lambda db: eventos
+    try:
+        usuario = SimpleNamespace(id_usuario=5, id_rol=2, id_estado_cuenta=2)  # Cuenta.ESTADO_ACTIVO
+        try:
+            sensor_router._permiso_calibrar_auditado(id_sensor=3, db=_Db(), usuario_actual=usuario)
+            assert False, "debió lanzar 403"
+        except AuthorizationError as e:
+            assert e.code == "ACCESO_DENEGADO"
+    finally:
+        rbac.tiene_permiso, sensor_router.SqlAlchemyEventoRepository = originales
+    [evento] = eventos.eventos
+    assert evento["exitoso"] is False and evento["detalle"]["codigo_http"] == 403
+    assert evento["id_usuario"] == 5 and evento["detalle"]["id_sensor"] == 3
+
+
 if __name__ == "__main__":
     test_happy_path_escribe_auditoria()
     test_fallo_auditoria_rollback_500()
     test_no_numerico_devuelve_400()
     test_fuera_de_rango_devuelve_400()
+    test_cada_rechazo_queda_auditado_como_fallido()
+    test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx()
+    test_403_del_router_queda_auditado()
     print("OK")

@@ -14,8 +14,11 @@ class ConfiguracionMotorIAResponse(BaseModel):
 
     id_configuracion_motor: int
     tipo_modelo: str
-    umbral_riesgo_alto: Decimal
-    umbral_alerta_critica: Decimal
+    paradigma: Optional[str] = None
+    umbral_riesgo_alto: Optional[Decimal] = None
+    umbral_alerta_critica: Optional[Decimal] = None
+    umbral_score_anomalia: Optional[Decimal] = None
+    versiones_activas_por_componente: Optional[dict[str, int]] = None
     ventana_temporal_min: int
     modo_ejecucion: str
     id_version_modelo_activa: Optional[int] = None
@@ -37,8 +40,11 @@ class ConfiguracionMotorIAResponse(BaseModel):
         return cls(
             id_configuracion_motor=entidad.id_configuracion_motor,
             tipo_modelo=entidad.tipo_modelo,
+            paradigma=entidad.paradigma,
             umbral_riesgo_alto=entidad.umbral_riesgo_alto,
             umbral_alerta_critica=entidad.umbral_alerta_critica,
+            umbral_score_anomalia=entidad.umbral_score_anomalia,
+            versiones_activas_por_componente=entidad.versiones_activas_por_componente,
             ventana_temporal_min=entidad.ventana_temporal_min,
             modo_ejecucion=entidad.modo_ejecucion,
             id_version_modelo_activa=entidad.id_version_modelo_activa,

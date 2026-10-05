@@ -27,6 +27,7 @@ def _snapshot(especie: Especie) -> dict:
             if especie.densidad_maxima_por_especie is not None
             else None
         ),
+        "tipo_modelo": especie.tipo_modelo,
         "es_activo": especie.es_activo,
         "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
         "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
@@ -61,6 +62,7 @@ class RegistrarEspecieUseCase:
             nombre=nombre,
             descripcion=dto.descripcion,
             densidad_maxima_por_especie=dto.densidad_maxima_por_especie,
+            tipo_modelo=dto.tipo_modelo,
             fecha_creacion=datetime.now(timezone.utc),
         )
 

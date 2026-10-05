@@ -120,6 +120,7 @@ class EventoRepository(ABC):
         detalle: dict,
         id_sesion: Optional[int] = None,
         descripcion: Optional[str] = None,
+        modulo: str = "MODULO1",
     ) -> None:
         """Registra un evento de auditoría con su hash de integridad SHA-256.
 
@@ -132,6 +133,8 @@ class EventoRepository(ABC):
             id_usuario: Usuario relacionado con el evento.
             detalle: Contexto del evento (se serializa como JSONB).
             id_sesion: Sesión asociada, si aplica.
+            modulo: Módulo que origina el evento (RF-24 audita aquí los
+                rechazos de calibración de M09 con ``MODULO9``).
         """
         raise NotImplementedError
 

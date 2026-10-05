@@ -31,7 +31,7 @@ Respuesta esperada `200`:
         "probabilidad_riesgo": {"bajo": 0.10, "medio": 0.25, "alto": 0.65},
         "probabilidad_enfermedad": {"3": 0.72, "5": 0.18},
         "confianza_global": 0.87,
-        "tipo_modelo": "ESPECIES_PEQUEÑAS",
+        "tipo_modelo": "MODELO_ESPECIES_MEDIANAS",
         "id_version_modelo": 4,
         "modo_ejecucion": "SERVIDOR",
         "contexto_incompleto": false,
