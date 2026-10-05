@@ -1,0 +1,484 @@
+{
+  "grupo": "TC-M02-G92",
+  "nombre": "Consumo exitoso de datos analiticos e indicadores zootecnicos por modulos autorizados",
+  "tipo": "CUARTA EVALUACION (V4)",
+  "runId": "G92-REEVAL-V4-20261005-152806",
+  "fecha": "2026-10-05T15:30:27.601Z",
+  "rf": "RF-50 / RF-51",
+  "cu": "CU12",
+  "responsableQa": "Juan Esteban",
+  "ambienteDecisorio": "TEST",
+  "baseUrl": {
+    "oficialAdoptada": "https://api.inmero.co/back-sigab-test",
+    "configuradaEnLaColeccionV3": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test",
+    "mismoDespliegue": true,
+    "comprobacion": "sha256 de /openapi.json identico en ambos dominios",
+    "ejecucionesContraAmbosDominios": false
+  },
+  "veredicto": {
+    "TC-M02-G92": "APROBADO",
+    "TC-M02-154": "APROBADO",
+    "TC-M02-159": "APROBADO"
+  },
+  "git": {
+    "inicial": {
+      "backend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "origin_test": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "head_vs_origin_test": "0\t0",
+        "status": "?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G92/EvaluacionV4/\n?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G94/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV4/",
+        "diff": "(vacio)",
+        "indice": "(vacio)"
+      },
+      "frontend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "cd3af47c07302f7310b17e6800642aab2253f479",
+        "origin_test": "4e0c4ceb377d4eefe0120d2acd2dc2c6b3e8bf64",
+        "head_vs_origin_test": "2\t0",
+        "status": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV4/",
+        "diff": "(vacio)",
+        "indice": "(vacio)"
+      }
+    },
+    "final": {
+      "backend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "origin_test": "0371f2ec1d97ddfe7f3f33526d0db071d016e6ea",
+        "head_vs_origin_test": "0\t0",
+        "status": "?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G92/EvaluacionV4/\n?? tests/Test_Testing/Test_Modulo2/RF-50/TC-M02-G94/EvaluacionV3/\n?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV4/",
+        "diff": "(vacio)",
+        "indice": "(vacio)"
+      },
+      "frontend": {
+        "rama": "qa/juan-esteban-cuarta-evaluacion-M09-y-M02",
+        "head": "cd3af47c07302f7310b17e6800642aab2253f479",
+        "origin_test": "4e0c4ceb377d4eefe0120d2acd2dc2c6b3e8bf64",
+        "head_vs_origin_test": "2\t0",
+        "status": "?? testing/test_testing/Modulo9/RF-17/TC-M09-G31/EvaluacionV4/",
+        "diff": "(vacio)",
+        "indice": "(vacio)"
+      }
+    }
+  },
+  "contrato": {
+    "health": 200,
+    "openapi": 200,
+    "version": "1.0.0",
+    "datos_consolidados": true,
+    "indicadores": true,
+    "campos_datos_consolidados": [
+      "id_activo_biologico",
+      "identificador",
+      "tipo_activo",
+      "especie",
+      "estado_actual",
+      "infraestructura_asociada",
+      "fase_productiva_activa",
+      "historial_eventos",
+      "historial_fases",
+      "historico_estados",
+      "metricas_actuales",
+      "total_registros",
+      "pagina_actual",
+      "total_paginas",
+      "registros_por_pagina",
+      "fecha_generacion"
+    ],
+    "campos_indicador": [
+      "tipo",
+      "valor",
+      "unidad",
+      "periodo_inicio",
+      "periodo_fin",
+      "variables_usadas",
+      "fecha_calculo",
+      "disponible"
+    ]
+  },
+  "actor": {
+    "correo": "integracion.tes@gmail.com",
+    "id_usuario": 111,
+    "nombre_rol": "Integración M04",
+    "estado_cuenta": "Activo",
+    "loginEstado": 200,
+    "tokenPersistido": false,
+    "es_la_identidad_del_caso": true,
+    "sustituidaPorOtraIdentidad": false,
+    "permisos_totales": 6,
+    "recursos_con_read": [
+      9,
+      29,
+      60,
+      61,
+      62,
+      63
+    ],
+    "read_activos_biologicos": true,
+    "scopes": {
+      "eventos": true,
+      "fases": true,
+      "estado": true,
+      "metricas": true
+    }
+  },
+  "alcance": {
+    "activos_visibles": 29,
+    "ve_el_activo": true,
+    "escriturasDePreparacion": 0,
+    "notaPreparacion": "No se ejecuto ninguna escritura de preparacion: la identidad ya tiene alcance sobre el activo del fixture. No se modificaron fincas, scopes ni rol."
+  },
+  "fixture": {
+    "id_activo_biologico": 295,
+    "identificador": "QAJE-DAT-COMPL",
+    "tipo": "INDIVIDUAL",
+    "nombre_estado": "ACTIVO",
+    "id_infraestructura": 48,
+    "id_especie": 40,
+    "mediciones_peso": [
+      {
+        "id_eventos": 224,
+        "fecha": "2026-07-15",
+        "valor": "200.00",
+        "unidad": "kg"
+      },
+      {
+        "id_eventos": 225,
+        "fecha": "2026-08-15",
+        "valor": "230.00",
+        "unidad": "kg"
+      }
+    ],
+    "fechas_distintas": 2,
+    "leidoConLaIdentidadTecnica": true,
+    "reutilizadoDeV3": true
+  },
+  "expectedIndependiente": {
+    "peso_inicial": "200.00",
+    "peso_final": "230.00",
+    "fecha_inicial": "2026-07-15",
+    "fecha_final": "2026-08-15",
+    "dias": 31,
+    "total_mediciones": 2,
+    "formula": "(230.00 - 200.00) / 31",
+    "por_decimales": {
+      "2": "0.97",
+      "3": "0.968",
+      "4": "0.9677",
+      "5": "0.96774",
+      "6": "0.967742"
+    }
+  },
+  "reutilizacionDeAutomatizacion": {
+    "coleccionOrigen": "EvaluacionV3/test_tc_m02_g92_v3.json",
+    "coleccionV4Generada": false,
+    "motivo": "La coleccion V3 se reutiliza tal cual, en memoria y en modo lectura. No se duplica.",
+    "unicoAjuste": "host de las URLs: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test -> https://api.inmero.co/back-sigab-test",
+    "assertionsDeclaradasEnLaColeccion": 26,
+    "variablesDeLaColeccion": {
+      "email_tecnico": "integracion.tes@gmail.com",
+      "id_activo": "295",
+      "identificador": "QAJE-DAT-COMPL",
+      "fecha_inicio": "2026-07-15",
+      "fecha_fin": "2026-08-15",
+      "rnf_ms": "5000",
+      "expected_gpd": "0.9677",
+      "expected_peso_inicial": "200.00",
+      "expected_peso_final": "230.00",
+      "expected_dias": "31",
+      "expected_total_mediciones": "2"
+    },
+    "assertionsModificadas": 0,
+    "assertionsEliminadas": 0,
+    "assertionsAnadidas": 0,
+    "coherenciaConElFixtureDescubierto": {
+      "id_activo": true,
+      "identificador": true,
+      "fecha_inicio": true,
+      "fecha_fin": true,
+      "expected_gpd": true,
+      "expected_peso_inicial": true,
+      "expected_peso_final": true,
+      "expected_dias": true,
+      "expected_total_mediciones": true,
+      "rnf_ms": true,
+      "todo": true
+    }
+  },
+  "resultadoNewman": {
+    "iteraciones": {
+      "total": 1,
+      "pending": 0,
+      "failed": 0
+    },
+    "peticiones": {
+      "total": 4,
+      "pending": 0,
+      "failed": 0
+    },
+    "assertionsTotal": 26,
+    "assertionsFallidas": 0,
+    "duracion_ms": 1247,
+    "fallos": [],
+    "peticiones_detalle": [
+      {
+        "item": "00 - Login de la identidad tecnica",
+        "metodo": "POST",
+        "http": 200,
+        "tiempo_ms": 572,
+        "assertions": 1,
+        "fallidas": 0
+      },
+      {
+        "item": "01 - Identidad y rol del consumidor",
+        "metodo": "GET",
+        "http": 200,
+        "tiempo_ms": 110,
+        "assertions": 4,
+        "fallidas": 0
+      },
+      {
+        "item": "02 - TC-M02-154 - Consumir API interna con modulo autorizado",
+        "metodo": "GET",
+        "http": 200,
+        "tiempo_ms": 134,
+        "assertions": 7,
+        "fallidas": 0
+      },
+      {
+        "item": "03 - TC-M02-159 - Calcular Ganancia Diaria de Peso con datos suficientes",
+        "metodo": "GET",
+        "http": 200,
+        "tiempo_ms": 114,
+        "assertions": 14,
+        "fallidas": 0
+      }
+    ]
+  },
+  "TC-M02-154": {
+    "nombre": "Consumir API interna con modulo autorizado",
+    "peticionCanonica": "GET /activos-biologicos/295/datos-consolidados?tipo_dato=todos&pagina=1&page_size=20",
+    "tipoDatoSustituido": false,
+    "http": 200,
+    "contentType": "application/json",
+    "tiempo_ms": 134,
+    "dentroDelRnf": true,
+    "camposDelContratoPresentes": [
+      "id_activo_biologico",
+      "identificador",
+      "tipo_activo",
+      "especie",
+      "estado_actual",
+      "infraestructura_asociada",
+      "fase_productiva_activa",
+      "historial_eventos",
+      "historial_fases",
+      "historico_estados",
+      "metricas_actuales",
+      "total_registros",
+      "pagina_actual",
+      "total_paginas",
+      "registros_por_pagina",
+      "fecha_generacion"
+    ],
+    "camposDelContratoAusentes": [],
+    "correspondeAlActivo": true,
+    "paginacion": {
+      "pagina_actual": 1,
+      "registros_por_pagina": 20,
+      "total_registros": 3,
+      "total_paginas": 1
+    },
+    "assertions": [
+      {
+        "nombre": "TC-M02-154: HTTP 200",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: respuesta en JSON",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: tiempo de respuesta dentro del RNF",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: la respuesta cumple el contrato desplegado",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: los datos corresponden al activo solicitado",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: no expone informacion de otros activos",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-154: la paginacion es coherente",
+        "paso": true,
+        "error": null
+      }
+    ],
+    "assertionsTotal": 7,
+    "assertionsFallidas": 0,
+    "veredicto": "APROBADO"
+  },
+  "TC-M02-159": {
+    "nombre": "Calcular Ganancia Diaria de Peso con datos suficientes",
+    "peticion": "GET /activos-biologicos/295/indicadores?tipo_indicador=CRECIMIENTO&fecha_inicio=2026-07-15&fecha_fin=2026-08-15",
+    "http": 200,
+    "tiempo_ms": 114,
+    "dentroDelRnf": true,
+    "indicador": {
+      "tipo": "ganancia_peso",
+      "valor": "0.9677",
+      "unidad": "kg/dia",
+      "disponible": true,
+      "periodo_inicio": "2026-07-15",
+      "periodo_fin": "2026-08-15",
+      "fecha_calculo": "2026-10-05T15:30:26.561822Z",
+      "variables_usadas": {
+        "peso_inicial_kg": 200,
+        "peso_final_kg": 230,
+        "dias": 31,
+        "total_mediciones": 2
+      }
+    },
+    "valorObservado": "0.9677",
+    "valorEsperadoIndependiente": "0.9677",
+    "coincide": true,
+    "assertions": [
+      {
+        "nombre": "TC-M02-159: HTTP 200",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: tiempo de respuesta dentro del RNF",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: la respuesta cumple el contrato desplegado",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el indicador de ganancia de peso esta presente",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el indicador esta disponible",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el indicador expone los campos del contrato",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: la unidad es kg/dia",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el valor coincide con el recalculo independiente",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el periodo corresponde al rango de las mediciones",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: declara las variables utilizadas en el calculo",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el peso inicial utilizado es el de la primera medicion",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el peso final utilizado es el de la ultima medicion",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: los dias transcurridos son los reales entre mediciones",
+        "paso": true,
+        "error": null
+      },
+      {
+        "nombre": "TC-M02-159: el total de mediciones utilizadas es el real",
+        "paso": true,
+        "error": null
+      }
+    ],
+    "assertionsTotal": 14,
+    "assertionsFallidas": 0,
+    "veredicto": "APROBADO"
+  },
+  "escrituras": {
+    "funcionalesDelCaso": 0,
+    "dePreparacion": 0,
+    "sqlWrite": 0,
+    "cambiosRbac": 0,
+    "cambiosDeRol": 0,
+    "cambiosDeScopes": 0,
+    "eventosCreados": 0,
+    "medicionesCreadas": 0,
+    "modificacionesDelActivo": 0,
+    "nota": "La ejecucion oficial es de lectura: solo un POST /sesiones/ de autenticacion y tres GET."
+  },
+  "seguridad": {
+    "contrasenaPersistida": false,
+    "jwtPersistido": false,
+    "bearerPersistido": false,
+    "cookiesPersistidas": false,
+    "refreshTokenPersistido": false,
+    "correoDelActorDocumentado": "integracion.tes@gmail.com",
+    "nota": "La contrasena se tomo de M04_TEST_PASSWORD y se entrego a Newman como variable de entorno de la ejecucion. El reporte de Newman se saneo antes de guardarse.",
+    "hallazgoSaneado": {
+      "que": "El reporte JSON de Newman conservaba la cabecera Set-Cookie del login, con el valor de la cookie refresh_token.",
+      "ocurrencias": 4,
+      "accion": "Se redactaron los valores de refresh_token/access_token/session/csrftoken en el reporte antes del cierre; el JSON sigue siendo valido. Se corrigio el saneador del runner para que lo haga de origen en adelante.",
+      "reejecucionDelRun": false,
+      "estadoFinal": "0 ocurrencias en todos los artefactos"
+    },
+    "escaneoFinal": {
+      "patrones": [
+        "contrasena literal",
+        "JWT",
+        "Bearer con valor",
+        "refresh_token con valor",
+        "access_token con valor",
+        "valores de cookie"
+      ],
+      "archivosEscaneados": [
+        "run-v4.cjs",
+        "RESULTADOS/<RUN>/evidencia-g92-v4.json",
+        "RESULTADOS/<RUN>/newman-g92-v4.json",
+        "RESULTADOS/<RUN>/TC-M02-G92_reevaluacion_V4.md"
+      ],
+      "archivosComprometidos": []
+    }
+  },
+  "incidencia": {
+    "referencia": "INC-M02-90-G92 / GitHub #241",
+    "nuevaIncidenciaCreada": false,
+    "issueModificado": false
+  }
+}
