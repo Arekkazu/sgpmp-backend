@@ -17,6 +17,7 @@ from src.configuration.domain.entities.especie import Especie
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.infrastructure.models.especie_model import EspecieModel
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.rehidratar import rehidratar
 
@@ -108,3 +109,12 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             self._a_entidad(orm)
             for orm in query.order_by(EspecieModel.nombre).all()
         ]
+
+    def contar_areas_con_modelo_distinto(self, id_especie: int, tipo_modelo: Optional[str]) -> int:
+        consulta = self.db.query(func.count()).select_from(InfraestructuraModel).filter(
+            InfraestructuraModel.id_especie == id_especie,
+            InfraestructuraModel.tipo_modelo_asignado.isnot(None),
+        )
+        if tipo_modelo is not None:
+            consulta = consulta.filter(InfraestructuraModel.tipo_modelo_asignado != tipo_modelo)
+        return consulta.scalar()

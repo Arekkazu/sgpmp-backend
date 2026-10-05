@@ -96,6 +96,19 @@ class EditarEspecieUseCase:
             densidad_maxima = dto.densidad_maxima_por_especie
         # Mismo criterio que la densidad: omitido conserva, enviado (incluso null) reemplaza.
         tipo_modelo = dto.tipo_modelo if "tipo_modelo" in dto.model_fields_set else especie.tipo_modelo
+        # RF-20 v1.1: cambiar la familia no puede dejar áreas con un modelo incoherente.
+        if tipo_modelo != especie.tipo_modelo:
+            cantidad = self.especies_repo.contar_areas_con_modelo_distinto(id_especie, tipo_modelo)
+            if cantidad:
+                raise BusinessRuleError(
+                    code="ESPECIE_CON_AREAS_DE_OTRO_MODELO",
+                    message=(
+                        f"Operación denegada: la especie '{especie.nombre.valor}' tiene {cantidad} áreas "
+                        "productivas con un modelo de IA que no corresponde a la nueva familia. Reasigne "
+                        "o quite el modelo de esas áreas antes de cambiar la familia de la especie."
+                    ),
+                    field="tipo_modelo",
+                )
 
         especie.actualizar(
             nombre=nombre_nuevo,
