@@ -77,6 +77,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
                 ruta_artefacto=entidad.ruta_artefacto,
                 tamanio_artefacto_bytes=entidad.tamanio_artefacto_bytes,
                 hash_artefacto_sha256=entidad.hash_artefacto_sha256,
+                # Sin esto el trigger hash_obligatorio rechazaba todo INSERT (P0406).
+                hash_artecfacto=entidad.hash_artefacto_sha256,
                 dataset_entrenamiento_hash=entidad.dataset_entrenamiento_hash,
                 id_proceso_rf71=entidad.id_proceso_rf71,
                 version_referencia=entidad.version_referencia,

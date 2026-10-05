@@ -47,9 +47,12 @@ class RegistrarNotasVersionUseCase:
             entidad_referencia="version_modelo",
             resultado_operacion="EXITOSO",
             severidad_evento="INFO",
+            # RF-73: el snapshot va al nivel raíz para cumplir los campos mínimos
+            # (tipo_modelo, id_version, métricas por paradigma); anidado bajo
+            # "valores_nuevos" el evento siempre quedaba como AUDITORIA_EVENTO_INVALIDO.
             payload_evento={
                 "accion": "NOTAS_REGISTRADAS",
-                "valores_nuevos": entidad._snapshot(),
+                **entidad._snapshot(),
             },
         )
         try:

@@ -32,6 +32,9 @@ class VersionModeloModel(Base):
     ruta_artefacto: Mapped[Optional[str]] = mapped_column(Text)
     tamanio_artefacto_bytes: Mapped[Optional[int]] = mapped_column(BigInteger)
     hash_artefacto_sha256: Mapped[Optional[str]] = mapped_column(String(64))
+    # Columna legada (con la errata del esquema original): la exige el trigger
+    # trg_versiones_modelos_hash_obligatorio y la leen las vistas de M04.
+    hash_artecfacto: Mapped[Optional[str]] = mapped_column(String(64))
     dataset_entrenamiento_hash: Mapped[Optional[str]] = mapped_column(String(64))
     id_proceso_rf71: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True))
     version_referencia: Mapped[Optional[int]] = mapped_column(Integer)
@@ -41,7 +44,7 @@ class VersionModeloModel(Base):
     accuracy: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 6))
     roc_auc_score: Mapped[Optional[Decimal]] = mapped_column(Numeric(8, 6))
     recall_por_clase: Mapped[Optional[dict]] = mapped_column(JSONB)
-    matriz_confusion: Mapped[Optional[dict]] = mapped_column(JSONB)
+    matriz_confusion: Mapped[Optional[list]] = mapped_column(JSONB)
     compatibilidad_variables: Mapped[Optional[list]] = mapped_column(JSONB)
     notas_validacion: Mapped[Optional[str]] = mapped_column(Text)
     detalle_validacion: Mapped[Optional[str]] = mapped_column(Text)

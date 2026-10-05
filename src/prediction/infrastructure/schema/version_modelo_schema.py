@@ -30,7 +30,7 @@ class VersionModeloResponse(BaseModel):
     accuracy: Optional[Decimal]
     roc_auc_score: Optional[Decimal]
     recall_por_clase: Optional[dict]
-    matriz_confusion: Optional[dict]
+    matriz_confusion: Optional[list]  # matriz NxN: lista de filas
     compatibilidad_variables: Optional[list]
     notas_validacion: Optional[str]
     detalle_validacion: Optional[str]

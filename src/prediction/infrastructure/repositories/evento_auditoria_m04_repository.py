@@ -175,18 +175,25 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         campos_faltantes: list[str],
         correlacion_id: Optional[uuid.UUID],
     ) -> None:
+        payload = {
+            "tipo_evento_original": tipo_evento_orig,
+            "campos_faltantes": campos_faltantes,
+            "payload_recibido": payload_orig,
+        }
         try:
             self._db.add(EventoAuditoriaM04Model(
                 tipo_evento="AUDITORIA_EVENTO_INVALIDO",
                 tipo_actor="SISTEMA",
-                payload_evento={
-                    "tipo_evento_original": tipo_evento_orig,
-                    "campos_faltantes": campos_faltantes,
-                    "payload_recibido": payload_orig,
-                },
+                # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
+                # este evento nunca llegaba a guardarse.
+                id_sistema="DESARROLLO_M04",
+                payload_evento=payload,
                 severidad_evento="ERROR",
                 correlacion_id=correlacion_id or uuid.uuid4(),
                 origen_registro="DESARROLLO_M04",
+                hash_evento=_calcular_hash(
+                    "AUDITORIA_EVENTO_INVALIDO", payload, datetime.now(timezone.utc).isoformat()
+                ),
             ))
             self._db.flush()
         except Exception as exc:
