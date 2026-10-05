@@ -1,7 +1,7 @@
 # Implementación de los RFC vigentes — RFC-006, RFC-009, RFC-011 (y RFC-008)
 
 Fecha: 2026-10-05 · Rama `feature/rfc006-rfc009-rfc011` en **sgpmp-backend** y en **sgpmp-frontend**
-(mismo nombre en los dos repos) · Migración Alembic `cf12e716a4ec`.
+(mismo nombre en los dos repos) · Migraciones Alembic `cf12e716a4ec` (RFC) y `78f6f579b5ba` (arreglo de RF-69).
 
 Fuentes: `anotaciones/RFC/` y las fichas de `anotaciones/Requerimientos/` (M03, M04, M09).
 Curls: `anotaciones/modulo_9/curls_m09_rfc006_rfc009_rfc011.md` y
@@ -169,24 +169,29 @@ versionado listos, pero **no hay dato de entrada**: no son operables de punta a 
 
 ---
 
-## 6. Hallazgos laterales
+## 6. Hallazgos laterales — todos corregidos en esta rama
 
-1. **RF-69 roto en DEV (anterior a esta rama, no corregido)**: `modulo4.versiones_modelos.umbral_clasificacion`
-   es `numeric(5,4)` con default `70.00`, que no cabe. Cualquier INSERT que no envíe ese valor falla por
-   overflow, y el use case no lo envía, así que hoy **ninguna versión se puede registrar**. Hay que decidir si
-   el valor es una fracción (0.70) o un porcentaje (y cambiar el tipo); requiere una migración autorizada
-   por el DBA.
-2. `versiones_modelos.nombre_version` es `varchar(40)` en BD, pero el ORM decía `String(100)`; se alineó el
-   ORM. Con los nombres nuevos, el nombre generado pasaba de 40 caracteres, así que se le quitó el prefijo
-   `MODELO_` y la fecha pasó a `aammdd`. Ampliar la columna obligaría a recrear 6 vistas de M04.
-3. **RF-73 corregido de paso**: los eventos `VERSION_*` siempre se guardaban como `AUDITORIA_EVENTO_INVALIDO`,
-   porque el payload no traía `id_version`, `f1_score_global` ni `id_version_nueva`.
-4. RF-21 v2.0 pide 422 para un tipo de dispositivo inexistente, pero el código devuelve 404
-   `TIPO_DISPOSITIVO_NO_ENCONTRADO`. No se corrigió (fuera de los RFC).
-5. Frontend, `MotorView`: todas las pestañas aparecían seleccionadas porque la variable del `map` tapaba
-   el estado (`tipo === tipo`). Corregido.
-6. Cambiar la familia de modelo de una especie no revalida las áreas que ya tienen un modelo asignado; la
-   ficha no lo define.
+Al verificar RF-69 de punta a punta (registro por HTTP → notas → activación, contra Postgres real con los
+triggers activos) apareció que **ninguna versión de modelo se podía registrar desde RF-71**. Había una
+cadena de defectos anteriores a esta rama; se corrigieron todos y quedaron fijados por
+`tests/integration/test_rf69_registro_activacion_version_e2e.py`. Ese test falla si se quita cualquiera de
+los arreglos.
+
+| # | Módulo | Defecto | Corrección |
+|---|---|---|---|
+| 1 | M04 | `versiones_modelos.umbral_clasificacion` es `numeric(5,4)` con default `70.00`: overflow en todo INSERT (400 `VALOR_FUERA_DE_RANGO`) | Migración `78f6f579b5ba`: default `0.7000` y CHECK 0–1. Es una fracción, como las demás métricas, los umbrales de la app y los datos de DEV (0.70/0.75). El 0–100 era un resto que solo usan procedimientos de BD que la app no invoca |
+| 2 | M04 | El trigger `hash_obligatorio` exige la columna legada `hash_artecfacto`, que la app no llenaba (500) | El repositorio escribe el SHA-256 también en `hash_artecfacto`; así lo cubre la inmutabilidad y lo ven las vistas antiguas |
+| 3 | M04 | `VersionModeloResponse.matriz_confusion` tipado como `dict`: la versión se guardaba pero la respuesta era 500, y RF-71 reintentaría y duplicaría | Tipado como lista de filas en el schema, la entidad y el ORM (como ya lo usa el frontend) |
+| 4 | M04 | Los eventos `VERSION_*` de RF-73 siempre quedaban como `AUDITORIA_EVENTO_INVALIDO`: el payload no traía `id_version`, `f1_score_global` ni `id_version_nueva`, y las notas anidaban el snapshot | Snapshot con los campos mínimos al nivel raíz en registro, notas y activación |
+| 5 | M04 | El propio `AUDITORIA_EVENTO_INVALIDO` nunca se guardaba: actor SISTEMA sin `id_sistema` viola `chk_eam_actor_exclusivo` | Se registra con `id_sistema = DESARROLLO_M04` y su hash |
+| 6 | M04 | `nombre_version` es `varchar(40)` (el ORM decía 100) y los nombres nuevos lo excedían | ORM alineado; nombre sin el prefijo `MODELO_` y fecha `aammdd` (ampliar la columna obligaría a recrear 6 vistas) |
+| 7 | M09 | RF-21 v2.0 pide 422 para un tipo de dispositivo inexistente; el código devolvía 404 | 422 `TIPO_DISPOSITIVO_NO_ENCONTRADO` con el mensaje de la ficha |
+| 8 | M09 | Cambiar la familia de modelo de una especie podía dejar áreas con un modelo incoherente | 422 `ESPECIE_CON_AREAS_DE_OTRO_MODELO` si alguna área (activa o inactiva) de la especie quedaría incoherente |
+| 9 | Front M04 | `MotorView`: todas las pestañas salían seleccionadas (`tipo === tipo`) | Corregido |
+
+No es un defecto: los dos `test_sin_token_es_401` (RF-25, RF-29) fallan solo en máquinas donde el Postgres de
+`.env` no responde. `get_db` devuelve 503 antes de que se evalúe el token; con la BD arriba (CI, despliegues)
+responden 401.
 
 ---
 
@@ -198,10 +203,11 @@ versionado listos, pero **no hay dato de entrada**: no son operables de punta a 
     `tests/configuration/test_rf21_rfc011_camara.py`,
     `tests/prediction/test_rfc009_taxonomia_paradigma.py` y
     `tests/telemetry/test_rfc008_tc_m03_040_ciclo_vida_alerta.py`.
-  - Suite completa: **1152 pasan**. Los 2 que fallan (`test_sin_token_es_401` de RF-25 y RF-29) ya
+  - Suite completa: **1157 pasan**. Los 2 que fallan (`test_sin_token_es_401` de RF-25 y RF-29) ya
     fallaban en `dev`.
 - Backend, integración: el mismo conjunto de fallos que `dev` en la misma BD (17 y 3 errores de
-  datos/entorno); sin regresiones.
+  datos/entorno); sin regresiones. Nuevo: `tests/integration/test_rf69_registro_activacion_version_e2e.py`
+  (2 tests, en verde).
 - Frontend: vitest con **56 archivos y 345 tests**, todos en verde, y `tsc --noEmit` limpio. Nuevos:
   `MotorConfigForm.test.tsx`, `DispositivoModal.test.tsx` y casos de especie/modelo en
   `InfraestructuraSection.test.tsx`.

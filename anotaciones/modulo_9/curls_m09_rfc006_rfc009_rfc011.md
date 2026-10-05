@@ -68,6 +68,8 @@ curl -X PATCH http://localhost:8000/configuracion/especies/1 \
 
 Errores posibles (además de los de RF-15):
 - `400` `VAL_ENTRADA` — `tipo_modelo` fuera de los 5 valores asignables
+- `422` `ESPECIE_CON_AREAS_DE_OTRO_MODELO` — cambiar (o quitar) la familia dejaría áreas de la especie, activas o
+  inactivas, con un modelo de IA que ya no le corresponde. Hay que reasignar o quitar ese modelo primero
 
 ---
 
@@ -192,6 +194,8 @@ curl -X POST http://localhost:8000/configuracion/dispositivos-iot \
 Respuesta `201` con `resolucion`, `fps` y `area_cobertura_m2`.
 
 Errores posibles (nuevos):
+- `422` `TIPO_DISPOSITIVO_NO_ENCONTRADO` — "Error de catálogo: El tipo de dispositivo indicado no existe. Seleccione
+  un tipo válido del catálogo." (antes respondía 404; RF-21 v2.0 pide 422)
 - `400` `ATRIBUTOS_VISION_INVALIDOS` (`field` = el atributo) — "Error de validación: La cámara requiere
   resolución (formato ANCHOxALTO), fps (1–60) y área de cobertura (m²) válidos. Verifique el atributo '[CAMPO]'."
 
