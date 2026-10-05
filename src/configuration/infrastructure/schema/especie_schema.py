@@ -20,6 +20,7 @@ class EspecieResponse(BaseModel):
     nombre: str
     descripcion: Optional[str]
     densidad_maxima_por_especie: Optional[Decimal]
+    tipo_modelo: Optional[str] = None
     es_activo: bool
     fecha_creacion: datetime.datetime
     fecha_actualizacion: Optional[datetime.datetime]
