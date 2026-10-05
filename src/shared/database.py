@@ -17,7 +17,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 from src.shared.errors import ServiceUnavailableError
-from tests.shared.rollback.infraestructure.testing_sandbox import get_or_create_test_session
+from shared.rollback.infraestructure.testing_sandbox import get_or_create_test_session
 from tests.shared.tesing_context import test_run_id_context
 
 
@@ -111,9 +111,9 @@ def get_db():
             # La devolvemos directamente. No validamos reintentos porque la conexión ya está viva.
             yield test_session
         except Exception:
+            test_session.rollback()
             raise
-        # NO CERRAMOS LA SESIÓN AQUÍ (finally db.close()). 
-        # La conexión debe seguir viva para la siguiente petición de la colección.
+       
         return
     db = SessionLocal()
     try:

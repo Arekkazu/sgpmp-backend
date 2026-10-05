@@ -3,7 +3,11 @@ from httpx import request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from uvicorn import logging
 from tests.shared.tesing_context import test_run_id_context
+
+
+logger = logging.getLogger(__name__)
 
 class TestSandboxMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
@@ -12,10 +16,12 @@ class TestSandboxMiddleware(BaseHTTPMiddleware):
 
         run_id = request.headers.get("X-Test-Run-Id")
         if run_id:
-            # Guardamos el ID en el contexto de FastAPI para que get_db pueda leerlo
+            logger.info(f"[Sandbox] Procesando request {request.method} {request.url.path} para run_id: {run_id}")
             token = test_run_id_context.set(run_id)
             try:
                 response = await call_next(request)
+                response.headers["X-Test-Run-Id"] = run_id
+                return response
             finally:
                 test_run_id_context.reset(token)
         else:

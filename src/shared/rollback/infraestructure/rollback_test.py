@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 
-# Carga las variables definidas en el .env
 load_dotenv()
 
 POSTGRES_USER = os.getenv("POSTGRES_USER")
