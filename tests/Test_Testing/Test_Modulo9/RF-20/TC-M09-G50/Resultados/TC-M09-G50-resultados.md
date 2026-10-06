@@ -1,8 +1,31 @@
-# TC-M09-G50 (TC-M09-101) — Edición de un área productiva existente
+# TC-M09-G50 (TC-M09-101, TC-M09-259) — Edición de un área productiva y cambio de especie
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
 
-## Estado vigente — reevaluación 2026-09-26
+## Estado vigente — reevaluación 2026-10-06 (RF-20 v1.1, RFC-009)
+
+**Resultado: PASA**: 18 requests, 38 assertions, 0 failed.
+
+| Sub-caso | Verificación | Resultado |
+|---|---|---|
+| TC-M09-101 | Área 148 editada: nombre `Estanque-01` → `Estanque Editado TC-M09-G50`, superficie `2500.00` → `2750.50`, descripción nueva; especie y `MODELO_AVES` se conservan; `fecha_actualizacion` rota; relectura independiente igual | ✅ PASA |
+| TC-M09-259 (con activos) | Área 149 (especie A) con 2 lotes de la especie A (activos 747 y 748, registrados en M02). Cambio a especie B + `MODELO_PORCINOS` → `422 AREA_CON_ACTIVOS_DE_OTRA_ESPECIE`, campo `especie_id`. Mensaje: *"el área 'Estanque Con Activos' tiene 2 activos biológicos de la especie 'Aves Edicion …'. Traslade o desvincule los activos antes de cambiar la especie."* Relectura: sigue con especie A, `MODELO_AVES` y sin cambio de `fecha_actualizacion` | ✅ PASA |
+| TC-M09-259 (sin activos) | Área 150 equivalente sin activos: el mismo cambio → `200`, queda con especie B + `MODELO_PORCINOS` (confirmado por relectura) | ✅ PASA |
+
+Cambios en la colección por v1.1 (reescrita):
+- `especie_id` es obligatorio también en el PATCH, así que el 101 lo envía (sin cambiarlo).
+- La colección crea su propia finca, dos especies (A = `MODELO_AVES`, B = `MODELO_PORCINOS`),
+  tres áreas y los dos lotes. Las especies se crean con `densidad_maxima_por_especie`, porque M02
+  rechaza registrar lotes de una especie sin ella (`422 DENSIDAD_MAXIMA_NO_CONFIGURADA`).
+- El conteo que usa la regla es de registros de `modulo2.activos_biologicos` en el área, de una
+  especie distinta a la nueva, excluyendo estados CERRADO y BAJA. No suma `cantidad`: 2 lotes de
+  10 y 20 animales se informan como "2 activos".
+
+Evidencia: `Resultados/reporte-TC-M09-G50.html` (Newman htmlextra, 2026-10-06).
+
+---
+
+## Reevaluación 2026-09-26 (RF-20 v1.0): histórico
 
 **Resultado: PASA** — 6 requests, 11 assertions, 0 failed.
 
