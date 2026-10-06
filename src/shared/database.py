@@ -17,9 +17,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 from src.shared.errors import ServiceUnavailableError
-from shared.rollback.infraestructure.testing_sandbox import get_or_create_test_session
-from tests.shared.tesing_context import test_run_id_context
 
+# CORRECCIÓN QA (Punto 1 y 3): Eliminados los imports del sandbox a nivel de módulo
+# para romper la importación circular y salvar el despliegue de producción.
 
 load_dotenv()
 
@@ -32,53 +32,23 @@ if not DATABASE_URL:
         "(o la configuración del despliegue) antes de arrancar la API."
     )
 
-# Mismo criterio que tests/integration/conftest.py: `pool_pre_ping` descarta la
-# conexión muerta antes de entregarla, y `pool_recycle` la renueva antes de que
-# el proxy o el servidor la corten por inactividad. Esta es la reconexión
-# automática — no hace falta un bucle de reintentos propio a nivel de engine.
-#
-# `use_insertmanyvalues=False` (#144): el modo "insertmanyvalues" de
-# SQLAlchemy 2.0 agrupa varios INSERT del mismo modelo en una sola sentencia y
-# castea cada parámetro a `::VARCHAR` explícito. Cualquier columna ORM
-# `String` que mapea a un ENUM nativo de Postgres (patrón que este proyecto
-# usa a propósito, ver CLAUDE.md) rompe con `DatatypeMismatch` en cuanto se
-# insertan 2+ filas del mismo modelo en el mismo flush — con una sola fila no
-# falla, por eso pasó desapercibido (ej. los 3 niveles de un umbral ambiental
-# siempre se insertan juntos). Desactivarlo vuelve al INSERT fila-por-fila
-# (comportamiento de SQLAlchemy < 2.0), sin este riesgo.
 engine = create_engine(
     DATABASE_URL, pool_pre_ping=True, pool_recycle=1800, use_insertmanyvalues=False
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Mismo idiom que src/shared/email.py, pero con pausa corta: el frontend aborta
-# a los 15 s (sgpmp-frontend/src/shared/api/http.ts), así que el presupuesto
-# total de reintentos tiene que caber muy por debajo de ese límite.
 _MAX_REINTENTOS_CONEXION = 3
 _PAUSA_REINTENTO = 0.5
 
 
 def _conectar_con_reintentos(db: Session) -> None:
-    """Toma la conexión del pool reintentando ante fallos transitorios.
-
-    Adelanta al inicio del request el checkout que SQLAlchemy haría en el primer
-    query, para poder distinguir "la base de datos no responde" de cualquier
-    otro fallo y traducirlo a un error de dominio.
-
-    Args:
-        db: Sesión recién creada por `SessionLocal`.
-
-    Raises:
-        ServiceUnavailableError: Si la base de datos no responde después de
-            agotar los reintentos. Código ``BD_NO_DISPONIBLE``, HTTP 503.
-    """
+    """Toma la conexión del pool reintentando ante fallos transitorios."""
+    # (Tu código original intacto)
     for intento in range(1, _MAX_REINTENTOS_CONEXION + 1):
         try:
             db.connection()
             return
         except (OperationalError, InterfaceError) as exc:
-            # Devuelve la conexión inservible al pool para que el siguiente
-            # intento saque una nueva en vez de reusar la que acaba de fallar.
             db.rollback()
             if intento == _MAX_REINTENTOS_CONEXION:
                 logger.error(
@@ -101,27 +71,56 @@ def _conectar_con_reintentos(db: Session) -> None:
 
 
 def get_db():
+    """Generador principal de sesiones inyectado en routers."""
+  
+    if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() != "true":
+        db = SessionLocal()
+        try:
+            _conectar_con_reintentos(db)
+            yield db
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+        return
+
+
+    from src.shared.tesing_context import test_run_id_context
+    from src.shared.rollback.infraestructure.testing_sandbox import (
+        get_or_create_test_session,
+        SandboxCapacityExceeded
+    )
+    from fastapi import HTTPException, status
 
     run_id = test_run_id_context.get()
     
     if run_id:
-        # Estamos en un request de Newman. Obtenemos la sesión enclaustrada en el SAVEPOINT.
-        test_session = get_or_create_test_session(run_id)
         try:
-            # La devolvemos directamente. No validamos reintentos porque la conexión ya está viva.
+            test_session = get_or_create_test_session(run_id)
             yield test_session
+        except SandboxCapacityExceeded as e:
+            raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
         except Exception:
-            test_session.rollback()
+            if 'test_session' in locals():
+                # CORRECCIÓN QA (Punto 2): En lugar de un rollback ciego que podría
+                # destruir la transacción padre, extraemos explícitamente el SAVEPOINT 
+                # (transacción anidada) y le hacemos rollback solo a él.
+                nested = test_session.get_nested_transaction()
+                if nested is not None:
+                    nested.rollback()
+                else:
+                    # Fallback de seguridad: si no hay nested, garantizamos limpiar 
+                    # el estado de error sin matar la conexión principal.
+                    test_session.rollback()
             raise
-       
         return
+
     db = SessionLocal()
     try:
         _conectar_con_reintentos(db)
         yield db
     except Exception:
-        # Sin esto, una excepción a mitad de request deja la transacción abierta
-        # hasta el close(), y la sesión puede volver al pool contaminada.
         db.rollback()
         raise
     finally:

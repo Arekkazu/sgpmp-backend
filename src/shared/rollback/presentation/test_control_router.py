@@ -55,18 +55,39 @@ def execute_test_query(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Test sandbox endpoint disabled."
         )
-
     cleaned_query = payload.query.strip()
-    if not cleaned_query.upper().startswith("SELECT"):
+
+    if not cleaned_query.startswith("SELECT"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Operación denegada. Solo se permiten consultas SELECT en el sandbox."
         )
 
+    if ";" in cleaned_query:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Operación denegada. No se permiten múltiples sentencias SQL."
+        )
+
+    palabras_prohibidas = ["INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "TRUNCATE", "CALL", "PG_"]
+    if any(palabra in cleaned_query.upper() for palabra in palabras_prohibidas):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Operación denegada. Solo se permiten consultas SELECT en el sandbox."
+        )
+
+    if "FROM MODULO" not in cleaned_query.upper():
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Operación denegada. Las consultas deben provenir de la tabla MODULOX."
+        )
+
+   
+
     try:
-        result = db.execute(text(cleaned_query))
-        
-     
+        db.execute(text(safe_query))
+        safe_query = f"SELECT * FROM ({payload.query.strip()}) AS query_sandbox LIMIT 100;"
+        result = db.execute(text(safe_query))
         rows = result.mappings().all()
         return {"data": [dict(row) for row in rows]}
         

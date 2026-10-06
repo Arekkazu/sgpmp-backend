@@ -24,14 +24,14 @@ def _buffer_auditoria_m02_aislado(tmp_path, monkeypatch) -> None:
 
 @pytest.fixture(scope="session")
 def engine_test():
-    """Crea el motor de base de datos tomando credenciales del entorno (Punto 11)."""
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-    user = os.getenv("DB_USER", "postgres")
-    password = os.getenv("DB_PASSWORD", "postgres")
-    db_name = os.getenv("DB_NAME", "sgpmp_test")
     
-    test_db_url = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+    
+    test_db_url = os.getenv("TEST_DATABASE_URL")
+    if not test_db_url:
+        raise RuntimeError(
+            "Falta la variable de entorno TEST_DATABASE_URL. Revisa el .env.test "
+            "(o la configuración del despliegue) antes de ejecutar los tests."
+        )
     
     engine = create_engine(test_db_url)
     yield engine
@@ -75,6 +75,7 @@ def sandbox_client(test_run_id, monkeypatch) -> Generator[TestClient, None, None
     """
     # 1. Habilitar la variable de entorno obligatoria para el middleware
     monkeypatch.setenv("ENABLE_TEST_SANDBOX", "true")
+    secret = os.getenv("TEST_SANDBOX_SECRET", "secreto_por_defecto_para_pruebas")
     
     # 2. Inicializar el cliente con el header mágico
     client = TestClient(app)

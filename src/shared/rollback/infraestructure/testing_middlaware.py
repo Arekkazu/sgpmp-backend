@@ -1,9 +1,9 @@
 import os
+import logging
 from httpx import request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from uvicorn import logging
 from tests.shared.tesing_context import test_run_id_context
 
 
@@ -16,6 +16,14 @@ class TestSandboxMiddleware(BaseHTTPMiddleware):
 
         run_id = request.headers.get("X-Test-Run-Id")
         if run_id:
+            secret = request.headers.get("X-Sandbox-Secret")
+            expected_secret = os.getenv("TEST_SANDBOX_SECRET")
+            if not expected_secret or secret != expected_secret:
+                return Response(
+                    content="Acceso denegado. Secreto de sandbox inválido o ausente.",
+                    status_code=403
+                )
+            
             logger.info(f"[Sandbox] Procesando request {request.method} {request.url.path} para run_id: {run_id}")
             token = test_run_id_context.set(run_id)
             try:
