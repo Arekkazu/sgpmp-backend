@@ -34,6 +34,7 @@ def _respuesta_error(
     code: str,
     message: str,
     fields: list[dict] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     """Construye el cuerpo estándar de error.
 
@@ -42,6 +43,7 @@ def _respuesta_error(
         code: Código de negocio en mayúsculas.
         message: Mensaje legible para el usuario final.
         fields: Detalle por campo. Lista vacía si el error no aplica a uno.
+        headers: Cabeceras adicionales de la respuesta (p. ej. ``Retry-After``).
 
     Returns:
         JSONResponse con las claves `error_code`, `message`, `fields` y `timestamp`.
@@ -54,6 +56,7 @@ def _respuesta_error(
             "fields": fields or [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
+        headers=headers,
     )
 
 
@@ -89,7 +92,9 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
     fields = [{"field": exc.field, "message": exc.message}] if exc.field else []
 
-    return _respuesta_error(exc.status_code, exc.code, exc.message, fields)
+    return _respuesta_error(
+        exc.status_code, exc.code, exc.message, fields, headers=getattr(exc, "headers", None)
+    )
 
 
 def _usuario_del_token(request: Request) -> int | None:

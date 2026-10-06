@@ -596,8 +596,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
-    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan.
-    expose_headers=["Content-Disposition", "X-Total-Registros", "X-Registros-Exportados"],
+    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan,
+    # ni cuándo reintentar tras un 429 del limitador de tasa (#495).
+    expose_headers=[
+        "Content-Disposition", "X-Total-Registros", "X-Registros-Exportados",
+        "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset",
+    ],
 )
 
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni

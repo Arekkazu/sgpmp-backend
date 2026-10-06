@@ -254,9 +254,23 @@ class TooManyRequestsError(AppError):
     Usar cuando el sistema rechaza una operación porque ya hay demasiados
     trabajos en curso del mismo tipo (ej: generación de reportes,
     exportaciones). El cliente debe reintentar más tarde.
+
+    ``headers`` viaja tal cual en la respuesta: el limitador de tasa lo usa
+    para decir cuándo reintentar (``Retry-After`` y ``RateLimit-*``, #495).
     """
 
     status_code = 429
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        field: Optional[str] = None,
+        *,
+        headers: Optional[dict[str, str]] = None,
+    ):
+        super().__init__(code, message, field)
+        self.headers = headers
 
 
 class ServiceUnavailableError(AppError):
