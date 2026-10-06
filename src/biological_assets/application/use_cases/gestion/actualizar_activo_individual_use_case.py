@@ -64,7 +64,7 @@ class ActualizarActivoIndividualUseCase:
         # BOLA (TC-M02-G15): mismo alcance de finca que ya aplica la consulta
         # (ConsultarActivoUseCase) -- sin esto, un usuario podia actualizar
         # activos de fincas fuera de su alcance.
-        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas)
+        activo = self.repo.obtener_por_id(id_activo, ids_fincas_permitidas=ids_fincas_permitidas, bloquear=True)
         if activo is None:
             raise NotFoundError(
                 code='ACTIVO_NO_ENCONTRADO',

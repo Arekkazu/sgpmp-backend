@@ -40,8 +40,11 @@ class SqlAlchemyInfraestructuraRepository(InfraestructuraRepository):
         id_infraestructura: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[Infraestructura]:
-        orm = self.db.get(InfraestructuraModel, id_infraestructura)
+        orm = self.db.get(
+            InfraestructuraModel, id_infraestructura, with_for_update=bloquear, populate_existing=bloquear,
+        )
         if orm is None:
             return None
         if ids_fincas_permitidas is not None and orm.id_finca not in ids_fincas_permitidas:

@@ -15,8 +15,10 @@ from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
 class MetricaProduccionRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_metrica_produccion: int) -> Optional[MetricaProduccion]:
-        """Obtiene una métrica por su identidad. Retorna ``None`` si no existe."""
+    def obtener_por_id(self, id_metrica_produccion: int, *, bloquear: bool = False) -> Optional[MetricaProduccion]:
+        """Obtiene una métrica por su identidad. Retorna ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod

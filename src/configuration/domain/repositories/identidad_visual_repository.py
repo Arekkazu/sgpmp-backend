@@ -10,7 +10,8 @@ from src.configuration.domain.entities.identidad_visual import IdentidadVisual
 class IdentidadVisualRepository(ABC):
 
     @abstractmethod
-    def obtener_por_finca(self, id_finca: int) -> Optional[IdentidadVisual]:
+    def obtener_por_finca(self, id_finca: int, *, bloquear: bool = False) -> Optional[IdentidadVisual]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod

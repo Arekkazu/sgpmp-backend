@@ -32,8 +32,8 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
             fecha_actualizacion=orm.fecha_actualizacion,
         )
 
-    def obtener_por_id(self, id_ciclo_biologico: int) -> Optional[CicloBiologico]:
-        orm = self.db.get(CicloBiologicoModel, id_ciclo_biologico)
+    def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:
+        orm = self.db.get(CicloBiologicoModel, id_ciclo_biologico, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre_y_especie(

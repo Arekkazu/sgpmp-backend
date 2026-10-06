@@ -38,8 +38,10 @@ class SqlAlchemyConfiguracionGlobalRepository(ConfiguracionGlobalRepository):
         )
         return self._a_entidad(orm) if orm else None
 
-    def obtener_por_id(self, id_configuracion_global: int) -> Optional[ConfiguracionGlobal]:
-        orm = self.db.get(ConfiguracionGlobalModel, id_configuracion_global)
+    def obtener_por_id(
+        self, id_configuracion_global: int, *, bloquear: bool = False
+    ) -> Optional[ConfiguracionGlobal]:
+        orm = self.db.get(ConfiguracionGlobalModel, id_configuracion_global, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, config: ConfiguracionGlobal) -> ConfiguracionGlobal:
