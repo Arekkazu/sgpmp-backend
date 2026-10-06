@@ -1,8 +1,39 @@
-# TC-M09-G49 (TC-M09-97, 98, 99, 100) — Validación de datos al registrar área productiva
+# TC-M09-G49 (TC-M09-97, 98, 99, 100, 257, 258) — Validación de datos al registrar área productiva
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
 
-## Estado vigente — reevaluación 2026-10-04
+## Estado vigente — reevaluación 2026-10-05 (RF-20 v1.1, RFC-009)
+
+**Resultado: PASA**: los 6 sub-casos pasan.
+
+| Sub-caso | Verificación | Resultado |
+|---|---|---|
+| TC-M09-97 | `finca_id` inexistente → `404 FINCA_NO_ENCONTRADA`; finca inactiva → `422 FINCA_INACTIVA` | ✅ PASA |
+| TC-M09-98 | Superficie `0` y `-5` → `400 VAL_ENTRADA`; `0.01` → `201` con superficie `0.01` | ✅ PASA |
+| TC-M09-99 | Nombre duplicado en la misma finca variando mayúsculas → `409 RECURSO_DUPLICADO` | ✅ PASA |
+| TC-M09-100 | `estanque` → `201` (`Estanque`); `TipoQueNoExiste` → `400 TIPO_AREA_NO_RECONOCIDO` | ✅ PASA |
+| TC-M09-257 | `especie_id=999999` → `422 ESPECIE_INVALIDA`; especie desactivada → `422 ESPECIE_INVALIDA` (campo `especie_id`) | ✅ PASA |
+| TC-M09-258 | Especie `MODELO_AVES` + `MODELO_AVES` → `201`; + `MODELO_ESPECIES_GRANDES` → `422 INCOHERENCIA_ESPECIE_MODELO`; + `MODELO_RIESGO_CONTAGIO` → `422 INCOHERENCIA_ESPECIE_MODELO` (campo `tipo_modelo_asignado`) | ✅ PASA |
+
+**Totales Newman:** 21 requests, 40 assertions, 0 failed.
+
+Cambios en la colección por v1.1:
+- `especie_id` es obligatorio, así que todos los payloads de área de 97-100 lo llevan (una especie
+  activa creada por la propia colección). El use case valida finca → tipo de área → especie/modelo,
+  así que los rechazos de 97-100 siguen saliendo por su causa original y no por falta de especie.
+- Se agregaron los pasos de 257 (especie inexistente; segunda especie creada y desactivada) y 258
+  (las tres combinaciones especie/modelo).
+
+Nota de ficha: la ficha habla de `grupo_manejo = AVES`, pero en la API el campo de la especie es
+`tipo_modelo` (`MODELO_AVES`). La coherencia se valida contra ese campo
+(`_coherencia_especie_modelo.py`). `MODELO_RIESGO_CONTAGIO` pasa la validación de formato del
+DTO y lo rechaza el use case con el mismo código de incoherencia, no con uno propio.
+
+Evidencia: `Resultados/reporte-TC-M09-G49.html` (Newman htmlextra, 2026-10-05).
+
+---
+
+## Reevaluación 2026-10-04 (RF-20 v1.0): histórico
 
 **Resultado: PASA** — los 4 sub-casos pasan; el defecto de TC-M09-99 está corregido en TEST.
 
