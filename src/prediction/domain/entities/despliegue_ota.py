@@ -29,3 +29,5 @@ class DespliegueOta:
     fecha_inicio: datetime
     fecha_fin: Optional[datetime]
     motivo_fallo: Optional[str]
+    # RF-70 v2.0 (RFC-009): despliegue granular por componente de un modelo POBLACIONAL.
+    componente: Optional[str] = None

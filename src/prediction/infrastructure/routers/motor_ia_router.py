@@ -1,6 +1,7 @@
 """Router FastAPI para configuración del motor de inferencia IA (`/prediccion/motor-ia`).
 
-RF-65 CU-02: Configurar parámetros del motor de inferencia por especie.
+RF-65 CU-02: Configurar parámetros del motor de inferencia por tipo de modelo (v2.0, RFC-009:
+los umbrales y la versión activa dependen del paradigma del tipo_modelo).
   POST  /prediccion/motor-ia              — Crear o actualizar configuración (append-only vía auditoría)
   GET   /prediccion/motor-ia              — Listar todas las configuraciones activas
   GET   /prediccion/motor-ia/{tipo_modelo}— Obtener configuración por tipo de modelo

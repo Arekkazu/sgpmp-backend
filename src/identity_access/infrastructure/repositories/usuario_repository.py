@@ -133,7 +133,9 @@ class SqlAlchemyUsuarioRepository(UsuarioRepository):
             raise_from_db_error(e, conflict_messages={})
 
     def actualizar(self, usuario: Usuario, version_cliente: int) -> Usuario:
-        orm = self.db.get(Usuarios, usuario.id_usuario)
+        # #498: releer bloqueando, no la copia del identity map; si no, dos ediciones
+        # simultáneas comparan contra la misma versión y la segunda pisa a la primera.
+        orm = self.db.get(Usuarios, usuario.id_usuario, with_for_update=True, populate_existing=True)
         if orm.version != version_cliente:
             raise PreconditionFailedError(
                 code="CONFLICTO_CONCURRENCIA",

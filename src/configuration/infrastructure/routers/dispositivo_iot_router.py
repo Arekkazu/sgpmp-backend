@@ -13,6 +13,8 @@ RF-22 — Sensores (precondición):
 RF-23 — CU05 Flujo C:
   POST   /configuracion/dispositivos-iot/{id}/configurar   — Configurar remotamente
   GET    /configuracion/dispositivos-iot/{id}/configuraciones — Historial de configuraciones
+  POST   /configuracion/dispositivos-iot/{id}/configuraciones/{id_config}/reintentar — Reintentar PENDIENTE/NO_CONF (U)
+  PATCH  /configuracion/dispositivos-iot/{id}/configuraciones/{id_config}/cancelar   — Cancelar PENDIENTE/NO_CONF (U)
 
 RF-21 — Gateway Edge (N:1):
   PATCH  /configuracion/dispositivos-iot/{id}/gateway         — Asignar o quitar su Edge (U)
@@ -31,7 +33,12 @@ from fastapi import APIRouter, Depends, Query, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from src.configuration.application.use_cases.dispositivos_iot.configurar_remotamente_use_case import ConfigurarRemotamenteUseCase, ConsultarConfiguracionesUseCase
+from src.configuration.application.use_cases.dispositivos_iot.configurar_remotamente_use_case import (
+    CancelarConfiguracionUseCase,
+    ConfigurarRemotamenteUseCase,
+    ConsultarConfiguracionesUseCase,
+    ReintentarConfiguracionUseCase,
+)
 from src.configuration.application.use_cases.dispositivos_iot.consultar_dispositivos_iot_use_case import ConsultarDispositivosIotUseCase
 from src.configuration.application.use_cases.dispositivos_iot.credencial_mqtt_use_case import (
     ConsultarCredencialMqttUseCase,
@@ -232,6 +239,7 @@ def registrar_sensor(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        tipo_repo=SqlAlchemyTipoDispositivoIotRepository(db),
     )
     sensor = use_case.execute(id_dispositivo_iot, dto, usuario_actual)
     return SensorResponse.from_entity(sensor)
@@ -263,6 +271,20 @@ def listar_sensores(
 # ── RF-23: Configurar dispositivo remotamente ────────────────────────────────
 
 _ESTADO_A_HTTP = {"APLICADA": 200, "PENDIENTE": 202}
+
+
+def _respuesta_envio(config, mensaje: str) -> JSONResponse:
+    """APLICADA → 200, PENDIENTE → 202, NO_CONF → 504 (RF-23)."""
+    if config.estado == "NO_CONF":
+        raise GatewayTimeoutError(
+            code="CONFIGURACION_NO_CONFIRMADA",
+            message=mensaje,
+        )
+    response = ConfiguracionRemotaResponse.from_entity(config, mensaje=mensaje)
+    return JSONResponse(
+        status_code=_ESTADO_A_HTTP[config.estado],
+        content=response.model_dump(mode="json"),
+    )
 
 
 @router.post(
@@ -302,18 +324,7 @@ def configurar_remotamente(
             usuario_actual.id_usuario, usuario_actual.id_rol
         ),
     )
-
-    if config.estado == "NO_CONF":
-        raise GatewayTimeoutError(
-            code="CONFIGURACION_NO_CONFIRMADA",
-            message=mensaje,
-        )
-
-    response = ConfiguracionRemotaResponse.from_entity(config, mensaje=mensaje)
-    return JSONResponse(
-        status_code=_ESTADO_A_HTTP[config.estado],
-        content=response.model_dump(mode="json"),
-    )
+    return _respuesta_envio(config, mensaje)
 
 
 # ── RF-23: Historial de configuraciones ──────────────────────────────────────
@@ -347,6 +358,82 @@ def listar_configuraciones(
     )
     items = [ConfiguracionRemotaResponse.from_entity(c) for c in configs]
     return ListaConfiguracionesRemotasResponse(total=len(items), items=items)
+
+
+# ── RF-23: Reintentar o cancelar una configuración sin aplicar ───────────────
+
+@router.post(
+    "/{id_dispositivo_iot}/configuraciones/{id_configuracion_remota}/reintentar",
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={
+        200: {"model": ConfiguracionRemotaResponse},
+        202: {"model": ConfiguracionRemotaResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+        504: {"model": ErrorResponse},
+    },
+    summary="Reintentar una configuración PENDIENTE o NO_CONF (RF-23)",
+)
+def reintentar_configuracion(
+    id_dispositivo_iot: int,
+    id_configuracion_remota: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> JSONResponse:
+    use_case = ReintentarConfiguracionUseCase(
+        db=db,
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
+        mqtt_port=MqttHttpAdapter(),
+        bitacora=BitacoraIotM03Adapter(db),
+    )
+    config, mensaje = use_case.execute(
+        id_dispositivo_iot,
+        id_configuracion_remota,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
+    return _respuesta_envio(config, mensaje)
+
+
+@router.patch(
+    "/{id_dispositivo_iot}/configuraciones/{id_configuracion_remota}/cancelar",
+    response_model=ConfiguracionRemotaResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 3))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        409: {"model": ErrorResponse},
+    },
+    summary="Cancelar una configuración PENDIENTE o NO_CONF (RF-23)",
+)
+def cancelar_configuracion(
+    id_dispositivo_iot: int,
+    id_configuracion_remota: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> ConfiguracionRemotaResponse:
+    use_case = CancelarConfiguracionUseCase(
+        db=db,
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
+        config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
+        bitacora=BitacoraIotM03Adapter(db),
+    )
+    config = use_case.execute(
+        id_dispositivo_iot,
+        id_configuracion_remota,
+        usuario_actual,
+        ids_fincas_permitidas=AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+            usuario_actual.id_usuario, usuario_actual.id_rol
+        ),
+    )
+    return ConfiguracionRemotaResponse.from_entity(config)
 
 
 # ── RF-21: Gateway Edge del dispositivo (N:1) ────────────────────────────────

@@ -39,7 +39,7 @@ class EspecieRepoFake:
     def obtener_por_nombre(self, _nombre):
         return None
 
-    def obtener_por_id(self, _id_especie: int):
+    def obtener_por_id(self, _id_especie: int, **_):
         return self.especie
 
     def guardar(self, especie: Especie) -> Especie:

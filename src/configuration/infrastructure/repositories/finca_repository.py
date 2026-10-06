@@ -36,8 +36,8 @@ class SqlAlchemyFincaRepository(FincaRepository):
             id_usuario=orm.id_usuario,
         )
 
-    def obtener_por_id(self, id_finca: int) -> Optional[Finca]:
-        orm = self.db.get(FincaModel, id_finca)
+    def obtener_por_id(self, id_finca: int, *, bloquear: bool = False) -> Optional[Finca]:
+        orm = self.db.get(FincaModel, id_finca, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre: NombreFinca) -> Optional[Finca]:

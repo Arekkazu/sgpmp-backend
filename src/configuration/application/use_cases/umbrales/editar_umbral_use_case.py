@@ -47,7 +47,7 @@ class EditarUmbralUseCase:
         dto: EditarUmbralDTO,
         usuario_actual: UsuarioActual,
     ) -> UmbralAmbiental:
-        umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental)
+        umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental, bloquear=True)
         if umbral is None:
             raise NotFoundError(
                 code='UMBRAL_NO_ENCONTRADO',

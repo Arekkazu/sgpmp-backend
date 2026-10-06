@@ -15,7 +15,10 @@ class InfraestructuraRepository(ABC):
         id_infraestructura: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[Infraestructura]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` para que dos
+        ediciones simultáneas no pasen ambas el control de concurrencia (#498)."""
         raise NotImplementedError
 
     @abstractmethod

@@ -11,7 +11,8 @@ from src.configuration.domain.value_objects.nombre_finca import NombreFinca
 class FincaRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_finca: int) -> Optional[Finca]:
+    def obtener_por_id(self, id_finca: int, *, bloquear: bool = False) -> Optional[Finca]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod

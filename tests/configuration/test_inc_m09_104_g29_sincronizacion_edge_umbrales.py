@@ -68,7 +68,7 @@ class UmbralRepoFake:
     def obtener_por_especie_y_variable(self, id_especie, id_variable_ambiental):
         return None
 
-    def obtener_por_id(self, id_umbral_ambiental):
+    def obtener_por_id(self, id_umbral_ambiental, **_):
         return self.existente
 
     def guardar(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
@@ -101,12 +101,12 @@ class AuditoriaRepoFake:
 
 
 class EspecieRepoFake:
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, **_):
         return SimpleNamespace(es_activo=True)
 
 
 class VariableRepoFake:
-    def obtener_por_id(self, id_variable_ambiental):
+    def obtener_por_id(self, id_variable_ambiental, **_):
         return VariableAmbiental(
             id_variable_ambiental=id_variable_ambiental,
             nombre='Temperatura',

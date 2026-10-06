@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from decimal import Decimal
 from typing import Optional
 
 from pydantic import PositiveInt, field_validator
@@ -22,6 +23,11 @@ class RegistrarDispositivoIotDTO(BaseDTO):
     es_activo: bool = True
     # RF-21: Gateway Edge que lo atiende (opcional; nunca para un GATEWAY_EDGE).
     id_dispositivo_gateway: Optional[PositiveInt] = None
+    # RF-21 v2.0 (RFC-011): obligatorios si el tipo es CAMARA; el use case los
+    # valida (400) o los ignora para un SENSOR, porque la categoría la da el tipo.
+    resolucion: Optional[str] = None
+    fps: Optional[int] = None
+    area_cobertura_m2: Optional[Decimal] = None
 
     @field_validator("serial")
     @classmethod

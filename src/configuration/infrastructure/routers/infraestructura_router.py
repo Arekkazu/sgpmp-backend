@@ -6,6 +6,7 @@ RF-20 — CU04:
   C) GET   /configuracion/infraestructuras/{id}    — Detalle
   D) PATCH /configuracion/infraestructuras/{id}    — Editar (Admin; 412 concurrencia)
   E) PATCH /configuracion/infraestructuras/{id}/desactivar — Desactivar (Admin)
+  F) PATCH /configuracion/infraestructuras/{id}/reactivar  — Reactivar (Admin, RF-20 v1.1)
 
 RBAC: id_recurso=10 (infraestructuras).
   Admin: C=1, R=2, U=3, D=4  |  Prod/Vet/Ing: R=2
@@ -18,11 +19,13 @@ from sqlalchemy.orm import Session
 from src.configuration.application.use_cases.infraestructuras.consultar_infraestructuras_use_case import ConsultarInfraestructurasUseCase
 from src.configuration.application.use_cases.infraestructuras.desactivar_infraestructura_use_case import DesactivarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.editar_infraestructura_use_case import EditarInfraestructuraUseCase
+from src.configuration.application.use_cases.infraestructuras.reactivar_infraestructura_use_case import ReactivarInfraestructuraUseCase
 from src.configuration.application.use_cases.infraestructuras.registrar_infraestructura_use_case import RegistrarInfraestructuraUseCase
 from src.configuration.infrastructure.adapters.infraestructura_dependency_adapter import InfraestructuraDependencyAdapter
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
 from src.configuration.infrastructure.repositories.auditoria_infraestructura_repository import SqlAlchemyAuditoriaInfraestructuraRepository
+from src.configuration.infrastructure.repositories.especie_repository import SqlAlchemyEspecieRepository
 from src.configuration.infrastructure.repositories.finca_repository import SqlAlchemyFincaRepository
 from src.configuration.infrastructure.repositories.infraestructura_repository import SqlAlchemyInfraestructuraRepository
 from src.configuration.infrastructure.repositories.tipo_area_repository import SqlAlchemyTipoAreaRepository
@@ -63,6 +66,7 @@ def registrar_infraestructura(
         finca_repo=SqlAlchemyFincaRepository(db),
         tipo_area_repo=SqlAlchemyTipoAreaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
+        especie_repo=SqlAlchemyEspecieRepository(db),
     )
     infra = use_case.execute(dto, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)
@@ -157,6 +161,8 @@ def editar_infraestructura(
         finca_repo=SqlAlchemyFincaRepository(db),
         tipo_area_repo=SqlAlchemyTipoAreaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
+        especie_repo=SqlAlchemyEspecieRepository(db),
+        dependency_port=InfraestructuraDependencyAdapter(db),
     )
     infra = use_case.execute(id_infraestructura, dto, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)
@@ -184,6 +190,33 @@ def desactivar_infraestructura(
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
         dependency_port=InfraestructuraDependencyAdapter(db),
+    )
+    infra = use_case.execute(id_infraestructura, usuario_actual)
+    return InfraestructuraResponse.from_entity(infra)
+
+
+@router.patch(
+    "/{id_infraestructura}/reactivar",
+    response_model=InfraestructuraResponse,
+    dependencies=[Depends(require_permission(_RECURSO, 4))],
+    responses={
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Reactivar área productiva (Flujo F, RF-20 v1.1)",
+)
+def reactivar_infraestructura(
+    id_infraestructura: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> InfraestructuraResponse:
+    use_case = ReactivarInfraestructuraUseCase(
+        db=db,
+        infra_repo=SqlAlchemyInfraestructuraRepository(db),
+        finca_repo=SqlAlchemyFincaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaInfraestructuraRepository(db),
     )
     infra = use_case.execute(id_infraestructura, usuario_actual)
     return InfraestructuraResponse.from_entity(infra)

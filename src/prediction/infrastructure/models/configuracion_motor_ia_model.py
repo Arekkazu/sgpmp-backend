@@ -5,6 +5,7 @@ from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, Sequence, String, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.prediction.infrastructure.models.base_model import Base
@@ -20,8 +21,11 @@ class ConfiguracionMotorIAModel(Base):
         primary_key=True,
     )
     tipo_modelo: Mapped[str] = mapped_column(String(40), nullable=False)
-    umbral_riesgo_alto: Mapped[Decimal] = mapped_column(Numeric(5, 3), nullable=False, server_default=text("0.700"))
-    umbral_alerta_critica: Mapped[Decimal] = mapped_column(Numeric(5, 3), nullable=False, server_default=text("0.700"))
+    # RF-65 v2.0: nulos para POBLACIONAL (ck_configuracion_motor_umbrales_por_paradigma).
+    umbral_riesgo_alto: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 3))
+    umbral_alerta_critica: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 3))
+    umbral_score_anomalia: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 3))
+    versiones_activas_por_componente: Mapped[Optional[dict]] = mapped_column(JSONB)
     ventana_temporal_min: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("10"))
     id_version_modelo_activa: Mapped[Optional[int]] = mapped_column(Integer)
     modo_ejecucion: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'SERVIDOR'"))

@@ -60,7 +60,7 @@ class DesactivarDispositivoIotUseCase:
         if self.config_repo.obtener_pendiente(id_dispositivo_iot) is not None:
             raise BusinessRuleError(
                 code="CONFIG_PENDIENTE_EXISTENTE",
-                message="El dispositivo tiene una configuración pendiente de aplicación. Espere a que se aplique antes de desactivarlo.",
+                message="El dispositivo tiene una configuración pendiente de aplicación. Espere a que se aplique o cancélela antes de desactivarlo.",
             )
 
         # Solo un Gateway Edge tiene dispositivos que apunten a él (lo valida RF-21).

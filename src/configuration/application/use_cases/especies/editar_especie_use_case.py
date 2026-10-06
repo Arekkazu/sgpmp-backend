@@ -29,6 +29,7 @@ def _snapshot(especie: Especie) -> dict:
             if especie.densidad_maxima_por_especie is not None
             else None
         ),
+        "tipo_modelo": especie.tipo_modelo,
         "es_activo": especie.es_activo,
         "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
         "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
@@ -49,7 +50,7 @@ class EditarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_especie: int, dto: EditarEspecieDTO, usuario_actual: UsuarioActual) -> Especie:
-        especie = self.especies_repo.obtener_por_id(id_especie)
+        especie = self.especies_repo.obtener_por_id(id_especie, bloquear=True)
         if especie is None:
             raise NotFoundError(
                 code="ESPECIE_NO_ENCONTRADA",
@@ -93,12 +94,28 @@ class EditarEspecieUseCase:
         densidad_maxima = especie.densidad_maxima_por_especie
         if "densidad_maxima_por_especie" in dto.model_fields_set:
             densidad_maxima = dto.densidad_maxima_por_especie
+        # Mismo criterio que la densidad: omitido conserva, enviado (incluso null) reemplaza.
+        tipo_modelo = dto.tipo_modelo if "tipo_modelo" in dto.model_fields_set else especie.tipo_modelo
+        # RF-20 v1.1: cambiar la familia no puede dejar áreas con un modelo incoherente.
+        if tipo_modelo != especie.tipo_modelo:
+            cantidad = self.especies_repo.contar_areas_con_modelo_distinto(id_especie, tipo_modelo)
+            if cantidad:
+                raise BusinessRuleError(
+                    code="ESPECIE_CON_AREAS_DE_OTRO_MODELO",
+                    message=(
+                        f"Operación denegada: la especie '{especie.nombre.valor}' tiene {cantidad} áreas "
+                        "productivas con un modelo de IA que no corresponde a la nueva familia. Reasigne "
+                        "o quite el modelo de esas áreas antes de cambiar la familia de la especie."
+                    ),
+                    field="tipo_modelo",
+                )
 
         especie.actualizar(
             nombre=nombre_nuevo,
             descripcion=dto.descripcion,
             densidad_maxima_por_especie=densidad_maxima,
             fecha_actualizacion=datetime.now(timezone.utc),
+            tipo_modelo=tipo_modelo,
         )
 
         try:

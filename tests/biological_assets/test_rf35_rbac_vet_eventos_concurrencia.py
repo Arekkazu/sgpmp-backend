@@ -125,7 +125,7 @@ class _ActivoRepoFake:
         self.activo = activo
         self.actualizado_con = None
 
-    def obtener_por_id(self, _id, *, ids_fincas_permitidas=None):
+    def obtener_por_id(self, _id, *, ids_fincas_permitidas=None, **_):
         return self.activo
 
     def actualizar_detalle_individual(self, activo):

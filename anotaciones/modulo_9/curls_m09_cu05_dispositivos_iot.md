@@ -391,6 +391,9 @@ Errores posibles:
   `DISPOSITIVO_NO_ENCONTRADO`
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
+- `400` — `VAL_ENTRADA` con un campo que RF-23 no define (p. ej. `"protocolo": "LoRaWAN"`), señalado en
+  `fields` con "Este campo no está permitido en esta solicitud." (INC-M09-66-G69 #492; antes se
+  ignoraba y respondía `202`). LoRaWAN es la red dispositivo↔gateway; el backend solo publica MQTT
 - `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
   (mensaje: "Valor inválido: El parámetro {frecuencia_captura|intervalo_transmision} debe estar
   entre {min} y {max} minutos para este tipo de dispositivo. Valor recibido: {valor}.")
@@ -440,6 +443,31 @@ Respuesta esperada `200`:
   ]
 }
 ```
+
+### Reintentar o cancelar una configuración sin aplicar
+
+Solo para configuraciones `PENDIENTE` o `NO_CONF` (permiso U del recurso 11, mismo alcance por
+finca). Una `PENDIENTE` bloquea enviar otra al dispositivo y desactivarlo: cancelarla lo destraba.
+Ambas acciones quedan en `modulo3.bitacora_auditoria_iot` (`CONFIGURACION_REMOTA_REINTENTADA` /
+`CONFIGURACION_REMOTA_CANCELADA`) con el usuario que las hizo.
+
+```bash
+# Reintentar: vuelve a enviarla por el broker. Responde como el POST /configurar:
+# 200 APLICADA, 202 PENDIENTE (sigue offline), 504 CONFIGURACION_NO_CONFIRMADA.
+curl -X POST http://localhost:8000/configuracion/dispositivos-iot/1/configuraciones/2/reintentar \
+  -H "Authorization: Bearer <TOKEN>"
+
+# Cancelar: queda CANCELADA en el historial. Responde 200 con la configuración.
+curl -X PATCH http://localhost:8000/configuracion/dispositivos-iot/1/configuraciones/2/cancelar \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Errores:
+- `404 CONFIGURACION_NO_ENCONTRADA`: no existe o es de otro dispositivo.
+- `409 CONFIGURACION_YA_RESUELTA`: está `APLICADA` o `CANCELADA`.
+- `409 CONFIGURACION_REEMPLAZADA` (solo reintentar): hay una configuración más reciente; reenviar
+  la vieja la sobrescribiría en el dispositivo.
+- `422 DISPOSITIVO_INACTIVO` (solo reintentar). Cancelar sí se permite sobre un dispositivo inactivo.
 
 ---
 

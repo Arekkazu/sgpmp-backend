@@ -63,7 +63,7 @@ class ActivoRepoFake:
         self.id_finca_del_activo = id_finca_del_activo
         self.actualizado_con = None
 
-    def obtener_por_id(self, _id: int, *, ids_fincas_permitidas=None):
+    def obtener_por_id(self, _id: int, *, ids_fincas_permitidas=None, **_):
         if ids_fincas_permitidas is not None and self.id_finca_del_activo not in ids_fincas_permitidas:
             return None
         return self.activo

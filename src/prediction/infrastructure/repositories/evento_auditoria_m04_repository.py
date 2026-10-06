@@ -17,6 +17,7 @@ from src.prediction.domain.repositories.evento_auditoria_m04_repository import E
 from src.prediction.infrastructure.models.evento_auditoria_m04_model import EventoAuditoriaM04Model
 from src.shared.db_error_translator import raise_from_db_error
 from src.shared.errors import NotFoundError
+from src.shared.tipo_modelo import POBLACIONAL, paradigma_de
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ _PAYLOAD_REQUERIDO: dict[str, list[str]] = {
     "CONFLICTO_RETROALIMENTACION": [
         "id_resultado_inferencia", "numero_retroalimentaciones",
     ],
-    "VERSION_APROBADA": ["tipo_modelo", "id_version", "f1_score_global", "recall_clase_riesgo_alto"],
-    "VERSION_RECHAZADA": ["tipo_modelo", "id_version", "f1_score_global", "recall_clase_riesgo_alto"],
+    "VERSION_APROBADA": ["tipo_modelo", "id_version"],
+    "VERSION_RECHAZADA": ["tipo_modelo", "id_version"],
     "VERSION_ACTIVADA": ["tipo_modelo", "id_version_nueva"],
     "VERSION_DEPRECADA": ["tipo_modelo", "id_version"],
     "VERSION_REGISTRADA": ["tipo_modelo", "id_version"],
@@ -51,8 +52,19 @@ def _calcular_hash(tipo_evento: str, payload: dict, fecha: str) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
+# RF-73 v2.0 (RFC-009): las métricas mínimas dependen del paradigma del modelo. Sin
+# esto un modelo POBLACIONAL (sin F1/recall) nunca podría emitir su aprobación.
+_EVENTOS_CON_METRICAS = {"VERSION_APROBADA", "VERSION_RECHAZADA"}
+_METRICAS_MINIMAS: dict[str, list[str]] = {
+    POBLACIONAL: ["calibracion_completada", "tasa_falsos_positivos_rutina", "tasa_deteccion_eventos_clinicos"],
+}
+_METRICAS_SUPERVISADAS = ["f1_score_global", "recall_clase_riesgo_alto"]
+
+
 def _validar_payload(tipo_evento: str, payload: dict) -> list[str]:
-    requeridos = _PAYLOAD_REQUERIDO.get(tipo_evento, [])
+    requeridos = list(_PAYLOAD_REQUERIDO.get(tipo_evento, []))
+    if tipo_evento in _EVENTOS_CON_METRICAS:
+        requeridos += _METRICAS_MINIMAS.get(paradigma_de(payload.get("tipo_modelo")), _METRICAS_SUPERVISADAS)
     return [campo for campo in requeridos if campo not in payload]
 
 
@@ -163,18 +175,25 @@ class SqlAlchemyEventoAuditoriaM04Repository(EventoAuditoriaM04Repository):
         campos_faltantes: list[str],
         correlacion_id: Optional[uuid.UUID],
     ) -> None:
+        payload = {
+            "tipo_evento_original": tipo_evento_orig,
+            "campos_faltantes": campos_faltantes,
+            "payload_recibido": payload_orig,
+        }
         try:
             self._db.add(EventoAuditoriaM04Model(
                 tipo_evento="AUDITORIA_EVENTO_INVALIDO",
                 tipo_actor="SISTEMA",
-                payload_evento={
-                    "tipo_evento_original": tipo_evento_orig,
-                    "campos_faltantes": campos_faltantes,
-                    "payload_recibido": payload_orig,
-                },
+                # chk_eam_actor_exclusivo: un actor SISTEMA exige id_sistema; sin él
+                # este evento nunca llegaba a guardarse.
+                id_sistema="DESARROLLO_M04",
+                payload_evento=payload,
                 severidad_evento="ERROR",
                 correlacion_id=correlacion_id or uuid.uuid4(),
                 origen_registro="DESARROLLO_M04",
+                hash_evento=_calcular_hash(
+                    "AUDITORIA_EVENTO_INVALIDO", payload, datetime.now(timezone.utc).isoformat()
+                ),
             ))
             self._db.flush()
         except Exception as exc:

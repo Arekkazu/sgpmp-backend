@@ -34,7 +34,8 @@ class ActivarVersionModeloUseCase:
         # Llama a activar() — lanza BusinessRuleError si no es APROBADO o faltan notas
         entidad.activar()
 
-        version_previa = self._repo.obtener_activo_por_tipo(entidad.tipo_modelo)
+        # RF-69 R5 v2.0 (RFC-009): una versión ACTIVO por (tipo_modelo, componente).
+        version_previa = self._repo.obtener_activo_por_tipo(entidad.tipo_modelo, entidad.componente)
         correlacion = uuid.uuid4()
 
         try:
@@ -80,7 +81,11 @@ class ActivarVersionModeloUseCase:
                 resultado_operacion="EXITOSO",
                 severidad_evento="INFO",
                 correlacion_id=correlacion,
-                payload_evento=obj._snapshot(),
+                payload_evento=(
+                    {**obj._snapshot(), "id_version_nueva": obj.id_version_modelo}
+                    if tipo_ev == "VERSION_ACTIVADA"
+                    else obj._snapshot()
+                ),
             )
         try:
             self._db.commit()
