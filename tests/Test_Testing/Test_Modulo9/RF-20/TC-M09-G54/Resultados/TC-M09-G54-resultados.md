@@ -1,8 +1,80 @@
 # TC-M09-G54 (TC-M09-106) — Modificaciones simultáneas sobre una misma área productiva
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
 
-## Estado vigente — reevaluación 2026-09-28
+## Estado vigente — reevaluación 2026-10-06 (RF-20 v1.1)
+
+**Resultado: FALLA (1 defecto real)**: el control optimista funciona en secuencia, pero no
+frente a ediciones realmente simultáneas.
+
+**Totales Newman:** 61 requests, 57 assertions, **18 failed**. Las 18 fallas son todas de la
+parte simultánea (TC-M09-106e, 2 assertions por cada uno de los 9 intentos con actualización
+perdida). La parte en secuencia pasa completa.
+
+### 1. Concurrencia en secuencia (TC-M09-106a a 106d): PASA
+
+La lógica es la misma que en la reevaluación del 2026-09-28; solo se adaptó a v1.1: la
+colección crea su propia especie y envía `especie_id` (ahora obligatorio) al registrar y al
+editar. Sin ese ajuste, todo POST/PATCH daba 400 antes de llegar al chequeo de concurrencia.
+
+```
+Área recién creada (fecha_actualizacion null)
+TC-M09-106a  Admin A guarda con la marca null         -> 200
+TC-M09-106b  Admin B guarda con la marca null         -> 412 CONFLICTO_CONCURRENCIA
+TC-M09-106c  Admin A guarda con la marca vigente      -> 200
+TC-M09-106d  Admin B guarda con la marca ya superada  -> 412 CONFLICTO_CONCURRENCIA
+Lectura final: datos de A v2; B nunca sobrescribió
+```
+
+### 2. Concurrencia real (TC-M09-106e): FALLA
+
+En la colección, 10 intentos sobre un área nueva cada uno. Tras una lectura común, los dos PATCH
+con la misma `fecha_actualizacion` se lanzan en paralelo (`pm.sendRequest` sin esperar uno al
+otro). Lo esperado en cada intento es exactamente un 200 y un 412 `CONFLICTO_CONCURRENCIA`, y
+que el área refleje la única edición aceptada.
+
+```
+Intento  1 (área 212): A=200 B=412   OK
+Intento  2 (área 213): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  3 (área 214): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  4 (área 215): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  5 (área 216): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  6 (área 217): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  7 (área 218): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  8 (área 219): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento  9 (área 220): A=200 B=200   ACTUALIZACIÓN PERDIDA
+Intento 10 (área 221): A=200 B=200   ACTUALIZACIÓN PERDIDA
+-> 9/10 actualizaciones perdidas
+```
+
+El defecto se reprodujo en todas las corridas, con frecuencia variable según qué tan juntos
+lleguen los dos PATCH: 9/10 con `pm.sendRequest`; 3/10 y 5/10 con hilos de Python
+(`concurrencia_simultanea_g54.py`, que se mantiene como reproducción independiente fuera de
+Newman).
+
+**Defecto:** con ediciones simultáneas, las dos solicitudes pueden recibir `200` y la última
+sobrescribe a la primera sin aviso (actualización perdida). El usuario cuyo cambio se perdió
+recibió un 200 de confirmación.
+
+**Causa en el código:** el chequeo es *check-then-act* sin bloqueo.
+- `SqlAlchemyInfraestructuraRepository.obtener_por_id` lee el área sin `SELECT … FOR UPDATE`.
+- `EditarInfraestructuraUseCase` compara la `fecha_actualizacion` en Python.
+- `actualizar` hace el UPDATE sin condicionarlo a la marca leída (no hay
+  `WHERE fecha_actualizacion = :marca`).
+
+Con READ COMMITTED, dos transacciones que leen la misma marca pasan las dos el chequeo, y la
+segunda pisa a la primera.
+
+**Corrección sugerida:** una de dos.
+- Bloquear la fila al leerla para editar (`with_for_update()`).
+- Hacer el UPDATE condicional a la marca leída y responder 412 si afecta 0 filas.
+
+Evidencia: `Resultados/reporte-TC-M09-G54.html` (Newman htmlextra, 2026-10-06), que incluye
+las dos partes, con las 18 assertions fallidas de la parte simultánea.
+
+---
+
+## Reevaluación 2026-09-28 (RF-20 v1.0): histórico
 
 **Resultado: PASA** — 10 requests, 16 assertions, 0 failed.
 
