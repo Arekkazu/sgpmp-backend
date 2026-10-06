@@ -17,6 +17,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+
+    op.execute("ALTER TABLE modulo9.fincas FORCE ROW LEVEL SECURITY;")
+    op.execute("ALTER TABLE modulo9.infraestructuras FORCE ROW LEVEL SECURITY;")
     # =========================================================
     # 1. Ayudante de segundo nivel: infraestructuras alcanzables
     #    a traves de las fincas del usuario.
@@ -95,6 +98,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute("ALTER TABLE modulo9.fincas NO FORCE ROW LEVEL SECURITY;")
+    op.execute("ALTER TABLE modulo9.infraestructuras NO FORCE ROW LEVEL SECURITY;")
     op.execute("DROP POLICY IF EXISTS pol_activos_biologicos_update ON modulo2.activos_biologicos;")
     op.execute("DROP POLICY IF EXISTS pol_activos_biologicos_insert ON modulo2.activos_biologicos;")
     op.execute("DROP POLICY IF EXISTS pol_activos_biologicos_select ON modulo2.activos_biologicos;")
