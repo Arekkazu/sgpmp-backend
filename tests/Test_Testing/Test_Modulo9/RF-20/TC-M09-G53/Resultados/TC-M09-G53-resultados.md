@@ -1,6 +1,58 @@
 # TC-M09-G53 (TC-M09-105) — Auditoría de operaciones sobre infraestructura productiva
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
+
+## Estado vigente — reevaluación 2026-10-06 (RF-20 v1.1, RFC-009)
+
+**Resultado: PENDIENTE (verificación de auditoría en BD).** Las operaciones pasan
+(8 requests, 12 assertions, 0 failed), pero las filas de auditoría todavía no se leyeron.
+
+Operaciones ejecutadas sobre el área propia **`id_infraestructura=169`** (finca 144), en este orden:
+
+| # | Operación | HTTP | Auditoría esperada |
+|---|---|---|---|
+| 1 | Registro (`POST`) | 201 | `CREATE` (sin `valores_anteriores`) |
+| 2 | Consulta del listado (`GET ?finca_id=144`) | 200 | `GET` (RF-20 audita el listado, no el detalle) |
+| 3 | Modificación (`PATCH`): nombre → `Area Auditada Editada`, superficie 300 → 350 | 200 | `UPDATE` |
+| 4 | Desactivación | 200 | `DEACTIVATE` (`es_activo` true → false) |
+| 5 | Reactivación | 200, mismo `id_infraestructura` | **`UPDATE`** (`es_activo` false → true), no un segundo `CREATE` |
+
+### Por qué falta la verificación
+
+- `modulo9.auditorias_infraestructuras` sigue sin endpoint REST (la auditoría consolidada
+  `/auditoria/` de M01 solo cubre eventos de M01).
+- Desde la evaluación anterior, la tabla tiene RLS. La política de `SELECT` solo muestra filas si
+  `modulo1.fn_rol_actual() = 'Administrador'`, así que la credencial QA de solo lectura
+  (`member_qa`) ahora ve **0 filas**. La verificación de 2026-09 con `SELECT` directo ya no se
+  puede repetir con esa credencial.
+
+**Para cerrar el caso:** con una credencial de BD autorizada a leer la tabla, ejecutar
+
+```bash
+DB_USER=<usuario> DB_PASSWORD=<clave> python verificar_auditoria_g53.py --id 169
+```
+
+El script comprueba la secuencia `CREATE, GET, UPDATE, DEACTIVATE, UPDATE`, que haya un solo
+`CREATE`, los `es_activo` antes/después de desactivar y de reactivar, el cambio de nombre en la
+edición y el `id_usuario` del Administrador.
+
+**Evidencia estática:** en `ReactivarInfraestructuraUseCase` la reactivación registra la auditoría
+con `tipo_operacion="UPDATE"`, con el snapshot anterior y el nuevo. Esto confirma lo que está
+implementado, pero no reemplaza la verificación en vivo.
+
+### Observación de seguridad (para revisar con el equipo)
+
+`modulo1.fn_rol_actual()`, en la que se apoya la política RLS, toma el rol de la variable de
+sesión `app.current_role`. Esa variable la fija la propia conexión, no un mecanismo de la BD, así
+que la política solo protege si ninguna credencial de BD distinta de la del backend puede fijarla.
+Vale la pena revisarlo con quien mantiene las políticas RLS (rama `feature/RLSModulo9`).
+
+Evidencia: `Resultados/reporte-TC-M09-G53.html` (Newman htmlextra, 2026-10-06; operaciones).
+
+---
+
+## Evaluación anterior (RF-20 v1.0, 2026-09): histórico
+
 **Estado: PASA** (con alcance parcial documentado — ver abajo).
 
 Mismo patrón de gap que TC-M09-G37 (RF-18) y TC-M09-G47 (RF-19): `modulo9.auditorias_infraestructuras`
