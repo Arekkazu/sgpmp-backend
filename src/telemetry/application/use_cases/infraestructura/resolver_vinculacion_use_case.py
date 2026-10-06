@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ResolverVinculacionUseCase:
-    """RF-61-C: Resolución manual de una vinculación AMBIGUA por parte del Ingeniero de Campo."""
+    """RF-61-C: Resolución manual de una vinculación AMBIGUA o SIN_VINCULAR."""
 
     def __init__(
         self,
