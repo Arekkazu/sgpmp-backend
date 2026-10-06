@@ -1,44 +1,173 @@
 {
   "info": {
-    "name": "RF-20 - TC-M09-G51 Permisos por rol para areas productivas",
-    "description": "Automatiza TC-M09-102: Admin y Productor pueden consultar (listar/detalle) areas productivas, pero solo Admin puede crear, editar o desactivar (403 para Productor en las tres). Las verificaciones de escritura del Administrador solo comprueban que el gate RBAC lo deja pasar (no responde 403) -no que la operacion se complete con exito-: completar el registro/edicion de un area choca con el gap ya documentado en TC-M09-G48/NOTA_BLOQUEO.md (modulo9.tipos_area no existe en este entorno), que es un problema de negocio/infra distinto al RBAC que prueba este caso.",
+    "name": "RF-20 - TC-M09-G51 Permisos por rol sobre areas productivas",
+    "description": "RF-20 v1.1 (RFC-009). TC-M09-102: matriz RBAC de registrar, modificar, desactivar, reactivar y consultar areas productivas para Administrador, Productor, Ingeniero y Contador. Cada rol no administrador recibe su propia finca (registrada por el admin con id_usuario = ese usuario, sin tocar sus otras fincas) con un area activa y otra inactiva, para que los 403 sean del gate RBAC y no del alcance por finca (RF-25). Tras los intentos rechazados, el admin confirma que no tuvieron efecto. La reactivacion (nueva en v1.1) es exclusiva del Administrador.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
-    { "key": "token_admin", "value": "" },
-    { "key": "token_productor", "value": "" }
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "sufijo",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "id_area_admin_nueva",
+      "value": ""
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_admin",
+      "value": ""
+    },
+    {
+      "key": "id_finca_admin",
+      "value": ""
+    },
+    {
+      "key": "id_area_admin",
+      "value": ""
+    },
+    {
+      "key": "id_area_inactiva_admin",
+      "value": ""
+    },
+    {
+      "key": "token_productor",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_productor",
+      "value": ""
+    },
+    {
+      "key": "id_finca_productor",
+      "value": ""
+    },
+    {
+      "key": "id_area_productor",
+      "value": ""
+    },
+    {
+      "key": "id_area_inactiva_productor",
+      "value": ""
+    },
+    {
+      "key": "token_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "id_finca_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "id_area_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "id_area_inactiva_ingeniero",
+      "value": ""
+    },
+    {
+      "key": "token_contador",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_contador",
+      "value": ""
+    },
+    {
+      "key": "id_finca_contador",
+      "value": ""
+    },
+    {
+      "key": "id_area_contador",
+      "value": ""
+    },
+    {
+      "key": "id_area_inactiva_contador",
+      "value": ""
+    }
   ],
   "item": [
     {
-      "name": "Paso 1 - Login Administrador",
+      "name": "Paso - Login Administrador",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo', sufijo);"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
               "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
-              "const json = pm.response.json();",
-              "pm.collectionVariables.set('token_admin', json.token);"
+              "const token = pm.response.json().token;",
+              "pm.collectionVariables.set('token_admin', token);",
+              "// id_usuario = claim 'sub' del JWT (base64url)",
+              "let p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "while (p.length % 4) p += '=';",
+              "const claims = JSON.parse(CryptoJS.enc.Base64.parse(p).toString(CryptoJS.enc.Utf8));",
+              "pm.collectionVariables.set('id_usuario_admin', claims.sub);",
+              "console.log('Administrador: id_usuario=' + claims.sub + ', rol=' + claims.rol);"
             ]
           }
         }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
-          "options": { "raw": { "language": "json" } }
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
       },
       "response": []
     },
     {
-      "name": "Paso 2 - Login Productor",
+      "name": "Paso - Login Productor",
       "event": [
         {
           "listen": "test",
@@ -46,76 +175,1933 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
-              "const json = pm.response.json();",
-              "pm.collectionVariables.set('token_productor', json.token);"
+              "const token = pm.response.json().token;",
+              "pm.collectionVariables.set('token_productor', token);",
+              "// id_usuario = claim 'sub' del JWT (base64url)",
+              "let p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "while (p.length % 4) p += '=';",
+              "const claims = JSON.parse(CryptoJS.enc.Base64.parse(p).toString(CryptoJS.enc.Utf8));",
+              "pm.collectionVariables.set('id_usuario_productor', claims.sub);",
+              "console.log('Productor: id_usuario=' + claims.sub + ', rol=' + claims.rol);"
             ]
           }
         }
       ],
       "request": {
         "method": "POST",
-        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"correo_electronico\": \"productor@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
-          "options": { "raw": { "language": "json" } }
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
         },
-        "url": { "raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""] }
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
       },
       "response": []
     },
     {
-      "name": "TC-M09-102a - Admin puede listar areas productivas (R)",
+      "name": "Paso - Login Ingeniero",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });"
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const token = pm.response.json().token;",
+              "pm.collectionVariables.set('token_ingeniero', token);",
+              "// id_usuario = claim 'sub' del JWT (base64url)",
+              "let p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "while (p.length % 4) p += '=';",
+              "const claims = JSON.parse(CryptoJS.enc.Base64.parse(p).toString(CryptoJS.enc.Utf8));",
+              "pm.collectionVariables.set('id_usuario_ingeniero', claims.sub);",
+              "console.log('Ingeniero: id_usuario=' + claims.sub + ', rol=' + claims.rol);"
             ]
           }
         }
       ],
       "request": {
-        "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_admin}}" }],
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"ingeniero@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras"],
-          "query": [{ "key": "finca_id", "value": "1" }]
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-102b - Productor puede listar areas productivas (R)",
+      "name": "Paso - Login Contador",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });"
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "const token = pm.response.json().token;",
+              "pm.collectionVariables.set('token_contador', token);",
+              "// id_usuario = claim 'sub' del JWT (base64url)",
+              "let p = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "while (p.length % 4) p += '=';",
+              "const claims = JSON.parse(CryptoJS.enc.Base64.parse(p).toString(CryptoJS.enc.Utf8));",
+              "pm.collectionVariables.set('id_usuario_contador', claims.sub);",
+              "console.log('Contador: id_usuario=' + claims.sub + ', rol=' + claims.rol);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"contador@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra una especie activa MODELO_AVES",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_especie', pm.response.json().id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves RBAC {{sufijo}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G51\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra la finca de Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_admin', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca RBAC Administrador {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Antioquia\", \"municipio\": \"Medellin\", \"vereda\": \"La Estrella\", \"latitud\": \"6.25\", \"longitud\": \"-75.56\"},\n  \"tamano_h\": \"10.0\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area activa en la finca de Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_admin', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Activa Administrador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_admin}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area inactiva en la finca de Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_inactiva_admin', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Inactiva Administrador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_admin}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin desactiva el area inactiva de Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_admin}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_admin}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra la finca de Productor (asignada al usuario)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_productor', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca RBAC Productor {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Antioquia\", \"municipio\": \"Medellin\", \"vereda\": \"La Estrella\", \"latitud\": \"6.25\", \"longitud\": \"-75.56\"},\n  \"tamano_h\": \"10.0\",\n  \"id_usuario\": {{id_usuario_productor}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area activa en la finca de Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_productor', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Activa Productor\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_productor}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area inactiva en la finca de Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_inactiva_productor', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Inactiva Productor\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_productor}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin desactiva el area inactiva de Productor",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_productor}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_productor}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra la finca de Ingeniero (asignada al usuario)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_ingeniero', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca RBAC Ingeniero {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Antioquia\", \"municipio\": \"Medellin\", \"vereda\": \"La Estrella\", \"latitud\": \"6.25\", \"longitud\": \"-75.56\"},\n  \"tamano_h\": \"10.0\",\n  \"id_usuario\": {{id_usuario_ingeniero}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area activa en la finca de Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_ingeniero', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Activa Ingeniero\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_ingeniero}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area inactiva en la finca de Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_inactiva_ingeniero', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Inactiva Ingeniero\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_ingeniero}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin desactiva el area inactiva de Ingeniero",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_ingeniero}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_ingeniero}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra la finca de Contador (asignada al usuario)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Finca creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.collectionVariables.set('id_finca_contador', json.id_finca);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Finca RBAC Contador {{sufijo}}\",\n  \"ubicacion\": {\"departamento\": \"Antioquia\", \"municipio\": \"Medellin\", \"vereda\": \"La Estrella\", \"latitud\": \"6.25\", \"longitud\": \"-75.56\"},\n  \"tamano_h\": \"10.0\",\n  \"id_usuario\": {{id_usuario_contador}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/fincas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "fincas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area activa en la finca de Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_contador', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Activa Contador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_contador}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin registra area inactiva en la finca de Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Area creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_inactiva_contador', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Inactiva Contador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"100.00\",\n  \"finca_id\": {{id_finca_contador}},\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Admin desactiva el area inactiva de Contador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_contador}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_contador}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Consultar listado de areas de su finca -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Incluye el area activa de su finca', function () {",
+              "    pm.expect(json.items.map(i => i.id_infraestructura)).to.include(pm.collectionVariables.get('id_area_productor'));",
+              "});"
             ]
           }
         }
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id=1",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras"],
-          "query": [{ "key": "finca_id", "value": "1" }]
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_productor}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_productor}}"
+            }
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-102c - Productor puede ver el detalle de un area (R)",
+      "name": "TC-M09-102 [Productor] Consultar detalle de un area de su finca -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle permitido (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Devuelve el area pedida', function () { pm.expect(pm.response.json().id_infraestructura).to.eql(pm.collectionVariables.get('id_area_productor')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_productor}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_productor}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Registrar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registro rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Productor\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_productor}},\n  \"especie_id\": {{id_especie}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Modificar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Modificacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editado por Productor\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"120.00\",\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\",\n  \"fecha_actualizacion\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_productor}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_productor}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Desactivar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_productor}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_productor}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Reactivar area inactiva -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_productor}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_productor}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_productor}}",
+            "reactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Productor] Admin confirma que los intentos rechazados no tuvieron efecto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado del admin (200)', function () { pm.response.to.have.status(200); });",
+              "const items = pm.response.json().items;",
+              "const activa = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_productor'));",
+              "const inactiva = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_inactiva_productor'));",
+              "pm.test('Solo existen las 2 areas creadas por el admin (el registro no se aplico)', function () { pm.expect(items.length).to.eql(2); });",
+              "pm.test('El area activa sigue activa y sin editar', function () { pm.expect(activa.es_activo).to.eql(true); pm.expect(activa.nombre_infraestructura).to.eql('Area Activa Productor'); pm.expect(activa.fecha_actualizacion).to.eql(null); });",
+              "pm.test('El area inactiva sigue inactiva (no se reactivo)', function () { pm.expect(inactiva.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_productor}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_productor}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Consultar listado de areas de su finca -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('Incluye el area activa de su finca', function () {",
+              "    pm.expect(json.items.map(i => i.id_infraestructura)).to.include(pm.collectionVariables.get('id_area_ingeniero'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_ingeniero}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_ingeniero}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Consultar detalle de un area de su finca -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle permitido (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Devuelve el area pedida', function () { pm.expect(pm.response.json().id_infraestructura).to.eql(pm.collectionVariables.get('id_area_ingeniero')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_ingeniero}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_ingeniero}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Registrar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registro rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Ingeniero\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_ingeniero}},\n  \"especie_id\": {{id_especie}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Modificar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Modificacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editado por Ingeniero\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"120.00\",\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\",\n  \"fecha_actualizacion\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_ingeniero}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_ingeniero}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Desactivar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_ingeniero}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_ingeniero}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Reactivar area inactiva -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_ingeniero}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_ingeniero}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_ingeniero}}",
+            "reactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Ingeniero] Admin confirma que los intentos rechazados no tuvieron efecto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado del admin (200)', function () { pm.response.to.have.status(200); });",
+              "const items = pm.response.json().items;",
+              "const activa = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_ingeniero'));",
+              "const inactiva = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_inactiva_ingeniero'));",
+              "pm.test('Solo existen las 2 areas creadas por el admin (el registro no se aplico)', function () { pm.expect(items.length).to.eql(2); });",
+              "pm.test('El area activa sigue activa y sin editar', function () { pm.expect(activa.es_activo).to.eql(true); pm.expect(activa.nombre_infraestructura).to.eql('Area Activa Ingeniero'); pm.expect(activa.fecha_actualizacion).to.eql(null); });",
+              "pm.test('El area inactiva sigue inactiva (no se reactivo)', function () { pm.expect(inactiva.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_ingeniero}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_ingeniero}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Consultar listado de areas -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_contador}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_contador}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Consultar detalle de un area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Detalle rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_contador}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_contador}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Registrar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registro rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Intento Contador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_contador}},\n  \"especie_id\": {{id_especie}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Modificar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Modificacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Editado por Contador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"120.00\",\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\",\n  \"fecha_actualizacion\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_contador}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_contador}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Desactivar area -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_contador}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_contador}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Reactivar area inactiva -> 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reactivacion rechazada por RBAC (403)', function () { pm.response.to.have.status(403); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ACCESO_DENEGADO', function () { pm.expect(json.error_code).to.eql('ACCESO_DENEGADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_contador}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_contador}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_contador}}",
+            "reactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Contador] Admin confirma que los intentos rechazados no tuvieron efecto",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado del admin (200)', function () { pm.response.to.have.status(200); });",
+              "const items = pm.response.json().items;",
+              "const activa = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_contador'));",
+              "const inactiva = items.find(i => i.id_infraestructura === pm.collectionVariables.get('id_area_inactiva_contador'));",
+              "pm.test('Solo existen las 2 areas creadas por el admin (el registro no se aplico)', function () { pm.expect(items.length).to.eql(2); });",
+              "pm.test('El area activa sigue activa y sin editar', function () { pm.expect(activa.es_activo).to.eql(true); pm.expect(activa.nombre_infraestructura).to.eql('Area Activa Contador'); pm.expect(activa.fecha_actualizacion).to.eql(null); });",
+              "pm.test('El area inactiva sigue inactiva (no se reactivo)', function () { pm.expect(inactiva.es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_contador}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_contador}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Administrador] Registrar area -> 201",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Registro permitido (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_area_admin_nueva', pm.response.json().id_infraestructura);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Registrada Por Admin\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_admin}},\n  \"especie_id\": {{id_especie}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Administrador] Consultar listado -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Listado permitido (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Incluye el area recien registrada', function () { pm.expect(pm.response.json().items.map(i => i.id_infraestructura)).to.include(pm.collectionVariables.get('id_area_admin_nueva')); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras?finca_id={{id_finca_admin}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ],
+          "query": [
+            {
+              "key": "finca_id",
+              "value": "{{id_finca_admin}}"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Administrador] Consultar detalle -> 200",
       "event": [
         {
           "listen": "test",
@@ -129,56 +2115,36 @@
       ],
       "request": {
         "method": "GET",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/1",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "1"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_admin}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_admin}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-102d - Productor NO puede registrar areas productivas (403)",
+      "name": "TC-M09-102 [Administrador] Modificar area -> 200",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
-              "const json = pm.response.json();",
-              "console.log('Respuesta: ' + JSON.stringify(json));"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Intento Productor\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 1\n}",
-          "options": { "raw": { "language": "json" } }
-        },
-        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
-      },
-      "response": []
-    },
-    {
-      "name": "TC-M09-102e - Productor NO puede editar areas productivas (403)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
-              "const json = pm.response.json();",
-              "console.log('Respuesta: ' + JSON.stringify(json));"
+              "pm.test('Modificacion permitida (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Cambios aplicados', function () { const json = pm.response.json(); pm.expect(json.nombre_infraestructura).to.eql('Editado por Administrador'); pm.expect(parseFloat(json.superficie)).to.eql(120); });"
             ]
           }
         }
@@ -186,87 +2152,48 @@
       "request": {
         "method": "PATCH",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_productor}}" }
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Intento Editar Productor\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"fecha_actualizacion\": null\n}",
-          "options": { "raw": { "language": "json" } }
-        },
-        "url": { "raw": "{{base_url}}/configuracion/infraestructuras/1", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras", "1"] }
-      },
-      "response": []
-    },
-    {
-      "name": "TC-M09-102f - Productor NO puede desactivar areas productivas (403)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Rechazado por RBAC (403)', function () { pm.response.to.have.status(403); });",
-              "const json = pm.response.json();",
-              "console.log('Respuesta: ' + JSON.stringify(json));"
-            ]
+          "raw": "{\n  \"nombre_infraestructura\": \"Editado por Administrador\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"120.00\",\n  \"especie_id\": {{id_especie}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\",\n  \"fecha_actualizacion\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
           }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [{ "key": "Authorization", "value": "Bearer {{token_productor}}" }],
+        },
         "url": {
-          "raw": "{{base_url}}/configuracion/infraestructuras/1/desactivar",
-          "host": ["{{base_url}}"],
-          "path": ["configuracion", "infraestructuras", "1", "desactivar"]
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_admin}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_admin}}"
+          ]
         }
       },
       "response": []
     },
     {
-      "name": "TC-M09-102g - Admin SI tiene permiso de crear (RBAC deja pasar, no 403)",
+      "name": "TC-M09-102 [Administrador] Desactivar area -> 200",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('El gate RBAC no lo bloquea (no 403)', function () { pm.expect(pm.response.code).to.not.eql(403); });",
-              "const json = pm.response.json();",
-              "console.log('Admin - crear area: status=' + pm.response.code + ' body=' + JSON.stringify(json));",
-              "console.log('Un 500 aqui es el gap ya documentado en TC-M09-G48 (tipos_area), no un problema de RBAC.');"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Intento Admin RBAC\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 1\n}",
-          "options": { "raw": { "language": "json" } }
-        },
-        "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
-      },
-      "response": []
-    },
-    {
-      "name": "TC-M09-102h - Admin SI tiene permiso de editar (RBAC deja pasar, no 403)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('El gate RBAC no lo bloquea (no 403)', function () { pm.expect(pm.response.code).to.not.eql(403); });",
-              "const json = pm.response.json();",
-              "console.log('Admin - editar area: status=' + pm.response.code + ' body=' + JSON.stringify(json));",
-              "console.log('Un 500 aqui es el gap ya documentado en TC-M09-G48 (tipos_area), no un problema de RBAC.');"
+              "pm.test('Desactivacion permitida (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
             ]
           }
         }
@@ -274,15 +2201,60 @@
       "request": {
         "method": "PATCH",
         "header": [
-          { "key": "Content-Type", "value": "application/json" },
-          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
         ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Intento Editar Admin RBAC\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"fecha_actualizacion\": null\n}",
-          "options": { "raw": { "language": "json" } }
-        },
-        "url": { "raw": "{{base_url}}/configuracion/infraestructuras/1", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras", "1"] }
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_admin}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_admin}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-102 [Administrador] Reactivar area inactiva -> 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Reactivacion permitida (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda activa', function () { pm.expect(pm.response.json().es_activo).to.eql(true); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras/{{id_area_inactiva_admin}}/reactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras",
+            "{{id_area_inactiva_admin}}",
+            "reactivar"
+          ]
+        }
       },
       "response": []
     }
