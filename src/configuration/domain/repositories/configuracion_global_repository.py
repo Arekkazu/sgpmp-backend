@@ -14,7 +14,10 @@ class ConfiguracionGlobalRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def obtener_por_id(self, id_configuracion_global: int) -> Optional[ConfiguracionGlobal]:
+    def obtener_por_id(
+        self, id_configuracion_global: int, *, bloquear: bool = False
+    ) -> Optional[ConfiguracionGlobal]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod

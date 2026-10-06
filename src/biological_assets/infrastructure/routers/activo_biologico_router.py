@@ -569,7 +569,7 @@ def consultar_bitacora(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
         rol_repo=SqlAlchemyRolRepository(db),
     )
-    registros, total = use_case.execute(dto, usuario_actual)
+    registros, total = use_case.execute(dto, usuario_actual, _ids_fincas_alcance(db, usuario_actual))
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return BitacoraAuditoriaResponse(
         total_registros=total,

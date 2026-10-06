@@ -56,8 +56,8 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
 
     # ── Operaciones del puerto ───────────────────────────────────────────────
 
-    def obtener_por_id(self, id_especie: int) -> Optional[Especie]:
-        orm = self.db.get(EspecieModel, id_especie)
+    def obtener_por_id(self, id_especie: int, *, bloquear: bool = False) -> Optional[Especie]:
+        orm = self.db.get(EspecieModel, id_especie, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre: NombreEspecie) -> Optional[Especie]:

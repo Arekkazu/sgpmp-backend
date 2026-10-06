@@ -50,12 +50,12 @@ class _Db:
 
 
 class _EspecieRepo:
-    def obtener_por_id(self, id_especie): return ESPECIES.get(id_especie)
+    def obtener_por_id(self, id_especie, **_): return ESPECIES.get(id_especie)
 
 
 class _InfraRepo:
     def __init__(self, infra=None): self.infra, self.guardada = infra, None
-    def obtener_por_id(self, _id): return self.infra
+    def obtener_por_id(self, _id, **_): return self.infra
     def guardar(self, infra):
         infra.id_infraestructura = 10
         self.guardada = infra
@@ -72,7 +72,7 @@ class _Auditoria:
 
 class _Fincas:
     def __init__(self, activa=True): self.activa = activa
-    def obtener_por_id(self, _id): return SimpleNamespace(es_activo=self.activa, id_finca=1)
+    def obtener_por_id(self, _id, **_): return SimpleNamespace(es_activo=self.activa, id_finca=1)
 
 
 class _TiposArea:
@@ -204,7 +204,7 @@ def test_reactivar_rechazos_son_422(area, finca_activa, codigo):
 class _EspecieEditable:
     def __init__(self, especie, areas_incoherentes):
         self.especie, self.areas_incoherentes, self.consultado = especie, areas_incoherentes, None
-    def obtener_por_id(self, _id): return self.especie
+    def obtener_por_id(self, _id, **_): return self.especie
     def obtener_por_nombre(self, _nombre): return self.especie
     def contar_areas_con_modelo_distinto(self, id_especie, tipo_modelo):
         self.consultado = (id_especie, tipo_modelo)

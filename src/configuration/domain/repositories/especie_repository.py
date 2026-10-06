@@ -20,11 +20,13 @@ class EspecieRepository(ABC):
     """Contrato de acceso a datos para el agregado :class:`Especie`."""
 
     @abstractmethod
-    def obtener_por_id(self, id_especie: int) -> Optional[Especie]:
+    def obtener_por_id(self, id_especie: int, *, bloquear: bool = False) -> Optional[Especie]:
         """Obtiene una especie por su identidad.
 
         Args:
             id_especie: PK de la especie.
+            bloquear: toma la fila con ``SELECT ... FOR UPDATE`` (edición con
+                concurrencia optimista, #498).
 
         Returns:
             La entidad :class:`Especie` o ``None`` si no existe.

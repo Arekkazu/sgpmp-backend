@@ -119,7 +119,7 @@ def test_reaplicar_plantilla_con_mismos_nombres_ya_no_da_500(
         "/configuracion/metricas",
         json={
             "id_especie": id_especie, "nombre": nombre_metrica,
-            "unidad_medida": "kg", "tipo_medicion": "PESO",
+            "unidad_medida": "kg", "tipo_medicion": "PESO", "tipo_dato": "NUMERICO",
         },
         headers=headers,
     )

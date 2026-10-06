@@ -273,6 +273,8 @@ Respuesta esperada `201`:
 Los `Decimal` viajan como cadena (`"20.0000"`), igual que en el resto de la API de configuración.
 
 Errores posibles:
+- `400` — `VAL_ENTRADA` sin `tipo_dato` (campo `tipo_dato`, "Este campo es obligatorio."). RF-16 v1.2
+  (RFC-004, INC-M09-G130 #487): el usuario lo elige; el backend ya no lo infiere de `tipo_medicion`
 - `400` — `RANGO_METRICA_INVALIDO` (`valor_min` > `valor_max`, campo `valor_min`) o `RANGO_METRICA_NO_APLICA`
   (rango con `tipo_dato` `TEXTO`/`BOOLEANO`, campo `valor_min` o `valor_max`)
 - `404` — especie no existe o está inactiva

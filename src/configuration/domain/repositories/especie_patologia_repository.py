@@ -17,8 +17,10 @@ from src.configuration.domain.value_objects.nombre_patologia import NombrePatolo
 class EspeciePatologiaRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_especies_patologias: int) -> Optional[EspeciePatologia]:
-        """Obtiene una patología por especie por su identidad. ``None`` si no existe."""
+    def obtener_por_id(self, id_especies_patologias: int, *, bloquear: bool = False) -> Optional[EspeciePatologia]:
+        """Obtiene una patología por especie por su identidad. ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod

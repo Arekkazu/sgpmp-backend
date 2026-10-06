@@ -547,6 +547,17 @@ done
 }
 ```
 
+Cabeceras de cuota (TC-M02-65-G94 #495), en segundos hasta que caduca la solicitud más vieja de la
+ventana de 60 s:
+```text
+Retry-After: 57
+RateLimit-Limit: 100
+RateLimit-Remaining: 0
+RateLimit-Reset: 57
+```
+Para verlas: `curl -si ... | grep -i -E "retry-after|ratelimit"`. El contador sigue siendo por módulo
+consumidor (M04 y M06 no comparten cuota).
+
 #### E-07 — Scope de tipo_dato no autorizado (INC-M02-92-G93 / TC-M02-155)
 
 El rol autenticado tiene el permiso general del endpoint (recurso 29/R) pero

@@ -5,7 +5,7 @@ import re
 from decimal import Decimal
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, field_validator
 
 from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.shared.base_dto import BaseDTO
@@ -24,7 +24,9 @@ class RegistrarMetricaDTO(BaseDTO):
     unidad_medida: str
     tipo_medicion: str
     aplica_a_tipo_activo: str = 'AMBOS'
-    tipo_dato: Optional[str] = None
+    # INC-M09-G130 (#487): RF-16 v1.2 (RFC-004) exige que el usuario elija el tipo
+    # de dato; antes se infería de `tipo_medicion` cuando faltaba (PESO -> NUMERICO).
+    tipo_dato: str
     es_obligatorio: bool = False
     valor_min: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=4, allow_inf_nan=False)
     valor_max: Optional[Decimal] = Field(default=None, max_digits=10, decimal_places=4, allow_inf_nan=False)
@@ -69,15 +71,5 @@ class RegistrarMetricaDTO(BaseDTO):
 
     @field_validator("tipo_dato")
     @classmethod
-    def validar_tipo_dato(cls, v: Optional[str]) -> Optional[str]:
-        if v is None:
-            return None
+    def validar_tipo_dato(cls, v: str) -> str:
         return TipoDatoAtributo.desde_string(v).value
-
-    @model_validator(mode="after")
-    def completar_tipo_dato_legacy(self) -> "RegistrarMetricaDTO":
-        if self.tipo_dato is None:
-            self.tipo_dato = TipoDatoAtributo.inferir_desde_tipo_medicion(
-                self.tipo_medicion
-            ).value
-        return self
