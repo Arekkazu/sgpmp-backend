@@ -6,6 +6,9 @@ from typing import Optional
 
 from src.shared.errors import BusinessRuleError
 
+# RF-61 Fase C1: el usuario resuelve una lectura AMBIGUA o SIN_VINCULAR (#494).
+_ESTADOS_RESOLUBLES = ('AMBIGUA', 'SIN_VINCULAR')
+
 
 @dataclass
 class VinculacionLectura:
@@ -24,10 +27,10 @@ class VinculacionLectura:
     fecha_creacion: datetime
 
     def resolver(self, id_activo_biologico: int, id_usuario: int) -> None:
-        if self.estado_vinculacion != 'AMBIGUA':
+        if self.estado_vinculacion not in _ESTADOS_RESOLUBLES:
             raise BusinessRuleError(
                 code='VINCULACION_NO_AMBIGUA',
-                message='Solo se pueden resolver vinculaciones en estado AMBIGUA.',
+                message='Solo se pueden resolver vinculaciones en estado AMBIGUA o SIN_VINCULAR.',
             )
         self.id_activo_biologico = id_activo_biologico
         self.estado_vinculacion = 'VINCULADA'
