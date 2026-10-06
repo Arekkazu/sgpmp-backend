@@ -1,0 +1,107 @@
+{
+  "stats": {
+    "suites": 1,
+    "tests": 1,
+    "passes": 1,
+    "pending": 0,
+    "failures": 0,
+    "start": "2026-10-05T21:06:22.526Z",
+    "end": "2026-10-05T21:06:35.799Z",
+    "duration": 13273,
+    "testsRegistered": 1,
+    "passPercent": 100,
+    "pendingPercent": 0,
+    "other": 0,
+    "hasOther": false,
+    "skipped": 0,
+    "hasSkipped": false
+  },
+  "results": [
+    {
+      "uuid": "c332c88c-12d2-4275-ac25-dd6b39f3149e",
+      "title": "",
+      "fullFile": "tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G85\\tc_m09_g85_rev2_test.cy.js",
+      "file": "tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G85\\tc_m09_g85_rev2_test.cy.js",
+      "beforeHooks": [],
+      "afterHooks": [],
+      "tests": [],
+      "suites": [
+        {
+          "uuid": "59192fad-24de-41a3-be6e-fde5126fcd24",
+          "title": "TC-M09-G85 rev2 TEST - Registro identidad visual",
+          "fullFile": "",
+          "file": "",
+          "beforeHooks": [],
+          "afterHooks": [],
+          "tests": [
+            {
+              "title": "TC-M09-160 - Guardar identidad visual con datos validos en TEST",
+              "fullTitle": "TC-M09-G85 rev2 TEST - Registro identidad visual TC-M09-160 - Guardar identidad visual con datos validos en TEST",
+              "timedOut": null,
+              "duration": 13140,
+              "state": "passed",
+              "speed": "slow",
+              "pass": true,
+              "fail": false,
+              "pending": false,
+              "context": null,
+              "code": "const correo = Cypress.env('correo') || 'admin@pecuaria.co';\nconst contrasena = pass();\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/?$/\n}).as('login');\ncy.intercept({\n  method: 'POST',\n  url: /\\/sesiones\\/refresh\\/?$/\n}).as('refreshSesion');\ncy.intercept({\n  method: 'GET',\n  url: /\\/usuarios\\/me\\/?$/\n}).as('me');\ncy.intercept({\n  method: 'GET',\n  url: /\\/fincas/\n}).as('fincas');\ncy.intercept({\n  method: 'POST',\n  url: /\\/configuracion\\/identidad-visual\\/?$/\n}).as('postIv');\ncy.visit(`${TEST_FRONT}/login`);\ncy.get('input[type=\"email\"], input[name=\"correo_electronico\"]').first().should('be.visible').clear().type(correo);\ncy.get('input[type=\"password\"]').first().should('be.visible').clear().type(contrasena, {\n  log: false\n});\ncy.get('button[type=\"submit\"]').contains(/ingresar|iniciar sesión|login/i).click();\ncy.wait('@login').then(intc => {\n  expect(intc.response && intc.response.statusCode, 'login HTTP').to.eq(200);\n});\ncy.url({\n  timeout: 20000\n}).should('include', '/dashboard');\ncy.contains(/Panel principal|Configuración/i, {\n  timeout: 20000\n}).should('exist');\ncy.screenshot('G85-rev2-01-dashboard');\ncy.contains('a, button, [role=\"button\"]', /^Configuración$/i, {\n  timeout: 15000\n}).click({\n  force: true\n});\ncy.contains(/Configuración del Sistema|Personalización|Catálogo/i, {\n  timeout: 20000\n}).should('exist');\ncy.get('body').then($body => {\n  if (/No se pudo restaurar tu sesión/i.test($body.text())) {\n    cy.screenshot('G85-rev2-sesion-rota');\n    throw new Error('TC-M09-G85 ERROR DE AMBIENTE: el frontend TEST no pudo restaurar la sesion (refresh 401).');\n  }\n});\ncy.screenshot('G85-rev2-02-configuracion');\ncy.contains('button, [role=\"tab\"], a, ion-segment-button, span', /^Personalización$/i, {\n  timeout: 10000\n}).should('be.visible').click({\n  force: true\n});\ncy.contains(/Identidad Visual/i, {\n  timeout: 15000\n}).should('exist');\ncy.contains('button', /Costa Azul|Finca Activa Prueba|El Remanso|Los Esteros|La Esperanza|El palmar/i, {\n  timeout: 25000\n}).should('be.visible');\ncy.screenshot('G85-rev2-03-identidad-visual');\ncy.get('body').then($body => {\n  const texto = $body.text();\n  cy.writeFile(`${EVIDENCIA}/G85-rev2-ui-personalizacion.txt`, texto.slice(0, 8000));\n  if (/No hay fincas activas/i.test(texto)) {\n    throw new Error('TC-M09-G85 BLOQUEADO: Identidad Visual visible pero no hay fincas activas en el picker del usuario de prueba.');\n  }\n});\ncy.get('button, ion-button, [role=\"button\"]').then($els => {\n  const lista = [...$els].filter(el => {\n    const t = (el.innerText || '').replace(/\\s+/g, ' ').trim();\n    if (!t || t.length > 80) return false;\n    return /Costa Azul|Finca Activa Prueba|El Remanso|Los Esteros|La Esperanza|El palmar/i.test(t);\n  });\n  const preferida = lista.find(el => /Finca Activa Prueba/i.test(el.innerText || '')) || lista.find(el => /El palmar/i.test(el.innerText || '')) || lista.find(el => !/Costa Azul/i.test(el.innerText || '')) || lista[0];\n  if (!preferida) {\n    throw new Error('TC-M09-G85 BLOQUEADO: no hay boton de finca seleccionable en Identidad Visual.');\n  }\n  cy.wrap(preferida).click({\n    force: true\n  });\n});\ncy.get('input[aria-label=\"Hex Color primario\"]', {\n  timeout: 15000\n}).first().should('be.visible').clear({\n  force: true\n}).type(COLOR_PRI, {\n  force: true\n});\ncy.get('input[aria-label=\"Hex Color secundario\"], input[aria-label*=\"Hex Color secundario\" i]', {\n  timeout: 8000\n}).first().should('be.visible').clear({\n  force: true\n}).type(COLOR_SEC, {\n  force: true\n});\ncy.get('input:not([type=\"file\"]):not([type=\"color\"])').then($inputs => {\n  const name = [...$inputs].find(input => {\n    const attrs = `${input.name} ${input.id} ${input.placeholder} ${input.getAttribute('aria-label') || ''}`.toLowerCase();\n    return attrs.includes('organiz') || attrs.includes('display') || attrs.includes('nombre');\n  });\n  if (name) {\n    cy.wrap(name).clear({\n      force: true\n    }).type(ORG, {\n      force: true\n    });\n  }\n});\ncy.get('body').then($body => {\n  if (/Aplicar vista previa/i.test($body.text())) {\n    cy.contains('button', /Aplicar vista previa/i).click({\n      force: true\n    });\n  }\n});\ncy.contains('button', /Actualizar identidad|Guardar identidad/i, {\n  timeout: 10000\n}).should('be.visible').click({\n  force: true\n});\ncy.contains(/Identidad (visual )?(guardada|actualizada)|cambios guardados|guardada con éxito|actualizada con éxito/i, {\n  timeout: 20000\n}).should('be.visible');\ncy.contains(/aún no están guardados/i).should('not.exist');\ncy.screenshot('G85-rev2-04-guardado');",
+              "err": {},
+              "uuid": "f0d58bd2-0a77-43b4-9903-806e1e14e7d7",
+              "parentUUID": "59192fad-24de-41a3-be6e-fde5126fcd24",
+              "isHook": false,
+              "skipped": false
+            }
+          ],
+          "suites": [],
+          "passes": [
+            "f0d58bd2-0a77-43b4-9903-806e1e14e7d7"
+          ],
+          "failures": [],
+          "pending": [],
+          "skipped": [],
+          "duration": 13140,
+          "root": false,
+          "rootEmpty": false,
+          "_timeout": 2000
+        }
+      ],
+      "passes": [],
+      "failures": [],
+      "pending": [],
+      "skipped": [],
+      "duration": 0,
+      "root": true,
+      "rootEmpty": true,
+      "_timeout": 2000
+    }
+  ],
+  "meta": {
+    "mocha": {
+      "version": "7.2.0"
+    },
+    "mochawesome": {
+      "options": {
+        "quiet": false,
+        "reportFilename": "TC-M09-G85_rev2_cypress",
+        "saveHtml": true,
+        "saveJson": true,
+        "consoleReporter": "spec",
+        "useInlineDiffs": false,
+        "code": true
+      },
+      "version": "7.1.4"
+    },
+    "marge": {
+      "options": {
+        "reportDir": "C:\\Users\\ll529\\OneDrive\\Documentos\\integrador\\sgpmp-backend\\tests\\Test_Testing\\Test_Modulo9\\RF-26\\TC-M09-G85\\Resultados",
+        "reportFilename": "TC-M09-G85_rev2_cypress",
+        "overwrite": true,
+        "html": true,
+        "json": true,
+        "charts": true
+      },
+      "version": "6.3.2"
+    }
+  }
+}
