@@ -3,6 +3,51 @@
 **RF:** RF-17 (CU03 — Configurar Umbrales y Alertas Ambientales). **Grupo:** TC-M09-G29.
 **Casos:** TC-M09-62 (propagación), TC-M09-63 (fallo de sincronización). **Severidad:** Severo.
 
+> **Reevaluación V4 (2026-10-05, issue #493) — el stub se reemplaza por propagación real.**
+> QA rechazó TC-M09-62 porque `POST`/`PATCH` seguían inyectando `EdgeSincronizacionStubAdapter`
+> (siempre `PENDIENTE`, sin MQTT; censo DEV: 10/10 umbrales `PENDIENTE`, 0 con
+> `fecha_ultima_sincronizacion`). Las secciones de abajo describen la primera ronda; lo vigente es
+> esta.
+>
+> **Contrato acordado entre backend y broker** (lado broker: `BROKER-MQTT-SGPMP`, rama
+> `feature/rf17-propagacion-umbrales-edge`, contrato para AIoT en `INTEGRACION_DISPOSITIVOS_RF17.md`):
+>
+> | Pieza | Decisión |
+> |---|---|
+> | Destino | Los **Gateway Edge** activos (tipo `GATEWAY_EDGE`) de las áreas activas de la especie: instalados en el área o que atienden un dispositivo activo del área. Es quien evalúa las lecturas en campo (`modulo3.eventos_edge_computing.umbral_*_aplicado`) y lo único que habla MQTT |
+> | Resolución | `modulo9.fn_seriales_gateway_edge_por_especie(int)`, `SECURITY DEFINER` (migración `a3c9e5d17b42`): la política de `dispositivos_iot` solo deja leer a Administrador/Ingeniero, pero un Veterinario también edita umbrales |
+> | Transporte | `POST /v1/commands` con `origen: "umbral"` por Gateway, en paralelo; el broker publica en el topic `command` ya existente del Edge con `tipo_comando: "UMBRAL_AMBIENTAL"` (sin topics ni ACL nuevos) |
+> | Payload | `id_comando`, `emitido_en`, `id_umbral_ambiental`, `version` (= `fecha_actualizacion`), `variable` (nombre de telemetría), `unidad`, `valor_min`, `valor_max`, `niveles[]` |
+> | ACK / timeout | `{"tipo_mensaje":"ACK_UMBRAL","resultado":"OK","id_comando":...}` en `status`; 30 s (`MQTT_ACK_TIMEOUT_SECONDS`) |
+> | Estado del umbral | todos `APLICADA` → `APLICADA` + `fecha_ultima_sincronizacion`; alguno `NO_CONF` → `NO_CONF` + 500; alguno `PENDIENTE` (Edge desconectado) o sin Gateway → `PENDIENTE` (201/200) |
+>
+> **Tres defectos encontrados en el camino**, todos necesarios para que `APLICADA` llegue a BD:
+>
+> 1. **El segundo commit perdía la identidad RLS.** `set_config(..., true)` muere en el primer
+>    `commit()`, y la política UPDATE de `umbrales_ambientales` filtra la fila sin rol: verificado
+>    en `sgpmp_dev` con `member_dev` (sin `BYPASSRLS`), en transacción revertida — **0 filas sin
+>    contexto, 1 con rol Veterinario**. Aunque el Edge confirmara, `APLICADA` nunca se habría
+>    guardado. Fix: `src/shared/contexto_rls.py` guarda el contexto en `Session.info` y lo vuelve a
+>    declarar (sigue siendo local) en cada transacción nueva de la misma sesión. Beneficia también a
+>    RF-23 (`ConfigurarRemotamenteUseCase`, mismo patrón de dos commits).
+> 2. **La correlación de ACK en el broker era una sola por serial.** Un Edge recibe varios umbrales
+>    seguidos (uno por variable) y la segunda espera pisaba a la primera → `NO_CONF` falso. Ahora se
+>    indexa por `(serial, id_comando)` y tipo de ACK (cambio en el broker).
+> 3. **Editar no reseteaba el estado.** Si la propagación no alcanzaba a persistir, el umbral
+>    editado seguía mostrando el `APLICADA` de la versión anterior. `UmbralAmbiental.actualizar()`
+>    ahora lo deja `PENDIENTE`.
+>
+> **Pendiente de AIoT (fuera de estos dos repos):** el `edge-agent` debe distinguir
+> `tipo_comando`, guardar el umbral de forma persistente, aplicarlo y publicar el `ACK_UMBRAL`.
+> Hasta entonces, con el Edge conectado el resultado será `NO_CONF` (500), lo honesto según RF-17;
+> para probar sin firmware se puede simular el ACK con `mosquitto_pub` (ver el documento del broker).
+> **TC-M09-63** (Edge offline) se cubre con el atajo ya existente del broker: si el Edge no está
+> conectado, `PENDIENTE` al instante, sin publicar, y el Edge conserva el último umbral guardado.
+>
+> **🔴 Migración `a3c9e5d17b42` requiere DBA** (crea la función; `member_dev` no puede migrar ni
+> leer `tipos_dispositivo_iot`, así que solo se validó en modo offline `alembic upgrade --sql`).
+> Sin ella, `POST`/`PATCH` fallan al buscar destinos.
+
 ## Qué reportó QA
 
 El flujo de `POST`/`PATCH` de umbrales termina en persistencia + auditoría + `201`/`200`, sin

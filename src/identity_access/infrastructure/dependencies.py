@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import Depends, Header
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.models.cuenta_usuarios_model import CuentasUsuarios
@@ -18,6 +17,7 @@ from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.audit_context import establecer_id_token
+from src.shared.contexto_rls import declarar_contexto_rls
 from src.shared.database import get_db
 from src.shared.errors import AuthenticationError
 from src.shared.jwt import verify_token
@@ -143,17 +143,16 @@ def get_current_user(
     # test de no-fuga en tests/integration/). Se mantiene también
     # `app.usuario_id` (entero) porque lo sigue leyendo el trigger
     # `modulo2.trg_auditar_activo_biologico`, ajeno a este cambio.
-    db.execute(
-        text("SELECT set_config('app.current_user_id', :uid, true)"),
-        {"uid": str(id_usuario)},
-    )
-    db.execute(
-        text("SELECT set_config('app.current_role', :rol, true)"),
-        {"rol": nombre_rol_vigente},
-    )
-    db.execute(
-        text("SELECT set_config('app.usuario_id', :uid, true)"),
-        {"uid": str(id_usuario)},
+    # `declarar_contexto_rls` además lo vuelve a declarar en cada transacción
+    # nueva de esta misma sesión, para los use cases que hacen más de un
+    # commit (ver src/shared/contexto_rls.py).
+    declarar_contexto_rls(
+        db,
+        {
+            "app.current_user_id": str(id_usuario),
+            "app.current_role": nombre_rol_vigente,
+            "app.usuario_id": str(id_usuario),
+        },
     )
 
     return UsuarioActual(

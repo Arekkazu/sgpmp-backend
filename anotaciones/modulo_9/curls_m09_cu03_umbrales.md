@@ -58,18 +58,23 @@ Respuesta esperada `201` (solo si el Nodo Edge confirmó `APLICADA` — ver nota
 }
 ```
 
-**INC-M09-104-G29 (RF-17):** `estado_sincronizacion` refleja el intento de propagar la
-configuración hacia el Nodo Edge (`PENDIENTE` / `APLICADA` / `NO_CONF`). El umbral y su
-estado de sincronización quedan guardados en base de datos **antes** de evaluar el
-resultado de la propagación (dos commits separados).
+**INC-M09-104-G29 (RF-17):** después de guardar, el umbral se propaga a cada Gateway Edge
+activo de las áreas activas de la especie, por el broker MQTT (`POST /v1/commands` con
+`origen: "umbral"`; el broker espera hasta 30 s el `ACK_UMBRAL` de cada Edge). Los
+resultados se consolidan en un único `estado_sincronizacion` (`PENDIENTE` / `APLICADA` /
+`NO_CONF`), que queda guardado **antes** de responder (dos commits separados). La
+respuesta puede tardar hasta ~35 s mientras se espera el ACK.
 
 **TC-M09-58-G22 (#459) — cuándo responde 201 y cuándo 500:**
 
-| `estado_sincronizacion` | Significado | Respuesta |
+| Resultado de los Gateway Edge | `estado_sincronizacion` | Respuesta |
 |---|---|---|
-| `APLICADA` | el Edge confirmó | `201` (alta) / `200` (edición) |
-| `PENDIENTE` | no se intentó o quedó encolado (hoy: aún no hay contrato de publicación con IoT) | `201` / `200`, con `"estado_sincronizacion": "PENDIENTE"` en el cuerpo |
-| `NO_CONF` u otro | se intentó y falló (broker caído, timeout, sin ACK) | `500` `FALLO_SINCRONIZACION_EDGE` |
+| todos confirmaron | `APLICADA`, con `fecha_ultima_sincronizacion` | `201` (alta) / `200` (edición) |
+| alguno desconectado del broker (TC-M09-63), o la especie no tiene Gateway Edge, o el broker no está configurado en el ambiente | `PENDIENTE`, con el motivo en `motivo_fallo_sincronizacion` | `201` / `200` |
+| alguno no confirmó (sin ACK en 30 s, broker caído o con error) | `NO_CONF` | `500` `FALLO_SINCRONIZACION_EDGE` |
+
+Al **editar**, el umbral queda `PENDIENTE` desde el primer commit, hasta que el resultado
+de la propagación lo reemplace.
 
 Solo el último caso es el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17, que exige
 responder:
@@ -82,11 +87,8 @@ HTTP 500
 }
 ```
 
-Hoy el contrato real del broker MQTT para umbrales (destino, topic, payload, ACK) aún no
-está definido por el equipo de IoT, así que `EdgeSincronizacionStubAdapter` siempre
-devuelve `PENDIENTE`: **las altas y ediciones válidas responden `201`/`200` con
-`estado_sincronizacion: "PENDIENTE"`** (antes respondían `500` aunque no hubiera ningún fallo que
-reportar). El `500` aparecerá cuando un adaptador real reporte `NO_CONF`. Ver
+Contrato completo (payload, ACK, cómo simular el Edge con `mosquitto_pub`):
+`INTEGRACION_DISPOSITIVOS_RF17.md` del repo `BROKER-MQTT-SGPMP`. Ver también
 `anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
 
 Errores posibles:
