@@ -1,12 +1,18 @@
 """DTO de entrada para configurar remotamente un dispositivo IoT (POST /{id}/configurar RF-23)."""
 from __future__ import annotations
 
-from pydantic import field_validator, model_validator
+from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
 
 class ConfigurarRemotamenteDTO(BaseDTO):
+    # INC-M09-66-G69 (#492): RF-23 solo define estos parámetros. Un campo ajeno
+    # (p. ej. `protocolo`) se ignoraba y la API respondía 202 como si lo hubiera
+    # aplicado; ahora es 400. LoRaWAN es la red entre el dispositivo y su
+    # gateway, no un parámetro que el backend envíe: el backend solo habla MQTT.
+    model_config = ConfigDict(extra="forbid")
+
     frecuencia_captura: int
     intervalo_transmision: int
 
