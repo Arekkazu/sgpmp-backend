@@ -1,3 +1,11 @@
+## [1.0.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.71...v1.0.0-rc.72) (2026-10-06)
+
+### Bug Fixes
+
+* **rf52-mod2:** [#489](https://github.com/Arekkazu/sgpmp-backend/issues/489) bitacora de auditoria de M02 append-only a nivel de base de datos ([9995ba4](https://github.com/Arekkazu/sgpmp-backend/commit/9995ba4e08e189cfae7605787daa3e2dc02400be))
+* **rf61-mod3:** [#494](https://github.com/Arekkazu/sgpmp-backend/issues/494) FKs del ORM de telemetria apuntaban a tablas inexistentes ([b608132](https://github.com/Arekkazu/sgpmp-backend/commit/b608132c3bf78980ba538fff0f1eaa88b79efdaf))
+* **rf61-mod3:** [#494](https://github.com/Arekkazu/sgpmp-backend/issues/494) toda lectura nueva deja su vinculacion para que RF-17 pueda clasificarla ([4d8d88c](https://github.com/Arekkazu/sgpmp-backend/commit/4d8d88cc03ad8ff8a4461dda14d8bad981a7e672))
+
 ## [1.0.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.70...v1.0.0-rc.71) (2026-10-06)
 
 ### Features
