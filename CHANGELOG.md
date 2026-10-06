@@ -1,3 +1,24 @@
+## [1.0.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.70...v1.0.0-rc.71) (2026-10-06)
+
+### Features
+
+* **alembic:** esquema de RFC-006, RFC-009 y RFC-011 ([0727fdc](https://github.com/Arekkazu/sgpmp-backend/commit/0727fdc6020ac9e13f8009521c2bca987e05464c))
+* **prediction:** taxonomia por tipo de manejo y paradigma en RF-65/69/70/73 (RFC-009) ([88bf19d](https://github.com/Arekkazu/sgpmp-backend/commit/88bf19dad6dedf243881e5fe34c98d66c9978275))
+* **rf20-mod9:** especie y modelo de IA del area con coherencia y reactivacion (RFC-009) ([3222904](https://github.com/Arekkazu/sgpmp-backend/commit/32229040e1ce57382741ab8e82191e178fc1ff7f))
+* **rf21-mod9:** dispositivo de vision CAMARA y su asociacion N:1 al area (RFC-011) ([f0a8775](https://github.com/Arekkazu/sgpmp-backend/commit/f0a877585585f5ea48a55dff1fed1dc63bc148cf))
+* **rf24-mod9:** auditar como FALLIDO los intentos de calibracion rechazados (RFC-006) ([57fa487](https://github.com/Arekkazu/sgpmp-backend/commit/57fa48727e843bf973dcdf5fd1b5b4707c6f7f1c))
+* **rf50-mod2:** [#495](https://github.com/Arekkazu/sgpmp-backend/issues/495) el 429 del limitador informa cuando reintentar ([60bb3f1](https://github.com/Arekkazu/sgpmp-backend/commit/60bb3f172f7f18c2ba0528d35669ab97f21e9571))
+
+### Bug Fixes
+
+* **rf16-mod9:** [#487](https://github.com/Arekkazu/sgpmp-backend/issues/487) exigir tipo_dato al registrar una metrica en vez de inferirlo ([c0a7845](https://github.com/Arekkazu/sgpmp-backend/commit/c0a784556047dcb64f64c8e1ef5a95ac5cd7cae6))
+* **rf20-mod9:** [#498](https://github.com/Arekkazu/sgpmp-backend/issues/498) bloquear la fila al editar para que dos ediciones simultaneas no pasen el 412 ([9f47918](https://github.com/Arekkazu/sgpmp-backend/commit/9f479187e1a91be514bafd6bab1225f0d6a555ef))
+* **rf20-mod9:** no cambiar la familia de modelo de una especie si deja areas incoherentes ([258ceca](https://github.com/Arekkazu/sgpmp-backend/commit/258ceca28b7537405d5e2a307b370f79712e96c1))
+* **rf21-mod9:** tipo de dispositivo inexistente responde 422 como pide la ficha ([c7e653f](https://github.com/Arekkazu/sgpmp-backend/commit/c7e653f58bd550400e680d21ac6fcc2ac2caed36))
+* **rf23-mod9:** [#492](https://github.com/Arekkazu/sgpmp-backend/issues/492) rechazar con 400 los campos que RF-23 no define al configurar un dispositivo ([26af7db](https://github.com/Arekkazu/sgpmp-backend/commit/26af7dba6891645da2ea78c703cf2c8312f10984))
+* **rf52-mod2:** [#490](https://github.com/Arekkazu/sgpmp-backend/issues/490) el Productor solo consulta la bitacora de los activos de sus fincas ([dc1ed55](https://github.com/Arekkazu/sgpmp-backend/commit/dc1ed5555f8dfca3a2397459e8a342ede1d26c96))
+* **rf69-mod4:** registrar y activar versiones de modelo desde RF-71 sin fallar ([ce0702f](https://github.com/Arekkazu/sgpmp-backend/commit/ce0702f5a3acaf189d89d510dd48a3879b0bf50c))
+
 ## [1.0.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.69...v1.0.0-rc.70) (2026-10-04)
 
 ### Features
