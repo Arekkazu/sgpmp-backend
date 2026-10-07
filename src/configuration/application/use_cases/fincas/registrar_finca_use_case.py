@@ -59,7 +59,7 @@ class RegistrarFincaUseCase:
         )
 
         try:
-            finca_guardada = self.finca_repo.guardar(finca)
+            finca_guardada = self.finca_repo.guardar(finca, id_creador=usuario_actual.id_usuario)
             self.auditoria_repo.registrar(
                 id_finca=finca_guardada.id_finca,
                 id_usuario=usuario_actual.id_usuario,
