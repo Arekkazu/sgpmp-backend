@@ -90,7 +90,7 @@ def _preparar(monkeypatch, *, destinatarios=(10, 20), fallar_registro=False):
     if fallar_registro:
         notificaciones.fallar_para = set(destinatarios)
     usuarios = UsuariosRepoFake(destinatarios)
-    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(correo_adapter, "sesion_sistema", lambda: db)
     monkeypatch.setattr(
         correo_adapter, "SqlAlchemyNotificacionRepository", lambda _db: notificaciones
     )

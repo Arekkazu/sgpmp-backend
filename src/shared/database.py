@@ -127,6 +127,17 @@ def declarar_identidad(db: Session, id_usuario: Optional[int], nombre_rol: Optio
     _declarar(db, (id_usuario, nombre_rol))
 
 
+def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
+    """Flujos que todavía no tienen identidad (login, registro, refresh, activación,
+    recuperación): a partir de aquí actúan como el usuario recién resuelto.
+
+    Nunca pisa una identidad ya declarada: un request autenticado no pasa a
+    actuar como otro usuario por una búsqueda.
+    """
+    if db.info.get(_CLAVE_IDENTIDAD) is None:
+        declarar_identidad(db, id_usuario, None)
+
+
 def declarar_identidad_sistema(db: Session) -> None:
     """Hace que `db` actúe como el usuario de servicio."""
     _declarar(db, _SISTEMA)
