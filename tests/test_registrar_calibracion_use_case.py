@@ -124,7 +124,7 @@ def test_fuera_de_rango_devuelve_400():
 _RECHAZOS = (
     # (overrides del use case, valor, error esperado, código)
     ({"dispositivo": None}, Decimal("25"), NotFoundError, "DISPOSITIVO_NO_ENCONTRADO"),
-    ({"dispositivo": SimpleNamespace(es_activo=False)}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
+    ({"dispositivo": SimpleNamespace(es_activo=False, serial="IOT-INACTIVO-1")}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
     ({"sensor": None}, Decimal("25"), NotFoundError, "SENSOR_NO_ENCONTRADO"),
     ({"asociacion": SimpleNamespace(id_infraestructura=7)}, Decimal("25"), ValidationError, "SENSOR_AREA_INVALIDA"),
     ({}, "abc", ValidationError, "VALOR_CALIBRACION_INVALIDO"),

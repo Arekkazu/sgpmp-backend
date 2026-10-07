@@ -174,7 +174,11 @@ class RegistrarCalibracionUseCase:
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
-                message="Solo se pueden calibrar sensores de dispositivos activos.",
+                message=(
+                    f"Operación rechazada: El dispositivo {dispositivo.serial} está inactivo. "
+                    "Debe activar el dispositivo antes de proceder con el registro de nuevos "
+                    "parámetros de calibración."
+                ),
             )
 
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
@@ -193,7 +197,11 @@ class RegistrarCalibracionUseCase:
         if asociacion_activa is None or asociacion_activa.id_infraestructura != dto.id_infraestructura:
             raise ValidationError(
                 code="SENSOR_AREA_INVALIDA",
-                message=f"El sensor {id_sensor} no está asociado al área {dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+                message=(
+                    f"Conflicto de ubicación: El sensor {id_sensor} no está asociado al área "
+                    f"{dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo "
+                    "antes de calibrar."
+                ),
                 field="id_infraestructura",
             )
 
