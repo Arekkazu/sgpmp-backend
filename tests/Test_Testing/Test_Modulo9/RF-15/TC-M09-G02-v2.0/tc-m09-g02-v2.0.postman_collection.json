@@ -1,0 +1,739 @@
+{
+  "info": {
+    "_postman_id": "c1f7a01a-82ef-4d39-92c4-958a09b30b02",
+    "name": "TC-M09-G02-v2.0 - Catálogo de Especies Productivas",
+    "description": "Reevaluación de validaciones del campo nombre en POST /configuracion/especies (RF-15 v1.1). Cubre límites de longitud (3 y 50), rechazo fuera de rango (<3 y >50), nulo/vacío, unicidad case-insensitive y caracteres especiales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.inmero.co/back-sigab-test" },
+    { "key": "email", "value": "administador.dev@gmail.com" },
+    { "key": "password", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "sub1", "value": "Oca" },
+    { "key": "sub2", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefgh" },
+    { "key": "sub3", "value": "Qa" },
+    { "key": "sub4", "value": "Especie Cincuenta Caracteres Letras Puras Abcdefghi" },
+    { "key": "sub6_existente", "value": "Cachama Blanca" },
+    { "key": "sub6_nuevo", "value": "CACHAMA BLANCA" },
+    { "key": "sub7", "value": "Trucha@QA2#" },
+    { "key": "id_sub1", "value": "" },
+    { "key": "id_sub2", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "NW-01-Login-Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Variables de entorno de Postman al INICIO antes de cualquier aserción",
+              "if (pm.environment.get('baseUrl')) { pm.collectionVariables.set('baseUrl', pm.environment.get('baseUrl')); }",
+              "if (pm.environment.get('email')) { pm.collectionVariables.set('email', pm.environment.get('email')); }",
+              "if (pm.environment.get('password')) { pm.collectionVariables.set('password', pm.environment.get('password')); }",
+              "",
+              "pm.test('NW-01: Autenticación exitosa del Administrador (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token', data.token);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{email}}\",\n  \"contrasena\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "NW-02-Preflight-Especies",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-02: FALLA dependiente de NW-01 (Sin token de sesión)', function () {",
+              "        pm.expect.fail('No se obtuvo token de sesión en NW-01');",
+              "    });",
+              "} else {",
+              "    pm.test('NW-02: Preflight exitoso y verificación de fixture (HTTP 200)', function () {",
+              "        pm.response.to.have.status(200);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data).to.have.property('items');",
+              "        var items = data.items;",
+              "        ",
+              "        var sub6Existente = pm.collectionVariables.get('sub6_existente').toLowerCase();",
+              "        var encontradoFixture = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub6Existente; });",
+              "        pm.expect(encontradoFixture, 'El fixture Cachama Blanca debe existir en TEST').to.be.true;",
+              "        ",
+              "        var sub1 = pm.collectionVariables.get('sub1').toLowerCase();",
+              "        var encontradoSub1 = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub1; });",
+              "        pm.expect(encontradoSub1, 'El nombre Oca debe estar libre previo a la prueba').to.be.false;",
+              "        ",
+              "        var sub2 = pm.collectionVariables.get('sub2').toLowerCase();",
+              "        var encontradoSub2 = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub2; });",
+              "        pm.expect(encontradoSub2, 'El nombre de 50 chars debe estar libre previo a la prueba').to.be.false;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-03-Subcaso1-Crear-3Chars",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-03: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-03: Registro exitoso con nombre de 3 caracteres (HTTP 201)', function () {",
+              "        pm.response.to.have.status(201);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data).to.have.property('id_especie');",
+              "        pm.expect(data).to.have.property('nombre');",
+              "        pm.expect(data.nombre.toLowerCase()).to.eql(pm.collectionVariables.get('sub1').toLowerCase());",
+              "        pm.expect(data.es_activo).to.be.true;",
+              "        pm.collectionVariables.set('id_sub1', data.id_especie);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub1}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-03b-Verificar-Persistencia-Subcaso1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var idSub1 = pm.collectionVariables.get('id_sub1');",
+              "if (!idSub1) {",
+              "    pm.test('NW-03b: FALLA dependiente de NW-03 (Registro no creado)', function () { pm.expect.fail('NW-03 no creó entidad'); });",
+              "} else {",
+              "    pm.test('NW-03b: Confirmación de persistencia de especie de 3 caracteres (HTTP 200)', function () {",
+              "        pm.response.to.have.status(200);",
+              "        var items = pm.response.json().items || [];",
+              "        var idNum = parseInt(idSub1, 10);",
+              "        var encontrado = items.some(function(i) { return i.id_especie === idNum && i.es_activo === true; });",
+              "        pm.expect(encontrado, 'La especie creada debe estar persistida y activa').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-04-Teardown-Subcaso1",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var idSub1 = pm.collectionVariables.get('id_sub1');",
+              "if (!idSub1) {",
+              "    pm.test('NW-04: Teardown omitido limpiamente (sin registro creado en NW-03)', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else {",
+              "    pm.test('NW-04: Desactivación lógica de especie creada en Subcaso 1 (HTTP 200)', function () {",
+              "        pm.response.to.have.status(200);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.es_activo).to.be.false;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_sub1}}/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_sub1}}", "desactivar"]
+        }
+      }
+    },
+    {
+      "name": "NW-05-Subcaso2-Crear-50Chars",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-05: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-05: Registro exitoso con nombre límite de 50 caracteres (HTTP 201)', function () {",
+              "        pm.response.to.have.status(201);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data).to.have.property('id_especie');",
+              "        pm.expect(data).to.have.property('nombre');",
+              "        pm.expect(data.nombre.toLowerCase()).to.eql(pm.collectionVariables.get('sub2').toLowerCase());",
+              "        pm.expect(data.es_activo).to.be.true;",
+              "        pm.collectionVariables.set('id_sub2', data.id_especie);",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub2}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-05b-Verificar-Persistencia-Subcaso2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var idSub2 = pm.collectionVariables.get('id_sub2');",
+              "if (!idSub2) {",
+              "    pm.test('NW-05b: FALLA dependiente de NW-05 (Registro no creado)', function () { pm.expect.fail('NW-05 no creó entidad'); });",
+              "} else {",
+              "    pm.test('NW-05b: Confirmación de persistencia de especie de 50 caracteres (HTTP 200)', function () {",
+              "        pm.response.to.have.status(200);",
+              "        var items = pm.response.json().items || [];",
+              "        var idNum = parseInt(idSub2, 10);",
+              "        var encontrado = items.some(function(i) { return i.id_especie === idNum && i.es_activo === true; });",
+              "        pm.expect(encontrado, 'La especie de 50 caracteres debe estar persistida y activa').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-06-Teardown-Subcaso2",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var idSub2 = pm.collectionVariables.get('id_sub2');",
+              "if (!idSub2) {",
+              "    pm.test('NW-06: Teardown omitido limpiamente (sin registro creado en NW-05)', function () {",
+              "        pm.expect(true).to.be.true;",
+              "    });",
+              "} else {",
+              "    pm.test('NW-06: Desactivación lógica de especie creada en Subcaso 2 (HTTP 200)', function () {",
+              "        pm.response.to.have.status(200);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.es_activo).to.be.false;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_sub2}}/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_sub2}}", "desactivar"]
+        }
+      }
+    },
+    {
+      "name": "NW-07-Subcaso3-Rechazo-2Chars",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-07: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-07: Rechazo de nombre con 2 caracteres por longitud insuficiente (HTTP 400)', function () {",
+              "        pm.response.to.have.status(400);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('VAL_ENTRADA');",
+              "        var campoNombre = (data.fields || []).some(function(f) {",
+              "            return f.field === 'nombre' && /entre 3 y 50 caracteres/i.test(f.message);",
+              "        });",
+              "        pm.expect(campoNombre, 'Debe indicar error en el campo nombre por longitud').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub3}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-07b-Verificar-Ausencia-Subcaso3",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-07b: Confirmación de no-persistencia de nombre rechazado con 2 caracteres (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var items = pm.response.json().items || [];",
+              "    var sub3 = pm.collectionVariables.get('sub3').toLowerCase();",
+              "    var encontrado = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub3; });",
+              "    pm.expect(encontrado, 'El nombre de 2 chars no debe existir en base de datos').to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-08-Subcaso4-Rechazo-51Chars",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-08: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-08: Rechazo de nombre con 51 caracteres por exceso de longitud (HTTP 400)', function () {",
+              "        pm.response.to.have.status(400);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('VAL_ENTRADA');",
+              "        var campoNombre = (data.fields || []).some(function(f) {",
+              "            return f.field === 'nombre' && /entre 3 y 50 caracteres/i.test(f.message);",
+              "        });",
+              "        pm.expect(campoNombre, 'Debe indicar error en el campo nombre por longitud').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub4}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-08b-Verificar-Ausencia-Subcaso4",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-08b: Confirmación de no-persistencia de nombre con 51 caracteres (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var items = pm.response.json().items || [];",
+              "    var sub4 = pm.collectionVariables.get('sub4').toLowerCase();",
+              "    var encontrado = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub4; });",
+              "    pm.expect(encontrado, 'El nombre de 51 chars no debe existir en base de datos').to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-09a-Subcaso5a-Rechazo-Vacio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-09a: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-09a: Rechazo de nombre vacío (HTTP 400)', function () {",
+              "        pm.response.to.have.status(400);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('VAL_ENTRADA');",
+              "        var campoNombre = (data.fields || []).some(function(f) { return f.field === 'nombre'; });",
+              "        pm.expect(campoNombre, 'Debe indicar error en el campo nombre').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-09b-Subcaso5b-Rechazo-Null",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-09b: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-09b: Rechazo de nombre nulo (HTTP 400)', function () {",
+              "        pm.response.to.have.status(400);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('VAL_ENTRADA');",
+              "        var campoNombre = (data.fields || []).some(function(f) { return f.field === 'nombre'; });",
+              "        pm.expect(campoNombre, 'Debe indicar error en el campo nombre por null').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": null\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-10-Subcaso6-Rechazo-Duplicado-CaseInsensitive",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-10: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-10: Rechazo de nombre duplicado case-insensitive (HTTP 409 Conflict)', function () {",
+              "        pm.response.to.have.status(409);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('ESPECIE_DUPLICADA');",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub6_nuevo}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-10b-Verificar-No-Duplicacion-Subcaso6",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-10b: Confirmación de unicidad en catálogo (solo existe 1 Cachama Blanca)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var items = pm.response.json().items || [];",
+              "    var objetivo = pm.collectionVariables.get('sub6_existente').toLowerCase();",
+              "    var coincidencias = items.filter(function(i) { return (i.nombre || '').toLowerCase() === objetivo; });",
+              "    pm.expect(coincidencias.length, 'Debe existir exactamente 1 registro para Cachama Blanca').to.eql(1);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-11-Subcaso7-Rechazo-Simbolos",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('token');",
+              "if (!token) {",
+              "    pm.test('NW-11: FALLA dependiente de NW-01 (Sin token)', function () { pm.expect.fail('NW-01 falló'); });",
+              "} else {",
+              "    pm.test('NW-11: Rechazo de nombre con caracteres especiales no permitidos (HTTP 400)', function () {",
+              "        pm.response.to.have.status(400);",
+              "        var data = pm.response.json();",
+              "        pm.expect(data.error_code).to.eql('VAL_ENTRADA');",
+              "        var campoNombre = (data.fields || []).some(function(f) {",
+              "            return f.field === 'nombre' && /solo puede contener letras y espacios/i.test(f.message);",
+              "        });",
+              "        pm.expect(campoNombre, 'Debe indicar error en el campo nombre por caracteres no permitidos').to.be.true;",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{sub7}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-11b-Verificar-Ausencia-Subcaso7",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-11b: Confirmación de no-persistencia de nombre con símbolos (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var items = pm.response.json().items || [];",
+              "    var sub7 = pm.collectionVariables.get('sub7').toLowerCase();",
+              "    var encontrado = items.some(function(i) { return (i.nombre || '').toLowerCase() === sub7; });",
+              "    pm.expect(encontrado, 'El nombre con caracteres especiales no debe existir en base de datos').to.be.false;",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    }
+  ]
+}
