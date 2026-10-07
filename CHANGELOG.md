@@ -1,3 +1,10 @@
+## [1.0.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.72...v1.0.0-rc.73) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** serializar como numero los valores de calibracion (Arekkazu/SGPMP-FRONT-END-PWA[#251](https://github.com/Arekkazu/sgpmp-backend/issues/251)) ([b3dd301](https://github.com/Arekkazu/sgpmp-backend/commit/b3dd30189b2226f12870bd0cfbda52a95fcf4699))
+* **rf25-mod9:** especies del contexto desde la finca vinculada, no globales (Arekkazu/SGPMP-FRONT-END-PWA[#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)) ([828a02c](https://github.com/Arekkazu/sgpmp-backend/commit/828a02c4aafbfeb3656b3a5241f41755476e97eb))
+
 ## [1.0.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.71...v1.0.0-rc.72) (2026-10-06)
 
 ### Bug Fixes
