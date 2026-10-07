@@ -8,16 +8,20 @@ segundo commit. Si la propagación se intentó y falló, RF-17 exige responder
 
 Consolidación (un estado por umbral, no por Gateway):
 
-| Resultados por Gateway                  | Estado     | Respuesta |
-|-----------------------------------------|------------|-----------|
-| todos APLICADA                          | APLICADA   | 201 / 200 |
-| alguno NO_CONF (u otro estado)          | NO_CONF    | 500       |
-| ninguno falló, alguno PENDIENTE         | PENDIENTE  | 201 / 200 |
-| la especie no tiene Gateway Edge        | PENDIENTE  | 201 / 200 |
+| Resultados por Gateway                    | Estado     | Respuesta |
+|-------------------------------------------|------------|-----------|
+| todos APLICADA                            | APLICADA   | 201 / 200 |
+| alguno NO_CONF (u otro estado)            | NO_CONF    | 500       |
+| ninguno falló, alguno desconectado        | PENDIENTE  | 500       |
+| la especie no tiene Gateway Edge          | PENDIENTE  | 201 / 200 |
+| el ambiente no tiene broker configurado   | PENDIENTE  | 201 / 200 |
 
-PENDIENTE no es un fallo (TC-M09-58-G22, #459): el Edge está desconectado o no
-hay a quién enviarlo, y sigue operando con lo último que tenía guardado
-(TC-M09-63). No hay reenvío automático al reconectar, igual que RF-23.
+Un Edge desconectado (TC-M09-63) es el flujo alterno "Error de sincronización
+con el Nodo Edge" de RF-17: el umbral queda "Pendiente de Sincronización", el
+Edge sigue con el anterior y se responde 500. Solo no es un error cuando no
+hubo a quién enviarlo o con qué (TC-M09-58-G22, #459: sin intento no hay
+fallo que reportar). Al reconectar, la sesión persistente de MQTT le entrega
+al Edge el comando encolado; el estado aquí se actualiza en la próxima edición.
 """
 from __future__ import annotations
 
@@ -27,7 +31,10 @@ from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 from src.configuration.domain.repositories.destino_edge_repository import DestinoEdgeRepository
-from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
+from src.configuration.domain.repositories.edge_sincronizacion_port import (
+    ESTADO_SIN_INTEGRACION,
+    EdgeSincronizacionPort,
+)
 from src.configuration.domain.repositories.mqtt_port import ResultadoEnvioMqtt
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
 from src.shared.errors import InfrastructureError
@@ -37,10 +44,6 @@ MENSAJE_FALLO_SINCRONIZACION_EDGE = (
     "nodos Edge. Es posible que las alertas en campo sigan operando con los valores "
     "anteriores hasta que se restablezca la conexión."
 )
-
-# TC-M09-58-G22 (#459): estados del puerto que NO son el "Error de
-# sincronización con el Nodo Edge" de RF-17.
-ESTADOS_SINCRONIZACION_SIN_FALLO = ("APLICADA", "PENDIENTE")
 
 MOTIVO_SIN_GATEWAY_EDGE = (
     "Ningún Gateway Edge activo atiende las áreas de esta especie. El umbral quedó "
@@ -72,9 +75,11 @@ def consolidar_resultados(resultados: dict[str, ResultadoEnvioMqtt]) -> Resultad
     """Un único estado para el umbral a partir del resultado de cada Gateway Edge."""
     if not resultados:
         return ResultadoEnvioMqtt(estado='PENDIENTE', mensaje=MOTIVO_SIN_GATEWAY_EDGE)
+    if _sin_intento(resultados):
+        return ResultadoEnvioMqtt(estado='PENDIENTE', mensaje=next(iter(resultados.values())).mensaje)
 
     fallidos = {
-        s: r for s, r in resultados.items() if r.estado not in ESTADOS_SINCRONIZACION_SIN_FALLO
+        s: r for s, r in resultados.items() if r.estado not in ('APLICADA', 'PENDIENTE')
     }
     if fallidos:
         return ResultadoEnvioMqtt(estado='NO_CONF', mensaje=_detalle(fallidos))
@@ -87,6 +92,11 @@ def consolidar_resultados(resultados: dict[str, ResultadoEnvioMqtt]) -> Resultad
         estado='APLICADA',
         mensaje=f"Confirmado por {len(resultados)} Gateway Edge.",
     )
+
+
+def _sin_intento(resultados: dict[str, ResultadoEnvioMqtt]) -> bool:
+    """No hubo a quién enviarlo (sin Gateway) ni con qué (sin broker): no es un error."""
+    return all(r.estado == ESTADO_SIN_INTEGRACION for r in resultados.values())
 
 
 def _detalle(resultados: dict[str, ResultadoEnvioMqtt]) -> str:
@@ -123,8 +133,8 @@ def sincronizar_umbral_con_edge(
 
     # RF-17, flujo alterno "Error de sincronización con el Nodo Edge": el umbral
     # ya quedó guardado, pero el cliente debe saber que en campo pueden seguir
-    # operando los valores anteriores.
-    if resultado.estado not in ESTADOS_SINCRONIZACION_SIN_FALLO:
+    # operando los valores anteriores (Edge sin ACK o desconectado).
+    if resultado.estado != 'APLICADA' and not _sin_intento(resultados):
         raise InfrastructureError(
             code='FALLO_SINCRONIZACION_EDGE',
             message=MENSAJE_FALLO_SINCRONIZACION_EDGE,

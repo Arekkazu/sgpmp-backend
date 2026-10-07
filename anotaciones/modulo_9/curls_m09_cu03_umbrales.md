@@ -70,14 +70,15 @@ respuesta puede tardar hasta ~35 s mientras se espera el ACK.
 | Resultado de los Gateway Edge | `estado_sincronizacion` | Respuesta |
 |---|---|---|
 | todos confirmaron | `APLICADA`, con `fecha_ultima_sincronizacion` | `201` (alta) / `200` (edición) |
-| alguno desconectado del broker (TC-M09-63), o la especie no tiene Gateway Edge, o el broker no está configurado en el ambiente | `PENDIENTE`, con el motivo en `motivo_fallo_sincronizacion` | `201` / `200` |
+| alguno desconectado del broker (TC-M09-63): el Edge avisó su desconexión y el broker no publica | `PENDIENTE` ("Pendiente de Sincronización"), con el motivo en `motivo_fallo_sincronizacion` | `500` `FALLO_SINCRONIZACION_EDGE` |
 | alguno no confirmó (sin ACK en 30 s, broker caído o con error) | `NO_CONF` | `500` `FALLO_SINCRONIZACION_EDGE` |
+| la especie no tiene Gateway Edge, o el broker no está configurado en el ambiente (no hubo intento) | `PENDIENTE`, con el motivo | `201` / `200` |
 
 Al **editar**, el umbral queda `PENDIENTE` desde el primer commit, hasta que el resultado
 de la propagación lo reemplace.
 
-Solo el último caso es el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17, que exige
-responder:
+Los dos casos con `500` son el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17
+(el Edge sigue con el umbral anterior), que exige responder:
 
 ```
 HTTP 500
@@ -92,7 +93,7 @@ Contrato completo (payload, ACK, cómo simular el Edge con `mosquitto_pub`):
 `anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
 
 Errores posibles:
-- `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`), tras haber guardado — ver arriba
+- `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`) o está desconectado (`PENDIENTE`, TC-M09-63), tras haber guardado — ver arriba
 - `422` — especie inactiva (FA-01)
 - `404` — variable ambiental no existe o inactiva
 - `409` — ya existe umbral para esa especie-variable (FA-02)

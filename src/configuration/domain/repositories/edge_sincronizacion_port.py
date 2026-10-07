@@ -12,6 +12,9 @@ from abc import ABC, abstractmethod
 
 from src.configuration.domain.repositories.mqtt_port import ResultadoEnvioMqtt
 
+#: El ambiente no tiene integración con el broker: no hubo intento de propagar.
+ESTADO_SIN_INTEGRACION = "SIN_INTEGRACION"
+
 
 class EdgeSincronizacionPort(ABC):
 
@@ -23,10 +26,13 @@ class EdgeSincronizacionPort(ABC):
         ``estado`` de cada resultado:
 
         - ``"APLICADA"``: ese Edge confirmó (ACK).
-        - ``"PENDIENTE"``: no se intentó (Edge desconectado del broker, o la
-          integración con el broker no está configurada).
+        - ``"PENDIENTE"``: el broker sabe que ese Edge está desconectado y no
+          publicó (TC-M09-63). Para RF-17 es un error de sincronización: el
+          Edge sigue con el umbral anterior.
         - ``"NO_CONF"``: se intentó y falló (broker caído, timeout, sin ACK).
           Es el "Error de sincronización con el Nodo Edge" de RF-17.
+        - ``ESTADO_SIN_INTEGRACION``: el ambiente no tiene broker configurado;
+          no hubo intento, así que no es un error.
 
         Un adaptador real NO debe devolver ``PENDIENTE`` ante un fallo de
         comunicación: ocultaría el 500 que el RF exige.

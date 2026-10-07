@@ -9,8 +9,10 @@ del Edge). El resultado de cada Gateway se consolida en un único
 
 - todos APLICADA → APLICADA + ``fecha_ultima_sincronizacion`` (201/200);
 - alguno NO_CONF → NO_CONF y HTTP 500 ``FALLO_SINCRONIZACION_EDGE`` (RF-17);
-- alguno PENDIENTE (Edge desconectado) o especie sin Gateway → PENDIENTE
-  (201/200, TC-M09-58-G22 / #459: no es un fallo).
+- alguno PENDIENTE (Edge desconectado, TC-M09-63) → PENDIENTE y HTTP 500
+  (mismo flujo alterno de RF-17);
+- especie sin Gateway o ambiente sin broker → PENDIENTE (201/200,
+  TC-M09-58-G22 / #459: sin intento no es un fallo).
 
 QA V4 rechazó la versión anterior porque los endpoints inyectaban
 ``EdgeSincronizacionStubAdapter`` (siempre PENDIENTE, sin transporte); el stub
@@ -33,6 +35,7 @@ from src.configuration.application.use_cases.umbrales.sincronizar_umbral_edge im
 )
 from src.configuration.domain.entities.umbral_ambiental import MOTIVO_CAMBIOS_SIN_PROPAGAR, UmbralAmbiental
 from src.configuration.domain.entities.variable_ambiental import VariableAmbiental
+from src.configuration.domain.repositories.edge_sincronizacion_port import ESTADO_SIN_INTEGRACION
 from src.configuration.domain.repositories.mqtt_port import ResultadoEnvioMqtt
 from src.configuration.infrastructure.adapters import edge_sincronizacion_mqtt_adapter
 from src.configuration.infrastructure.adapters.edge_sincronizacion_mqtt_adapter import EdgeSincronizacionMqttAdapter
@@ -240,15 +243,27 @@ class TestRegistrarUmbralPropagacionEdge:
         assert resultado.fecha_ultima_sincronizacion is not None
         assert resultado.motivo_fallo_sincronizacion is None
 
-    def test_edge_desconectado_queda_pendiente_sin_500(self) -> None:
-        """TC-M09-63: el Edge apagado no es un error; conserva su configuración anterior."""
+    def test_edge_desconectado_queda_pendiente_y_responde_500(self) -> None:
+        """TC-M09-63: flujo alterno de RF-17. El umbral queda guardado y "Pendiente
+        de Sincronización", el Edge conserva el anterior y la respuesta es 500."""
         repo = UmbralRepoFake()
 
-        resultado = _registrar(EdgePortFake(**{'EDGE-1': PENDIENTE}), umbral_repo=repo)
+        with pytest.raises(InfrastructureError) as exc_info:
+            _registrar(EdgePortFake(**{'EDGE-1': PENDIENTE}), umbral_repo=repo)
+
+        assert exc_info.value.code == 'FALLO_SINCRONIZACION_EDGE'
+        persistido = repo.estados_sincronizacion_persistidos[0]
+        assert persistido.estado_sincronizacion == 'PENDIENTE'
+        assert 'EDGE-1' in persistido.motivo_fallo_sincronizacion
+
+    def test_sin_broker_configurado_queda_pendiente_sin_500(self) -> None:
+        """TC-M09-58-G22 (#459): sin integración no hubo intento, no hay fallo que reportar."""
+        sin_broker = ResultadoEnvioMqtt(estado=ESTADO_SIN_INTEGRACION, mensaje='Sin broker.')
+
+        resultado = _registrar(EdgePortFake(**{'EDGE-1': sin_broker}))
 
         assert resultado.estado_sincronizacion == 'PENDIENTE'
-        assert 'EDGE-1' in resultado.motivo_fallo_sincronizacion
-        assert repo.estados_sincronizacion_persistidos[0].estado_sincronizacion == 'PENDIENTE'
+        assert resultado.motivo_fallo_sincronizacion == 'Sin broker.'
 
     def test_especie_sin_gateway_queda_pendiente_con_motivo(self) -> None:
         edge_port = EdgePortFake()
@@ -413,7 +428,7 @@ class TestEdgeSincronizacionMqttAdapter:
 
         resultados = EdgeSincronizacionMqttAdapter().propagar_umbral(['EDGE-1'], {})
 
-        assert resultados['EDGE-1'].estado == 'PENDIENTE'
+        assert resultados['EDGE-1'].estado == ESTADO_SIN_INTEGRACION
 
     def test_sin_gateway_no_llama(self) -> None:
         assert EdgeSincronizacionMqttAdapter().propagar_umbral([], {}) == {}

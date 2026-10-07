@@ -13,7 +13,7 @@ Diferencia deliberada con ``MqttHttpAdapter`` (RF-23): si el broker no responde
 o devuelve un error HTTP, el resultado es ``NO_CONF``, no ``PENDIENTE`` -- se
 intentó propagar y falló, y RF-17 exige reportarlo (500). Solo cuando la
 integración no está configurada en el ambiente (sin ``MQTT_BROKER_URL``/
-``MQTT_BROKER_TOKEN``) queda ``PENDIENTE``: ahí no hubo intento.
+``MQTT_BROKER_TOKEN``) devuelve ``ESTADO_SIN_INTEGRACION``: ahí no hubo intento.
 
 Los Gateway se llaman en paralelo para que N destinos no sumen N esperas de
 ACK; cada llamada pasa por el mismo semáforo global que RF-23, que protege el
@@ -27,7 +27,10 @@ from concurrent.futures import ThreadPoolExecutor
 
 import httpx
 
-from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
+from src.configuration.domain.repositories.edge_sincronizacion_port import (
+    ESTADO_SIN_INTEGRACION,
+    EdgeSincronizacionPort,
+)
 from src.configuration.domain.repositories.mqtt_port import ResultadoEnvioMqtt
 from src.configuration.infrastructure.adapters.mqtt_http_adapter import (
     _TIMEOUT_HTTP_SEGUNDOS,
@@ -56,7 +59,7 @@ class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
         if not self._base_url or not self._token:
             logger.error("MQTT_BROKER_URL/MQTT_BROKER_TOKEN no configurados -- umbral no propagado.")
             return {
-                serial: ResultadoEnvioMqtt(estado="PENDIENTE", mensaje=_MENSAJE_SIN_INTEGRACION)
+                serial: ResultadoEnvioMqtt(estado=ESTADO_SIN_INTEGRACION, mensaje=_MENSAJE_SIN_INTEGRACION)
                 for serial in seriales_gateway
             }
 

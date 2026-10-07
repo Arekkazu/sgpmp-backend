@@ -19,7 +19,7 @@
 > | Transporte | `POST /v1/commands` con `origen: "umbral"` por Gateway, en paralelo; el broker publica en el topic `command` ya existente del Edge con `tipo_comando: "UMBRAL_AMBIENTAL"` (sin topics ni ACL nuevos) |
 > | Payload | `id_comando`, `emitido_en`, `id_umbral_ambiental`, `version` (= `fecha_actualizacion`), `variable` (nombre de telemetría), `unidad`, `valor_min`, `valor_max`, `niveles[]` |
 > | ACK / timeout | `{"tipo_mensaje":"ACK_UMBRAL","resultado":"OK","id_comando":...}` en `status`; 30 s (`MQTT_ACK_TIMEOUT_SECONDS`) |
-> | Estado del umbral | todos `APLICADA` → `APLICADA` + `fecha_ultima_sincronizacion`; alguno `NO_CONF` → `NO_CONF` + 500; alguno `PENDIENTE` (Edge desconectado) o sin Gateway → `PENDIENTE` (201/200) |
+> | Estado del umbral | todos `APLICADA` → `APLICADA` + `fecha_ultima_sincronizacion`; alguno `NO_CONF` → `NO_CONF` + 500; alguno `PENDIENTE` (Edge desconectado, TC-M09-63) → `PENDIENTE` + 500; sin Gateway o sin broker configurado → `PENDIENTE` (201/200) |
 >
 > **Tres defectos encontrados en el camino**, todos necesarios para que `APLICADA` llegue a BD:
 >
@@ -37,12 +37,13 @@
 >    editado seguía mostrando el `APLICADA` de la versión anterior. `UmbralAmbiental.actualizar()`
 >    ahora lo deja `PENDIENTE`.
 >
-> **Pendiente de AIoT (fuera de estos dos repos):** el `edge-agent` debe distinguir
-> `tipo_comando`, guardar el umbral de forma persistente, aplicarlo y publicar el `ACK_UMBRAL`.
-> Hasta entonces, con el Edge conectado el resultado será `NO_CONF` (500), lo honesto según RF-17;
-> para probar sin firmware se puede simular el ACK con `mosquitto_pub` (ver el documento del broker).
-> **TC-M09-63** (Edge offline) se cubre con el atajo ya existente del broker: si el Edge no está
-> conectado, `PENDIENTE` al instante, sin publicar, y el Edge conserva el último umbral guardado.
+> **Edge (SerBy48/EDGE-FIRMWARE-SGPMP#5):** el `edge_agent` distingue `tipo_comando`, guarda el
+> umbral en `umbrales.json` y publica el `ACK_UMBRAL`. Debe instalarse en los Raspberry **antes**
+> que este backend y el broker: con el agente anterior cada umbral termina en `NO_CONF` (500) a los 30 s.
+> **TC-M09-63** (Edge offline): con sesión persistente Mosquitto sigue listando la conexión del Edge
+> caído, así que el Edge publica `{"tipo_mensaje": "DESCONEXION"}` en su `status` (Last Will y antes
+> de un cierre ordenado) y el broker no publica: `PENDIENTE` + 500 al instante, y el Edge conserva el
+> último umbral guardado. Al reconectar, la sesión persistente le entrega el comando encolado.
 >
 > **🔴 Migración `a3c9e5d17b42` requiere DBA** (crea la función; `member_dev` no puede migrar ni
 > leer `tipos_dispositivo_iot`, así que solo se validó en modo offline `alembic upgrade --sql`).
