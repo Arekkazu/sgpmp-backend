@@ -20,8 +20,9 @@ Un Edge desconectado (TC-M09-63) es el flujo alterno "Error de sincronización
 con el Nodo Edge" de RF-17: el umbral queda "Pendiente de Sincronización", el
 Edge sigue con el anterior y se responde 500. Solo no es un error cuando no
 hubo a quién enviarlo o con qué (TC-M09-58-G22, #459: sin intento no hay
-fallo que reportar). Al reconectar, la sesión persistente de MQTT le entrega
-al Edge el comando encolado; el estado aquí se actualiza en la próxima edición.
+fallo que reportar). Con el Edge desconectado el broker no publica, así que
+no hay reenvío automático al reconectar (igual que RF-23): el umbral se
+propaga en la próxima edición.
 """
 from __future__ import annotations
 

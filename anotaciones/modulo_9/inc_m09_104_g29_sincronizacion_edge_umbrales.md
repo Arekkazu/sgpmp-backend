@@ -43,7 +43,8 @@
 > **TC-M09-63** (Edge offline): con sesión persistente Mosquitto sigue listando la conexión del Edge
 > caído, así que el Edge publica `{"tipo_mensaje": "DESCONEXION"}` en su `status` (Last Will y antes
 > de un cierre ordenado) y el broker no publica: `PENDIENTE` + 500 al instante, y el Edge conserva el
-> último umbral guardado. Al reconectar, la sesión persistente le entrega el comando encolado.
+> último umbral guardado. Como el broker no publica, no hay reenvío al reconectar: se propaga en la
+> próxima edición (igual que RF-23).
 >
 > **🔴 Migración `a3c9e5d17b42` requiere DBA** (crea la función; `member_dev` no puede migrar ni
 > leer `tipos_dispositivo_iot`, así que solo se validó en modo offline `alembic upgrade --sql`).
