@@ -160,8 +160,9 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         id_activo: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[ActivoBiologico]:
-        orm = self.db.get(ActivoBiologicoModel, id_activo)
+        orm = self.db.get(ActivoBiologicoModel, id_activo, with_for_update=bloquear, populate_existing=bloquear)
         if orm is None:
             return None
         if ids_fincas_permitidas is not None and not self._pertenece_a_fincas(

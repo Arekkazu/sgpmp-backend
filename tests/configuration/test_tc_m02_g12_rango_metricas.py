@@ -66,7 +66,7 @@ class MetricasRepoFake:
         self.guardada: MetricaProduccion | None = None
         self.actualizada: MetricaProduccion | None = None
 
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, **_):
         return self.existente
 
     def obtener_por_nombre_y_especie(self, _nombre, _id_especie):
@@ -83,7 +83,7 @@ class MetricasRepoFake:
 
 
 class EspeciesRepoFake:
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, **_):
         return SimpleNamespace(es_activo=True)
 
 

@@ -65,7 +65,7 @@ class EditarMetricaUseCase:
         dto: EditarMetricaDTO,
         usuario_actual: UsuarioActual,
     ) -> MetricaProduccion:
-        metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion)
+        metrica = self.metricas_repo.obtener_por_id(id_metrica_produccion, bloquear=True)
         if metrica is None:
             raise NotFoundError(
                 code="METRICA_NO_ENCONTRADA",

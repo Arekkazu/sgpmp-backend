@@ -65,7 +65,7 @@ class AuditoriaRepoFake:
 class VariableRepoFake:
     """El snapshot de estas pruebas no trae umbrales, así que nunca se consulta."""
 
-    def obtener_por_id(self, _id_variable_ambiental):  # pragma: no cover
+    def obtener_por_id(self, _id_variable_ambiental, **_):  # pragma: no cover
         raise AssertionError("sin umbrales en el snapshot no hay referencia que validar")
 
     def listar_activas(self):  # pragma: no cover
@@ -111,7 +111,7 @@ def _use_case(plantilla_repo, especie_repo) -> AplicarPlantillaUseCase:
 
 
 class PlantillaRepoFake:
-    def obtener_por_id(self, _id_plantilla):
+    def obtener_por_id(self, _id_plantilla, **_):
         return _plantilla()
 
     def obtener_ultima_version(self, _template_name):
@@ -119,7 +119,7 @@ class PlantillaRepoFake:
 
 
 class EspecieRepoFake:
-    def obtener_por_id(self, _id_especie):
+    def obtener_por_id(self, _id_especie, **_):
         return _especie_destino()
 
 
@@ -164,7 +164,7 @@ def test_fecha_creacion_desincronizada_ya_no_bloquea():
     especie_repo = EspecieRepoFake()
 
     class EspecieRepoConCreacionDistinta(EspecieRepoFake):
-        def obtener_por_id(self, id_especie):
+        def obtener_por_id(self, id_especie, **_):
             especie = super().obtener_por_id(id_especie)
             especie.fecha_creacion = datetime(1999, 1, 1, tzinfo=timezone.utc)
             return especie

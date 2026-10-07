@@ -120,7 +120,7 @@ class AplicarPlantillaUseCase:
                 ),
             )
 
-        especie_destino = self.especie_repo.obtener_por_id(dto.id_especie_destino)
+        especie_destino = self.especie_repo.obtener_por_id(dto.id_especie_destino, bloquear=True)
         if especie_destino is None:
             raise NotFoundError(
                 code="ESPECIE_DESTINO_NO_ENCONTRADA",

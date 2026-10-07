@@ -391,6 +391,9 @@ Errores posibles:
   `DISPOSITIVO_NO_ENCONTRADO`
 - `422` — dispositivo inactivo
 - `400` — `intervalo_transmision` < `frecuencia_captura` (FA-12) — `CONFLICTO_TIEMPOS_CONFIG`
+- `400` — `VAL_ENTRADA` con un campo que RF-23 no define (p. ej. `"protocolo": "LoRaWAN"`), señalado en
+  `fields` con "Este campo no está permitido en esta solicitud." (INC-M09-66-G69 #492; antes se
+  ignoraba y respondía `202`). LoRaWAN es la red dispositivo↔gateway; el backend solo publica MQTT
 - `400` — valor fuera del rango del tipo de dispositivo (RF-23/#1632) — `PARAMETRO_FUERA_DE_RANGO`
   (mensaje: "Valor inválido: El parámetro {frecuencia_captura|intervalo_transmision} debe estar
   entre {min} y {max} minutos para este tipo de dispositivo. Valor recibido: {valor}.")

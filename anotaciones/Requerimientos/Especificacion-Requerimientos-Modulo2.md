@@ -2249,6 +2249,10 @@ Escalabilidad: El sistema debe soportar grandes volúmenes de registros de creci
 
 **Código Identificación:** RF-41 -- Versión -- 1.1
 
+> **Corrección de coherencia 2026-10-02 (sin cambio de versión):** se alinea la precondición, el proceso y el flujo alterno de estado con **RF-39** y con el comportamiento ya implementado en el backend (`registrar_evento_sanitario_use_case.py` → `_ESTADOS_PERMITEN_EVENTOS = {ACTIVO, EN_TRATAMIENTO, AISLADO}`). Antes el texto exigía solo ACTIVO (409 en otro caso), lo que se contradecía con la propia Restricción del RF y con RF-39, e impedía documentar el seguimiento de un tratamiento sobre un activo EN_TRATAMIENTO/AISLADO. A diferencia de RF-43 (eventos productivos), que sí exige solo ACTIVO, los eventos sanitarios admiten los tres estados operativos.
+>
+> **Nota para QA:** el caso **G51** debe esperar **HTTP 201** al registrar un evento sanitario con el activo en **EN_TRATAMIENTO** o **AISLADO**; el **409** `ESTADO_NO_PERMITE_EVENTOS` aplica a cualquier otro estado (**INACTIVO**, **CERRADO** o **BAJA**). Ratificado para INC-M02-94-G51 (#488, 2026-10-06).
+
 **Fuente:** Veterinario / Productor / Ingeniero de campo
 
 **Descripción:** El sistema debe permitir registrar eventos sanitarios asociados a los activos biológicos, con el fin de documentar cualquier intervención, diagnóstico, tratamiento o condición de salud que afecte al activo durante su ciclo de vida.
@@ -2269,7 +2273,7 @@ El registro detallado de eventos sanitarios permite mantener trazabilidad clíni
 
 **Precondiciones:** El activo biológico debe existir en el sistema.
 
-El activo debe encontrarse en estado ACTIVO.
+El activo debe encontrarse en un estado operativo que permita el registro de eventos sanitarios: ACTIVO, EN_TRATAMIENTO o AISLADO. No se permite registrar eventos sanitarios sobre activos en estado INACTIVO, CERRADO o BAJA. (Alineado con RF-39: EN_TRATAMIENTO y AISLADO son condiciones sanitarias activas que requieren seguimiento continuo — p. ej. el seguimiento de un tratamiento.)
 
 El activo debe tener una fase productiva activa.
 
@@ -2344,7 +2348,7 @@ RF-39 — Registro de Eventos Biológicos
 3. El sistema valida:
 
 - Existencia del activo.
-- Estado ACTIVO.
+- Estado operativo válido para eventos sanitarios: ACTIVO, EN_TRATAMIENTO o AISLADO (no INACTIVO, CERRADO ni BAJA).
 - Permisos del usuario.
 
 4. El sistema muestra historial sanitario.
@@ -2386,9 +2390,9 @@ Precondición no cumplida: El activo no está registrado.
 Mensaje: "El activo biológico no existe."
 Postcondición: No se registra el evento ni se modifica información.
 
-Activo no está en estado ACTIVO - HTTP: 409 Conflict
-Precondición no cumplida: Estado diferente de ACTIVO.
-Mensaje: "El activo no se encuentra en estado ACTIVO."
+Activo en estado no operativo (INACTIVO, CERRADO o BAJA) - HTTP: 409 Conflict
+Precondición no cumplida: el activo está en estado INACTIVO, CERRADO o BAJA. Los estados ACTIVO, EN_TRATAMIENTO y AISLADO sí permiten registrar eventos sanitarios.
+Mensaje: "No es posible registrar eventos sobre este activo. El activo se encuentra en estado {estado}, el cual no permite nuevos registros de eventos. Los estados que permiten registro de eventos son: ACTIVO, EN_TRATAMIENTO, AISLADO." (código `ESTADO_NO_PERMITE_EVENTOS`)
 Postcondición: No se registra el evento.
 
 Fecha inválida - HTTP: 400 Bad Request
@@ -2432,7 +2436,7 @@ El evento queda asociado al usuario responsable.
 
 El sistema registra un evento sanitario únicamente si:
 
-- El activo existe y está en estado ACTIVO.
+- El activo existe y está en estado ACTIVO, EN_TRATAMIENTO o AISLADO.
 - El tipo de evento es válido.
 - Los datos cumplen el modelo definido por tipo de evento.
 - La fecha es válida y coherente.

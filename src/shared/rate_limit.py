@@ -13,6 +13,7 @@ a importar, migrar a un backend compartido (Redis INCR+EXPIRE).
 """
 from __future__ import annotations
 
+import math
 import threading
 import time
 from collections import defaultdict, deque
@@ -60,12 +61,20 @@ def rate_limit(
             while marcas and ahora - marcas[0] > ventana_segundos:
                 marcas.popleft()
             if len(marcas) >= max_llamadas:
+                # #495: la ventana se libera cuando caduca la marca más vieja.
+                segundos = str(max(1, math.ceil(ventana_segundos - (ahora - marcas[0]))))
                 raise TooManyRequestsError(
                     code="LIMITE_TASA_EXCEDIDO",
                     message=(
                         "Demasiadas solicitudes en poco tiempo. "
                         "Intenta de nuevo en unos momentos."
                     ),
+                    headers={
+                        "Retry-After": segundos,
+                        "RateLimit-Limit": str(max_llamadas),
+                        "RateLimit-Remaining": "0",
+                        "RateLimit-Reset": segundos,
+                    },
                 )
             marcas.append(ahora)
 

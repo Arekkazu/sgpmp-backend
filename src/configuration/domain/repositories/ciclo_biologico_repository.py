@@ -15,8 +15,10 @@ from src.configuration.domain.value_objects.nombre_etapa import NombreEtapa
 class CicloBiologicoRepository(ABC):
 
     @abstractmethod
-    def obtener_por_id(self, id_ciclo_biologico: int) -> Optional[CicloBiologico]:
-        """Obtiene una etapa por su identidad. Retorna ``None`` si no existe."""
+    def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:
+        """Obtiene una etapa por su identidad. Retorna ``None`` si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod
