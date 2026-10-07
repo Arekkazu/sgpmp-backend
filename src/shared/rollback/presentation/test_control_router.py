@@ -47,9 +47,9 @@ def execute_test_query(
 ):
     """
     Permite a QA ejecutar consultas SELECT dentro de la transacción del
-    sandbox, en una sub-transacción de solo lectura con timeout de 2s.
-    El aislamiento READ ONLY + statement_timeout protege la transacción
-    principal del run_id, sin depender de filtrar palabras en el texto.
+    sandbox, en una sub-transacción con timeout de 2s. No se usa READ ONLY: al liberar el
+    savepoint quedaría activo en toda la transacción del run y bloquearía
+    los INSERT/UPDATE posteriores.
     """
     cleaned_query = payload.query.strip()
 
@@ -69,10 +69,12 @@ def execute_test_query(
 
     try:
         with db.begin_nested():
-            db.execute(text("SET LOCAL TRANSACTION READ ONLY"))
             db.execute(text("SET LOCAL statement_timeout = '2s'"))
             result = db.execute(text(safe_query))
             rows = result.mappings().all()
+            # SET LOCAL sobrevive al release del savepoint y la transacción del
+            # run nunca termina: sin esto el timeout de 2 s afectaría al resto.
+            db.execute(text("SET LOCAL statement_timeout = DEFAULT"))
         return {"data": [dict(row) for row in rows]}
     except Exception as e:
         raise HTTPException(
