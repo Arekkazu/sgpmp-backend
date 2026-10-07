@@ -1,0 +1,530 @@
+{
+  "info": {
+    "name": "TC-M09-G56-V2 - RF-21 validacion de datos base",
+    "description": "RF-21 (matriz corregida). Ejecutado en TEST. Límites de serial (50), descripcion (100), tipo inexistente (422), área inexistente (422 según matriz), serial duplicado (409) y serial multibyte de 50 caracteres.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "Serial 49 caracteres -> 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA{{run}}\", \"descripcion\": \"QA M09 G56 s49\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Serial 50 caracteres -> 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB{{run}}\", \"descripcion\": \"QA M09 G56 s50\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Serial 51 caracteres -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC{{run}}\", \"descripcion\": \"QA M09 G56 s51\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Serial duplicado de 50 caracteres -> 409 SERIAL_DUPLICADO",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 409\", () => { pm.response.to.have.status(409); });",
+              "pm.test(\"error_code SERIAL_DUPLICADO\", () => { pm.expect(j.error_code).to.eql('SERIAL_DUPLICADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB{{run}}\", \"descripcion\": \"QA M09 G56 dup\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Descripcion 100 caracteres -> 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G56-d100-{{run}}\", \"descripcion\": \"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Descripcion 101 caracteres -> 400",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G56-d101-{{run}}\", \"descripcion\": \"ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Tipo de dispositivo inexistente -> 422 TIPO_DISPOSITIVO_NO_ENCONTRADO",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });",
+              "pm.test(\"error_code TIPO_DISPOSITIVO_NO_ENCONTRADO\", () => { pm.expect(j.error_code).to.eql('TIPO_DISPOSITIVO_NO_ENCONTRADO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G56-tipo-{{run}}\", \"descripcion\": \"QA M09 G56 tipo\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 9999}"
+        }
+      }
+    },
+    {
+      "name": "Area inexistente -> 422 (matriz)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 422\", () => { pm.response.to.have.status(422); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G56-area-{{run}}\", \"descripcion\": \"area\", \"id_infraestructura\": 999999, \"id_tipo_dispositivo\": 3, \"es_activo\": true}"
+        }
+      }
+    },
+    {
+      "name": "Serial multibyte (Ñ) de 50 caracteres -> 400 SERIAL_FORMATO_INVALIDO (solo alfanumerico, guiones)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 400\", () => { pm.response.to.have.status(400); });",
+              "pm.test(\"error_code SERIAL_FORMATO_INVALIDO\", () => { pm.expect(j.error_code).to.eql('SERIAL_FORMATO_INVALIDO'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"ÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑÑ{{run}}\", \"descripcion\": \"QA M09 G56 mb\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    }
+  ]
+}

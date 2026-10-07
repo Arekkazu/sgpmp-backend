@@ -1,0 +1,144 @@
+{
+  "info": {
+    "name": "TC-M09-G129-V2 - RF-23 spoofing de identidad IoT (ingesta de telemetria)",
+    "description": "Trazabilidad: este grupo prueba ingesta de telemetría (RF-53/RF-60), no configuración remota. Ejecutado en TEST: identificador inexistente y dispositivo dado de baja (id 116) no deben aceptar datos.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "Telemetria de dispositivo inexistente no se acepta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"rechazada (4xx)\", () => { pm.expect(pm.response.code).to.be.within(400, 499); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/telemetria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "telemetria"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": 999999, \"sensor_id\": 1, \"tipo_variable\": \"temperatura\", \"valor\": 25, \"unidad\": \"C\", \"access_key\": \"clave-falsa\"}"
+        }
+      }
+    },
+    {
+      "name": "Telemetria de dispositivo dado de baja (116) con clave falsa no se acepta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"no aceptada (no 201)\", () => { pm.expect(pm.response.code).to.not.eql(201); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/iot/telemetria",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "iot",
+            "telemetria"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"device_id\": 116, \"sensor_id\": 1, \"tipo_variable\": \"temperatura\", \"valor\": 25, \"unidad\": \"C\", \"access_key\": \"clave-falsa\"}"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "info": {
+    "name": "TC-M09-G68-V2 - RF-23 camino feliz",
+    "description": "RF-23. Ejecutado en TEST: configuración aceptada en estado PENDIENTE (202) y registrada en el historial con usuario. La confirmación real (ACK / 504) requiere broker en DEV y no se prueba aquí.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('run')) pm.collectionVariables.set('run', String(Date.now()).slice(-6));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Login adm",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('tok_adm', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"admin@pecuaria.co\",\n  \"contrasena\": \"Test1234!\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "Setup - registrar dispositivo cf",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const t0 = Date.now(); while (Date.now() - t0 < 6500) {}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 201\", () => { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('d1', j.id_dispositivo_iot);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"serial\": \"QA-M09-G68-cf-{{run}}\", \"descripcion\": \"QA M09 G68 cf\", \"id_infraestructura\": 3, \"id_tipo_dispositivo\": 3}"
+        }
+      }
+    },
+    {
+      "name": "Configurar SENSOR -> 202 PENDIENTE",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 202\", () => { pm.response.to.have.status(202); });",
+              "pm.test(\"estado PENDIENTE\", () => { pm.expect(j.estado).to.eql('PENDIENTE'); });",
+              "pm.collectionVariables.set('cfg1', j.id_configuracion_remota);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{d1}}/configurar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{d1}}",
+            "configurar"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"frecuencia_captura\": 10, \"intervalo_transmision\": 10}"
+        }
+      }
+    },
+    {
+      "name": "Historial contiene la configuracion con usuario",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const j=(()=>{try{return pm.response.json()}catch(e){return {}}})();",
+              "pm.test(\"HTTP 200\", () => { pm.response.to.have.status(200); });",
+              "pm.test(\"registro con los campos y id_usuario\", () => { const c = j.items.find(x => x.id_configuracion_remota == pm.collectionVariables.get('cfg1')); pm.expect(c).to.not.be.undefined; pm.expect(c.frecuencia_captura).to.eql(10); pm.expect(c.intervalo_transmision).to.eql(10); pm.expect(c.estado).to.eql('PENDIENTE'); pm.expect(c.id_usuario).to.not.be.null; });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{tok_adm}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/dispositivos-iot/{{d1}}/configuraciones",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "dispositivos-iot",
+            "{{d1}}",
+            "configuraciones"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "tok_adm",
+      "value": ""
+    }
+  ]
+}
