@@ -1,0 +1,37 @@
+{
+  "grupo": "TC-M09-G75-v2.0",
+  "runId": "run-20261007-072226",
+  "commit": "ERROR: Command failed: git rev-parse HEAD\nfatal: not a git repository (or any of the parent directories): .git\n",
+  "nota": "SHA-256 de la automatización que produjo este RUN. Las copias están sanitizadas y no contienen secretos.",
+  "artefactos": [
+    {
+      "archivo": "TC-M09-G75-v2.0.postman_collection.json",
+      "sha256_original": "ea8e824f9d835bdd421b29dab26580070502a5a697da1af31621bde2e2f7e43b",
+      "sha256_copia": "ea8e824f9d835bdd421b29dab26580070502a5a697da1af31621bde2e2f7e43b",
+      "bytes": 58697
+    },
+    {
+      "archivo": "helpers.cjs",
+      "sha256_original": "edd168aa73120ed403694dd8d7d795fbddcd61dd3ca4f717333003859c77c55b",
+      "sha256_copia": "edd168aa73120ed403694dd8d7d795fbddcd61dd3ca4f717333003859c77c55b",
+      "bytes": 14680
+    },
+    {
+      "archivo": "run-newman.cjs",
+      "sha256_original": "bd34a3d8090ecd4841d25c6a8abbc727310af47ecc2373cd2f54fddb62d5f131",
+      "sha256_copia": "bd34a3d8090ecd4841d25c6a8abbc727310af47ecc2373cd2f54fddb62d5f131",
+      "bytes": 21331,
+      "sha256_original_al_ejecutar_los_post": "fc4a1d0f6f32712a46225e13cda4b7348f53d34ad494107fc7c7681fbc559037",
+      "correccionPosteriorALosPost": "Se corrigio la resolucion de la raiz del repositorio, que se contaba por niveles de directorio y hacia fallar la captura de git_pre.txt. No afecta los requests ni el oraculo: los 7 POST ya estaban ejecutados y la coleccion y helpers.cjs conservan su SHA-256 original."
+    },
+    {
+      "archivo": "verificar-cierre.cjs",
+      "sha256_original": "7b290d58f0439c2b60fab998141217d3427aa5f28913baa622adf2d52d9bb818",
+      "sha256_copia": "7b290d58f0439c2b60fab998141217d3427aa5f28913baa622adf2d52d9bb818",
+      "bytes": 7786,
+      "sha256_original_al_ejecutar_los_post": "e7f163ce2826aee4a5af1de28b0c0845eb0925f9ce61a8833268e1102ec1187e",
+      "correccionPosteriorALosPost": "Se corrigio un falso positivo del escaneo de secretos: en las copias de codigo de automation/ el vocabulario y los propios patrones regex del escaner se contaban como hallazgo (por ejemplo \"contrasena: password\", que es una referencia a una variable, o la cadena set-cookie del propio patron). Ningun valor real de credencial estuvo presente en ninguna evidencia (credencialesEnClaro=0 en todos los archivos). No afecta el oraculo del grupo ni los POST, que ya estaban ejecutados."
+    }
+  ],
+  "nota_correccion": "verificar-cierre.cjs no participa en los POST: solo ejecuta GET de cierre y el escaneo de secretos. Los artefactos que produjeron los 7 POST (coleccion, helpers.cjs, run-newman.cjs) conservan el SHA-256 original de este manifiesto."
+}

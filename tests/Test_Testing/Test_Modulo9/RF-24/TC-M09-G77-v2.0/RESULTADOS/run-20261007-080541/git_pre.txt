@@ -1,0 +1,30 @@
+# git_pre.txt — TC-M09-G77-v2.0
+# Capturado: 2026-10-07T08:05:43.396Z
+
+$ git branch --show-current
+qa/juan-esteban-rf24-v2
+
+$ git status --short
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/
+?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/
+
+$ git diff --stat
+(vacio)
+
+$ git diff --cached --stat
+(vacio)
+
+$ git rev-parse HEAD
+30ddd72144102a60af006b265a20cb18c1c72c85
+
+$ git rev-parse origin/test
+30ddd72144102a60af006b265a20cb18c1c72c85
+
+$ git rev-list --left-right --count HEAD...origin/test
+0	0
+
+# Carpeta histórica TC-M09-G77 (debe quedar intacta, incluida EvaluacionV2)
+$ git status --short -- tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77
+(vacio = intacta)

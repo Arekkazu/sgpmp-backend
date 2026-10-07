@@ -1,0 +1,157 @@
+{
+  "grupo": "TC-M09-G137",
+  "casos": [
+    "TC-M09-275",
+    "TC-M09-276",
+    "TC-M09-277"
+  ],
+  "run_id": "run-20261007-100743",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G134/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G135/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_vision": {
+    "encontrada": false,
+    "method": null,
+    "path": null,
+    "request_schema": null,
+    "responses": null,
+    "security": null,
+    "operaciones_vision_candidatas": [],
+    "busqueda": {
+      "paths_totales": 210,
+      "post_totales": 77,
+      "schemas_totales": 305,
+      "apariciones_exactas": {
+        "VISION": 0,
+        "modo_calibracion": 0,
+        "ventana_observacion": 0,
+        "origen_disparo": 0,
+        "linea_base": 0,
+        "baseline": 0,
+        "vectores_comportamiento": 0
+      }
+    },
+    "operacion_sensor_existente": {
+      "method": "POST",
+      "path": "/configuracion/sensores/{id_sensor}/calibrar",
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "request_schema": {
+        "$ref": "#/components/schemas/RegistrarCalibracionDTO"
+      },
+      "responses": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ],
+      "security": null,
+      "dto": "RegistrarCalibracionDTO",
+      "campos": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "requeridos": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "fecha_calibracion"
+      ]
+    }
+  },
+  "precondiciones_vision": {
+    "linea_base_verificable": "NO EVALUADA",
+    "area": "NO EVALUADA",
+    "especie": "NO EVALUADA",
+    "modelo": "NO EVALUADA",
+    "camara": "NO EVALUADA",
+    "vectores": "NO EVALUADOS",
+    "minimo": "NO EVALUADO"
+  },
+  "actores": {
+    "ingeniero": "NO CONSULTADO: no existe operación VISION",
+    "administrador": "NO CONSULTADO: no existe operación VISION",
+    "productor": "NO CONSULTADO: no existe operación VISION"
+  },
+  "setup_productor": {
+    "realizado": false,
+    "motivo": "Sin operación VISION; no se modificó cuenta"
+  },
+  "post_vision_planificados": 0,
+  "post_vision_ejecutados": 0,
+  "post_setup_ejecutados": 0,
+  "sql_ejecutado": "ninguno",
+  "TC-M09-275": {
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "post_ejecutado": false,
+    "motivo": "No existe en OpenAPI TEST una operación VISION para ejecutar el disparo manual del Ingeniero. La línea base, M03 y auditoría no se evaluaron."
+  },
+  "TC-M09-276": {
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "post_ejecutado": false,
+    "motivo": "No existe en OpenAPI TEST una operación VISION para ejecutar el disparo manual del Administrador. No se puede observar una segunda línea base."
+  },
+  "TC-M09-277": {
+    "resultado": "RECHAZADO",
+    "post_ejecutado": false,
+    "http_esperado": 403,
+    "http_obtenido": null,
+    "mensaje_exacto": "NO OBSERVABLE",
+    "productor_activo_autenticado": "NO VERIFICADO: la operación VISION no existe",
+    "motivo": "El producto no expone la operación VISION a la que RF-24 exige aplicar 403 y mensaje exacto al Productor; el oráculo de G137 califica esta ausencia como rechazo."
+  },
+  "resultado_general": "RECHAZADO",
+  "motivo_general": "TC-277 demuestra la falta de operación VISION exigida por RF-24; TC-275/276 no son ejecutables sin esa operación.",
+  "incidencias": [
+    {
+      "incidencia_requerida": "SÍ",
+      "grupo_responsable": "Desarrollo",
+      "grupo_prueba": "TC-M09-G137",
+      "casos_afectados": [
+        "TC-M09-275",
+        "TC-M09-276",
+        "TC-M09-277"
+      ],
+      "resultado": "RECHAZADO con TC-275/276 BLOQUEADOS",
+      "motivo": "OpenAPI TEST no publica la operación VISION del Flujo F.",
+      "esperado": "Método/ruta/body VISION para disparo manual y control Productor HTTP 403 con mensaje exacto.",
+      "obtenido": "Solo calibración SENSOR Flujo D; ninguna operación VISION publicada.",
+      "causa_raiz": "Falta exposición del contrato VISION en TEST; API no distingue implementación ausente de despliegue pendiente.",
+      "type": "bug",
+      "severity": "Important",
+      "priority": "High",
+      "evidencia": "evidencia.json / newman.html"
+    }
+  ],
+  "openapi_http": 200,
+  "newman": {
+    "assertions": [
+      {
+        "nombre": "OpenAPI TEST responde 200",
+        "error": null
+      },
+      {
+        "nombre": "OpenAPI contiene paths y schemas",
+        "error": null
+      }
+    ],
+    "fallos": []
+  },
+  "openapi_observed_at_utc": "2026-10-07T10:07:52.218Z",
+  "openapi_sha256": "3c5399809538cc403904725612dc20072bbc2c964eb10c8ad7f802731d21eed8"
+}

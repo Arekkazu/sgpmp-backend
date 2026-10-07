@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="2.258" timestamp="2026-10-07T09:01:23.433007-05:00" hostname="Juanher01"><testcase classname="tests.Test_Testing.Test_Modulo9.RF-24.TC-M09-G136.test_tc_m09_274" name="test_tc_m09_274_auditoria_best_effort" time="1.872"><failure message="AssertionError: RANGE: el mensaje no coincide con el FA de RF-24 v2.0.&#10;    esperado: Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.&#10;    obtenido: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.&#10;assert False">conn = &lt;connection object at 0x00000279B84E4F20; dsn: 'user=g136_owner password=xxx dbname=sgpmp_g136_lab host=127.0.0.1 port=55436', closed: 0&gt;
+api_base = 'http://127.0.0.1:18036'
+
+    def test_tc_m09_274_auditoria_best_effort(conn, api_base):
+        ev: dict = {
+            "grupo": GRUPO, "caso": CASO, "requisito": RF, "casoDeUso": CU, "run_id": RUN_ID,
+            "ambiente": "LOCAL_AISLADO", "prueba_local": True,
+        }
+    
+        # ------------------------------------------------------------------ git
+        repo = BASE_DIR
+        for _ in range(12):
+            if (repo / ".git").exists():
+                break
+            repo = repo.parent
+        g = lambda *a: run_cmd(["git", "-C", str(repo), *a])[1].strip() or "(vacio)"
+        ev["git"] = {
+            "rama": g("branch", "--show-current"), "status_short": g("status", "--short"),
+            "diff_stat": g("diff", "--stat"), "diff_cached_stat": g("diff", "--cached", "--stat"),
+            "head": g("rev-parse", "HEAD"), "origin_test": g("rev-parse", "origin/test"),
+            "divergencia": g("rev-list", "--left-right", "--count", "HEAD...origin/test"),
+        }
+    
+        # ------------------------------------------------------- guard del laboratorio
+        ident = filas(conn, "SELECT current_database() AS db, current_user AS usuario, "
+                            "inet_server_addr()::text AS addr, inet_server_port() AS port")[0]
+        dsn = os.environ.get("G136_ADMIN_DSN", "")
+        host_dsn = (re.search(r"@([^:/?]+)", dsn) or [None, ""])[1]
+        host_api = (re.search(r"://([^:/?]+)", api_base) or [None, ""])[1]
+        problemas = []
+        if ident["db"] != BD_ESPERADA:
+            problemas.append(f"la base es {ident['db']} y se esperaba {BD_ESPERADA}")
+        if host_dsn not in {"127.0.0.1", "localhost", "::1"}:
+            problemas.append(f"el host del DSN ({host_dsn}) no es local")
+        if host_api not in {"127.0.0.1", "localhost", "::1"}:
+            problemas.append(f"el host de la API ({host_api}) no es local")
+        for patron in ("inmero.co", "sslip.io", "back-sigab", "dokploy"):
+            if patron in dsn.lower() or patron in api_base.lower():
+                problemas.append(f"la conexión referencia un entorno remoto ({patron})")
+        ev["lab_guard"] = {
+            "base_de_datos": ident["db"], "usuario_conexion": ident["usuario"],
+            "host_dsn": host_dsn, "host_api": host_api, "puerto": ident["port"],
+            "compose_project": COMPOSE_PROJECT,
+            "contenedores": {"db": CONTAINER_DB, "backend": CONTAINER_BACKEND},
+            "volumen": "sgpmp_g136_pgdata (exclusivo del caso)",
+            "problemas": problemas, "resultado": "PASS" if not problemas else "BLOCKED / SAFETY GUARD",
+            "postgres": str(uno(conn, "SELECT version()")),
+            "alembic_version": str(uno(conn, "SELECT version_num FROM alembic_version")),
+        }
+        assert not problemas, "BLOCKED / SAFETY GUARD: " + "; ".join(problemas)
+    
+        # ------------------------------------------------------- roles de base de datos
+        rol_app = filas(conn, "SELECT rolname, rolsuper, rolinherit, rolbypassrls, rolcanlogin "
+                              "FROM pg_roles WHERE rolname = %s", (APP_ROLE,))[0]
+        owners = filas(conn, """
+            SELECT schemaname, tablename, tableowner FROM pg_tables
+            WHERE (schemaname, tablename) IN (('modulo1','eventos'), ('modulo9','calibraciones'),
+                                              ('modulo9','auditorias_calibraciones'))
+            ORDER BY schemaname, tablename
+        """)
+        hereda = uno(conn, """
+            SELECT EXISTS(SELECT 1 FROM pg_auth_members m
+                          JOIN pg_roles r ON r.oid = m.roleid
+                          JOIN pg_roles gg ON gg.oid = m.member
+                          WHERE gg.rolname = %s)
+        """, (APP_ROLE,))
+        app_owner_eventos = any(o["tablename"] == "eventos" and o["tableowner"] == APP_ROLE for o in owners)
+        ev["db_roles"] = {
+            "owner": {"rol": OWNER_ROLE, "uso": "migraciones, seed, REVOKE/GRANT y consultas administrativas"},
+            "app": {**rol_app, "uso": "DATABASE_URL real del backend"},
+            "app_es_superuser": rol_app["rolsuper"],
+            "app_es_owner_eventos": app_owner_eventos,
+            "app_hereda_de_otro_rol": hereda,
+            "owners_tablas": owners,
+            "nota_bypassrls": ("BYPASSRLS es necesario porque las políticas RLS leen app.current_user_id, "
+                               "que la aplicación fija después de autenticar: sin él el login es imposible. "
+                               "Solo afecta políticas de FILA, no privilegios de TABLA, de modo que el "
+                               "REVOKE de INSERT sobre modulo1.eventos sigue siendo efectivo."),
+        }
+        assert rol_app["rolcanlogin"] is True
+        assert rol_app["rolsuper"] is False, "el rol de la aplicación NO puede ser superusuario"
+        assert app_owner_eventos is False, "el rol de la aplicación NO puede ser owner de modulo1.eventos"
+        assert hereda is False, "el rol de la aplicación no puede heredar privilegios de otro rol"
+    
+        # ------------------------------------------------------------------ fixture local
+        sembrar_fixture(conn)
+        fx = filas(conn, """
+            SELECT d.id_dispositivo_iot, d.serial, d.es_activo,
+                   s.id_sensores AS id_sensor, s.categoria::text AS categoria, s.es_activo AS sensor_activo,
+                   a.id_infraestructura, r.valor_min, r.valor_max
+            FROM modulo9.dispositivos_iot d
+            JOIN modulo9.sensores s ON s.id_dispositivo_iot = d.id_dispositivo_iot
+            JOIN modulo9.sensores_areas_asociadas a
+              ON a.id_sensor = s.id_sensores AND a.tiene_estado = true AND a.fecha_finalizacion IS NULL
+            JOIN modulo9.rangos_calibracion r ON r.categoria = s.categoria::text
+            WHERE d.serial IN ('IOT-G136-LAB-ACT', 'IOT-G136-LAB-INACT')
+            ORDER BY d.serial
+        """)
+        activo = next(f for f in fx if f["serial"] == "IOT-G136-LAB-ACT")
+        inactivo = next(f for f in fx if f["serial"] == "IOT-G136-LAB-INACT")
+        assert activo["es_activo"] is True and inactivo["es_activo"] is False
+    
+        # Determinista aunque el seed use otro máximo: valor_fuera = max + 0.0001.
+        vmax = Decimal(str(activo["valor_max"]))
+        vmin = Decimal(str(activo["valor_min"]))
+        valor_fuera = (vmax + Decimal("0.0001")).quantize(Decimal("0.0001"))
+        valor_valido = ((vmin + vmax) / 2).quantize(Decimal("0.0001"))
+        assert valor_fuera &gt; vmax, "el valor de la variante RANGE debe exceder el máximo"
+        assert vmin &lt; valor_valido &lt; vmax, "la variante INACTIVE debe usar un valor válido"
+    
+        actor = filas(conn, """
+            SELECT u.id_usuario, u.correo_electronico, r.nombre_rol, e.nombre AS estado_cuenta
+            FROM modulo1.usuarios u
+            JOIN modulo1.roles r ON r.id_rol = u.id_rol
+            JOIN modulo1.cuentas_usuarios c ON c.id_usuario = u.id_usuario
+            JOIN modulo1.estados_cuentas e ON e.id_estado_cuenta = c.id_estado_cuenta
+            WHERE u.correo_electronico = %s
+        """, (ACTOR_CORREO,))[0]
+        assert actor["nombre_rol"] == ROL_ESPERADO and actor["estado_cuenta"] == "Activo"
+    
+        ev["fixtures"] = {
+            "actor": {"id_usuario": actor["id_usuario"], "correo": actor["correo_electronico"],
+                      "rol": actor["nombre_rol"], "estado": actor["estado_cuenta"], "credencial": "[REDACTED]"},
+            "rango": {
+                "id_dispositivo_iot": activo["id_dispositivo_iot"], "serial": activo["serial"],
+                "es_activo": activo["es_activo"], "id_sensor": activo["id_sensor"],
+                "categoria": activo["categoria"], "id_infraestructura": activo["id_infraestructura"],
+                "valor_min": str(vmin), "valor_max": str(vmax), "valor_fuera": str(valor_fuera),
+                "criterio_valor": "max + 0.0001, determinista respecto al rango sembrado",
+            },
+            "dispositivo_inactivo": {
+                "id_dispositivo_iot": inactivo["id_dispositivo_iot"], "serial": inactivo["serial"],
+                "es_activo": inactivo["es_activo"], "id_sensor": inactivo["id_sensor"],
+                "categoria": inactivo["categoria"], "id_infraestructura": inactivo["id_infraestructura"],
+                "valor_usado": str(valor_valido),
+            },
+        }
+    
+        # ------------------------------------- token ANTES del REVOKE (el login audita RF-10)
+        r = requests.post(f"{api_base}/sesiones/",
+                          json={"correo_electronico": ACTOR_CORREO, "contrasena": os.environ["G136_ING_PASSWORD"]},
+                          timeout=30)
+        assert r.status_code == 200 and r.json().get("token"), f"BLOQUEADO: el Ingeniero no autentica ({r.status_code})"
+        token = r.json()["token"]  # vive solo en memoria; nunca se persiste
+        headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    
+        me = requests.get(f"{api_base}/usuarios/me", headers=headers, timeout=30)
+        assert me.status_code == 200 and me.json()["nombre_rol"] == ROL_ESPERADO
+        # Control de LECTURA: no consume el caso ni crea auditoría adicional.
+        lectura = requests.get(f"{api_base}/configuracion/sensores/{activo['id_sensor']}/calibraciones",
+                               headers=headers, timeout=30)
+        assert lectura.status_code == 200
+        ev["fixtures"]["actor"]["token_obtenido_antes_del_revoke"] = True
+        ev["fixtures"]["actor"]["control_de_lectura_http"] = lectura.status_code
+    
+        # ------------------------------------- privilegios y snapshots ANTES del fault
+        priv = lambda: filas(conn, f"""
+            SELECT has_table_privilege(%s, '{TABLA_EVENTOS}', 'INSERT')          AS eventos_insert,
+                   has_table_privilege(%s, 'modulo9.calibraciones', 'INSERT')    AS calibraciones_insert,
+                   has_table_privilege(%s, 'modulo9.auditorias_calibraciones', 'INSERT') AS audit_m9_insert
+        """, (APP_ROLE, APP_ROLE, APP_ROLE))[0]
+        priv_antes = priv()
+        assert priv_antes["eventos_insert"] is True, "BLOQUEADO: la app no tiene INSERT sobre RF-10 antes del fault"
+    
+        snap = lambda sid: filas(conn, "SELECT id_calibracion FROM modulo9.calibraciones "
+                                       "WHERE id_sensor = %s ORDER BY id_calibracion", (sid,))
+        pre_range = [f["id_calibracion"] for f in snap(activo["id_sensor"])]
+        pre_inact = [f["id_calibracion"] for f in snap(inactivo["id_sensor"])]
+    
+        # Marca para acotar la captura de logs del backend al fault injection.
+        marca_logs = ahora_iso()
+    
+        restaurado = {"ok": None}
+        try:
+            # --------------------------------------------- FAULT INJECTION
+            rc, salida_rev = psql_owner(
+                f"REVOKE INSERT ON TABLE {TABLA_EVENTOS} FROM {APP_ROLE};")
+            assert rc == 0, f"el REVOKE no se aplicó: {salida_rev}"
+            priv_durante = priv()
+            ev["privilegios"] = {
+                "insert_eventos_antes": priv_antes["eventos_insert"],
+                "insert_eventos_durante": priv_durante["eventos_insert"],
+                "calibraciones_insert_conservado": priv_durante["calibraciones_insert"],
+                "auditoria_m9_insert_conservado": priv_durante["audit_m9_insert"],
+                "insert_eventos_restaurado": None,
+            }
+            # Si el REVOKE no es efectivo, el laboratorio es inválido: no se envían los POST.
+            assert priv_durante["eventos_insert"] is False, (
+                "BLOQUEADO / LABORATORIO INVÁLIDO: el REVOKE no eliminó el INSERT sobre RF-10 "
+                "(¿app owner, superuser o rol heredado?)")
+            # El único fallo inducido debe ser la escritura RF-10.
+            assert priv_durante["calibraciones_insert"] is True
+            assert priv_durante["audit_m9_insert"] is True
+            assert filas(conn, "SELECT count(*) AS n FROM modulo9.sensores WHERE id_sensores = %s",
+                         (activo["id_sensor"],))[0]["n"] == 1, "el SELECT del fixture debe seguir funcionando"
+    
+            def ejecutar(variante: str, id_sensor: int, id_dispositivo: int, id_area: int,
+                         valor: Decimal, observaciones: str, http_esperado: int, mensaje_esperado: str,
+                         pre_ids: list[int]) -&gt; dict:
+                t_before = ahora_iso()
+                body = {
+                    "modo_calibracion": "SENSOR",
+                    "id_dispositivo_iot": id_dispositivo,
+                    "id_infraestructura": id_area,
+                    "valor_referencia": float(valor),
+                    "observaciones": observaciones,
+                    "fecha_calibracion": t_before,
+                }
+                resp = requests.post(f"{api_base}/configuracion/sensores/{id_sensor}/calibrar",
+                                     headers=headers, data=json.dumps(body), timeout=60)
+                t_after = ahora_iso()
+                cuerpo = resp.json() if resp.content else None
+                post_ids = [f["id_calibracion"] for f in snap(id_sensor)]
+                # ¿Se escribió realmente el evento RF-10 del rechazo en la ventana?
+                eventos = filas(conn, f"""
+                    SELECT id_evento, tipo_evento, fecha_evento
+                    FROM {TABLA_EVENTOS}
+                    WHERE fecha_evento &gt;= %s::timestamptz AND fecha_evento &lt;= %s::timestamptz
+                      AND id_usuario = %s
+                    ORDER BY id_evento
+                """, (t_before, t_after, actor["id_usuario"]))
+                mensaje = (cuerpo or {}).get("message")
+                return {
+                    "variante": variante,
+                    "request": {"endpoint": f"/configuracion/sensores/{id_sensor}/calibrar", "metodo": "POST",
+                                "headers": {"Authorization": "[REDACTED]", "Content-Type": "application/json"},
+                                "body": body},
+                    "response": {"http": resp.status_code, "cuerpo": cuerpo},
+                    "ventana": {"t_before": t_before, "t_after": t_after},
+                    "http_esperado": http_esperado, "http_obtenido": resp.status_code,
+                    "no_es_500": resp.status_code != 500,
+                    "mensaje_esperado": mensaje_esperado, "mensaje_obtenido": mensaje,
+                    "mensaje_coincide": mensaje == mensaje_esperado,
+                    "calibraciones_pre": {"ids": pre_ids, "total": len(pre_ids)},
+                    "calibraciones_post": {"ids": post_ids, "total": len(post_ids)},
+                    "calibracion_creada": post_ids != pre_ids,
+                    "evento_rf10_creado": len(eventos) &gt; 0,
+                    "eventos_en_la_ventana": eventos,
+                }
+    
+            # --------------------------------------------- Variante A: valor fuera de rango
+            range_res = ejecutar(
+                "RANGE", activo["id_sensor"], activo["id_dispositivo_iot"], activo["id_infraestructura"],
+                valor_fuera, "QA TC-M09-274 RANGE", 400,
+                msg_fuera_de_rango(str(valor_fuera), activo["categoria"]), pre_range)
+    
+            # --------------------------------------------- Variante B: dispositivo inactivo
+            inactive_res = ejecutar(
+                "INACTIVE", inactivo["id_sensor"], inactivo["id_dispositivo_iot"], inactivo["id_infraestructura"],
+                valor_valido, "QA TC-M09-274 INACTIVE", 422,
+                msg_dispositivo_inactivo(inactivo["serial"]), pre_inact)
+    
+            # --------------------------------------------- constancia observable del fallo
+            log = logs_backend(desde=marca_logs)
+            (OUT_DIR / "backend.log").write_text(clean(log), encoding="utf-8")
+    
+            def alertas(desde: str, hasta: str) -&gt; list[dict]:
+                """Agrupa como UN evento de alerta cada excepción, aunque traiga varias líneas."""
+                encontradas = []
+                for linea in clean(log).splitlines():
+                    indicio = ("permission denied" in linea.lower()
+                               and "eventos" in linea.lower()) or \
+                              ("auditar" in linea.lower() and "calibraci" in linea.lower())
+                    if indicio:
+                        encontradas.append({"fragmento": linea.strip()[:300]})
+                return encontradas
+    
+            alertas_range = alertas(range_res["ventana"]["t_before"], range_res["ventana"]["t_after"])
+            alertas_inactive = alertas(inactive_res["ventana"]["t_before"], inactive_res["ventana"]["t_after"])
+            # Las entradas del log no llevan timestamp propio, así que se correlacionan por el
+            # orden de aparición: la primera constancia corresponde al POST RANGE y la segunda al
+            # POST INACTIVE, que son los únicos dos intentos del RUN.
+            total_alertas = alertas(marca_logs, ahora_iso())
+            captura_ok = bool(log.strip())
+            range_res["alerta_log"] = {
+                "captura_de_logs_operativa": captura_ok,
+                "alerta_encontrada": len(total_alertas) &gt;= 1,
+                "fragmento": total_alertas[0]["fragmento"] if total_alertas else None,
+            }
+            inactive_res["alerta_log"] = {
+                "captura_de_logs_operativa": captura_ok,
+                "alerta_encontrada": len(total_alertas) &gt;= 2,
+                "fragmento": total_alertas[1]["fragmento"] if len(total_alertas) &gt; 1 else None,
+            }
+            ev["alertas_detectadas"] = {
+                "total": len(total_alertas), "entradas": total_alertas,
+                "criterio": ("Una constancia observable por cada fallo de auditoría. Varias líneas de "
+                             "una misma excepción se agrupan como un único evento de alerta. El RF no "
+                             "define sink, formato ni texto literal: el canal elegido es el log del backend."),
+            }
+    
+            # --------------------------------------------- oráculo por variante
+            for res in (range_res, inactive_res):
+                res["oraculo"] = {
+                    "http_correcto": res["http_obtenido"] == res["http_esperado"],
+                    "no_es_500": res["no_es_500"],
+                    "mensaje_fa_correcto": res["mensaje_coincide"],
+                    "sin_calibracion_creada": res["calibracion_creada"] is False,
+                    "evento_rf10_no_escrito": res["evento_rf10_creado"] is False,
+                    "alerta_observable": res["alerta_log"]["alerta_encontrada"] is True,
+                }
+                res["resultado"] = "APROBADO" if all(res["oraculo"].values()) else "RECHAZADO"
+    
+            ev["range"] = range_res
+            ev["inactive"] = inactive_res
+    
+        finally:
+            # --------------------------------------------- restauración, siempre
+            rc_res, salida_res = psql_owner(
+                f"GRANT INSERT ON TABLE {TABLA_EVENTOS} TO {APP_ROLE};")
+            priv_despues = priv()
+            restaurado["ok"] = priv_despues["eventos_insert"] is True
+            ev.setdefault("privilegios", {})["insert_eventos_restaurado"] = priv_despues["eventos_insert"]
+            ev["restauracion"] = {
+                "grant_ejecutado": rc_res == 0, "privilegios_restaurados": restaurado["ok"],
+                "salida": salida_res.strip()[:400],
+                "nota": "Se devuelve exactamente el privilegio que el snapshot PRE demostraba disponible.",
+            }
+            _escribir_evidencia(ev)
+    
+        assert restaurado["ok"] is True, (
+            "EJECUCIÓN INVÁLIDA / LABORATORIO NO CERRADO CORRECTAMENTE: no se restauró el INSERT sobre RF-10")
+    
+        # --------------------------------------------- aserciones del oráculo
+        r_a, r_b = ev["range"], ev["inactive"]
+        assert r_a["no_es_500"], "el fallo de auditoría se propagó al cliente: la variante RANGE devolvió 500"
+        assert r_b["no_es_500"], "el fallo de auditoría se propagó al cliente: la variante INACTIVE devolvió 500"
+        assert r_a["http_obtenido"] == 400, f"RANGE: HTTP esperado 400, obtenido {r_a['http_obtenido']}"
+        assert r_b["http_obtenido"] == 422, f"INACTIVE: HTTP esperado 422, obtenido {r_b['http_obtenido']}"
+        assert r_a["calibracion_creada"] is False and r_b["calibracion_creada"] is False
+        assert r_a["evento_rf10_creado"] is False and r_b["evento_rf10_creado"] is False
+        assert r_a["alerta_log"]["alerta_encontrada"], "no se observó constancia del fallo de auditoría en RANGE"
+        assert r_b["alerta_log"]["alerta_encontrada"], "no se observó constancia del fallo de auditoría en INACTIVE"
+&gt;       assert r_a["mensaje_coincide"], (
+            "RANGE: el mensaje no coincide con el FA de RF-24 v2.0.\n"
+            f"  esperado: {r_a['mensaje_esperado']}\n  obtenido: {r_a['mensaje_obtenido']}")
+E       AssertionError: RANGE: el mensaje no coincide con el FA de RF-24 v2.0.
+E           esperado: Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA. Verifique el estándar de calibración utilizado.
+E           obtenido: El ajuste de 45.0001 excede los rangos de seguridad para la variable TEMPERATURA (permitido 0.0000–45.0000). Verifique el estándar de calibración utilizado.
+E       assert False
+
+test_tc_m09_274.py:548: AssertionError</failure></testcase></testsuite></testsuites>
