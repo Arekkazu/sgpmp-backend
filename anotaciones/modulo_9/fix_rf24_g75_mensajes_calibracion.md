@@ -3,7 +3,7 @@
 Incidencia: `INC-M09-69-G75-v2.0`. Grupo: `TC-M09-G75-v2.0`.
 Casos: `TC-M09-144-v2.0` y `TC-M09-145-v2.0`.
 Base de trabajo: `origin/dev`, commit `5541ea36`.
-Rama: `codex/rf24-g75-mensajes-calibracion`.
+Rama: `fix/rf24-g75-mensajes-calibracion`.
 
 ## Desvío y causa raíz
 
