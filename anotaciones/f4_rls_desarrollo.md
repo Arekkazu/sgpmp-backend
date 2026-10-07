@@ -56,9 +56,22 @@ Dos pruebas cambiaron porque fijaban la regla vieja ("el administrador ve todo")
 
 **DBA:**
 1. Quitar `OR fn_rol_actual() = 'Administrador'` de las políticas SELECT de `fincas` e `infraestructuras`, y en INSERT/UPDATE de `infraestructuras` filtrar por las fincas del usuario. La app ya está lista para eso: el alta de fincas lo resiste.
-2. **Bloqueante para cambiar `DATABASE_URL`: las políticas de `modulo1` impiden autenticarse como `sgpmp_app`.** Verificado en `sgpmp_dev` como `sgpmp_app`:
-   - sin identidad se ven 0 usuarios, 0 roles y 0 permisos, así que el login no encuentra al usuario;
-   - un usuario no Administrador ve 0 roles y 0 permisos aun con identidad, así que `get_current_user` responde 401 y `require_permission` responde 403.
+2. **Bloqueante para cambiar `DATABASE_URL`: las políticas de `modulo1` (migración `8d80fb56a30b`) impiden autenticarse como `sgpmp_app`.** Hoy, con el código real conectado como `sgpmp_app`, `get_current_user` responde 401 a todos, Administrador incluido. Las causas:
+   - `roles`, `permisos` y `recursos` solo los lee el rol `'Administrador'`, pero la app los lee en cada request para autorizar a cualquiera.
+   - `pol_tokens_select` y `pol_tokens_update` enlazan por `tokens.id_sesion`, que solo existe en los tokens de refresco. El de acceso se enlaza por `sesiones.id_token`, así que nadie ve su propio token de acceso.
+   - `pol_cuentas_usuarios_update` no deja al usuario actualizar su propia cuenta (`ultimo_acceso`, intentos fallidos).
+   - Login, registro, activación, refresh y recuperación ocurren antes de que haya identidad.
+   - `credenciales_servicio` e `intentos_anonimos_ip` tienen RLS sin ninguna política.
+
+   La propuesta que se le pasó al DBA, probada como `sgpmp_app`, deja autenticar al Productor y al Administrador:
+   - catálogos legibles para todos;
+   - el enlace del token corregido;
+   - actualización de la propia cuenta;
+   - una función `SECURITY DEFINER` por cada búsqueda previa a la identidad.
+
+   Del lado de desarrollo quedan dos cosas:
+   - Declarar la identidad apenas se resuelve quién es: ya está hecho en `get_current_user`; falta en login, registro, refresh y recuperación.
+   - Insertar `tokens` y `usuarios` sin `RETURNING`: con `RETURNING`, la fila nueva tiene que pasar la política SELECT antes de quedar enlazada.
 3. Triggers que fallan abiertos cuando RLS les oculta filas:
    - `trg_fn_fase_activo_estado_valido`;
    - `trg_finca_nombre_unique`: la unicidad de nombre deja de ver las fincas ajenas, y no hay índice único que la respalde;
