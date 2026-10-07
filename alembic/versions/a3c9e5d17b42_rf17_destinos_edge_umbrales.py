@@ -8,7 +8,12 @@ INC-M09-104-G29 (#493): al crear o editar un umbral ambiental, el backend lo
 propaga a los Gateway Edge de las áreas de esa especie. Esta función responde
 "¿a qué Gateway Edge le corresponde un umbral de la especie X?":
 
-- áreas (`infraestructuras`) activas con `id_especie = X`;
+- áreas (`infraestructuras`) activas de la especie X: las que tienen
+  `id_especie = X` (RF-20 v1.1) y las que tienen activos biológicos vivos de X.
+  La segunda fuente cubre las áreas anteriores a RF-20 v1.1, con `id_especie`
+  NULL (en DEV y TEST, todas las que tienen Gateway Edge); es el mismo criterio
+  que `vw_rf25_contexto_usuario` (5764b9af852e, #253). Los estados del activo se
+  filtran por nombre, no por id, porque los ids son datos;
 - de ellas, los Gateway Edge activos (tipo `GATEWAY_EDGE`) instalados en el área
   o que atienden un dispositivo activo del área (`id_dispositivo_gateway`).
 
@@ -43,10 +48,26 @@ def upgrade() -> None:
         SECURITY DEFINER
         SET search_path = pg_catalog, modulo9
         AS $$
+            WITH areas_de_la_especie AS (
+                SELECT i.id_infraestructura
+                FROM modulo9.infraestructuras i
+                WHERE i.id_especie = p_id_especie
+                  AND i.es_activo
+                UNION
+                SELECT i.id_infraestructura
+                FROM modulo2.activos_biologicos a
+                JOIN modulo2.estados_activos_biologicos ea
+                  ON ea.id_estado_activo_biologico = a.id_estado
+                JOIN modulo9.infraestructuras i
+                  ON i.id_infraestructura = a.id_infraestructura
+                 AND i.es_activo
+                WHERE a.id_especie = p_id_especie
+                  AND ea.nombre::text <> ALL (ARRAY['INACTIVO', 'CERRADO', 'BAJA'])
+            )
             SELECT DISTINCT g.serial
-            FROM modulo9.infraestructuras i
+            FROM areas_de_la_especie ae
             JOIN modulo9.dispositivos_iot d
-              ON d.id_infraestructura = i.id_infraestructura
+              ON d.id_infraestructura = ae.id_infraestructura
              AND d.es_activo
             JOIN modulo9.dispositivos_iot g
               ON g.id_dispositivo_iot = COALESCE(d.id_dispositivo_gateway, d.id_dispositivo_iot)
@@ -54,8 +75,6 @@ def upgrade() -> None:
             JOIN modulo9.tipos_dispositivo_iot t
               ON t.id_tipo_dispositivo = g.id_tipo_dispositivo
              AND t.nombre = 'GATEWAY_EDGE'
-            WHERE i.id_especie = p_id_especie
-              AND i.es_activo
             ORDER BY g.serial;
         $$;
         """

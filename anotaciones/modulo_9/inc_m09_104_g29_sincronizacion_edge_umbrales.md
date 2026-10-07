@@ -14,7 +14,7 @@
 >
 > | Pieza | Decisión |
 > |---|---|
-> | Destino | Los **Gateway Edge** activos (tipo `GATEWAY_EDGE`) de las áreas activas de la especie: instalados en el área o que atienden un dispositivo activo del área. Es quien evalúa las lecturas en campo (`modulo3.eventos_edge_computing.umbral_*_aplicado`) y lo único que habla MQTT |
+> | Destino | Los **Gateway Edge** activos (tipo `GATEWAY_EDGE`) de las áreas activas de la especie —las que tienen su `id_especie` o activos biológicos vivos de ella, mismo criterio que #253—: instalados en el área o que atienden un dispositivo activo del área. Es quien evalúa las lecturas en campo (`modulo3.eventos_edge_computing.umbral_*_aplicado`) y lo único que habla MQTT |
 > | Resolución | `modulo9.fn_seriales_gateway_edge_por_especie(int)`, `SECURITY DEFINER` (migración `a3c9e5d17b42`): la política de `dispositivos_iot` solo deja leer a Administrador/Ingeniero, pero un Veterinario también edita umbrales |
 > | Transporte | `POST /v1/commands` con `origen: "umbral"` por Gateway, en paralelo; el broker publica en el topic `command` ya existente del Edge con `tipo_comando: "UMBRAL_AMBIENTAL"` (sin topics ni ACL nuevos) |
 > | Payload | `id_comando`, `emitido_en`, `id_umbral_ambiental`, `version` (= `fecha_actualizacion`), `variable` (nombre de telemetría), `unidad`, `valor_min`, `valor_max`, `niveles[]` |
