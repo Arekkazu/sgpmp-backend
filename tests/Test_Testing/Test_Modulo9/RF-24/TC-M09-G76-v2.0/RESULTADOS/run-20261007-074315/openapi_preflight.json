@@ -1,0 +1,112 @@
+{
+  "grupo": "TC-M09-G76-v2.0",
+  "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+  "endpoints": {
+    "POST /configuracion/sensores/{id_sensor}/calibrar": {
+      "presente": true,
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "codigosDeclarados": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    },
+    "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+      "presente": true,
+      "summary": "Historial de calibraciones de sensor (RF-24)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    },
+    "GET /configuracion/sensores/{id_sensor}/asociaciones": {
+      "presente": true,
+      "summary": "Historial de asociaciones sensor-área (RF-22)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ]
+    },
+    "GET /configuracion/dispositivos-iot/{id_dispositivo_iot}": {
+      "presente": true,
+      "summary": "Detalle de dispositivo IoT (RF-21)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ]
+    },
+    "GET /configuracion/dispositivos-iot/{id_dispositivo_iot}/sensores": {
+      "presente": true,
+      "summary": "Listar sensores de un dispositivo IoT (RF-22)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    },
+    "GET /configuracion/infraestructuras/{id_infraestructura}": {
+      "presente": true,
+      "summary": "Detalle de área productiva (Flujo C)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ]
+    },
+    "GET /configuracion/dispositivos-iot/{id_dispositivo_iot}/configuraciones": {
+      "presente": true,
+      "summary": "Historial de configuraciones remotas (RF-23)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ]
+    },
+    "PATCH /configuracion/dispositivos-iot/{id_dispositivo_iot}/desactivar": {
+      "presente": true,
+      "summary": "Desactivar dispositivo IoT (RF-21)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "404",
+        "422"
+      ]
+    }
+  },
+  "requestSchemaDelPost": {
+    "properties": [
+      "id_dispositivo_iot",
+      "id_infraestructura",
+      "valor_referencia",
+      "ganancia",
+      "offset",
+      "fecha_calibracion",
+      "observaciones"
+    ],
+    "required": [
+      "id_dispositivo_iot",
+      "id_infraestructura",
+      "fecha_calibracion"
+    ]
+  },
+  "modo_calibracion_declarado_en_openapi": false,
+  "nota": "modo_calibracion se envía como exige el caso aunque OpenAPI no lo declare. G76 no prueba el enum ni la obligatoriedad de ese campo."
+}

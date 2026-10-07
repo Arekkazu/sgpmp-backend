@@ -1,0 +1,328 @@
+{
+  "grupo": "TC-M09-G133",
+  "casos": [
+    "TC-M09-263",
+    "TC-M09-264"
+  ],
+  "run_id": "run-20261007-043322",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "prueba_local": false,
+  "post_calibracion_planificados": 3,
+  "post_calibracion_ejecutados": 3,
+  "delete_sesiones_ejecutados": 1,
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "",
+    "diff_cached_stat": "",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi": {
+    "POST /sesiones/": {
+      "presente": true,
+      "codigos_declarados": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "422",
+        "423",
+        "503"
+      ]
+    },
+    "DELETE /sesiones/": {
+      "presente": true,
+      "codigos_declarados": [
+        "200",
+        "401",
+        "422"
+      ]
+    },
+    "POST /configuracion/sensores/{id_sensor}/calibrar": {
+      "presente": true,
+      "codigos_declarados": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    },
+    "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+      "presente": true,
+      "codigos_declarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    }
+  },
+  "fixture": {
+    "sensor": 6,
+    "dispositivo": 3,
+    "area": 3,
+    "categoria": "TEMPERATURA",
+    "asociacion": 6,
+    "rango": {
+      "min": "0.0000",
+      "max": "45.0000"
+    },
+    "activo": {
+      "sensor": true,
+      "dispositivo": true,
+      "area": true
+    },
+    "fuente": "GET con Administrador en TEST"
+  },
+  "admin": {
+    "correo": "administador.dev@gmail.com",
+    "login_status": 200,
+    "id_usuario": 104,
+    "rol": "Administrador",
+    "estado": "Activo",
+    "permiso_registrar": true,
+    "permiso_historial": true,
+    "intentos": [
+      {
+        "correo": "admin.dev@gmail.com",
+        "resultado": "admin.dev@gmail.com no autentica (HTTP 401)."
+      },
+      {
+        "correo": "administador.dev@gmail.com",
+        "login_status": 200,
+        "id_usuario": 104,
+        "rol": "Administrador",
+        "estado": "Activo",
+        "permiso_registrar": true,
+        "permiso_historial": true
+      }
+    ]
+  },
+  "ingeniero": {
+    "id_usuario": 4,
+    "correo": "ingeniero@pecuaria.co",
+    "rol": "Ingeniero de Campo",
+    "estado": "Activo",
+    "permisos_calibracion": [
+      1,
+      2,
+      3
+    ]
+  },
+  "TC-M09-264": {
+    "pre": {
+      "total": 8,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ]
+    },
+    "request": {
+      "ruta": "/configuracion/sensores/6/calibrar",
+      "body": {
+        "modo_calibracion": "SENSOR",
+        "id_dispositivo_iot": 3,
+        "id_infraestructura": 3,
+        "valor_referencia": 22.5,
+        "observaciones": "QA TC-M09-264",
+        "fecha_calibracion": "2026-10-07T09:33:26.952Z"
+      },
+      "valor_referencia_literal": "22.5000",
+      "authorization": "Administrador"
+    },
+    "response": {
+      "http": 201,
+      "id_calibracion": 18,
+      "id_usuario": 104,
+      "id_sensor": 6,
+      "id_dispositivo_iot": 3,
+      "valor_referencia": "22.5000",
+      "observaciones": "QA TC-M09-264",
+      "error_code": null,
+      "mensaje": ""
+    },
+    "assertions_newman": [
+      {
+        "name": "Administrador: 2xx e id_calibracion",
+        "error": null
+      }
+    ],
+    "post": {
+      "total": 9,
+      "ids": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ]
+    },
+    "registro_por_id": {
+      "id_calibracion": 18,
+      "id_sensor": 6,
+      "id_dispositivo_iot": 3,
+      "id_usuario": 104,
+      "valor_referencia": "22.5000",
+      "observaciones": "QA TC-M09-264"
+    },
+    "ids_creados": [
+      18
+    ],
+    "resultado": "APROBADO",
+    "motivo": "HTTP 201, calibración 18 recuperada por GET con id_usuario 104 del Administrador y datos coincidentes."
+  },
+  "TC-M09-263": {
+    "sin_token": {
+      "pre": {
+        "total": 9,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "request": {
+        "ruta": "/configuracion/sensores/6/calibrar",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": 22.5,
+          "observaciones": "QA TC-M09-263",
+          "fecha_calibracion": "2026-10-07T09:33:29.277Z"
+        },
+        "valor_referencia_literal": "22.5000",
+        "authorization": "ausente"
+      },
+      "response": {
+        "http": 401,
+        "id_calibracion": null,
+        "id_usuario": null,
+        "id_sensor": null,
+        "id_dispositivo_iot": null,
+        "valor_referencia": null,
+        "observaciones": null,
+        "error_code": "TOKEN_REQUERIDO",
+        "mensaje": "Se requiere autenticación. Proporciona un token Bearer [REDACTED]álido."
+      },
+      "assertions_newman": [
+        {
+          "name": "Sin Authorization: rechazo 4xx",
+          "error": null
+        }
+      ],
+      "post": {
+        "total": 9,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "ids_creados": [],
+      "resultado": "APROBADO",
+      "motivo": "HTTP 401; total e IDs del historial sin cambios."
+    },
+    "sesion_cerrada": {
+      "login_status": 200,
+      "logout_status": 200,
+      "logout_mensaje": "Sesión cerrada exitosamente.",
+      "logout_timestamp": "2026-10-07T09:33:30.406Z",
+      "mismo_token_reutilizado": true,
+      "pre": {
+        "total": 9,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "request": {
+        "ruta": "/configuracion/sensores/6/calibrar",
+        "body": {
+          "modo_calibracion": "SENSOR",
+          "id_dispositivo_iot": 3,
+          "id_infraestructura": 3,
+          "valor_referencia": 22.5,
+          "observaciones": "QA TC-M09-263",
+          "fecha_calibracion": "2026-10-07T09:33:30.406Z"
+        },
+        "valor_referencia_literal": "22.5000",
+        "authorization": "mismo token del Ingeniero cerrado"
+      },
+      "response": {
+        "http": 401,
+        "id_calibracion": null,
+        "id_usuario": null,
+        "id_sensor": null,
+        "id_dispositivo_iot": null,
+        "valor_referencia": null,
+        "observaciones": null,
+        "error_code": "TOKEN_REVOCADO",
+        "mensaje": "El token de sesión ha sido revocado o es inválido."
+      },
+      "assertions_newman": [
+        {
+          "name": "Token cerrado: rechazo 4xx",
+          "error": null
+        }
+      ],
+      "post": {
+        "total": 9,
+        "ids": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "ids_creados": [],
+      "resultado": "APROBADO",
+      "motivo": "HTTP 401; total e IDs del historial sin cambios."
+    },
+    "resultado": "APROBADO"
+  },
+  "stop_all": false,
+  "resultado_general": "APROBADO",
+  "motivo_general": "El Administrador registró una calibración atribuida a su id_usuario y ambas peticiones sin sesión válida recibieron 4xx sin persistencia.",
+  "incidencias": []
+}

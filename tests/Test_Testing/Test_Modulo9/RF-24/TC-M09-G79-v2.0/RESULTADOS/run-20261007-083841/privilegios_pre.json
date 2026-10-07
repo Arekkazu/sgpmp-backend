@@ -1,0 +1,81 @@
+{
+  "rol": {
+    "rolname": "sgpmp_app",
+    "rolsuper": false,
+    "rolinherit": true,
+    "rolbypassrls": true,
+    "rolcanlogin": true
+  },
+  "owners": [
+    {
+      "schemaname": "modulo1",
+      "tablename": "eventos",
+      "tableowner": "postgres"
+    },
+    {
+      "schemaname": "modulo9",
+      "tablename": "auditorias_calibraciones",
+      "tableowner": "sgpmp_owner"
+    },
+    {
+      "schemaname": "modulo9",
+      "tablename": "calibraciones",
+      "tableowner": "postgres"
+    }
+  ],
+  "grantsAuditoria": [
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo1",
+      "table_name": "eventos",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo1",
+      "table_name": "eventos",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo1",
+      "table_name": "eventos",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo1",
+      "table_name": "eventos",
+      "privilege_type": "UPDATE"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo9",
+      "table_name": "auditorias_calibraciones",
+      "privilege_type": "DELETE"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo9",
+      "table_name": "auditorias_calibraciones",
+      "privilege_type": "INSERT"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo9",
+      "table_name": "auditorias_calibraciones",
+      "privilege_type": "SELECT"
+    },
+    {
+      "grantee": "sgpmp_app",
+      "table_schema": "modulo9",
+      "table_name": "auditorias_calibraciones",
+      "privilege_type": "UPDATE"
+    }
+  ],
+  "hasTablePrivilege": {
+    "calibraciones_insert": true,
+    "audit_m9_insert": true,
+    "eventos_insert": true
+  }
+}
