@@ -1,7 +1,7 @@
 """RF-17: Gateway Edge destino de los umbrales ambientales de una especie
 
 Revision ID: a3c9e5d17b42
-Revises: 78f6f579b5ba
+Revises: 5764b9af852e
 Create Date: 2026-10-05
 
 INC-M09-104-G29 (#493): al crear o editar un umbral ambiental, el backend lo
@@ -26,7 +26,7 @@ from alembic import op
 
 
 revision: str = 'a3c9e5d17b42'
-down_revision: Union[str, Sequence[str], None] = '78f6f579b5ba'
+down_revision: Union[str, Sequence[str], None] = '5764b9af852e'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
