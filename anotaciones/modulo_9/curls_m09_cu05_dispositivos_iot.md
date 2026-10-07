@@ -484,6 +484,11 @@ envía) deben caer dentro del rango de seguridad del tipo de sensor (RF-24 / #16
 `ganancia` (default `1.0`) y `offset` (default = `valor_referencia`) son opcionales:
 componen el modelo lineal `valor_ajustado = ganancia * crudo + offset` que consume telemetry.
 
+`modo_calibracion` (RF-24 v2.0, TC-M09-141 #503) es opcional, default `SENSOR`, y es el
+único valor admitido: la línea base por visión de RFC-011 se calibra por área y especie,
+sin sensor, y no pasa por este endpoint. Se devuelve en la respuesta y queda en el
+snapshot de auditoría.
+
 ```bash
 curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
   -H "Authorization: Bearer <TOKEN>" \
@@ -495,7 +500,8 @@ curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
     "ganancia": "1.0",
     "offset": "0.20",
     "fecha_calibracion": "2026-06-21T10:00:00Z",
-    "observaciones": "Calibración con termómetro patrón certificado"
+    "observaciones": "Calibración con termómetro patrón certificado",
+    "modo_calibracion": "SENSOR"
   }'
 ```
 
@@ -510,13 +516,18 @@ Respuesta esperada `201`:
   "offset": "0.2000",
   "fecha_calibracion": "2026-06-21T10:00:00Z",
   "id_usuario": 1,
-  "observaciones": "Calibración con termómetro patrón certificado"
+  "observaciones": "Calibración con termómetro patrón certificado",
+  "modo_calibracion": "SENSOR"
 }
 ```
 
 Errores posibles:
 - `404` — sensor no existe (FA-02)
-- `404` — dispositivo no existe (FA-02)
+- `404` — dispositivo no existe (FA-02) — `DISPOSITIVO_NO_ENCONTRADO`
+- `404` — dispositivo de una finca fuera del alcance del usuario (#503): mismo
+  `DISPOSITIVO_NO_ENCONTRADO` que el inexistente, para no confirmar que existe. Un rol
+  sin U/D sobre fincas (p. ej. Ingeniero de Campo) solo calibra en las fincas de
+  `modulo9.usuarios_fincas`; queda auditado como rechazo (RFC-006)
 - `422` — dispositivo inactivo (FA-14) — `DISPOSITIVO_INACTIVO`
 - `422` — sensor no pertenece al dispositivo (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
 - `400` — sensor no tiene asociación activa en el área indicada (FA-03) — `SENSOR_AREA_INVALIDA`
@@ -527,6 +538,7 @@ Errores posibles:
 - `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
   (fallback) — `VALOR_CALIBRACION_INVALIDO`
 - `400` — `ganancia` ≤ 0 (validación de DTO)
+- `400` — `modo_calibracion` distinto de `SENSOR` (validación de DTO) — `VAL_ENTRADA`
 - `403` — rol sin permiso C sobre sensores (FA-01) — solo Ing. de Campo y Admin pueden calibrar
 - `500` — falla la escritura del historial de auditoría inmutable (FA RF-10): se hace
   rollback de la calibración — `AUDITORIA_CALIBRACION_FALLIDA`
@@ -586,7 +598,8 @@ Respuesta esperada `200`:
       "offset": "0.2000",
       "fecha_calibracion": "2026-06-21T10:00:00Z",
       "id_usuario": 1,
-      "observaciones": "Calibración con termómetro patrón certificado"
+      "observaciones": "Calibración con termómetro patrón certificado",
+      "modo_calibracion": "SENSOR"
     },
     {
       "id_calibracion": 1,
@@ -597,11 +610,19 @@ Respuesta esperada `200`:
       "offset": "25.0000",
       "fecha_calibracion": "2026-03-29T14:42:28Z",
       "id_usuario": 1,
-      "observaciones": "Calibración inicial con termómetro patrón certificado NIST."
+      "observaciones": "Calibración inicial con termómetro patrón certificado NIST.",
+      "modo_calibracion": "SENSOR"
     }
   ]
 }
 ```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre sensores
+- `404` — sensor inexistente o de una finca fuera del alcance del usuario (#503,
+  mismo criterio que el historial de asociaciones, INC-M09-22-G126-02) —
+  `SENSOR_NO_ENCONTRADO`. Un rol con alcance global (Admin) ve cualquier sensor
 
 ---
 

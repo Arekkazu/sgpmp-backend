@@ -7,6 +7,7 @@ from typing import Optional, Union
 
 from pydantic import field_validator
 
+from src.configuration.domain.value_objects.modo_calibracion import ModoCalibracion
 from src.shared.base_dto import BaseDTO
 
 
@@ -22,6 +23,9 @@ class RegistrarCalibracionDTO(BaseDTO):
     offset: Optional[Decimal] = None
     fecha_calibracion: datetime
     observaciones: Optional[str] = None
+    # TC-M09-141 (#503): sin declararlo, un modo arbitrario se descartaba en
+    # silencio. Por defecto SENSOR para no romper a los clientes que no lo envían.
+    modo_calibracion: ModoCalibracion = ModoCalibracion.SENSOR
 
     # El rango válido de valor_referencia/offset lo impone el rango por tipo de
     # sensor en el use case (RF-24); aquí solo se valida que la ganancia sea

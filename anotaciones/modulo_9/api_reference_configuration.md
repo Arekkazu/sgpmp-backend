@@ -366,6 +366,7 @@
 | `valor_referencia` | `Decimal` | > 0 |
 | `fecha_calibracion` | `datetime` | — |
 | `observaciones` | `str \| None` | Opcional |
+| `modo_calibracion` | `ModoCalibracion` | Opcional, default `SENSOR` (único valor) |
 
 **Response `CalibracionResponse`:**
 
@@ -378,6 +379,7 @@
 | `fecha_calibracion` | `datetime` |
 | `id_usuario` | `int` |
 | `observaciones` | `str \| None` |
+| `modo_calibracion` | `ModoCalibracion` |
 
 ---
 
