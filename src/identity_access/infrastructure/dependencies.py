@@ -68,6 +68,12 @@ def get_current_user(
     id_token = int(payload["jti"])
     id_usuario = int(payload["sub"])
 
+    # RLS: el `sub` ya viene de un JWT verificado. Declararlo antes de la
+    # primera consulta deja que las políticas de modulo1 muestren el token, el
+    # usuario y la cuenta propios; sin esto la propia validación no los ve.
+    # El rol vigente se completa abajo, cuando se lee de la base.
+    declarar_identidad(db, id_usuario, None)
+
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
     if token is None or token.fecha_uso is not None:

@@ -72,13 +72,13 @@ _SISTEMA = object()
 _id_usuario_servicio: Optional[int] = None
 
 
-def _set_config(conexion, id_usuario: Optional[int], nombre_rol: str) -> None:
+def _set_config(conexion, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
     conexion.execute(
         text(
             "SELECT set_config('app.current_user_id', :uid, true), "
             "set_config('app.current_role', :rol, true)"
         ),
-        {"uid": "" if id_usuario is None else str(id_usuario), "rol": nombre_rol},
+        {"uid": "" if id_usuario is None else str(id_usuario), "rol": nombre_rol or ""},
     )
     if id_usuario is not None:
         conexion.execute(
@@ -122,7 +122,7 @@ def _declarar(db: Session, identidad) -> None:
         _aplicar_identidad(db.connection(), identidad)
 
 
-def declarar_identidad(db: Session, id_usuario: Optional[int], nombre_rol: str) -> None:
+def declarar_identidad(db: Session, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
     """Declara quién ejecuta la transacción en curso y las siguientes de `db`."""
     _declarar(db, (id_usuario, nombre_rol))
 
