@@ -15,7 +15,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
-from src.shared.database import get_db
+from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import (
     IngerirTelemetriaUseCase,
@@ -88,7 +88,7 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
 )
 def ingerir_telemetria(
     dto: IngerirTelemetriaDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> TelemetriaResponse:
     resultado = _build_use_case(db).execute(dto, gateway_id=x_gateway_id)
@@ -112,7 +112,7 @@ def ingerir_telemetria(
 )
 def sincronizar_buffer(
     dto: IngerirTelemetriaBatchDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> IngestaBatchResponse:
     use_case = SincronizarBufferUseCase(

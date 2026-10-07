@@ -50,12 +50,17 @@ los nombres de abajo):
   rol**, no `id_rol`) — leídos por `modulo1.fn_id_usuario_actual()` /
   `modulo1.fn_rol_actual()` (`STABLE`; hasta la migración `731fb3997631`
   fueron `app_ctx.current_user_id()` / `app_ctx.current_role()`). Es lo que leen todas
-  las políticas `pol_*` de `modulo1`/`modulo9`. Se setean una única vez por
-  request en `get_current_user`
-  (`src/identity_access/infrastructure/dependencies.py`).
+  las políticas `pol_*` de `modulo1`/`modulo9`/`modulo2`. Se declaran con
+  `declarar_identidad` (`src/shared/database.py`): `get_current_user` la llama
+  una vez por request, y un listener `after_begin` la reaplica en cada
+  transacción de esa sesión, también después de un `commit()`. Los procesos
+  sin usuario (tareas de fondo e ingesta IoT) usan `sesion_sistema` /
+  `get_db_sistema`, que actúan como el usuario de servicio
+  `servicio.sistema@sgpmp.local` (migración `5c3e9b1d7a20`).
 - `app.usuario_id` (entero) — GUC legado, sin función de contexto, leído directamente
   por el trigger `modulo2.trg_auditar_activo_biologico` (`VOLATILE`, sin
-  `SECURITY DEFINER`). Se mantiene por compatibilidad; no confundir con
+  `SECURITY DEFINER`). `declarar_identidad` lo pone junto con los de arriba.
+  Se mantiene por compatibilidad; no confundir con
   `app.current_user_id` de arriba pese al nombre parecido.
 
 Las funciones de contexto viven en `modulo1` (directriz del DBA, PR #469): no

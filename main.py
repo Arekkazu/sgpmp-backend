@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
-from sqlalchemy import text
 
 load_dotenv()
 
@@ -21,20 +20,6 @@ validar_configuracion()
 
 logger = logging.getLogger(__name__)
 
-
-def _declarar_identidad_sistema(db) -> None:
-    """Identidad interina de sesión para tareas de fondo bajo RLS.
-
-    F2 del control de acceso por BD: las políticas ya activas de `modulo1`
-    (migraciones `8d80fb56a30b` y el fix que las acompaña) exigen
-    `modulo1.fn_rol_actual()`. Estas tareas corren con su propia `SessionLocal()`
-    sin usuario autenticado (Decisión D1 del plan, sin resolver todavía por
-    equipo + DBA: usuario de servicio dedicado vs. rol con `BYPASSRLS`).
-    Mientras tanto se declaran 'Administrador' -- la misma cadena que ya
-    reconocen las políticas -- para que no dejen de correr en silencio. Llamar
-    justo después de abrir la sesión, antes de cualquier query a modulo1/modulo9.
-    """
-    db.execute(text("SELECT set_config('app.current_role', 'Administrador', true)"))
 
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
@@ -102,7 +87,7 @@ from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMidd
 
 async def _evaluar_dispositivos_periodicamente() -> None:
     """Tarea periódica RF-60: evalúa estado de dispositivos cada 60 s."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.telemetry.application.use_cases.infraestructura.evaluar_estado_dispositivos_use_case import EvaluarEstadoDispositivosUseCase
     from src.telemetry.infrastructure.repositories.alerta_repository import SqlAlchemyAlertaRepository
     from src.telemetry.infrastructure.repositories.estado_dispositivo_iot_repository import SqlAlchemyEstadoDispositivoIoTRepository
@@ -112,7 +97,7 @@ async def _evaluar_dispositivos_periodicamente() -> None:
 
     while True:
         await asyncio.sleep(60)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = EvaluarEstadoDispositivosUseCase(
                 db=db,
@@ -139,7 +124,7 @@ async def _ejecutar_batch_ica_diario() -> None:
     """
     from datetime import datetime, time as dtime, timedelta
 
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.eficiencia_factory import build_ejecutar_batch_use_case
     from src.supplies.infrastructure.repositories.configuracion_batch_ica_repository import (
         SqlAlchemyConfiguracionBatchICARepository,
@@ -147,7 +132,7 @@ async def _ejecutar_batch_ica_diario() -> None:
 
     while True:
         hora = dtime(2, 0)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             hora = SqlAlchemyConfiguracionBatchICARepository(db).obtener().hora_ejecucion
         except Exception:
@@ -161,7 +146,7 @@ async def _ejecutar_batch_ica_diario() -> None:
             proximo += timedelta(days=1)
         await asyncio.sleep((proximo - ahora).total_seconds())
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_ejecutar_batch_use_case(db)
             ejecucion = await use_case.ejecutar(tipo_disparo="AUTOMATICO")
@@ -187,7 +172,7 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
     """
     from datetime import datetime, time as dtime, timedelta
 
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.application.use_cases.suministros.revertir_retiros_vencidos_use_case import (
         RevertirRetirosVencidosUseCase,
     )
@@ -202,7 +187,7 @@ async def _revertir_retiros_vencidos_diariamente() -> None:
         await asyncio.sleep((proximo - ahora).total_seconds())
 
         try:
-            use_case = RevertirRetirosVencidosUseCase(session_factory=SessionLocal)
+            use_case = RevertirRetirosVencidosUseCase(session_factory=sesion_sistema)
             n = await asyncio.to_thread(use_case.ejecutar)
             logger.info("Reversión de retiros vencidos: %d activo(s) revertido(s) a ACTIVO.", n)
         except Exception:
@@ -228,7 +213,7 @@ async def _archivar_auditoria_diariamente() -> None:
     from src.identity_access.infrastructure.repositories.usuario_repository import (
         SqlAlchemyUsuarioRepository,
     )
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     hora = dtime(4, 0)
 
@@ -238,9 +223,8 @@ async def _archivar_auditoria_diariamente() -> None:
         La sesión del archivado quedó en rollback, así que la notificación necesita
         una propia.
         """
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
-            _declarar_identidad_sistema(db)
             return NotificarFalloArchivadoUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -263,9 +247,8 @@ async def _archivar_auditoria_diariamente() -> None:
         await asyncio.sleep((proximo - ahora).total_seconds())
 
         def ejecutar_archivado():
-            db = SessionLocal()
+            db = sesion_sistema()
             try:
-                _declarar_identidad_sistema(db)
                 return ArchivarAuditoriaUseCase(
                     eventos_repo=SqlAlchemyEventoRepository(db),
                     db=db,
@@ -319,7 +302,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     ``intervalo_poll_segundos`` (configurable en
     ``modulo5.configuracion_batch_reportes_gastos``).
     """
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.reporte_gastos_factory import (
         build_procesar_cola_reportes_gastos_use_case,
     )
@@ -328,7 +311,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             intervalo = SqlAlchemyConfiguracionBatchReporteGastoRepository(db).obtener().intervalo_poll_segundos
         except Exception:
@@ -339,7 +322,7 @@ async def _procesar_cola_reportes_gastos_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_procesar_cola_reportes_gastos_use_case(db)
             n = await use_case.ejecutar()
@@ -355,7 +338,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     """Poller RF-81: procesa la cola de trabajos pesados de historial de suministros
     (``CONSULTA_PESADA`` nivel 3/4 y ``EXPORTACION`` > 10.000 registros). Mismo
     patrón de poller continuo que RF-77."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.supplies.infrastructure.factories.historial_suministros_factory import (
         build_procesar_cola_historial_suministros_use_case,
     )
@@ -364,7 +347,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             intervalo = SqlAlchemyConfiguracionBatchHistorialRepository(db).obtener().intervalo_poll_segundos
         except Exception:
@@ -375,7 +358,7 @@ async def _procesar_cola_historial_suministros_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             use_case = build_procesar_cola_historial_suministros_use_case(db)
             n = await use_case.ejecutar()
@@ -391,7 +374,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     """Poller RF-10: procesa las exportaciones de auditoría demasiado grandes
     para resolverse dentro de la petición. Mismo patrón que los pollers de RF-77
     y RF-81."""
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
     from src.identity_access.application.use_cases.auditoria.exportacion_async_use_cases import (
         ProcesarColaExportacionesUseCase,
     )
@@ -406,9 +389,8 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     )
 
     while True:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
-            _declarar_identidad_sistema(db)
             intervalo = (
                 SqlAlchemyExportacionAuditoriaRepository(db)
                 .obtener_configuracion()
@@ -424,9 +406,8 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
         await asyncio.sleep(intervalo)
 
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
-            _declarar_identidad_sistema(db)
             cola_repo = SqlAlchemyExportacionAuditoriaRepository(db)
             use_case = ProcesarColaExportacionesUseCase(
                 db=db,
@@ -453,11 +434,11 @@ async def _procesar_buffer_bitacora_m02_periodicamente() -> None:
     from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
         SqlAlchemyBitacoraAuditoriaRepository,
     )
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     while True:
         await asyncio.sleep(5)
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             await asyncio.to_thread(procesar_buffer_bitacora, SqlAlchemyBitacoraAuditoriaRepository(db), db)
         except Exception:
@@ -489,12 +470,12 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
         SqlAlchemyNotificacionRepository,
     )
     from src.identity_access.infrastructure.repositories.usuario_repository import SqlAlchemyUsuarioRepository
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     hora = dtime(5, 0)
 
     def reconciliar():
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
             return ReconciliarBitacoraHistorialUseCase(
                 db=db,
@@ -505,9 +486,8 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
             db.close()
 
     def avisar(inconsistencias) -> int:
-        db = SessionLocal()
+        db = sesion_sistema()
         try:
-            _declarar_identidad_sistema(db)
             return NotificarInconsistenciaAuditoriaUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
