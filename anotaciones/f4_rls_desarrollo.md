@@ -52,36 +52,43 @@ Dos pruebas cambiaron porque fijaban la regla vieja ("el administrador ve todo")
 - `test_inc_m09_g82_acceso_finca.py::test_permiso_de_gestion_no_concede_alcance_global`
 - `test_inc_m09_g82_acceso_finca_integration.py::test_administrador_solo_consulta_sus_fincas`
 
+## RLS de `modulo1` y autenticación
+
+Con la API conectada como `sgpmp_app`, las políticas de `8d80fb56a30b` no dejaban autenticar a nadie: `get_current_user` respondía 401 a todos, Administrador incluido. El DBA autorizó corregirlo en el mismo PR #485, con la migración `a7380032a23b`. Las causas y lo que se hizo en cada una:
+
+| Causa | BD (`a7380032a23b`) | App |
+|---|---|---|
+| `roles`, `permisos` y `recursos` solo los leía el Administrador, pero la app los lee en cada request | Lectura para todos; la escritura sigue siendo del admin | — |
+| `pol_tokens_*` enlazaba por `tokens.id_sesion`, que solo existe en los tokens de refresco | Enlace por `id_sesion`, `sesiones.id_token` o `sesiones.id_token_refresco` | `get_current_user` declara la identidad del JWT antes de su primera consulta |
+| Nadie podía actualizar su propia cuenta | Cuenta propia o Administrador | — |
+| Solo el Administrador leía `eventos`, pero las notificaciones de RF-14 se enlazan con el evento del destinatario | Cada usuario lee sus propios eventos | Los eventos se insertan sin `RETURNING` (la mayoría de usuarios no los puede releer) |
+| Login, SSO, refresh, registro, activación y recuperación corren sin identidad | Funciones `SECURITY DEFINER` que solo resuelven quién es: por correo, por hash del token de cuenta y por hash del token de refresco, más el conteo por IP del reenvío | Esas búsquedas declaran la identidad del usuario resuelto, sin pisar una ya declarada; `tokens` y `usuarios` se insertan sin `RETURNING` |
+| `credenciales_servicio` e `intentos_anonimos_ip` tenían RLS sin políticas | Lectura para el rol Administrador / abierta a la app (solo guarda contadores por IP) | La verificación del token del broker corre como el usuario de servicio |
+| — | — | Las notificaciones en segundo plano (sesión, recuperación) corren como el usuario de servicio |
+
+AgroFusion no cambió. Busca al usuario por correo y desde ahí actúa como él, igual que el login.
+
+**Cómo probarlo:** `TEST_ROL_APP=sgpmp_app` hace que, en las pruebas de integración que usan el cliente de M01, los requests corran como `sgpmp_app` y sujetos a RLS. La siembra y las aserciones siguen con el usuario de `TEST_DATABASE_URL`.
+
+| Corrida | Resultado |
+|---|---|
+| Como `sgpmp_app`, sin `a7380032a23b` | 102 fallos |
+| Como `sgpmp_app`, con `a7380032a23b` | 15 fallos, exactamente los mismos que como superusuario y que en `dev` (dependen de datos o del entorno) |
+
 ## Pendiente
 
 **DBA:**
 1. Quitar `OR fn_rol_actual() = 'Administrador'` de las políticas SELECT de `fincas` e `infraestructuras`, y en INSERT/UPDATE de `infraestructuras` filtrar por las fincas del usuario. La app ya está lista para eso: el alta de fincas lo resiste.
-2. **Bloqueante para cambiar `DATABASE_URL`: las políticas de `modulo1` (migración `8d80fb56a30b`) impiden autenticarse como `sgpmp_app`.** Hoy, con el código real conectado como `sgpmp_app`, `get_current_user` responde 401 a todos, Administrador incluido. Las causas:
-   - `roles`, `permisos` y `recursos` solo los lee el rol `'Administrador'`, pero la app los lee en cada request para autorizar a cualquiera.
-   - `pol_tokens_select` y `pol_tokens_update` enlazan por `tokens.id_sesion`, que solo existe en los tokens de refresco. El de acceso se enlaza por `sesiones.id_token`, así que nadie ve su propio token de acceso.
-   - `pol_cuentas_usuarios_update` no deja al usuario actualizar su propia cuenta (`ultimo_acceso`, intentos fallidos).
-   - Login, registro, activación, refresh y recuperación ocurren antes de que haya identidad.
-   - `credenciales_servicio` e `intentos_anonimos_ip` tienen RLS sin ninguna política.
-
-   La propuesta que se le pasó al DBA, probada como `sgpmp_app`, deja autenticar al Productor y al Administrador:
-   - catálogos legibles para todos;
-   - el enlace del token corregido;
-   - actualización de la propia cuenta;
-   - una función `SECURITY DEFINER` por cada búsqueda previa a la identidad.
-
-   Del lado de desarrollo quedan dos cosas:
-   - Declarar la identidad apenas se resuelve quién es: ya está hecho en `get_current_user`; falta en login, registro, refresh y recuperación.
-   - Insertar `tokens` y `usuarios` sin `RETURNING`: con `RETURNING`, la fila nueva tiene que pasar la política SELECT antes de quedar enlazada.
-3. Triggers que fallan abiertos cuando RLS les oculta filas:
+2. Triggers que fallan abiertos cuando RLS les oculta filas:
    - `trg_fn_fase_activo_estado_valido`;
    - `trg_finca_nombre_unique`: la unicidad de nombre deja de ver las fincas ajenas, y no hay índice único que la respalde;
    - `trg_finca_no_delete`.
-4. `ANALYZE` y `EXPLAIN (ANALYZE, BUFFERS)` con y sin política.
+3. `ANALYZE` y `EXPLAIN (ANALYZE, BUFFERS)` con y sin política.
 
 **Datos (DEV y TEST):**
 - Asignarles fincas a los 3 administradores que no tienen ninguna.
 - Asignarles fincas a los usuarios de Integración M04 y M06.
 
-**Despliegue:** `DATABASE_URL` a `sgpmp_app` va al final, cuando el punto 2 de arriba esté resuelto.
+**Despliegue:** `DATABASE_URL` a `sgpmp_app` puede pasar cuando el PR #485 esté en dev con sus tres migraciones (`bc82ffbdf797`, `5c3e9b1d7a20`, `a7380032a23b`), coordinado con el líder de despliegue.
 
 **Fuera de F4:** los workers de reportes de gastos e historial de suministros procesan como el usuario de servicio. El filtro por usuario sigue siendo el que guarda cada trabajo. Cuando M05 tenga RLS (F5), conviene que corran con la identidad de quien pidió el trabajo.
