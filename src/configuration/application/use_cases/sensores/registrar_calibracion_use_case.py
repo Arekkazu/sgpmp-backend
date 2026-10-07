@@ -117,6 +117,7 @@ class RegistrarCalibracionUseCase:
             ganancia=Decimal(str(dto.ganancia)),
             offset=offset,
             observaciones=dto.observaciones,
+            modo_calibracion=dto.modo_calibracion,
         )
 
         try:

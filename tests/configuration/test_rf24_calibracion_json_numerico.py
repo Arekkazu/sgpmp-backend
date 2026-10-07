@@ -25,6 +25,7 @@ def _calibracion() -> CalibracionResponse:
         fecha_calibracion=datetime.datetime(2026, 10, 6, 12, 0),
         id_usuario=126,
         observaciones=None,
+        modo_calibracion="SENSOR",
     )
 
 

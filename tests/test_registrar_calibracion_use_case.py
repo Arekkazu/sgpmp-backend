@@ -10,6 +10,7 @@ from types import SimpleNamespace
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import RegistrarCalibracionUseCase
 from src.configuration.domain.entities.rango_calibracion import RangoCalibracion
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
+from src.configuration.infrastructure.schema.calibracion_schema import CalibracionResponse
 from src.shared.errors import AuthorizationError, BusinessRuleError, InfrastructureError, NotFoundError, ValidationError
 
 
@@ -173,6 +174,27 @@ def test_403_del_router_queda_auditado():
     assert evento["id_usuario"] == 5 and evento["detalle"]["id_sensor"] == 3
 
 
+
+def test_modo_calibracion_se_valida_y_se_traza():
+    """TC-M09-141 (#503): modo_calibracion ya no se descarta en silencio."""
+    import pydantic
+
+    cal = _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("25")), _USUARIO)
+    assert cal.modo_calibracion == "SENSOR"  # por defecto, cliente que no lo envía
+    assert cal._snapshot()["modo_calibracion"] == "SENSOR"
+    assert CalibracionResponse.from_entity(cal).model_dump(mode="json")["modo_calibracion"] == "SENSOR"
+
+    base = dict(id_dispositivo_iot=1, id_infraestructura=1, valor_referencia=Decimal("25"),
+                fecha_calibracion=datetime.now(timezone.utc))
+    assert RegistrarCalibracionDTO(**base, modo_calibracion="SENSOR").modo_calibracion == "SENSOR"
+    for malo in ("VISION", "cualquiera", ""):
+        try:
+            RegistrarCalibracionDTO(**base, modo_calibracion=malo)
+            assert False, f"debió rechazar {malo!r}"
+        except pydantic.ValidationError:
+            pass
+
+
 if __name__ == "__main__":
     test_happy_path_escribe_auditoria()
     test_fallo_auditoria_rollback_500()
@@ -181,4 +203,5 @@ if __name__ == "__main__":
     test_cada_rechazo_queda_auditado_como_fallido()
     test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx()
     test_403_del_router_queda_auditado()
+    test_modo_calibracion_se_valida_y_se_traza()
     print("OK")

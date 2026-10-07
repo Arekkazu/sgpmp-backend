@@ -6,6 +6,7 @@ from typing import Optional
 
 from pydantic import BaseModel
 
+from src.configuration.domain.value_objects.modo_calibracion import ModoCalibracion
 from src.shared.schemas import DecimalNumero
 
 
@@ -20,6 +21,7 @@ class CalibracionResponse(BaseModel):
     fecha_calibracion: datetime.datetime
     id_usuario: int
     observaciones: Optional[str]
+    modo_calibracion: ModoCalibracion
 
     model_config = {"from_attributes": True}
 
@@ -35,6 +37,7 @@ class CalibracionResponse(BaseModel):
             fecha_calibracion=calibracion.fecha_calibracion,
             id_usuario=calibracion.id_usuario,
             observaciones=calibracion.observaciones,
+            modo_calibracion=calibracion.modo_calibracion,
         )
 
 
