@@ -1,7 +1,7 @@
 """Fase 4 roles
 
 Revision ID: bc82ffbdf797
-Revises: e4772c889450
+Revises: 0618e6f7b308
 Create Date: 2026-10-04 14:53:21.410249
 
 """
@@ -11,7 +11,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = 'bc82ffbdf797'
-down_revision: Union[str, Sequence[str], None] = '78f6f579b5ba'
+down_revision: Union[str, Sequence[str], None] = '0618e6f7b308'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
