@@ -1,3 +1,12 @@
+## [1.0.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.73...v1.0.0-rc.74) (2026-10-07)
+
+### Bug Fixes
+
+* **rf17-mod9:** colgar la migracion a3c9e5d17b42 de la cabeza actual de dev ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([dd76704](https://github.com/Arekkazu/sgpmp-backend/commit/dd767040dd50cf51075d1e81117d1b4343cda9ec)), closes [#502](https://github.com/Arekkazu/sgpmp-backend/issues/502)
+* **rf17-mod9:** Edge desconectado responde el 500 de RF-17 con el umbral Pendiente de Sincronizacion (TC-M09-63) ([7d94f5a](https://github.com/Arekkazu/sgpmp-backend/commit/7d94f5a23498ef0af06ae91743c5b80fc1a0faf1))
+* **rf17-mod9:** resolver el Gateway Edge destino tambien por los activos vivos del area ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([aceffc4](https://github.com/Arekkazu/sgpmp-backend/commit/aceffc4a5fd78c9ed260cff5b8e8f84079902c20)), closes [#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)
+* **rf17:** propagar umbrales al Nodo Edge por el broker MQTT en vez del stub (INC-M09-104-G29) ([f7dc712](https://github.com/Arekkazu/sgpmp-backend/commit/f7dc71206cc39a882203e75b4806e1dff3eb8da7))
+
 ## [1.0.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.72...v1.0.0-rc.73) (2026-10-07)
 
 ### Bug Fixes
