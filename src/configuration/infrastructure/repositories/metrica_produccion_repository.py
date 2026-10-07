@@ -44,8 +44,8 @@ class SqlAlchemyMetricaProduccionRepository(MetricaProduccionRepository):
             valor_max=orm.valor_max,
         )
 
-    def obtener_por_id(self, id_metrica_produccion: int) -> Optional[MetricaProduccion]:
-        orm = self.db.get(MetricaProduccionModel, id_metrica_produccion)
+    def obtener_por_id(self, id_metrica_produccion: int, *, bloquear: bool = False) -> Optional[MetricaProduccion]:
+        orm = self.db.get(MetricaProduccionModel, id_metrica_produccion, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre_y_especie(

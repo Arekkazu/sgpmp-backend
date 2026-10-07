@@ -1,3 +1,56 @@
+## [1.0.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.74...v1.0.0-rc.75) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** aplicar alcance por finca a calibrar e historial de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([2c873d7](https://github.com/Arekkazu/sgpmp-backend/commit/2c873d7cd8be654de02109e28e00272467aa236b))
+* **rf24-mod9:** declarar y validar modo_calibracion en el contrato de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([6deedc6](https://github.com/Arekkazu/sgpmp-backend/commit/6deedc6b65765e1b37647d5c514a9f9025efea3c))
+* **rf32-mod9:** especie destino inactiva responde 404 como la inexistente ([#501](https://github.com/Arekkazu/sgpmp-backend/issues/501)) ([b24c0c5](https://github.com/Arekkazu/sgpmp-backend/commit/b24c0c58ac5e2712e78a747dc7e94ec9d5634084))
+
+## [1.0.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.73...v1.0.0-rc.74) (2026-10-07)
+
+### Bug Fixes
+
+* **rf17-mod9:** colgar la migracion a3c9e5d17b42 de la cabeza actual de dev ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([dd76704](https://github.com/Arekkazu/sgpmp-backend/commit/dd767040dd50cf51075d1e81117d1b4343cda9ec)), closes [#502](https://github.com/Arekkazu/sgpmp-backend/issues/502)
+* **rf17-mod9:** Edge desconectado responde el 500 de RF-17 con el umbral Pendiente de Sincronizacion (TC-M09-63) ([7d94f5a](https://github.com/Arekkazu/sgpmp-backend/commit/7d94f5a23498ef0af06ae91743c5b80fc1a0faf1))
+* **rf17-mod9:** resolver el Gateway Edge destino tambien por los activos vivos del area ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([aceffc4](https://github.com/Arekkazu/sgpmp-backend/commit/aceffc4a5fd78c9ed260cff5b8e8f84079902c20)), closes [#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)
+* **rf17:** propagar umbrales al Nodo Edge por el broker MQTT en vez del stub (INC-M09-104-G29) ([f7dc712](https://github.com/Arekkazu/sgpmp-backend/commit/f7dc71206cc39a882203e75b4806e1dff3eb8da7))
+
+## [1.0.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.72...v1.0.0-rc.73) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** serializar como numero los valores de calibracion (Arekkazu/SGPMP-FRONT-END-PWA[#251](https://github.com/Arekkazu/sgpmp-backend/issues/251)) ([b3dd301](https://github.com/Arekkazu/sgpmp-backend/commit/b3dd30189b2226f12870bd0cfbda52a95fcf4699))
+* **rf25-mod9:** especies del contexto desde la finca vinculada, no globales (Arekkazu/SGPMP-FRONT-END-PWA[#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)) ([828a02c](https://github.com/Arekkazu/sgpmp-backend/commit/828a02c4aafbfeb3656b3a5241f41755476e97eb))
+
+## [1.0.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.71...v1.0.0-rc.72) (2026-10-06)
+
+### Bug Fixes
+
+* **rf52-mod2:** [#489](https://github.com/Arekkazu/sgpmp-backend/issues/489) bitacora de auditoria de M02 append-only a nivel de base de datos ([9995ba4](https://github.com/Arekkazu/sgpmp-backend/commit/9995ba4e08e189cfae7605787daa3e2dc02400be))
+* **rf61-mod3:** [#494](https://github.com/Arekkazu/sgpmp-backend/issues/494) FKs del ORM de telemetria apuntaban a tablas inexistentes ([b608132](https://github.com/Arekkazu/sgpmp-backend/commit/b608132c3bf78980ba538fff0f1eaa88b79efdaf))
+* **rf61-mod3:** [#494](https://github.com/Arekkazu/sgpmp-backend/issues/494) toda lectura nueva deja su vinculacion para que RF-17 pueda clasificarla ([4d8d88c](https://github.com/Arekkazu/sgpmp-backend/commit/4d8d88cc03ad8ff8a4461dda14d8bad981a7e672))
+
+## [1.0.0-rc.71](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.70...v1.0.0-rc.71) (2026-10-06)
+
+### Features
+
+* **alembic:** esquema de RFC-006, RFC-009 y RFC-011 ([0727fdc](https://github.com/Arekkazu/sgpmp-backend/commit/0727fdc6020ac9e13f8009521c2bca987e05464c))
+* **prediction:** taxonomia por tipo de manejo y paradigma en RF-65/69/70/73 (RFC-009) ([88bf19d](https://github.com/Arekkazu/sgpmp-backend/commit/88bf19dad6dedf243881e5fe34c98d66c9978275))
+* **rf20-mod9:** especie y modelo de IA del area con coherencia y reactivacion (RFC-009) ([3222904](https://github.com/Arekkazu/sgpmp-backend/commit/32229040e1ce57382741ab8e82191e178fc1ff7f))
+* **rf21-mod9:** dispositivo de vision CAMARA y su asociacion N:1 al area (RFC-011) ([f0a8775](https://github.com/Arekkazu/sgpmp-backend/commit/f0a877585585f5ea48a55dff1fed1dc63bc148cf))
+* **rf24-mod9:** auditar como FALLIDO los intentos de calibracion rechazados (RFC-006) ([57fa487](https://github.com/Arekkazu/sgpmp-backend/commit/57fa48727e843bf973dcdf5fd1b5b4707c6f7f1c))
+* **rf50-mod2:** [#495](https://github.com/Arekkazu/sgpmp-backend/issues/495) el 429 del limitador informa cuando reintentar ([60bb3f1](https://github.com/Arekkazu/sgpmp-backend/commit/60bb3f172f7f18c2ba0528d35669ab97f21e9571))
+
+### Bug Fixes
+
+* **rf16-mod9:** [#487](https://github.com/Arekkazu/sgpmp-backend/issues/487) exigir tipo_dato al registrar una metrica en vez de inferirlo ([c0a7845](https://github.com/Arekkazu/sgpmp-backend/commit/c0a784556047dcb64f64c8e1ef5a95ac5cd7cae6))
+* **rf20-mod9:** [#498](https://github.com/Arekkazu/sgpmp-backend/issues/498) bloquear la fila al editar para que dos ediciones simultaneas no pasen el 412 ([9f47918](https://github.com/Arekkazu/sgpmp-backend/commit/9f479187e1a91be514bafd6bab1225f0d6a555ef))
+* **rf20-mod9:** no cambiar la familia de modelo de una especie si deja areas incoherentes ([258ceca](https://github.com/Arekkazu/sgpmp-backend/commit/258ceca28b7537405d5e2a307b370f79712e96c1))
+* **rf21-mod9:** tipo de dispositivo inexistente responde 422 como pide la ficha ([c7e653f](https://github.com/Arekkazu/sgpmp-backend/commit/c7e653f58bd550400e680d21ac6fcc2ac2caed36))
+* **rf23-mod9:** [#492](https://github.com/Arekkazu/sgpmp-backend/issues/492) rechazar con 400 los campos que RF-23 no define al configurar un dispositivo ([26af7db](https://github.com/Arekkazu/sgpmp-backend/commit/26af7dba6891645da2ea78c703cf2c8312f10984))
+* **rf52-mod2:** [#490](https://github.com/Arekkazu/sgpmp-backend/issues/490) el Productor solo consulta la bitacora de los activos de sus fincas ([dc1ed55](https://github.com/Arekkazu/sgpmp-backend/commit/dc1ed5555f8dfca3a2397459e8a342ede1d26c96))
+* **rf69-mod4:** registrar y activar versiones de modelo desde RF-71 sin fallar ([ce0702f](https://github.com/Arekkazu/sgpmp-backend/commit/ce0702f5a3acaf189d89d510dd48a3879b0bf50c))
+
 ## [1.0.0-rc.70](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.69...v1.0.0-rc.70) (2026-10-04)
 
 ### Features

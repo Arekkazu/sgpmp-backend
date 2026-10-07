@@ -38,8 +38,8 @@ class SqlAlchemyEspeciePatologiaRepository(EspeciePatologiaRepository):
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_id(self, id_especies_patologias: int) -> Optional[EspeciePatologia]:
-        orm = self.db.get(EspeciePatologiaModel, id_especies_patologias)
+    def obtener_por_id(self, id_especies_patologias: int, *, bloquear: bool = False) -> Optional[EspeciePatologia]:
+        orm = self.db.get(EspeciePatologiaModel, id_especies_patologias, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_especie_y_nombre(

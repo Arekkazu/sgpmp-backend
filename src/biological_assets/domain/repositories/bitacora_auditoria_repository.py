@@ -32,9 +32,19 @@ class BitacoraAuditoriaRepository(ABC):
         rf_origenes_permitidos: Optional[set[str]] = None,
         id_propietario_acceso_datos: Optional[int] = None,
         id_usuario_responsable: Optional[int] = None,
+        ids_fincas_alcance: Optional[list[int]] = None,
+        id_usuario_alcance: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
-        """Retorna (registros, total_count) aplicando filtros, alcance y paginación."""
+        """Retorna (registros, total_count) aplicando filtros, alcance y paginación.
+
+        ``ids_fincas_alcance`` limita a los eventos de activos alojados en esas
+        fincas, más los eventos sin activo que originó ``id_usuario_alcance``.
+        """
 
     @abstractmethod
     def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
         """Indica si el usuario registró el activo consultado."""
+
+    @abstractmethod
+    def activo_en_fincas(self, id_activo: int, ids_fincas: list[int]) -> bool:
+        """Indica si el activo está alojado en alguna de las fincas indicadas."""

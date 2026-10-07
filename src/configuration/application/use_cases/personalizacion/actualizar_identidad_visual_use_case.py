@@ -40,7 +40,7 @@ class ActualizarIdentidadVisualUseCase:
         logo_content_type: Optional[str],
         usuario_actual: UsuarioActual,
     ) -> IdentidadVisual:
-        entidad = self.identidad_repo.obtener_por_finca(id_finca)
+        entidad = self.identidad_repo.obtener_por_finca(id_finca, bloquear=True)
         if entidad is None:
             raise NotFoundError(
                 code="IDENTIDAD_VISUAL_NO_ENCONTRADA",

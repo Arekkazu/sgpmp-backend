@@ -120,17 +120,23 @@ class AplicarPlantillaUseCase:
                 ),
             )
 
-        especie_destino = self.especie_repo.obtener_por_id(dto.id_especie_destino)
+        especie_destino = self.especie_repo.obtener_por_id(dto.id_especie_destino, bloquear=True)
         if especie_destino is None:
             raise NotFoundError(
                 code="ESPECIE_DESTINO_NO_ENCONTRADA",
                 message=f"No existe la especie destino con id {dto.id_especie_destino}.",
                 field="id_especie_destino",
             )
+        # INC-M09-67-G118 (#501): RF-32 agrupa "no existe o se encuentra inactiva"
+        # en un solo flujo alterno con 404; antes el caso inactiva salía como 422.
         if not especie_destino.es_activo:
-            raise BusinessRuleError(
+            raise NotFoundError(
                 code="ESPECIE_DESTINO_INACTIVA",
-                message="No se puede aplicar una plantilla a una especie inactiva.",
+                message=(
+                    "Destino no válido: La finca o especie seleccionada no existe o se "
+                    "encuentra inactiva. Verifique el estado del destino antes de aplicar "
+                    "la configuración."
+                ),
                 field="id_especie_destino",
             )
 

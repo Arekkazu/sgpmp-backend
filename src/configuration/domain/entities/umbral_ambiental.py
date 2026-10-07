@@ -19,6 +19,9 @@ def _decimal_snapshot(valor: Decimal) -> str:
     return str(valor.quantize(_ESCALA_SNAPSHOT))
 
 
+MOTIVO_CAMBIOS_SIN_PROPAGAR = "Cambios guardados, pendientes de propagar al Nodo Edge."
+
+
 @dataclass(eq=False)
 class UmbralAmbiental:
     id_especie: int
@@ -74,6 +77,10 @@ class UmbralAmbiental:
         self.niveles = niveles
         self.id_usuario = id_usuario
         self.fecha_actualizacion = ts_ahora
+        # INC-M09-104-G29: los valores nuevos todavía no llegaron al Edge. Si la
+        # propagación posterior no alcanza a persistir su resultado, el umbral
+        # no debe quedar mostrando el APLICADA de la versión anterior.
+        self.marcar_pendiente_sincronizacion(MOTIVO_CAMBIOS_SIN_PROPAGAR)
 
     def desactivar(self) -> None:
         self.es_activo = False

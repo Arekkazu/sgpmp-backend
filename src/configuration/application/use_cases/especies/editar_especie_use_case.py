@@ -50,7 +50,7 @@ class EditarEspecieUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_especie: int, dto: EditarEspecieDTO, usuario_actual: UsuarioActual) -> Especie:
-        especie = self.especies_repo.obtener_por_id(id_especie)
+        especie = self.especies_repo.obtener_por_id(id_especie, bloquear=True)
         if especie is None:
             raise NotFoundError(
                 code="ESPECIE_NO_ENCONTRADA",

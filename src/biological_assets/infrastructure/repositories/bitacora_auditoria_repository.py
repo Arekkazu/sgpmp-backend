@@ -6,13 +6,14 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import or_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.models.bitacora_auditoria_m02_model import BitacoraAuditoriaM02Model
 from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
 
 logger = logging.getLogger(__name__)
 
@@ -88,8 +89,23 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         rf_origenes_permitidos: Optional[set[str]] = None,
         id_propietario_acceso_datos: Optional[int] = None,
         id_usuario_responsable: Optional[int] = None,
+        ids_fincas_alcance: Optional[list[int]] = None,
+        id_usuario_alcance: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
+
+        if ids_fincas_alcance is not None:
+            q = q.filter(
+                or_(
+                    BitacoraAuditoriaM02Model.id_activo_biologico.in_(
+                        self._activos_en_fincas(ids_fincas_alcance)
+                    ),
+                    and_(
+                        BitacoraAuditoriaM02Model.id_activo_biologico.is_(None),
+                        BitacoraAuditoriaM02Model.id_usuario_responsable == id_usuario_alcance,
+                    ),
+                )
+            )
 
         if id_propietario_acceso_datos is not None:
             q = q.outerjoin(
@@ -141,6 +157,27 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             .all()
         )
         return [self._a_entidad(r) for r in registros_orm], total
+
+    @staticmethod
+    def _activos_en_fincas(ids_fincas: list[int]):
+        return (
+            select(ActivoBiologicoModel.id_activo_biologico)
+            .join(
+                InfraestructuraModel,
+                InfraestructuraModel.id_infraestructura == ActivoBiologicoModel.id_infraestructura,
+            )
+            .where(InfraestructuraModel.id_finca.in_(ids_fincas))
+        )
+
+    def activo_en_fincas(self, id_activo: int, ids_fincas: list[int]) -> bool:
+        return (
+            self.db.execute(
+                self._activos_en_fincas(ids_fincas).where(
+                    ActivoBiologicoModel.id_activo_biologico == id_activo
+                )
+            ).first()
+            is not None
+        )
 
     def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
         return (

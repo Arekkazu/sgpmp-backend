@@ -43,7 +43,7 @@ class EditarInfraestructuraUseCase:
     def execute(
         self, id_infraestructura: int, dto: EditarInfraestructuraDTO, usuario_actual: UsuarioActual
     ) -> Infraestructura:
-        infra = self.infra_repo.obtener_por_id(id_infraestructura)
+        infra = self.infra_repo.obtener_por_id(id_infraestructura, bloquear=True)
         if infra is None:
             raise NotFoundError(
                 code="INFRAESTRUCTURA_NO_ENCONTRADA",

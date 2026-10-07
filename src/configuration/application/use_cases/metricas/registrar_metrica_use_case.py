@@ -75,10 +75,7 @@ class RegistrarMetricaUseCase:
 
         nombre = NombreMetrica(dto.nombre)
         tipo_medicion = TipoMedicion.desde_string(dto.tipo_medicion)
-        tipo_dato = TipoDatoAtributo.desde_string(
-            dto.tipo_dato
-            or TipoDatoAtributo.inferir_desde_tipo_medicion(dto.tipo_medicion).value
-        )
+        tipo_dato = TipoDatoAtributo.desde_string(dto.tipo_dato)
         aplica = AplicaTipoActivo.desde_string(dto.aplica_a_tipo_activo)
 
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)

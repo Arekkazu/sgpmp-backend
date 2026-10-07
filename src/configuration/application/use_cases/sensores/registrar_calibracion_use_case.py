@@ -93,9 +93,16 @@ class RegistrarCalibracionUseCase:
         self.auditoria_repo = auditoria_repo
         self.eventos_repo = eventos_repo
 
-    def execute(self, id_sensor: int, dto: RegistrarCalibracionDTO, usuario_actual: UsuarioActual) -> Calibracion:
+    def execute(
+        self,
+        id_sensor: int,
+        dto: RegistrarCalibracionDTO,
+        usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Calibracion:
         try:
-            valor, offset = self._validar(id_sensor, dto)
+            valor, offset = self._validar(id_sensor, dto, ids_fincas_permitidas)
         except (NotFoundError, BusinessRuleError, ValidationError) as exc:
             auditar_rechazo_calibracion(
                 self.db,
@@ -117,6 +124,7 @@ class RegistrarCalibracionUseCase:
             ganancia=Decimal(str(dto.ganancia)),
             offset=offset,
             observaciones=dto.observaciones,
+            modo_calibracion=dto.modo_calibracion,
         )
 
         try:
@@ -147,9 +155,17 @@ class RegistrarCalibracionUseCase:
 
         return calibracion_guardada
 
-    def _validar(self, id_sensor: int, dto: RegistrarCalibracionDTO) -> tuple[Decimal, Decimal]:
+    def _validar(
+        self, id_sensor: int, dto: RegistrarCalibracionDTO, ids_fincas_permitidas: Optional[list[int]]
+    ) -> tuple[Decimal, Decimal]:
         """Flujos alternos de RF-24. Devuelve (valor_referencia, offset) ya convertidos."""
-        dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
+        # TC-M09-141 (#503): sin alcance, un Ingeniero calibraba sensores de fincas
+        # a las que no tiene acceso (y que ni siquiera puede listar). Un dispositivo
+        # ajeno responde 404, igual que uno inexistente, para no confirmar que
+        # existe; el sensor queda cubierto porque debe pertenecer a este dispositivo.
+        dispositivo = self.dispositivo_repo.obtener_por_id(
+            dto.id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
+        )
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
@@ -219,9 +235,30 @@ class RegistrarCalibracionUseCase:
 
 class ConsultarCalibracionesUseCase:
 
-    def __init__(self, db: Session, calibracion_repo: CalibracionRepository) -> None:
+    def __init__(
+        self,
+        db: Session,
+        calibracion_repo: CalibracionRepository,
+        sensor_repo: SensorRepository,
+        dispositivo_repo: DispositivoIotRepository,
+    ) -> None:
         self.db = db
         self.calibracion_repo = calibracion_repo
+        self.sensor_repo = sensor_repo
+        self.dispositivo_repo = dispositivo_repo
 
-    def listar_por_sensor(self, id_sensor: int) -> list[Calibracion]:
+    def listar_por_sensor(
+        self, id_sensor: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[Calibracion]:
+        # Mismo criterio que el historial de asociaciones (INC-M09-22-G126-02):
+        # el historial de un sensor de una finca ajena responde 404.
+        if ids_fincas_permitidas is not None:
+            sensor = self.sensor_repo.obtener_por_id(id_sensor)
+            if sensor is None or self.dispositivo_repo.obtener_por_id(
+                sensor.id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
+            ) is None:
+                raise NotFoundError(
+                    code="SENSOR_NO_ENCONTRADO",
+                    message=f"No existe un sensor con ID {id_sensor}.",
+                )
         return self.calibracion_repo.listar_por_sensor(id_sensor)

@@ -35,9 +35,9 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
             fecha_creacion=orm.fecha_creacion,
         )
 
-    def obtener_por_finca(self, id_finca: int) -> Optional[IdentidadVisual]:
+    def obtener_por_finca(self, id_finca: int, *, bloquear: bool = False) -> Optional[IdentidadVisual]:
         # Usa la misma lógica que vw_rf26_identidad_visual_activa: última versión por finca
-        orm = (
+        query = (
             self.db.query(IdentidadVisualModel)
             .filter(IdentidadVisualModel.id_finca == id_finca)
             .order_by(
@@ -45,8 +45,10 @@ class SqlAlchemyIdentidadVisualRepository(IdentidadVisualRepository):
                 IdentidadVisualModel.fecha_creacion.desc().nullslast(),
                 IdentidadVisualModel.id_identidad_visual.desc(),
             )
-            .first()
         )
+        if bloquear:
+            query = query.with_for_update().populate_existing()
+        orm = query.first()
         return self._a_entidad(orm) if orm else None
 
     def guardar(self, entidad: IdentidadVisual) -> IdentidadVisual:
