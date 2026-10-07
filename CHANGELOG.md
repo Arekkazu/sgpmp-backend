@@ -1,3 +1,11 @@
+## [1.0.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.74...v1.0.0-rc.75) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** aplicar alcance por finca a calibrar e historial de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([2c873d7](https://github.com/Arekkazu/sgpmp-backend/commit/2c873d7cd8be654de02109e28e00272467aa236b))
+* **rf24-mod9:** declarar y validar modo_calibracion en el contrato de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([6deedc6](https://github.com/Arekkazu/sgpmp-backend/commit/6deedc6b65765e1b37647d5c514a9f9025efea3c))
+* **rf32-mod9:** especie destino inactiva responde 404 como la inexistente ([#501](https://github.com/Arekkazu/sgpmp-backend/issues/501)) ([b24c0c5](https://github.com/Arekkazu/sgpmp-backend/commit/b24c0c58ac5e2712e78a747dc7e94ec9d5634084))
+
 ## [1.0.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.73...v1.0.0-rc.74) (2026-10-07)
 
 ### Bug Fixes
