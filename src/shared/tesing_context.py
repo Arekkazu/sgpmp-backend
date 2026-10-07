@@ -1,5 +1,8 @@
-import contextvars
+from __future__ import annotations
 
-test_run_id_context: contextvars.ContextVar[str | None] = contextvars.ContextVar(
-    "test_run_id", default=None
+from contextvars import ContextVar
+from typing import Optional
+
+test_run_id_context: ContextVar[Optional[str]] = ContextVar(
+    "test_run_id_context", default=None
 )
