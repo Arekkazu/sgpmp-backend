@@ -7,7 +7,10 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
-from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import RegistrarCalibracionUseCase
+from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    ConsultarCalibracionesUseCase,
+    RegistrarCalibracionUseCase,
+)
 from src.configuration.domain.entities.rango_calibracion import RangoCalibracion
 from src.configuration.infrastructure.dto.registrar_calibracion_dto import RegistrarCalibracionDTO
 from src.configuration.infrastructure.schema.calibracion_schema import CalibracionResponse
@@ -22,7 +25,11 @@ class _Db:
 
 class _Repo:  # sensor / dispositivo / sensor_area / rango
     def __init__(self, **kw): self.__dict__.update(kw)
-    def obtener_por_id(self, _): return self.obj
+    def obtener_por_id(self, _, ids_fincas_permitidas=None):
+        # Alcance por finca (#503): el fake filtra como el repo real con el JOIN a infraestructuras.
+        if ids_fincas_permitidas is not None and getattr(self.obj, "id_finca", None) not in ids_fincas_permitidas:
+            return None
+        return self.obj
     def obtener_asociacion_activa(self, _): return self.obj
     def obtener_por_categoria(self, _): return self.obj
 
@@ -51,7 +58,7 @@ class _Eventos:  # modulo1.eventos (RF-10)
 
 
 _SENSOR = SimpleNamespace(id_dispositivo_iot=1, categoria="TEMPERATURA")
-_DISPOSITIVO = SimpleNamespace(es_activo=True)
+_DISPOSITIVO = SimpleNamespace(es_activo=True, id_finca=1)
 _ASOCIACION = SimpleNamespace(id_infraestructura=1)
 
 
@@ -195,6 +202,41 @@ def test_modo_calibracion_se_valida_y_se_traza():
             pass
 
 
+
+def test_sensor_de_finca_ajena_responde_404_y_queda_auditado():
+    """TC-M09-141 (#503, observación secundaria): el Ingeniero no veía el
+    dispositivo (finca fuera de su alcance) pero sí podía calibrar su sensor."""
+    db, eventos = _Db(), _Eventos()
+    try:
+        _uc(db, _AuditoriaOk(), eventos).execute(1, _dto(Decimal("25")), _USUARIO, ids_fincas_permitidas=[65, 85])
+        assert False, "debió rechazar un dispositivo de una finca ajena"
+    except NotFoundError as e:
+        assert e.code == "DISPOSITIVO_NO_ENCONTRADO" and e.status_code == 404
+    [evento] = eventos.eventos
+    assert evento["detalle"]["codigo_http"] == 404
+    # Dentro del alcance (o rol global, None) la calibración procede igual que antes.
+    assert _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("25")), _USUARIO, ids_fincas_permitidas=[1]).id_calibracion == 99
+
+
+def test_historial_de_calibraciones_respeta_alcance():
+    class _Historial:
+        def listar_por_sensor(self, _): return ["cal"]
+
+    def consultar(ids, sensor=_SENSOR):
+        return ConsultarCalibracionesUseCase(
+            db=_Db(), calibracion_repo=_Historial(),
+            sensor_repo=_Repo(obj=sensor), dispositivo_repo=_Repo(obj=_DISPOSITIVO),
+        ).listar_por_sensor(1, ids_fincas_permitidas=ids)
+
+    assert consultar(None) == ["cal"] and consultar([1]) == ["cal"]
+    for ids, sensor in (([65], _SENSOR), ([1], None)):
+        try:
+            consultar(ids, sensor)
+            assert False, "debió responder 404"
+        except NotFoundError as e:
+            assert e.code == "SENSOR_NO_ENCONTRADO"
+
+
 if __name__ == "__main__":
     test_happy_path_escribe_auditoria()
     test_fallo_auditoria_rollback_500()
@@ -204,4 +246,6 @@ if __name__ == "__main__":
     test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx()
     test_403_del_router_queda_auditado()
     test_modo_calibracion_se_valida_y_se_traza()
+    test_sensor_de_finca_ajena_responde_404_y_queda_auditado()
+    test_historial_de_calibraciones_respeta_alcance()
     print("OK")
