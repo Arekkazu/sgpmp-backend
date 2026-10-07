@@ -1,0 +1,359 @@
+{
+  "info": {
+    "_postman_id": "c1f7a049-74d6-444a-89a3-5c74230d4a99",
+    "name": "TC-M09-G08-v2.0 - Auditoría y Trazabilidad de Ciclo de Vida de Especie Productiva (RF-15, OWASP A09)",
+    "description": "TC-M09-G08-v2.0 (RF-15 v1.1, CU-01, OWASP A09). Auditoría completa de eventos CREATE, UPDATE de nombre, UPDATE con grupo_manejo, DEACTIVATE y REACTIVATE con teardown final. Verifica persistencia en modulo9.auditorias_especies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://api.inmero.co/back-sigab-test" },
+    { "key": "admin_email", "value": "administador.dev@gmail.com" },
+    { "key": "admin_password", "value": "" },
+    { "key": "token_admin", "value": "" },
+    { "key": "admin_logged_in", "value": "false" },
+    { "key": "id_especie", "value": "" },
+    { "key": "nombre_inicial", "value": "Cabra Qab" },
+    { "key": "nombre_editado", "value": "Cabra Criolla Qab" },
+    { "key": "fecha_actualizacion_fresca", "value": "" },
+    { "key": "run_start_time", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "NW-01-Login-Admin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Variables de entorno de Postman al INICIO antes de cualquier aserción",
+              "if (pm.environment.get('baseUrl')) { pm.collectionVariables.set('baseUrl', pm.environment.get('baseUrl')); }",
+              "if (pm.environment.get('admin_email')) { pm.collectionVariables.set('admin_email', pm.environment.get('admin_email')); }",
+              "if (pm.environment.get('admin_password')) { pm.collectionVariables.set('admin_password', pm.environment.get('admin_password')); }",
+              "",
+              "if (!pm.collectionVariables.get('run_start_time')) {",
+              "    var isoStart = new Date().toISOString();",
+              "    pm.collectionVariables.set('run_start_time', isoStart);",
+              "    console.log('RUN_START_TIME=' + isoStart);",
+              "}",
+              "",
+              "pm.test('NW-01: Autenticación exitosa del Administrador (HTTP 200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('token');",
+              "    pm.expect(data.token).to.be.a('string').and.not.empty;",
+              "    pm.collectionVariables.set('token_admin', data.token);",
+              "    pm.collectionVariables.set('admin_logged_in', 'true');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_email}}\",\n  \"contrasena\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/sesiones/",
+          "host": ["{{baseUrl}}"],
+          "path": ["sesiones", ""]
+        }
+      }
+    },
+    {
+      "name": "NW-02-Preflight-Verificar-Libre",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-02: Preflight de solo lectura, backend activo y verificación de fixture libre', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var items = data.items || [];",
+              "    var nombreIni = pm.collectionVariables.get('nombre_inicial') || 'Cabra Qaa';",
+              "    var nombreEdi = pm.collectionVariables.get('nombre_editado') || 'Cabra Criolla Qaa';",
+              "",
+              "    var existeIni = items.find(function(i) {",
+              "        return i.nombre && i.nombre.toLowerCase() === nombreIni.toLowerCase();",
+              "    });",
+              "    var existeEdi = items.find(function(i) {",
+              "        return i.nombre && i.nombre.toLowerCase() === nombreEdi.toLowerCase();",
+              "    });",
+              "",
+              "    pm.expect(existeIni, 'Nombre inicial ' + nombreIni + ' no debe existir previamente en catálogo').to.be.undefined;",
+              "    pm.expect(existeEdi, 'Nombre editado ' + nombreEdi + ' no debe existir previamente en catálogo').to.be.undefined;",
+              "",
+              "    var startTime = pm.collectionVariables.get('run_start_time');",
+              "    console.log('PREFLIGHT_OK_RUN_START_TIME=' + startTime);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies?solo_activas=false",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"],
+          "query": [
+            { "key": "solo_activas", "value": "false" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "NW-03-SC1-Crear-Especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-03: Subcaso 1 Creación de especie con grupo_manejo (HTTP 201)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(201);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('id_especie');",
+              "    pm.expect(data.id_especie).to.be.a('number');",
+              "    pm.expect(data).to.have.property('fecha_actualizacion');",
+              "",
+              "    pm.collectionVariables.set('id_especie', String(data.id_especie));",
+              "    pm.collectionVariables.set('fecha_actualizacion_fresca', data.fecha_actualizacion);",
+              "",
+              "    console.log('CREATED_ID_ESPECIE=' + data.id_especie);",
+              "    console.log('CREATED_FECHA_ACTUALIZACION=' + data.fecha_actualizacion);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_inicial}}\",\n  \"descripcion\": \"Especie de prueba para auditoria TC-M09-G08-v2.0\",\n  \"densidad_maxima_por_especie\": 50,\n  \"grupo_manejo\": \"ESPECIES_MEDIANAS\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies"]
+        }
+      }
+    },
+    {
+      "name": "NW-05-SC2-Renombrar-Especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-05: Subcaso 2 Edición de nombre a Cabra Criolla Qaa (HTTP 200)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    var esperado = pm.collectionVariables.get('nombre_editado');",
+              "    pm.expect(data.nombre.toLowerCase()).to.equal(esperado.toLowerCase());",
+              "    if (data.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fecha_actualizacion_fresca', data.fecha_actualizacion);",
+              "    }",
+              "    console.log('PATCH_NOMBRE_FECHA_ACTUALIZACION=' + data.fecha_actualizacion);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_editado}}\",\n  \"descripcion\": \"Especie renombrada en TC-M09-G08-v2.0\",\n  \"fecha_actualizacion\": \"{{fecha_actualizacion_fresca}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_especie}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_especie}}"]
+        }
+      }
+    },
+    {
+      "name": "NW-07-SC3-Editar-Grupo-Manejo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-07: Subcaso 3 Intento de edición de grupo_manejo (HTTP 200)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data).to.have.property('id_especie');",
+              "    if (data.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fecha_actualizacion_fresca', data.fecha_actualizacion);",
+              "    }",
+              "    console.log('PATCH_GRUPO_FECHA_ACTUALIZACION=' + data.fecha_actualizacion);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"{{nombre_editado}}\",\n  \"descripcion\": \"Edición con grupo_manejo en TC-M09-G08-v2.0\",\n  \"grupo_manejo\": \"ESPECIES_GRANDES\",\n  \"fecha_actualizacion\": \"{{fecha_actualizacion_fresca}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_especie}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_especie}}"]
+        }
+      }
+    },
+    {
+      "name": "NW-09-SC4-Desactivar-Especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-09: Subcaso 4 Desactivación de especie (HTTP 200)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.es_activo).to.be.false;",
+              "    if (data.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fecha_actualizacion_fresca', data.fecha_actualizacion);",
+              "    }",
+              "    console.log('DEACTIVATE_FECHA_ACTUALIZACION=' + data.fecha_actualizacion);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_especie}}/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_especie}}", "desactivar"]
+        }
+      }
+    },
+    {
+      "name": "NW-11-SC5-Reactivar-Especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-11: Subcaso 5 Reactivación de especie (HTTP 200)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.es_activo).to.be.true;",
+              "    if (data.fecha_actualizacion) {",
+              "        pm.collectionVariables.set('fecha_actualizacion_fresca', data.fecha_actualizacion);",
+              "    }",
+              "    console.log('REACTIVATE_FECHA_ACTUALIZACION=' + data.fecha_actualizacion);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_especie}}/reactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_especie}}", "reactivar"]
+        }
+      }
+    },
+    {
+      "name": "NW-13-Teardown-Desactivar-Final",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('NW-13: Teardown Desactivación final de especie para limpieza (HTTP 200)', function () {",
+              "    if (pm.collectionVariables.get('admin_logged_in') !== 'true') {",
+              "        pm.expect.fail('FALLA dependiente de NW-01: sin token admin');",
+              "        return;",
+              "    }",
+              "    pm.response.to.have.status(200);",
+              "    var data = pm.response.json();",
+              "    pm.expect(data.es_activo).to.be.false;",
+              "    console.log('TEARDOWN_COMPLETED_ID_ESPECIE=' + pm.collectionVariables.get('id_especie'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token_admin}}" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/configuracion/especies/{{id_especie}}/desactivar",
+          "host": ["{{baseUrl}}"],
+          "path": ["configuracion", "especies", "{{id_especie}}", "desactivar"]
+        }
+      }
+    }
+  ]
+}

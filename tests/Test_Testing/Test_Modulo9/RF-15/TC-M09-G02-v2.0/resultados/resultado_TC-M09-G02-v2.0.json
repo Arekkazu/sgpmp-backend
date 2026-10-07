@@ -1,0 +1,127 @@
+{
+  "tc": "TC-M09-G02-v2.0",
+  "ambiente": "TEST",
+  "fecha": "2026-10-07T02:41:29.890Z",
+  "checkpoints": [
+    {
+      "paso": "NW-01",
+      "esperado": "HTTP 200 OK con token JWT válido en cuerpo",
+      "obtenido": "HTTP 200 recibido con token JWT emitido",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-02",
+      "esperado": "HTTP 200 OK; Cachama Blanca existe y nombres de prueba libres",
+      "obtenido": "HTTP 200 recibido; Cachama Blanca verificada y nombres libres",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-03",
+      "esperado": "HTTP 201 Created con entidad de 3 caracteres persistida",
+      "obtenido": "HTTP 201 recibido; especie de 3 caracteres registrada",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-03b",
+      "esperado": "HTTP 200 OK; especie de 3 caracteres existe y está activa",
+      "obtenido": "HTTP 200 recibido; persistencia y estado activo confirmados",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-04",
+      "esperado": "HTTP 200 OK con es_activo=false",
+      "obtenido": "HTTP 200 recibido; especie desactivada lógicamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-05",
+      "esperado": "HTTP 201 Created con entidad de 50 caracteres persistida",
+      "obtenido": "HTTP 201 recibido; especie de 50 caracteres registrada",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-05b",
+      "esperado": "HTTP 200 OK; especie de 50 caracteres existe y está activa",
+      "obtenido": "HTTP 200 recibido; persistencia y estado activo confirmados",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-06",
+      "esperado": "HTTP 200 OK con es_activo=false",
+      "obtenido": "HTTP 200 recibido; especie desactivada lógicamente",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-07",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) por longitud <3",
+      "obtenido": "HTTP 400 recibido; error de longitud en campo nombre",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-07b",
+      "esperado": "HTTP 200 OK; nombre de 2 caracteres no existe en base de datos",
+      "obtenido": "HTTP 200 recibido; ausencia en base de datos confirmada",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-08",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) por longitud >50",
+      "obtenido": "HTTP 400 recibido; error de longitud en campo nombre",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-08b",
+      "esperado": "HTTP 200 OK; nombre de 51 caracteres no existe en base de datos",
+      "obtenido": "HTTP 200 recibido; ausencia en base de datos confirmada",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-09a",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) para nombre vacío",
+      "obtenido": "HTTP 400 recibido; error de validación en campo nombre",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-09b",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) para nombre null",
+      "obtenido": "HTTP 400 recibido; error de tipo en campo nombre",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-10",
+      "esperado": "HTTP 409 Conflict (ESPECIE_DUPLICADA)",
+      "obtenido": "HTTP 409 recibido; rechazo por unicidad case-insensitive",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-10b",
+      "esperado": "HTTP 200 OK; exactamente 1 instancia de Cachama Blanca",
+      "obtenido": "HTTP 200 recibido; catálogo mantiene exactamente 1 registro",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-11",
+      "esperado": "HTTP 400 Bad Request (VAL_ENTRADA) por formato inválido",
+      "obtenido": "HTTP 400 recibido; error de caracteres en campo nombre",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-11b",
+      "esperado": "HTTP 200 OK; nombre con símbolos no existe en base de datos",
+      "obtenido": "HTTP 200 recibido; ausencia en base de datos confirmada",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-12",
+      "esperado": "Cero tokens JWT, Bearer crudos o contraseñas en evidencias y resultados",
+      "obtenido": "Cero fugas de credenciales o tokens detectadas",
+      "estado": "OK"
+    },
+    {
+      "paso": "NW-13",
+      "esperado": "Cero registros de prueba activos en PostgreSQL TEST y teardown completo",
+      "obtenido": "Cero especies de prueba activas en base de datos tras teardown",
+      "estado": "OK"
+    }
+  ]
+}
