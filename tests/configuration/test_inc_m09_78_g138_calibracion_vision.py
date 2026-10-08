@@ -155,7 +155,8 @@ def _mensaje_no_disponible(id_area):
 @pytest.mark.parametrize(
     "caso, area, camaras",
     [
-        ("TC-M09-278 área sin cámara", _area(), []),
+        # TC-M09-291 (G143-01, #515) es el mismo escenario: AVES / MODELO_AVES sin cámaras.
+        ("TC-M09-278 / TC-M09-291 área sin cámara", _area(), []),
         ("TC-M09-279 única cámara inactiva", _area(), [_camara(activa=False)]),
         ("TC-M09-280 paradigma INDIVIDUAL", _area(tipo_modelo_asignado="MODELO_ESPECIES_GRANDES"), [_camara()]),
         ("TC-M09-281 sin tipo_modelo_asignado", _area(tipo_modelo_asignado=None), [_camara()]),
@@ -176,6 +177,7 @@ def test_precondicion_vision_incumplida_responde_422_sin_linea_base(caso, area, 
     assert evento["detalle"]["operacion"] == "CALIBRACION_VISION"
     assert evento["detalle"]["codigo_error"] == "VISION_NO_DISPONIBLE"
     assert evento["detalle"]["id_infraestructura"] == 2
+    assert evento["id_usuario"] == _USUARIO.id_usuario  # el Ingeniero que disparó el cálculo
 
 
 def test_observaciones_ninguna_apta_es_vision_no_disponible():

@@ -692,7 +692,7 @@ Errores posibles:
   auditado (RFC-006)
 - `404` — área inexistente o de una finca fuera del alcance del usuario — `AREA_NO_ENCONTRADA`
 - `422` — `VISION_NO_DISPONIBLE` (FA "Área sin cámara apta"), en cualquiera de estos casos:
-  - área sin cámara asociada (TC-M09-278)
+  - área sin cámara asociada (TC-M09-278, TC-M09-291)
   - todas sus cámaras inactivas (TC-M09-279)
   - `tipo_modelo_asignado` de paradigma INDIVIDUAL o META (TC-M09-280)
   - sin `tipo_modelo_asignado` (TC-M09-281) o sin especie
