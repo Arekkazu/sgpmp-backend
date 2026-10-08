@@ -366,7 +366,7 @@
 | `valor_referencia` | `Decimal` | > 0 |
 | `fecha_calibracion` | `datetime` | — |
 | `observaciones` | `str \| None` | Opcional |
-| `modo_calibracion` | `ModoCalibracion` | Opcional, default `SENSOR` (único valor) |
+| `modo_calibracion` | `ModoCalibracion` | Obligatorio, sin default; `SENSOR` (único valor admitido por este endpoint) |
 
 **Response `CalibracionResponse`:**
 
