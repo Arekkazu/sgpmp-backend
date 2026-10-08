@@ -197,6 +197,9 @@ def test_dispositivo_activo_y_area_asociada_permiten_calibrar(monkeypatch, valor
         assert despues["items"][:-1] == antes["items"]
     estado.calibraciones.guardar.assert_called_once()
     estado.auditoria.registrar.assert_called_once()
-    estado.eventos.registrar.assert_not_called()
+    # RF-10 (#508): la calibración exitosa deja un único evento CALIBRACION_EXITOSA.
+    estado.eventos.registrar.assert_called_once()
+    assert estado.eventos.registrar.call_args.kwargs["tipo_evento"] == 30
+    assert estado.eventos.registrar.call_args.kwargs["exitoso"] is True
     estado.db.commit.assert_called_once()
     estado.db.rollback.assert_not_called()

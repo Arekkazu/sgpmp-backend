@@ -191,7 +191,10 @@ def test_create_autoriza_segun_rbac_y_conserva_flujo_valido(monkeypatch, id_rol)
     assert (id_rol, 12, 1) in estado.db.consultas
     estado.calibraciones.guardar.assert_called_once()
     estado.auditoria.registrar.assert_called_once()
-    estado.eventos.registrar.assert_not_called()
+    # RF-10 (#508): la calibración exitosa deja un único evento CALIBRACION_EXITOSA.
+    estado.eventos.registrar.assert_called_once()
+    assert estado.eventos.registrar.call_args.kwargs["tipo_evento"] == 30
+    assert estado.eventos.registrar.call_args.kwargs["exitoso"] is True
     estado.db.commit.assert_called_once()
     estado.db.rollback.assert_not_called()
 
