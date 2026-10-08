@@ -1,3 +1,19 @@
+## [1.0.0-rc.79](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.78...v1.0.0-rc.79) (2026-10-08)
+
+### Features
+
+* **rf14-mod1:** marcar como leidas todas las notificaciones propias ([aa6dd50](https://github.com/Arekkazu/sgpmp-backend/commit/aa6dd503129c90db94e9b335407e06ae8b630192))
+
+### Bug Fixes
+
+* **rf11-mod1:** retirar al Productor el acceso a la gestion de usuarios ([cbb8245](https://github.com/Arekkazu/sgpmp-backend/commit/cbb824536123725166b6311c481e34abb5f1b681))
+* **rf33-mod2:** rechazar el registro de activos en infraestructuras de fincas ajenas ([7d66dc4](https://github.com/Arekkazu/sgpmp-backend/commit/7d66dc46af1b20771e3e73ae8eeff0d06061ba5e))
+* **rf35-mod2:** devolver el nombre de especie e infraestructura en el listado de activos ([f2cc973](https://github.com/Arekkazu/sgpmp-backend/commit/f2cc9737440480e0b777a617876e99f3a9c4d9ec))
+* **rf37-mod2:** listar ciclos productivos del activo y rechazar ciclos de otra especie (Arekkazu/SGPMP-FRONT-END-PWA[#288](https://github.com/Arekkazu/sgpmp-backend/issues/288)) ([659c66b](https://github.com/Arekkazu/sgpmp-backend/commit/659c66b2cf60730222aea533e289d42f7c97025f))
+* **rf39-mod2:** distinguir los errores de fecha de evento e indicar la fecha valida (Arekkazu/SGPMP-FRONT-END-PWA[#289](https://github.com/Arekkazu/sgpmp-backend/issues/289)) ([b3cc720](https://github.com/Arekkazu/sgpmp-backend/commit/b3cc7205cdb7859faab789687c7ec5d2965c1276))
+* **rf42-mod2:** registrar parto con crias tras diagnostico exitoso (Arekkazu/SGPMP-FRONT-END-PWA[#299](https://github.com/Arekkazu/sgpmp-backend/issues/299)) ([956d1a5](https://github.com/Arekkazu/sgpmp-backend/commit/956d1a51134b636410150cf72d501a5a36eaf839))
+* **rf47-mod2:** incluir el tipo de evento sanitario y la dosis en la ficha integral ([63c03ba](https://github.com/Arekkazu/sgpmp-backend/commit/63c03ba06e3bffa26df71c679451bc6ca5065147)), closes [#298](https://github.com/Arekkazu/sgpmp-backend/issues/298)
+
 ## [1.0.0-rc.78](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.77...v1.0.0-rc.78) (2026-10-08)
 
 ### Features
