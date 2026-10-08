@@ -68,12 +68,18 @@ def execute_test_query(
     safe_query = f"SELECT * FROM ({cleaned_query}) AS query_sandbox LIMIT 100"
 
     try:
-        with db.begin_nested():
-            db.execute(text("SET LOCAL TRANSACTION READ ONLY"))
+        db.execute(text("SAVEPOINT sandbox_query"))
+        try:
+            db.execute(text("SET LOCAL transaction_read_only = on"))
             db.execute(text("SET LOCAL statement_timeout = '2s'"))
             result = db.execute(text(safe_query))
-            rows = result.mappings().all()
-        return {"data": [dict(row) for row in rows]}
+            rows = [dict(row) for row in result.mappings().all()]
+        finally:
+            # Siempre se revierte al savepoint: descarta los SET LOCAL y limpia
+            # el estado abortado si la consulta falló. No afecta los datos de la corrida.
+            db.execute(text("ROLLBACK TO SAVEPOINT sandbox_query"))
+            db.execute(text("RELEASE SAVEPOINT sandbox_query"))
+        return {"data": rows}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

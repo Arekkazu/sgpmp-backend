@@ -98,8 +98,8 @@ from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
 from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
-from shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
-from shared.rollback.presentation.test_control_router import router as test_control_router
+from src.shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
+from src.shared.rollback.presentation.test_control_router import router as test_control_router
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
