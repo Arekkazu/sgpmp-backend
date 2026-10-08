@@ -41,8 +41,8 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
             etapa_fallo=EtapaCalibracionVision(orm.etapa_fallo) if orm.etapa_fallo else None,
             motivo=orm.motivo,
             linea_base=orm.json_linea_base,
-            n_observaciones=orm.n_observaciones,
-            n_observaciones_validas=orm.n_observaciones_validas,
+            n_observaciones=orm.cantidad_observaciones,
+            n_observaciones_validas=orm.cantidad_observaciones_validas,
             iteraciones=orm.iteraciones,
             observaciones=orm.observaciones,
             fecha_creacion=orm.fecha_creacion,
@@ -61,8 +61,8 @@ class SqlAlchemyCalibracionVisionRepository(CalibracionVisionRepository):
                 etapa_fallo=calibracion.etapa_fallo.value if calibracion.etapa_fallo else None,
                 motivo=calibracion.motivo,
                 json_linea_base=calibracion.linea_base,
-                n_observaciones=calibracion.n_observaciones,
-                n_observaciones_validas=calibracion.n_observaciones_validas,
+                cantidad_observaciones=calibracion.n_observaciones,
+                cantidad_observaciones_validas=calibracion.n_observaciones_validas,
                 iteraciones=calibracion.iteraciones,
                 observaciones=calibracion.observaciones,
             )
@@ -101,18 +101,19 @@ class SqlAlchemyLineaBaseVisionRepository(LineaBaseVisionRepository):
             fecha_publicacion=orm.fecha_publicacion,
         )
 
+    def _vigente(self, id_infraestructura: int, id_especie: int):
+        return self.db.query(LineaBaseVisionModel).filter_by(
+            id_infraestructura=id_infraestructura, id_especie=id_especie
+        )
+
     def obtener_vigente(self, id_infraestructura: int, id_especie: int) -> Optional[LineaBaseVision]:
-        orm = self.db.get(LineaBaseVisionModel, (id_infraestructura, id_especie))
+        orm = self._vigente(id_infraestructura, id_especie).first()
         return self._a_entidad(orm) if orm is not None else None
 
     def publicar(self, linea_base: LineaBaseVision) -> LineaBaseVision:
         try:
             # FOR UPDATE: dos cálculos simultáneos del mismo par no se pisan a medias.
-            orm = self.db.get(
-                LineaBaseVisionModel,
-                (linea_base.id_infraestructura, linea_base.id_especie),
-                with_for_update=True,
-            )
+            orm = self._vigente(linea_base.id_infraestructura, linea_base.id_especie).with_for_update().first()
             if orm is None:
                 orm = LineaBaseVisionModel(
                     id_infraestructura=linea_base.id_infraestructura,

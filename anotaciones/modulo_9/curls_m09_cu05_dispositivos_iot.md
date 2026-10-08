@@ -713,7 +713,8 @@ Errores posibles:
 
 Todo `403`/`404`/`422` queda en `modulo1.eventos` (tipo 29, `exitoso=false`,
 `detalle.operacion = "CALIBRACION_VISION"`), best-effort: si esa escritura falla, el
-rechazo conserva su código. El éxito se audita con el tipo 30 `CALIBRACION_VISION`.
+rechazo conserva su código. El éxito se audita con el tipo 30 `CALIBRACION_EXITOSA` (`exitoso=true`,
+`detalle.operacion = "CALIBRACION_VISION"`).
 
 ### Historial de cálculos del área
 

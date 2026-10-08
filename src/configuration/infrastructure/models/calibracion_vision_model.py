@@ -8,7 +8,9 @@ from __future__ import annotations
 import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String, Text, text
+from sqlalchemy import (
+    DateTime, ForeignKeyConstraint, Integer, PrimaryKeyConstraint, Sequence, String, Text, UniqueConstraint, text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,8 +49,8 @@ class CalibracionVisionModel(Base):
     etapa_fallo: Mapped[Optional[str]] = mapped_column(String(15))
     motivo: Mapped[Optional[str]] = mapped_column(Text)
     json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB)
-    n_observaciones: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
-    n_observaciones_validas: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    cantidad_observaciones: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
+    cantidad_observaciones_validas: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     iteraciones: Mapped[Optional[int]] = mapped_column(Integer)
     observaciones: Mapped[Optional[str]] = mapped_column(Text)
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(
@@ -74,12 +76,20 @@ class LineaBaseVisionModel(Base):
             ['modulo9.calibraciones_vision.id_calibracion_vision'],
             name='lineas_base_vision_id_calibracion_vision_fkey',
         ),
-        PrimaryKeyConstraint('id_infraestructura', 'id_especie', name='lineas_base_vision_pkey'),
+        PrimaryKeyConstraint('id_linea_base_vision', name='lineas_base_vision_pkey'),
+        UniqueConstraint(
+            'id_infraestructura', 'id_especie', name='uq_linea_base_vision_id_infraestructura_id_especie'
+        ),
         {'schema': 'modulo9'},
     )
 
-    id_infraestructura: Mapped[int] = mapped_column(Integer, primary_key=True)
-    id_especie: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id_linea_base_vision: Mapped[int] = mapped_column(
+        Integer,
+        Sequence('lineas_base_vision_id_linea_base_vision_seq', schema='modulo9'),
+        primary_key=True,
+    )
+    id_infraestructura: Mapped[int] = mapped_column(Integer, nullable=False)
+    id_especie: Mapped[int] = mapped_column(Integer, nullable=False)
     id_calibracion_vision: Mapped[int] = mapped_column(Integer, nullable=False)
     json_valor: Mapped[dict] = mapped_column(JSONB, nullable=False)
     fecha_publicacion: Mapped[datetime.datetime] = mapped_column(

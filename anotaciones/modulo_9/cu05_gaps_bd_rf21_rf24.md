@@ -111,15 +111,17 @@ aprobación del DBA):
   - `json_ventana_observacion`;
   - `estado` (`EXITOSA`/`FALLIDA`/`NO_CONVERGIDA`), `etapa_fallo` y `motivo`;
   - `json_linea_base`, solo si es `EXITOSA`;
-  - contadores de observaciones e `iteraciones`.
+  - contadores `cantidad_observaciones` / `cantidad_observaciones_validas` e `iteraciones`.
   - CHECKs de coherencia: una exitosa lleva línea base y no lleva etapa de fallo; las demás, al revés.
-- `modulo9.lineas_base_vision` — la línea base vigente, PK (`id_infraestructura`,
-  `id_especie`). Un cálculo exitoso la reemplaza (UPSERT con `FOR UPDATE`); uno fallido
-  no la toca.
+- `modulo9.lineas_base_vision` — la línea base vigente, PK surrogate
+  `id_linea_base_vision` (convención de nomenclatura) y una por par con
+  `uq_linea_base_vision_id_infraestructura_id_especie`. Un cálculo exitoso la reemplaza
+  (UPSERT con `FOR UPDATE`); uno fallido no la toca.
 - RLS igual que `calibraciones`: Administrador e Ingeniero de Campo; sin DELETE; el
   historial sin UPDATE.
-- `modulo1.tipos_eventos` 30 `CALIBRACION_VISION` para auditar el éxito; los rechazos
-  reutilizan el 29.
+- Sin tipo de evento propio: el éxito reutiliza el 30 `CALIBRACION_EXITOSA` (#508,
+  migración `b6f2d8a40c91`, de la que `d7a41c9e2b58` depende) y los rechazos el 29, ambos
+  con `detalle.operacion = "CALIBRACION_VISION"`, igual que SENSOR.
 
 **RBAC:** sin cambios. Se reutiliza el recurso 12 (`sensores`), C para calcular y R para
 consultar, igual que la calibración SENSOR (tabla de abajo).

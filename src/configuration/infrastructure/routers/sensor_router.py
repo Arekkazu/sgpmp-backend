@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    MENSAJE_ACCESO_DENEGADO,
     ConsultarCalibracionesUseCase,
     RegistrarCalibracionUseCase,
     auditar_rechazo_calibracion,
@@ -142,13 +143,9 @@ def _permiso_calibrar_auditado(
 ) -> None:
     """La misma compuerta RBAC de siempre; RF-24 v1.1 (RFC-006) pide además auditar el 403."""
     try:
-        require_permission(
-            _RECURSO, 1,
-            mensaje_denegado=(
-                "Acceso denegado: La calibración de sensores es una función crítica restringida "
-                "exclusivamente al Ingeniero de Campo o al Administrador."
-            ),
-        )(db=db, usuario_actual=usuario_actual)
+        require_permission(_RECURSO, 1, mensaje_denegado=MENSAJE_ACCESO_DENEGADO)(
+            db=db, usuario_actual=usuario_actual
+        )
     except AuthorizationError as exc:
         auditar_rechazo_calibracion(
             db,

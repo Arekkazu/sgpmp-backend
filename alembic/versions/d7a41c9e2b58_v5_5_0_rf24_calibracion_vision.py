@@ -1,7 +1,7 @@
 """v5.5.0_rf24_calibracion_vision
 
 Revision ID: d7a41c9e2b58
-Revises: a3c9e5d17b42
+Revises: b6f2d8a40c91
 Create Date: 2026-10-07
 
 RF-24 v2.0 (RFC-011), INC-M09-78-G138 (#514): modalidad VISION de la
@@ -11,10 +11,12 @@ calibración — línea base de comportamiento por (área, especie).
   también los FALLIDOS y NO CONVERGIDOS con la etapa y el motivo, porque la
   ficha pide registrar "la calibración como FALLIDA con el motivo de la etapa".
   `modulo9.calibraciones` no sirve: exige `id_sensor` y `id_dispositivo_iot`.
-- `modulo9.lineas_base_vision`: la línea base vigente, una por (área, especie).
-  Un cálculo exitoso la reemplaza; uno fallido no la toca.
-- `modulo1.tipos_eventos` 30 `CALIBRACION_VISION`: auditoría RF-10 del cálculo
-  exitoso. Los rechazos siguen usando el 29 `CALIBRACION_RECHAZADA`.
+- `modulo9.lineas_base_vision`: la línea base vigente, una por (área, especie)
+  (`uq_linea_base_vision_id_infraestructura_id_especie`). Un cálculo exitoso la
+  reemplaza; uno fallido no la toca.
+- Sin tipo de evento nuevo: el éxito usa el 30 `CALIBRACION_EXITOSA` (b6f2d8a40c91)
+  y los rechazos el 29 `CALIBRACION_RECHAZADA`, con `detalle.operacion =
+  CALIBRACION_VISION`, igual que SENSOR.
 
 RLS igual que `modulo9.calibraciones` (5243bbbb28de): lectura y escritura solo
 para Administrador e Ingeniero de Campo; sin DELETE. El historial no tiene
@@ -26,13 +28,9 @@ from alembic import op
 
 
 revision: str = 'd7a41c9e2b58'
-down_revision: Union[str, Sequence[str], None] = 'a3c9e5d17b42'
+down_revision: Union[str, Sequence[str], None] = 'b6f2d8a40c91'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
-
-ID_TIPO_EVENTO = 30
-NOMBRE_TIPO_EVENTO = "CALIBRACION_VISION"
-ACCION_TIPO_EVENTO = "Calculo de linea base por vision"  # varchar(50)
 
 _ROLES_RLS = "('Administrador', 'Ingeniero de Campo')"
 
@@ -53,6 +51,9 @@ BEGIN
         EXECUTE format(
             'GRANT USAGE, SELECT ON SEQUENCE modulo9.calibraciones_vision_id_calibracion_vision_seq TO %I', r
         );
+        EXECUTE format(
+            'GRANT USAGE, SELECT ON SEQUENCE modulo9.lineas_base_vision_id_linea_base_vision_seq TO %I', r
+        );
     END LOOP;
 END $$;
 """
@@ -72,8 +73,8 @@ def upgrade() -> None:
             etapa_fallo VARCHAR(15),
             motivo TEXT,
             json_linea_base JSONB,
-            n_observaciones INTEGER NOT NULL DEFAULT 0,
-            n_observaciones_validas INTEGER NOT NULL DEFAULT 0,
+            cantidad_observaciones INTEGER NOT NULL DEFAULT 0,
+            cantidad_observaciones_validas INTEGER NOT NULL DEFAULT 0,
             iteraciones INTEGER,
             observaciones TEXT,
             fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -107,12 +108,15 @@ def upgrade() -> None:
 
     op.execute("""
         CREATE TABLE modulo9.lineas_base_vision (
+            id_linea_base_vision SERIAL,
             id_infraestructura INTEGER NOT NULL,
             id_especie INTEGER NOT NULL,
             id_calibracion_vision INTEGER NOT NULL,
             json_valor JSONB NOT NULL,
             fecha_publicacion TIMESTAMPTZ NOT NULL DEFAULT now(),
-            CONSTRAINT lineas_base_vision_pkey PRIMARY KEY (id_infraestructura, id_especie),
+            CONSTRAINT lineas_base_vision_pkey PRIMARY KEY (id_linea_base_vision),
+            CONSTRAINT uq_linea_base_vision_id_infraestructura_id_especie
+                UNIQUE (id_infraestructura, id_especie),
             CONSTRAINT lineas_base_vision_id_infraestructura_fkey
                 FOREIGN KEY (id_infraestructura) REFERENCES modulo9.infraestructuras (id_infraestructura)
                 ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -152,29 +156,7 @@ def upgrade() -> None:
     """)
     op.execute(_GRANTS)
 
-    op.execute(
-        f"""
-        INSERT INTO modulo1.tipos_eventos (id_tipo_evento, nombre, accion)
-        SELECT {ID_TIPO_EVENTO}, '{NOMBRE_TIPO_EVENTO}', '{ACCION_TIPO_EVENTO}'
-        WHERE NOT EXISTS (
-            SELECT 1 FROM modulo1.tipos_eventos
-            WHERE id_tipo_evento = {ID_TIPO_EVENTO} OR nombre = '{NOMBRE_TIPO_EVENTO}'
-        )
-        """
-    )
-    op.execute(
-        "SELECT setval('modulo1.tipos_evento_id_tipo_evento_seq', "
-        "(SELECT max(id_tipo_evento) FROM modulo1.tipos_eventos))"
-    )
-
 
 def downgrade() -> None:
-    op.execute(
-        f"""
-        DELETE FROM modulo1.tipos_eventos
-        WHERE id_tipo_evento = {ID_TIPO_EVENTO}
-          AND NOT EXISTS (SELECT 1 FROM modulo1.eventos WHERE tipo_evento = {ID_TIPO_EVENTO})
-        """
-    )
     op.execute("DROP TABLE modulo9.lineas_base_vision")
     op.execute("DROP TABLE modulo9.calibraciones_vision")

@@ -35,6 +35,12 @@ from src.configuration.domain.repositories.camara_area_repository import CamaraA
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
 from src.configuration.domain.repositories.observacion_vision_port import ObservacionVisionPort
 from src.configuration.domain.value_objects.calibracion_vision import OrigenDisparo
+# Mismos tipos de evento RF-10 y mismo 403 que SENSOR; la modalidad va en detalle.operacion.
+from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    MENSAJE_ACCESO_DENEGADO,
+    TIPO_EVENTO_CALIBRACION_EXITOSA,
+    TIPO_EVENTO_CALIBRACION_RECHAZADA,
+)
 from src.configuration.infrastructure.dto.calibrar_vision_dto import CalibrarVisionDTO
 from src.identity_access.domain.repositories.evento_repository import EventoRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -43,13 +49,6 @@ from src.shared.tipo_modelo import es_poblacional
 
 logger = logging.getLogger(__name__)
 
-TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
-TIPO_EVENTO_CALIBRACION_VISION = 30     # modulo1.tipos_eventos (migración d7a41c9e2b58)
-
-MENSAJE_ACCESO_DENEGADO = (
-    "Acceso denegado: La calibración de sensores es una función crítica restringida "
-    "exclusivamente al Ingeniero de Campo o al Administrador."
-)
 
 
 def auditar_rechazo_vision(
@@ -178,7 +177,7 @@ class CalibrarVisionUseCase:
             # RF-10: sin traza no hay línea base nueva (rollback y 500, como en SENSOR).
             try:
                 self.eventos_repo.registrar(
-                    tipo_evento=TIPO_EVENTO_CALIBRACION_VISION,
+                    tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
                     exitoso=True,
                     id_usuario=usuario_actual.id_usuario,
                     detalle={"operacion": "CALIBRACION_VISION", **guardada._snapshot()},
