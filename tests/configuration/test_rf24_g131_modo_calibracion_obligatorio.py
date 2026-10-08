@@ -35,7 +35,7 @@ def estado(monkeypatch):
         6: SimpleNamespace(id_dispositivo_iot=3, categoria="TEMPERATURA"),
         9: SimpleNamespace(id_dispositivo_iot=4, categoria="TEMPERATURA"),
     }.get(id_sensor)
-    dispositivo = SimpleNamespace(es_activo=True)
+    dispositivo = SimpleNamespace(es_activo=True, serial=SimpleNamespace(valor="IOT-G131"))
     dispositivos = Mock()
     dispositivos.obtener_por_id.side_effect = lambda id_dispositivo, ids_fincas_permitidas=None: (
         dispositivo if id_dispositivo in (3, 4) else None

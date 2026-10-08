@@ -174,7 +174,12 @@ class RegistrarCalibracionUseCase:
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
-                message="Solo se pueden calibrar sensores de dispositivos activos.",
+                # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0, con el serial.
+                message=(
+                    f"Operación rechazada: El dispositivo {dispositivo.serial.valor} está inactivo. "
+                    "Debe activar el dispositivo antes de proceder con el registro de nuevos "
+                    "parámetros de calibración."
+                ),
             )
 
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
