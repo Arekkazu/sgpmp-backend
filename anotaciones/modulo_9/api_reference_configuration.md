@@ -87,7 +87,7 @@
 |-------|------|---------------|
 | `nombre` | `str` | 3–50 chars |
 | `descripcion` | `str \| None` | Opcional, máx 255 chars |
-| `fecha_actualizacion` | `datetime` | Control de concurrencia optimista (412 si no coincide) |
+| `fecha_actualizacion` | `datetime \| None` | Concurrencia optimista: el valor del último GET, `null` si la especie nunca se editó; 412 si no coincide con el almacenado |
 
 **Response:** `EspecieResponse`
 
