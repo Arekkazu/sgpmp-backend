@@ -1,3 +1,22 @@
+## [1.0.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.76...v1.0.0-rc.77) (2026-10-08)
+
+### Features
+
+* **rf24-mod9:** publicar la calibracion por vision de RF-24 v2.0 (INC-M09-78-G138) ([67a63ec](https://github.com/Arekkazu/sgpmp-backend/commit/67a63ec034d5b3bcec6cd0fb623ac8cdb20f0780)), closes [#514](https://github.com/Arekkazu/sgpmp-backend/issues/514)
+* **rf53-mod3:** recibir observaciones de vision por area para la calibracion VISION de RF-24 (INC-M09-77-G137) ([7f6a910](https://github.com/Arekkazu/sgpmp-backend/commit/7f6a9101157db8fa358e06d0dcd5cc25365caa39)), closes [#514](https://github.com/Arekkazu/sgpmp-backend/issues/514)
+
+### Bug Fixes
+
+* **rf24-mod9:** alinear los mensajes de rango y dispositivo inactivo de la calibracion con RF-24 v2.0 (INC-M09-76-G136) ([3371654](https://github.com/Arekkazu/sgpmp-backend/commit/3371654ea11fd4583a373ecb34e809d06529606f)), closes [#512](https://github.com/Arekkazu/sgpmp-backend/issues/512)
+* **rf24-mod9:** rechazar NaN e Infinity como formato decimal invalido en la calibracion (INC-M09-75-G132) ([3b27b6f](https://github.com/Arekkazu/sgpmp-backend/commit/3b27b6f0dd367b0ac0a762c8a3a16c9e20da9c5b)), closes [#511](https://github.com/Arekkazu/sgpmp-backend/issues/511)
+* **rf24-mod9:** reutilizar el tipo de evento 30 y alinear la migracion de vision con la convencion de BD (INC-M09-78-G138) ([839ae17](https://github.com/Arekkazu/sgpmp-backend/commit/839ae1764c8b078d9b81e8608c942fe695b6494d)), closes [#508](https://github.com/Arekkazu/sgpmp-backend/issues/508)
+* **rf24:** alinear mensaje de acceso denegado de g77 ([aa61e9b](https://github.com/Arekkazu/sgpmp-backend/commit/aa61e9be1633c3935750c359678d91b30344f17f))
+* **rf24:** alinear mensajes de calibracion con contrato v2.0 ([f9b0a94](https://github.com/Arekkazu/sgpmp-backend/commit/f9b0a943ad0f2d72c9846f6728f038c781d83cff))
+* **rf24:** alinear mensajes de hardware inexistente de g130 ([c1e8a87](https://github.com/Arekkazu/sgpmp-backend/commit/c1e8a87ed1de9d01c92e89ecee8ff48d2d4ce822))
+* **rf24:** alinear mensajes de rechazo de g76 ([3107e9a](https://github.com/Arekkazu/sgpmp-backend/commit/3107e9a00a30c4c3db495835c4e891018bae3659))
+* **rf24:** auditar calibraciones exitosas en rf10 ([6c3f005](https://github.com/Arekkazu/sgpmp-backend/commit/6c3f005898acaaf29d6fad31694db51ceb5c7706))
+* **rf24:** exigir modo_calibracion en el registro de g131 ([21303de](https://github.com/Arekkazu/sgpmp-backend/commit/21303de08436f04348ef26a0703090700f04bf87))
+
 ## [1.0.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.75...v1.0.0-rc.76) (2026-10-08)
 
 ### Bug Fixes
