@@ -1,8 +1,8 @@
 """Read-model ``ObservacionVision`` — vector de comportamiento de una cámara (RF-53/RF-56).
 
 Lo que RF-24 VISION necesita de cada observación: su índice de calidad (RF-62)
-y los componentes del vector. Lo produce M03; mientras no exista, el puerto
-``ObservacionVisionPort`` se resuelve con un stub sin observaciones.
+y los componentes del vector. Lo produce M03 (``modulo3.observaciones_vision``,
+POST /iot/telemetria/vision) y llega por ``ObservacionVisionPort``.
 """
 from __future__ import annotations
 

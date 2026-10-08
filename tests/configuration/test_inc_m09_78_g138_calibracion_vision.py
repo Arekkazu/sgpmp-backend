@@ -213,7 +213,7 @@ def test_solo_se_consultan_las_camaras_activas():
 # ── Fallo de etapa: se registra FALLIDA y se conserva la línea base ───────────
 
 def test_sin_observaciones_queda_fallida_en_filtrado_y_conserva_la_vigente():
-    # Es lo que pasa hoy en TEST: el stub de M03 no devuelve observaciones.
+    # Ventana sin observaciones de M03 en el rango pedido.
     vigente = SimpleNamespace(id_infraestructura=2, id_especie=4, id_calibracion_vision=1)
     lineas, calibraciones, eventos, db = _LineasBase(vigente), _Calibraciones(), _Eventos(), _Db()
     with pytest.raises(BusinessRuleError) as exc:

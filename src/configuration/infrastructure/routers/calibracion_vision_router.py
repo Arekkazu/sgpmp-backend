@@ -20,7 +20,7 @@ from src.configuration.application.use_cases.sensores.calibrar_vision_use_case i
     ConsultarCalibracionVisionUseCase,
     auditar_rechazo_vision,
 )
-from src.configuration.infrastructure.adapters.observacion_vision_stub_adapter import ObservacionVisionStubAdapter
+from src.configuration.infrastructure.adapters.observacion_vision_m03_adapter import ObservacionVisionM03Adapter
 from src.configuration.infrastructure.dto.calibrar_vision_dto import CalibrarVisionDTO
 from src.configuration.infrastructure.repositories.calibracion_vision_repository import (
     SqlAlchemyCalibracionVisionRepository,
@@ -109,7 +109,7 @@ def calibrar_vision(
         db=db,
         infraestructura_repo=SqlAlchemyInfraestructuraRepository(db),
         camara_repo=SqlAlchemyCamaraAreaRepository(db),
-        observacion_port=ObservacionVisionStubAdapter(),
+        observacion_port=ObservacionVisionM03Adapter(db),
         calibracion_repo=SqlAlchemyCalibracionVisionRepository(db),
         linea_base_repo=SqlAlchemyLineaBaseVisionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
