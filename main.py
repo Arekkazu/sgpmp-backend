@@ -32,6 +32,7 @@ from src.configuration.infrastructure.routers.tipo_dispositivo_iot_router import
 from src.configuration.infrastructure.routers.infraestructura_router import router as infraestructura_router
 from src.configuration.infrastructure.routers.tipo_area_router import router as tipo_area_router
 from src.configuration.infrastructure.routers.sensor_router import router as sensor_router
+from src.configuration.infrastructure.routers.calibracion_vision_router import router as calibracion_vision_router
 from src.configuration.infrastructure.routers.contexto_interfaz_router import router as contexto_interfaz_router
 from src.configuration.infrastructure.adapters.mqtt_http_adapter import verificar_token_configurado
 from src.configuration.infrastructure.routers.identidad_visual_router import router as identidad_visual_router
@@ -633,6 +634,7 @@ app.include_router(tipo_area_router)
 app.include_router(dispositivo_iot_router)
 app.include_router(tipo_dispositivo_iot_router)
 app.include_router(sensor_router)
+app.include_router(calibracion_vision_router)
 app.include_router(contexto_interfaz_router)
 app.include_router(identidad_visual_router)
 app.include_router(tema_visual_router)

@@ -3,6 +3,7 @@
 RF-53 — CU01 Dev scope:
   POST  /iot/telemetria        — Ingesta individual (Flujo A TIEMPO_REAL + Flujo B EDGE_AGREGADO)
   POST  /iot/telemetria/batch  — Ingesta en lote    (Flujo C sincronización BUFFER_LOCAL, max 500)
+  POST  /iot/telemetria/vision — Observaciones de visión por área (RF-53/56/62 v2.0, max 500)
 
 Auth: los dispositivos IoT no usan JWT Bearer. La identidad se verifica dentro del use case
       mediante `access_key` (serial del dispositivo en M09) y `device_id` / `sensor_id` en el body.
@@ -17,6 +18,9 @@ from sqlalchemy.orm import Session
 
 from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
+from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
+    IngerirObservacionesVisionUseCase,
+)
 from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case import (
     IngerirTelemetriaUseCase,
     SincronizarBufferUseCase,
@@ -24,6 +28,7 @@ from src.telemetry.application.use_cases.ingesta.ingerir_telemetria_use_case imp
 from src.telemetry.infrastructure.adapters.calibracion_m09_adapter import CalibracionM09Adapter
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
 from src.telemetry.infrastructure.adapters.variable_catalogo_m09_adapter import VariableCatalogoM09Adapter
+from src.telemetry.infrastructure.dto.ingerir_observaciones_vision_dto import IngerirObservacionesVisionDTO
 from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelemetriaBatchDTO, IngerirTelemetriaDTO
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
@@ -35,10 +40,17 @@ from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import U
 from src.telemetry.infrastructure.repositories.bitacora_auditoria_iot_repository import SqlAlchemyBitacoraAuditoriaIotRepository
 from src.telemetry.infrastructure.repositories.bitacora_ingest_repository import SqlAlchemyBitacoraIngestRepository
 from src.telemetry.infrastructure.repositories.monitoreo_repository import SqlAlchemyMonitoreoRepository
+from src.telemetry.infrastructure.repositories.observacion_vision_repository import SqlAlchemyObservacionVisionRepository
 from src.telemetry.infrastructure.repositories.telemetria_calidad_repository import SqlAlchemyTelemetriaCalidadRepository
 from src.telemetry.infrastructure.repositories.telemetria_repository import SqlAlchemyTelemetriaRepository
 from src.telemetry.infrastructure.repositories.vinculacion_lectura_repository import SqlAlchemyVinculacionLecturaRepository
-from src.telemetry.infrastructure.schema.telemetria_schema import IngestaBatchResponse, ItemBatchResponse, TelemetriaResponse
+from src.telemetry.infrastructure.schema.telemetria_schema import (
+    IngestaBatchResponse,
+    IngestaVisionResponse,
+    ItemBatchResponse,
+    ObservacionVisionResponse,
+    TelemetriaResponse,
+)
 
 router = APIRouter(prefix="/iot/telemetria", tags=["Telemetría IoT - Ingesta"])
 
@@ -134,5 +146,42 @@ def sincronizar_buffer(
                 error=item.error,
             )
             for item in resultado['detalle']
+        ],
+    )
+
+
+@router.post(
+    "/vision",
+    response_model=IngestaVisionResponse,
+    status_code=201,
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        422: {"model": ErrorResponse},
+    },
+    summary="Ingerir observaciones de visión de un área (RF-53/56/62 v2.0 — lote hasta 500)",
+)
+def ingerir_observaciones_vision(
+    dto: IngerirObservacionesVisionDTO,
+    db: Session = Depends(get_db_sistema),
+) -> IngestaVisionResponse:
+    resultado = IngerirObservacionesVisionUseCase(
+        db=db,
+        repo=SqlAlchemyObservacionVisionRepository(db),
+        dispositivo_port=DispositivoM09Adapter(db),
+    ).execute(dto)
+    return IngestaVisionResponse(
+        total=resultado.total,
+        aceptadas=len(resultado.observaciones),
+        duplicadas=resultado.duplicados,
+        observaciones=[
+            ObservacionVisionResponse(
+                id_observacion_vision=o.id_observacion_vision,
+                timestamp_captura=o.fecha_observacion,
+                indice_calidad=o.indice_calidad,
+                clasificacion_calidad=o.clasificacion_calidad.value,
+                apto_para_ia=o.es_apto_para_ia,
+            )
+            for o in resultado.observaciones
         ],
     )

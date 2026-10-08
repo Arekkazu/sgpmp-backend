@@ -6,6 +6,8 @@ dentro del rango de seguridad definido para el tipo de sensor (categoria).
 
 RF-24 v1.1 (RFC-006, OWASP A09): todo intento rechazado (404/422/400 aquí, 403 en
 el router) queda en el historial de RF-10 con resultado FALLIDO.
+RF-24 v2.0: cada calibración exitosa también genera un evento RF-10, en la
+misma transacción que la calibración y su auditoría interna de M09.
 """
 from __future__ import annotations
 
@@ -30,6 +32,15 @@ from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, 
 logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
+TIPO_EVENTO_CALIBRACION_EXITOSA = 30  # modulo1.tipos_eventos (migración b6f2d8a40c91)
+MENSAJE_ACCESO_DENEGADO = (
+    "Acceso denegado: La calibración de sensores es una función crítica restringida "
+    "exclusivamente al Ingeniero de Campo o al Administrador."
+)
+MENSAJE_HARDWARE_NO_ENCONTRADO = (
+    "Error de referencia: El sensor o dispositivo especificado no existe. "
+    "No se puede registrar una calibración sobre un hardware inexistente."
+)
 
 
 def auditar_rechazo_calibracion(
@@ -93,9 +104,16 @@ class RegistrarCalibracionUseCase:
         self.auditoria_repo = auditoria_repo
         self.eventos_repo = eventos_repo
 
-    def execute(self, id_sensor: int, dto: RegistrarCalibracionDTO, usuario_actual: UsuarioActual) -> Calibracion:
+    def execute(
+        self,
+        id_sensor: int,
+        dto: RegistrarCalibracionDTO,
+        usuario_actual: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> Calibracion:
         try:
-            valor, offset = self._validar(id_sensor, dto)
+            valor, offset = self._validar(id_sensor, dto, ids_fincas_permitidas)
         except (NotFoundError, BusinessRuleError, ValidationError) as exc:
             auditar_rechazo_calibracion(
                 self.db,
@@ -117,19 +135,35 @@ class RegistrarCalibracionUseCase:
             ganancia=Decimal(str(dto.ganancia)),
             offset=offset,
             observaciones=dto.observaciones,
+            modo_calibracion=dto.modo_calibracion,
         )
 
         try:
             calibracion_guardada = self.calibracion_repo.guardar(calibracion)
-            # RF-24 FA / RF-10: traza en el historial de auditoría inmutable. Si falla,
-            # el rollback deshace la calibración y se responde 500 (no queda calibración
-            # sin trazabilidad).
+            # Ambas trazas son obligatorias y se confirman con la calibración.
+            # Si falla M09 o RF-10, se revierte toda la operación.
             try:
                 self.auditoria_repo.registrar(
                     id_calibracion=calibracion_guardada.id_calibracion,
                     id_usuario=usuario_actual.id_usuario,
                     tipo_operacion="CREATE",
                     valores_nuevos=calibracion_guardada._snapshot(),
+                )
+                self.eventos_repo.registrar(
+                    tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
+                    exitoso=True,
+                    id_usuario=usuario_actual.id_usuario,
+                    detalle={
+                        "operacion": "CALIBRACION_SENSOR",
+                        "id_calibracion": calibracion_guardada.id_calibracion,
+                        "id_infraestructura": dto.id_infraestructura,
+                        **calibracion_guardada._snapshot(),
+                    },
+                    descripcion=(
+                        f"Calibración {calibracion_guardada.id_calibracion} registrada "
+                        f"para el sensor {calibracion_guardada.id_sensor}."
+                    ),
+                    modulo="MODULO9",
                 )
             except Exception as exc:
                 raise InfrastructureError(
@@ -147,25 +181,38 @@ class RegistrarCalibracionUseCase:
 
         return calibracion_guardada
 
-    def _validar(self, id_sensor: int, dto: RegistrarCalibracionDTO) -> tuple[Decimal, Decimal]:
+    def _validar(
+        self, id_sensor: int, dto: RegistrarCalibracionDTO, ids_fincas_permitidas: Optional[list[int]]
+    ) -> tuple[Decimal, Decimal]:
         """Flujos alternos de RF-24. Devuelve (valor_referencia, offset) ya convertidos."""
-        dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
+        # TC-M09-141 (#503): sin alcance, un Ingeniero calibraba sensores de fincas
+        # a las que no tiene acceso (y que ni siquiera puede listar). Un dispositivo
+        # ajeno responde 404, igual que uno inexistente, para no confirmar que
+        # existe; el sensor queda cubierto porque debe pertenecer a este dispositivo.
+        dispositivo = self.dispositivo_repo.obtener_por_id(
+            dto.id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
+        )
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
-                message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
-                message="Solo se pueden calibrar sensores de dispositivos activos.",
+                # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0, con el serial.
+                message=(
+                    f"Operación rechazada: El dispositivo {dispositivo.serial.valor} está inactivo. "
+                    "Debe activar el dispositivo antes de proceder con el registro de nuevos "
+                    "parámetros de calibración."
+                ),
             )
 
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
         if sensor is None:
             raise NotFoundError(
                 code="SENSOR_NO_ENCONTRADO",
-                message=f"No existe un sensor con ID {id_sensor}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if sensor.id_dispositivo_iot != dto.id_dispositivo_iot:
             raise BusinessRuleError(
@@ -177,7 +224,11 @@ class RegistrarCalibracionUseCase:
         if asociacion_activa is None or asociacion_activa.id_infraestructura != dto.id_infraestructura:
             raise ValidationError(
                 code="SENSOR_AREA_INVALIDA",
-                message=f"El sensor {id_sensor} no está asociado al área {dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+                message=(
+                    f"Conflicto de ubicación: El sensor {id_sensor} no está asociado al área "
+                    f"{dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo "
+                    "antes de calibrar."
+                ),
                 field="id_infraestructura",
             )
 
@@ -185,9 +236,26 @@ class RegistrarCalibracionUseCase:
             valor = Decimal(str(dto.valor_referencia))
             offset = Decimal(str(dto.offset)) if dto.offset is not None else valor
         except InvalidOperation:
+            valor_ingresado = "null" if dto.valor_referencia is None else str(dto.valor_referencia)
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
-                message="El valor de referencia debe ser un número decimal válido.",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal válido. "
+                    f"Verifique la entrada '{valor_ingresado}'."
+                ),
+                field="valor_referencia",
+            )
+        # INC-M09-75-G132 (#511): Decimal("NaN") / Decimal("Infinity") se construyen
+        # sin error, pero NaN revienta (500) al compararlo contra el rango e
+        # Infinity se reportaba como fuera de rango. RF-24 v2.0 los trata como
+        # formato decimal inválido, antes de la validación de rango.
+        if not valor.is_finite():
+            raise ValidationError(
+                code="VALOR_CALIBRACION_INVALIDO",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal "
+                    f"válido. Verifique la entrada '{dto.valor_referencia}'."
+                ),
                 field="valor_referencia",
             )
 
@@ -200,9 +268,8 @@ class RegistrarCalibracionUseCase:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",
                         message=(
-                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
-                            f"para la variable {sensor.categoria} "
-                            f"(permitido {viol['min']}–{viol['max']}). "
+                            f"Valor fuera de límites: El ajuste de {viol['valor']} excede los rangos de seguridad "
+                            f"para la variable {sensor.categoria}. "
                             "Verifique el estándar de calibración utilizado."
                         ),
                         field=campo,
@@ -219,9 +286,30 @@ class RegistrarCalibracionUseCase:
 
 class ConsultarCalibracionesUseCase:
 
-    def __init__(self, db: Session, calibracion_repo: CalibracionRepository) -> None:
+    def __init__(
+        self,
+        db: Session,
+        calibracion_repo: CalibracionRepository,
+        sensor_repo: SensorRepository,
+        dispositivo_repo: DispositivoIotRepository,
+    ) -> None:
         self.db = db
         self.calibracion_repo = calibracion_repo
+        self.sensor_repo = sensor_repo
+        self.dispositivo_repo = dispositivo_repo
 
-    def listar_por_sensor(self, id_sensor: int) -> list[Calibracion]:
+    def listar_por_sensor(
+        self, id_sensor: int, *, ids_fincas_permitidas: Optional[list[int]] = None,
+    ) -> list[Calibracion]:
+        # Mismo criterio que el historial de asociaciones (INC-M09-22-G126-02):
+        # el historial de un sensor de una finca ajena responde 404.
+        if ids_fincas_permitidas is not None:
+            sensor = self.sensor_repo.obtener_por_id(id_sensor)
+            if sensor is None or self.dispositivo_repo.obtener_por_id(
+                sensor.id_dispositivo_iot, ids_fincas_permitidas=ids_fincas_permitidas
+            ) is None:
+                raise NotFoundError(
+                    code="SENSOR_NO_ENCONTRADO",
+                    message=f"No existe un sensor con ID {id_sensor}.",
+                )
         return self.calibracion_repo.listar_por_sensor(id_sensor)

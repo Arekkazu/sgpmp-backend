@@ -105,10 +105,9 @@ def test_editar_especie_activa_responde_200(
     así que editar quedaba igual de roto aunque no estuviera reportado.
 
     `fecha_actualizacion` queda en NULL tras el registro (no se setea en el
-    INSERT), y `EditarEspecieDTO.fecha_actualizacion` es un `datetime`
-    obligatorio (no admite `null`) — un problema aparte del que trata este
-    issue. Se fija el timestamp por SQL para poder ejercitar el UPDATE real
-    sin toparse con ese bug distinto.
+    INSERT). Se fija el timestamp por SQL para ejercitar la edición con una
+    versión real; la primera edición con `null` la cubre
+    `tests/configuration/test_rf15_editar_especie_sin_fecha_actualizacion.py` (#231).
     """
     headers = _headers_admin(crear_usuario_db, crear_auth_headers)
     nombre = f"Especie Editable {_sufijo_letras()}"

@@ -484,6 +484,11 @@ envía) deben caer dentro del rango de seguridad del tipo de sensor (RF-24 / #16
 `ganancia` (default `1.0`) y `offset` (default = `valor_referencia`) son opcionales:
 componen el modelo lineal `valor_ajustado = ganancia * crudo + offset` que consume telemetry.
 
+`modo_calibracion` (RF-24 v2.0, TC-M09-259 #510) es obligatorio, sin default, y `SENSOR` es el
+único valor admitido aquí: la modalidad `VISION` (línea base por área y especie, sin
+sensor) tiene su propio endpoint, `POST /configuracion/calibraciones-vision` (ver la
+sección siguiente). Se devuelve en la respuesta y queda en el snapshot de auditoría.
+
 ```bash
 curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
   -H "Authorization: Bearer <TOKEN>" \
@@ -495,7 +500,8 @@ curl -X POST http://localhost:8000/configuracion/sensores/1/calibrar \
     "ganancia": "1.0",
     "offset": "0.20",
     "fecha_calibracion": "2026-06-21T10:00:00Z",
-    "observaciones": "Calibración con termómetro patrón certificado"
+    "observaciones": "Calibración con termómetro patrón certificado",
+    "modo_calibracion": "SENSOR"
   }'
 ```
 
@@ -510,13 +516,18 @@ Respuesta esperada `201`:
   "offset": "0.2000",
   "fecha_calibracion": "2026-06-21T10:00:00Z",
   "id_usuario": 1,
-  "observaciones": "Calibración con termómetro patrón certificado"
+  "observaciones": "Calibración con termómetro patrón certificado",
+  "modo_calibracion": "SENSOR"
 }
 ```
 
 Errores posibles:
 - `404` — sensor no existe (FA-02)
-- `404` — dispositivo no existe (FA-02)
+- `404` — dispositivo no existe (FA-02) — `DISPOSITIVO_NO_ENCONTRADO`
+- `404` — dispositivo de una finca fuera del alcance del usuario (#503): mismo
+  `DISPOSITIVO_NO_ENCONTRADO` que el inexistente, para no confirmar que existe. Un rol
+  sin U/D sobre fincas (p. ej. Ingeniero de Campo) solo calibra en las fincas de
+  `modulo9.usuarios_fincas`; queda auditado como rechazo (RFC-006)
 - `422` — dispositivo inactivo (FA-14) — `DISPOSITIVO_INACTIVO`
 - `422` — sensor no pertenece al dispositivo (FA-02) — `SENSOR_DISPOSITIVO_INVALIDO`
 - `400` — sensor no tiene asociación activa en el área indicada (FA-03) — `SENSOR_AREA_INVALIDA`
@@ -527,6 +538,7 @@ Errores posibles:
 - `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
   (fallback) — `VALOR_CALIBRACION_INVALIDO`
 - `400` — `ganancia` ≤ 0 (validación de DTO)
+- `400` — `modo_calibracion` ausente, nulo o distinto de `SENSOR` (validación de DTO) — `VAL_ENTRADA`
 - `403` — rol sin permiso C sobre sensores (FA-01) — solo Ing. de Campo y Admin pueden calibrar
 - `500` — falla la escritura del historial de auditoría inmutable (FA RF-10): se hace
   rollback de la calibración — `AUDITORIA_CALIBRACION_FALLIDA`
@@ -586,7 +598,8 @@ Respuesta esperada `200`:
       "offset": "0.2000",
       "fecha_calibracion": "2026-06-21T10:00:00Z",
       "id_usuario": 1,
-      "observaciones": "Calibración con termómetro patrón certificado"
+      "observaciones": "Calibración con termómetro patrón certificado",
+      "modo_calibracion": "SENSOR"
     },
     {
       "id_calibracion": 1,
@@ -597,11 +610,148 @@ Respuesta esperada `200`:
       "offset": "25.0000",
       "fecha_calibracion": "2026-03-29T14:42:28Z",
       "id_usuario": 1,
-      "observaciones": "Calibración inicial con termómetro patrón certificado NIST."
+      "observaciones": "Calibración inicial con termómetro patrón certificado NIST.",
+      "modo_calibracion": "SENSOR"
     }
   ]
 }
 ```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso R sobre sensores
+- `404` — sensor inexistente o de una finca fuera del alcance del usuario (#503,
+  mismo criterio que el historial de asociaciones, INC-M09-22-G126-02) —
+  `SENSOR_NO_ENCONTRADO`. Un rol con alcance global (Admin) ve cualquier sensor
+
+---
+
+## RF-24 v2.0 — Calibración por visión (`/configuracion/calibraciones-vision`)
+
+INC-M09-78-G138 (#514). Modalidad `VISION` de RF-24 (RFC-011): calcula la **línea base
+de comportamiento** de un área para su especie a partir de las cámaras activas del área,
+con las tres etapas de auditoría automática (filtrado ambiental → recorte p5/p95 →
+refinamiento iterativo). Mismo recurso que la calibración SENSOR: `id_recurso=12`,
+acción C(1) para calcular y R(2) para consultar.
+
+> **Datos de entrada:** las observaciones salen de `modulo3.observaciones_vision`, que la
+> cámara alimenta con `POST /iot/telemetria/vision` (INC-M09-77-G137, #513; ver
+> `anotaciones/modulo_3/curls_m03_cu01_ingerir_telemetria.md`, Flujo V). Para un cálculo
+> exitoso hacen falta al menos 30 observaciones válidas de las cámaras activas del área dentro
+> de la ventana. Sin observaciones en la ventana → `422 LINEA_BASE_NO_CALCULADA` (Etapa 1).
+
+### Calcular línea base (disparo manual)
+
+```bash
+curl -X POST http://localhost:8000/configuracion/calibraciones-vision \
+  -H "Authorization: Bearer <TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "modo_calibracion": "VISION",
+    "area_id": 2,
+    "ventana_observacion": {"inicio": "2026-10-01T00:00:00Z", "fin": "2026-10-02T00:00:00Z"},
+    "observaciones": "Recalibración tras nuevo lote"
+  }'
+```
+
+- `modo_calibracion` es obligatorio y solo admite `VISION`.
+- `fecha_calibracion` es opcional (por defecto, el momento del disparo).
+- `origen_disparo` no se envía: este endpoint siempre es `MANUAL`. El disparo
+  `AUTOMATICO` desde M02 (nuevo lote / fin de ciclo) aún no está conectado.
+
+Respuesta esperada `201` (línea base publicada; reemplaza la vigente del par área/especie):
+```json
+{
+  "id_calibracion_vision": 5,
+  "modo_calibracion": "VISION",
+  "area_id": 2,
+  "especie_id": 4,
+  "origen_disparo": "MANUAL",
+  "id_usuario": 7,
+  "ventana_observacion": {"inicio": "2026-10-01T00:00:00Z", "fin": "2026-10-02T00:00:00Z"},
+  "fecha_calibracion": "2026-10-07T15:00:00Z",
+  "estado": "EXITOSA",
+  "etapa_fallo": null,
+  "motivo": null,
+  "linea_base": {
+    "valores": {"densidad_actividad": 10.95, "tasa_movimiento": 3.35},
+    "componentes_no_calibrables": []
+  },
+  "n_observaciones": 60,
+  "n_observaciones_validas": 60,
+  "iteraciones": 1,
+  "observaciones": "Recalibración tras nuevo lote"
+}
+```
+
+Errores posibles:
+- `401` — token ausente o inválido
+- `403` — rol sin permiso C sobre sensores (FA "Acceso no autorizado") — `ACCESO_DENEGADO`,
+  con el mensaje de la ficha: *"Acceso denegado: La calibración de sensores es una función
+  crítica restringida exclusivamente al Ingeniero de Campo o al Administrador."* Queda
+  auditado (RFC-006)
+- `404` — área inexistente o de una finca fuera del alcance del usuario — `AREA_NO_ENCONTRADA`
+- `422` — `VISION_NO_DISPONIBLE` (FA "Área sin cámara apta"), en cualquiera de estos casos:
+  - área sin cámara asociada (TC-M09-278, TC-M09-291)
+  - todas sus cámaras inactivas (TC-M09-279)
+  - `tipo_modelo_asignado` de paradigma INDIVIDUAL o META (TC-M09-280)
+  - sin `tipo_modelo_asignado` (TC-M09-281) o sin especie
+  - hay observaciones en la ventana, pero ninguna con `apto_para_ia = true`
+
+  Mensaje: *"Calibración por visión no disponible: El área 2 no cuenta con observaciones
+  de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras
+  (RF-21/22) y la configuración del área (RF-20)."* No se guarda intento ni línea base.
+- `422` — `LINEA_BASE_NO_CALCULADA` (FA "Observaciones válidas insuficientes o no
+  convergida"): falla una de las tres etapas. El intento queda en el historial como
+  `FALLIDA` o `NO_CONVERGIDA` con `etapa_fallo` y `motivo`; la línea base vigente no se
+  toca. Mensaje: *"No se pudo calcular la línea base: datos insuficientes o sin
+  convergencia para el área 2 y especie 4. Se conserva la línea base vigente anterior."*
+- `400` — body inválido (validación de DTO): falta `modo_calibracion` o no es `VISION`,
+  falta `area_id`, o `ventana_observacion.fin` ≤ `inicio` — `VAL_ENTRADA`
+- `500` — falla la auditoría RF-10 del cálculo exitoso: rollback, no se publica la línea
+  base — `AUDITORIA_CALIBRACION_FALLIDA`
+
+Todo `403`/`404`/`422` queda en `modulo1.eventos` (tipo 29, `exitoso=false`,
+`detalle.operacion = "CALIBRACION_VISION"`), best-effort: si esa escritura falla, el
+rechazo conserva su código. El éxito se audita con el tipo 30 `CALIBRACION_EXITOSA` (`exitoso=true`,
+`detalle.operacion = "CALIBRACION_VISION"`).
+
+### Historial de cálculos del área
+
+```bash
+curl -X GET "http://localhost:8000/configuracion/calibraciones-vision?area_id=2" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta `200`: `{"total": n, "items": [ ...mismo objeto que el POST... ]}`, el más
+reciente primero. Incluye los `FALLIDA` y `NO_CONVERGIDA`.
+
+Errores: `401`, `403` (sin R sobre sensores), `404 AREA_NO_ENCONTRADA`.
+
+### Línea base vigente del área
+
+```bash
+curl -X GET "http://localhost:8000/configuracion/calibraciones-vision/linea-base?area_id=2" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+Respuesta `200`:
+```json
+{
+  "area_id": 2,
+  "especie_id": 4,
+  "id_calibracion_vision": 5,
+  "linea_base": {
+    "valores": {"densidad_actividad": 10.95, "tasa_movimiento": 3.35},
+    "componentes_no_calibrables": []
+  },
+  "fecha_publicacion": "2026-10-07T15:00:00Z"
+}
+```
+
+Errores: `401`, `403`, `404 AREA_NO_ENCONTRADA`, `404 LINEA_BASE_NO_ENCONTRADA` (el área
+nunca tuvo un cálculo exitoso para su especie actual). Sirve para comprobar que un
+rechazo no publicó una línea base nueva (PRE/POST de G138).
 
 ---
 

@@ -87,7 +87,7 @@
 |-------|------|---------------|
 | `nombre` | `str` | 3–50 chars |
 | `descripcion` | `str \| None` | Opcional, máx 255 chars |
-| `fecha_actualizacion` | `datetime` | Control de concurrencia optimista (412 si no coincide) |
+| `fecha_actualizacion` | `datetime \| None` | Concurrencia optimista: el valor del último GET, `null` si la especie nunca se editó; 412 si no coincide con el almacenado |
 
 **Response:** `EspecieResponse`
 
@@ -366,6 +366,7 @@
 | `valor_referencia` | `Decimal` | > 0 |
 | `fecha_calibracion` | `datetime` | — |
 | `observaciones` | `str \| None` | Opcional |
+| `modo_calibracion` | `ModoCalibracion` | Obligatorio, sin default; `SENSOR` (único valor admitido por este endpoint) |
 
 **Response `CalibracionResponse`:**
 
@@ -378,6 +379,7 @@
 | `fecha_calibracion` | `datetime` |
 | `id_usuario` | `int` |
 | `observaciones` | `str \| None` |
+| `modo_calibracion` | `ModoCalibracion` |
 
 ---
 

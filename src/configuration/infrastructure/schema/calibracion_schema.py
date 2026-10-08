@@ -2,22 +2,26 @@
 from __future__ import annotations
 
 import datetime
-from decimal import Decimal
 from typing import Optional
 
 from pydantic import BaseModel
+
+from src.configuration.domain.value_objects.modo_calibracion import ModoCalibracion
+from src.shared.schemas import DecimalNumero
 
 
 class CalibracionResponse(BaseModel):
     id_calibracion: int
     id_dispositivo_iot: int
     id_sensor: int
-    valor_referencia: Decimal
-    ganancia: Decimal
-    offset: Decimal
+    # #251: números en el JSON, no texto (ver DecimalNumero).
+    valor_referencia: DecimalNumero
+    ganancia: DecimalNumero
+    offset: DecimalNumero
     fecha_calibracion: datetime.datetime
     id_usuario: int
     observaciones: Optional[str]
+    modo_calibracion: ModoCalibracion
 
     model_config = {"from_attributes": True}
 
@@ -33,6 +37,7 @@ class CalibracionResponse(BaseModel):
             fecha_calibracion=calibracion.fecha_calibracion,
             id_usuario=calibracion.id_usuario,
             observaciones=calibracion.observaciones,
+            modo_calibracion=calibracion.modo_calibracion,
         )
 
 
@@ -43,8 +48,8 @@ class ListaCalibracionesResponse(BaseModel):
 
 class RangoCalibracionResponse(BaseModel):
     categoria: str
-    valor_min: Decimal
-    valor_max: Decimal
+    valor_min: DecimalNumero
+    valor_max: DecimalNumero
 
     @classmethod
     def from_entity(cls, rango) -> RangoCalibracionResponse:

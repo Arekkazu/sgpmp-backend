@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    MENSAJE_ACCESO_DENEGADO,
     ConsultarCalibracionesUseCase,
     RegistrarCalibracionUseCase,
     auditar_rechazo_calibracion,
@@ -129,6 +130,12 @@ def listar_asociaciones(
 
 # ── RF-24: Registrar calibración de sensor ────────────────────────────────────
 
+def _alcance(db: Session, usuario_actual: UsuarioActual) -> list[int] | None:
+    return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
+        usuario_actual.id_usuario, usuario_actual.id_rol
+    )
+
+
 def _permiso_calibrar_auditado(
     id_sensor: int,
     db: Session = Depends(get_db),
@@ -136,7 +143,9 @@ def _permiso_calibrar_auditado(
 ) -> None:
     """La misma compuerta RBAC de siempre; RF-24 v1.1 (RFC-006) pide además auditar el 403."""
     try:
-        require_permission(_RECURSO, 1)(db=db, usuario_actual=usuario_actual)
+        require_permission(_RECURSO, 1, mensaje_denegado=MENSAJE_ACCESO_DENEGADO)(
+            db=db, usuario_actual=usuario_actual
+        )
     except AuthorizationError as exc:
         auditar_rechazo_calibracion(
             db,
@@ -179,7 +188,9 @@ def registrar_calibracion(
         auditoria_repo=SqlAlchemyAuditoriaCalibracionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
     )
-    calibracion = use_case.execute(id_sensor, dto, usuario_actual)
+    calibracion = use_case.execute(
+        id_sensor, dto, usuario_actual, ids_fincas_permitidas=_alcance(db, usuario_actual)
+    )
     return CalibracionResponse.from_entity(calibracion)
 
 
@@ -213,6 +224,7 @@ def listar_rangos_calibracion(
     responses={
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
     },
     summary="Historial de calibraciones de sensor (RF-24)",
 )
@@ -224,7 +236,11 @@ def listar_calibraciones(
     use_case = ConsultarCalibracionesUseCase(
         db=db,
         calibracion_repo=SqlAlchemyCalibracionRepository(db),
+        sensor_repo=SqlAlchemySensorRepository(db),
+        dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
     )
-    calibraciones = use_case.listar_por_sensor(id_sensor)
+    calibraciones = use_case.listar_por_sensor(
+        id_sensor, ids_fincas_permitidas=_alcance(db, usuario_actual)
+    )
     items = [CalibracionResponse.from_entity(c) for c in calibraciones]
     return ListaCalibracionesResponse(total=len(items), items=items)

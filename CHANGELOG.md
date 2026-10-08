@@ -1,3 +1,52 @@
+## [1.0.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.76...v1.0.0-rc.77) (2026-10-08)
+
+### Features
+
+* **rf24-mod9:** publicar la calibracion por vision de RF-24 v2.0 (INC-M09-78-G138) ([67a63ec](https://github.com/Arekkazu/sgpmp-backend/commit/67a63ec034d5b3bcec6cd0fb623ac8cdb20f0780)), closes [#514](https://github.com/Arekkazu/sgpmp-backend/issues/514)
+* **rf53-mod3:** recibir observaciones de vision por area para la calibracion VISION de RF-24 (INC-M09-77-G137) ([7f6a910](https://github.com/Arekkazu/sgpmp-backend/commit/7f6a9101157db8fa358e06d0dcd5cc25365caa39)), closes [#514](https://github.com/Arekkazu/sgpmp-backend/issues/514)
+
+### Bug Fixes
+
+* **rf24-mod9:** alinear los mensajes de rango y dispositivo inactivo de la calibracion con RF-24 v2.0 (INC-M09-76-G136) ([3371654](https://github.com/Arekkazu/sgpmp-backend/commit/3371654ea11fd4583a373ecb34e809d06529606f)), closes [#512](https://github.com/Arekkazu/sgpmp-backend/issues/512)
+* **rf24-mod9:** rechazar NaN e Infinity como formato decimal invalido en la calibracion (INC-M09-75-G132) ([3b27b6f](https://github.com/Arekkazu/sgpmp-backend/commit/3b27b6f0dd367b0ac0a762c8a3a16c9e20da9c5b)), closes [#511](https://github.com/Arekkazu/sgpmp-backend/issues/511)
+* **rf24-mod9:** reutilizar el tipo de evento 30 y alinear la migracion de vision con la convencion de BD (INC-M09-78-G138) ([839ae17](https://github.com/Arekkazu/sgpmp-backend/commit/839ae1764c8b078d9b81e8608c942fe695b6494d)), closes [#508](https://github.com/Arekkazu/sgpmp-backend/issues/508)
+* **rf24:** alinear mensaje de acceso denegado de g77 ([aa61e9b](https://github.com/Arekkazu/sgpmp-backend/commit/aa61e9be1633c3935750c359678d91b30344f17f))
+* **rf24:** alinear mensajes de calibracion con contrato v2.0 ([f9b0a94](https://github.com/Arekkazu/sgpmp-backend/commit/f9b0a943ad0f2d72c9846f6728f038c781d83cff))
+* **rf24:** alinear mensajes de hardware inexistente de g130 ([c1e8a87](https://github.com/Arekkazu/sgpmp-backend/commit/c1e8a87ed1de9d01c92e89ecee8ff48d2d4ce822))
+* **rf24:** alinear mensajes de rechazo de g76 ([3107e9a](https://github.com/Arekkazu/sgpmp-backend/commit/3107e9a00a30c4c3db495835c4e891018bae3659))
+* **rf24:** auditar calibraciones exitosas en rf10 ([6c3f005](https://github.com/Arekkazu/sgpmp-backend/commit/6c3f005898acaaf29d6fad31694db51ceb5c7706))
+* **rf24:** exigir modo_calibracion en el registro de g131 ([21303de](https://github.com/Arekkazu/sgpmp-backend/commit/21303de08436f04348ef26a0703090700f04bf87))
+
+## [1.0.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.75...v1.0.0-rc.76) (2026-10-08)
+
+### Bug Fixes
+
+* **rf15-mod9:** aceptar fecha_actualizacion null al editar una especie nunca editada ([17a5826](https://github.com/Arekkazu/sgpmp-backend/commit/17a5826d56fdf7380824c9781e979b435fdd8ae5)), closes [Arekkazu/SGPMP-FRONT-END-PWA#231](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/231)
+
+## [1.0.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.74...v1.0.0-rc.75) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** aplicar alcance por finca a calibrar e historial de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([2c873d7](https://github.com/Arekkazu/sgpmp-backend/commit/2c873d7cd8be654de02109e28e00272467aa236b))
+* **rf24-mod9:** declarar y validar modo_calibracion en el contrato de calibraciones ([#503](https://github.com/Arekkazu/sgpmp-backend/issues/503)) ([6deedc6](https://github.com/Arekkazu/sgpmp-backend/commit/6deedc6b65765e1b37647d5c514a9f9025efea3c))
+* **rf32-mod9:** especie destino inactiva responde 404 como la inexistente ([#501](https://github.com/Arekkazu/sgpmp-backend/issues/501)) ([b24c0c5](https://github.com/Arekkazu/sgpmp-backend/commit/b24c0c58ac5e2712e78a747dc7e94ec9d5634084))
+
+## [1.0.0-rc.74](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.73...v1.0.0-rc.74) (2026-10-07)
+
+### Bug Fixes
+
+* **rf17-mod9:** colgar la migracion a3c9e5d17b42 de la cabeza actual de dev ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([dd76704](https://github.com/Arekkazu/sgpmp-backend/commit/dd767040dd50cf51075d1e81117d1b4343cda9ec)), closes [#502](https://github.com/Arekkazu/sgpmp-backend/issues/502)
+* **rf17-mod9:** Edge desconectado responde el 500 de RF-17 con el umbral Pendiente de Sincronizacion (TC-M09-63) ([7d94f5a](https://github.com/Arekkazu/sgpmp-backend/commit/7d94f5a23498ef0af06ae91743c5b80fc1a0faf1))
+* **rf17-mod9:** resolver el Gateway Edge destino tambien por los activos vivos del area ([#493](https://github.com/Arekkazu/sgpmp-backend/issues/493)) ([aceffc4](https://github.com/Arekkazu/sgpmp-backend/commit/aceffc4a5fd78c9ed260cff5b8e8f84079902c20)), closes [#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)
+* **rf17:** propagar umbrales al Nodo Edge por el broker MQTT en vez del stub (INC-M09-104-G29) ([f7dc712](https://github.com/Arekkazu/sgpmp-backend/commit/f7dc71206cc39a882203e75b4806e1dff3eb8da7))
+
+## [1.0.0-rc.73](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.72...v1.0.0-rc.73) (2026-10-07)
+
+### Bug Fixes
+
+* **rf24-mod9:** serializar como numero los valores de calibracion (Arekkazu/SGPMP-FRONT-END-PWA[#251](https://github.com/Arekkazu/sgpmp-backend/issues/251)) ([b3dd301](https://github.com/Arekkazu/sgpmp-backend/commit/b3dd30189b2226f12870bd0cfbda52a95fcf4699))
+* **rf25-mod9:** especies del contexto desde la finca vinculada, no globales (Arekkazu/SGPMP-FRONT-END-PWA[#253](https://github.com/Arekkazu/sgpmp-backend/issues/253)) ([828a02c](https://github.com/Arekkazu/sgpmp-backend/commit/828a02c4aafbfeb3656b3a5241f41755476e97eb))
+
 ## [1.0.0-rc.72](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.71...v1.0.0-rc.72) (2026-10-06)
 
 ### Bug Fixes

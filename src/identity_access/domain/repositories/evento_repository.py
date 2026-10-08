@@ -133,8 +133,8 @@ class EventoRepository(ABC):
             id_usuario: Usuario relacionado con el evento.
             detalle: Contexto del evento (se serializa como JSONB).
             id_sesion: Sesión asociada, si aplica.
-            modulo: Módulo que origina el evento (RF-24 audita aquí los
-                rechazos de calibración de M09 con ``MODULO9``).
+            modulo: Módulo que origina el evento (RF-24 audita aquí las
+                calibraciones exitosas y rechazadas de M09 con ``MODULO9``).
         """
         raise NotImplementedError
 
