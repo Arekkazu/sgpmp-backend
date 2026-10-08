@@ -132,7 +132,7 @@ def test_literales_json_no_finitos_llegan_como_texto_al_use_case():
     for literal, esperado in (("NaN", "NaN"), ("Infinity", "Infinity"), ("-Infinity", "-Infinity")):
         cuerpo = json.loads(
             '{"id_dispositivo_iot":1,"id_infraestructura":1,'
-            '"fecha_calibracion":"2026-10-07T00:00:00Z","valor_referencia":' + literal + "}"
+            '"fecha_calibracion":"2026-10-07T00:00:00Z","modo_calibracion":"SENSOR","valor_referencia":' + literal + "}"
         )
         assert RegistrarCalibracionDTO.model_validate(cuerpo).valor_referencia == esperado
 
