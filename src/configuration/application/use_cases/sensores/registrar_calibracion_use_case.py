@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
 TIPO_EVENTO_CALIBRACION_EXITOSA = 30  # modulo1.tipos_eventos (migración b6f2d8a40c91)
+MENSAJE_HARDWARE_NO_ENCONTRADO = (
+    "Error de referencia: El sensor o dispositivo especificado no existe. "
+    "No se puede registrar una calibración sobre un hardware inexistente."
+)
 
 
 def auditar_rechazo_calibracion(
@@ -187,19 +191,24 @@ class RegistrarCalibracionUseCase:
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
-                message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
-                message="Solo se pueden calibrar sensores de dispositivos activos.",
+                # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0, con el serial.
+                message=(
+                    f"Operación rechazada: El dispositivo {dispositivo.serial.valor} está inactivo. "
+                    "Debe activar el dispositivo antes de proceder con el registro de nuevos "
+                    "parámetros de calibración."
+                ),
             )
 
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
         if sensor is None:
             raise NotFoundError(
                 code="SENSOR_NO_ENCONTRADO",
-                message=f"No existe un sensor con ID {id_sensor}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if sensor.id_dispositivo_iot != dto.id_dispositivo_iot:
             raise BusinessRuleError(
@@ -211,7 +220,11 @@ class RegistrarCalibracionUseCase:
         if asociacion_activa is None or asociacion_activa.id_infraestructura != dto.id_infraestructura:
             raise ValidationError(
                 code="SENSOR_AREA_INVALIDA",
-                message=f"El sensor {id_sensor} no está asociado al área {dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+                message=(
+                    f"Conflicto de ubicación: El sensor {id_sensor} no está asociado al área "
+                    f"{dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo "
+                    "antes de calibrar."
+                ),
                 field="id_infraestructura",
             )
 
@@ -219,9 +232,26 @@ class RegistrarCalibracionUseCase:
             valor = Decimal(str(dto.valor_referencia))
             offset = Decimal(str(dto.offset)) if dto.offset is not None else valor
         except InvalidOperation:
+            valor_ingresado = "null" if dto.valor_referencia is None else str(dto.valor_referencia)
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
-                message="El valor de referencia debe ser un número decimal válido.",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal válido. "
+                    f"Verifique la entrada '{valor_ingresado}'."
+                ),
+                field="valor_referencia",
+            )
+        # INC-M09-75-G132 (#511): Decimal("NaN") / Decimal("Infinity") se construyen
+        # sin error, pero NaN revienta (500) al compararlo contra el rango e
+        # Infinity se reportaba como fuera de rango. RF-24 v2.0 los trata como
+        # formato decimal inválido, antes de la validación de rango.
+        if not valor.is_finite():
+            raise ValidationError(
+                code="VALOR_CALIBRACION_INVALIDO",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal "
+                    f"válido. Verifique la entrada '{dto.valor_referencia}'."
+                ),
                 field="valor_referencia",
             )
 
@@ -234,9 +264,8 @@ class RegistrarCalibracionUseCase:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",
                         message=(
-                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
-                            f"para la variable {sensor.categoria} "
-                            f"(permitido {viol['min']}–{viol['max']}). "
+                            f"Valor fuera de límites: El ajuste de {viol['valor']} excede los rangos de seguridad "
+                            f"para la variable {sensor.categoria}. "
                             "Verifique el estándar de calibración utilizado."
                         ),
                         field=campo,

@@ -23,7 +23,8 @@ curl -X POST http://localhost:8000/configuracion/sensores/99999/calibrar \
     "id_dispositivo_iot": 1,
     "id_infraestructura": 1,
     "valor_referencia": 25.5,
-    "fecha_calibracion": "2026-10-05T10:00:00Z"
+    "fecha_calibracion": "2026-10-05T10:00:00Z",
+    "modo_calibracion": "SENSOR"
   }'
 ```
 

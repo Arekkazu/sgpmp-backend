@@ -16,7 +16,9 @@ depends_on = None
 
 ID_TIPO_EVENTO = 30
 NOMBRE_TIPO_EVENTO = "CALIBRACION_EXITOSA"
-ACCION_TIPO_EVENTO = "Registro exitoso de calibracion de sensor"
+# Comun a SENSOR y VISION: el evento distingue la modalidad en detalle.operacion,
+# igual que el 29 (CALIBRACION_RECHAZADA) con los rechazos.
+ACCION_TIPO_EVENTO = "Registro exitoso de calibracion"
 
 
 def upgrade() -> None:
