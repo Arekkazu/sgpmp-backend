@@ -72,6 +72,14 @@ class CambiarFaseUseCase:
                 message=f'El ciclo productivo con ID {dto.id_ciclo_productiva} no existe.',
                 field='id_ciclo_productiva',
             )
+        # #288: el ID de un ciclo de otra especie se aceptaba sin aviso y dejaba
+        # al activo en un ciclo ajeno (ej. un ciclo bovino en una cachama).
+        if ciclo.id_especie is not None and ciclo.id_especie != activo.id_especie:
+            raise BusinessRuleError(
+                code='CICLO_ESPECIE_INCOMPATIBLE',
+                message=f'El ciclo productivo "{ciclo.nombre}" no corresponde a la especie del activo.',
+                field='id_ciclo_productiva',
+            )
         if not ciclo.fases:
             raise ValidationError(
                 code='CICLO_SIN_FASES',

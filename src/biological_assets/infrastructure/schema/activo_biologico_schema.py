@@ -164,6 +164,25 @@ class HistorialFasesResponse(BaseModel):
     fases: list[GestionFaseResponse]
 
 
+class FaseCicloProductivoResponse(BaseModel):
+    id_ciclos_productivo_biologico: int
+    id_ciclo_biologico: int
+    nombre_fase: str
+    duracion_dias: int
+
+
+class CicloProductivoResponse(BaseModel):
+    id_ciclo_productivo: int
+    nombre: str
+    fases: list[FaseCicloProductivoResponse]
+
+
+class CiclosProductivosActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    items: list[CicloProductivoResponse]
+
+
 # ── Schemas de eventos biológicos (CU05 - RF-39/RF-40) ──────────────────────
 
 class EventoCrecimientoResponse(BaseModel):

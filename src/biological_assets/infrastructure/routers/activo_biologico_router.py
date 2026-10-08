@@ -18,6 +18,9 @@ from src.biological_assets.application.use_cases.gestion.listar_activos_use_case
 from src.biological_assets.application.use_cases.gestion.consultar_historial_fases_use_case import (
     ConsultarHistorialFasesUseCase,
 )
+from src.biological_assets.application.use_cases.gestion.listar_ciclos_productivos_activo_use_case import (
+    ListarCiclosProductivosActivoUseCase,
+)
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
 from src.biological_assets.domain.entities.activo_biologico import (
@@ -138,6 +141,9 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialActivoResponse,
     HistorialEventosResponse,
     HistorialFasesResponse,
+    CiclosProductivosActivoResponse,
+    CicloProductivoResponse,
+    FaseCicloProductivoResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
     ParametroEspecieResponse,
@@ -785,6 +791,38 @@ def historial_fases(
         id_activo_biologico=id_activo,
         fases=[_gestion_to_response(g) for g in fases],
     )
+
+
+@router.get(
+    '/{id_activo}/ciclos-productivos',
+    response_model=CiclosProductivosActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF37'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Ciclos productivos asignables al activo según su especie (RF-37)',
+)
+def ciclos_productivos_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CiclosProductivosActivoResponse:
+    use_case = ListarCiclosProductivosActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
+    )
+    ciclos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    items = [
+        CicloProductivoResponse(
+            id_ciclo_productivo=c.id_ciclo_productivo,
+            nombre=c.nombre,
+            fases=[FaseCicloProductivoResponse(**vars(f)) for f in c.fases],
+        )
+        for c in ciclos
+    ]
+    return CiclosProductivosActivoResponse(id_activo_biologico=id_activo, total=len(items), items=items)
 
 
 @router.get(

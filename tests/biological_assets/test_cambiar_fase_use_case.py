@@ -464,3 +464,18 @@ def test_triggers_de_gestiones_fases_se_traducen_a_409(sqlstate: str, code: str)
 
     assert exc.value.code == code
     assert exc.value.message == 'detalle del trigger'
+
+
+# ── Arekkazu/SGPMP-FRONT-END-PWA#288: ciclo de otra especie ──────────────────
+
+def test_ciclo_de_otra_especie_lanza_422_sin_tocar_fases() -> None:
+    ciclo_bovino = _ciclo()
+    ciclo_bovino.id_especie = 9  # el activo es especie 4
+    repo = ActivoRepoFake(_activo())
+    use_case = CambiarFaseUseCase(db=DbFake(), repo=repo, ciclo_port=CicloPortFake(ciclo_bovino))
+
+    with pytest.raises(BusinessRuleError) as exc:
+        use_case.execute(10, CambiarFaseDTO(id_ciclo_productiva=4), _usuario())
+
+    assert exc.value.code == 'CICLO_ESPECIE_INCOMPATIBLE'
+    assert repo.orden == []
