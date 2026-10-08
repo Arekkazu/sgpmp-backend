@@ -150,8 +150,10 @@ def test_openapi_publica_modo_obligatorio_sin_default(estado):
     assert "modo_calibracion" in dto["required"]
     modo = dto["properties"]["modo_calibracion"]
     assert "default" not in modo
-    nombre_enum = modo["$ref"].rsplit("/", 1)[1]
-    assert contrato["components"]["schemas"][nombre_enum]["enum"] == ["SENSOR"]
+    # Literal[SENSOR] (#514) se publica inline como const; un Enum, como $ref.
+    if "$ref" in modo:
+        modo = contrato["components"]["schemas"][modo["$ref"].rsplit("/", 1)[1]]
+    assert modo.get("enum", [modo.get("const")]) == ["SENSOR"]
 
 
 @pytest.mark.parametrize("valor", ["0.0000", "22.5000", "45.0000"])

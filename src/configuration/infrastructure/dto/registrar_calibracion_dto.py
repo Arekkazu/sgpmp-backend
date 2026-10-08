@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from pydantic import field_validator
 
@@ -26,7 +26,8 @@ class RegistrarCalibracionDTO(BaseDTO):
     observaciones: Optional[str] = None
     # RF-24 v2.0, TC-M09-259 (#510): la modalidad debe enviarse explícitamente.
     # Un default permitiría persistir peticiones que omiten el discriminador.
-    modo_calibracion: ModoCalibracion
+    # VISION tiene su propio endpoint (POST /configuracion/calibraciones-vision).
+    modo_calibracion: Literal[ModoCalibracion.SENSOR]
 
     # INC-M09-75-G132 (#511): los literales JSON NaN/Infinity/-Infinity llegan como
     # float no finito y Pydantic los rechazaba con 422 (Decimal exige finito). Se

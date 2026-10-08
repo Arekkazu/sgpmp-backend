@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
 TIPO_EVENTO_CALIBRACION_EXITOSA = 30  # modulo1.tipos_eventos (migración b6f2d8a40c91)
+MENSAJE_ACCESO_DENEGADO = (
+    "Acceso denegado: La calibración de sensores es una función crítica restringida "
+    "exclusivamente al Ingeniero de Campo o al Administrador."
+)
 MENSAJE_HARDWARE_NO_ENCONTRADO = (
     "Error de referencia: El sensor o dispositivo especificado no existe. "
     "No se puede registrar una calibración sobre un hardware inexistente."
