@@ -5,6 +5,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -478,16 +479,39 @@ def listar_activos(
         db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
     )
     total_paginas = max(1, (total + page_size - 1) // page_size)
+    respuestas = [
+        _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
+        for a in registros
+    ]
+    _completar_nombres_catalogo(db, respuestas)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
-        registros=[
-            _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
-            for a in registros
-        ],
+        registros=respuestas,
     )
+
+
+def _completar_nombres_catalogo(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
+    """M2-04: nombres de especie e infraestructura de la página, en una consulta."""
+    if not activos:
+        return
+    filas = db.execute(
+        text(
+            'SELECT \'E\' AS tipo, id_especie AS id, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp) '
+            'UNION ALL '
+            'SELECT \'I\', id_infraestructura, nombre FROM modulo9.infraestructuras WHERE id_infraestructura = ANY(:inf)'
+        ),
+        {
+            'esp': list({a.id_especie for a in activos}),
+            'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura}),
+        },
+    ).fetchall()
+    nombres = {(f.tipo, f.id): f.nombre for f in filas}
+    for a in activos:
+        a.nombre_especie = nombres.get(('E', a.id_especie))
+        a.nombre_infraestructura = nombres.get(('I', a.id_infraestructura))
 
 
 def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:

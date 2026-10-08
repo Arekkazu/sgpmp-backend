@@ -98,6 +98,10 @@ class ActivoBiologicoResponse(BaseModel):
     fecha_actualizacion: Optional[datetime] = None
     detalle_individual: Optional[DetalleIndividualResponse]
     detalle_poblacional: Optional[DetallePoblacionalResponse]
+    # M2-04 (reporte UAT): el listado mostraba "Especie #4" y la ficha "Cachama
+    # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
+    nombre_especie: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
