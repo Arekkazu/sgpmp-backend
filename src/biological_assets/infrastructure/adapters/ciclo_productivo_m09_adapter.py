@@ -21,16 +21,35 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
     def obtener_ciclo_con_fases(self, id_ciclo_productivo: int) -> Optional[CicloProductivoConsulta]:
         ciclo_row = self.db.execute(
             text(
-                'SELECT id_ciclo_productivo, nombre '
-                'FROM modulo9.ciclos_productivos '
-                'WHERE id_ciclo_productivo = :id'
+                'SELECT cp.id_ciclo_productivo, cp.nombre, cb.id_especie '
+                'FROM modulo9.ciclos_productivos cp '
+                'LEFT JOIN modulo9.ciclos_biologicos cb '
+                '  ON cb.id_ciclo_biologico = cp.id_ciclo_biologico '
+                'WHERE cp.id_ciclo_productivo = :id'
             ),
             {'id': id_ciclo_productivo},
         ).fetchone()
 
         if ciclo_row is None:
             return None
+        return self._con_fases(ciclo_row)
 
+    def listar_por_especie(self, id_especie: int) -> list[CicloProductivoConsulta]:
+        filas = self.db.execute(
+            text(
+                'SELECT cp.id_ciclo_productivo, cp.nombre, cb.id_especie '
+                'FROM modulo9.ciclos_productivos cp '
+                'JOIN modulo9.ciclos_biologicos cb '
+                '  ON cb.id_ciclo_biologico = cp.id_ciclo_biologico '
+                'WHERE cb.id_especie = :id_especie '
+                'ORDER BY cp.nombre'
+            ),
+            {'id_especie': id_especie},
+        ).fetchall()
+        return [self._con_fases(f) for f in filas]
+
+    def _con_fases(self, ciclo_row) -> CicloProductivoConsulta:
+        id_ciclo_productivo = ciclo_row.id_ciclo_productivo
         fases_rows = self.db.execute(
             text(
                 'SELECT cpb.id_ciclos_productivo_biologico, '
@@ -60,6 +79,7 @@ class CicloProductivoM09Adapter(CicloConsultaPort):
             id_ciclo_productivo=ciclo_row.id_ciclo_productivo,
             nombre=ciclo_row.nombre,
             fases=fases,
+            id_especie=ciclo_row.id_especie,
         )
 
     def metrica_habilitada_en_ciclo(self, id_ciclo_productivo: int, id_metrica_produccion: int) -> bool:

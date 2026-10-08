@@ -89,14 +89,21 @@ def validar_fecha_evento(
         raise ValidationError(
             code='FECHA_FUTURA',
             message='La fecha del evento no puede ser posterior a la fecha actual.',
+            field='fecha',
         )
 
+    # #289: las dos causas compartían un mensaje genérico ("inválida o
+    # inconsistente con el historial") que no decía qué fecha era válida.
     if activo.fecha_creacion:
         creacion_utc = activo.fecha_creacion.astimezone(timezone.utc)
         if fecha_utc < creacion_utc:
             raise ValidationError(
                 code='FECHA_ANTERIOR_REGISTRO',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al registro del activo. '
+                    'Usa una fecha y hora iguales o posteriores a su registro.'
+                ),
+                field='fecha',
             )
 
     ultima = evento_repo.obtener_ultima_fecha(activo.id_activo_biologico)
@@ -105,5 +112,9 @@ def validar_fecha_evento(
         if fecha_utc < ultima_utc:
             raise ValidationError(
                 code='FECHA_INCOHERENTE',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al último evento registrado '
+                    'para este activo.'
+                ),
+                field='fecha',
             )

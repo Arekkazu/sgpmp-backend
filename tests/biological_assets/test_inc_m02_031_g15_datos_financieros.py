@@ -113,6 +113,7 @@ def test_listado_aplica_el_mismo_permiso_a_todos_los_activos(
     )
     monkeypatch.setattr(router_module, '_ids_fincas_alcance', lambda *args: [1])
     monkeypatch.setattr(router_module, 'tiene_permiso_sobre', lambda *args: False)
+    monkeypatch.setattr(router_module, '_completar_nombres_catalogo', lambda *args: None)
 
     respuesta = router_module.listar_activos(
         tipo=None,

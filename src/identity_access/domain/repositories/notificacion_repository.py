@@ -111,3 +111,8 @@ class NotificacionRepository(ABC):
     def guardar(self, notificacion: Notificacion) -> None:
         """Persiste el estado de lectura de una notificación interna."""
         raise NotImplementedError
+
+    @abstractmethod
+    def marcar_todas_leidas(self, id_usuario: int) -> int:
+        """Marca como leídas las notificaciones internas del usuario; devuelve cuántas cambió."""
+        raise NotImplementedError

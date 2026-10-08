@@ -5,6 +5,7 @@ from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import ValidationError as PydanticValidationError
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.biological_assets.application.use_cases.gestion.actualizar_activo_individual_use_case import (
@@ -17,6 +18,9 @@ from src.biological_assets.application.use_cases.gestion.consultar_activo_use_ca
 from src.biological_assets.application.use_cases.gestion.listar_activos_use_case import ListarActivosUseCase
 from src.biological_assets.application.use_cases.gestion.consultar_historial_fases_use_case import (
     ConsultarHistorialFasesUseCase,
+)
+from src.biological_assets.application.use_cases.gestion.listar_ciclos_productivos_activo_use_case import (
+    ListarCiclosProductivosActivoUseCase,
 )
 from src.biological_assets.application.use_cases.registro.consultar_asociacion_use_case import ConsultarAsociacionUseCase
 from src.biological_assets.application.use_cases.registro.registrar_activo_use_case import RegistrarActivoBiologicoUseCase
@@ -138,6 +142,9 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialActivoResponse,
     HistorialEventosResponse,
     HistorialFasesResponse,
+    CiclosProductivosActivoResponse,
+    CicloProductivoResponse,
+    FaseCicloProductivoResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
     ParametroEspecieResponse,
@@ -413,7 +420,7 @@ def registrar_activo(
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    activo = use_case.execute(dto, usuario_actual)
+    activo = use_case.execute(dto, usuario_actual, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
     return _activo_to_response(
         activo,
         incluir_datos_financieros=tiene_permiso_sobre(
@@ -472,16 +479,39 @@ def listar_activos(
         db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
     )
     total_paginas = max(1, (total + page_size - 1) // page_size)
+    respuestas = [
+        _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
+        for a in registros
+    ]
+    _completar_nombres_catalogo(db, respuestas)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
-        registros=[
-            _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
-            for a in registros
-        ],
+        registros=respuestas,
     )
+
+
+def _completar_nombres_catalogo(db: Session, activos: list[ActivoBiologicoResponse]) -> None:
+    """M2-04: nombres de especie e infraestructura de la página, en una consulta."""
+    if not activos:
+        return
+    filas = db.execute(
+        text(
+            'SELECT \'E\' AS tipo, id_especie AS id, nombre FROM modulo9.especies WHERE id_especie = ANY(:esp) '
+            'UNION ALL '
+            'SELECT \'I\', id_infraestructura, nombre FROM modulo9.infraestructuras WHERE id_infraestructura = ANY(:inf)'
+        ),
+        {
+            'esp': list({a.id_especie for a in activos}),
+            'inf': list({a.id_infraestructura for a in activos if a.id_infraestructura}),
+        },
+    ).fetchall()
+    nombres = {(f.tipo, f.id): f.nombre for f in filas}
+    for a in activos:
+        a.nombre_especie = nombres.get(('E', a.id_especie))
+        a.nombre_infraestructura = nombres.get(('I', a.id_infraestructura))
 
 
 def _auditoria_to_response(e: EventoAuditoria) -> EventoAuditoriaResponse:
@@ -785,6 +815,38 @@ def historial_fases(
         id_activo_biologico=id_activo,
         fases=[_gestion_to_response(g) for g in fases],
     )
+
+
+@router.get(
+    '/{id_activo}/ciclos-productivos',
+    response_model=CiclosProductivosActivoResponse,
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF37'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+        404: {'model': ErrorResponse},
+    },
+    summary='Ciclos productivos asignables al activo según su especie (RF-37)',
+)
+def ciclos_productivos_activo(
+    id_activo: int,
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> CiclosProductivosActivoResponse:
+    use_case = ListarCiclosProductivosActivoUseCase(
+        repo=SqlAlchemyActivoBiologicoRepository(db),
+        ciclo_port=CicloProductivoM09Adapter(db),
+    )
+    ciclos = use_case.execute(id_activo, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
+    items = [
+        CicloProductivoResponse(
+            id_ciclo_productivo=c.id_ciclo_productivo,
+            nombre=c.nombre,
+            fases=[FaseCicloProductivoResponse(**vars(f)) for f in c.fases],
+        )
+        for c in ciclos
+    ]
+    return CiclosProductivosActivoResponse(id_activo_biologico=id_activo, total=len(items), items=items)
 
 
 @router.get(

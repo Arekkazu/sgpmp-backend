@@ -98,6 +98,10 @@ class ActivoBiologicoResponse(BaseModel):
     fecha_actualizacion: Optional[datetime] = None
     detalle_individual: Optional[DetalleIndividualResponse]
     detalle_poblacional: Optional[DetallePoblacionalResponse]
+    # M2-04 (reporte UAT): el listado mostraba "Especie #4" y la ficha "Cachama
+    # Blanca". Solo los llena el listado; el detalle ya los trae por otras vías.
+    nombre_especie: Optional[str] = None
+    nombre_infraestructura: Optional[str] = None
 
     model_config = {'from_attributes': True}
 
@@ -162,6 +166,25 @@ class GestionFaseResponse(BaseModel):
 class HistorialFasesResponse(BaseModel):
     id_activo_biologico: int
     fases: list[GestionFaseResponse]
+
+
+class FaseCicloProductivoResponse(BaseModel):
+    id_ciclos_productivo_biologico: int
+    id_ciclo_biologico: int
+    nombre_fase: str
+    duracion_dias: int
+
+
+class CicloProductivoResponse(BaseModel):
+    id_ciclo_productivo: int
+    nombre: str
+    fases: list[FaseCicloProductivoResponse]
+
+
+class CiclosProductivosActivoResponse(BaseModel):
+    id_activo_biologico: int
+    total: int
+    items: list[CicloProductivoResponse]
 
 
 # ── Schemas de eventos biológicos (CU05 - RF-39/RF-40) ──────────────────────

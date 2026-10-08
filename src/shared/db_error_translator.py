@@ -51,6 +51,13 @@ _ERRCODE_SENSOR_FINCA_DISTINTA = "P0140"
 #: salía como 500 en vez del 422 de negocio documentado en RF-42.
 _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO = "P0220"
 
+#: Arekkazu/SGPMP-FRONT-END-PWA#299: el mismo trigger señala la secuencia
+#: reproductiva rota (P0221) y el número de crías inválido (P0222). Sin mapeo,
+#: un desfase entre la regla del trigger y la del use case salía como 500
+#: "Error inesperado en base de datos" en vez del error de negocio de RF-42.
+_ERRCODE_EVENTO_REPRODUCTIVO_SECUENCIA = "P0221"
+_ERRCODE_EVENTO_REPRODUCTIVO_NUMERO_CRIAS = "P0222"
+
 #: INC-M02-100-G31: `trg_fn_poblacional_cantidad_inmutable` (modulo2,
 #: `detalles_activos_biologicos_poblacionales`) protege `cantidad_inicial`
 #: (inmutable) y `cantidad_actual` (no negativa) con `RAISE EXCEPTION ...
@@ -208,6 +215,14 @@ def raise_from_db_error(
     if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_TIPO_INVALIDO:
         mensaje = diag_generico.message_primary or "Los activos de tipo LOTE solo pueden registrar eventos de tipo nacimiento."
         raise BusinessRuleError(code="EVENTO_NO_PERMITIDO_LOTE", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_SECUENCIA:
+        mensaje = diag_generico.message_primary or "La secuencia reproductiva del activo no permite este evento."
+        raise BusinessRuleError(code="SECUENCIA_REPRODUCTIVA_INVALIDA", message=mensaje.split(": ", 1)[-1])
+
+    if sqlstate == _ERRCODE_EVENTO_REPRODUCTIVO_NUMERO_CRIAS:
+        mensaje = diag_generico.message_primary or "El número de crías debe ser mayor o igual a 1."
+        raise ValidationError(code="NUMERO_CRIAS_REQUERIDO", message=mensaje.split(": ", 1)[-1])
 
     if sqlstate == _ERRCODE_EVENTO_FECHA_INVALIDA:
         mensaje = diag_generico.message_primary or "La fecha del evento es inválida."

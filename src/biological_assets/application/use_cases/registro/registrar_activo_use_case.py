@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -18,7 +19,7 @@ from src.biological_assets.domain.repositories.parametros_especie_port import Pa
 from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import AppError, BusinessRuleError, ConflictError, ValidationError
+from src.shared.errors import AppError, AuthorizationError, BusinessRuleError, ConflictError, ValidationError
 
 def _validar_origen_financiero(dto: RegistrarActivoBiologicoDTO) -> None:
     # FA-08: coherencia costo_adquisicion/soporte_documental según origen_financiero.
@@ -175,9 +176,11 @@ class RegistrarActivoBiologicoUseCase:
         self,
         dto: RegistrarActivoBiologicoDTO,
         usuario: UsuarioActual,
+        *,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ActivoBiologico:
         return ejecutar_con_auditoria_de_rechazo(
-            lambda: self._execute(dto, usuario),
+            lambda: self._execute(dto, usuario, ids_fincas_permitidas),
             db=self.db,
             bitacora_repo=self.bitacora_repo,
             obtener_activo=None,
@@ -192,6 +195,7 @@ class RegistrarActivoBiologicoUseCase:
         self,
         dto: RegistrarActivoBiologicoDTO,
         usuario: UsuarioActual,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> ActivoBiologico:
         # FA-08: costo_adquisicion/soporte_documental coherentes con origen_financiero
         _validar_origen_financiero(dto)
@@ -211,6 +215,16 @@ class RegistrarActivoBiologicoUseCase:
             raise ValidationError(
                 code='INFRAESTRUCTURA_INVALIDA',
                 message=f"La infraestructura con id {dto.id_infraestructura} no existe o no está activa.",
+                field='id_infraestructura',
+            )
+
+        # M2-01 (reporte UAT 07/10): la infraestructura debe ser de una finca del
+        # usuario. Antes un Productor registraba activos en fincas ajenas que
+        # luego ni él mismo podía ver. ``None`` = alcance global (Administrador).
+        if ids_fincas_permitidas is not None and infra.id_finca not in ids_fincas_permitidas:
+            raise AuthorizationError(
+                code='INFRAESTRUCTURA_FUERA_DE_ALCANCE',
+                message='No tienes acceso a la finca de esta infraestructura. Elige una de tus fincas.',
                 field='id_infraestructura',
             )
 
