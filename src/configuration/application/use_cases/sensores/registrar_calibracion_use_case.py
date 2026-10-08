@@ -198,7 +198,11 @@ class RegistrarCalibracionUseCase:
         if asociacion_activa is None or asociacion_activa.id_infraestructura != dto.id_infraestructura:
             raise ValidationError(
                 code="SENSOR_AREA_INVALIDA",
-                message=f"El sensor {id_sensor} no está asociado al área {dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo antes de calibrar.",
+                message=(
+                    f"Conflicto de ubicación: El sensor {id_sensor} no está asociado al área "
+                    f"{dto.id_infraestructura}. Verifique la ubicación física y lógica del equipo "
+                    "antes de calibrar."
+                ),
                 field="id_infraestructura",
             )
 
