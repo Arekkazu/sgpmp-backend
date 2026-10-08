@@ -206,6 +206,19 @@ class RegistrarCalibracionUseCase:
                 message="El valor de referencia debe ser un número decimal válido.",
                 field="valor_referencia",
             )
+        # INC-M09-75-G132 (#511): Decimal("NaN") / Decimal("Infinity") se construyen
+        # sin error, pero NaN revienta (500) al compararlo contra el rango e
+        # Infinity se reportaba como fuera de rango. RF-24 v2.0 los trata como
+        # formato decimal inválido, antes de la validación de rango.
+        if not valor.is_finite():
+            raise ValidationError(
+                code="VALOR_CALIBRACION_INVALIDO",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal "
+                    f"válido. Verifique la entrada '{dto.valor_referencia}'."
+                ),
+                field="valor_referencia",
+            )
 
         # RF-24: rango de seguridad por tipo de sensor (categoria).
         rango = self.rango_repo.obtener_por_categoria(sensor.categoria) if sensor.categoria else None
