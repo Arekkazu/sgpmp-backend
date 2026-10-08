@@ -1,3 +1,9 @@
+## [1.0.0-rc.76](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.75...v1.0.0-rc.76) (2026-10-08)
+
+### Bug Fixes
+
+* **rf15-mod9:** aceptar fecha_actualizacion null al editar una especie nunca editada ([17a5826](https://github.com/Arekkazu/sgpmp-backend/commit/17a5826d56fdf7380824c9781e979b435fdd8ae5)), closes [Arekkazu/SGPMP-FRONT-END-PWA#231](https://github.com/Arekkazu/SGPMP-FRONT-END-PWA/issues/231)
+
 ## [1.0.0-rc.75](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.74...v1.0.0-rc.75) (2026-10-07)
 
 ### Bug Fixes

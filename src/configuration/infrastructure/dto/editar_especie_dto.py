@@ -2,7 +2,7 @@
 
 Incluye ``fecha_actualizacion`` como mecanismo de concurrencia optimista:
 el cliente envía el timestamp que obtuvo al leer la especie; si difiere del
-valor actual en BD, el use case rechaza la operación con 409.
+valor actual en BD, el use case rechaza la operación con 412.
 """
 from datetime import datetime
 from decimal import Decimal
@@ -23,7 +23,8 @@ class EditarEspecieDTO(BaseDTO):
     densidad_maxima_por_especie: Optional[Decimal] = None
     # RFC-009: familia de modelo de IA de la especie (RF-20 valida contra ella).
     tipo_modelo: Optional[TipoModeloAsignable] = None
-    fecha_actualizacion: datetime
+    # Null en una especie que nunca se editó: el registro no la llena (#231).
+    fecha_actualizacion: Optional[datetime] = None
 
     @field_validator("nombre")
     @classmethod
