@@ -8,11 +8,15 @@ from src.identity_access.application.use_cases.notificaciones.listar_notificacio
 from src.identity_access.application.use_cases.notificaciones.marcar_notificacion_leida_use_case import (
     MarcarNotificacionLeidaUseCase,
 )
+from src.identity_access.application.use_cases.notificaciones.marcar_todas_leidas_use_case import (
+    MarcarTodasLeidasUseCase,
+)
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.repositories.notificacion_repository import (
     SqlAlchemyNotificacionRepository,
 )
 from src.identity_access.infrastructure.schema.notificacion_schema import (
+    MarcadasLeidasResponse,
     NotificacionInternaResponse,
     NotificacionesPaginadasResponse,
 )
@@ -44,6 +48,23 @@ def listar_notificaciones(
         solo_no_leidas=solo_no_leidas,
     )
     return NotificacionesPaginadasResponse(**resultado)
+
+
+@router.patch(
+    "/leidas",
+    response_model=MarcadasLeidasResponse,
+    responses={401: {"model": ErrorResponse}},
+    summary="Marcar como leídas todas las notificaciones propias (T-08)",
+)
+def marcar_todas_leidas(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> MarcadasLeidasResponse:
+    cambiadas = MarcarTodasLeidasUseCase(
+        notificaciones_repo=SqlAlchemyNotificacionRepository(db),
+        db=db,
+    ).execute(usuario_actual.id_usuario)
+    return MarcadasLeidasResponse(marcadas=cambiadas)
 
 
 @router.patch(

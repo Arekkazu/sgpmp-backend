@@ -209,3 +209,19 @@ class SqlAlchemyNotificacionRepository(NotificacionRepository):
             self.db.flush()
         except Exception as exc:
             raise_from_db_error(exc)
+
+    def marcar_todas_leidas(self, id_usuario: int) -> int:
+        try:
+            cambiadas = (
+                self.db.query(Notificaciones)
+                .filter(
+                    Notificaciones.id_usuario == id_usuario,
+                    Notificaciones.id_notificacion_canal == ID_CANAL_INTERNO,
+                    Notificaciones.es_leido.is_(False),
+                )
+                .update({Notificaciones.es_leido: True}, synchronize_session=False)
+            )
+            self.db.flush()
+            return cambiadas
+        except Exception as exc:
+            raise_from_db_error(exc)
