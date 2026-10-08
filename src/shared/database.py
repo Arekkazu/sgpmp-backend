@@ -81,11 +81,10 @@ def get_db():
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail=str(e))
         except Exception:
             if test_session is not None:
-                nested = test_session.get_nested_transaction()
-                if nested is not None:
-                    nested.rollback()
-                else:
+                try:
                     test_session.rollback()
+                except Exception:
+                    pass
             raise
         return
 
