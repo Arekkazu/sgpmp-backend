@@ -6,6 +6,8 @@ dentro del rango de seguridad definido para el tipo de sensor (categoria).
 
 RF-24 v1.1 (RFC-006, OWASP A09): todo intento rechazado (404/422/400 aquí, 403 en
 el router) queda en el historial de RF-10 con resultado FALLIDO.
+RF-24 v2.0: cada calibración exitosa también genera un evento RF-10, en la
+misma transacción que la calibración y su auditoría interna de M09.
 """
 from __future__ import annotations
 
@@ -30,6 +32,7 @@ from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, 
 logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
+TIPO_EVENTO_CALIBRACION_EXITOSA = 30  # modulo1.tipos_eventos (migración b6f2d8a40c91)
 
 
 def auditar_rechazo_calibracion(
@@ -129,15 +132,30 @@ class RegistrarCalibracionUseCase:
 
         try:
             calibracion_guardada = self.calibracion_repo.guardar(calibracion)
-            # RF-24 FA / RF-10: traza en el historial de auditoría inmutable. Si falla,
-            # el rollback deshace la calibración y se responde 500 (no queda calibración
-            # sin trazabilidad).
+            # Ambas trazas son obligatorias y se confirman con la calibración.
+            # Si falla M09 o RF-10, se revierte toda la operación.
             try:
                 self.auditoria_repo.registrar(
                     id_calibracion=calibracion_guardada.id_calibracion,
                     id_usuario=usuario_actual.id_usuario,
                     tipo_operacion="CREATE",
                     valores_nuevos=calibracion_guardada._snapshot(),
+                )
+                self.eventos_repo.registrar(
+                    tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
+                    exitoso=True,
+                    id_usuario=usuario_actual.id_usuario,
+                    detalle={
+                        "operacion": "CALIBRACION_SENSOR",
+                        "id_calibracion": calibracion_guardada.id_calibracion,
+                        "id_infraestructura": dto.id_infraestructura,
+                        **calibracion_guardada._snapshot(),
+                    },
+                    descripcion=(
+                        f"Calibración {calibracion_guardada.id_calibracion} registrada "
+                        f"para el sensor {calibracion_guardada.id_sensor}."
+                    ),
+                    modulo="MODULO9",
                 )
             except Exception as exc:
                 raise InfrastructureError(

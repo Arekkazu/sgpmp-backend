@@ -89,7 +89,10 @@ def test_happy_path_escribe_auditoria():
     db, aud, eventos = _Db(), _AuditoriaOk(), _Eventos()
     cal = _uc(db, aud, eventos).execute(1, _dto(Decimal("25")), _USUARIO)
     assert aud.calls == 1 and db.committed and cal.offset == Decimal("25")
-    assert eventos.eventos == []  # el camino exitoso no deja evento de rechazo
+    [evento] = eventos.eventos
+    assert evento["tipo_evento"] == 30 and evento["exitoso"] is True
+    assert evento["detalle"]["id_calibracion"] == 99
+    assert evento["detalle"]["valor_referencia"] == "25"
 
 
 def test_fallo_auditoria_rollback_500():
