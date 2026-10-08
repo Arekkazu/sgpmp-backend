@@ -30,6 +30,10 @@ from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, 
 logger = logging.getLogger(__name__)
 
 TIPO_EVENTO_CALIBRACION_RECHAZADA = 29  # modulo1.tipos_eventos (migración cf12e716a4ec)
+MENSAJE_HARDWARE_NO_ENCONTRADO = (
+    "Error de referencia: El sensor o dispositivo especificado no existe. "
+    "No se puede registrar una calibración sobre un hardware inexistente."
+)
 
 
 def auditar_rechazo_calibracion(
@@ -169,7 +173,7 @@ class RegistrarCalibracionUseCase:
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
-                message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if not dispositivo.es_activo:
             raise BusinessRuleError(
@@ -181,7 +185,7 @@ class RegistrarCalibracionUseCase:
         if sensor is None:
             raise NotFoundError(
                 code="SENSOR_NO_ENCONTRADO",
-                message=f"No existe un sensor con ID {id_sensor}.",
+                message=MENSAJE_HARDWARE_NO_ENCONTRADO,
             )
         if sensor.id_dispositivo_iot != dto.id_dispositivo_iot:
             raise BusinessRuleError(
