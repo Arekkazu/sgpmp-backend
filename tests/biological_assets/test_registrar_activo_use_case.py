@@ -24,7 +24,7 @@ from src.biological_assets.domain.repositories.infraestructura_consulta_port imp
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametroEspecie
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError
+from src.shared.errors import AuthorizationError, BusinessRuleError, ConflictError
 
 
 class DbFake:
@@ -71,7 +71,7 @@ class InfraFake:
     def obtener_activa(self, id_infraestructura: int):
         return InfraestructuraConsulta(
             id_infraestructura=id_infraestructura, nombre='Potrero 1', tipo='potrero', es_activo=True,
-            superficie=self.superficie,
+            superficie=self.superficie, id_finca=5,
         )
 
 
@@ -428,3 +428,24 @@ def test_registro_poblacional_sin_limite_m09_no_omite_validacion() -> None:
 
     assert exc_info.value.code == 'DENSIDAD_MAXIMA_NO_CONFIGURADA'
     assert repo.guardados == 0
+
+
+# ── M2-01 (reporte UAT 07/10): activo en una finca ajena ─────────────────────
+
+def test_infraestructura_de_finca_ajena_es_403_sin_persistir() -> None:
+    db = DbFake()
+    repo = ActivoRepoFake()
+
+    with pytest.raises(AuthorizationError) as exc:
+        _use_case(repo, db).execute(_dto(), _usuario(), ids_fincas_permitidas=[1, 2])
+
+    assert exc.value.code == 'INFRAESTRUCTURA_FUERA_DE_ALCANCE'
+    assert repo.historial == []
+    assert db.commits == 0
+
+
+def test_infraestructura_de_finca_propia_o_alcance_global_se_registra() -> None:
+    for alcance in ([5], None):
+        repo = ActivoRepoFake()
+        _use_case(repo, DbFake()).execute(_dto(), _usuario(), ids_fincas_permitidas=alcance)
+        assert len(repo.historial) == 1

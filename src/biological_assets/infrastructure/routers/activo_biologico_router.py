@@ -419,7 +419,7 @@ def registrar_activo(
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
-    activo = use_case.execute(dto, usuario_actual)
+    activo = use_case.execute(dto, usuario_actual, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
     return _activo_to_response(
         activo,
         incluir_datos_financieros=tiene_permiso_sobre(
