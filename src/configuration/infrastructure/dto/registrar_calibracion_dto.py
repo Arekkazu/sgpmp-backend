@@ -23,9 +23,9 @@ class RegistrarCalibracionDTO(BaseDTO):
     offset: Optional[Decimal] = None
     fecha_calibracion: datetime
     observaciones: Optional[str] = None
-    # TC-M09-141 (#503): sin declararlo, un modo arbitrario se descartaba en
-    # silencio. Por defecto SENSOR para no romper a los clientes que no lo envían.
-    modo_calibracion: ModoCalibracion = ModoCalibracion.SENSOR
+    # RF-24 v2.0, TC-M09-259 (#510): la modalidad debe enviarse explícitamente.
+    # Un default permitiría persistir peticiones que omiten el discriminador.
+    modo_calibracion: ModoCalibracion
 
     # El rango válido de valor_referencia/offset lo impone el rango por tipo de
     # sensor en el use case (RF-24); aquí solo se valida que la ganancia sea
