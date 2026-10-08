@@ -7,10 +7,10 @@ en DEV con MQTT_* definidas." Hallazgos previos (DEV, 2026-09-21/26):
 cuenta generica con `#` concedido (M9-05); listeners sin TLS (M9-06).
 
 Novedad de este reintento: el usuario entrego credenciales reales del
-broker de **TEST** (MQTT_USERNAME/MQTT_PASSWORD/MQTT_HOST_PORT=1885, host
-158.69.200.27 -- la IP del servidor, tratada con discrecion: nunca
-hardcodeada en texto, solo via variables de entorno). Esto permite repetir
-M9-05/M9-06 ya no solo en DEV sino tambien en TEST.
+broker de **TEST** (host, puerto, usuario y password -- todo via variables
+de entorno MQTT_HOST/MQTT_HOST_PORT/MQTT_USERNAME/MQTT_PASSWORD, ninguna
+hardcodeada en este archivo por discrecion con la infraestructura). Esto
+permite repetir M9-05/M9-06 ya no solo en DEV sino tambien en TEST.
 
 **Escenario 5 (publicacion directa en el broker) NO esta en este archivo
 a proposito.** Publicar en el broker real (a diferencia de solo conectar y
@@ -31,14 +31,15 @@ import time
 import paho.mqtt.client as mqtt
 import pytest
 
-MQTT_HOST = "158.69.200.27"
-MQTT_PORT = int(os.environ.get("MQTT_HOST_PORT", "1885"))
+MQTT_HOST = os.environ.get("MQTT_HOST")
+MQTT_PORT_RAW = os.environ.get("MQTT_HOST_PORT")
+MQTT_PORT = int(MQTT_PORT_RAW) if MQTT_PORT_RAW else None
 MQTT_USER = os.environ.get("MQTT_USERNAME")
 MQTT_PASS = os.environ.get("MQTT_PASSWORD")
 
 pytestmark = pytest.mark.skipif(
-    not (MQTT_USER and MQTT_PASS),
-    reason="MQTT_USERNAME/MQTT_PASSWORD no definidas en el entorno",
+    not (MQTT_HOST and MQTT_PORT and MQTT_USER and MQTT_PASS),
+    reason="MQTT_HOST/MQTT_HOST_PORT/MQTT_USERNAME/MQTT_PASSWORD no definidas en el entorno",
 )
 
 

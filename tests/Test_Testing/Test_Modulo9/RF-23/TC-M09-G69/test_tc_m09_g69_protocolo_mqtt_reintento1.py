@@ -26,17 +26,19 @@ llega a `mqtt_port.enviar_configuracion` (ese paso es posterior en el
 codigo), asi que no hace falta escuchar el broker para esta parte -- se
 deja la escucha de todas formas, por si el 400 cambiara de nuevo.
 
-Ahora SI hay credenciales reales del broker de TEST (MQTT_USERNAME/
-MQTT_PASSWORD/MQTT_HOST_PORT, variables de entorno -- nunca hardcodeadas
-aqui, mismo criterio que toda la sesion), usadas para la parte de M9-05/
-M9-06 (wildcard + texto plano) que si sigue vigente.
+Ahora SI hay credenciales reales del broker de TEST, usadas para la parte
+de M9-05/M9-06 (wildcard + texto plano) que si sigue vigente. Host, puerto,
+usuario y password del broker son datos sensibles de infraestructura: NUNCA
+se hardcodean aqui, solo via variables de entorno (MQTT_HOST, MQTT_HOST_PORT,
+MQTT_USERNAME, MQTT_PASSWORD) que quien ejecute este archivo debe definir.
 
 Topico de downlink confirmado en sesiones previas (2026-09-26, DEV, con
 dispositivo real): `sgpmp/<serial>/command` -> {"frecuencia_captura": N,
 "intervalo_transmision": M} (nunca incluye `protocolo`, porque
 ConfigurarRemotamenteDTO no lo declara y BaseDTO no usa extra='forbid').
 
-Como correrlo (variables de entorno ya puestas por quien ejecuta):
+Como correrlo (variables de entorno ya puestas por quien ejecuta, incluyendo
+MQTT_HOST/MQTT_HOST_PORT -- ninguna tiene valor por defecto a proposito):
     python -m pytest tests/Test_Testing/Test_Modulo9/RF-23/TC-M09-G69/test_tc_m09_g69_protocolo_mqtt_reintento1.py -v \
         --html=resultados/resultado_TC-M09-G69_reintento1.html --self-contained-html
 """
@@ -50,8 +52,9 @@ import pytest
 import requests
 
 BASE_URL = "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
-MQTT_HOST = "158.69.200.27"
-MQTT_PORT = int(os.environ.get("MQTT_HOST_PORT", "1885"))
+MQTT_HOST = os.environ.get("MQTT_HOST")
+MQTT_PORT_RAW = os.environ.get("MQTT_HOST_PORT")
+MQTT_PORT = int(MQTT_PORT_RAW) if MQTT_PORT_RAW else None
 MQTT_USER = os.environ.get("MQTT_USERNAME")
 MQTT_PASS = os.environ.get("MQTT_PASSWORD")
 
@@ -108,8 +111,8 @@ class _EscuchaMqtt:
 
 
 @pytest.mark.skipif(
-    not (MQTT_USER and MQTT_PASS),
-    reason="MQTT_USERNAME/MQTT_PASSWORD no definidas en el entorno -- solo se corre la parte HTTP",
+    not (MQTT_HOST and MQTT_PORT and MQTT_USER and MQTT_PASS),
+    reason="MQTT_HOST/MQTT_HOST_PORT/MQTT_USERNAME/MQTT_PASSWORD no definidas en el entorno",
 )
 class TestTCM09G69ProtocoloMqttReintento1:
     """TC-M09-G69 / G69-02: `protocolo` sigue ignorado end-to-end (HTTP + broker real)."""

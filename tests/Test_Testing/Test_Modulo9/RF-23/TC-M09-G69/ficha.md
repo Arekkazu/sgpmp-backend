@@ -17,4 +17,4 @@ Fuente: `TCs_M09_v2_2026-10-06.md` (matriz corregida, 2026-10-06).
 ## Reintento1 (2026-10-08, TEST, con credenciales reales de broker)
 - Script: `test_tc_m09_g69_protocolo_mqtt_reintento1.py` (pytest + paho-mqtt)
 - Reporte: `resultados/resultado_TC-M09-G69_reintento1.html`
-- 3/3 passed: `protocolo=LORAWAN` → 400 VAL_ENTRADA; `protocolo=INEXISTENTE` → 400 VAL_ENTRADA; confirmación en vivo de M9-05/M9-06 sobre el broker de TEST (`158.69.200.27:1885`).
+- 3/3 passed: `protocolo=LORAWAN` → 400 VAL_ENTRADA; `protocolo=INEXISTENTE` → 400 VAL_ENTRADA; confirmación en vivo de M9-05/M9-06 sobre el broker de TEST (host/puerto no se documentan aquí, ver `MQTT_HOST`/`MQTT_HOST_PORT`).
