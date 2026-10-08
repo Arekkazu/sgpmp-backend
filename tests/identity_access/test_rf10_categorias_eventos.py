@@ -30,7 +30,8 @@ TIPOS_POR_CATEGORIA = {
     # automático sobre auditoría, misma clasificación que el 25.
     # 29 = CALIBRACION_RECHAZADA (RF-24 v1.1, RFC-006): intento rechazado de
     # modificar la calibración de un sensor de M09.
-    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29),
+    # 30 = CALIBRACION_VISION (RF-24 v2.0, RFC-011): línea base por visión publicada.
+    EventoCategoria.MODIFICACION: (*range(9, 16), 25, 27, 28, 29, 30),
     EventoCategoria.CONSULTA: (*range(16, 20), 26),
 }
 
@@ -103,7 +104,7 @@ def test_catalogo_cubre_todos_los_tipos_actuales_sin_duplicados() -> None:
         for tipo in tipos_categoria
     ]
 
-    assert sorted(tipos) == list(range(1, 30))
+    assert sorted(tipos) == list(range(1, 31))
     assert len(tipos) == len(set(tipos))
 
 

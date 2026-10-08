@@ -98,6 +98,40 @@ rechazaba Pydantic con `422`, pero el RF pide `400`.
 (`Decimal | str | None`) y el use case lo convierte; no numérico/vacío/nulo →
 `400 VALOR_CALIBRACION_INVALIDO`.
 
+### 10. RF-24 v2.0 — modalidad VISION: línea base por (área, especie) (INC-M09-78-G138, #514)
+**Gap:** la ficha RF-24 v2.0 agrega la modalidad `VISION` (RFC-011), pero no existía
+ninguna operación ni tabla para ella. `modulo9.calibraciones` no sirve: exige
+`id_sensor` e `id_dispositivo_iot`, y VISION no calibra un sensor.
+**Decisión:** migración `d7a41c9e2b58` (`v5.5.0_rf24_calibracion_vision`, pendiente de
+aprobación del DBA):
+
+- `modulo9.calibraciones_vision` — historial inmutable de cada intento, exitoso o no
+  (la ficha pide registrar los fallidos "con el motivo de la etapa"):
+  - `origen_disparo` (`MANUAL`/`AUTOMATICO`) e `id_usuario`, que es nulo solo si es automático;
+  - `json_ventana_observacion`;
+  - `estado` (`EXITOSA`/`FALLIDA`/`NO_CONVERGIDA`), `etapa_fallo` y `motivo`;
+  - `json_linea_base`, solo si es `EXITOSA`;
+  - contadores de observaciones e `iteraciones`.
+  - CHECKs de coherencia: una exitosa lleva línea base y no lleva etapa de fallo; las demás, al revés.
+- `modulo9.lineas_base_vision` — la línea base vigente, PK (`id_infraestructura`,
+  `id_especie`). Un cálculo exitoso la reemplaza (UPSERT con `FOR UPDATE`); uno fallido
+  no la toca.
+- RLS igual que `calibraciones`: Administrador e Ingeniero de Campo; sin DELETE; el
+  historial sin UPDATE.
+- `modulo1.tipos_eventos` 30 `CALIBRACION_VISION` para auditar el éxito; los rechazos
+  reutilizan el 29.
+
+**RBAC:** sin cambios. Se reutiliza el recurso 12 (`sensores`), C para calcular y R para
+consultar, igual que la calibración SENSOR (tabla de abajo).
+
+**Pendiente (fuera de backend):** las observaciones de cámara (RF-53/56) y su
+`apto_para_ia` (RF-62) las produce M03, que aún no las expone. El puerto
+`ObservacionVisionPort` se resuelve con `ObservacionVisionStubAdapter` (lista vacía).
+Los umbrales de las etapas usan los valores por defecto de `ParametrosLineaBase`, porque la
+ficha los deja "configurados" sin fijar valores: mínimo 30 observaciones, cobertura ≥ 0,5,
+≥ 1 track, 10 datos por componente, ε = 1 %, 10 iteraciones. El disparo automático desde
+M02 tampoco está conectado: no existe el evento de nuevo lote / fin de ciclo hacia M09.
+
 ## Simplificaciones conocidas
 
 - **MQTT (RF-23):** No implementado. Stub `MqttStubAdapter` retorna siempre `False` (dispositivo offline). Todas las configuraciones quedan en estado `PENDIENTE`. HTTP 202.
