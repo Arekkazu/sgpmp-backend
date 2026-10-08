@@ -124,7 +124,7 @@ def test_fuera_de_rango_devuelve_400():
 _RECHAZOS = (
     # (overrides del use case, valor, error esperado, código)
     ({"dispositivo": None}, Decimal("25"), NotFoundError, "DISPOSITIVO_NO_ENCONTRADO"),
-    ({"dispositivo": SimpleNamespace(es_activo=False)}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
+    ({"dispositivo": SimpleNamespace(es_activo=False, id_finca=1, serial=SimpleNamespace(valor="IOT-INACT"))}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
     ({"sensor": None}, Decimal("25"), NotFoundError, "SENSOR_NO_ENCONTRADO"),
     ({"asociacion": SimpleNamespace(id_infraestructura=7)}, Decimal("25"), ValidationError, "SENSOR_AREA_INVALIDA"),
     ({}, "abc", ValidationError, "VALOR_CALIBRACION_INVALIDO"),
@@ -157,6 +157,28 @@ def test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx():
     except NotFoundError as e:
         assert e.status_code == 404  # no se convierte en 500
     assert db.rolledback
+
+
+def test_mensajes_de_rechazo_rf24_con_auditoria_caida():
+    # INC-M09-76-G136 (#512): con el INSERT a modulo1.eventos fallando (best-effort),
+    # el rechazo conserva su HTTP y el texto exacto de RF-24 v2.0.
+    inactivo = SimpleNamespace(es_activo=False, id_finca=1, serial=SimpleNamespace(valor="IOT-G136-LAB-INACT"))
+    casos = (
+        ({}, Decimal("45.0001"), 400, "VALOR_FUERA_DE_RANGO",
+         "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la "
+         "variable TEMPERATURA. Verifique el estándar de calibración utilizado."),
+        ({"dispositivo": inactivo}, Decimal("22.5000"), 422, "DISPOSITIVO_INACTIVO",
+         "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el "
+         "dispositivo antes de proceder con el registro de nuevos parámetros de calibración."),
+    )
+    for overrides, valor, http, codigo, mensaje in casos:
+        db = _Db()
+        try:
+            _uc(db, _AuditoriaOk(), _Eventos(roto=True), **overrides).execute(1, _dto(valor), _USUARIO)
+            assert False, f"debió rechazar con {codigo}"
+        except (ValidationError, BusinessRuleError) as e:
+            assert (e.status_code, e.code, e.message) == (http, codigo, mensaje)
+        assert db.rolledback and not db.committed
 
 
 def test_403_del_router_queda_auditado():

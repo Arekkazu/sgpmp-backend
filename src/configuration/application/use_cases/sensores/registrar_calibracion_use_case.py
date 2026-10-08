@@ -174,7 +174,12 @@ class RegistrarCalibracionUseCase:
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
-                message="Solo se pueden calibrar sensores de dispositivos activos.",
+                # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0, con el serial.
+                message=(
+                    f"Operación rechazada: El dispositivo {dispositivo.serial.valor} está inactivo. "
+                    "Debe activar el dispositivo antes de proceder con el registro de nuevos "
+                    "parámetros de calibración."
+                ),
             )
 
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
@@ -216,9 +221,9 @@ class RegistrarCalibracionUseCase:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",
                         message=(
-                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
-                            f"para la variable {sensor.categoria} "
-                            f"(permitido {viol['min']}–{viol['max']}). "
+                            # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0 (sin el rango).
+                            f"Valor fuera de límites: El ajuste de {viol['valor']} excede los "
+                            f"rangos de seguridad para la variable {sensor.categoria}. "
                             "Verifique el estándar de calibración utilizado."
                         ),
                         field=campo,
