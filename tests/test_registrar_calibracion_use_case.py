@@ -79,6 +79,7 @@ def _dto(valor):
     return RegistrarCalibracionDTO(
         id_dispositivo_iot=1, id_infraestructura=1, valor_referencia=valor,
         fecha_calibracion=datetime.now(timezone.utc),
+        modo_calibracion="SENSOR",
     )
 
 
@@ -111,6 +112,36 @@ def test_no_numerico_devuelve_400():
             assert e.code == "VALOR_CALIBRACION_INVALIDO" and e.status_code == 400
 
 
+def test_no_finitos_son_formato_invalido_400():
+    # INC-M09-75-G132 (#511): NaN daba 500 e Infinity/-Infinity "fuera de rango".
+    for bad in ("NaN", "Infinity", "-Infinity"):
+        db = _Db()
+        try:
+            _uc(db, _AuditoriaOk()).execute(1, _dto(bad), _USUARIO)
+            assert False, f"debió rechazar {bad!r}"
+        except ValidationError as e:
+            assert e.code == "VALOR_CALIBRACION_INVALIDO" and e.status_code == 400
+            assert e.message == (
+                "Error de formato: El valor de referencia debe ser un número decimal "
+                f"válido. Verifique la entrada '{bad}'."
+            )
+
+
+def test_literales_json_no_finitos_llegan_como_texto_al_use_case():
+    import json
+    for literal, esperado in (("NaN", "NaN"), ("Infinity", "Infinity"), ("-Infinity", "-Infinity")):
+        cuerpo = json.loads(
+            '{"id_dispositivo_iot":1,"id_infraestructura":1,'
+            '"fecha_calibracion":"2026-10-07T00:00:00Z","modo_calibracion":"SENSOR","valor_referencia":' + literal + "}"
+        )
+        assert RegistrarCalibracionDTO.model_validate(cuerpo).valor_referencia == esperado
+
+
+def test_decimal_finito_conserva_precision():
+    cal = _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("22.1234")), _USUARIO)
+    assert cal.valor_referencia == Decimal("22.1234")
+
+
 def test_fuera_de_rango_devuelve_400():
     try:
         _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("500")), _USUARIO)
@@ -124,7 +155,7 @@ def test_fuera_de_rango_devuelve_400():
 _RECHAZOS = (
     # (overrides del use case, valor, error esperado, código)
     ({"dispositivo": None}, Decimal("25"), NotFoundError, "DISPOSITIVO_NO_ENCONTRADO"),
-    ({"dispositivo": SimpleNamespace(es_activo=False, serial="IOT-INACTIVO-1")}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
+    ({"dispositivo": SimpleNamespace(es_activo=False, id_finca=1, serial=SimpleNamespace(valor="IOT-INACT"))}, Decimal("25"), BusinessRuleError, "DISPOSITIVO_INACTIVO"),
     ({"sensor": None}, Decimal("25"), NotFoundError, "SENSOR_NO_ENCONTRADO"),
     ({"asociacion": SimpleNamespace(id_infraestructura=7)}, Decimal("25"), ValidationError, "SENSOR_AREA_INVALIDA"),
     ({}, "abc", ValidationError, "VALOR_CALIBRACION_INVALIDO"),
@@ -159,6 +190,28 @@ def test_si_la_auditoria_del_rechazo_falla_conserva_el_4xx():
     assert db.rolledback
 
 
+def test_mensajes_de_rechazo_rf24_con_auditoria_caida():
+    # INC-M09-76-G136 (#512): con el INSERT a modulo1.eventos fallando (best-effort),
+    # el rechazo conserva su HTTP y el texto exacto de RF-24 v2.0.
+    inactivo = SimpleNamespace(es_activo=False, id_finca=1, serial=SimpleNamespace(valor="IOT-G136-LAB-INACT"))
+    casos = (
+        ({}, Decimal("45.0001"), 400, "VALOR_FUERA_DE_RANGO",
+         "Valor fuera de límites: El ajuste de 45.0001 excede los rangos de seguridad para la "
+         "variable TEMPERATURA. Verifique el estándar de calibración utilizado."),
+        ({"dispositivo": inactivo}, Decimal("22.5000"), 422, "DISPOSITIVO_INACTIVO",
+         "Operación rechazada: El dispositivo IOT-G136-LAB-INACT está inactivo. Debe activar el "
+         "dispositivo antes de proceder con el registro de nuevos parámetros de calibración."),
+    )
+    for overrides, valor, http, codigo, mensaje in casos:
+        db = _Db()
+        try:
+            _uc(db, _AuditoriaOk(), _Eventos(roto=True), **overrides).execute(1, _dto(valor), _USUARIO)
+            assert False, f"debió rechazar con {codigo}"
+        except (ValidationError, BusinessRuleError) as e:
+            assert (e.status_code, e.code, e.message) == (http, codigo, mensaje)
+        assert db.rolledback and not db.committed
+
+
 def test_403_del_router_queda_auditado():
     import src.shared.rbac as rbac
     from src.configuration.infrastructure.routers import sensor_router
@@ -187,7 +240,7 @@ def test_modo_calibracion_se_valida_y_se_traza():
     import pydantic
 
     cal = _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("25")), _USUARIO)
-    assert cal.modo_calibracion == "SENSOR"  # por defecto, cliente que no lo envía
+    assert cal.modo_calibracion == "SENSOR"  # modalidad enviada explícitamente
     assert cal._snapshot()["modo_calibracion"] == "SENSOR"
     assert CalibracionResponse.from_entity(cal).model_dump(mode="json")["modo_calibracion"] == "SENSOR"
 

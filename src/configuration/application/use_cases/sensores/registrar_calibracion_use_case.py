@@ -174,8 +174,9 @@ class RegistrarCalibracionUseCase:
         if not dispositivo.es_activo:
             raise BusinessRuleError(
                 code="DISPOSITIVO_INACTIVO",
+                # INC-M09-76-G136 (#512): texto exacto de RF-24 v2.0, con el serial.
                 message=(
-                    f"Operación rechazada: El dispositivo {dispositivo.serial} está inactivo. "
+                    f"Operación rechazada: El dispositivo {dispositivo.serial.valor} está inactivo. "
                     "Debe activar el dispositivo antes de proceder con el registro de nuevos "
                     "parámetros de calibración."
                 ),
@@ -209,9 +210,26 @@ class RegistrarCalibracionUseCase:
             valor = Decimal(str(dto.valor_referencia))
             offset = Decimal(str(dto.offset)) if dto.offset is not None else valor
         except InvalidOperation:
+            valor_ingresado = "null" if dto.valor_referencia is None else str(dto.valor_referencia)
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
-                message="El valor de referencia debe ser un número decimal válido.",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal válido. "
+                    f"Verifique la entrada '{valor_ingresado}'."
+                ),
+                field="valor_referencia",
+            )
+        # INC-M09-75-G132 (#511): Decimal("NaN") / Decimal("Infinity") se construyen
+        # sin error, pero NaN revienta (500) al compararlo contra el rango e
+        # Infinity se reportaba como fuera de rango. RF-24 v2.0 los trata como
+        # formato decimal inválido, antes de la validación de rango.
+        if not valor.is_finite():
+            raise ValidationError(
+                code="VALOR_CALIBRACION_INVALIDO",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal "
+                    f"válido. Verifique la entrada '{dto.valor_referencia}'."
+                ),
                 field="valor_referencia",
             )
 
@@ -224,9 +242,8 @@ class RegistrarCalibracionUseCase:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",
                         message=(
-                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
-                            f"para la variable {sensor.categoria} "
-                            f"(permitido {viol['min']}–{viol['max']}). "
+                            f"Valor fuera de límites: El ajuste de {viol['valor']} excede los rangos de seguridad "
+                            f"para la variable {sensor.categoria}. "
                             "Verifique el estándar de calibración utilizado."
                         ),
                         field=campo,
