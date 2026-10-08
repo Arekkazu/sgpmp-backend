@@ -1,0 +1,8 @@
+services:
+  backend:
+    environment:
+      ENABLE_TEST_SANDBOX: ${ENABLE_TEST_SANDBOX}
+      TEST_SANDBOX_SECRET: ${TEST_SANDBOX_SECRET}
+      DATABASE_URL: postgresql://dba:Samuel,2005@158.69.200.27:5448/sgpmp_test
+    ports:
+      - "8000:8000"

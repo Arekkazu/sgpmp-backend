@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from dotenv import load_dotenv
+from sqlalchemy import text
 
 load_dotenv()
 
@@ -19,6 +20,21 @@ from src.shared.configuracion import validar_configuracion  # noqa: E402
 validar_configuracion()
 
 logger = logging.getLogger(__name__)
+
+
+def _declarar_identidad_sistema(db) -> None:
+    """Identidad interina de sesión para tareas de fondo bajo RLS.
+
+    F2 del control de acceso por BD: las políticas ya activas de `modulo1`
+    (migraciones `8d80fb56a30b` y el fix que las acompaña) exigen
+    `modulo1.fn_rol_actual()`. Estas tareas corren con su propia `SessionLocal()`
+    sin usuario autenticado (Decisión D1 del plan, sin resolver todavía por
+    equipo + DBA: usuario de servicio dedicado vs. rol con `BYPASSRLS`).
+    Mientras tanto se declaran 'Administrador' -- la misma cadena que ya
+    reconocen las políticas -- para que no dejen de correr en silencio. Llamar
+    justo después de abrir la sesión, antes de cualquier query a modulo1/modulo9.
+    """
+    db.execute(text("SELECT set_config('app.current_role', 'Administrador', true)"))
 
 from src.biological_assets.infrastructure.routers.activo_biologico_router import router as activo_biologico_router
 from src.biological_assets.infrastructure.routers.infraestructura_sensor_router import router as infraestructura_sensor_router
@@ -82,6 +98,8 @@ from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
 from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from src.shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
+from src.shared.rollback.presentation.test_control_router import router as test_control_router
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -224,6 +242,7 @@ async def _archivar_auditoria_diariamente() -> None:
         """
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             return NotificarFalloArchivadoUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -248,6 +267,7 @@ async def _archivar_auditoria_diariamente() -> None:
         def ejecutar_archivado():
             db = SessionLocal()
             try:
+                _declarar_identidad_sistema(db)
                 return ArchivarAuditoriaUseCase(
                     eventos_repo=SqlAlchemyEventoRepository(db),
                     db=db,
@@ -390,6 +410,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
     while True:
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             intervalo = (
                 SqlAlchemyExportacionAuditoriaRepository(db)
                 .obtener_configuracion()
@@ -407,6 +428,7 @@ async def _procesar_cola_exportaciones_auditoria_periodicamente() -> None:
 
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             cola_repo = SqlAlchemyExportacionAuditoriaRepository(db)
             use_case = ProcesarColaExportacionesUseCase(
                 db=db,
@@ -487,6 +509,7 @@ async def _reconciliar_bitacora_m02_diariamente() -> None:
     def avisar(inconsistencias) -> int:
         db = SessionLocal()
         try:
+            _declarar_identidad_sistema(db)
             return NotificarInconsistenciaAuditoriaUseCase(
                 eventos_repo=SqlAlchemyEventoRepository(db),
                 notificaciones_repo=SqlAlchemyNotificacionRepository(db),
@@ -566,6 +589,8 @@ allowed_origins = [
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+app.add_middleware(TestSandboxMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -575,8 +600,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     # Sin esto el navegador oculta al frontend cualquier cabecera propia: el
-    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan.
-    expose_headers=["Content-Disposition", "X-Total-Registros", "X-Registros-Exportados"],
+    # nombre del archivo y el aviso de exportación truncada de RF-10 no llegan,
+    # ni cuándo reintentar tras un 429 del limitador de tasa (#495).
+    expose_headers=[
+        "Content-Disposition", "X-Total-Registros", "X-Registros-Exportados",
+        "Retry-After", "RateLimit-Limit", "RateLimit-Remaining", "RateLimit-Reset",
+    ],
 )
 
 # RF-10: sin este middleware el repositorio de auditoría no conoce IP ni
@@ -599,6 +628,10 @@ app.mount(
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
+
+if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() == "true":
+    logger.warning("MODO PRUEBAS (SANDBOX) HABILITADO. No usar en producción.")
+    app.include_router(test_control_router)
 
 register_error_handlers(app)
 
