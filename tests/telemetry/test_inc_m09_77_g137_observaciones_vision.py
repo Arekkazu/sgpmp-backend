@@ -14,7 +14,7 @@ from src.configuration.application.use_cases.sensores.calibrar_vision_use_case i
 from src.configuration.domain.entities import observacion_vision as obs_m09
 from src.configuration.domain.value_objects.calibracion_vision import EstadoCalibracionVision
 from src.configuration.infrastructure.dto.calibrar_vision_dto import CalibrarVisionDTO
-from src.shared.database import get_db
+from src.shared.database import get_db_sistema
 from src.shared.errors import AuthenticationError, BusinessRuleError, ValidationError
 from src.telemetry.application.use_cases.ingesta.ingerir_observaciones_vision_use_case import (
     IngerirObservacionesVisionUseCase,
@@ -173,9 +173,9 @@ def cliente(monkeypatch):
     puerto.obtener_camara.return_value = CAMARA
     monkeypatch.setattr(telemetria_router, "SqlAlchemyObservacionVisionRepository", lambda db: repo)
     monkeypatch.setattr(telemetria_router, "DispositivoM09Adapter", lambda db: puerto)
-    app.dependency_overrides[get_db] = lambda: Mock()
+    app.dependency_overrides[get_db_sistema] = lambda: Mock()
     yield TestClient(app)
-    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_db_sistema, None)
 
 
 def test_http_201_publica_indice_y_aptitudes(cliente):

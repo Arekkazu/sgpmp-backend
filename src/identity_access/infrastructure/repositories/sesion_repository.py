@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.sesion import Sesion
@@ -17,6 +18,7 @@ from src.identity_access.domain.repositories.sesion_repository import SesionRepo
 from src.identity_access.infrastructure.models.enums_models import EnumTokenTipo
 from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
+from src.shared.database import declarar_identidad_si_anonima
 from src.shared.db_error_translator import raise_from_db_error
 
 
@@ -79,6 +81,13 @@ class SqlAlchemySesionRepository(SesionRepository):
         # rote el token — eso producía un falso positivo de reuso que mataba
         # la sesión que el primero acababa de emitir. El segundo espera al
         # primero y relee `fecha_uso` ya actualizado.
+        # Refresh: sin identidad todavía (ver SqlAlchemyUsuarioRepository.obtener_por_correo).
+        id_usuario = self.db.execute(
+            text("SELECT modulo1.fn_id_usuario_por_hash_token_refresco(:hash)"), {"hash": hash_valor}
+        ).scalar()
+        if id_usuario is None:
+            return None
+        declarar_identidad_si_anonima(self.db, id_usuario)
         orm = (
             self.db.query(Tokens)
             .filter(Tokens.hash_valor == hash_valor)
@@ -124,21 +133,32 @@ class SqlAlchemySesionRepository(SesionRepository):
         self.db.flush()
 
     def crear_token_acceso(self, fecha_expiracion: datetime) -> Token:
-        orm = Tokens(token_tipo=EnumTokenTipo.ACCESO, fecha_expiracion=fecha_expiracion)
+        orm = Tokens(
+            token_tipo=EnumTokenTipo.ACCESO,
+            fecha_expiracion=fecha_expiracion,
+            fecha_creacion=datetime.now(timezone.utc),
+        )
         try:
+            # Sin RETURNING ni refresh: bajo RLS el token no se ve hasta que
+            # quede enlazado a su sesión (ver TokensModel).
             self.db.add(orm)
             self.db.flush()
-            self.db.refresh(orm)
             return self._token_a_entidad(orm)
         except Exception as e:
             raise_from_db_error(e, conflict_messages={})
 
     def crear_token_refresco(self, fecha_expiracion: datetime, hash_valor: str) -> Token:
-        orm = Tokens(token_tipo=EnumTokenTipo.REFRESCO, fecha_expiracion=fecha_expiracion, hash_valor=hash_valor)
+        orm = Tokens(
+            token_tipo=EnumTokenTipo.REFRESCO,
+            fecha_expiracion=fecha_expiracion,
+            fecha_creacion=datetime.now(timezone.utc),
+            hash_valor=hash_valor,
+        )
         try:
+            # Sin RETURNING ni refresh: bajo RLS el token no se ve hasta que
+            # quede enlazado a su sesión (ver TokensModel).
             self.db.add(orm)
             self.db.flush()
-            self.db.refresh(orm)
             return self._token_a_entidad(orm)
         except Exception as e:
             raise_from_db_error(e, conflict_messages={})

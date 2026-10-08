@@ -21,7 +21,11 @@ class FincaModel(Base):
     __tablename__ = 'fincas'
     __table_args__ = (
         PrimaryKeyConstraint('id_finca', name='finca_pkey'),
-        {'schema': 'modulo9'},
+        # F4 (RLS): un INSERT ... RETURNING exige que la fila nueva ya pase la
+        # política SELECT, y nadie tiene acceso a la finca hasta que se inserta
+        # su fila en `usuarios_fincas`. Sin RETURNING, SQLAlchemy pide el id a
+        # la secuencia antes del INSERT.
+        {'schema': 'modulo9', 'implicit_returning': False},
     )
 
     id_finca: Mapped[int] = mapped_column(

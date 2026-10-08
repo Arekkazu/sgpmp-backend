@@ -40,7 +40,7 @@ LECTOR_ASIGNADO = UsuarioActual(
     id_rol=48,
     id_estado_cuenta=2,
 )
-GESTOR_GLOBAL = UsuarioActual(
+GESTOR_FINCAS = UsuarioActual(
     id_usuario=900,
     id_token=3,
     id_rol=91,
@@ -231,27 +231,29 @@ def test_lector_con_acceso_a_finca_de_otro_dueno_la_consulta(
     assert detalle.json()["id_usuario"] == 200  # el dueño sigue siendo otro
 
 
-def test_permiso_de_gestion_conserva_alcance_global(
+def test_permiso_de_gestion_no_concede_alcance_global(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    # F4 (decisión del DBA en el PR #485): ningún rol es global; quien gestiona
+    # fincas también ve solo las que tiene asignadas.
     permisos = {
-        _permiso(GESTOR_GLOBAL, ACCION_LEER),
-        _permiso(GESTOR_GLOBAL, ACCION_ACTUALIZAR),
+        _permiso(GESTOR_FINCAS, ACCION_LEER),
+        _permiso(GESTOR_FINCAS, ACCION_ACTUALIZAR),
     }
 
     with _client(
         monkeypatch,
-        GESTOR_GLOBAL,
+        GESTOR_FINCAS,
         permisos,
         [FINCA_AJENA, FINCA_PROPIA],
+        {GESTOR_FINCAS.id_usuario: [20]},
     ) as client:
         listado = client.get("/configuracion/fincas")
         detalle = client.get("/configuracion/fincas/19")
 
     assert listado.status_code == 200
-    assert {item["id_finca"] for item in listado.json()["items"]} == {19, 20}
-    assert detalle.status_code == 200
-    assert detalle.json()["id_finca"] == 19
+    assert [item["id_finca"] for item in listado.json()["items"]] == [20]
+    assert detalle.status_code == 403
 
 
 def test_finca_inexistente_conserva_404(

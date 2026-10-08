@@ -18,7 +18,7 @@ from src.identity_access.infrastructure.repositories.notificacion_repository imp
 from src.identity_access.infrastructure.repositories.usuario_repository import (
     SqlAlchemyUsuarioRepository,
 )
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
 from src.shared.notificacion_service import NotificacionService
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,8 @@ def procesar_correo_recuperacion_background(
             asunto = "Restablece tu contraseña en SGPMP"
             contenido = recovery_email(nombre, token)
 
-        db = SessionLocal()
+        # Proceso de sistema (D1): sin request ni usuario que lo respalde.
+        db = sesion_sistema()
         notificaciones_repo = SqlAlchemyNotificacionRepository(db)
         email_enviado = NotificacionService(
             port=notificaciones_repo,

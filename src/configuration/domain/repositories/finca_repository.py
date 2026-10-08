@@ -21,7 +21,8 @@ class FincaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def guardar(self, finca: Finca) -> Finca:
+    def guardar(self, finca: Finca, id_creador: Optional[int] = None) -> Finca:
+        """``id_creador`` también queda con acceso: ningún rol es global (F4)."""
         raise NotImplementedError
 
     @abstractmethod

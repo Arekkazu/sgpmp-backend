@@ -47,10 +47,11 @@ def verificar_token_configurado() -> None:
     if not token:
         return  # integración MQTT opcional -- sin token no hay nada que verificar
 
-    from src.shared.database import SessionLocal
+    from src.shared.database import sesion_sistema
 
     hash_actual = hashlib.sha256(token.encode("utf-8")).hexdigest()
-    db = SessionLocal()
+    # Bajo RLS, `credenciales_servicio` solo la lee el rol Administrador (a7380032a23b).
+    db = sesion_sistema()
     try:
         fila = db.execute(
             text(
