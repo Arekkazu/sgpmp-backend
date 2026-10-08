@@ -98,6 +98,8 @@ from src.shared.database import engine
 from src.shared.error_handlers import register_error_handlers
 from src.shared.migraciones import verificar_migraciones_aplicadas
 from src.shared.middlewares import RequestContextMiddleware, SecurityHeadersMiddleware
+from shared.rollback.infraestructure.testing_middlaware import TestSandboxMiddleware
+from shared.rollback.presentation.test_control_router import router as test_control_router
 
 
 async def _evaluar_dispositivos_periodicamente() -> None:
@@ -587,6 +589,8 @@ allowed_origins = [
     for origin in os.getenv("ALLOWED_ORIGINS", "").split(",")
     if origin.strip()
 ]
+
+app.add_middleware(TestSandboxMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -624,6 +628,10 @@ app.mount(
     StaticFiles(directory=almacen_logos.DIRECTORIO_LOGOS, check_dir=False),
     name="uploads",
 )
+
+if os.getenv("ENABLE_TEST_SANDBOX", "false").lower() == "true":
+    logger.warning("MODO PRUEBAS (SANDBOX) HABILITADO. No usar en producción.")
+    app.include_router(test_control_router)
 
 register_error_handlers(app)
 
