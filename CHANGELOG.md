@@ -1,3 +1,17 @@
+## [1.0.0-rc.78](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.77...v1.0.0-rc.78) (2026-10-08)
+
+### Features
+
+* **control-acceso:** identidad rls que sobrevive al commit y usuario de servicio para tareas de fondo e ingesta iot (F4) ([f699076](https://github.com/Arekkazu/sgpmp-backend/commit/f6990762d1e478621c33155fa6e2acaf32c1e882))
+* **control-acceso:** ningun rol tiene alcance global por finca, tampoco el administrador (F4, RF-25) ([58ea261](https://github.com/Arekkazu/sgpmp-backend/commit/58ea261ab127fbbc51e727e7de8d56a2ee33d6a0))
+
+### Bug Fixes
+
+* **alembic:** encadenar la migracion de F4 sobre la head actual de dev (0618e6f7b308) ([a83eb06](https://github.com/Arekkazu/sgpmp-backend/commit/a83eb06db34647b420e4ef94011a3c40f00017c3))
+* **control-acceso:** alta de fincas bajo rls con el creador asignado (F4, RF-19) ([883225c](https://github.com/Arekkazu/sgpmp-backend/commit/883225c62461079262b6aecf33fda92b51532f2c))
+* **control-acceso:** declarar la identidad del jwt antes de la primera consulta de get_current_user (F4) ([88663f6](https://github.com/Arekkazu/sgpmp-backend/commit/88663f6ff725295a1391f50a5b664294a7a5c3ab))
+* **control-acceso:** rls de modulo1 compatible con la autenticacion como sgpmp_app (F4) ([35d79a6](https://github.com/Arekkazu/sgpmp-backend/commit/35d79a68eceda2bfdaac3f46f0d6f1b17c743bb3)), closes [#485](https://github.com/Arekkazu/sgpmp-backend/issues/485)
+
 ## [1.0.0-rc.77](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.76...v1.0.0-rc.77) (2026-10-08)
 
 ### Features
