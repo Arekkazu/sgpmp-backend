@@ -65,8 +65,8 @@ _CATEGORIA_POR_TIPO_EVENTO: dict[int, EventoCategoria] = {
     # Intento de calibración de sensor rechazado en M09 (RF-24 v1.1, RFC-006,
     # OWASP A09). La calibración es una modificación de configuración técnica.
     29: EventoCategoria.MODIFICACION,
-    # Línea base por visión publicada en M09 (RF-24 v2.0, RFC-011). Misma
-    # clasificación que el rechazo de calibración (29).
+    # Calibración registrada correctamente en M09 (RF-24/RF-10), SENSOR o VISION
+    # según detalle.operacion.
     30: EventoCategoria.MODIFICACION,
 }
 
@@ -106,7 +106,7 @@ _NOMBRE_POR_TIPO_EVENTO: dict[int, str] = {
     27: "CAMBIO_IDIOMA_PERSONAL",
     28: "INCONSISTENCIA_AUDITORIA_M02",
     29: "CALIBRACION_RECHAZADA",
-    30: "CALIBRACION_VISION",
+    30: "CALIBRACION_EXITOSA",
 }
 
 

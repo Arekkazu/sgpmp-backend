@@ -142,7 +142,13 @@ def _permiso_calibrar_auditado(
 ) -> None:
     """La misma compuerta RBAC de siempre; RF-24 v1.1 (RFC-006) pide además auditar el 403."""
     try:
-        require_permission(_RECURSO, 1)(db=db, usuario_actual=usuario_actual)
+        require_permission(
+            _RECURSO, 1,
+            mensaje_denegado=(
+                "Acceso denegado: La calibración de sensores es una función crítica restringida "
+                "exclusivamente al Ingeniero de Campo o al Administrador."
+            ),
+        )(db=db, usuario_actual=usuario_actual)
     except AuthorizationError as exc:
         auditar_rechazo_calibracion(
             db,
