@@ -634,11 +634,11 @@ con las tres etapas de auditoría automática (filtrado ambiental → recorte p5
 refinamiento iterativo). Mismo recurso que la calibración SENSOR: `id_recurso=12`,
 acción C(1) para calcular y R(2) para consultar.
 
-> **Estado de los datos:** M03 todavía no expone las observaciones de cámara (RF-53/56)
-> ni su `apto_para_ia` (RF-62). Hasta entonces el backend usa un stub sin observaciones:
-> un área que cumple todas las precondiciones termina en `422 LINEA_BASE_NO_CALCULADA`
-> (Etapa 1, datos insuficientes) y el intento queda guardado como `FALLIDA`. Las
-> precondiciones (área, especie, modelo POBLACIONAL, cámara activa) sí se validan de verdad.
+> **Datos de entrada:** las observaciones salen de `modulo3.observaciones_vision`, que la
+> cámara alimenta con `POST /iot/telemetria/vision` (INC-M09-77-G137, #513; ver
+> `anotaciones/modulo_3/curls_m03_cu01_ingerir_telemetria.md`, Flujo V). Para un cálculo
+> exitoso hacen falta al menos 30 observaciones válidas de las cámaras activas del área dentro
+> de la ventana. Sin observaciones en la ventana → `422 LINEA_BASE_NO_CALCULADA` (Etapa 1).
 
 ### Calcular línea base (disparo manual)
 

@@ -1,7 +1,7 @@
 """Puerto ``ObservacionVisionPort`` — vectores de comportamiento de las cámaras (RF-53/RF-56).
 
-Los produce M03 junto con su índice de calidad (RF-62). Mientras M03 no los
-exponga, el router inyecta ``ObservacionVisionStubAdapter``.
+Los produce M03 junto con su índice de calidad (RF-62) en
+``modulo3.observaciones_vision``; el router inyecta ``ObservacionVisionM03Adapter``.
 """
 from __future__ import annotations
 
