@@ -2,7 +2,53 @@
 
 **RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
 
-## Estado vigente — reevaluación 2026-10-06 (RF-20 v1.1)
+## Estado vigente — reevaluación 2026-10-07 (RF-20 v1.1)
+
+**Resultado: PASA**: el defecto de actualización perdida del 2026-10-06 (INC-M09-64-G54) quedó
+corregido. Las ediciones realmente simultáneas ya no pasan las dos.
+
+**Totales Newman:** 61 requests, 57 assertions, **0 failed**. Es la misma colección del
+2026-10-06, sin cambios; solo cambió el backend.
+
+**Corrección verificada:** `9f479187 fix(rf20-mod9): #498 bloquear la fila al editar para que dos
+ediciones simultaneas no pasen el 412`, que llegó a TEST con el release `v1.0.0-rc.75`
+(`origin/test` 15121f3f, traído a `juanma` por fast-forward). La lectura para editar ahora usa
+`SELECT … FOR UPDATE`: la segunda transacción espera a la primera, ve la marca nueva y responde
+412.
+
+### 1. Concurrencia en secuencia (TC-M09-106a a 106d): PASA
+
+Sin cambios respecto al 2026-10-06: marca `null` → 200 / 412; marca con fecha → 200 / 412;
+lectura final con los datos de A v2.
+
+### 2. Concurrencia real (TC-M09-106e): PASA
+
+```
+Intento  1 (área 235): A=200 B=412   OK
+Intento  2 (área 236): A=200 B=412   OK
+Intento  3 (área 237): A=412 B=200   OK
+Intento  4 (área 238): A=412 B=200   OK
+Intento  5 (área 239): A=412 B=200   OK
+Intento  6 (área 240): A=412 B=200   OK
+Intento  7 (área 241): A=200 B=412   OK
+Intento  8 (área 242): A=200 B=412   OK
+Intento  9 (área 243): A=412 B=200   OK
+Intento 10 (área 244): A=412 B=200   OK
+-> 0/10 actualizaciones perdidas
+```
+
+En cada intento, exactamente una edición recibe 200 y la otra 412 `CONFLICTO_CONCURRENCIA`, y el
+área refleja la edición aceptada. El ganador alterna entre A y B, lo que confirma que las dos
+solicitudes llegan realmente a la vez y que la serialización ocurre en la base.
+
+Reproducción independiente con hilos (`concurrencia_simultanea_g54.py --intentos 20`, áreas
+245 a 264): `{'200/412': 20}`, **0/20 actualizaciones perdidas** (antes 3/10 y 5/10).
+
+Evidencia: `Resultados/reporte-TC-M09-G54.html` (Newman htmlextra, 2026-10-07).
+
+---
+
+## Reevaluación 2026-10-06 (RF-20 v1.1): histórico
 
 **Resultado: FALLA (1 defecto real)**: el control optimista funciona en secuencia, pero no
 frente a ediciones realmente simultáneas.
@@ -69,8 +115,8 @@ segunda pisa a la primera.
 - Bloquear la fila al leerla para editar (`with_for_update()`).
 - Hacer el UPDATE condicional a la marca leída y responder 412 si afecta 0 filas.
 
-Evidencia: `Resultados/reporte-TC-M09-G54.html` (Newman htmlextra, 2026-10-06), que incluye
-las dos partes, con las 18 assertions fallidas de la parte simultánea.
+Evidencia de esa corrida: el HTML de Newman del 2026-10-06 (18 assertions fallidas en la parte
+simultánea), reemplazado por el del 2026-10-07; queda en el historial de git (commit 5bdaa987).
 
 ---
 
