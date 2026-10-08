@@ -238,6 +238,26 @@ def test_errcode_evento_reproductivo_tipo_invalido_es_422_no_500() -> None:
     assert "TYPE_RESTRICTION:" not in exc_info.value.message
 
 
+def test_errcode_secuencia_reproductiva_es_422_no_500() -> None:
+    """Arekkazu/SGPMP-FRONT-END-PWA#299: un parto que el trigger rechaza por
+    secuencia (P0221) salía como 500 "Error inesperado en base de datos"."""
+    exc = _integrity(
+        pg_errors.InternalError_,
+        sqlstate="P0221",
+        message_primary=(
+            "SEQUENCE_VIOLATION: No se puede registrar parto sin un evento previo "
+            "de diagnostico positivo para el activo ID 750."
+        ),
+    )
+
+    with pytest.raises(BusinessRuleError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == "SECUENCIA_REPRODUCTIVA_INVALIDA"
+    assert exc_info.value.status_code == 422
+    assert "SEQUENCE_VIOLATION:" not in exc_info.value.message
+
+
 def test_errcode_evento_fecha_invalida_es_400_no_500() -> None:
     """INC-M02-75-G53: `trg_fn_evento_fecha_coherente` (modulo2, dispara para
     cualquier tipo de evento vía `eventos_activos`) señala P0215 (misma clase
