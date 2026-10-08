@@ -24,9 +24,9 @@ class RegistrarCalibracionDTO(BaseDTO):
     offset: Optional[Decimal] = None
     fecha_calibracion: datetime
     observaciones: Optional[str] = None
-    # TC-M09-141 (#503): sin declararlo, un modo arbitrario se descartaba en
-    # silencio. Por defecto SENSOR para no romper a los clientes que no lo envían.
-    modo_calibracion: ModoCalibracion = ModoCalibracion.SENSOR
+    # RF-24 v2.0, TC-M09-259 (#510): la modalidad debe enviarse explícitamente.
+    # Un default permitiría persistir peticiones que omiten el discriminador.
+    modo_calibracion: ModoCalibracion
 
     # INC-M09-75-G132 (#511): los literales JSON NaN/Infinity/-Infinity llegan como
     # float no finito y Pydantic los rechazaba con 422 (Decimal exige finito). Se

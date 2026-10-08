@@ -79,6 +79,7 @@ def _dto(valor):
     return RegistrarCalibracionDTO(
         id_dispositivo_iot=1, id_infraestructura=1, valor_referencia=valor,
         fecha_calibracion=datetime.now(timezone.utc),
+        modo_calibracion="SENSOR",
     )
 
 
@@ -217,7 +218,7 @@ def test_modo_calibracion_se_valida_y_se_traza():
     import pydantic
 
     cal = _uc(_Db(), _AuditoriaOk()).execute(1, _dto(Decimal("25")), _USUARIO)
-    assert cal.modo_calibracion == "SENSOR"  # por defecto, cliente que no lo envía
+    assert cal.modo_calibracion == "SENSOR"  # modalidad enviada explícitamente
     assert cal._snapshot()["modo_calibracion"] == "SENSOR"
     assert CalibracionResponse.from_entity(cal).model_dump(mode="json")["modo_calibracion"] == "SENSOR"
 

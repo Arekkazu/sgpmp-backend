@@ -201,9 +201,13 @@ class RegistrarCalibracionUseCase:
             valor = Decimal(str(dto.valor_referencia))
             offset = Decimal(str(dto.offset)) if dto.offset is not None else valor
         except InvalidOperation:
+            valor_ingresado = "null" if dto.valor_referencia is None else str(dto.valor_referencia)
             raise ValidationError(
                 code="VALOR_CALIBRACION_INVALIDO",
-                message="El valor de referencia debe ser un número decimal válido.",
+                message=(
+                    "Error de formato: El valor de referencia debe ser un número decimal válido. "
+                    f"Verifique la entrada '{valor_ingresado}'."
+                ),
                 field="valor_referencia",
             )
         # INC-M09-75-G132 (#511): Decimal("NaN") / Decimal("Infinity") se construyen
@@ -229,9 +233,8 @@ class RegistrarCalibracionUseCase:
                     raise ValidationError(
                         code="VALOR_FUERA_DE_RANGO",
                         message=(
-                            f"El ajuste de {viol['valor']} excede los rangos de seguridad "
-                            f"para la variable {sensor.categoria} "
-                            f"(permitido {viol['min']}–{viol['max']}). "
+                            f"Valor fuera de límites: El ajuste de {viol['valor']} excede los rangos de seguridad "
+                            f"para la variable {sensor.categoria}. "
                             "Verifique el estándar de calibración utilizado."
                         ),
                         field=campo,

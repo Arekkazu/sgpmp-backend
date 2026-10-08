@@ -484,8 +484,8 @@ envía) deben caer dentro del rango de seguridad del tipo de sensor (RF-24 / #16
 `ganancia` (default `1.0`) y `offset` (default = `valor_referencia`) son opcionales:
 componen el modelo lineal `valor_ajustado = ganancia * crudo + offset` que consume telemetry.
 
-`modo_calibracion` (RF-24 v2.0, TC-M09-141 #503) es opcional, default `SENSOR`, y es el
-único valor admitido: la línea base por visión de RFC-011 se calibra por área y especie,
+`modo_calibracion` (RF-24 v2.0, TC-M09-259 #510) es obligatorio, sin default. `SENSOR` es el
+único valor admitido por este endpoint: la línea base por visión de RFC-011 se calibra por área y especie,
 sin sensor, y no pasa por este endpoint. Se devuelve en la respuesta y queda en el
 snapshot de auditoría.
 
@@ -538,7 +538,7 @@ Errores posibles:
 - `400` — `valor_referencia` ≤ 0 cuando la `categoria` no tiene rango configurado
   (fallback) — `VALOR_CALIBRACION_INVALIDO`
 - `400` — `ganancia` ≤ 0 (validación de DTO)
-- `400` — `modo_calibracion` distinto de `SENSOR` (validación de DTO) — `VAL_ENTRADA`
+- `400` — `modo_calibracion` ausente, nulo o distinto de `SENSOR` (validación de DTO) — `VAL_ENTRADA`
 - `403` — rol sin permiso C sobre sensores (FA-01) — solo Ing. de Campo y Admin pueden calibrar
 - `500` — falla la escritura del historial de auditoría inmutable (FA RF-10): se hace
   rollback de la calibración — `AUDITORIA_CALIBRACION_FALLIDA`
