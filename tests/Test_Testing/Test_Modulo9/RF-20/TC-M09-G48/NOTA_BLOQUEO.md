@@ -1,6 +1,54 @@
-# TC-M09-G48 (TC-M09-96) — BLOQUEADO por migración faltante en el entorno de test
+# TC-M09-G48 (TC-M09-96, TC-M09-256) — Registro de un área productiva válida
 
-**RF-20 / CU-04 — Gestionar Infraestructura Productiva**
+**RF-20 v1.1 / CU-04 — Gestionar Infraestructura Productiva**
+
+## Estado vigente — reevaluación 2026-10-05 (RF-20 v1.1, RFC-009)
+
+**Resultado: PASA**: 7 requests, 21 assertions, 0 failed.
+
+Con RF-20 v1.1, `especie_id` pasa a ser obligatorio y `tipo_modelo_asignado` es opcional, pero
+si se envía debe coincidir con el `tipo_modelo` de la especie
+(`_coherencia_especie_modelo.py`). El payload anterior (sin `especie_id`) ya no es válido, así
+que se reescribió la colección: ahora crea su propia especie activa con
+`tipo_modelo = MODELO_AVES` y cubre los dos casos agrupados.
+
+```
+Paso 2 - Registrar finca activa                         -> 201 (id_finca=131)
+Paso 3 - Registrar especie activa MODELO_AVES           -> 201 (id_especie=71)
+TC-M09-96  - Área con especie + MODELO_AVES             -> 201 (id_infraestructura=133, especie_id=71, tipo_modelo_asignado="MODELO_AVES")
+TC-M09-96  - Relectura independiente                    -> 200, finca/especie/modelo idénticos
+TC-M09-256 - Mismo payload sin tipo_modelo_asignado     -> 201 (id_infraestructura=134, especie_id=71, tipo_modelo_asignado=null)
+TC-M09-256 - Relectura independiente                    -> 200, tipo_modelo_asignado sigue null
+```
+
+Nota de ficha: la ficha habla de `grupo_manejo` de la especie, pero en la API el campo se llama
+`tipo_modelo` (`EspecieResponse.tipo_modelo`). La regla de coherencia compara
+`tipo_modelo_asignado` contra ese campo.
+
+Evidencia: `Resultados/reporte-TC-M09-G48.html` (Newman htmlextra, 2026-10-05).
+
+---
+
+## Reevaluación 2026-09-28 (RF-20 v1.0): histórico
+
+**Resultado: PASA** — 4 requests, 12 assertions, 0 failed.
+
+El bloqueo ya no existe: la migración `2dbb6d44046f` está aplicada en TEST. Tras aplicarla, la
+colección respondía 400 `TIPO_AREA_NO_RECONOCIDO` porque enviaba `tipo_area: "galpon"`; se
+ajustó al nombre del catálogo `modulo9.tipos_area` (`"Galpón"`), igual que en TC-M09-G49.
+
+```
+Paso 2 - Registrar finca activa                    -> 201 (id_finca=121)
+TC-M09-96 - Registrar área válida                  -> 201 (id_infraestructura=103, tipo_area="Galpón", superficie=2500.00)
+Paso 4 - Relectura independiente                   -> 200, mismos datos y asociación a la finca
+```
+
+Evidencia: `Resultados/reporte-TC-M09-G48.html` (Newman htmlextra, 2026-09-28).
+
+---
+
+## Resultado original (2026-09-05) — histórico
+
 **Estado: FALLA / BLOQUEADO** (no es un bug de código; es un gap de despliegue en el
 servidor de test compartido).
 

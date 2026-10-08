@@ -8,7 +8,8 @@ from src.prediction.domain.entities.patologia_m04 import PatologiaM04
 
 class PatologiaM04Repository(ABC):
     @abstractmethod
-    def obtener_por_id(self, id_patologia: int) -> Optional[PatologiaM04]: ...
+    def obtener_por_id(self, id_patologia: int, *, bloquear: bool = False) -> Optional[PatologiaM04]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
 
     @abstractmethod
     def obtener_por_nombre(self, nombre: str) -> Optional[PatologiaM04]:

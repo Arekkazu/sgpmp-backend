@@ -43,7 +43,7 @@ class EditarCicloUseCase:
         self.auditoria_repo = auditoria_repo
 
     def execute(self, id_ciclo_biologico: int, dto: EditarCicloDTO, usuario_actual: UsuarioActual) -> CicloBiologico:
-        ciclo = self.ciclos_repo.obtener_por_id(id_ciclo_biologico)
+        ciclo = self.ciclos_repo.obtener_por_id(id_ciclo_biologico, bloquear=True)
         if ciclo is None:
             raise NotFoundError(
                 code="ETAPA_NO_ENCONTRADA",

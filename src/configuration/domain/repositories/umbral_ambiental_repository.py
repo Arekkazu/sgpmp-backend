@@ -9,7 +9,8 @@ from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 
 class UmbralAmbientalRepository(ABC):
     @abstractmethod
-    def obtener_por_id(self, id_umbral_ambiental: int) -> Optional[UmbralAmbiental]: ...
+    def obtener_por_id(self, id_umbral_ambiental: int, *, bloquear: bool = False) -> Optional[UmbralAmbiental]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
 
     @abstractmethod
     def obtener_por_especie_y_variable(

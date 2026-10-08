@@ -31,13 +31,18 @@ Cada endpoint declara `dependencies=[Depends(require_permission(id_recurso, id_a
 
 Esto implica que **sin un JWT válido no se llega ni siquiera a evaluar el permiso**: `require_permission` depende internamente de la misma resolución de sesión que `get_current_user`, así que un token ausente o inválido corta la petición con **401** antes de que el 403 de RBAC entre en juego. No hay ninguna ruta de este módulo que omita esa cadena.
 
-### Los 3 recursos RBAC del módulo
+### Recursos RBAC principales del módulo
 
 | `id_recurso` | Nombre | Qué protege |
 |---|---|---|
 | **29** | `activos_biologicos` | Todas las operaciones sobre el activo biológico en sí: alta, consulta, edición, cambios de estado/fase, eventos, historial, transferencias, indicadores. Es, con diferencia, el recurso más usado del módulo (22 de los 25 endpoints). |
 | **30** | `asociacion_sensor_activo` | Asociar un sensor IoT a un activo (`POST /{id_activo}/sensores`). Recurso separado porque sus reglas de actor son distintas a las del resto (ver tabla de permisos). |
 | **31** | `bitacora_auditoria_m02` | Solo lectura de la bitácora de auditoría del módulo (`GET /auditoria`). Recurso de solo-R; no existe acción de escritura porque los registros de auditoría se generan automáticamente desde los demás use cases, nunca desde un endpoint dedicado. |
+| dinámico | `datos_financieros_activo` | Visibilidad de `costo_adquisicion` y `soporte_documental` en las respuestas de activos. Sin READ, ambos campos se enmascaran como `null`. |
+
+Los recursos dinámicos `datos_clinicos_activo` y `datos_analiticos_*` agregan
+granularidad de campo/scope a RF-41/RF-46 y RF-50, respectivamente; se resuelven
+por nombre porque su identificador puede variar entre bases.
 
 ### Códigos de acción usados en este módulo
 
@@ -57,9 +62,9 @@ Mientras que **D** se reserva específicamente para el cierre de ciclo (`POST /{
 
 Nota sobre el trigger de BD: `trg_auditar_activo_biologico` exige `SET LOCAL app.usuario_id = ?` antes de cualquier INSERT/UPDATE sobre `modulo2.activos_biologicos`; el repositorio SQLAlchemy ejecuta esa sentencia al inicio de `guardar()`/`actualizar()` usando el `id_usuario` de la sesión JWT actual. Es decir, la sesión iniciada no solo protege el endpoint vía RBAC — es también la única fuente de `id_usuario` que llega hasta la capa de triggers de auditoría de la base de datos. Sin un usuario autenticado, ese trigger no tiene de dónde tomar el dato y la escritura fallaría.
 
-### Nota sobre transferencias (posible restricción adicional no-RBAC)
+### Nota sobre transferencias (sin restricción adicional a RBAC)
 
-`GET /{id_activo}/transferencias/disponibles` y `POST /{id_activo}/transferencias` exigen `(29, E)` por RBAC, y por tabla de permisos ese `E` lo tienen los 4 roles (Admin, Productor, Veterinario, Ingeniero). Sin embargo, `curls_m02_cu10_gestionar_transferencias_historial.md` documenta el error 403 como "rol sin permiso de ejecución **(solo admin y productor)**". Si ese comportamiento más restrictivo es real, no proviene de `modulo1.permisos` sino de una validación adicional dentro del use case — lo cual iría contra la regla del proyecto de no verificar roles en el use case. Vale la pena confirmarlo antes de asumir que Veterinario/Ingeniero pueden transferir activos en producción.
+`GET /{id_activo}/transferencias/disponibles` y `POST /{id_activo}/transferencias` exigen `(29, E)` por RBAC, y ese `E` lo tienen los 4 roles (Admin, Productor, Veterinario, Ingeniero). Esta nota dejaba abierta la duda de si había una restricción extra "solo admin y productor", porque así lo decía el doc de curls de CU10. **Confirmado el 2026-09-24 que no existe:** `RegistrarTransferenciaUseCase` no verifica `id_rol`, y en `sgpmp_dev` los 4 roles tienen el permiso. El doc de curls estaba desactualizado y ya se corrigió. Que Veterinario e Ingeniero puedan transferir va más allá de los actores de RF-48 (Productor y Administrador): es el hallazgo transversal #5 de `estado_M02.md`, pendiente de decisión del equipo de análisis.
 
 ---
 
@@ -110,8 +115,8 @@ Validadores de modelo: `validar_segun_tipo` (reglas INDIVIDUAL/POBLACIONAL de ar
 | `fecha_inicio_ciclo` | `date \| None` |
 | `detalles_procedencia` | `str \| None` |
 | `origen_financiero` | `str` |
-| `costo_adquisicion` | `Decimal \| None` |
-| `soporte_documental` | `str \| None` |
+| `costo_adquisicion` | `Decimal \| None` — `null` sin permiso R sobre `datos_financieros_activo` |
+| `soporte_documental` | `str \| None` — `null` sin permiso R sobre `datos_financieros_activo` |
 | `descripcion` | `str \| None` |
 | `id_infraestructura` | `int` |
 | `atributos_dinamicos` | `dict \| None` |
@@ -162,6 +167,10 @@ orden por `fecha_creacion DESC, id_activo_biologico DESC`.
 | `registros` | `list[ActivoBiologicoResponse]` |
 
 Cada item de `registros` es un `ActivoBiologicoResponse` completo (ver `POST /` arriba).
+El permiso general `(activos_biologicos, R)` habilita la consulta operativa,
+pero no implica acceso financiero: `costo_adquisicion` y
+`soporte_documental` se enmascaran como `null` si el rol no tiene además
+`(datos_financieros_activo, R)`.
 
 **Errores** (body estándar `{ error_code, message, fields, timestamp }`):
 
@@ -185,6 +194,11 @@ Cada item de `registros` es un `ActivoBiologicoResponse` completo (ver `POST /` 
 Sin input adicional (path param `id_activo: int`).
 
 **Response:** `ActivoBiologicoResponse` (mismo esquema de arriba).
+
+La autorización se aplica también a nivel de campo. Administrador, Productor e
+Integración M06 reciben el permiso R sobre `datos_financieros_activo` mediante
+Alembic; un Ingeniero de Campo conserva `HTTP 200` y los datos operativos del
+activo, pero recibe `costo_adquisicion: null` y `soporte_documental: null`.
 
 ---
 
@@ -313,6 +327,8 @@ Validaciones adicionales (tarea Taiga fase_destino/confirmacion_no_estandar):
 Sin input adicional.
 
 **Response `HistorialFasesResponse`:** `id_activo_biologico: int`, `fases: list[GestionFaseResponse]`.
+
+`es_transicion_no_estandar` de cada fase es el valor **persistido** (INC-M02-37-G33): coincide con lo que devolvió el `POST` que la creó.
 
 ---
 
@@ -507,7 +523,7 @@ Solo uno de los 6 sub-objetos viene poblado según el tipo de evento; los demás
 | `GET` | `/{id_activo}/transferencias/disponibles` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.listar_infraestructuras_disponibles` |
 | `POST` | `/{id_activo}/transferencias` | `(29, E)` | Admin, Prod, Vet, Ing¹ | `RegistrarTransferenciaUseCase.execute` |
 
-> ¹ Ver la [nota sobre transferencias](#nota-sobre-transferencias-posible-restricción-adicional-no-rbac) — el RBAC en DB habilita a los 4 roles, pero la documentación de curls (CU10) sugiere que en la práctica solo Admin y Productor logran transferir.
+> ¹ Ver la [nota sobre transferencias](#nota-sobre-transferencias-sin-restricción-adicional-a-rbac). Los 4 roles pueden transferir; RF-48 solo lista a Productor y Administrador (hallazgo transversal #5).
 
 #### `GET /activos-biologicos/{id_activo}/infraestructura` — Consultar asociación a infraestructura
 
@@ -582,15 +598,18 @@ Sin query params.
 | `fecha_ultimo_peso` | `date \| None` |
 | `cantidad_actual` | `int \| None` |
 | `biomasa_total` | `Decimal \| None` |
-| `densidad` | `Decimal \| None` |
+| `densidad` | `Decimal \| None` (solo POBLACIONAL; `cantidad_actual / superficie`) |
 | `eventos_sanitarios` | `list[dict]` |
 | `eventos_productivos` | `list[dict]` |
 | `eventos_crecimiento` | `list[dict]` |
 | `eventos_reproductivos` | `list[dict]` |
 | `indicadores` | `list[dict]` |
 | `advertencias` | `list[str]` |
+| `accesos_directos` | `list[AccesoDirectoResponse]` — Sección 8: `codigo`, `nombre`, `metodo`, `ruta`, `rf_origen`, `tipos_evento` |
 
-Si el activo está en `CERRADO`/`BAJA` con fase activa, o si las vistas subyacentes no devuelven datos, `advertencias` explica la inconsistencia en vez de fallar con error.
+Si el activo está en `CERRADO`/`BAJA` con fase activa, o si las vistas subyacentes no devuelven datos, `advertencias` explica la inconsistencia en vez de fallar con error. Si una sección falla (incluida la vista base), la ficha responde 200 con el aviso de esa sección (E-03).
+
+`accesos_directos` solo lista las acciones que el rol puede ejecutar: `historial` (29, R), `registrar_evento` (29, C), `cambiar_estado` (29, E), `registrar_baja` (29, C) — el mismo permiso que exige cada endpoint.
 
 ---
 
@@ -841,12 +860,14 @@ Los estados que **permiten registrar eventos** (`_ESTADOS_PERMITEN_EVENTOS` en `
 | 29 | `activos_biologicos` | C,R,U,D,E | C,R,U,D,E | C,R,D,E | C,R,U,E | — |
 | 30 | `asociacion_sensor_activo` | C,R | C,R | R | C,R | — |
 | 31 | `bitacora_auditoria_m02` | R | R | R | — | R |
+| dinámico | `datos_financieros_activo` | R | R | — | — | — |
 
 Notas:
 - **Veterinario** no tiene `U` sobre `activos_biologicos` (no puede usar `PATCH /{id_activo}`, sí puede `PATCH /{id_activo}/estado` que es `E`).
 - **Ingeniero de Campo** no tiene `D` sobre `activos_biologicos` (no puede cerrar ciclo, `POST /{id_activo}/cierre`), y no tiene ningún permiso sobre `bitacora_auditoria_m02`.
 - **Contador** solo tiene acceso de lectura a la bitácora de auditoría (`31, R`); no participa en ninguna otra operación del módulo.
 - **Productor** tiene `C,R` sobre `asociacion_sensor_activo`, limitado en escritura a activos e infraestructuras de sus propias fincas; **Veterinario** conserva solo `R`. Admin e Ingeniero también pueden crear asociaciones.
+- **Integración M06** también tiene `R` sobre `datos_financieros_activo` para valoración NIC-41.
 
 ---
 

@@ -31,13 +31,21 @@ class DbFake:
 
 
 class BitacoraRepoFake:
-    def __init__(self, activos_propios: set[int] | None = None) -> None:
+    def __init__(
+        self,
+        activos_propios: set[int] | None = None,
+        activos_por_finca: dict[int, int] | None = None,
+    ) -> None:
         self.activos_propios = activos_propios or set()
+        self.activos_por_finca = activos_por_finca or {}
         self.registrados = []
         self.consulta = None
 
     def activo_pertenece_a_usuario(self, id_activo: int, _id_usuario: int) -> bool:
         return id_activo in self.activos_propios
+
+    def activo_en_fincas(self, id_activo: int, ids_fincas: list[int]) -> bool:
+        return self.activos_por_finca.get(id_activo) in ids_fincas
 
     def registrar(self, evento) -> None:
         self.registrados.append(evento)
@@ -266,6 +274,8 @@ def cliente_productor_ajeno(monkeypatch: pytest.MonkeyPatch):
     repo = BitacoraRepoFake()
     monkeypatch.setattr(router_module, 'SqlAlchemyBitacoraAuditoriaRepository', lambda _db: repo)
     monkeypatch.setattr(router_module, 'SqlAlchemyRolRepository', lambda _db: RolRepoFake('Productor'))
+    # El Productor solo tiene la finca 1; el activo 240 no está en ella.
+    monkeypatch.setattr(router_module, '_ids_fincas_alcance', lambda _db, _usuario: [1])
 
     app = FastAPI()
     register_error_handlers(app)
@@ -304,3 +314,69 @@ def test_endpoint_reproduce_tc_m02_266_con_http_403(cliente_productor_ajeno) -> 
     assert respuesta.json()['error_code'] == 'ALCANCE_BITACORA_DENEGADO'
     assert repo.consulta is None
     assert repo.registrados[0].tipo_evento == 'ACCESO_NO_AUTORIZADO'
+
+
+def test_filtra_por_usuario_responsable() -> None:
+    """TC-DIS-144 (RF-52): la bitácora se puede filtrar por el usuario que originó el evento."""
+    caso, _db, repo = _caso('Administrador')
+
+    caso.execute(ConsultarBitacoraDTO(id_usuario_responsable=12), _usuario(id_rol=1))
+
+    assert repo.consulta['id_usuario_responsable'] == 12
+
+
+# ── INC-M02-63-G105 (#490): el Productor solo ve la bitácora de sus fincas ──
+
+@pytest.mark.parametrize(
+    'clasificacion',
+    [None, 'CONTROL_ESTADO', 'TRANSFORMACION_BIOLOGICA', 'SANITARIO', 'GESTION_OPERATIVA'],
+)
+def test_productor_recibe_403_sobre_activo_de_otra_finca_en_cualquier_clasificacion(
+    clasificacion,
+) -> None:
+    caso, db, repo = _caso('Productor', BitacoraRepoFake(activos_por_finca={240: 99}))
+
+    with pytest.raises(AuthorizationError) as capturada:
+        caso.execute(
+            ConsultarBitacoraDTO(id_activo_biologico=240, clasificacion_biologica=clasificacion),
+            _usuario(),
+            [1],
+        )
+
+    assert capturada.value.status_code == 403
+    assert capturada.value.code == 'ALCANCE_BITACORA_DENEGADO'
+    assert repo.consulta is None
+    assert db.commits == 1
+    assert repo.registrados[0].tipo_evento == 'ACCESO_NO_AUTORIZADO'
+    assert repo.registrados[0].id_activo_biologico == 240
+
+
+def test_productor_consulta_la_bitacora_de_un_activo_de_su_finca() -> None:
+    caso, _db, repo = _caso('Productor', BitacoraRepoFake(activos_por_finca={240: 1}))
+
+    caso.execute(
+        ConsultarBitacoraDTO(id_activo_biologico=240, clasificacion_biologica='SANITARIO'),
+        _usuario(),
+        [1],
+    )
+
+    assert repo.registrados == []
+    assert repo.consulta['ids_fincas_alcance'] == [1]
+    assert repo.consulta['id_usuario_alcance'] == 35
+
+
+def test_productor_sin_filtros_queda_limitado_a_sus_fincas() -> None:
+    caso, _db, repo = _caso('Productor')
+
+    caso.execute(ConsultarBitacoraDTO(), _usuario(), [1, 3])
+
+    assert repo.consulta['ids_fincas_alcance'] == [1, 3]
+    assert repo.consulta['id_usuario_alcance'] == 35
+
+
+def test_otros_roles_no_se_limitan_por_finca() -> None:
+    caso, _db, repo = _caso('Administrador')
+
+    caso.execute(ConsultarBitacoraDTO(), _usuario(id_usuario=1, id_rol=1), None)
+
+    assert repo.consulta['ids_fincas_alcance'] is None

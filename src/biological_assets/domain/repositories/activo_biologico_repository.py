@@ -23,8 +23,12 @@ class ActivoBiologicoRepository(ABC):
         id_activo: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[ActivoBiologico]:
         """Retorna el activo biológico con sus detalles, o None si no existe.
+
+        ``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` para que dos
+        ediciones simultáneas no pasen ambas el control de concurrencia (#498).
 
         Si ``ids_fincas_permitidas`` no es ``None``, devuelve ``None`` cuando el
         activo pertenece a una finca ajena al alcance del usuario (RF-25).

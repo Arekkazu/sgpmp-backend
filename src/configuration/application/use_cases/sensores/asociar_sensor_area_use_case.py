@@ -5,6 +5,13 @@ Si la asociación activa es en otra área y el cliente no confirmó todavía →
 409 pidiendo confirmación (FA "Conflicto de reasignación" del RF). Si ya
 confirmó (`dto.confirmar=True`) → termina la asociación anterior y crea la
 nueva.
+
+Issue #290 (SEG-M09-01): al reasignar de área también se cierran (SUPERADA)
+las asociaciones sensor→activo de tipo AMBIENTAL/POBLACIONAL de M02 —
+dependen de que el sensor comparta área con el activo (RF-49 V6), premisa
+que la reasignación rompe. DIRECTA no depende del área y no se toca. Las
+cerradas se devuelven junto a la nueva asociación para que el cliente avise
+al usuario y este re-asocie vía RF-49 si lo desea.
 """
 from __future__ import annotations
 
@@ -13,6 +20,10 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from src.configuration.domain.entities.sensor_area import SensorArea
+from src.configuration.domain.repositories.asociacion_sensor_activo_dependency_port import (
+    AsociacionActivoSuperada,
+    AsociacionSensorActivoDependencyPort,
+)
 from src.configuration.domain.repositories.auditoria_sensor_area_repository import AuditoriaSensorAreaRepository
 from src.configuration.domain.repositories.dispositivo_iot_repository import DispositivoIotRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
@@ -34,6 +45,7 @@ class AsociarSensorAreaUseCase:
         infra_repo: InfraestructuraRepository,
         dispositivo_repo: DispositivoIotRepository,
         auditoria_repo: AuditoriaSensorAreaRepository,
+        asociacion_sensor_activo_port: AsociacionSensorActivoDependencyPort,
     ) -> None:
         self.db = db
         self.sensor_repo = sensor_repo
@@ -41,8 +53,11 @@ class AsociarSensorAreaUseCase:
         self.infra_repo = infra_repo
         self.dispositivo_repo = dispositivo_repo
         self.auditoria_repo = auditoria_repo
+        self.asociacion_sensor_activo_port = asociacion_sensor_activo_port
 
-    def execute(self, id_sensor: int, dto: AsociarSensorAreaDTO, usuario_actual: UsuarioActual) -> SensorArea:
+    def execute(
+        self, id_sensor: int, dto: AsociarSensorAreaDTO, usuario_actual: UsuarioActual,
+    ) -> tuple[SensorArea, list[AsociacionActivoSuperada]]:
         sensor = self.sensor_repo.obtener_por_id(id_sensor)
         if sensor is None:
             raise NotFoundError(
@@ -94,6 +109,7 @@ class AsociarSensorAreaUseCase:
                 field="id_infraestructura",
             )
 
+        superadas: list[AsociacionActivoSuperada] = []
         asociacion_activa = self.sensor_area_repo.obtener_asociacion_activa(id_sensor)
         if asociacion_activa is not None:
             if asociacion_activa.id_infraestructura == dto.id_infraestructura:
@@ -124,6 +140,14 @@ class AsociarSensorAreaUseCase:
                 valores_nuevos=anterior_actualizada._snapshot(),
             )
 
+            # Issue #290: la reasignación rompe la premisa espacial de las
+            # asociaciones sensor→activo AMBIENTAL/POBLACIONAL de este sensor.
+            superadas = self.asociacion_sensor_activo_port.superar_ambientales_y_poblacionales(
+                id_sensor=id_sensor,
+                id_usuario=usuario_actual.id_usuario,
+                motivo=f"Sensor reasignado del área {asociacion_activa.id_infraestructura} a {dto.id_infraestructura} (RF-22)",
+            )
+
         punto = PuntoInstalacion(dto.punto_instalacion)
         nueva_asociacion = SensorArea.crear(
             id_sensor=id_sensor,
@@ -146,7 +170,7 @@ class AsociarSensorAreaUseCase:
             self.db.rollback()
             raise
 
-        return asociacion_guardada
+        return asociacion_guardada, superadas
 
 
 class ConsultarAsociacionesUseCase:

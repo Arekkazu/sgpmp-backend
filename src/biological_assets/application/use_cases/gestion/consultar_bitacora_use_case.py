@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -33,7 +34,9 @@ class ConsultarBitacoraUseCase:
         self,
         dto: ConsultarBitacoraDTO,
         usuario_actual: UsuarioActual,
+        ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> tuple[list[EventoAuditoria], int]:
+        """``ids_fincas_permitidas``: alcance RF-25 del usuario (``None`` = global)."""
         rol = self.rol_repo.obtener_por_id(usuario_actual.id_rol)
         nombre_rol = rol.nombre_rol.strip().casefold() if rol else ''
         clasificacion = (
@@ -47,6 +50,7 @@ class ConsultarBitacoraUseCase:
         clasificaciones_permitidas = None
         rf_origenes_permitidos = None
         id_propietario_acceso_datos = None
+        ids_fincas_alcance = None
 
         if nombre_rol in {'contador', 'revisor fiscal'}:
             # RF-52 precondición 3 agrupa Contador y Revisor Fiscal en el mismo
@@ -83,6 +87,28 @@ class ConsultarBitacoraUseCase:
             rf_origenes_permitidos = _RF_ORIGENES_VETERINARIO
 
         elif nombre_rol == 'productor':
+            # INC-M02-63-G105 (#490): RF-52 precondición 3 limita al Productor a
+            # "eventos de sus propios activos" en cualquier clasificación, no solo
+            # ACCESO_DATOS. "Propios" = los de sus fincas, el mismo alcance RF-25
+            # que aplica el resto de M02 (modulo9.usuarios_fincas).
+            if (
+                ids_fincas_permitidas is not None
+                and dto.id_activo_biologico is not None
+                and not self.bitacora_repo.activo_en_fincas(
+                    dto.id_activo_biologico,
+                    ids_fincas_permitidas,
+                )
+            ):
+                self._denegar(
+                    usuario_actual,
+                    dto,
+                    nombre_rol='Productor',
+                    motivo=(
+                        'El Productor solo puede consultar la bitácora de los '
+                        'activos de sus fincas.'
+                    ),
+                )
+            ids_fincas_alcance = ids_fincas_permitidas
             if (
                 clasificacion == _ACCESO_DATOS
                 and dto.id_activo_biologico is not None
@@ -119,6 +145,9 @@ class ConsultarBitacoraUseCase:
             clasificaciones_permitidas=clasificaciones_permitidas,
             rf_origenes_permitidos=rf_origenes_permitidos,
             id_propietario_acceso_datos=id_propietario_acceso_datos,
+            id_usuario_responsable=dto.id_usuario_responsable,
+            ids_fincas_alcance=ids_fincas_alcance,
+            id_usuario_alcance=usuario_actual.id_usuario,
         )
 
     def _denegar(

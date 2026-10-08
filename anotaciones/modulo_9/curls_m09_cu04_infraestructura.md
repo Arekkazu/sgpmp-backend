@@ -346,7 +346,9 @@ curl -X PATCH http://localhost:8000/configuracion/infraestructuras/1 \
 Errores posibles:
 - `404` — área no existe
 - `409` — nombre duplicado dentro de la misma finca (FA-08)
-- `412` — concurrencia: el área fue modificada por otro usuario (FA-14)
+- `412` — concurrencia: el área fue modificada por otro usuario (FA-14). También con dos PATCH
+  simultáneos con la misma `fecha_actualizacion`: la lectura bloquea la fila (`FOR UPDATE`), así que
+  uno responde `200` y el otro `412` (INC-M09-64-G54 #498; antes ambos daban `200`)
 - `400` — superficie inválida (FA-11)
 - `400` — `tipo_area` no existe en el catálogo o está desactivado (FA-13) — `TIPO_AREA_NO_RECONOCIDO`
 

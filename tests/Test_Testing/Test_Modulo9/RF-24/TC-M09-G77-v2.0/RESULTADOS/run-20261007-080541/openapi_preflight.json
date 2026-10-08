@@ -1,0 +1,66 @@
+{
+  "grupo": "TC-M09-G77-v2.0",
+  "fuente": "https://api.inmero.co/back-sigab-test/openapi.json",
+  "endpoints": {
+    "POST /usuarios/{id_usuario}/gestionar": {
+      "presente": true,
+      "summary": "Gestionar Cuenta",
+      "codigosDeclarados": [
+        "200",
+        "400",
+        "403",
+        "404",
+        "409",
+        "422"
+      ]
+    },
+    "POST /configuracion/sensores/{id_sensor}/calibrar": {
+      "presente": true,
+      "summary": "Registrar calibración de sensor (RF-24 Flujo D)",
+      "codigosDeclarados": [
+        "201",
+        "400",
+        "401",
+        "403",
+        "404",
+        "422",
+        "500"
+      ]
+    },
+    "GET /configuracion/sensores/{id_sensor}/calibraciones": {
+      "presente": true,
+      "summary": "Historial de calibraciones de sensor (RF-24)",
+      "codigosDeclarados": [
+        "200",
+        "401",
+        "403",
+        "422"
+      ]
+    },
+    "GET /usuarios/admin": {
+      "presente": true,
+      "summary": "Listar Usuarios Admin",
+      "codigosDeclarados": [
+        "200",
+        "400",
+        "401",
+        "403",
+        "422"
+      ]
+    },
+    "GET /usuarios/{id_usuario}/detalle": {
+      "presente": true,
+      "summary": "Detalle Usuario",
+      "codigosDeclarados": [
+        "200",
+        "403",
+        "404",
+        "422",
+        "429"
+      ]
+    }
+  },
+  "declara403EnCalibrar": true,
+  "modo_calibracion_declarado": false,
+  "nota": "modo_calibracion=SENSOR se envía como exige el caso aunque el schema no lo declare. El oráculo de RF-24 v2.0 no se adapta a OpenAPI."
+}

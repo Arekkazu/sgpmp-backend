@@ -1,0 +1,477 @@
+{
+  "info": {
+    "_postman_id": "tc-m09-g103-rev2-test",
+    "name": "TC-M09-G103 rev2 TEST - Auditoría cambio idioma RF-29 / TC-M09-197",
+    "description": "TEST. Un login. Preferencia personal. Password via --env-var contrasena. Consulta GET /auditoria/?tipo_evento=27 (OpenAPI). No hay GET .../idioma/auditoria en el contrato. GET /auditoria/ requiere recurso 6 (admin).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
+    { "key": "correo", "value": "admin@pecuaria.co" },
+    { "key": "token", "value": "" },
+    { "key": "login_ok", "value": "0" },
+    { "key": "login_http", "value": "" },
+    { "key": "id_usuario", "value": "" },
+    { "key": "locale_original", "value": "" },
+    { "key": "fuente_original", "value": "" },
+    { "key": "id_preferencia_original", "value": "" },
+    { "key": "version_perfil", "value": "" },
+    { "key": "audit_http_before", "value": "" },
+    { "key": "audit_http_after", "value": "" },
+    { "key": "audit_max_id_before", "value": "0" },
+    { "key": "probe_http", "value": "" },
+    { "key": "patch197_http", "value": "" },
+    { "key": "get_persist_http", "value": "" },
+    { "key": "evento_idioma", "value": "NO_ENCONTRADO" },
+    { "key": "evento_id", "value": "" },
+    { "key": "evento_detalle", "value": "" },
+    { "key": "abort_reason", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 POST /sesiones (un solo login)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('login_http', String(code));",
+            "let json = {};",
+            "try { json = pm.response.json(); } catch (e) { json = {}; }",
+            "pm.test('Login HTTP 200 (un intento)', function () { pm.expect(code).to.eql(200); });",
+            "if (code === 200 && json.token) {",
+            "    pm.collectionVariables.set('token', json.token);",
+            "    pm.collectionVariables.set('login_ok', '1');",
+            "    try {",
+            "        const b64 = json.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');",
+            "        const pad = b64 + '='.repeat((4 - (b64.length % 4)) % 4);",
+            "        const claims = JSON.parse(atob(pad));",
+            "        const uid = claims.id_usuario != null ? claims.id_usuario : claims.sub;",
+            "        if (uid != null) { pm.collectionVariables.set('id_usuario', String(uid)); }",
+            "    } catch (e) {}",
+            "} else {",
+            "    pm.collectionVariables.set('login_ok', '0');",
+            "    pm.collectionVariables.set('abort_reason', 'Login HTTP ' + code);",
+            "    pm.execution.setNextRequest(null);",
+            "}"
+          ]
+        }
+      }],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}"
+        },
+        "url": "{{baseUrl}}/sesiones/"
+      }
+    },
+    {
+      "name": "01 GET idioma original (snapshot)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.test('PRECHECK GET idioma HTTP 200', function () { pm.expect(code).to.eql(200); });",
+            "if (code !== 200) { pm.execution.setNextRequest(null); return; }",
+            "const json = pm.response.json();",
+            "pm.collectionVariables.set('locale_original', json.locale_code || '');",
+            "pm.collectionVariables.set('fuente_original', json.fuente || '');",
+            "pm.collectionVariables.set('id_preferencia_original', json.id_preferencia_idioma == null ? '' : String(json.id_preferencia_idioma));",
+            "if (json.version_perfil != null) { pm.collectionVariables.set('version_perfil', String(json.version_perfil)); }",
+            "if (!pm.collectionVariables.get('id_usuario') && json.id_usuario != null) {",
+            "    pm.collectionVariables.set('id_usuario', String(json.id_usuario));",
+            "}",
+            "pm.test('Snapshot trae locale_code', function () { pm.expect(json.locale_code).to.be.a('string').and.not.empty; });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "02 Probe GET idioma/auditoria (OpenAPI no lo publica)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('probe_http', String(code));",
+            "pm.test('Documentar probe idioma/auditoria (404 esperado si no existe ruta)', function () {",
+            "    pm.expect(code).to.be.a('number');",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma/auditoria"
+      }
+    },
+    {
+      "name": "03 GET catalogo tipos-evento (tipo 27)",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "pm.test('GET catalogo tipos-evento HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+            "if (pm.response.code !== 200) { return; }",
+            "const arr = pm.response.json();",
+            "const t27 = (arr || []).find(function (x) { return x && Number(x.id_tipo_evento) === 27; });",
+            "pm.test('Catálogo incluye id_tipo_evento 27 CAMBIO_IDIOMA_PERSONAL', function () {",
+            "    pm.expect(t27, 'tipo 27 ausente en catálogo').to.exist;",
+            "    if (t27 && t27.nombre) { pm.expect(String(t27.nombre)).to.include('IDIOMA'); }",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/auditoria/catalogo/tipos-evento"
+      }
+    },
+    {
+      "name": "04 PREP PATCH es-CO si hace falta",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const vp = pm.collectionVariables.get('version_perfil');",
+              "const body = { locale_code: 'es-CO' };",
+              "if (vp && vp !== 'null' && vp !== '') { body.version_perfil = Number(vp); }",
+              "pm.request.body.raw = JSON.stringify(body);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+              "pm.test('PREP PATCH es-CO HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json.locale_code).to.eql('es-CO');",
+              "    if (json.version_perfil != null) { pm.collectionVariables.set('version_perfil', String(json.version_perfil)); }",
+              "    if (json.id_usuario != null) { pm.collectionVariables.set('id_usuario', String(json.id_usuario)); }",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"locale_code\":\"es-CO\"}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "05 GET confirma es-CO antes de 197",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const json = pm.response.json();",
+            "pm.test('Estado previo a 197 es es-CO', function () {",
+            "    pm.expect(pm.response.code).to.eql(200);",
+            "    pm.expect(json.locale_code).to.eql('es-CO');",
+            "});",
+            "if (json.version_perfil != null) { pm.collectionVariables.set('version_perfil', String(json.version_perfil)); }"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "06 GET /auditoria/ baseline tipo_evento=27",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('audit_http_before', String(code));",
+            "if (code === 401 || code === 403) {",
+            "    pm.test('GET /auditoria/ no 401/403', function () { pm.expect(code).to.not.be.oneOf([401, 403]); });",
+            "    pm.collectionVariables.set('abort_reason', 'GET /auditoria/ HTTP ' + code);",
+            "    return;",
+            "}",
+            "pm.test('GET /auditoria/ baseline HTTP 200 o 206', function () { pm.expect([200, 206]).to.include(code); });",
+            "const json = pm.response.json();",
+            "let maxId = 0;",
+            "(json.items || []).forEach(function (ev) {",
+            "    if (ev && ev.id_evento > maxId) { maxId = ev.id_evento; }",
+            "});",
+            "pm.collectionVariables.set('audit_max_id_before', String(maxId));"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?pagina=1&tamano=50&tipo_evento=27&id_usuario={{id_usuario}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["auditoria", ""],
+          "query": [
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "50" },
+            { "key": "tipo_evento", "value": "27" },
+            { "key": "id_usuario", "value": "{{id_usuario}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "07 TC-M09-197 PATCH personal es-CO → en-US",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const vp = pm.collectionVariables.get('version_perfil');",
+              "const body = { locale_code: 'en-US' };",
+              "if (vp && vp !== 'null' && vp !== '') { body.version_perfil = Number(vp); }",
+              "pm.request.body.raw = JSON.stringify(body);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+              "const code = pm.response.code;",
+              "pm.collectionVariables.set('patch197_http', String(code));",
+              "pm.test('TC-M09-197 PATCH idioma HTTP 200', function () { pm.expect(code).to.eql(200); });",
+              "if (code !== 200) { return; }",
+              "const json = pm.response.json();",
+              "pm.test('PATCH locale_code en-US', function () { pm.expect(json.locale_code).to.eql('en-US'); });",
+              "pm.test('es_por_defecto false (personal)', function () {",
+              "    if (json.es_por_defecto != null) { pm.expect(json.es_por_defecto).to.eql(false); }",
+              "});",
+              "if (json.version_perfil != null) { pm.collectionVariables.set('version_perfil', String(json.version_perfil)); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"locale_code\":\"en-US\"}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "08 GET idioma persistencia en-US",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "pm.collectionVariables.set('get_persist_http', String(pm.response.code));",
+            "const json = pm.response.json();",
+            "pm.test('GET persistencia locale_code en-US', function () {",
+            "    pm.expect(pm.response.code).to.eql(200);",
+            "    pm.expect(json.locale_code).to.eql('en-US');",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "09 GET /auditoria/ tipo_evento=27 tras PATCH 197",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const code = pm.response.code;",
+            "pm.collectionVariables.set('audit_http_after', String(code));",
+            "pm.test('GET /auditoria/ post-PATCH HTTP 200 o 206', function () { pm.expect([200, 206]).to.include(code); });",
+            "if (code !== 200 && code !== 206) { return; }",
+            "const json = pm.response.json();",
+            "const items = json.items || [];",
+            "const maxBefore = Number(pm.collectionVariables.get('audit_max_id_before') || 0);",
+            "const uid = pm.collectionVariables.get('id_usuario');",
+            "function detalleDe(ev) {",
+            "    if (!ev) { return {}; }",
+            "    if (ev.detalle && typeof ev.detalle === 'object') { return ev.detalle; }",
+            "    if (typeof ev.detalle === 'string') { try { return JSON.parse(ev.detalle); } catch (e) { return {}; } }",
+            "    return {};",
+            "}",
+            "const candidatos = items.filter(function (ev) {",
+            "    if (!ev) { return false; }",
+            "    if (Number(ev.tipo_evento) !== 27) { return false; }",
+            "    if (maxBefore && ev.id_evento <= maxBefore) { return false; }",
+            "    if (uid && ev.id_usuario != null && String(ev.id_usuario) !== String(uid)) { return false; }",
+            "    const d = detalleDe(ev);",
+            "    const ant = String(d.locale_anterior || '').toLowerCase();",
+            "    const neu = String(d.locale_nuevo || '').toLowerCase();",
+            "    return ant === 'es-co' && neu === 'en-us';",
+            "});",
+            "const evento = candidatos[0] || null;",
+            "pm.collectionVariables.set('evento_idioma', evento ? ('ENCONTRADO_id=' + evento.id_evento) : 'NO_ENCONTRADO');",
+            "if (evento) {",
+            "    pm.collectionVariables.set('evento_id', String(evento.id_evento));",
+            "    pm.collectionVariables.set('evento_detalle', JSON.stringify(detalleDe(evento)));",
+            "}",
+            "pm.test('TC-M09-197 registro consultable es-CO → en-US (tipo 27, posterior al baseline)', function () {",
+            "    pm.expect(evento, 'No hay evento tipo 27 con locale_anterior=es-CO y locale_nuevo=en-US posterior al baseline').to.not.equal(null);",
+            "});",
+            "if (!evento) { return; }",
+            "const d = detalleDe(evento);",
+            "pm.test('usuario identificable (id_usuario)', function () {",
+            "    pm.expect(evento.id_usuario).to.eql(Number(uid) || evento.id_usuario);",
+            "    pm.expect(evento.id_usuario).to.exist;",
+            "});",
+            "pm.test('sesión o equivalente (id_sesion documentado si viene)', function () {",
+            "    pm.expect(evento.id_usuario != null || evento.id_sesion != null).to.eql(true);",
+            "});",
+            "pm.test('fecha/hora fecha_evento', function () { pm.expect(evento.fecha_evento).to.exist; });",
+            "pm.test('operación tipo_evento=27 CAMBIO_IDIOMA_PERSONAL', function () {",
+            "    pm.expect(Number(evento.tipo_evento)).to.eql(27);",
+            "});",
+            "pm.test('valor anterior es-CO', function () { pm.expect(d.locale_anterior).to.eql('es-CO'); });",
+            "pm.test('valor nuevo en-US', function () { pm.expect(d.locale_nuevo).to.eql('en-US'); });"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/auditoria/?pagina=1&tamano=50&tipo_evento=27&id_usuario={{id_usuario}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["auditoria", ""],
+          "query": [
+            { "key": "pagina", "value": "1" },
+            { "key": "tamano", "value": "50" },
+            { "key": "tipo_evento", "value": "27" },
+            { "key": "id_usuario", "value": "{{id_usuario}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "10 PATCH restaurar locale original",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const orig = pm.collectionVariables.get('locale_original') || 'es-CO';",
+              "const vp = pm.collectionVariables.get('version_perfil');",
+              "const body = { locale_code: orig };",
+              "if (vp && vp !== 'null' && vp !== '') { body.version_perfil = Number(vp); }",
+              "pm.request.body.raw = JSON.stringify(body);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+              "const orig = pm.collectionVariables.get('locale_original');",
+              "pm.test('Restore PATCH HTTP 200', function () { pm.expect(pm.response.code).to.eql(200); });",
+              "if (pm.response.code === 200) {",
+              "    const json = pm.response.json();",
+              "    pm.test('Restore PATCH locale_code = original', function () { pm.expect(json.locale_code).to.eql(orig); });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "body": { "mode": "raw", "raw": "{\"locale_code\":\"es-CO\"}" },
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    },
+    {
+      "name": "11 GET confirmar restauración",
+      "event": [{
+        "listen": "test",
+        "script": {
+          "exec": [
+            "if (pm.collectionVariables.get('login_ok') !== '1') { return; }",
+            "const orig = pm.collectionVariables.get('locale_original');",
+            "const json = pm.response.json();",
+            "pm.test('GET post-restore locale_code == original', function () {",
+            "    pm.expect(pm.response.code).to.eql(200);",
+            "    pm.expect(json.locale_code).to.eql(orig);",
+            "});"
+          ]
+        }
+      }],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Accept", "value": "application/json" }
+        ],
+        "url": "{{baseUrl}}/configuracion/personalizacion/idioma"
+      }
+    }
+  ]
+}

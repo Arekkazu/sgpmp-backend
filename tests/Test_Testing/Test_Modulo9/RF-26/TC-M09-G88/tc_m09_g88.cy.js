@@ -1,19 +1,21 @@
 /**
  * TC-M09-G88 / TC-M09-168 — Aplicación inmediata de identidad visual (RF-26).
  *
- * Ejecutar contra DEV (no usar el baseUrl TEST del cypress.config.cjs):
- *   npx cypress run --spec tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G88/tc_m09_g88.cy.js --env correo=admin.dev@gmail.com,contrasena=***
+ * Ejecutar:
+ *   npx cypress run --spec tests/Test_Testing/Test_Modulo9/RF-26/TC-M09-G88/tc_m09_g88.cy.js --env correo=...,contrasena=...
+ * (correo por defecto admin@pecuaria.co si se omite; la contrasena SIEMPRE
+ * se pasa por --env, nunca hardcodeada en este archivo)
  *
  * No inventa UI. Si Identidad Visual no existe, el spec queda en estado BLOQUEADO
  * (test skipped), no lo disfraza como PASS del requisito 168.
  */
-const DEV_FRONT = 'https://sigab-frontenddev-pbw0py-757e2f-158-69-200-27.sslip.io';
+const DEV_FRONT = 'https://api.inmero.co';
 const COLOR_NUEVO = '#C41E3A';
 const COLOR_ORIGINAL = '#007B8A';
 
 describe('TC-M09-G88 - Aplicación inmediata de identidad visual', () => {
   it('TC-M09-168 - Verificar aplicación inmediata sin cerrar sesión', function () {
-    const correo = Cypress.env('correo') || 'admin.dev@gmail.com';
+    const correo = Cypress.env('correo') || 'admin@pecuaria.co';
     const contrasena = Cypress.env('contrasena');
     expect(contrasena, 'contrasena via Cypress.env (no hardcodear)').to.be.a('string').and.not.empty;
 

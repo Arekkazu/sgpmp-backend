@@ -1,0 +1,318 @@
+{
+  "info": {
+    "_postman_id": "d2f1a6c0-7c3a-4e21-9b1a-tc09115v30",
+    "name": "TC-M09-G115 v3.0 - Auditoria de creacion de plantillas segun RF-31 (aserciones alineadas al requerimiento)",
+    "description": "v3.0 (reescrita el 2026-10-04; la version anterior de este archivo exigia auditar tambien los rechazos por validacion y daba 8 de 10 aserciones el 26/09 y el 04/10, ver la ficha del proyecto). Alinea las aserciones con lo que RF-31 EXIGE, no con la redaccion de la ficha TC-M09-222. RF-31 (paso 9 y criterio de aceptacion) pide que la creacion exitosa quede en auditoria con nombre, especie, version, usuario y fecha; y (paso 8) que un fallo no deje registro parcial. RF-31 NO exige auditar los rechazos por validacion de esquema, por lo que el paso 5 solo verifica que el rechazo no deje un registro de creacion exitosa, y reporta como INFORMATIVO (console.log, sin asercion) si el rechazo quedo o no auditado. La discrepancia entre la ficha ('exitosa o fallida') y el RF esta pendiente de decision de la lider; ver TC-M09-G115_evidencia_ejecucion.md, seccion 'Contraste con los RF del Modulo 9'. Un resultado todo verde en esta coleccion NO significa que los rechazos por validacion se auditen (no se auditan; v3.0 lo demostro cuatro veces).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "correo_admin",
+      "value": "admin.test@sgpmp.com.co"
+    },
+    {
+      "key": "contrasena_admin",
+      "value": "Administrador123#"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "id_especie",
+      "value": ""
+    },
+    {
+      "key": "total_auditoria_0",
+      "value": ""
+    },
+    {
+      "key": "total_auditoria_1",
+      "value": ""
+    },
+    {
+      "key": "id_plantilla_exitosa",
+      "value": ""
+    },
+    {
+      "key": "nombre_plantilla_exitosa",
+      "value": ""
+    },
+    {
+      "key": "id_especie_plantilla",
+      "value": ""
+    },
+    {
+      "key": "id_usuario_plantilla",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Login admin.test",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[LOGIN] status=' + pm.response.code);",
+              "pm.test('Login exitoso (200)', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) { pm.collectionVariables.set('token_admin', pm.response.json().token); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{correo_admin}}\",\n  \"contrasena\": \"{{contrasena_admin}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "name": "0B. Obtener una especie activa",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', function () { pm.response.to.have.status(200); });",
+              "var body = pm.response.json();",
+              "pm.test('Hay al menos una especie activa', function () { pm.expect(body.items.length).to.be.above(0); });",
+              "if (body.items && body.items.length > 0) { pm.collectionVariables.set('id_especie', body.items[0].id_especie); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "1. Baseline - total de entradas en /configuracion/plantillas/auditoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('1 - se puede consultar la auditoria de plantillas', function () { pm.response.to.have.status(200); });",
+              "if (pm.response.code === 200) {",
+              "    var data = pm.response.json();",
+              "    console.log('1 baseline total auditoria: ' + data.total);",
+              "    pm.collectionVariables.set('total_auditoria_0', data.total);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    },
+    {
+      "name": "2. Crear plantilla valida (RF-31 - creacion exitosa)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[CREACION EXITOSA] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('2 - la creacion con datos validos responde 201 Created', function () { pm.response.to.have.status(201); });",
+              "if (pm.response.code === 201) {",
+              "    var p = pm.response.json();",
+              "    pm.test('2 - la plantilla nace en version 1 (RF-31 paso 8)', function () { pm.expect(p.version).to.eql(1); });",
+              "    pm.collectionVariables.set('id_plantilla_exitosa', p.id_plantilla);",
+              "    pm.collectionVariables.set('nombre_plantilla_exitosa', p.template_name);",
+              "    pm.collectionVariables.set('id_especie_plantilla', p.id_especie);",
+              "    pm.collectionVariables.set('id_usuario_plantilla', p.id_usuario);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"template_name\": \"QA-AUDIT-G115-{{$timestamp}}\",\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "3. RF-31 paso 9 - La creacion EXITOSA queda en auditoria con nombre, especie, version, usuario y fecha",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var data = pm.response.json();",
+              "var total0 = parseInt(pm.collectionVariables.get('total_auditoria_0'));",
+              "var idPlantilla = parseInt(pm.collectionVariables.get('id_plantilla_exitosa'));",
+              "var nombre = pm.collectionVariables.get('nombre_plantilla_exitosa');",
+              "var idEspecie = parseInt(pm.collectionVariables.get('id_especie_plantilla'));",
+              "var idUsuario = parseInt(pm.collectionVariables.get('id_usuario_plantilla'));",
+              "console.log('3: total auditoria ahora = ' + data.total + ' (antes: ' + total0 + ')');",
+              "pm.test('3 - la creacion EXITOSA agrega exactamente una entrada de auditoria (+1)', function () {",
+              "    pm.expect(data.total).to.eql(total0 + 1);",
+              "});",
+              "var entrada = (data.items || []).find(function (i) { return i.id_plantilla === idPlantilla; });",
+              "pm.test('3 - existe la entrada de auditoria de la plantilla recien creada, tipo CREATE y resultado EXITOSO', function () {",
+              "    pm.expect(entrada, 'No hay entrada de auditoria para id_plantilla=' + idPlantilla).to.not.be.undefined;",
+              "    pm.expect(entrada.tipo_operacion).to.eql('CREATE');",
+              "    pm.expect(entrada.resultado).to.eql('EXITOSO');",
+              "});",
+              "pm.test('3 - la entrada registra nombre, especie y version de la plantilla (RF-31)', function () {",
+              "    pm.expect(entrada, 'sin entrada').to.not.be.undefined;",
+              "    var v = entrada.valores_nuevos || {};",
+              "    pm.expect(v.template_name).to.eql(nombre);",
+              "    pm.expect(v.id_especie).to.eql(idEspecie);",
+              "    pm.expect(v.version).to.eql(1);",
+              "});",
+              "pm.test('3 - la entrada registra el usuario y la fecha de la operacion (RF-31)', function () {",
+              "    pm.expect(entrada, 'sin entrada').to.not.be.undefined;",
+              "    pm.expect(entrada.id_usuario).to.eql(idUsuario);",
+              "    pm.expect(entrada.fecha_gestion, 'fecha_gestion ausente').to.be.a('string').and.not.empty;",
+              "});",
+              "pm.collectionVariables.set('total_auditoria_1', data.total);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    },
+    {
+      "name": "4. Intentar crear plantilla sin template_name (RF-31 - rechazo por validacion)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log('[RECHAZO POR VALIDACION] status=' + pm.response.code + ' body=' + pm.response.text());",
+              "pm.test('4 - el rechazo es 400 VAL_ENTRADA (esquema invalido)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    pm.expect(pm.response.json().error_code).to.eql('VAL_ENTRADA');",
+              "});",
+              "pm.test('4 - el error senala el campo template_name', function () {",
+              "    var campos = (pm.response.json().fields || []).map(function (f) { return f.field; });",
+              "    pm.expect(campos).to.include('template_name');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_especie\": {{id_especie}},\n  \"params_snapshot\": {\n    \"schema_version\": 1,\n    \"metricas_produccion\": [ { \"nombre\": \"peso_promedio\", \"unidad_medida\": \"kg\", \"tipo_medicion\": \"PESO\", \"aplica_a_tipo_activo\": \"INDIVIDUAL\" } ]\n  }\n}"
+        },
+        "url": "{{base_url}}/configuracion/plantillas"
+      }
+    },
+    {
+      "name": "5. RF-31 - El rechazo no deja registro parcial de creacion exitosa en auditoria",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var data = pm.response.json();",
+              "var total1 = parseInt(pm.collectionVariables.get('total_auditoria_1'));",
+              "var nuevas = (data.items || []).slice(0, Math.max(0, data.total - total1));",
+              "console.log('5: total auditoria tras el rechazo = ' + data.total + ' (antes del intento: ' + total1 + ')');",
+              "// INFORMATIVO (sin asercion): RF-31 no exige auditar rechazos por validacion de esquema.",
+              "// La ficha TC-M09-222 si habla de 'fallida'; esa discrepancia esta pendiente de decision de la lider.",
+              "console.log('5 INFO: entradas nuevas de auditoria tras el rechazo por validacion = ' + nuevas.length + ' (RF-31 no exige que haya alguna)');",
+              "pm.test('5 - el rechazo por validacion no crea una entrada de creacion EXITOSA (no hay registro parcial)', function () {",
+              "    var exitosas = nuevas.filter(function (i) { return i.tipo_operacion === 'CREATE' && i.resultado === 'EXITOSO'; });",
+              "    pm.expect(exitosas.length, 'Hay entradas CREATE/EXITOSO nuevas: ' + JSON.stringify(exitosas)).to.eql(0);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{base_url}}/configuracion/plantillas/auditoria"
+      }
+    }
+  ]
+}

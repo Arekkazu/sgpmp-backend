@@ -1,0 +1,60 @@
+TC-M02-G12 rev6 RF-33/RF-16 TEST
+Coleccion: tests/Test_Testing/Test_Modulo2/RF-33/TC-M02-G12/tc_m02_g12_rev6.json
+Fecha UTC: 2026-09-26T03:50:25.3264369Z
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Usuario: admin@pecuaria.co. Password via env.
+Rev5 NO se sobrescribe.
+
+Newman exit 1:
+Unica assertion fallida = GET no expone valor_min/valor_max.
+NO es fallo de 014 ejecutado: el POST de 014 NO se envio (skip por pesoDesteteOk=0).
+Requests ejecutados: 5 (login, especie, metricas activas, metricas todas, infra). POST 014 omitido.
+
+Referencia rev5:
+TC-M02-013 APROBADO (HTTP 400 ATRIBUTO_INVALIDO). No se repitio en rev6.
+TC-M02-014 BLOQUEADO (no existia peso_destete).
+INC-M02-45-G12 no reproducible.
+
+PASO 2 contrato/codigo (sin modificar):
+GET /configuracion/metricas: id_especie obligatorio, solo_activas opcional. OpenAPI 200/401/403/422.
+MetricaProduccionResponse NO incluye valor_min ni valor_max.
+POST /activos-biologicos atributos_dinamicos.
+Fuera de rango en _validar_atributos_dinamicos: BusinessRuleError ATRIBUTO_FUERA_DE_RANGO HTTP 422.
+Clave no configurada: ValidationError ATRIBUTO_INVALIDO HTTP 400.
+No se cambio assertion historica de 014 a 400.
+
+PRECONDICIONES API:
+Login HTTP 200. Especie 4 Cachama Blanca activa. Infra 3 Alevinera-01 activa finca 1.
+
+GET /configuracion/metricas?id_especie=4&solo_activas=true HTTP 200
+items:
+- id=16 Peso kg NUMERICO activa
+- id=25 peso_destete kg tipo_medicion=OTRO aplica=AMBOS tipo_dato=NUMERICO es_obligatorio=false es_activo=true id_especie=4
+SIN valor_min. SIN valor_max.
+
+GET sin solo_activas HTTP 200 (no 500). Incluye ademas Peso Test inactiva.
+
+SELECT SOLO LECTURA (diagnostico, no sustituye GET):
+modulo9.metricas_produccion id=25 peso_destete especie 4 activa NUMERICO kg AMBOS valor_min=20.0000 valor_max=40.0000
+Coincide con lo informado por Alex. No se hizo DML.
+
+PASO 3: GET no demuestra 20-40. POST 014 NO ejecutado.
+
+TC-M02-014 = BLOQUEADO
+Motivo: precondicion de rango no demostrable por el contrato GET RF-16.
+No hay HTTP/error_code de POST 014 en esta revision.
+No se creo activo (no hubo POST).
+
+TC-M02-G12 = BLOQUEADO
+013 APROBADO por evidencia rev5. 014 no ejecutable en rev6.
+
+INC-M02-45-G12 no reproducible en la reevaluacion rev6.
+GET 200. Sin 500.
+
+Diagnostico:
+No es defecto de 014 (no se ejercito la validacion de rango).
+No es error de prueba del body 014 (no se envio).
+Bloqueo por dato/contrato: la metrica existe y el rango esta en BD, pero GET RF-16 no publica min/max.
+La assertion fallida es de precondicion GET, no de resultado de POST.
+
+Sin commit. Sin push. Sin merge. Sin codigo productivo. Sin DML adicional.

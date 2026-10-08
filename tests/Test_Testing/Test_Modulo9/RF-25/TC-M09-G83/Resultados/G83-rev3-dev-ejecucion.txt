@@ -1,0 +1,35 @@
+TC-M09-G83 / TC-M09-158 / RF-25 — rev3 DEV (diagnostico)
+Fecha UTC GET: Thu, 17 Sep 2026 22:07:26 GMT
+Ambiente: DEV
+baseUrl: https://sigab-backenddev-jpuya4-ea3a74-158-69-200-27.sslip.io/api-sgpmp
+Coleccion: tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G83/tc_m09_g83_dev.json
+Historico NO modificado: tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G83/tc_m09_g83.json
+Historico Newman NO modificado: Resultados/TC-M09-G83-Newman.html
+
+Comando:
+  newman.cmd run tests/Test_Testing/Test_Modulo9/RF-25/TC-M09-G83/tc_m09_g83_dev.json --insecure --env-var contrasena=[REDACTED] -r cli,htmlextra,json --reporter-htmlextra-export .../TC-M09-G83_rev3_dev.html --reporter-json-export .../TC-M09-G83_rev3_dev.json
+
+Usuario: ingeniero@pecuaria.co (un login efectivo; el primer intento fallo por TLS sslip.io antes de autenticar)
+
+RESULTADO DE CONSTRUCCION DEL ESCENARIO:
+  rolInexistente declarado = 999999
+  claim rol del JWT emitido por POST /sesiones/ = 4 (Ingeniero)
+  escenarioRolInexistenteConstruido = false
+  NO se muto ni se refirmo el JWT (HS256 + SECRET_KEY; verify_token rechazaria firma alterada con TOKEN_INVALIDO).
+  NO existe endpoint de prueba, fixture desplegada ni usuario con id_rol invalido (FK fk_rol).
+
+REQUESTS:
+  1) POST /sesiones/ -> HTTP 200
+  2) GET /configuracion/interfaz/contexto Authorization Bearer [REDACTED] (JWT intacto del login) -> HTTP 200
+     body diagnostico: id_usuario=4, id_rol=4, nombre_rol=Ingeniero de Campo, modulos_autorizados presente (sesion valida, NO rol 999999)
+
+ASERCIONES Newman: 9 ejecutadas, 0 failed.
+  Las aserciones 401/403 de seguridad NO se evaluaron porque el rol inexistente no estaba en el JWT.
+  Newman PASS aqui es diagnostico de bloqueo, NO APROBADO de TC-M09-158.
+
+Clasificacion QA de TC-M09-158 / G83: BLOQUEADO
+No se abre incidente a Desarrollo: no se demostro concesion de permisos con rol inexistente.
+No se clasifica RECHAZADO por no poder construir el escenario.
+
+Password/JWT/Bearer/refresh_token: [REDACTED]
+Producto src/: no modificado.

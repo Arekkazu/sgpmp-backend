@@ -39,11 +39,15 @@ Columnas: `id_metricas_ciclo_productivo`, `id_ciclo_productivo`, `id_metrica_pro
 Esta tabla vincula qué métricas están habilitadas para cada ciclo productivo. Es la fuente para validar E-04 (tipo_producto no habilitado para la fase activa). La validación: `gestiones_fases.id_ciclo_productiva` → buscar en `metricas_ciclo_productivo WHERE id_ciclo_productivo = :id AND id_metrica_produccion = :id_metrica`.
 
 ### RBAC — Recurso 29 (activos_biologicos)
+
+Tabla actualizada el 2026-09-24 contra `modulo1.permisos` de `sgpmp_dev`. La versión original de
+este documento mostraba al Veterinario sin `U`; lo recibió después, en el PR #426 (RF-35).
+
 | Rol | Acción |
 |-----|--------|
 | Administrador | C, R, U, D, E |
 | Productor | C, R, U, D, E |
-| Veterinario | C, R, D, E |
+| Veterinario | C, R, U, D, E |
 | Ingeniero de Campo | C, R, U, E |
 
 Veterinario tiene acción C (Crear) sobre el recurso 29 ✓
@@ -51,7 +55,18 @@ Veterinario tiene acción C (Crear) sobre el recurso 29 ✓
 ## Decisiones
 
 - Sin gaps de DDL: todas las columnas necesarias existen.
-- Sin gaps de RBAC: todos los roles requeridos por RF-43 y RF-45 ya tienen los permisos.
+- Sin gaps de RBAC **por defecto**: todos los roles que RF-43 y RF-45 listan como actores ya tienen
+  los permisos.
+- **Corrección (2026-09-24):** la conclusión original ("sin gaps de RBAC") solo revisó que no faltara
+  ningún permiso, no que no sobrara ninguno. Hay acceso de más:
+  - **RF-45 (bajas):** los actores son Productor, Administrador y Veterinario. `POST
+    /{id}/eventos/baja` exige `(29, C)` y el **Ingeniero de Campo también lo tiene**, así que puede
+    registrar bajas sin ser actor del RF.
+  - **RF-43 (eventos productivos):** los actores son Productor y Veterinario, y el endpoint usa el mismo
+    `(29, C)`. Administrador e Ingeniero de Campo también pueden registrarlos.
+  - No se puede corregir quitando `C`, porque esa acción la comparten RF-33, 36 y 40 a 43, donde el
+  Ingeniero sí es actor. Es el hallazgo transversal #5 de `estado_M02.md` (recurso 29 demasiado
+  agrupado), pendiente de decisión del equipo de análisis.
 - Sin DML requerido.
 - Los datos de metricas_produccion para tipos productivos (LECHE, HUEVOS, etc.) son responsabilidad de RF-16 (configuración por especie). El código CU09 los validará contra lo que esté configurado.
 

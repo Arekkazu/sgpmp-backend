@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "TC-M03-272 - Autenticacion de dispositivo y suplantacion de identidad (RF-60 E1/RNF-05)",
+    "description": "Ejecutado 2026-10-04 contra TEST. Endpoint real: `POST /iot/heartbeat`, auth por headers `X-Device-Id` + `X-Device-API-Key` (sin JWT) -- NO `POST /api/v1/devices/{device_id}/heartbeat` como dice la ficha (ese path no existe en el backend). La ficha asume `device_id` en la URL y un `access_key` de body/query; en realidad ambos van en headers y se validan juntos en una sola consulta SQL (`WHERE id_dispositivo_iot = :device_id AND serial = :access_key` en `dispositivo_m09_adapter.py`), así que el escenario (a) sí es comprobable tal cual, solo cambiando dónde van los valores.\n\nSetup self-contenido: registra 3 dispositivos IoT reales en TEST (equivalentes a DEV-001/DEV-002/DEV-004 de la ficha) via `POST /configuracion/dispositivos-iot` -- A y B activos, C ya creado `es_activo=false` (simula 'dado de baja'; no hubo que rotar nada, el DTO permite crearlo inactivo directamente).\n\n**(a) BOLA confirmado CERRADO**: `X-Device-Id=<B>` + `X-Device-API-Key=<serial de A>` -> 401 `ERROR_AUTENTICACION_HEARTBEAT` (verificado también que `GET /iot/dispositivos/{B}/estado` sigue en 404, el estado de B nunca se tocó).\n\n**(b) CONFIRMADO, con hallazgo**: device_id inexistente y access_key invalida para un dispositivo real -> ambos 401, sin persistir nada. **HALLAZGO**: no existe ningun evento `INTENTO_NO_AUTORIZADO` ni equivalente en el codigo (`recibir_heartbeat_use_case.py` no llama a ningun repo de auditoria antes de lanzar `AuthenticationError`; el `except Exception: rollback(); raise` no audita) -- mismo patron OWASP A09 ya documentado en TC-M09-G72/G129. El rechazo es correcto; la auditoria del intento, no.\n\n**(c) CONFIRMADO**: dispositivo desactivado (`es_activo=false`) -> 401 inmediato, SIN ventana de gracia (se verifica en cada heartbeat, no hay cache de sesion). Mensaje `'El dispositivo no está activo.'` -- DISTINTO del generico de (b) (ver nota abajo). `GET /iot/dispositivos/{id}/estado` -> 404, confirma que nunca aparece como ACTIVO.\n\n**(d) CONFIRMADO** -- pero solo entre los dos casos que pide la ficha: 'ID inexistente' y 'credencial invalida' (b1 y b2) usan el MISMO codigo (`ERROR_AUTENTICACION_HEARTBEAT`) y el MISMO mensaje (porque ambos caen en `if row is None` dentro de la MISMA consulta SQL combinada) -- 100% indistinguibles en código y mensaje. Medición de tiempos aparte (40 muestras cada uno, Python/httpx -- Newman no es práctico para medir percentiles finos): mediana 326ms vs 332ms, con desviación estándar de ~50-60ms en ambos -- sin diferencia de tiempo detectable. **NOTA**: el caso (c) 'dado de baja' SÍ tiene un mensaje distinto ('El dispositivo no está activo.') de (b) -- la ficha no pide comparar (c) contra (b)/(d), pero vale la pena anotarlo: un atacante con un serial viejo puede distinguir 'dispositivo existe pero fue desactivado' de 'nunca existió / credencial mala'.\n\nDispositivos creados en TEST (quedan como residuo, no hay endpoint de borrado para dispositivos IoT): ver variables de coleccion `id_dispositivo_a/b/c`.\n\nResponsable: Juan Pablo. Herramienta: API - Postman (Newman) + script Python para el muestreo de tiempos (ver docstring de este TC en el repo para el detalle de las 40+40 muestras).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup 0 - Login Administrador",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "if (r && r.token) { pm.collectionVariables.set('token', r.token); } else { postman.setNextRequest(null); }"
+      ]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}},
+      "response": []
+    },
+    {
+      "name": "Setup 1 - Registrar dispositivo A (activo, equivalente DEV-001)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('run_id', Date.now().toString().slice(-6));"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+          "pm.test('creado 201', function () { pm.response.to.have.status(201); });",
+          "let r = pm.response.json(); pm.collectionVariables.set('id_dispositivo_a', r.id_dispositivo_iot); pm.collectionVariables.set('serial_a', r.serial);"
+        ]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"QA-M03-272-A-{{run_id}}\",\n  \"descripcion\": \"QA TC-M03-272 dispositivo A\",\n  \"id_infraestructura\": 6,\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}},
+      "response": []
+    },
+    {
+      "name": "Setup 2 - Registrar dispositivo B (activo, equivalente DEV-002)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('creado 201', function () { pm.response.to.have.status(201); });",
+        "let r = pm.response.json(); pm.collectionVariables.set('id_dispositivo_b', r.id_dispositivo_iot);"
+      ]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"QA-M03-272-B-{{run_id}}\",\n  \"descripcion\": \"QA TC-M03-272 dispositivo B\",\n  \"id_infraestructura\": 6,\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": true\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}},
+      "response": []
+    },
+    {
+      "name": "Setup 3 - Registrar dispositivo C (dado de baja, equivalente DEV-004)",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('creado 201, es_activo=false', function () { pm.response.to.have.status(201); pm.expect(pm.response.json().es_activo).to.equal(false); });",
+        "let r = pm.response.json(); pm.collectionVariables.set('id_dispositivo_c', r.id_dispositivo_iot); pm.collectionVariables.set('serial_c', r.serial);"
+      ]}}],
+      "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"QA-M03-272-C-{{run_id}}\",\n  \"descripcion\": \"QA TC-M03-272 dispositivo C (dado de baja)\",\n  \"id_infraestructura\": 6,\n  \"id_tipo_dispositivo\": 1,\n  \"es_activo\": false\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}},
+      "response": []
+    },
+    {
+      "name": "(a) BOLA - key de A con device_id de B -> rechazado",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('401 ERROR_AUTENTICACION_HEARTBEAT (no se valida solo la key, se valida (device_id, key) como par)', function () {",
+        "    pm.response.to.have.status(401);",
+        "    pm.expect(pm.response.json().error_code).to.equal('ERROR_AUTENTICACION_HEARTBEAT');",
+        "});"
+      ]}}],
+      "request": {"method": "POST", "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Device-Id", "value": "{{id_dispositivo_b}}"},
+          {"key": "X-Device-API-Key", "value": "{{serial_a}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_mensaje\": \"PERIODICO\",\n  \"fecha_registro\": \"2026-10-04T04:00:00Z\"\n}"},
+        "url": {"raw": "{{base_url}}/iot/heartbeat", "host": ["{{base_url}}"], "path": ["iot", "heartbeat"]}},
+      "response": []
+    },
+    {
+      "name": "(a) control - el estado de B sigue sin existir tras el intento de suplantacion",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('404 ESTADO_DISPOSITIVO_NO_ENCONTRADO: el intento de (a) no alteró el estado de B', function () {",
+        "    pm.response.to.have.status(404);",
+        "    pm.expect(pm.response.json().error_code).to.equal('ESTADO_DISPOSITIVO_NO_ENCONTRADO');",
+        "});"
+      ]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/iot/dispositivos/{{id_dispositivo_b}}/estado?limite_historial=5", "host": ["{{base_url}}"], "path": ["iot", "dispositivos", "{{id_dispositivo_b}}", "estado"], "query": [{"key": "limite_historial", "value": "5"}]}},
+      "response": []
+    },
+    {
+      "name": "(b1) device_id inexistente -> rechazado",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('401 ERROR_AUTENTICACION_HEARTBEAT', function () { pm.response.to.have.status(401); });",
+        "let r = pm.response.json();",
+        "pm.collectionVariables.set('mensaje_b1', r.message);",
+        "pm.collectionVariables.set('codigo_b1', r.error_code);"
+      ]}}],
+      "request": {"method": "POST", "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Device-Id", "value": "999999"},
+          {"key": "X-Device-API-Key", "value": "{{serial_a}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_mensaje\": \"PERIODICO\",\n  \"fecha_registro\": \"2026-10-04T04:00:00Z\"\n}"},
+        "url": {"raw": "{{base_url}}/iot/heartbeat", "host": ["{{base_url}}"], "path": ["iot", "heartbeat"]}},
+      "response": []
+    },
+    {
+      "name": "(b2) access_key invalida para dispositivo A real -> rechazado, (d) comparar con b1",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('401 ERROR_AUTENTICACION_HEARTBEAT', function () { pm.response.to.have.status(401); });",
+        "let r = pm.response.json();",
+        "pm.test('(d) mismo codigo que (b1) ID inexistente', function () { pm.expect(r.error_code).to.equal(pm.collectionVariables.get('codigo_b1')); });",
+        "pm.test('(d) mismo mensaje que (b1) ID inexistente -- indistinguible', function () { pm.expect(r.message).to.equal(pm.collectionVariables.get('mensaje_b1')); });"
+      ]}}],
+      "request": {"method": "POST", "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Device-Id", "value": "{{id_dispositivo_a}}"},
+          {"key": "X-Device-API-Key", "value": "clave-que-no-existe"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_mensaje\": \"PERIODICO\",\n  \"fecha_registro\": \"2026-10-04T04:00:00Z\"\n}"},
+        "url": {"raw": "{{base_url}}/iot/heartbeat", "host": ["{{base_url}}"], "path": ["iot", "heartbeat"]}},
+      "response": []
+    },
+    {
+      "name": "(b) HALLAZGO - ningun evento INTENTO_NO_AUTORIZADO en la bitacora RF-63 tras los rechazos",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('la consulta de auditoria IoT responde 200', function () { pm.response.to.have.status(200); });",
+        "let r = pm.response.json();",
+        "let registros = r.registros || r.items || [];",
+        "let conIntento = registros.filter(x => JSON.stringify(x).includes('INTENTO_NO_AUTORIZADO') || JSON.stringify(x).includes('NO_AUTORIZADO'));",
+        "pm.test('HALLAZGO: no existe ningun registro INTENTO_NO_AUTORIZADO pese a 3 rechazos de heartbeat ((a),(b1),(b2)) -- recibir_heartbeat_use_case.py no audita intentos fallidos de autenticacion, mismo patron OWASP A09 ya visto en TC-M09-G72/G129', function () {",
+        "    pm.expect(conIntento.length).to.equal(0);",
+        "});"
+      ]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/iot/auditoria?pagina=1&por_pagina=50", "host": ["{{base_url}}"], "path": ["iot", "auditoria"], "query": [{"key": "pagina", "value": "1"}, {"key": "por_pagina", "value": "50"}]}},
+      "response": []
+    },
+    {
+      "name": "(c) dispositivo dado de baja -> rechazo inmediato, sin ventana de gracia",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('401 ERROR_AUTENTICACION_HEARTBEAT', function () { pm.response.to.have.status(401); });",
+        "pm.test(\"mensaje especifico 'El dispositivo no está activo.' -- DISTINTO del generico de (b); se verifica en vivo cada heartbeat, sin cache de sesion ni ventana de gracia\", function () {",
+        "    pm.expect(pm.response.json().message).to.include('no está activo');",
+        "});"
+      ]}}],
+      "request": {"method": "POST", "header": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "X-Device-Id", "value": "{{id_dispositivo_c}}"},
+          {"key": "X-Device-API-Key", "value": "{{serial_c}}"}
+        ],
+        "body": {"mode": "raw", "raw": "{\n  \"tipo_mensaje\": \"PERIODICO\",\n  \"fecha_registro\": \"2026-10-04T04:00:00Z\"\n}"},
+        "url": {"raw": "{{base_url}}/iot/heartbeat", "host": ["{{base_url}}"], "path": ["iot", "heartbeat"]}},
+      "response": []
+    },
+    {
+      "name": "(c) control - el dispositivo dado de baja no aparece como ACTIVO en el estado",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('404 ESTADO_DISPOSITIVO_NO_ENCONTRADO: nunca tuvo un heartbeat exitoso, no aparece en dashboard/metricas', function () {",
+        "    pm.response.to.have.status(404);",
+        "    pm.expect(pm.response.json().error_code).to.equal('ESTADO_DISPOSITIVO_NO_ENCONTRADO');",
+        "});"
+      ]}}],
+      "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}],
+        "url": {"raw": "{{base_url}}/iot/dispositivos/{{id_dispositivo_c}}/estado?limite_historial=5", "host": ["{{base_url}}"], "path": ["iot", "dispositivos", "{{id_dispositivo_c}}", "estado"], "query": [{"key": "limite_historial", "value": "5"}]}},
+      "response": []
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "admin_correo", "value": "admin@pecuaria.co"},
+    {"key": "admin_contrasena", "value": "Test1234!"},
+    {"key": "token", "value": ""},
+    {"key": "run_id", "value": ""},
+    {"key": "id_dispositivo_a", "value": ""},
+    {"key": "serial_a", "value": ""},
+    {"key": "id_dispositivo_b", "value": ""},
+    {"key": "id_dispositivo_c", "value": ""},
+    {"key": "serial_c", "value": ""},
+    {"key": "mensaje_b1", "value": ""},
+    {"key": "codigo_b1", "value": ""}
+  ]
+}

@@ -1,0 +1,444 @@
+{
+  "info": {
+    "name": "TC-M03-274 - Reintento 1 (2026-10-04, TEST)",
+    "description": "Ejecutado 2026-10-04 contra TEST. Endpoint real: `PATCH /configuracion/parametros/{id_configuracion_global}` (RF-18) -- NO `PUT /api/v1/config/thresholds` como dice la ficha (otro endpoint Swagger-ficticio, mismo patron que TC-M03-269/270/272/273). Ruta GET para leer el estado actual: `GET /configuracion/parametros`.\n\nHALLAZGO ESTRUCTURAL PREVIO: la ficha asume una formula de 3 variables por dispositivo/variable (HB, FM, margen; HB<=FM/2; margen>=max(HB,FM*0.5); FM>=2*HB) aplicada 'por combinacion dispositivo-variable'. El codigo real (`src/configuration/domain/entities/configuracion_global.py`, RF-18) implementa algo MUCHO mas simple: una `ConfiguracionGlobal` SINGLETON (solo puede existir una fila con `es_activo=true` en todo el sistema -- lo dice el propio docstring de la entidad) con solo DOS campos enteros en minutos, `frecuencia_muestreo` (FM) y `heartbeat` (HB), SIN ningun campo `margen`. La unica regla es `_validar_coherencia`: `if heartbeat.valor < frecuencia.valor: rechazar (HEARTBEAT_MENOR_FRECUENCIA)`. Ademas, esta `ConfiguracionGlobal` **nunca se lee desde `src/telemetry`** (confirmado por busqueda exhaustiva) -- los umbrales reales de RF-60 (`UMBRAL_ACTIVO_SEG`/`UMBRAL_SIN_SENAL_SEG`/`UMBRAL_INACTIVO_SEG`, ver TC-M03-269) siguen siendo constantes fijas sin relacion con este RF-18. Es decir: SI existe una validacion de coherencia HB/FM, pero (1) es una regla distinta y mas simple que la que asume la ficha, (2) es global, no por dispositivo/variable, y (3) no esta conectada al algoritmo de evaluacion de estado que supuestamente valida.\n\n**(a) CA-19 -- PARCIALMENTE confirmado, con un caso invertido:**\n- HB=8/FM=10 (HB<FM): SI se rechaza, con `400 HEARTBEAT_MENOR_FRECUENCIA` y un mensaje que identifica el campo (`heartbeat`) y la regla violada -- esta parte de (a) se cumple tal cual la ficha pide.\n- FM=5/HB=5 (iguales): la ficha pide rechazo: **el codigo real ACEPTA esto (200)** -- la condicion real es `<` (estrictamente menor), no `<=`; HB==FM se considera coherente. HALLAZGO: no coincide con lo que pide la ficha.\n- margen=2 con HB=5/FM=10: **no evaluable** -- no existe ningun campo `margen` en la entidad ni en el DTO; enviarlo se ignora silenciosamente (Pydantic descarta campos extra por defecto en este `BaseDTO`, a confirmar) o el escenario simplemente no es representable.\n\n**(b) -- INVERTIDO respecto a lo que pide la ficha:** HB=5/FM=10 (que la ficha llama 'configuracion valida en el limite exacto', esperando 200 + 'recalculo y previsualizacion de umbral_sin_señal/umbral_inactivo') -> **el codigo real lo RECHAZA** (400 HEARTBEAT_MENOR_FRECUENCIA, porque 5<10). La formula real es la inversa de la que asume la ficha: aqui HB debe ser MAYOR O IGUAL a FM, no HB<=FM/2. Tampoco existe ningun 'recalculo de umbral_sin_señal/umbral_inactivo' en la respuesta (el schema de respuesta solo devuelve `frecuencia_muestreo`/`heartbeat`/metadatos, nunca umbrales derivados) -- consistente con que este RF-18 no esta conectado a RF-60. HB=2,5/FM=30/margen=15 (valores decimales): rechazado por Pydantic ANTES de llegar a la regla de negocio (`heartbeat`/`frecuencia_muestreo` son `int`, no admiten fraccion) -- ni siquiera es un escenario representable.\n\n**(c) CONFIRMADO como hallazgo:** la ficha pide 'parametrizacion distinta por tipo de dispositivo y por variable... la validacion se aplica por combinacion dispositivo-variable, no de forma global'. El codigo hace exactamente lo contrario por diseño: es un singleton global (`es_activo`, un unico registro activo para TODO el sistema) -- no hay forma de parametrizar por tipo de dispositivo ni por variable ambiental.\n\nLa configuracion original de TEST (frecuencia_muestreo=45, heartbeat=100) se restauro al final de la corrida (token de concurrencia optimista via `fecha_actualizacion`, cada request relee el valor actual antes de modificarlo).\n\nResponsable: Juan Pablo. Herramienta: API - Postman (Newman). Playwright/UI no se cubre en este TC (la ficha tambien pedia UI -- no hay panel de configuracion de umbrales frente a quien pudiera no existir, dado que el RF-18 real no tiene ningun campo de 'umbral' visible).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Setup 0 - Login Administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+              "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+              "if (r && r.token) { pm.collectionVariables.set('token', r.token); } else { postman.setNextRequest(null); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/sesiones/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "sesiones",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Setup 1 - Leer configuracion actual (guardar valores originales + token de concurrencia)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200', function () { pm.response.to.have.status(200); });",
+              "let r = pm.response.json();",
+              "pm.collectionVariables.set('id_config', r.id_configuracion_global);",
+              "pm.collectionVariables.set('fecha', r.fecha_actualizacion);",
+              "pm.collectionVariables.set('fm_original', r.frecuencia_muestreo);",
+              "pm.collectionVariables.set('hb_original', r.heartbeat);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "(a) CA-19 - HB=8 FM=10 (HB<FM) -> rechazo con restriccion y valores identificados",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('400 HEARTBEAT_MENOR_FRECUENCIA', function () {",
+              "    pm.response.to.have.status(400);",
+              "    let r = pm.response.json();",
+              "    pm.expect(r.error_code).to.equal('HEARTBEAT_MENOR_FRECUENCIA');",
+              "    pm.expect(r.fields[0].field).to.equal('heartbeat');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 10,\n  \"heartbeat\": 8,\n  \"fecha_actualizacion\": \"{{fecha}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_config}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros",
+            "{{id_config}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Refrescar fecha_actualizacion (el intento anterior fallo, no debio cambiar)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "let r = pm.response.json(); pm.collectionVariables.set('fecha', r.fecha_actualizacion);",
+              "pm.test('la fecha no cambio tras el rechazo anterior', function () { pm.expect(r.frecuencia_muestreo).to.equal(parseInt(pm.collectionVariables.get('fm_original'))); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "(a) CA-19 - HALLAZGO - FM=5 HB=5 (iguales): la ficha pide rechazo, el codigo ACEPTA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('HALLAZGO: HB==FM se acepta (200), no se rechaza como pide la ficha -- la regla real es heartbeat < frecuencia (estricto), no <=', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "let r = pm.response.json(); pm.collectionVariables.set('fecha', r.fecha_actualizacion);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 5,\n  \"heartbeat\": 5,\n  \"fecha_actualizacion\": \"{{fecha}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_config}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros",
+            "{{id_config}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "(b) HALLAZGO - HB=5/FM=10 ('limite valido' segun la ficha): el codigo real lo RECHAZA",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('HALLAZGO: la ficha espera 200 con recalculo de umbrales; el codigo real responde 400 porque su regla es heartbeat>=frecuencia_muestreo (lo opuesto a HB<=FM/2 que asume la ficha)', function () {",
+              "    pm.response.to.have.status(400);",
+              "    pm.expect(pm.response.json().error_code).to.equal('HEARTBEAT_MENOR_FRECUENCIA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 10,\n  \"heartbeat\": 5,\n  \"fecha_actualizacion\": \"{{fecha}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_config}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros",
+            "{{id_config}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "(b) HALLAZGO - HB=2.5 decimal: rechazado por tipo antes de llegar a la regla de negocio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('HALLAZGO: HB/FM son enteros en minutos, un valor decimal (2.5) ni siquiera es representable -- VAL_ENTRADA de Pydantic, no una regla de RF-60', function () {",
+              "    pm.response.to.have.status(400);",
+              "    pm.expect(pm.response.json().error_code).to.equal('VAL_ENTRADA');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": 30,\n  \"heartbeat\": 2.5,\n  \"fecha_actualizacion\": \"{{fecha}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_config}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros",
+            "{{id_config}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "(c) HALLAZGO - la configuracion es un singleton GLOBAL, no por dispositivo/variable",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "let r = pm.response.json();",
+              "pm.test('HALLAZGO: la respuesta no tiene ningun campo de dispositivo, tipo de variable ni especie -- es un unico registro activo para todo el sistema (RF-18), contrario a la parametrizacion por combinacion dispositivo-variable que pide la ficha', function () {",
+              "    pm.expect(r).to.have.property('es_activo');",
+              "    pm.expect(r).to.not.have.property('id_dispositivo_iot');",
+              "    pm.expect(r).to.not.have.property('id_tipo_dispositivo');",
+              "    pm.expect(r).to.not.have.property('id_variable_ambiental');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Cleanup - restaurar frecuencia_muestreo/heartbeat originales de TEST",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": []
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "console.log(pm.response.text());",
+              "pm.test('configuracion restaurada a los valores originales (200)', function () {",
+              "    pm.response.to.have.status(200);",
+              "    let r = pm.response.json();",
+              "    pm.expect(r.frecuencia_muestreo).to.equal(parseInt(pm.collectionVariables.get('fm_original')));",
+              "    pm.expect(r.heartbeat).to.equal(parseInt(pm.collectionVariables.get('hb_original')));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"frecuencia_muestreo\": {{fm_original}},\n  \"heartbeat\": {{hb_original}},\n  \"fecha_actualizacion\": \"{{fecha}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/parametros/{{id_config}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "parametros",
+            "{{id_config}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+    },
+    {
+      "key": "admin_correo",
+      "value": "admin@pecuaria.co"
+    },
+    {
+      "key": "admin_contrasena",
+      "value": "Test1234!"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "id_config",
+      "value": ""
+    },
+    {
+      "key": "fecha",
+      "value": ""
+    },
+    {
+      "key": "fm_original",
+      "value": ""
+    },
+    {
+      "key": "hb_original",
+      "value": ""
+    }
+  ]
+}

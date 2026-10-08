@@ -31,6 +31,11 @@ class DispositivoIotRepository(ABC):
         ...
 
     @abstractmethod
+    def listar_por_gateway(self, id_dispositivo_gateway: int) -> list[DispositivoIot]:
+        """Dispositivos activos que atiende el Gateway Edge indicado."""
+        ...
+
+    @abstractmethod
     def listar(
         self,
         *,

@@ -1,0 +1,26 @@
+{
+  "tc": "TC-M02-G25",
+  "ronda": "V4",
+  "reintento": 3,
+  "fecha": "2026-09-25",
+  "run_id": "G25-REEVAL-V4-20260925-151300",
+  "veredicto": "Aprobado",
+  "incidente_asociado": "INC-M02-48-G25",
+  "nota_global": "Reevaluación V4 en TEST exitosa tras corregir los 2 defectos del spec Newman (fecha dinámica actual para evitar bloqueo cronológico y lectura de propiedad 'message'). Se comprueba de punta a punta la efectividad del fix INC-M02-48-G25 (migración 7abae1ee50f6) con validación zootécnica de baja por existencia (HTTP 422) y control estricto de densidad biológica máxima por especie en M09 (HTTP 409).",
+  "checkpoints": [
+    {
+      "paso": "TC-M02-051: Registrar baja con cantidad superior a existencia",
+      "esperado": "HTTP 422 CANTIDAD_BAJA_SUPERIOR_EXISTENCIA",
+      "obtenido": "HTTP 422 CANTIDAD_BAJA_SUPERIOR_EXISTENCIA (La cantidad a dar de baja (15) es superior a la existencia actual del lote (2).)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento3.html"
+    },
+    {
+      "paso": "TC-M02-052: Registrar evento de crecimiento con densidad excedida",
+      "esperado": "HTTP 409 DENSIDAD_MAXIMA_SUPERADA",
+      "obtenido": "HTTP 409 DENSIDAD_MAXIMA_SUPERADA (La densidad del lote supera el máximo permitido para la especie.)",
+      "estado": "OK",
+      "fuente": "resultados/resultado_TC-M02-G25_reintento3.html"
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 Reglas aplicadas:
   FA-08 — nombre único por especie (case-insensitive).
   FA-10 — unidad_medida coherente con tipo_medicion.
+  RFC-004 — valor_min/valor_max solo para NUMERICO/ENTERO, con min <= max (lo valida la entidad).
 """
 from __future__ import annotations
 
@@ -74,10 +75,7 @@ class RegistrarMetricaUseCase:
 
         nombre = NombreMetrica(dto.nombre)
         tipo_medicion = TipoMedicion.desde_string(dto.tipo_medicion)
-        tipo_dato = TipoDatoAtributo.desde_string(
-            dto.tipo_dato
-            or TipoDatoAtributo.inferir_desde_tipo_medicion(dto.tipo_medicion).value
-        )
+        tipo_dato = TipoDatoAtributo.desde_string(dto.tipo_dato)
         aplica = AplicaTipoActivo.desde_string(dto.aplica_a_tipo_activo)
 
         _validar_coherencia_unidad(tipo_medicion, dto.unidad_medida)
@@ -98,6 +96,8 @@ class RegistrarMetricaUseCase:
             tipo_dato=tipo_dato,
             es_obligatorio=dto.es_obligatorio,
             id_especie=dto.id_especie,
+            valor_min=dto.valor_min,
+            valor_max=dto.valor_max,
         )
 
         try:

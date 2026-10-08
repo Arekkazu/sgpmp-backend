@@ -15,9 +15,27 @@
 | Prioridad | Alta |
 | Endpoints | `GET /activos-biologicos/{id_activo}` · `PATCH /activos-biologicos/{id_activo}` |
 
-## ⚠️ Resultado: FAIL en ambos sub-casos — gap real de RF-35, no un problema de entorno
+## ✅ Resultado vigente (2026-09-26): PASS — 10/10 assertions, 0 fallidas
 
-**Estado actual (2026-09-19): FAIL — 6/10 assertions, 4 fallidas.** Confirmado en vivo contra TEST: RF-35 sigue sin
+Los 2 gaps de RF-35 del 2026-09-19 están corregidos en TEST (fix `b77f8124`, PR #446
+`fix/inc-m02-g22-rf35-patch-activo`, INC-M02-G22). La colección se re-ejecutó **sin cambios**: sus assertions ya
+codificaban lo que exige el RF, así que pasaron a verde solas, como se esperaba de la prueba de regresión.
+
+| Caso | WHEN | Resultado real (2026-09-26) |
+|---|---|---|
+| TC-M02-037 (a) | `PATCH` solo con `estado_activo` | **400** `VAL_ENTRADA`, campo `estado_activo`: "El estado del activo no se puede modificar en esta operación. Use el cambio de estado del activo (RF-44)." — PASS |
+| TC-M02-037 (b) | `PATCH` con `estado_activo` + `raza` | **400**, mismo mensaje; ya no se ignora en silencio — PASS |
+| TC-M02-038 | `PATCH` de `raza` con el activo `EN_TRATAMIENTO` (evento sanitario `CONTROL_PREVENTIVO` abierto vía RF-41 → 201) | **409** `EVENTO_PENDIENTE_SIN_CERRAR`: "No se puede editar el activo mientras tenga un evento sanitario pendiente sin cerrar (estado actual: EN_TRATAMIENTO)..." — PASS |
+
+La verificación final (`GET`) confirma que el activo sigue `EN_TRATAMIENTO` con la `raza` original: ninguno de los
+`PATCH` rechazados alteró datos. Activo propio creado por la corrida (`id_activo_biologico=615`); `GET /health` → 200
+antes de ejecutar. Evidencia: `RESULTADOS/TC-M02-G22_resultado.html` (Newman htmlextra, 2026-09-26).
+
+---
+
+## Histórico — FAIL en ambos sub-casos (2026-09-19)
+
+**Estado (2026-09-19): FAIL — 6/10 assertions, 4 fallidas.** Confirmado en vivo contra TEST: RF-35 sigue sin
 validar `estado_activo` ni "eventos/estado pendiente" tal como exige el RF. El bloqueo de RF-41 que impedía antes
 construir la precondición (`NOTA_BLOQUEO.md`) ya está resuelto — el evento sanitario ahora se registra en `201` y
 deja el activo en `EN_TRATAMIENTO` automáticamente, así que la precondición literal de TC-M02-038 ya se construye

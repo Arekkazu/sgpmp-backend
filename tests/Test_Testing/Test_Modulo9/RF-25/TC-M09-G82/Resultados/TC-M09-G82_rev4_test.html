@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M09-G82 / TC-M09-157 rev4 TEST</title>
+<style>body{font-family:sans-serif;margin:2rem;color:#222} .pass{color:#0a7} .fail{color:#c00} .warn{color:#c60} code{background:#f4f4f4;padding:0 .25rem}</style>
+</head><body>
+<h1>TC-M09-G82 — TC-M09-157 tercera evaluación (rev4 TEST)</h1>
+<p>Ambiente: TEST · JWT [REDACTED]</p>
+<p><strong>Nota git:</strong> <code>laura</code> local no tiene fusionado <code>origin/test</code> (sigue en f6f51ea7). Esta corrida es contra el API TEST desplegado.</p>
+<h2>Matriz 20/999</h2>
+<p>Usuario 20: 404 USUARIO_NO_ENCONTRADO. Finca 999: 404 FINCA_NO_ENCONTRADA. No se usaron esos IDs como finca no autorizada.</p>
+<h2>Alternativa (mismo escenario funcional)</h2>
+<p>Usuario id=2 Productor <code>productor@pecuaria.co</code> Activo. Login 200. JWT sub=2 rol=2.</p>
+<p>Finca 19 <em>Finca Ajena RBAC nunraqtorm</em> existe (admin GET 200). No está en el listado de alcance del productor (<code>GET /configuracion/fincas</code> total 8, sin 19).</p>
+<h2>TC-M09-157 — <span class="pass">APROBADO</span> (autorización server-side)</h2>
+<p><code>GET /configuracion/fincas/19</code> HTTP <strong>403</strong> <code>FINCA_NO_AUTORIZADA</code>. Sin id_finca ni nombre.</p>
+<p>Control positivo: <code>GET /configuracion/fincas/1</code> HTTP 200 (finca sí autorizada).</p>
+<p>Contraste: <code>GET /configuracion/fincas/999</code> HTTP 404 (inexistente ≠ no autorizada).</p>
+<h2>Evento de seguridad</h2>
+<p class="warn">No aparece en GET /auditoria/?id_usuario=2 (solo login y consulta de perfil).</p>
+<h2>Colección histórica</h2>
+<p>No ejecutada: usa ingeniero + finca 19 y espera ACCESO_DENEGADO. Un login ingeniero con password de entorno = 401 (intento 2/5, sin reintento).</p>
+</body></html>

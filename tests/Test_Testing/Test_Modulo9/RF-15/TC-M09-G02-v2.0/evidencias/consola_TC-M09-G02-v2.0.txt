@@ -1,0 +1,89 @@
+newman
+
+TC-M09-G02-v2.0 - Catálogo de Especies Productivas
+
+→ NW-01-Login-Admin
+  POST https://api.inmero.co/back-sigab-test/sesiones/ [200 OK, 406B, 1162ms]
+  √ NW-01: Autenticación exitosa del Administrador (HTTP 200)
+
+→ NW-02-Preflight-Especies
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.38KB, 239ms]
+  √ NW-02: Preflight exitoso y verificación de fixture (HTTP 200)
+
+→ NW-03-Subcaso1-Crear-3Chars
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [201 Created, 197B, 177ms]
+  √ NW-03: Registro exitoso con nombre de 3 caracteres (HTTP 201)
+
+→ NW-03b-Verificar-Persistencia-Subcaso1
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.57KB, 227ms]
+  √ NW-03b: Confirmación de persistencia de especie de 3 caracteres (HTTP 200)
+
+→ NW-04-Teardown-Subcaso1
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/especies/100/desactivar [200 OK, 198B, 185ms]
+  √ NW-04: Desactivación lógica de especie creada en Subcaso 1 (HTTP 200)
+
+→ NW-05-Subcaso2-Crear-50Chars
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [201 Created, 244B, 172ms]
+  √ NW-05: Registro exitoso con nombre límite de 50 caracteres (HTTP 201)
+
+→ NW-05b-Verificar-Persistencia-Subcaso2
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.81KB, 230ms]
+  √ NW-05b: Confirmación de persistencia de especie de 50 caracteres (HTTP 200)
+
+→ NW-06-Teardown-Subcaso2
+  PATCH https://api.inmero.co/back-sigab-test/configuracion/especies/101/desactivar [200 OK, 245B, 180ms]
+  √ NW-06: Desactivación lógica de especie creada en Subcaso 2 (HTTP 200)
+
+→ NW-07-Subcaso3-Rechazo-2Chars
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [400 Bad Request, 228B, 168ms]
+  √ NW-07: Rechazo de nombre con 2 caracteres por longitud insuficiente (HTTP 400)
+
+→ NW-07b-Verificar-Ausencia-Subcaso3
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.81KB, 231ms]
+  √ NW-07b: Confirmación de no-persistencia de nombre rechazado con 2 caracteres (HTTP 200)
+
+→ NW-08-Subcaso4-Rechazo-51Chars
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [400 Bad Request, 228B, 170ms]
+  √ NW-08: Rechazo de nombre con 51 caracteres por exceso de longitud (HTTP 400)
+
+→ NW-08b-Verificar-Ausencia-Subcaso4
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.81KB, 228ms]
+  √ NW-08b: Confirmación de no-persistencia de nombre con 51 caracteres (HTTP 200)
+
+→ NW-09a-Subcaso5a-Rechazo-Vacio
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [400 Bad Request, 228B, 165ms]
+  √ NW-09a: Rechazo de nombre vacío (HTTP 400)
+
+→ NW-09b-Subcaso5b-Rechazo-Null
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [400 Bad Request, 218B, 162ms]
+  √ NW-09b: Rechazo de nombre nulo (HTTP 400)
+
+→ NW-10-Subcaso6-Rechazo-Duplicado-CaseInsensitive
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [409 Conflict, 220B, 175ms]
+  √ NW-10: Rechazo de nombre duplicado case-insensitive (HTTP 409 Conflict)
+
+→ NW-10b-Verificar-No-Duplicacion-Subcaso6
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.81KB, 229ms]
+  √ NW-10b: Confirmación de unicidad en catálogo (solo existe 1 Cachama Blanca)
+
+→ NW-11-Subcaso7-Rechazo-Simbolos
+  POST https://api.inmero.co/back-sigab-test/configuracion/especies [400 Bad Request, 252B, 169ms]
+  √ NW-11: Rechazo de nombre con caracteres especiales no permitidos (HTTP 400)
+
+→ NW-11b-Verificar-Ausencia-Subcaso7
+  GET https://api.inmero.co/back-sigab-test/configuracion/especies?solo_activas=false [200 OK, 18.81KB, 230ms]
+  √ NW-11b: Confirmación de no-persistencia de nombre con símbolos (HTTP 200)
+
+┌─────────────────────────┬─────────────────────┬─────────────────────┐
+│                         │            executed │              failed │
+├─────────────────────────┼─────────────────────┼─────────────────────┤
+│              iterations │                   1 │                   0 │
+│                requests │                  18 │                   0 │
+│            test-scripts │                  18 │                   0 │
+│      prerequest-scripts │                   0 │                   0 │
+│              assertions │                  18 │                   0 │
+├─────────────────────────┴─────────────────────┴─────────────────────┤
+│ total run duration: 4.8s                                            │
+│ total data received: 153.2KB (approx)                               │
+│ average response time: 244ms                                        │
+└─────────────────────────────────────────────────────────────────────┘

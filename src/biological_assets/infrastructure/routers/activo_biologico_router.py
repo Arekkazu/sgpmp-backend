@@ -90,7 +90,11 @@ from src.biological_assets.infrastructure.repositories.asociacion_sensor_activo_
 )
 from src.biological_assets.infrastructure.adapters.sensor_m09_adapter import SensorM09Adapter
 from src.biological_assets.application.use_cases.gestion.consultar_indicadores_use_case import ConsultarIndicadoresUseCase
-from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import ConsultarDatosConsolidadosUseCase
+from src.biological_assets.application.use_cases.gestion.consultar_datos_consolidados_use_case import (
+    MODULO_PROPIO,
+    ConsultarDatosConsolidadosUseCase,
+    resolver_modulo_consumidor,
+)
 from src.biological_assets.infrastructure.dto.consultar_indicadores_dto import ConsultarIndicadoresDTO
 from src.biological_assets.infrastructure.dto.datos_consolidados_dto import DatosConsolidadosDTO
 from src.biological_assets.infrastructure.repositories.indicadores_repository import SqlAlchemyIndicadoresRepository
@@ -110,6 +114,7 @@ from src.biological_assets.application.use_cases.auditoria.registrar_acceso_no_a
     RegistrarAccesoNoAutorizadoUseCase,
 )
 from src.biological_assets.infrastructure.schema.activo_biologico_schema import (
+    AccesoDirectoResponse,
     ActivoBiologicoResponse,
     ActivosPaginadosResponse,
     AsociacionInfraestructuraResponse,
@@ -135,6 +140,7 @@ from src.biological_assets.infrastructure.schema.activo_biologico_schema import 
     HistorialFasesResponse,
     HistoricoEstadoResponse,
     InfraestructuraDisponibleResponse,
+    ParametroEspecieResponse,
     SensorEnInfraestructuraResponse,
     RegistrarEventoCrecimientoResponse,
     RegistrarEventoReproductivoResponse,
@@ -155,7 +161,7 @@ from src.shared.database import get_db
 from src.shared.errors import AuthorizationError
 from src.shared.errors import ValidationError as DomainValidationError
 from src.shared.rate_limit import rate_limit
-from src.shared.rbac import tiene_permiso_sobre
+from src.shared.rbac import tiene_permiso, tiene_permiso_sobre
 from src.shared.schemas import ErrorResponse
 
 router = APIRouter(prefix='/activos-biologicos', tags=['Activos Biológicos'])
@@ -170,6 +176,7 @@ _ROL_PRODUCTOR = 2
 # de la secuencia y difieren entre bases; con números fijos, datos clínicos y
 # el scope 'eventos' quedaron ambos en 59.
 _RECURSO_DATOS_CLINICOS = 'datos_clinicos_activo'
+_RECURSO_DATOS_FINANCIEROS = 'datos_financieros_activo'
 
 # INC-M02-92-G93: scopes por tipo_dato de RF-50 sobre datos-consolidados.
 _RECURSO_DATOS_EVENTOS = 'datos_analiticos_eventos'
@@ -183,11 +190,30 @@ _SCOPES_TIPO_DATO = {
     'metricas': _RECURSO_DATOS_METRICAS,
 }
 
+
+def _clave_consumidor_datos_consolidados(
+    db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
+) -> str:
+    """RF-50: el limite de 100/min es por modulo consumidor.
+
+    Las identidades tecnicas de otros modulos ('Integración M0<n>',
+    INC-M02-90-G92 / INC-M02-93-G93) comparten un solo contador por modulo,
+    sin importar cuantos usuarios tecnicos use ese modulo. Los humanos
+    (modulo2) siguen con un contador por usuario: agruparlos a todos en uno
+    solo haria que se bloquearan entre si.
+    """
+    modulo = resolver_modulo_consumidor(SqlAlchemyRolRepository(db), usuario_actual.id_rol)
+    if modulo == MODULO_PROPIO:
+        return f'usuario:{usuario_actual.id_usuario}'
+    return f'modulo:{modulo}'
+
+
 # INC-M02-96-G94: datos-consolidados no tenia ningun limitador — RF-50 exige
-# 100 solicitudes/minuto por consumidor. El aislamiento por-modulo (vs. el
-# por-usuario que ofrece hoy este helper) queda bloqueado por INC-M02-90-G92
-# (no existe todavia una identidad de modulo autenticable).
-_LIMITE_DATOS_CONSOLIDADOS = rate_limit(100, 60, alcance="activos_datos_consolidados")
+# 100 solicitudes/minuto por modulo consumidor.
+_LIMITE_DATOS_CONSOLIDADOS = rate_limit(
+    100, 60, alcance="activos_datos_consolidados", clave=_clave_consumidor_datos_consolidados,
+)
 
 # TC-M02-G16: POST /activos-biologicos no tenia ningun limitador — el caso de
 # prueba exige 100 solicitudes/minuto por usuario y 429 al superarlo.
@@ -275,7 +301,17 @@ def _verificar_scope_tipo_dato(
         raise AuthorizationError(code='SCOPE_TIPO_DATO_NO_AUTORIZADO', message=mensaje)
 
 
-def _activo_to_response(activo) -> ActivoBiologicoResponse:
+def _activo_to_response(
+    activo,
+    *,
+    incluir_datos_financieros: bool = False,
+) -> ActivoBiologicoResponse:
+    """Construye la respuesta pública aplicando la visibilidad financiera.
+
+    El valor seguro por defecto es ocultar costo y soporte. De esta forma, un
+    endpoint nuevo no puede exponerlos por omitir explícitamente la evaluación
+    del permiso de lectura sobre ``datos_financieros_activo``.
+    """
     di = None
     if activo.detalle_individual:
         d = activo.detalle_individual
@@ -309,8 +345,8 @@ def _activo_to_response(activo) -> ActivoBiologicoResponse:
         fecha_inicio_ciclo=activo.fecha_inicio_ciclo,
         detalles_procedencia=activo.detalles_procedencia,
         origen_financiero=activo.origen_financiero,
-        costo_adquisicion=activo.costo_adquisicion,
-        soporte_documental=activo.soporte_documental,
+        costo_adquisicion=(activo.costo_adquisicion if incluir_datos_financieros else None),
+        soporte_documental=(activo.soporte_documental if incluir_datos_financieros else None),
         descripcion=activo.descripcion,
         id_infraestructura=activo.id_infraestructura,
         atributos_dinamicos=activo.atributos_dinamicos,
@@ -378,7 +414,12 @@ def registrar_activo(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
     )
     activo = use_case.execute(dto, usuario_actual)
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.get(
@@ -427,13 +468,19 @@ def listar_activos(
         dto,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
+    puede_ver_datos_financieros = tiene_permiso_sobre(
+        db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+    )
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return ActivosPaginadosResponse(
         total_registros=total,
         pagina_actual=pagina,
         total_paginas=total_paginas,
         registros_por_pagina=page_size,
-        registros=[_activo_to_response(a) for a in registros],
+        registros=[
+            _activo_to_response(a, incluir_datos_financieros=puede_ver_datos_financieros)
+            for a in registros
+        ],
     )
 
 
@@ -483,6 +530,7 @@ def consultar_bitacora(
     ),
     resultado: str | None = Query(default=None, description='EXITOSO | FALLIDO | RECHAZADO | ADVERTENCIA'),
     severidad_log: str | None = Query(default=None, description='INFO | WARNING | ERROR | CRITICAL'),
+    id_usuario_responsable: int | None = Query(default=None, description='Usuario que originó el evento (TC-DIS-144)'),
     fecha_inicio: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-01-01T00:00:00Z)'),
     fecha_fin: str | None = Query(default=None, description='ISO 8601 UTC (ej. 2025-12-31T23:59:59Z)'),
     pagina: int = Query(default=1, ge=1),
@@ -499,6 +547,7 @@ def consultar_bitacora(
             clasificacion_biologica=clasificacion_biologica,
             resultado=resultado,
             severidad_log=severidad_log,
+            id_usuario_responsable=id_usuario_responsable,
             fecha_inicio=_dt.fromisoformat(fecha_inicio.replace('Z', '+00:00')) if fecha_inicio else None,
             fecha_fin=_dt.fromisoformat(fecha_fin.replace('Z', '+00:00')) if fecha_fin else None,
             pagina=pagina,
@@ -520,7 +569,7 @@ def consultar_bitacora(
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
         rol_repo=SqlAlchemyRolRepository(db),
     )
-    registros, total = use_case.execute(dto, usuario_actual)
+    registros, total = use_case.execute(dto, usuario_actual, _ids_fincas_alcance(db, usuario_actual))
     total_paginas = max(1, (total + page_size - 1) // page_size)
     return BitacoraAuditoriaResponse(
         total_registros=total,
@@ -529,6 +578,29 @@ def consultar_bitacora(
         registros_por_pagina=page_size,
         registros=[_auditoria_to_response(r) for r in registros],
     )
+
+
+# ── RF-33 FA-07 — Atributos dinámicos de la especie (#194) ─────────────────
+# Bajo el permiso de activos (no el de métricas, recurso 19): Productor e
+# Ingeniero registran activos pero no administran la configuración de M09.
+
+@router.get(
+    '/parametros-especie',
+    response_model=list[ParametroEspecieResponse],
+    dependencies=[Depends(require_permission_m02(_RECURSO, 2, rf_origen='RF33'))],
+    responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
+    },
+    summary='Atributos dinámicos que exige la especie al registrar un activo (RF-33)',
+)
+def listar_parametros_especie(
+    id_especie: int = Query(..., ge=1),
+    tipo_activo: Literal['INDIVIDUAL', 'POBLACIONAL'] = Query(...),
+    db: Session = Depends(get_db),
+) -> list[ParametroEspecieResponse]:
+    parametros = ParametrosEspecieM09Adapter(db).listar_por_especie(id_especie, tipo_activo)
+    return [ParametroEspecieResponse.model_validate(p) for p in parametros]
 
 
 # ── CU13 RF-52 E5 — Registro correctivo de auditoría ────────────────────────
@@ -611,7 +683,12 @@ def consultar_activo(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.patch(
@@ -647,7 +724,12 @@ def actualizar_activo_individual(
         usuario_actual,
         ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual),
     )
-    return _activo_to_response(activo)
+    return _activo_to_response(
+        activo,
+        incluir_datos_financieros=tiene_permiso_sobre(
+            db, usuario_actual.id_rol, _RECURSO_DATOS_FINANCIEROS, 2
+        ),
+    )
 
 
 @router.post(
@@ -1320,7 +1402,40 @@ def consultar_ficha_integral(
         eventos_reproductivos=ficha.eventos_reproductivos,
         indicadores=ficha.indicadores,
         advertencias=ficha.advertencias,
+        accesos_directos=_accesos_directos_ficha(db, usuario_actual, id_activo),
     )
+
+
+# RF-47 Sección 8: cada acceso directo exige el mismo permiso (recurso 29 +
+# acción) que el endpoint al que apunta, así la ficha nunca ofrece una acción
+# que luego respondería 403.
+_ACCESOS_DIRECTOS_FICHA = (
+    ('historial', 'Historial completo', 'GET', '/activos-biologicos/{id}/historial', 'RF46', 2, None),
+    (
+        'registrar_evento', 'Registrar evento', 'POST', '/activos-biologicos/{id}/eventos/{tipo_evento}',
+        'RF39-RF43', 1, ['crecimiento', 'sanitario', 'reproductivo', 'productivo'],
+    ),
+    ('cambiar_estado', 'Cambiar estado', 'PATCH', '/activos-biologicos/{id}/estado', 'RF44', 5, None),
+    ('registrar_baja', 'Registrar baja', 'POST', '/activos-biologicos/{id}/eventos/baja', 'RF45', 1, None),
+)
+
+
+def _accesos_directos_ficha(
+    db: Session, usuario_actual: UsuarioActual, id_activo: int,
+) -> list[AccesoDirectoResponse]:
+    """RF-47: la Sección 8 solo muestra las acciones que el rol puede ejecutar (RF-04)."""
+    permitido: dict[int, bool] = {}
+    accesos = []
+    for codigo, nombre, metodo, ruta, rf_origen, id_accion, tipos_evento in _ACCESOS_DIRECTOS_FICHA:
+        if id_accion not in permitido:
+            permitido[id_accion] = tiene_permiso(db, usuario_actual.id_rol, _RECURSO, id_accion)
+        if permitido[id_accion]:
+            accesos.append(AccesoDirectoResponse(
+                codigo=codigo, nombre=nombre, metodo=metodo,
+                ruta=ruta.replace('{id}', str(id_activo)), rf_origen=rf_origen,
+                tipos_evento=tipos_evento,
+            ))
+    return accesos
 
 
 # ── CU03 — RF-36: Ficha de gestión de lote ──────────────────────────────────

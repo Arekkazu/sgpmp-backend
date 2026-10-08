@@ -119,7 +119,7 @@ class _FincaActivaFake:
         es_activo = True
         id_finca = 1
 
-    def obtener_por_id(self, _id_finca):
+    def obtener_por_id(self, _id_finca, **_):
         return self._Finca()
 
 
@@ -154,12 +154,14 @@ def test_rf20_tipo_de_area_no_reconocido_es_400(tipo) -> None:
         finca_repo=_FincaActivaFake(),
         tipo_area_repo=_TipoAreaRepoFake(tipo),
         auditoria_repo=_NuncaEscribeFake(),
+        especie_repo=_NuncaEscribeFake(),
     )
     dto = RegistrarInfraestructuraDTO(
         nombre_infraestructura="Galpón 1",
         tipo_area="Cueva",
         superficie=Decimal("120"),
         finca_id=1,
+        especie_id=1,
     )
 
     with pytest.raises(ValidationError) as error:
@@ -250,7 +252,7 @@ class _PlantillaRepoFake:
             fecha_creacion=datetime.now(timezone.utc),
         )
 
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, **_):
         return self.plantilla
 
     def obtener_ultima_version(self, _nombre):
@@ -258,7 +260,7 @@ class _PlantillaRepoFake:
 
 
 class _EspecieDestinoRepoFake:
-    def obtener_por_id(self, _id):
+    def obtener_por_id(self, _id, **_):
         especie = Especie.crear(
             nombre=NombreEspecie("Tilapia"),
             descripcion=None,
@@ -273,7 +275,7 @@ class _VariableRepoFake:
     def __init__(self, variables: dict[int, VariableAmbiental]) -> None:
         self.variables = variables
 
-    def obtener_por_id(self, id_variable_ambiental: int):
+    def obtener_por_id(self, id_variable_ambiental: int, **_):
         return self.variables.get(id_variable_ambiental)
 
     def listar_activas(self):

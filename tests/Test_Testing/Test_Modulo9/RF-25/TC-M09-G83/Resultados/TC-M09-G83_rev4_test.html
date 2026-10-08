@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><title>TC-M09-G83 / TC-M09-158 rev4 TEST</title>
+<style>body{font-family:sans-serif;margin:2rem;color:#222} .pass{color:#0a7} .fail{color:#c00} .blocked{color:#c60} code{background:#f4f4f4;padding:0 .25rem}</style>
+</head><body>
+<h1>TC-M09-G83 — Cuarta revisión (TEST)</h1>
+<p>TC-M09-158 / RF-25. Escenario de Desarrollo: usuario existente, rol existente, <strong>sin permiso R</strong> sobre <code>contexto_interfaz</code> (recurso 22).</p>
+<p>Ambiente: TEST · <code>https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test</code></p>
+<p>No se mutó JWT. No se usó <code>rolInexistente=999999</code>. Histórico <code>tc_m09_g83.json</code> intacto.</p>
+<h2>Precondiciones</h2>
+<ul>
+<li>Usuario id=30 · <code>gestor.granja.test@pecuaria.co</code> · Activo</li>
+<li>Rol id=7 · Gestor de Granja (JWT claim <code>rol=7</code>)</li>
+<li>GET /roles/: roles 1–5 tienen R sobre recurso 22; rol 7 <strong>no</strong></li>
+<li>Permiso R contexto_interfaz: <strong>NO</strong></li>
+</ul>
+<h2>Login — <span class="pass">PASS</span></h2>
+<p><code>POST /sesiones/</code> HTTP 200 · JWT [REDACTED] · sub=30 rol=7</p>
+<h2>TC-M09-158 GET /configuracion/interfaz/contexto — <span class="pass">APROBADO</span></h2>
+<p>HTTP esperado 403 · recibido <strong>403</strong></p>
+<p>error_code esperado ACCESO_DENEGADO · recibido <strong>ACCESO_DENEGADO</strong></p>
+<p>Información protegida (módulos, finca, identidad, id_usuario, id_rol): <strong>NO</strong></p>
+<pre>{
+  "error_code": "ACCESO_DENEGADO",
+  "message": "Acceso denegado. Su rol no tiene permisos para realizar esta operación.",
+  "fields": [],
+  "timestamp": "2026-09-19T02:23:03.868538+00:00"
+}</pre>
+<p>Assertions: HTTP 403; ACCESO_DENEGADO; sin payload de contexto. 3/3 PASS. No se aceptó 401 como equivalente.</p>
+</body></html>

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Optional
 
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
@@ -17,6 +18,12 @@ class DispositivoIot:
     es_activo: bool
     fecha_creacion: datetime.datetime
     id_dispositivo_iot: Optional[int] = None
+    # Gateway Edge que lo atiende (N:1). None: es un Edge o aún no tiene uno.
+    id_dispositivo_gateway: Optional[int] = None
+    # RF-21 v2.0 (RFC-011): solo cámaras; nulos para cualquier otra categoría.
+    resolucion: Optional[str] = None
+    fps: Optional[int] = None
+    area_cobertura_m2: Optional[Decimal] = None
 
     @classmethod
     def crear(
@@ -27,6 +34,10 @@ class DispositivoIot:
         id_infraestructura: int,
         id_tipo_dispositivo: int,
         es_activo: bool = True,
+        id_dispositivo_gateway: Optional[int] = None,
+        resolucion: Optional[str] = None,
+        fps: Optional[int] = None,
+        area_cobertura_m2: Optional[Decimal] = None,
     ) -> DispositivoIot:
         return cls(
             serial=serial,
@@ -35,10 +46,17 @@ class DispositivoIot:
             id_tipo_dispositivo=id_tipo_dispositivo,
             es_activo=es_activo,
             fecha_creacion=datetime.datetime.now(datetime.timezone.utc),
+            id_dispositivo_gateway=id_dispositivo_gateway,
+            resolucion=resolucion,
+            fps=fps,
+            area_cobertura_m2=area_cobertura_m2,
         )
 
     def desactivar(self) -> None:
         self.es_activo = False
+
+    def asignar_gateway(self, id_dispositivo_gateway: Optional[int]) -> None:
+        self.id_dispositivo_gateway = id_dispositivo_gateway
 
     def _snapshot(self) -> dict:
         return {
@@ -47,6 +65,10 @@ class DispositivoIot:
             "id_infraestructura": self.id_infraestructura,
             "id_tipo_dispositivo": self.id_tipo_dispositivo,
             "es_activo": self.es_activo,
+            "id_dispositivo_gateway": self.id_dispositivo_gateway,
+            "resolucion": self.resolucion,
+            "fps": self.fps,
+            "area_cobertura_m2": str(self.area_cobertura_m2) if self.area_cobertura_m2 is not None else None,
         }
 
     def __eq__(self, other: object) -> bool:

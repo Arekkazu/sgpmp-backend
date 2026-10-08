@@ -1,0 +1,244 @@
+{
+  "grupo": "TC-M09-G143",
+  "casos": [
+    "TC-M09-290",
+    "TC-M09-291"
+  ],
+  "requisito": "RF-24 v2.0",
+  "casoDeUso": "CU05 — Gestionar Dispositivos IoT, Flujo F",
+  "ambiente": "TEST",
+  "prueba_local": false,
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "run_id": "run-test-20261007-152405",
+  "fecha": "2026-10-07T15:24:08.835399+00:00",
+  "git": {
+    "rama": "qa/juan-esteban-rf24-v2",
+    "status_short": "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G133/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G134/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G135/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G143/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G74-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G79-v2.0/\n?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/",
+    "diff_stat": "(vacio)",
+    "diff_cached_stat": "(vacio)",
+    "head": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "origin_test": "30ddd72144102a60af006b265a20cb18c1c72c85",
+    "divergencia": "0\t0"
+  },
+  "openapi_vision": {
+    "rutas_totales": 210,
+    "esquemas_totales": 305,
+    "ocurrencias_de_VISION_como_palabra": 0,
+    "coincidencias_por_subcadena": [
+      "consultar_provision_suministros_nic41__id_provision__get",
+      "corregir_provision_suministros_nic41__id_provision__correccion_post",
+      "corregirprovisiondto",
+      "id_provision",
+      "listar_versiones_provision_suministros_nic41_ciclo__id_gestion_fases__versiones_get",
+      "listaversionesprovisionresponse",
+      "monto_provision",
+      "naprovisionada",
+      "provision",
+      "provisionnic41response"
+    ],
+    "nota_subcadena": "Todas las coincidencias de 'vision' provienen de 'provisión' (suministros NIC-41). Se cuenta la palabra como token para no producir un falso positivo de operación VISION.",
+    "operaciones_de_calibracion_publicadas": [
+      "GET /configuracion/sensores/rangos-calibracion",
+      "GET /configuracion/sensores/{id_sensor}/calibraciones",
+      "GET /iot/monitoreo/historial",
+      "POST /configuracion/sensores/{id_sensor}/calibrar"
+    ],
+    "registrar_calibracion_dto": {
+      "properties": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "valor_referencia",
+        "ganancia",
+        "offset",
+        "fecha_calibracion",
+        "observaciones"
+      ],
+      "required": [
+        "id_dispositivo_iot",
+        "id_infraestructura",
+        "fecha_calibracion"
+      ],
+      "declara_modo_calibracion": false
+    },
+    "enums_con_VISION_o_CAMARA": []
+  },
+  "fuente_observaciones_vision": {
+    "terminos_en_contrato": {
+      "vector_comportamiento": 0,
+      "ventana_observacion": 0,
+      "linea_base": 0,
+      "baseline": 0,
+      "epsilon": 0,
+      "max_iter": 0,
+      "winsoriz": 0,
+      "percentil": 0,
+      "p95": 0,
+      "refinamiento": 0,
+      "convergencia": 0,
+      "camara": 0,
+      "modo_calibracion": 0
+    },
+    "schemas_con_apto_para_ia": [
+      "TelemetriaCalidadSchema"
+    ],
+    "entidad_de_observacion_vision": null,
+    "nota": "apto_para_ia solo aparece en el esquema de calidad de telemetría de SENSORES. No se asume que sea el vector de comportamiento VISION por llevar ese campo: el caso exige una entidad con cámara, área, ventana y aptitud."
+  },
+  "fixture_tc290": {
+    "tipo_modelo_asignado_del_area": {
+      "schema": "EditarInfraestructuraDTO",
+      "valores": [
+        "MODELO_AVES",
+        "MODELO_PORCINOS",
+        "MODELO_ACUICULTURA",
+        "MODELO_ESPECIES_MEDIANAS",
+        "MODELO_ESPECIES_GRANDES",
+        "MODELO_RIESGO_CONTAGIO"
+      ]
+    },
+    "admite_MODELO_AVES": true,
+    "admite_POBLACIONAL_como_modelo_de_area": false,
+    "nota": "El área sí admite MODELO_AVES. POBLACIONAL no es un modelo de área sino el tipo de activo biológico del lote, y eso no es el impedimento: el impedimento es que no existe fuente de observaciones VISION que pueda tener count=0 demostrable.",
+    "ruta_disparador_m02": "POST /activos-biologicos"
+  },
+  "newman": {
+    "ejecutado": true,
+    "exit_code": 1,
+    "html": "newman.html",
+    "assertions": [
+      {
+        "nombre": "El contrato de TEST responde 200",
+        "fallo": false
+      },
+      {
+        "nombre": "El contrato es un OpenAPI con rutas y esquemas",
+        "fallo": false
+      },
+      {
+        "nombre": "La unica calibracion publicada es la de SENSOR y no admite modo_calibracion",
+        "fallo": false
+      },
+      {
+        "nombre": "COMPUERTA TC-M09-291 — TEST publica una operacion manual VISION",
+        "fallo": true
+      },
+      {
+        "nombre": "COMPUERTA TC-M09-290 — TEST publica una fuente formal de observaciones VISION",
+        "fallo": true
+      }
+    ],
+    "totales": {
+      "total": 5,
+      "pending": 0,
+      "failed": 2
+    }
+  },
+  "TC-M09-290": {
+    "ambiente": "TEST",
+    "prueba_local": false,
+    "resultado": "BLOQUEADO / NO VERIFICABLE",
+    "motivo": "No existe en TEST ninguna fuente formal de observaciones VISION: el contrato no publica vector de comportamiento, ventana de observación, línea base, ε, máximo de iteraciones, p5/p95 ni refinamiento, y el único apto_para_ia pertenece a la calidad de telemetría de sensores. Sin esa fuente no puede demostrarse que la ventana relevante de (C1, A1) tiene count = 0, que es la condición intencional del caso: ausencia de estructura no es cero observaciones funcionales (§11). Tampoco existe una superficie de línea base donde comprobar que no se publicó ninguna, ni un evento M09 de calibración VISION que pudiera quedar en FALLIDO. Por eso no se registró el lote M02: hacerlo crearía un activo biológico real en TEST sin ningún oráculo que observar (§14).",
+    "fixture": {
+      "tipo_modelo_asignado_del_area": {
+        "schema": "EditarInfraestructuraDTO",
+        "valores": [
+          "MODELO_AVES",
+          "MODELO_PORCINOS",
+          "MODELO_ACUICULTURA",
+          "MODELO_ESPECIES_MEDIANAS",
+          "MODELO_ESPECIES_GRANDES",
+          "MODELO_RIESGO_CONTAGIO"
+        ]
+      },
+      "admite_MODELO_AVES": true,
+      "admite_POBLACIONAL_como_modelo_de_area": false,
+      "nota": "El área sí admite MODELO_AVES. POBLACIONAL no es un modelo de área sino el tipo de activo biológico del lote, y eso no es el impedimento: el impedimento es que no existe fuente de observaciones VISION que pueda tener count=0 demostrable.",
+      "ruta_disparador_m02": "POST /activos-biologicos"
+    },
+    "observaciones_count": null,
+    "nota_observaciones_count": "No es 0: es NO DETERMINABLE. No existe fuente consultable cuyo conteo pudiera ser cero.",
+    "m02_request": null,
+    "m02_response": null,
+    "trigger_signal": null,
+    "baseline_pre": null,
+    "baseline_post": null,
+    "audit_m09": null,
+    "posts_ejecutados": 0
+  },
+  "TC-M09-291": {
+    "ambiente": "TEST",
+    "prueba_local": false,
+    "resultado": "RECHAZADO",
+    "motivo": "TEST no publica ninguna operación manual VISION. 'VISION' no aparece como palabra en todo el contrato — las coincidencias de 'vision' son 'provisión' de suministros NIC-41 — y la única operación de calibración publicada es POST /configuracion/sensores/{id_sensor}/calibrar, que es de SENSOR: exige id_sensor en la ruta, su DTO no declara modo_calibracion y no admite un disparo por área. Sin operación manual VISION no puede obtenerse el 422 ni el evento RF-10 asociado. La propia matriz del caso trata esta ausencia como incumplimiento con evidencia OpenAPI (§22 y §56), no como bloqueo.",
+    "openapi_vision": {
+      "rutas_totales": 210,
+      "esquemas_totales": 305,
+      "ocurrencias_de_VISION_como_palabra": 0,
+      "coincidencias_por_subcadena": [
+        "consultar_provision_suministros_nic41__id_provision__get",
+        "corregir_provision_suministros_nic41__id_provision__correccion_post",
+        "corregirprovisiondto",
+        "id_provision",
+        "listar_versiones_provision_suministros_nic41_ciclo__id_gestion_fases__versiones_get",
+        "listaversionesprovisionresponse",
+        "monto_provision",
+        "naprovisionada",
+        "provision",
+        "provisionnic41response"
+      ],
+      "nota_subcadena": "Todas las coincidencias de 'vision' provienen de 'provisión' (suministros NIC-41). Se cuenta la palabra como token para no producir un falso positivo de operación VISION.",
+      "operaciones_de_calibracion_publicadas": [
+        "GET /configuracion/sensores/rangos-calibracion",
+        "GET /configuracion/sensores/{id_sensor}/calibraciones",
+        "GET /iot/monitoreo/historial",
+        "POST /configuracion/sensores/{id_sensor}/calibrar"
+      ],
+      "registrar_calibracion_dto": {
+        "properties": [
+          "id_dispositivo_iot",
+          "id_infraestructura",
+          "valor_referencia",
+          "ganancia",
+          "offset",
+          "fecha_calibracion",
+          "observaciones"
+        ],
+        "required": [
+          "id_dispositivo_iot",
+          "id_infraestructura",
+          "fecha_calibracion"
+        ],
+        "declara_modo_calibracion": false
+      },
+      "enums_con_VISION_o_CAMARA": []
+    },
+    "fixture": {
+      "A2": null,
+      "nota": "No se creó A2: la operación VISION ya se confirmó ausente (§22)."
+    },
+    "request_window": null,
+    "response": null,
+    "http_esperado": 422,
+    "http_obtenido": null,
+    "audit_m09": null,
+    "ip_registrada": null,
+    "posts_ejecutados": 0
+  },
+  "presupuesto": {
+    "postActivosBiologicosPlanificados": 1,
+    "postActivosBiologicosEjecutados": 0,
+    "postVisionManualPlanificados": 1,
+    "postVisionManualEjecutados": 0,
+    "escrituras_en_test": 0,
+    "sql_en_test": "ninguno; la decisión se resuelve con el contrato público"
+  },
+  "stop_all": {
+    "activado": false,
+    "motivo": "No se envió ningún POST VISION, así que no pudo generarse una línea base inesperada."
+  },
+  "resultado": "RECHAZADO",
+  "seguridad": {
+    "limpio": true,
+    "criterio": "La colección y este módulo solo consultan el contrato público. No hay login, ni token, ni cookie, ni cabecera Authorization que pudiera quedar en los artefactos."
+  }
+}

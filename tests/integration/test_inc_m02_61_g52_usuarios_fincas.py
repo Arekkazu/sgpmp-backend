@@ -129,10 +129,10 @@ def test_retirar_la_finca_revoca_el_acceso_sin_tocar_al_propietario(
     assert r.status_code == 200, r.text
     assert _permitidas(db_session, veterinario["id_usuario"], rol_sin_alcance_global) == []
     assert _permitidas(db_session, productor["id_usuario"], rol_sin_alcance_global) == [id_finca]
-    dueno = db_session.execute(
-        text("SELECT id_usuario FROM modulo9.fincas WHERE id_finca = :id"), {"id": id_finca},
-    ).scalar()
-    assert dueno == productor["id_usuario"]
+    # F3 retiró fincas.id_usuario: la API muestra como asignado el primer acceso activo.
+    db_session.expire_all()
+    finca = SqlAlchemyFincaRepository(db_session).obtener_por_id(id_finca)
+    assert finca is not None and finca.id_usuario == productor["id_usuario"]
 
     # Volver a asignarla reactiva la misma fila, sin duplicar.
     client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)

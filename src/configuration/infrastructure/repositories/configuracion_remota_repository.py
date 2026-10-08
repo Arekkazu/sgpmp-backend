@@ -56,6 +56,10 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
             raise_from_db_error(exc, {})
         return self._a_entidad(orm)
 
+    def obtener_por_id(self, id_configuracion_remota: int) -> Optional[ConfiguracionRemota]:
+        orm = self.db.get(ConfiguracionRemotaModel, id_configuracion_remota)
+        return self._a_entidad(orm) if orm else None
+
     def obtener_pendiente(self, id_dispositivo_iot: int) -> Optional[ConfiguracionRemota]:
         orm = (
             self.db.query(ConfiguracionRemotaModel)

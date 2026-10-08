@@ -1,14 +1,17 @@
 {
   "info": {
     "name": "RF-20 - TC-M09-G49 Validacion de datos al registrar area productiva",
-    "description": "Automatiza TC-M09-97 (finca inexistente/inactiva), TC-M09-98 (superficie <=0 rechazada / >0 aceptada), TC-M09-99 (nombre duplicado dentro de la misma finca) y TC-M09-100 (tipo de area del catalogo). NOTA: TC-M09-98 (mitad de aceptacion), TC-M09-99 y TC-M09-100 dependen de superar la validacion de tipo_area contra modulo9.tipos_area, que en el servidor de test compartido no existe (migracion 2dbb6d44046f no aplicada -- ver tests/Test_Testing/Test_Modulo9/RF-20/TC-M09-G48/NOTA_BLOQUEO.md). Esos items quedan en la coleccion tal como deberian comportarse (200/201) para servir de regresion en cuanto se aplique la migracion; hoy fallan con 500 por esa causa ya documentada, no por un defecto propio de este caso.",
+    "description": "Automatiza TC-M09-97 (finca inexistente/inactiva), TC-M09-98 (superficie <=0 rechazada / >0 aceptada), TC-M09-99 (nombre duplicado dentro de la misma finca, sin distinguir mayusculas), TC-M09-100 (tipo de area del catalogo modulo9.tipos_area) y, desde RF-20 v1.1 (RFC-009), TC-M09-257 (especie inexistente/inactiva -> 422 ESPECIE_INVALIDA) y TC-M09-258 (modelo incoherente con la especie o MODELO_RIESGO_CONTAGIO -> 422 INCOHERENCIA_ESPECIE_MODELO). Todos los payloads de area llevan especie_id (obligatorio en v1.1); la coleccion crea sus propias fincas y especies.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     { "key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test" },
     { "key": "token_admin", "value": "" },
     { "key": "id_finca_a_desactivar", "value": "" },
-    { "key": "id_finca_activa", "value": "" }
+    { "key": "id_finca_activa", "value": "" },
+    { "key": "sufijo_especie", "value": "" },
+    { "key": "id_especie_activa", "value": "" },
+    { "key": "id_especie_inactiva", "value": "" }
   ],
   "item": [
     {
@@ -39,6 +42,71 @@
       "response": []
     },
     {
+      "name": "Paso 2 - Registrar especie activa con tipo_modelo MODELO_AVES (RF-20 v1.1 exige especie_id)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const letras = 'abcdefghijklmnopqrstuvwxyz';",
+              "let sufijo = '';",
+              "for (let i = 0; i < 10; i++) sufijo += letras.charAt(Math.floor(Math.random() * letras.length));",
+              "pm.collectionVariables.set('sufijo_especie', sufijo);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Especie activa con tipo_modelo MODELO_AVES', function () {",
+              "    pm.expect(json.es_activo).to.eql(true);",
+              "    pm.expect(json.tipo_modelo).to.eql('MODELO_AVES');",
+              "});",
+              "pm.collectionVariables.set('id_especie_activa', json.id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves Validacion {{sufijo_especie}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G49\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
       "name": "TC-M09-97a - Rechaza finca_id inexistente (404)",
       "event": [
         {
@@ -64,7 +132,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inexistente\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 999999\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inexistente\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": 999999,\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -165,7 +233,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inactiva\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_a_desactivar}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Finca Inactiva\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"10.00\",\n  \"finca_id\": {{id_finca_a_desactivar}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -240,7 +308,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Cero\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"0\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Cero\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"0\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -273,7 +341,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Negativa\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"-5\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Negativa\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"-5\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -281,7 +349,7 @@
       "response": []
     },
     {
-      "name": "TC-M09-98c - Acepta superficie positiva minima (0.01) [BLOQUEADO: ver NOTA_BLOQUEO de TC-M09-G48]",
+      "name": "TC-M09-98c - Acepta superficie positiva minima (0.01)",
       "event": [
         {
           "listen": "test",
@@ -306,7 +374,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Minima\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"0.01\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Superficie Minima\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"0.01\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -314,7 +382,7 @@
       "response": []
     },
     {
-      "name": "TC-M09-99a - Registrar area base para probar duplicado [BLOQUEADO]",
+      "name": "TC-M09-99a - Registrar area base para probar duplicado",
       "event": [
         {
           "listen": "test",
@@ -336,7 +404,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Duplicado Test\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"50.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Galpon Duplicado Test\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"50.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -344,7 +412,7 @@
       "response": []
     },
     {
-      "name": "TC-M09-99b - Rechaza nombre duplicado en la misma finca, variando mayusculas [BLOQUEADO]",
+      "name": "TC-M09-99b - Rechaza nombre duplicado en la misma finca, variando mayusculas",
       "event": [
         {
           "listen": "test",
@@ -366,7 +434,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"GALPON DUPLICADO TEST\",\n  \"tipo_area\": \"galpon\",\n  \"superficie\": \"60.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"GALPON DUPLICADO TEST\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"60.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -374,7 +442,7 @@
       "response": []
     },
     {
-      "name": "TC-M09-100a - Acepta tipo de area incluido en el catalogo [BLOQUEADO]",
+      "name": "TC-M09-100a - Acepta tipo de area incluido en el catalogo",
       "event": [
         {
           "listen": "test",
@@ -384,7 +452,7 @@
               "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
               "const json = pm.response.json();",
               "console.log('Respuesta: ' + JSON.stringify(json));",
-              "pm.test('tipo_area reflejado', function () { pm.expect(json.tipo_area).to.eql('estanque'); });"
+              "pm.test('tipo_area reflejado', function () { pm.expect(json.tipo_area).to.eql('Estanque'); });"
             ]
           }
         }
@@ -397,7 +465,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Valido\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Valido\",\n  \"tipo_area\": \"estanque\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
@@ -405,14 +473,14 @@
       "response": []
     },
     {
-      "name": "TC-M09-100b - Rechaza tipo de area no reconocido en el catalogo [BLOQUEADO]",
+      "name": "TC-M09-100b - Rechaza tipo de area no reconocido en el catalogo",
       "event": [
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Rechazado por regla de negocio (422)', function () { pm.response.to.have.status(422); });",
+              "pm.test('Rechazado por dato invalido (400)', function () { pm.response.to.have.status(400); });",
               "const json = pm.response.json();",
               "console.log('Respuesta: ' + JSON.stringify(json));",
               "pm.test('Codigo TIPO_AREA_NO_RECONOCIDO', function () {",
@@ -430,10 +498,351 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Invalido\",\n  \"tipo_area\": \"TipoQueNoExiste\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}}\n}",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Tipo Invalido\",\n  \"tipo_area\": \"TipoQueNoExiste\",\n  \"superficie\": \"30.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}}\n}",
           "options": { "raw": { "language": "json" } }
         },
         "url": { "raw": "{{base_url}}/configuracion/infraestructuras", "host": ["{{base_url}}"], "path": ["configuracion", "infraestructuras"] }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-257a - Rechaza especie_id inexistente (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ESPECIE_INVALIDA', function () { pm.expect(json.error_code).to.eql('ESPECIE_INVALIDA'); });",
+              "pm.test('Senala el campo especie_id', function () { pm.expect(JSON.stringify(json.fields)).to.include('especie_id'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Especie Inexistente\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"20.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": 999999\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Registrar segunda especie para desactivarla",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Especie creada (201)', function () { pm.response.to.have.status(201); });",
+              "pm.collectionVariables.set('id_especie_inactiva', pm.response.json().id_especie);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Aves Inactiva {{sufijo_especie}}\",\n  \"descripcion\": \"Especie de prueba TC-M09-G49 (se desactiva)\",\n  \"tipo_modelo\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Paso - Desactivar esa especie",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Desactivacion aceptada (200)', function () { pm.response.to.have.status(200); });",
+              "pm.test('Queda inactiva', function () { pm.expect(pm.response.json().es_activo).to.eql(false); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/configuracion/especies/{{id_especie_inactiva}}/desactivar",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "especies",
+            "{{id_especie_inactiva}}",
+            "desactivar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-257b - Rechaza especie inactiva (422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo ESPECIE_INVALIDA', function () { pm.expect(json.error_code).to.eql('ESPECIE_INVALIDA'); });",
+              "pm.test('Senala el campo especie_id', function () { pm.expect(JSON.stringify(json.fields)).to.include('especie_id'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Especie Inactiva\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"20.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_inactiva}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258a - Acepta especie AVES con MODELO_AVES (coherente)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Aceptado (201)', function () { pm.response.to.have.status(201); });",
+              "const json = pm.response.json();",
+              "pm.test('Guarda especie y modelo coherente', function () {",
+              "    pm.expect(json.especie_id).to.eql(pm.collectionVariables.get('id_especie_activa'));",
+              "    pm.expect(json.tipo_modelo_asignado).to.eql('MODELO_AVES');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Modelo Coherente\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"20.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}},\n  \"tipo_modelo_asignado\": \"MODELO_AVES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258b - Rechaza especie AVES con MODELO_ESPECIES_GRANDES (incoherente, 422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo INCOHERENCIA_ESPECIE_MODELO', function () { pm.expect(json.error_code).to.eql('INCOHERENCIA_ESPECIE_MODELO'); });",
+              "pm.test('Senala el campo tipo_modelo_asignado', function () { pm.expect(JSON.stringify(json.fields)).to.include('tipo_modelo_asignado'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Modelo Incoherente\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"20.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}},\n  \"tipo_modelo_asignado\": \"MODELO_ESPECIES_GRANDES\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC-M09-258c - Rechaza MODELO_RIESGO_CONTAGIO (no asignable, 422)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Rechazado (422)', function () { pm.response.to.have.status(422); });",
+              "const json = pm.response.json();",
+              "console.log('Respuesta: ' + JSON.stringify(json));",
+              "pm.test('Codigo INCOHERENCIA_ESPECIE_MODELO', function () { pm.expect(json.error_code).to.eql('INCOHERENCIA_ESPECIE_MODELO'); });",
+              "pm.test('Senala el campo tipo_modelo_asignado', function () { pm.expect(JSON.stringify(json.fields)).to.include('tipo_modelo_asignado'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre_infraestructura\": \"Area Modelo Contagio\",\n  \"tipo_area\": \"Galpón\",\n  \"superficie\": \"20.00\",\n  \"finca_id\": {{id_finca_activa}},\n  \"especie_id\": {{id_especie_activa}},\n  \"tipo_modelo_asignado\": \"MODELO_RIESGO_CONTAGIO\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/configuracion/infraestructuras",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "configuracion",
+            "infraestructuras"
+          ]
+        }
       },
       "response": []
     }

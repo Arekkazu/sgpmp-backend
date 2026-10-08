@@ -94,8 +94,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
         ahora = datetime.now(timezone.utc)
         try:
-            # El trigger trg_auditar_activo_biologico requiere esta variable de sesión
-            self.db.execute(text("SET LOCAL app.usuario_id = :uid"), {"uid": activo.id_usuario})
+            # El trigger trg_auditar_activo_biologico requiere app.usuario_id, ya
+            # seteado una vez por request por get_current_user (F2).
             orm = ActivoBiologicoModel(
                 id_especie=activo.id_especie,
                 tipo=activo.tipo,
@@ -160,8 +160,9 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
         id_activo: int,
         *,
         ids_fincas_permitidas: Optional[list[int]] = None,
+        bloquear: bool = False,
     ) -> Optional[ActivoBiologico]:
-        orm = self.db.get(ActivoBiologicoModel, id_activo)
+        orm = self.db.get(ActivoBiologicoModel, id_activo, with_for_update=bloquear, populate_existing=bloquear)
         if orm is None:
             return None
         if ids_fincas_permitidas is not None and not self._pertenece_a_fincas(
@@ -331,8 +332,8 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             # detalles_activos_individuales -- tocarla hace que flush() emita
             # un UPDATE sobre el padre por primera vez en este método, lo que
             # dispara trg_auditar_activo_biologico (AFTER UPDATE), que exige
-            # esta variable de sesión (mismo patrón que guardar()).
-            self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': activo.id_usuario})
+            # app.usuario_id — ya seteado una vez por request (F2, mismo
+            # patrón que guardar()).
             orm.fecha_actualizacion = activo.fecha_actualizacion
             self.db.flush()
             self.db.refresh(orm)
@@ -347,7 +348,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 '       gf.id_ciclos_productivo_biologico, '
                 '       cp.nombre AS nombre_ciclo, '
                 '       gf.fecha_inicio, gf.fecha_finalizacion, gf.es_activa, '
-                '       gf.id_usuario, gf.motivo_cambio, '
+                '       gf.id_usuario, gf.motivo_cambio, gf.es_transicion_no_estandar, '
                 '       (SELECT COUNT(*) FROM modulo9.ciclos_productivos_biologicos cpb2 '
                 '        WHERE cpb2.id_ciclo_productivo = gf.id_ciclo_productiva) AS total_pasos '
                 'FROM modulo2.gestiones_fases gf '
@@ -404,12 +405,13 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 es_activa=r.es_activa,
                 id_usuario=r.id_usuario,
                 motivo_cambio=r.motivo_cambio,
+                es_transicion_no_estandar=r.es_transicion_no_estandar,
             ))
 
         return result
 
     def cerrar_gestion_activa(self, id_activo: int, fecha_fin: datetime, motivo: str, usuario_id: int) -> None:
-        self.db.execute(text('SET LOCAL app.usuario_id = :uid'), {'uid': usuario_id})
+        # app.usuario_id ya lo setea get_current_user una vez por request (F2).
         try:
             self.db.execute(
                 text(
@@ -494,6 +496,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             id_usuario=orm.id_usuario,
             fecha_finalizacion=orm.fecha_finalizacion,
             motivo_cambio=orm.motivo_cambio,
+            es_transicion_no_estandar=orm.es_transicion_no_estandar,
         )
 
     def crear_gestion_fase(self, gestion: GestionFase) -> GestionFase:
@@ -502,9 +505,11 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                 text(
                     'INSERT INTO modulo2.gestiones_fases '
                     '(id_activo_biologico, id_ciclo_productiva, id_ciclos_productivo_biologico, '
-                    'fecha_inicio, es_activa, id_usuario, motivo_cambio) '
-                    'VALUES (:id_activo, :id_ciclo, :id_fase_ciclo, :fecha_inicio, true, :id_usuario, :motivo) '
-                    'RETURNING id_gestion_fases, fecha_inicio, fecha_finalizacion, es_activa, id_usuario, motivo_cambio'
+                    'fecha_inicio, es_activa, id_usuario, motivo_cambio, es_transicion_no_estandar) '
+                    'VALUES (:id_activo, :id_ciclo, :id_fase_ciclo, :fecha_inicio, true, :id_usuario, :motivo, '
+                    ':es_no_estandar) '
+                    'RETURNING id_gestion_fases, fecha_inicio, fecha_finalizacion, es_activa, id_usuario, '
+                    'motivo_cambio, es_transicion_no_estandar'
                 ),
                 {
                     'id_activo': gestion.id_activo_biologico,
@@ -513,6 +518,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
                     'fecha_inicio': gestion.fecha_inicio,
                     'id_usuario': gestion.id_usuario,
                     'motivo': gestion.motivo_cambio,
+                    'es_no_estandar': gestion.es_transicion_no_estandar,
                 },
             )
             row = result.fetchone()
@@ -529,7 +535,7 @@ class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
             nombre_fase_actual=gestion.nombre_fase_actual,
             paso_actual=gestion.paso_actual,
             total_pasos=gestion.total_pasos,
-            es_transicion_no_estandar=gestion.es_transicion_no_estandar,
+            es_transicion_no_estandar=row.es_transicion_no_estandar,
             fecha_inicio=row.fecha_inicio,
             fecha_finalizacion=row.fecha_finalizacion,
             es_activa=row.es_activa,

@@ -1,0 +1,253 @@
+{
+  "info": {
+    "_postman_id": "tc-m02-g12-rf33-rev6",
+    "name": "TC-M02-G12 rev6 - Atributos dinamicos RF-16",
+    "description": "Reevaluacion rev6 TEST. No sobrescribe rev5. 013 no se repite (APROBADO rev5). 014 solo corre si GET /configuracion/metricas demuestra peso_destete activo con valor_min=20 y valor_max=40. Password via --env-var.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "loginOk", "value": "0" },
+    { "key": "especie_id", "value": "4" },
+    { "key": "infraestructura_id", "value": "" },
+    { "key": "metricasHttp", "value": "" },
+    { "key": "pesoDesteteOk", "value": "0" },
+    { "key": "metricasResumen", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin (unico)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (!pm.environment.get('contrasena')) { throw new Error('BLOQUEADO: --env-var contrasena'); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Login HTTP 200', function () { pm.response.to.have.status(200); });",
+              "let json = {}; try { json = pm.response.json(); } catch (e) {}",
+              "pm.test('Token presente', function () { pm.expect(json.token).to.be.a('string').and.not.empty; });",
+              "if (pm.response.code === 200 && json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "  pm.environment.set('token', json.token);",
+              "  pm.collectionVariables.set('loginOk', '1');",
+              "} else { pm.collectionVariables.set('loginOk', '0'); }"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena}}\"\n}" },
+        "url": "{{base_url}}/sesiones/"
+      }
+    },
+    {
+      "name": "02 - GET especie 4 Cachama Blanca",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET especies HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "const items = (json && json.items) || [];",
+              "const especie = items.find(function (e) { return Number(e.id_especie) === 4; });",
+              "pm.test('Existe especie id=4', function () { pm.expect(especie).to.exist; });",
+              "if (especie) {",
+              "  pm.test('id=4 es Cachama Blanca', function () {",
+              "    pm.expect(String(especie.nombre || '').toLowerCase()).to.include('cachama');",
+              "  });",
+              "  pm.test('Especie 4 activa', function () { pm.expect(especie.es_activo).to.eql(true); });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/especies?solo_activas=true"
+      }
+    },
+    {
+      "name": "03 - GET metricas RF-16 especie 4 (INC-M02-45-G12 / precondicion 014)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.collectionVariables.set('metricasHttp', String(pm.response.code));",
+              "pm.test('GET /configuracion/metricas HTTP 200 (no 500 historico)', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "if (pm.response.code !== 200) {",
+              "  pm.collectionVariables.set('pesoDesteteOk', '0');",
+              "  pm.collectionVariables.set('metricasResumen', 'GET metricas HTTP ' + pm.response.code);",
+              "  return;",
+              "}",
+              "const json = pm.response.json();",
+              "const items = (json && json.items) || [];",
+              "pm.collectionVariables.set('metricasResumen', JSON.stringify(items));",
+              "const pd = items.find(function (m) { return String(m.nombre || '').trim().toLowerCase() === 'peso_destete'; });",
+              "pm.test('peso_destete existe (no equivale a Peso)', function () { pm.expect(pd).to.exist; });",
+              "if (!pd) {",
+              "  pm.collectionVariables.set('pesoDesteteOk', '0');",
+              "  return;",
+              "}",
+              "pm.test('peso_destete id_metrica=25 o el ID real', function () { pm.expect(Number(pd.id_metrica_produccion)).to.eql(25); });",
+              "pm.test('peso_destete activo', function () { pm.expect(pd.es_activo).to.eql(true); });",
+              "pm.test('peso_destete id_especie=4', function () { pm.expect(Number(pd.id_especie)).to.eql(4); });",
+              "pm.test('peso_destete tipo_dato NUMERICO', function () { pm.expect(String(pd.tipo_dato)).to.eql('NUMERICO'); });",
+              "pm.test('peso_destete unidad kg', function () { pm.expect(String(pd.unidad_medida)).to.eql('kg'); });",
+              "pm.test('valor_min=20 y valor_max=40 en GET', function () {",
+              "  pm.expect(pd.valor_min, 'valor_min debe venir en GET').to.eql(20);",
+              "  pm.expect(pd.valor_max, 'valor_max debe venir en GET').to.eql(40);",
+              "});",
+              "const minOk = pd.valor_min !== undefined && pd.valor_min !== null && Number(pd.valor_min) === 20;",
+              "const maxOk = pd.valor_max !== undefined && pd.valor_max !== null && Number(pd.valor_max) === 40;",
+              "pm.collectionVariables.set('pesoDesteteOk', (pd.es_activo === true && minOk && maxOk) ? '1' : '0');"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4&solo_activas=true"
+      }
+    },
+    {
+      "name": "03b - GET metricas especie 4 sin solo_activas",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET metricas (todas) registra HTTP real', function () {",
+              "  pm.expect(pm.response.code).to.be.a('number');",
+              "});",
+              "pm.test('GET metricas (todas) no es 500 historico', function () {",
+              "  pm.expect(pm.response.code).to.not.eql(500);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/metricas?id_especie=4"
+      }
+    },
+    {
+      "name": "04 - GET infraestructura 3 Alevinera-01",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": { "type": "text/javascript", "exec": ["if (pm.collectionVariables.get('loginOk') !== '1') { pm.execution.skipRequest(); }"] }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('loginOk') !== '1') { pm.test.skip('Login no OK'); return; }",
+              "pm.test('GET infra HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const items = ((pm.response.json() || {}).items) || [];",
+              "const infra = items.find(function (i) { return Number(i.id_infraestructura) === 3; });",
+              "pm.test('Existe infraestructura id=3', function () { pm.expect(infra).to.exist; });",
+              "if (infra) {",
+              "  pm.test('id=3 es Alevinera-01 activa', function () {",
+              "    pm.expect(String(infra.nombre_infraestructura || '')).to.include('Alevinera');",
+              "    pm.expect(infra.es_activo).to.eql(true);",
+              "  });",
+              "  pm.collectionVariables.set('infraestructura_id', '3');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/configuracion/infraestructuras?finca_id=1&solo_activas=true"
+      }
+    },
+    {
+      "name": "06 - TC-M02-014 POST peso_destete=5 fuera de rango",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["if (pm.collectionVariables.get('pesoDesteteOk') !== '1' || pm.collectionVariables.get('infraestructura_id') !== '3') { pm.execution.skipRequest(); }"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.collectionVariables.get('pesoDesteteOk') !== '1') {",
+              "  pm.test.skip('TC-M02-014 NO EJECUTABLE: GET metricas no demuestra valor_min=20 y valor_max=40');",
+              "  return;",
+              "}",
+              "if (pm.collectionVariables.get('infraestructura_id') !== '3') {",
+              "  pm.test.skip('TC-M02-014 NO EJECUTABLE: infraestructura 3 no confirmada');",
+              "  return;",
+              "}",
+              "pm.test('TC-M02-014 HTTP 400 o 422 de rango (no 201, no 500)', function () {",
+              "  pm.expect([400, 422]).to.include(pm.response.code);",
+              "});",
+              "const json = pm.response.json();",
+              "pm.test('TC-M02-014 error_code ATRIBUTO_FUERA_DE_RANGO', function () {",
+              "  pm.expect(json.error_code).to.eql('ATRIBUTO_FUERA_DE_RANGO');",
+              "});",
+              "pm.test('TC-M02-014 no crea activo', function () {",
+              "  pm.expect(json.id_activo_biologico).to.eql(undefined);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"tipo_activo\": \"POBLACIONAL\",\n  \"id_especie\": 4,\n  \"fecha_inicio_ciclo\": \"2026-09-09\",\n  \"origen_financiero\": \"nacimiento\",\n  \"costo_adquisicion\": null,\n  \"soporte_documental\": null,\n  \"id_infraestructura\": 3,\n  \"atributos_dinamicos\": { \"peso_destete\": 5 },\n  \"identificador\": null,\n  \"raza\": null,\n  \"sexo\": null,\n  \"fecha_nacimiento\": null,\n  \"peso_inicial\": null,\n  \"cantidad_inicial\": 10,\n  \"peso_promedio_inicial\": 2.5\n}"
+        },
+        "url": "{{base_url}}/activos-biologicos"
+      }
+    }
+  ]
+}

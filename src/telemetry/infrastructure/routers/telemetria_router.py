@@ -28,7 +28,7 @@ from src.telemetry.infrastructure.dto.ingerir_telemetria_dto import IngerirTelem
 from src.telemetry.application.use_cases.calidad.evaluar_calidad_telemetria_use_case import EvaluarCalidadTelemetriaUseCase
 from src.telemetry.application.use_cases.infraestructura.vincular_lectura_activo_use_case import VincularLecturaActivoUseCase
 from src.telemetry.application.use_cases.monitoreo.reclasificar_semaforo_use_case import ReclasificarSemaforoUseCase
-from src.telemetry.infrastructure.adapters.activo_biologico_stub_adapter import ActivoBiologicoStubAdapter
+from src.telemetry.infrastructure.adapters.activo_biologico_m02_adapter import ActivoBiologicoM02Adapter
 from src.telemetry.infrastructure.adapters.especie_activo_m02_adapter import EspecieActivoM02Adapter
 from src.telemetry.infrastructure.adapters.parametros_calidad_stub_adapter import ParametrosCalidadStubAdapter
 from src.telemetry.infrastructure.adapters.umbral_historico_m09_adapter import UmbralHistoricoM09Adapter
@@ -55,7 +55,7 @@ def _build_use_case(db: Session) -> IngerirTelemetriaUseCase:
         vincular_use_case=VincularLecturaActivoUseCase(
             db=db,
             vinculacion_repo=SqlAlchemyVinculacionLecturaRepository(db),
-            activo_port=ActivoBiologicoStubAdapter(),
+            activo_port=ActivoBiologicoM02Adapter(db),
         ),
         evaluar_calidad_use_case=EvaluarCalidadTelemetriaUseCase(
             db=db,

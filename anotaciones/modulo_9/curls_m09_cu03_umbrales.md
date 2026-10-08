@@ -58,11 +58,27 @@ Respuesta esperada `201` (solo si el Nodo Edge confirmó `APLICADA` — ver nota
 }
 ```
 
-**INC-M09-104-G29 (RF-17):** `estado_sincronizacion` refleja el intento de propagar la
-configuración hacia el Nodo Edge (`PENDIENTE` / `APLICADA` / `NO_CONF`). El umbral y su
-estado de sincronización quedan guardados en base de datos **antes** de evaluar el
-resultado de la propagación (dos commits separados). Si el resultado no es `APLICADA`,
-el RF-17 (flujo alterno "Error de sincronización con el Nodo Edge") exige responder:
+**INC-M09-104-G29 (RF-17):** después de guardar, el umbral se propaga a cada Gateway Edge
+activo de las áreas activas de la especie, por el broker MQTT (`POST /v1/commands` con
+`origen: "umbral"`; el broker espera hasta 30 s el `ACK_UMBRAL` de cada Edge). Los
+resultados se consolidan en un único `estado_sincronizacion` (`PENDIENTE` / `APLICADA` /
+`NO_CONF`), que queda guardado **antes** de responder (dos commits separados). La
+respuesta puede tardar hasta ~35 s mientras se espera el ACK.
+
+**TC-M09-58-G22 (#459) — cuándo responde 201 y cuándo 500:**
+
+| Resultado de los Gateway Edge | `estado_sincronizacion` | Respuesta |
+|---|---|---|
+| todos confirmaron | `APLICADA`, con `fecha_ultima_sincronizacion` | `201` (alta) / `200` (edición) |
+| alguno desconectado del broker (TC-M09-63): el Edge avisó su desconexión y el broker no publica | `PENDIENTE` ("Pendiente de Sincronización"), con el motivo en `motivo_fallo_sincronizacion` | `500` `FALLO_SINCRONIZACION_EDGE` |
+| alguno no confirmó (sin ACK en 30 s, broker caído o con error) | `NO_CONF` | `500` `FALLO_SINCRONIZACION_EDGE` |
+| la especie no tiene Gateway Edge, o el broker no está configurado en el ambiente (no hubo intento) | `PENDIENTE`, con el motivo | `201` / `200` |
+
+Al **editar**, el umbral queda `PENDIENTE` desde el primer commit, hasta que el resultado
+de la propagación lo reemplace.
+
+Los dos casos con `500` son el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17
+(el Edge sigue con el umbral anterior), que exige responder:
 
 ```
 HTTP 500
@@ -72,16 +88,12 @@ HTTP 500
 }
 ```
 
-Hoy el contrato real del broker MQTT para umbrales (destino, topic, payload, ACK) aún no
-está definido por el equipo de IoT, así que `EdgeSincronizacionStubAdapter` siempre
-degrada a `PENDIENTE` — en la práctica **todo** `POST`/`PATCH` de umbrales responde `500`
-hasta que exista una implementación real del adaptador. Esto es intencional por mandato
-del RF-17, no un defecto: la configuración queda igualmente guardada y consultable via
-`GET`, solo la respuesta HTTP de la escritura refleja que el Edge no confirmó. Ver
+Contrato completo (payload, ACK, cómo simular el Edge con `mosquitto_pub`):
+`INTEGRACION_DISPOSITIVOS_RF17.md` del repo `BROKER-MQTT-SGPMP`. Ver también
 `anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
 
 Errores posibles:
-- `500` — el Nodo Edge no confirmó la propagación (`PENDIENTE`/`NO_CONF`) — ver arriba
+- `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`) o está desconectado (`PENDIENTE`, TC-M09-63), tras haber guardado — ver arriba
 - `422` — especie inactiva (FA-01)
 - `404` — variable ambiental no existe o inactiva
 - `409` — ya existe umbral para esa especie-variable (FA-02)
@@ -155,10 +167,11 @@ Errores posibles:
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
 - `400` — solapamiento de niveles (FA-05)
-- `500` — el Nodo Edge no confirmó la re-propagación (`PENDIENTE`/`NO_CONF`), igual que en el Flujo A
+- `500` — el Nodo Edge no confirmó la re-propagación (`NO_CONF`), igual que en el Flujo A
 
 Igual que en el Flujo A, la edición también dispara un intento de re-propagación hacia
-el Nodo Edge (INC-M09-104-G29): el `200` solo llega si el Edge confirmó `APLICADA`.
+el Nodo Edge (INC-M09-104-G29): el `200` llega con `APLICADA` o `PENDIENTE` (TC-M09-58-G22, #459)
+y el `500` solo si el intento falló.
 
 ---
 

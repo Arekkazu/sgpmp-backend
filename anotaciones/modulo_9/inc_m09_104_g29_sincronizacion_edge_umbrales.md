@@ -3,6 +3,53 @@
 **RF:** RF-17 (CU03 — Configurar Umbrales y Alertas Ambientales). **Grupo:** TC-M09-G29.
 **Casos:** TC-M09-62 (propagación), TC-M09-63 (fallo de sincronización). **Severidad:** Severo.
 
+> **Reevaluación V4 (2026-10-05, issue #493) — el stub se reemplaza por propagación real.**
+> QA rechazó TC-M09-62 porque `POST`/`PATCH` seguían inyectando `EdgeSincronizacionStubAdapter`
+> (siempre `PENDIENTE`, sin MQTT; censo DEV: 10/10 umbrales `PENDIENTE`, 0 con
+> `fecha_ultima_sincronizacion`). Las secciones de abajo describen la primera ronda; lo vigente es
+> esta.
+>
+> **Contrato acordado entre backend y broker** (lado broker: `BROKER-MQTT-SGPMP`, rama
+> `feature/rf17-propagacion-umbrales-edge`, contrato para AIoT en `INTEGRACION_DISPOSITIVOS_RF17.md`):
+>
+> | Pieza | Decisión |
+> |---|---|
+> | Destino | Los **Gateway Edge** activos (tipo `GATEWAY_EDGE`) de las áreas activas de la especie —las que tienen su `id_especie` o activos biológicos vivos de ella, mismo criterio que #253—: instalados en el área o que atienden un dispositivo activo del área. Es quien evalúa las lecturas en campo (`modulo3.eventos_edge_computing.umbral_*_aplicado`) y lo único que habla MQTT |
+> | Resolución | `modulo9.fn_seriales_gateway_edge_por_especie(int)`, `SECURITY DEFINER` (migración `a3c9e5d17b42`): la política de `dispositivos_iot` solo deja leer a Administrador/Ingeniero, pero un Veterinario también edita umbrales |
+> | Transporte | `POST /v1/commands` con `origen: "umbral"` por Gateway, en paralelo; el broker publica en el topic `command` ya existente del Edge con `tipo_comando: "UMBRAL_AMBIENTAL"` (sin topics ni ACL nuevos) |
+> | Payload | `id_comando`, `emitido_en`, `id_umbral_ambiental`, `version` (= `fecha_actualizacion`), `variable` (nombre de telemetría), `unidad`, `valor_min`, `valor_max`, `niveles[]` |
+> | ACK / timeout | `{"tipo_mensaje":"ACK_UMBRAL","resultado":"OK","id_comando":...}` en `status`; 30 s (`MQTT_ACK_TIMEOUT_SECONDS`) |
+> | Estado del umbral | todos `APLICADA` → `APLICADA` + `fecha_ultima_sincronizacion`; alguno `NO_CONF` → `NO_CONF` + 500; alguno `PENDIENTE` (Edge desconectado, TC-M09-63) → `PENDIENTE` + 500; sin Gateway o sin broker configurado → `PENDIENTE` (201/200) |
+>
+> **Tres defectos encontrados en el camino**, todos necesarios para que `APLICADA` llegue a BD:
+>
+> 1. **El segundo commit perdía la identidad RLS.** `set_config(..., true)` muere en el primer
+>    `commit()`, y la política UPDATE de `umbrales_ambientales` filtra la fila sin rol: verificado
+>    en `sgpmp_dev` con `member_dev` (sin `BYPASSRLS`), en transacción revertida — **0 filas sin
+>    contexto, 1 con rol Veterinario**. Aunque el Edge confirmara, `APLICADA` nunca se habría
+>    guardado. Fix: `src/shared/contexto_rls.py` guarda el contexto en `Session.info` y lo vuelve a
+>    declarar (sigue siendo local) en cada transacción nueva de la misma sesión. Beneficia también a
+>    RF-23 (`ConfigurarRemotamenteUseCase`, mismo patrón de dos commits).
+> 2. **La correlación de ACK en el broker era una sola por serial.** Un Edge recibe varios umbrales
+>    seguidos (uno por variable) y la segunda espera pisaba a la primera → `NO_CONF` falso. Ahora se
+>    indexa por `(serial, id_comando)` y tipo de ACK (cambio en el broker).
+> 3. **Editar no reseteaba el estado.** Si la propagación no alcanzaba a persistir, el umbral
+>    editado seguía mostrando el `APLICADA` de la versión anterior. `UmbralAmbiental.actualizar()`
+>    ahora lo deja `PENDIENTE`.
+>
+> **Edge (SerBy48/EDGE-FIRMWARE-SGPMP#5):** el `edge_agent` distingue `tipo_comando`, guarda el
+> umbral en `umbrales.json` y publica el `ACK_UMBRAL`. Debe instalarse en los Raspberry **antes**
+> que este backend y el broker: con el agente anterior cada umbral termina en `NO_CONF` (500) a los 30 s.
+> **TC-M09-63** (Edge offline): con sesión persistente Mosquitto sigue listando la conexión del Edge
+> caído, así que el Edge publica `{"tipo_mensaje": "DESCONEXION"}` en su `status` (Last Will y antes
+> de un cierre ordenado) y el broker no publica: `PENDIENTE` + 500 al instante, y el Edge conserva el
+> último umbral guardado. Como el broker no publica, no hay reenvío al reconectar: se propaga en la
+> próxima edición (igual que RF-23).
+>
+> **🔴 Migración `a3c9e5d17b42` requiere DBA** (crea la función; `member_dev` no puede migrar ni
+> leer `tipos_dispositivo_iot`, así que solo se validó en modo offline `alembic upgrade --sql`).
+> Sin ella, `POST`/`PATCH` fallan al buscar destinos.
+
 ## Qué reportó QA
 
 El flujo de `POST`/`PATCH` de umbrales termina en persistencia + auditoría + `201`/`200`, sin
@@ -61,6 +108,25 @@ y `EditarUmbralUseCase` primero persisten el umbral y su `estado_sincronizacion`
 igual que antes), y **luego** lanzan `InfrastructureError('FALLO_SINCRONIZACION_EDGE', ...)` si el
 resultado no fue `APLICADA` — el dato nunca se pierde, solo la respuesta HTTP refleja el fallo de
 sincronización tal como pide el RF.
+
+> **Actualización — TC-M09-58-G22 (#459, 2026-09-26): `PENDIENTE` ya no responde 500.**
+> El párrafo anterior decía "`500` si el resultado no fue `APLICADA`". Con el stub eso significa
+> que **toda** alta o edición válida responde 500 (el stub nunca intenta propagar y devuelve
+> siempre `PENDIENTE`), aunque no haya ningún fallo que reportar: QA lo reprodujo en los cuatro
+> casos de TC-M09-G22 — el umbral queda guardado y el cliente recibe un error. El flujo alterno
+> del RF-17 habla de una propagación que **falla**; "todavía no hay integración" no es eso.
+>
+> Criterio vigente (`ESTADOS_SINCRONIZACION_SIN_FALLO` en `registrar_umbral_use_case.py`):
+>
+> | `estado` del puerto | Significado | Respuesta |
+> |---|---|---|
+> | `APLICADA` | el Edge confirmó | 201 (alta) / 200 (edición) |
+> | `PENDIENTE` | no se intentó o quedó encolado (hoy: sin contrato con IoT) | 201 / 200, con `estado_sincronizacion: "PENDIENTE"` en el cuerpo |
+> | `NO_CONF` u otro | se intentó y falló (broker caído, timeout, sin ACK) | persiste y responde **500** `FALLO_SINCRONIZACION_EDGE` |
+>
+> Consecuencia para quien implemente el adaptador real: `EdgeSincronizacionPort` documenta que un
+> fallo de comunicación debe devolver `NO_CONF`, **no** `PENDIENTE`; si no, el 500 del RF-17 se
+> volvería a ocultar. El 500 se declara ahora en `responses` de `POST` y `PATCH` (OpenAPI).
 
 ## Fix
 
@@ -139,16 +205,15 @@ correr `alembic upgrade head` de forma definitiva antes de mergear.
 
 ## Pruebas
 
-- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (11 casos, fakes sin
-  BD): llamada al edge port con el payload correcto, persistencia de cada estado
-  (`PENDIENTE`/`APLICADA`/`NO_CONF`) **antes** de responder, confirmación de que `PENDIENTE` y
-  `NO_CONF` lanzan `InfrastructureError` (500) tras persistir — no antes —, que `APLICADA` no
-  lanza nada, que `EditarUmbralUseCase` también re-propaga y responde igual, que el stub siempre
-  degrada a `PENDIENTE`, y el estado por defecto de un umbral recién creado.
-- Suite completa `tests/configuration -m "not integration"`: 250 passed.
-- Nota: mientras el contrato real del broker no exista, `EdgeSincronizacionStubAdapter` siempre
-  degrada a `PENDIENTE`, así que en la práctica todo `POST`/`PATCH` de umbrales responde `500`
-  hoy — comportamiento intencional por mandato literal de RF-17, no una regresión.
+- `tests/configuration/test_inc_m09_104_g29_sincronizacion_edge_umbrales.py` (fakes sin BD):
+  llamada al edge port con el payload correcto, persistencia de cada estado
+  (`PENDIENTE`/`APLICADA`/`NO_CONF`) **antes** de responder, que `NO_CONF` y cualquier estado
+  desconocido lanzan `InfrastructureError` (500) tras persistir — no antes —, que `APLICADA` y
+  `PENDIENTE` no lanzan nada (#459), que `EditarUmbralUseCase` aplica el mismo criterio, que con
+  el stub real el alta válida ya no responde 500, y el estado por defecto de un umbral nuevo.
+- Mientras el contrato real del broker no exista, `EdgeSincronizacionStubAdapter` siempre
+  devuelve `PENDIENTE`: las altas y ediciones responden 201/200 con `estado_sincronizacion:
+  "PENDIENTE"` y el 500 solo aparecerá cuando un adaptador real reporte `NO_CONF`.
 
 ## Fuera de alcance
 
