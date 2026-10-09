@@ -79,6 +79,25 @@ def enmascarar_identificacion(numero: Optional[str]) -> Optional[str]:
     return numero[:4] + "*" * (len(numero) - 4)
 
 
+def obtener_fincas_asignadas(db: Session, id_usuario: int) -> list[dict]:
+    """Fincas con acceso activo en ``modulo9.usuarios_fincas`` (RF-25).
+
+    La comparten el detalle administrativo y el perfil propio: sin ella
+    ``GET /usuarios/me`` respondía ``fincas: []`` para todo usuario y parecía
+    que nadie tenía finca (#312).
+    """
+    filas = db.execute(
+        text(
+            "SELECT f.id_finca, f.nombre FROM modulo9.usuarios_fincas uf "
+            "JOIN modulo9.fincas f ON f.id_finca = uf.id_finca "
+            "WHERE uf.id_usuario = :id_usuario AND uf.es_activo IS TRUE "
+            "ORDER BY f.nombre"
+        ),
+        {"id_usuario": id_usuario},
+    ).mappings().all()
+    return [{"id_finca": f["id_finca"], "nombre": f["nombre"]} for f in filas]
+
+
 class ConsultarDetalleUsuarioUseCase:
     """Orquesta la consulta del detalle de un usuario con enmascarado condicional de ID."""
 
@@ -176,21 +195,8 @@ class ConsultarDetalleUsuarioUseCase:
             "nombre_rol": detalle.nombre_rol,
             "estado_cuenta": detalle.estado_cuenta,
             "version": detalle.version,
-            "fincas": self._obtener_fincas_asignadas(id_usuario),
+            "fincas": obtener_fincas_asignadas(self.db, id_usuario),
         }
-
-    def _obtener_fincas_asignadas(self, id_usuario: int) -> list[dict]:
-        """Fincas con acceso activo en ``modulo9.usuarios_fincas`` (RF-25)."""
-        filas = self.db.execute(
-            text(
-                "SELECT f.id_finca, f.nombre FROM modulo9.usuarios_fincas uf "
-                "JOIN modulo9.fincas f ON f.id_finca = uf.id_finca "
-                "WHERE uf.id_usuario = :id_usuario AND uf.es_activo IS TRUE "
-                "ORDER BY f.nombre"
-            ),
-            {"id_usuario": id_usuario},
-        ).mappings().all()
-        return [{"id_finca": f["id_finca"], "nombre": f["nombre"]} for f in filas]
 
     def _verificar_ritmo_de_consulta(self, usuario_actual: UsuarioActual) -> None:
         """Corta la consulta si el actor está extrayendo fichas de forma masiva.
