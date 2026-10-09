@@ -1,3 +1,10 @@
+## [1.0.0-rc.81](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.80...v1.0.0-rc.81) (2026-10-09)
+
+### Bug Fixes
+
+* **rf13-mod1:** incluir las fincas asignadas en el perfil propio (Arekkazu/SGPMP-FRONT-END-PWA[#312](https://github.com/Arekkazu/sgpmp-backend/issues/312)) ([9a373ce](https://github.com/Arekkazu/sgpmp-backend/commit/9a373ceb01e02c0dbb7bfe5dd73b0021ca41a1ce))
+* **rf58-mod3:** devolver la unidad filtrada en el resumen del dashboard (Arekkazu/SGPMP-FRONT-END-PWA[#317](https://github.com/Arekkazu/sgpmp-backend/issues/317)) ([722643f](https://github.com/Arekkazu/sgpmp-backend/commit/722643fe1104b60613648bf7fd07e2a5c9dd6f0a))
+
 ## [1.0.0-rc.80](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.79...v1.0.0-rc.80) (2026-10-09)
 
 ### Bug Fixes
