@@ -64,6 +64,10 @@ services:
       RF71_INTERNAL_KEY: ${RF71_INTERNAL_KEY:-}
       MQTT_BROKER_URL: ${MQTT_BROKER_URL:?MQTT_BROKER_URL requerido para TEST}
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN:?MQTT_BROKER_TOKEN requerido para TEST}
+      # Sandbox transaccional de pruebas (rollback por X-Test-Run-Id). Apagado por
+      # defecto: solo se activa definiendo ENABLE_TEST_SANDBOX=true en este entorno.
+      ENABLE_TEST_SANDBOX: ${ENABLE_TEST_SANDBOX:-false}
+      TEST_SANDBOX_SECRET: ${TEST_SANDBOX_SECRET:-}
     expose:
       - "8000"
     depends_on:
