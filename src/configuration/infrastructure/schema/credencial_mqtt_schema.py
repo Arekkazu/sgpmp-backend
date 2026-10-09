@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.configuration.domain.repositories.mqtt_port import CredencialMqtt, EstadoCredencialMqtt
 
@@ -25,8 +25,17 @@ class EstadoCredencialMqttResponse(BaseModel):
     # emitida=False: el dispositivo no tiene credencial propia (usa la compartida
     # o se comunica a través de su Gateway Edge).
     emitida: bool
-    habilitada: bool = False
-    conectada: bool = False
+    habilitada: bool = Field(default=False, description="La credencial está activa en el broker (no revocada).")
+    conectada: bool = Field(
+        default=False,
+        description=(
+            "El broker tiene una sesión MQTT viva de este usuario y el Edge no avisó su "
+            "desconexión (Last Will DESCONEXION). Un corte de red sin cierre tarda hasta "
+            "1,5 × keepalive en reflejarse. No basta para RF-17/RF-23: el broker además "
+            "exige estado_actual = ACTIVO (RF-60, GET /iot/dispositivos/{id}/estado); "
+            "si no, el comando queda PENDIENTE sin publicarse."
+        ),
+    )
     usuario: Optional[str] = None
     seriales: list[str] = []
 

@@ -92,6 +92,46 @@ Contrato completo (payload, ACK, cómo simular el Edge con `mosquitto_pub`):
 `INTEGRACION_DISPOSITIVOS_RF17.md` del repo `BROKER-MQTT-SGPMP`. Ver también
 `anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
 
+**INC-M09-70-G29 (#532) — trazabilidad de cada propagación.** Cada alta o edición deja,
+tras persistir el estado (también cuando responde 500), un evento en la bitácora IoT
+(RF-63, recurso 39 · Leer):
+
+```bash
+curl "http://localhost:8000/iot/auditoria?tipo_evento=PROPAGACION_UMBRAL_EDGE&entidad_afectada_id=<id_umbral_ambiental>" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+```json
+{
+  "tipo_evento": "PROPAGACION_UMBRAL_EDGE",
+  "resultado": "FALLIDO",
+  "entidad_afectada_tipo": "UMBRAL",
+  "entidad_afectada_id": "64",
+  "accion_detallada": {
+    "id_umbral_ambiental": 64,
+    "estado": "NO_CONF",
+    "version": "2026-10-08T20:09:06.123456+00:00",
+    "variable": "Temperatura",
+    "motivo": "RASPBERRY3BPRUEBA2: El broker MQTT no propagó el umbral. Causa: el broker respondió HTTP 422: {...}.",
+    "duracion_ms": 1278,
+    "gateways": [
+      {"serial": "RASPBERRY3BPRUEBA2", "estado": "NO_CONF", "publicado": false, "ack_umbral": false, "mensaje": "..."}
+    ]
+  }
+}
+```
+
+- `resultado`: `EXITOSO` (APLICADA), `FALLIDO` (lo que responde 500) o `ADVERTENCIA` (sin Gateway o sin broker).
+- `publicado`: el broker publicó el comando en MQTT. `false` con `PENDIENTE` = el Gateway estaba
+  desconectado; `false` con `NO_CONF` = el broker no se alcanzó o rechazó el comando (la causa
+  está en `mensaje`); `true` sin ACK = el Edge no confirmó en 30 s.
+- `ack_umbral`: llegó el `ACK_UMBRAL` de ese Edge.
+- `duracion_ms`: ida y vuelta backend → broker → Edge → ACK (los Gateway se llaman en paralelo).
+- **Configuración efectiva del Edge:** el Edge confirma solo después de guardar `umbrales.json`,
+  así que la última `version` con `ack_umbral: true` de un Gateway es la que tiene vigente.
+
+El mismo detalle de la causa queda en `motivo_fallo_sincronizacion` del umbral.
+
 Errores posibles:
 - `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`) o está desconectado (`PENDIENTE`, TC-M09-63), tras haber guardado — ver arriba
 - `422` — especie inactiva (FA-01)

@@ -1,4 +1,5 @@
-"""Puerto (ABC) para auditar la emisión y revocación de credenciales MQTT (TC-M09-250/251).
+"""Puerto (ABC) para auditar credenciales MQTT (TC-M09-250/251) y la propagación de
+umbrales al Nodo Edge (RF-17, INC-M09-70-G29).
 
 La bitácora es ``modulo3.bitacora_auditoria_iot`` (RF-63), de otro módulo: el
 adaptador la alcanza sin que el caso de uso la conozca. No se audita en
@@ -11,7 +12,7 @@ from abc import ABC, abstractmethod
 
 
 class BitacoraIotPort(ABC):
-    """Puerto hacia la bitácora IoT de M03 para auditar credenciales MQTT."""
+    """Puerto hacia la bitácora IoT de M03."""
 
     @abstractmethod
     def registrar(
@@ -25,4 +26,22 @@ class BitacoraIotPort(ABC):
         detalle: dict,
     ) -> None:
         """Best-effort: nunca lanza. ``detalle`` jamás debe incluir la contraseña."""
+        ...
+
+    @abstractmethod
+    def registrar_propagacion_umbral(
+        self,
+        *,
+        evento: str,
+        id_umbral_ambiental: int,
+        id_usuario: int,
+        estado: str,
+        fallo: bool,
+        detalle: dict,
+    ) -> None:
+        """Un intento de propagar un umbral a sus Gateway Edge. Best-effort: nunca lanza.
+
+        ``estado`` es el consolidado del umbral; ``fallo`` indica si RF-17 lo
+        reporta como error (500) o si no hubo a quién/con qué enviarlo.
+        """
         ...

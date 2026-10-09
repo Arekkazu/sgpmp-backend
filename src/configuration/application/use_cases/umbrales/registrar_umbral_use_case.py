@@ -10,6 +10,7 @@ from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 from src.configuration.domain.entities.variable_ambiental import VariableAmbiental
 from src.configuration.application.use_cases.umbrales.sincronizar_umbral_edge import sincronizar_umbral_con_edge
 from src.configuration.domain.repositories.auditoria_umbral_repository import AuditoriaUmbralRepository
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
 from src.configuration.domain.repositories.destino_edge_repository import DestinoEdgeRepository
 from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
 from src.configuration.domain.repositories.especie_repository import EspecieRepository
@@ -103,6 +104,7 @@ class RegistrarUmbralUseCase:
         auditoria_repo: AuditoriaUmbralRepository,
         destino_repo: DestinoEdgeRepository,
         edge_port: EdgeSincronizacionPort,
+        bitacora: BitacoraIotPort,
     ) -> None:
         self.db = db
         self.umbral_repo = umbral_repo
@@ -111,6 +113,7 @@ class RegistrarUmbralUseCase:
         self.auditoria_repo = auditoria_repo
         self.destino_repo = destino_repo
         self.edge_port = edge_port
+        self.bitacora = bitacora
 
     def execute(self, dto: RegistrarUmbralDTO, usuario_actual: UsuarioActual) -> UmbralAmbiental:
         # FA-01: especie activa
@@ -188,4 +191,6 @@ class RegistrarUmbralUseCase:
             umbral_repo=self.umbral_repo,
             destino_repo=self.destino_repo,
             edge_port=self.edge_port,
+            bitacora=self.bitacora,
+            id_usuario=usuario_actual.id_usuario,
         )

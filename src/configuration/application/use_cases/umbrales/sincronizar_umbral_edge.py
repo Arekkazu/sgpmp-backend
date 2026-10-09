@@ -23,14 +23,23 @@ hubo a quién enviarlo o con qué (TC-M09-58-G22, #459: sin intento no hay
 fallo que reportar). Con el Edge desconectado el broker no publica, así que
 no hay reenvío automático al reconectar (igual que RF-23): el umbral se
 propaga en la próxima edición.
+
+INC-M09-70-G29: cada intento queda en la bitácora IoT (RF-63) como
+``PROPAGACION_UMBRAL_EDGE`` sobre la entidad ``UMBRAL``, con el Gateway, si el
+broker publicó, si hubo ``ACK_UMBRAL``, la causa y la duración. Se consulta en
+``GET /iot/auditoria?tipo_evento=PROPAGACION_UMBRAL_EDGE&entidad_afectada_id=<id_umbral>``.
+La última versión con ``ack_umbral`` de cada Gateway es la configuración que ese
+Edge tiene vigente: el Edge solo confirma después de guardar ``umbrales.json``.
 """
 from __future__ import annotations
 
 import datetime
+import time
 
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
 from src.configuration.domain.repositories.destino_edge_repository import DestinoEdgeRepository
 from src.configuration.domain.repositories.edge_sincronizacion_port import (
     ESTADO_SIN_INTEGRACION,
@@ -39,6 +48,8 @@ from src.configuration.domain.repositories.edge_sincronizacion_port import (
 from src.configuration.domain.repositories.mqtt_port import ResultadoEnvioMqtt
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
 from src.shared.errors import InfrastructureError
+
+EVENTO_PROPAGACION_UMBRAL = "PROPAGACION_UMBRAL_EDGE"
 
 MENSAJE_FALLO_SINCRONIZACION_EDGE = (
     "Configuración guardada en la base de datos, pero falló la actualización de los "
@@ -112,11 +123,20 @@ def sincronizar_umbral_con_edge(
     umbral_repo: UmbralAmbientalRepository,
     destino_repo: DestinoEdgeRepository,
     edge_port: EdgeSincronizacionPort,
+    bitacora: BitacoraIotPort,
+    id_usuario: int,
 ) -> UmbralAmbiental:
     """Propaga ``umbral`` (ya confirmado en BD), persiste el estado y lanza 500 si falló."""
     seriales = destino_repo.listar_seriales_gateway_por_especie(umbral.id_especie)
-    resultados = edge_port.propagar_umbral(seriales, payload_umbral(umbral, nombre_variable))
+    payload = payload_umbral(umbral, nombre_variable)
+    inicio = time.monotonic()
+    resultados = edge_port.propagar_umbral(seriales, payload)
+    duracion_ms = round((time.monotonic() - inicio) * 1000)
     resultado = consolidar_resultados(resultados)
+    # RF-17, flujo alterno "Error de sincronización con el Nodo Edge": el umbral
+    # ya quedó guardado, pero el cliente debe saber que en campo pueden seguir
+    # operando los valores anteriores (Edge sin ACK o desconectado).
+    fallo = resultado.estado != 'APLICADA' and not _sin_intento(resultados)
 
     if resultado.estado == 'APLICADA':
         umbral.marcar_sincronizado(datetime.datetime.now(datetime.timezone.utc))
@@ -132,10 +152,32 @@ def sincronizar_umbral_con_edge(
         db.rollback()
         raise
 
-    # RF-17, flujo alterno "Error de sincronización con el Nodo Edge": el umbral
-    # ya quedó guardado, pero el cliente debe saber que en campo pueden seguir
-    # operando los valores anteriores (Edge sin ACK o desconectado).
-    if resultado.estado != 'APLICADA' and not _sin_intento(resultados):
+    bitacora.registrar_propagacion_umbral(
+        evento=EVENTO_PROPAGACION_UMBRAL,
+        id_umbral_ambiental=umbral.id_umbral_ambiental,
+        id_usuario=id_usuario,
+        estado=resultado.estado,
+        fallo=fallo,
+        detalle={
+            'version': payload['version'],
+            'variable': nombre_variable,
+            'motivo': resultado.mensaje,
+            'duracion_ms': duracion_ms,
+            'gateways': [
+                {
+                    'serial': serial,
+                    'estado': r.estado,
+                    'publicado': r.publicado,
+                    # El broker solo responde APLICADA cuando llegó el ACK_UMBRAL.
+                    'ack_umbral': r.estado == 'APLICADA',
+                    'mensaje': r.mensaje,
+                }
+                for serial, r in sorted(resultados.items())
+            ],
+        },
+    )
+
+    if fallo:
         raise InfrastructureError(
             code='FALLO_SINCRONIZACION_EDGE',
             message=MENSAJE_FALLO_SINCRONIZACION_EDGE,
