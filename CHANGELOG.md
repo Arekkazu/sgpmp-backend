@@ -1,3 +1,9 @@
+## [1.0.0-rc.80](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.79...v1.0.0-rc.80) (2026-10-09)
+
+### Bug Fixes
+
+* **rf03-mod1:** describir los roles de integracion con el nombre del modulo en vez de su codigo ([ca8774e](https://github.com/Arekkazu/sgpmp-backend/commit/ca8774e324de7374ad10714f39679267ea6143e6))
+
 ## [1.0.0-rc.79](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.78...v1.0.0-rc.79) (2026-10-08)
 
 ### Features
