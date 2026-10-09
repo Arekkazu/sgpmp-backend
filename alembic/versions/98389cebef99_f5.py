@@ -1,27 +1,34 @@
-"""F5
+"""F5: RLS de modulo1 por permisos RBAC
 
 Revision ID: 98389cebef99
 Revises: 00c60ae92735
 Create Date: 2026-10-09 09:05:30.982488
 
+Reemplaza las políticas de modulo1 (F1 + F4) por permisos RBAC: en lugar de
+comparar el texto 'Administrador', cada política pregunta a
+`modulo1.fn_tiene_permiso(recurso, accion)` lo mismo que `require_permission`
+pregunta en la app (`modulo1.permisos` del rol del usuario). Cambiar un permiso
+en la tabla cambia también lo que la BD deja ver, sin redesplegar.
 
-Reemplaza la totalidad de las políticas de modulo1 por un esquema
-basado en funciones helper (f_uid, f_sistema, f_auth, f_permiso) que
-resuelven identidad, contexto de sistema y permisos RBAC.
+Contrato con la app (anotaciones/convencion_nomenclatura_bd.md):
+  - Identidad: `app.current_user_id`, leída por `modulo1.fn_id_usuario_actual()`.
+    No se crean variables de sesión nuevas.
+  - Procesos sin usuario: el usuario de servicio `servicio.sistema@sgpmp.local`
+    (D1, PR #485), identificado por `modulo1.fn_es_usuario_servicio()`. No hay
+    bandera de "contexto sistema" que se salte las políticas.
+  - El rol se lee de la BD, no de la sesión: un cambio de rol aplica en el
+    siguiente request (RF-04) sin volver a iniciar sesión.
 
-Patrones aplicados:
-  - Catálogo:      SELECT para autenticados, escritura solo sistema.
-  - Roles/Permisos: RBAC con protección de roles inmutables.
-  - Auditoría:     INSERT-only, archivado con retención 12 meses.
-  - Usuarios/Cuentas: gestión propia + admin, sin DELETE físico.
-  - Sesiones/Tokens: propias o sistema.
-  - Notificaciones: propias del usuario, creación por sistema.
+Las funciones de apoyo son SECURITY DEFINER y leen tablas con RLS y FORCE: su
+dueño tiene que saltarse RLS o cada consulta entra en recursión infinita. Por
+eso la migración exige correr como superusuario o BYPASSRLS.
 
+En las políticas, cada función va dentro de `(SELECT ...)`: así se evalúa una
+vez por sentencia y no una vez por fila (100k eventos: 17,8 s -> 10 ms).
 """
 from typing import Sequence, Union
 
 from alembic import op
-import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
@@ -30,403 +37,269 @@ down_revision: Union[str, Sequence[str], None] = '00c60ae92735'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+UID = "(SELECT modulo1.fn_id_usuario_actual())"
+CUENTA = "(SELECT modulo1.fn_id_cuenta_actual())"
+ROL = "(SELECT modulo1.fn_id_rol_actual())"
+SERVICIO = "(SELECT modulo1.fn_es_usuario_servicio())"
 
-def upgrade() -> None:
 
-    # ==========================================================
-    # 0. Limpiar: borrar todas las políticas existentes en modulo1
-    # ==========================================================
+def permiso(recurso: str, accion: str) -> str:
+    """Nombres reales de `modulo1.recursos` (los mismos ids que usan los routers)."""
+    return f"(SELECT modulo1.fn_tiene_permiso('{recurso}', '{accion}'))"
+
+
+_FUNCIONES = {
+    "fn_id_rol_actual() RETURNS integer": """
+        SELECT id_rol FROM modulo1.usuarios
+        WHERE id_usuario = modulo1.fn_id_usuario_actual()
+    """,
+    "fn_id_cuenta_actual() RETURNS integer": """
+        SELECT id_cuenta_usuario FROM modulo1.cuentas_usuarios
+        WHERE id_usuario = modulo1.fn_id_usuario_actual()
+    """,
+    # Sin chequeo de estado de cuenta: el usuario de servicio tiene la cuenta
+    # Inactiva a propósito (no puede iniciar sesión), y el estado ya lo valida
+    # `get_current_user` en cada request.
+    "fn_tiene_permiso(p_recurso text, p_accion text) RETURNS boolean": """
+        SELECT EXISTS (
+          SELECT 1 FROM modulo1.permisos p
+          JOIN modulo1.recursos r ON r.id_recurso = p.id_recurso
+          JOIN modulo1.acciones a ON a.id_accion = p.id_accion
+          WHERE p.id_rol = modulo1.fn_id_rol_actual() AND p.es_activo
+            AND r.nombre_recurso = p_recurso AND a.codigo = p_accion)
+    """,
+    "fn_es_usuario_servicio() RETURNS boolean": """
+        SELECT EXISTS (
+          SELECT 1 FROM modulo1.usuarios
+          WHERE id_usuario = modulo1.fn_id_usuario_actual()
+            AND correo_electronico = 'servicio.sistema@sgpmp.local')
+    """,
+    "fn_rol_protegido(p_id_rol integer) RETURNS boolean": """
+        SELECT coalesce((SELECT es_protegido FROM modulo1.roles WHERE id_rol = p_id_rol), false)
+    """,
+}
+
+_CATALOGOS = ["acciones", "recursos", "estados_cuentas", "tipos_eventos", "notificaciones_canal"]
+
+_TOKEN_PROPIO = f"""
+    EXISTS (SELECT 1 FROM modulo1.sesiones s
+            WHERE s.id_cuenta_usuario = {CUENTA}
+              AND (s.id_sesion = tokens.id_sesion
+                   OR s.id_token = tokens.id_token
+                   OR s.id_token_refresco = tokens.id_token))
+"""
+
+# (nombre, tabla, comando, USING, WITH CHECK)
+_POLITICAS = [
+    # roles: legibles para todos (la app los lee antes de autorizar);
+    # los protegidos (Administrador) no se crean, editan ni borran.
+    ("pol_roles_select", "roles", "SELECT", "true", None),
+    ("pol_roles_insert", "roles", "INSERT", None, f"{permiso('roles', 'C')} AND NOT es_protegido"),
+    ("pol_roles_update", "roles", "UPDATE",
+     f"{permiso('roles', 'U')} AND NOT es_protegido", f"{permiso('roles', 'U')} AND NOT es_protegido"),
+    ("pol_roles_delete", "roles", "DELETE", f"{permiso('roles', 'D')} AND NOT es_protegido", None),
+
+    # permisos: cada uno lee los de su rol (require_permission); gestión por RBAC.
+    ("pol_permisos_select", "permisos", "SELECT",
+     f"id_rol = {ROL} OR {permiso('permisos', 'R')} OR {permiso('roles', 'R')}", None),
+    ("pol_permisos_insert", "permisos", "INSERT", None,
+     f"{permiso('permisos', 'C')} AND NOT modulo1.fn_rol_protegido(id_rol)"),
+    ("pol_permisos_update", "permisos", "UPDATE",
+     f"{permiso('permisos', 'U')} AND NOT modulo1.fn_rol_protegido(id_rol)",
+     f"{permiso('permisos', 'U')} AND NOT modulo1.fn_rol_protegido(id_rol)"),
+    ("pol_permisos_delete", "permisos", "DELETE",
+     f"{permiso('permisos', 'D')} AND NOT modulo1.fn_rol_protegido(id_rol)", None),
+
+    # Configuración del batch de exportación y credenciales de servicio.
+    ("pol_config_batch_export_select", "configuracion_batch_exportacion_auditoria", "SELECT",
+     f"{permiso('eventos', 'R')} OR {SERVICIO}", None),
+    ("pol_config_batch_export_servicio", "configuracion_batch_exportacion_auditoria", "ALL",
+     SERVICIO, SERVICIO),
+    ("pol_credenciales_servicio_select", "credenciales_servicio", "SELECT", SERVICIO, None),
+
+    # eventos: append-only (los triggers bloquean UPDATE/DELETE). El INSERT queda
+    # abierto como en F4: login fallido, registro y activación auditan antes de
+    # que exista identidad; la integridad la dan el hash y los triggers.
+    ("pol_eventos_select", "eventos", "SELECT", f"{permiso('eventos', 'R')} OR id_usuario = {UID}", None),
+    ("pol_eventos_insert", "eventos", "INSERT", None, "true"),
+    ("pol_eventos_archivados_select", "eventos_archivados", "SELECT", permiso("eventos", "R"), None),
+    ("pol_eventos_archivados_insert", "eventos_archivados", "INSERT", None, SERVICIO),
+    ("pol_integridad_baseline_select", "integridad_baseline", "SELECT", permiso("eventos", "R"), None),
+
+    ("pol_gestiones_cuenta_select", "gestiones_cuenta", "SELECT", permiso("cuentas", "R"), None),
+    ("pol_gestiones_cuenta_insert", "gestiones_cuenta", "INSERT", None,
+     f"{permiso('cuentas', 'U')} AND id_usuario_responsable = {UID}"),
+
+    # Anónima por naturaleza: el límite por IP tiene que poder contar sus filas.
+    ("pol_intentos_anonimos_ip_all", "intentos_anonimos_ip", "ALL", "true", "true"),
+
+    # Exportación de auditoría: la solicita quien lee auditoría; la procesa el worker.
+    ("pol_cola_export_select", "cola_exportaciones_auditoria", "SELECT",
+     f"id_usuario_solicitante = {UID} OR {SERVICIO}", None),
+    ("pol_cola_export_insert", "cola_exportaciones_auditoria", "INSERT", None,
+     f"{permiso('eventos', 'R')} AND id_usuario_solicitante = {UID}"),
+    ("pol_cola_export_update", "cola_exportaciones_auditoria", "UPDATE", SERVICIO, SERVICIO),
+    ("pol_cola_export_delete", "cola_exportaciones_auditoria", "DELETE", SERVICIO, None),
+    ("pol_ejecuciones_export_select", "ejecuciones_exportaciones_auditoria", "SELECT",
+     "EXISTS (SELECT 1 FROM modulo1.cola_exportaciones_auditoria c"
+     " WHERE c.id_cola = ejecuciones_exportaciones_auditoria.id_cola)", None),
+    ("pol_ejecuciones_export_servicio", "ejecuciones_exportaciones_auditoria", "ALL", SERVICIO, SERVICIO),
+
+    # usuarios: sin DELETE (borrado lógico, RF-06). El registro es anónimo, pero
+    # nadie sin permiso crea un usuario con rol protegido. El cambio del propio
+    # rol ya lo bloquea el trigger `fn_prevenir_autocambio_rol` (RF-05).
+    ("pol_usuarios_select", "usuarios", "SELECT", f"id_usuario = {UID} OR {permiso('usuarios', 'R')}", None),
+    ("pol_usuarios_insert", "usuarios", "INSERT", None,
+     f"{permiso('usuarios', 'C')} OR NOT modulo1.fn_rol_protegido(id_rol)"),
+    ("pol_usuarios_update", "usuarios", "UPDATE",
+     f"id_usuario = {UID} OR {permiso('usuarios', 'U')}", f"id_usuario = {UID} OR {permiso('usuarios', 'U')}"),
+
+    # cuentas: el login actualiza la propia (último acceso, intentos, bloqueo,
+    # activación); la gestión es sobre cuentas ajenas.
+    ("pol_cuentas_usuarios_select", "cuentas_usuarios", "SELECT",
+     f"id_usuario = {UID} OR {permiso('cuentas', 'R')}", None),
+    ("pol_cuentas_usuarios_insert", "cuentas_usuarios", "INSERT", None, "true"),
+    ("pol_cuentas_usuarios_update_propia", "cuentas_usuarios", "UPDATE",
+     f"id_usuario = {UID}", f"id_usuario = {UID}"),
+    ("pol_cuentas_usuarios_update_gestion", "cuentas_usuarios", "UPDATE",
+     f"{permiso('cuentas', 'U')} AND id_usuario <> {UID}", f"{permiso('cuentas', 'U')} AND id_usuario <> {UID}"),
+
+    # sesiones: el login crea la propia; RF-06 invalida las ajenas con cuentas U.
+    ("pol_sesiones_select", "sesiones", "SELECT",
+     f"id_cuenta_usuario = {CUENTA} OR {permiso('sesiones', 'R')}", None),
+    ("pol_sesiones_insert", "sesiones", "INSERT", None, f"id_cuenta_usuario = {CUENTA}"),
+    ("pol_sesiones_update", "sesiones", "UPDATE",
+     f"id_cuenta_usuario = {CUENTA} OR {permiso('cuentas', 'U')}",
+     f"id_cuenta_usuario = {CUENTA} OR {permiso('cuentas', 'U')}"),
+
+    # tokens: los de activación y recuperación se emiten sin sesión ni identidad.
+    # El de acceso cuelga de sesiones.id_token y el de refresco de los dos lados.
+    ("pol_tokens_insert", "tokens", "INSERT", None, "true"),
+    ("pol_tokens_select", "tokens", "SELECT", f"{permiso('sesiones', 'R')} OR {_TOKEN_PROPIO}", None),
+    ("pol_tokens_update", "tokens", "UPDATE", f"{permiso('cuentas', 'U')} OR {_TOKEN_PROPIO}", "true"),
+
+    ("pol_dispositivos_fcm_all", "dispositivos_fcm", "ALL",
+     f"id_usuario = {UID} OR {SERVICIO}", f"id_usuario = {UID} OR {SERVICIO}"),
+
+    # notificaciones (RF-14): cualquier módulo notifica a otros usuarios desde
+    # su request; cada uno lee y marca las suyas; el envío lo hace el servicio.
+    ("pol_notificaciones_select", "notificaciones", "SELECT", f"id_usuario = {UID} OR {SERVICIO}", None),
+    ("pol_notificaciones_insert", "notificaciones", "INSERT", None, "true"),
+    ("pol_notificaciones_update", "notificaciones", "UPDATE",
+     f"id_usuario = {UID} OR {SERVICIO}", f"id_usuario = {UID} OR {SERVICIO}"),
+]
+
+# Estado de modulo1 en 00c60ae92735 (F1 + F4), para el downgrade.
+_POLITICAS_ANTERIORES = """
+CREATE POLICY pol_acciones_insert ON modulo1.acciones AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_acciones_select ON modulo1.acciones AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_cola_export_insert ON modulo1.cola_exportaciones_auditoria AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = 'Administrador'::text) AND (id_usuario_solicitante = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_cola_export_select ON modulo1.cola_exportaciones_auditoria AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_cola_export_update ON modulo1.cola_exportaciones_auditoria AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_config_batch_export_all ON modulo1.configuracion_batch_exportacion_auditoria AS PERMISSIVE FOR ALL USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_credenciales_servicio_select ON modulo1.credenciales_servicio AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_cuentas_usuarios_insert ON modulo1.cuentas_usuarios AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_cuentas_usuarios_select ON modulo1.cuentas_usuarios AS PERMISSIVE FOR SELECT USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+CREATE POLICY pol_cuentas_usuarios_update ON modulo1.cuentas_usuarios AS PERMISSIVE FOR UPDATE USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text))) WITH CHECK (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+CREATE POLICY pol_dispositivos_fcm_all ON modulo1.dispositivos_fcm AS PERMISSIVE FOR ALL USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text))) WITH CHECK ((id_usuario = modulo1.fn_id_usuario_actual()));
+CREATE POLICY pol_ejecuciones_export_insert ON modulo1.ejecuciones_exportaciones_auditoria AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_ejecuciones_export_select ON modulo1.ejecuciones_exportaciones_auditoria AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_estados_cuentas_select ON modulo1.estados_cuentas AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_eventos_insert ON modulo1.eventos AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_eventos_select ON modulo1.eventos AS PERMISSIVE FOR SELECT USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_eventos_archivados_insert ON modulo1.eventos_archivados AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_eventos_archivados_select ON modulo1.eventos_archivados AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_gestiones_cuenta_insert ON modulo1.gestiones_cuenta AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = 'Administrador'::text) AND (id_usuario_responsable = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_gestiones_cuenta_select ON modulo1.gestiones_cuenta AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_integridad_baseline_select ON modulo1.integridad_baseline AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_intentos_anonimos_ip_all ON modulo1.intentos_anonimos_ip AS PERMISSIVE FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY pol_notificaciones_insert ON modulo1.notificaciones AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_notificaciones_select ON modulo1.notificaciones AS PERMISSIVE FOR SELECT USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+CREATE POLICY pol_notificaciones_update ON modulo1.notificaciones AS PERMISSIVE FOR UPDATE USING ((id_usuario = modulo1.fn_id_usuario_actual())) WITH CHECK ((id_usuario = modulo1.fn_id_usuario_actual()));
+CREATE POLICY pol_notificaciones_canal_select ON modulo1.notificaciones_canal AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_permisos_all ON modulo1.permisos AS PERMISSIVE FOR ALL USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_permisos_select ON modulo1.permisos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_recursos_all ON modulo1.recursos AS PERMISSIVE FOR ALL USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_recursos_select ON modulo1.recursos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_roles_delete ON modulo1.roles AS PERMISSIVE FOR DELETE USING (((modulo1.fn_rol_actual() = 'Administrador'::text) AND (es_protegido = false)));
+CREATE POLICY pol_roles_insert ON modulo1.roles AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_roles_select ON modulo1.roles AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_roles_update ON modulo1.roles AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_sesiones_delete ON modulo1.sesiones AS PERMISSIVE FOR DELETE USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (id_cuenta_usuario IN ( SELECT cuentas_usuarios.id_cuenta_usuario
+   FROM modulo1.cuentas_usuarios
+  WHERE (cuentas_usuarios.id_usuario = modulo1.fn_id_usuario_actual())))));
+CREATE POLICY pol_sesiones_insert ON modulo1.sesiones AS PERMISSIVE FOR INSERT WITH CHECK ((id_cuenta_usuario IN ( SELECT cuentas_usuarios.id_cuenta_usuario
+   FROM modulo1.cuentas_usuarios
+  WHERE (cuentas_usuarios.id_usuario = modulo1.fn_id_usuario_actual()))));
+CREATE POLICY pol_sesiones_select ON modulo1.sesiones AS PERMISSIVE FOR SELECT USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (id_cuenta_usuario IN ( SELECT cuentas_usuarios.id_cuenta_usuario
+   FROM modulo1.cuentas_usuarios
+  WHERE (cuentas_usuarios.id_usuario = modulo1.fn_id_usuario_actual())))));
+CREATE POLICY pol_sesiones_update_delete ON modulo1.sesiones AS PERMISSIVE FOR UPDATE USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (id_cuenta_usuario IN ( SELECT cuentas_usuarios.id_cuenta_usuario
+   FROM modulo1.cuentas_usuarios
+  WHERE (cuentas_usuarios.id_usuario = modulo1.fn_id_usuario_actual()))))) WITH CHECK (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (id_cuenta_usuario IN ( SELECT cuentas_usuarios.id_cuenta_usuario
+   FROM modulo1.cuentas_usuarios
+  WHERE (cuentas_usuarios.id_usuario = modulo1.fn_id_usuario_actual())))));
+CREATE POLICY pol_tipos_eventos_select ON modulo1.tipos_eventos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_tokens_insert ON modulo1.tokens AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_tokens_select ON modulo1.tokens AS PERMISSIVE FOR SELECT USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (EXISTS ( SELECT 1
+   FROM (modulo1.sesiones s
+     JOIN modulo1.cuentas_usuarios c ON ((c.id_cuenta_usuario = s.id_cuenta_usuario)))
+  WHERE ((c.id_usuario = modulo1.fn_id_usuario_actual()) AND ((s.id_sesion = tokens.id_sesion) OR (s.id_token = tokens.id_token) OR (s.id_token_refresco = tokens.id_token)))))));
+CREATE POLICY pol_tokens_update ON modulo1.tokens AS PERMISSIVE FOR UPDATE USING (((modulo1.fn_rol_actual() = 'Administrador'::text) OR (EXISTS ( SELECT 1
+   FROM (modulo1.sesiones s
+     JOIN modulo1.cuentas_usuarios c ON ((c.id_cuenta_usuario = s.id_cuenta_usuario)))
+  WHERE ((c.id_usuario = modulo1.fn_id_usuario_actual()) AND ((s.id_sesion = tokens.id_sesion) OR (s.id_token = tokens.id_token) OR (s.id_token_refresco = tokens.id_token))))))) WITH CHECK (true);
+CREATE POLICY pol_usuarios_insert ON modulo1.usuarios AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_usuarios_select ON modulo1.usuarios AS PERMISSIVE FOR SELECT USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+CREATE POLICY pol_usuarios_update ON modulo1.usuarios AS PERMISSIVE FOR UPDATE USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text))) WITH CHECK (((id_usuario = modulo1.fn_id_usuario_actual()) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+"""
+
+
+def _borrar_politicas() -> None:
     op.execute("""
         DO $$ DECLARE r record; BEGIN
-          FOR r IN SELECT policyname, tablename
-                   FROM pg_policies WHERE schemaname = 'modulo1' LOOP
+          FOR r IN SELECT policyname, tablename FROM pg_policies WHERE schemaname = 'modulo1' LOOP
             EXECUTE format('DROP POLICY %I ON modulo1.%I', r.policyname, r.tablename);
           END LOOP; END $$;
     """)
 
-    # ==========================================================
-    # 1. Funciones helper de identidad y permisos
-    # ==========================================================
 
-    # Identidad del usuario autenticado (la pone la API en cada request)
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_uid() RETURNS int
-        LANGUAGE sql STABLE AS
-        $$ SELECT nullif(current_setting('app.user_id', true), '')::int $$;
-    """)
-
-    # Contexto de sistema (tareas de fondo, ingesta IoT, batch)
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_sistema() RETURNS boolean
-        LANGUAGE sql STABLE AS
-        $$ SELECT coalesce(current_setting('app.contexto', true), '') = 'sistema' $$;
-    """)
-
-    # Rol vigente del usuario (SECURITY DEFINER para evitar RLS circular)
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_rol_id() RETURNS int
-        LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo1 AS
-        $$ SELECT id_rol FROM usuarios WHERE id_usuario = modulo1.f_uid() $$;
-    """)
-
-    # Cuenta vigente del usuario
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_cuenta_id() RETURNS int
-        LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo1 AS
-        $$ SELECT id_cuenta_usuario FROM cuentas_usuarios
-           WHERE id_usuario = modulo1.f_uid() $$;
-    """)
-
-    # ¿Está autenticado Y tiene cuenta ACTIVA? (RF-02, RF-03)
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_auth() RETURNS boolean
-        LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo1 AS
-        $$ SELECT EXISTS (
-             SELECT 1 FROM cuentas_usuarios c
-             JOIN estados_cuentas e USING (id_estado_cuenta)
-             WHERE c.id_usuario = modulo1.f_uid()
-               AND upper(e.nombre) IN ('ACTIVO', 'ACTIVA')) $$;
-    """)
-
-    # ¿Tiene el permiso rol+recurso+acción? (RF-04), solo cuentas activas
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_permiso(p_recurso text, p_accion text)
-        RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo1 AS
-        $$ SELECT modulo1.f_auth() AND EXISTS (
-             SELECT 1 FROM permisos p
-             JOIN recursos  r USING (id_recurso)
-             JOIN acciones  a USING (id_accion)
-             WHERE p.id_rol = modulo1.f_rol_id() AND p.es_activo
-               AND r.nombre_recurso = p_recurso AND a.codigo = p_accion) $$;
-    """)
-
-    # ¿El rol es protegido (inmutable)?
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo1.f_rol_protegido(p_id int)
-        RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo1 AS
-        $$ SELECT coalesce((SELECT es_protegido FROM roles WHERE id_rol = p_id), false) $$;
-    """)
-
-    # Permisos de ejecución: solo la app, nada para PUBLIC
+def upgrade() -> None:
+    # Guarda: si no corre como superusuario/BYPASSRLS, las funciones SECURITY
+    # DEFINER + FORCE causan recursión infinita. Mejor fallar aquí que en prod.
     op.execute("""
         DO $$ BEGIN
-          PERFORM 1; -- placeholder para que el bloque no esté vacío
+          IF NOT EXISTS (SELECT 1 FROM pg_roles
+                         WHERE rolname = current_user AND (rolsuper OR rolbypassrls)) THEN
+            RAISE EXCEPTION 'F5 debe correr como superusuario o con BYPASSRLS: las funciones de '
+              'apoyo quedan a nombre de este rol y, con FORCE, otro dueño entra en recursión infinita';
+          END IF;
         END $$;
     """)
-    for fn in [
-        "f_uid()",
-        "f_sistema()",
-        "f_rol_id()",
-        "f_cuenta_id()",
-        "f_auth()",
-        "f_permiso(text,text)",
-        "f_rol_protegido(int)",
-    ]:
-        op.execute(f"REVOKE ALL ON FUNCTION modulo1.{fn} FROM PUBLIC;")
-        op.execute(f"GRANT EXECUTE ON FUNCTION modulo1.{fn} TO sgpmp_app;")
 
-    # ==========================================================
-    # 2. Catálogos: SELECT para autenticados, escritura solo sistema
-    # ==========================================================
-    op.execute("""
-        DO $$ DECLARE t text; BEGIN
-          FOREACH t IN ARRAY ARRAY[
-            'acciones','recursos','estados_cuentas',
-            'tipos_eventos','notificaciones_canal'
-          ] LOOP
-            EXECUTE format(
-              'CREATE POLICY %I ON modulo1.%I FOR SELECT
-                 USING (modulo1.f_sistema() OR modulo1.f_auth())',
-              t || '_sel', t);
-            EXECUTE format(
-              'CREATE POLICY %I ON modulo1.%I FOR ALL
-                 USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema())',
-              t || '_sis', t);
-          END LOOP; END $$;
-    """)
+    _borrar_politicas()
 
-    # --- roles (RF-03): protegido inmutable; FK impide borrar roles con usuarios
-    op.execute("""
-        CREATE POLICY roles_sel ON modulo1.roles FOR SELECT
-          USING (modulo1.f_sistema() OR modulo1.f_auth());
-    """)
-    op.execute("""
-        CREATE POLICY roles_ins ON modulo1.roles FOR INSERT
-          WITH CHECK (modulo1.f_permiso('GESTION_ROLES','C') AND NOT es_protegido);
-    """)
-    op.execute("""
-        CREATE POLICY roles_upd ON modulo1.roles FOR UPDATE
-          USING (modulo1.f_permiso('GESTION_ROLES','U') AND NOT es_protegido)
-          WITH CHECK (modulo1.f_permiso('GESTION_ROLES','U') AND NOT es_protegido);
-    """)
-    op.execute("""
-        CREATE POLICY roles_del ON modulo1.roles FOR DELETE
-          USING (modulo1.f_permiso('GESTION_ROLES','D') AND NOT es_protegido);
-    """)
-    op.execute("""
-        CREATE POLICY roles_sis ON modulo1.roles FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
+    for firma, cuerpo in _FUNCIONES.items():
+        op.execute(f"""
+            CREATE OR REPLACE FUNCTION modulo1.{firma}
+            LANGUAGE sql STABLE SECURITY DEFINER
+            SET search_path = pg_catalog, modulo1 AS $${cuerpo}$$;
+        """)
+        nombre = firma.split(" RETURNS")[0]
+        op.execute(f"REVOKE ALL ON FUNCTION modulo1.{nombre} FROM PUBLIC")
+        op.execute(f"GRANT EXECUTE ON FUNCTION modulo1.{nombre} TO sgpmp_app")
 
-    # --- permisos (RF-04): cada usuario ve los de su rol
-    op.execute("""
-        CREATE POLICY permisos_sel ON modulo1.permisos FOR SELECT
-          USING (modulo1.f_sistema()
-                 OR id_rol = modulo1.f_rol_id()
-                 OR modulo1.f_permiso('GESTION_PERMISOS','R')
-                 OR modulo1.f_permiso('GESTION_ROLES','R'));
-    """)
-    op.execute("""
-        CREATE POLICY permisos_w ON modulo1.permisos FOR ALL
-          USING ((modulo1.f_permiso('GESTION_PERMISOS','U')
-                  OR modulo1.f_permiso('GESTION_ROLES','U'))
-                 AND NOT modulo1.f_rol_protegido(id_rol))
-          WITH CHECK ((modulo1.f_permiso('GESTION_PERMISOS','U')
-                       OR modulo1.f_permiso('GESTION_ROLES','U'))
-                 AND NOT modulo1.f_rol_protegido(id_rol));
-    """)
-    op.execute("""
-        CREATE POLICY permisos_sis ON modulo1.permisos FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
+    for tabla in _CATALOGOS:
+        op.execute(f"CREATE POLICY pol_{tabla}_select ON modulo1.{tabla} FOR SELECT USING (true)")
 
-    # --- configuración batch y credenciales de servicio
-    op.execute("""
-        CREATE POLICY cfgbatch_sel ON modulo1.configuracion_batch_exportacion_auditoria
-          FOR SELECT USING (modulo1.f_sistema() OR modulo1.f_permiso('AUDITORIA','R'));
-    """)
-    op.execute("""
-        CREATE POLICY cfgbatch_sis ON modulo1.configuracion_batch_exportacion_auditoria
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY cred_sis ON modulo1.credenciales_servicio FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
+    for nombre, tabla, comando, using, check in _POLITICAS:
+        sql = f"CREATE POLICY {nombre} ON modulo1.{tabla} FOR {comando}"
+        if using:
+            sql += f" USING ({using})"
+        if check:
+            sql += f" WITH CHECK ({check})"
+        op.execute(sql)
 
-    # ==========================================================
-    # 3. Auditoría y eventos
-    # ==========================================================
-
-    # eventos: INSERT-only; archivado puede borrar solo lo copiado y >12 meses
-    op.execute("""
-        CREATE POLICY eventos_sel ON modulo1.eventos FOR SELECT
-          USING (modulo1.f_sistema() OR modulo1.f_permiso('AUDITORIA','R'));
-    """)
-    op.execute("""
-        CREATE POLICY eventos_ins ON modulo1.eventos FOR INSERT
-          WITH CHECK (modulo1.f_sistema()
-                      OR (modulo1.f_auth() AND id_usuario = modulo1.f_uid()));
-    """)
-    op.execute("""
-        CREATE POLICY eventos_del_arch ON modulo1.eventos FOR DELETE
-          USING (modulo1.f_sistema()
-                 AND fecha_evento < now() - interval '12 months'
-                 AND EXISTS (SELECT 1 FROM modulo1.eventos_archivados a
-                             WHERE a.id_evento = eventos.id_evento));
-    """)
-
-    # eventos archivados
-    op.execute("""
-        CREATE POLICY evarch_sel ON modulo1.eventos_archivados FOR SELECT
-          USING (modulo1.f_sistema() OR modulo1.f_permiso('AUDITORIA','R'));
-    """)
-    op.execute("""
-        CREATE POLICY evarch_ins ON modulo1.eventos_archivados FOR INSERT
-          WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # integridad baseline
-    op.execute("""
-        CREATE POLICY integ_sel ON modulo1.integridad_baseline FOR SELECT
-          USING (modulo1.f_sistema() OR modulo1.f_permiso('AUDITORIA','R'));
-    """)
-    op.execute("""
-        CREATE POLICY integ_ins ON modulo1.integridad_baseline FOR INSERT
-          WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # gestiones de cuenta
-    op.execute("""
-        CREATE POLICY gest_sel ON modulo1.gestiones_cuenta FOR SELECT
-          USING (modulo1.f_sistema() OR modulo1.f_permiso('GESTION_CUENTAS','R'));
-    """)
-    op.execute("""
-        CREATE POLICY gest_ins ON modulo1.gestiones_cuenta FOR INSERT
-          WITH CHECK (modulo1.f_sistema()
-                      OR (modulo1.f_permiso('GESTION_CUENTAS','U')
-                          AND id_usuario_responsable = modulo1.f_uid()));
-    """)
-
-    # intentos anónimos por IP
-    op.execute("""
-        CREATE POLICY ipint_ins ON modulo1.intentos_anonimos_ip
-          FOR INSERT WITH CHECK (true);
-    """)
-    op.execute("""
-        CREATE POLICY ipint_sel ON modulo1.intentos_anonimos_ip
-          FOR SELECT USING (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY ipint_del ON modulo1.intentos_anonimos_ip
-          FOR DELETE USING (modulo1.f_sistema());
-    """)
-
-    # exportaciones de auditoría
-    op.execute("""
-        CREATE POLICY cola_sel ON modulo1.cola_exportaciones_auditoria FOR SELECT
-          USING (modulo1.f_sistema() OR id_usuario_solicitante = modulo1.f_uid());
-    """)
-    op.execute("""
-        CREATE POLICY cola_ins ON modulo1.cola_exportaciones_auditoria FOR INSERT
-          WITH CHECK (modulo1.f_permiso('AUDITORIA','E')
-                      AND id_usuario_solicitante = modulo1.f_uid());
-    """)
-    op.execute("""
-        CREATE POLICY cola_upd ON modulo1.cola_exportaciones_auditoria FOR UPDATE
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY cola_del ON modulo1.cola_exportaciones_auditoria FOR DELETE
-          USING (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY ejec_sel ON modulo1.ejecuciones_exportaciones_auditoria FOR SELECT
-          USING (modulo1.f_sistema()
-                 OR EXISTS (SELECT 1 FROM modulo1.cola_exportaciones_auditoria c
-                            WHERE c.id_cola = ejecuciones_exportaciones_auditoria.id_cola));
-    """)
-    op.execute("""
-        CREATE POLICY ejec_sis ON modulo1.ejecuciones_exportaciones_auditoria FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # ==========================================================
-    # 4. Usuarios, cuentas, sesiones, tokens, dispositivos
-    # ==========================================================
-
-    # usuarios (RF-05/11/12/13): sin DELETE (borrado lógico, RF-06)
-    op.execute("""
-        CREATE POLICY usr_sel ON modulo1.usuarios FOR SELECT
-          USING (modulo1.f_sistema()
-                 OR id_usuario = modulo1.f_uid()
-                 OR modulo1.f_permiso('GESTION_USUARIOS','R'));
-    """)
-    op.execute("""
-        CREATE POLICY usr_ins ON modulo1.usuarios FOR INSERT
-          WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY usr_upd_self ON modulo1.usuarios FOR UPDATE
-          USING (id_usuario = modulo1.f_uid() AND modulo1.f_auth())
-          WITH CHECK (id_usuario = modulo1.f_uid()
-                      AND id_rol = modulo1.f_rol_id());
-    """)
-    op.execute("""
-        CREATE POLICY usr_upd_adm ON modulo1.usuarios FOR UPDATE
-          USING (modulo1.f_permiso('GESTION_USUARIOS','U'))
-          WITH CHECK (id_usuario <> modulo1.f_uid()
-                      OR id_rol = modulo1.f_rol_id());
-    """)
-    op.execute("""
-        CREATE POLICY usr_upd_sis ON modulo1.usuarios FOR UPDATE
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # cuentas_usuarios (RF-02/06): admin no se gestiona a sí mismo
-    op.execute("""
-        CREATE POLICY cta_sel ON modulo1.cuentas_usuarios FOR SELECT
-          USING (modulo1.f_sistema()
-                 OR id_usuario = modulo1.f_uid()
-                 OR modulo1.f_permiso('GESTION_CUENTAS','R'));
-    """)
-    op.execute("""
-        CREATE POLICY cta_ins ON modulo1.cuentas_usuarios FOR INSERT
-          WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY cta_upd_sis ON modulo1.cuentas_usuarios FOR UPDATE
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY cta_upd_adm ON modulo1.cuentas_usuarios FOR UPDATE
-          USING (modulo1.f_permiso('GESTION_CUENTAS','U')
-                 AND id_usuario <> modulo1.f_uid())
-          WITH CHECK (modulo1.f_permiso('GESTION_CUENTAS','U')
-                      AND id_usuario <> modulo1.f_uid());
-    """)
-
-    # sesiones: propias o admin que invalida por cambio de estado (RF-06)
-    op.execute("""
-        CREATE POLICY ses_sel ON modulo1.sesiones FOR SELECT
-          USING (modulo1.f_sistema()
-                 OR id_cuenta_usuario = modulo1.f_cuenta_id()
-                 OR modulo1.f_permiso('GESTION_CUENTAS','R'));
-    """)
-    op.execute("""
-        CREATE POLICY ses_ins ON modulo1.sesiones FOR INSERT
-          WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY ses_upd ON modulo1.sesiones FOR UPDATE
-          USING (modulo1.f_sistema()
-                 OR id_cuenta_usuario = modulo1.f_cuenta_id()
-                 OR modulo1.f_permiso('GESTION_CUENTAS','U'))
-          WITH CHECK (modulo1.f_sistema()
-                      OR id_cuenta_usuario = modulo1.f_cuenta_id()
-                      OR modulo1.f_permiso('GESTION_CUENTAS','U'));
-    """)
-    op.execute("""
-        CREATE POLICY ses_del ON modulo1.sesiones FOR DELETE
-          USING (modulo1.f_sistema());
-    """)
-
-    # tokens: pre-sesión solo sistema; el usuario ve los de sus sesiones
-    op.execute("""
-        CREATE POLICY tok_sis ON modulo1.tokens FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("""
-        CREATE POLICY tok_sel ON modulo1.tokens FOR SELECT
-          USING (id_sesion IN (
-            SELECT s.id_sesion FROM modulo1.sesiones s
-            WHERE s.id_cuenta_usuario = modulo1.f_cuenta_id()));
-    """)
-
-    # dispositivos FCM
-    op.execute("""
-        CREATE POLICY fcm_own ON modulo1.dispositivos_fcm FOR ALL
-          USING (id_usuario = modulo1.f_uid())
-          WITH CHECK (id_usuario = modulo1.f_uid());
-    """)
-    op.execute("""
-        CREATE POLICY fcm_sis ON modulo1.dispositivos_fcm FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # notificaciones (RF-14): usuario lee y marca leídas; crea/borra sistema
-    op.execute("""
-        CREATE POLICY not_sel ON modulo1.notificaciones FOR SELECT
-          USING (id_usuario = modulo1.f_uid());
-    """)
-    op.execute("""
-        CREATE POLICY not_upd ON modulo1.notificaciones FOR UPDATE
-          USING (id_usuario = modulo1.f_uid())
-          WITH CHECK (id_usuario = modulo1.f_uid());
-    """)
-    op.execute("""
-        CREATE POLICY not_sis ON modulo1.notificaciones FOR ALL
-          USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-
-    # ==========================================================
-    # 5. FORCE RLS en todas las tablas de modulo1
-    # ==========================================================
     op.execute("""
         DO $$ DECLARE t text; BEGIN
           FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'modulo1' LOOP
@@ -436,34 +309,13 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-
-    # 1. Quitar FORCE RLS de todas las tablas
     op.execute("""
         DO $$ DECLARE t text; BEGIN
           FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'modulo1' LOOP
             EXECUTE format('ALTER TABLE modulo1.%I NO FORCE ROW LEVEL SECURITY', t);
-            EXECUTE format('ALTER TABLE modulo1.%I DISABLE ROW LEVEL SECURITY', t);
           END LOOP; END $$;
     """)
-
-    # 2. Borrar todas las políticas creadas
-    op.execute("""
-        DO $$ DECLARE r record; BEGIN
-          FOR r IN SELECT policyname, tablename
-                   FROM pg_policies WHERE schemaname = 'modulo1' LOOP
-            EXECUTE format('DROP POLICY %I ON modulo1.%I', r.policyname, r.tablename);
-          END LOOP; END $$;
-    """)
-
-    # 3. Borrar funciones helper
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_rol_protegido(int);")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_permiso(text,text);")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_auth();")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_cuenta_id();")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_rol_id();")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_sistema();")
-    op.execute("DROP FUNCTION IF EXISTS modulo1.f_uid();")
-
-    # NOTA: Este downgrade NO restaura las políticas previas de F3/F4.
-    # Si se necesita volver a ese estado, re-aplicar las migraciones
-    # 8d80fb56a30b, bc82ffbdf797 y a7380032a23b.
+    _borrar_politicas()
+    op.execute(_POLITICAS_ANTERIORES)
+    for firma in reversed(list(_FUNCIONES)):
+        op.execute(f"DROP FUNCTION modulo1.{firma.split(' RETURNS')[0]}")
