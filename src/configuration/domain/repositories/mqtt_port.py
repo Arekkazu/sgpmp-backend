@@ -18,6 +18,9 @@ class ResultadoEnvioMqtt:
 
     estado: str  # "APLICADA" | "PENDIENTE" | "NO_CONF"
     mensaje: str
+    # Si el broker llegó a publicar el comando en MQTT (devolvió el topic).
+    # None = no se sabe (RF-23 no lo reporta).
+    publicado: Optional[bool] = None
 
 
 @dataclass(frozen=True)

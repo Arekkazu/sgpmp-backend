@@ -23,6 +23,7 @@ class EntidadAfectadaTipo(str, Enum):
     BUFFER = 'BUFFER'
     PAQUETE_IA = 'PAQUETE_IA'
     CALIDAD_DATO = 'CALIDAD_DATO'
+    UMBRAL = 'UMBRAL'  # umbral ambiental de RF-17 (INC-M09-70-G29)
 
 
 class SeveridadLog(str, Enum):
@@ -39,6 +40,7 @@ class ClasificacionRegistro(str, Enum):
 
 
 class ComponenteOrigen(str, Enum):
+    RF17 = 'RF17'  # propagación de umbrales ambientales al Nodo Edge (INC-M09-70-G29)
     RF23 = 'RF23'  # credencial MQTT y Gateway Edge de los dispositivos (TC-M09-250/251)
     RF53 = 'RF53'
     RF54 = 'RF54'

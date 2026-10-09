@@ -116,6 +116,14 @@ class AuditoriaRepoFake:
         pass
 
 
+class BitacoraFake:
+    def __init__(self) -> None:
+        self.propagaciones: list[dict] = []
+
+    def registrar_propagacion_umbral(self, **kwargs) -> None:
+        self.propagaciones.append(kwargs)
+
+
 class EspecieRepoFake:
     def obtener_por_id(self, _id, **_):
         return SimpleNamespace(es_activo=True)
@@ -189,7 +197,7 @@ def _umbral_existente() -> UmbralAmbiental:
     )
 
 
-def _registrar(edge_port, *, seriales=('EDGE-1',), umbral_repo=None, db=None):
+def _registrar(edge_port, *, seriales=('EDGE-1',), umbral_repo=None, db=None, bitacora=None):
     uc = RegistrarUmbralUseCase(
         db=db or DbFake(),
         umbral_repo=umbral_repo or UmbralRepoFake(),
@@ -198,11 +206,12 @@ def _registrar(edge_port, *, seriales=('EDGE-1',), umbral_repo=None, db=None):
         auditoria_repo=AuditoriaRepoFake(),
         destino_repo=DestinoRepoFake(list(seriales)),
         edge_port=edge_port,
+        bitacora=bitacora or BitacoraFake(),
     )
     return uc.execute(_registrar_dto(), _usuario())
 
 
-def _editar(edge_port, repo, *, seriales=('EDGE-1',)):
+def _editar(edge_port, repo, *, seriales=('EDGE-1',), bitacora=None):
     uc = EditarUmbralUseCase(
         db=DbFake(),
         umbral_repo=repo,
@@ -210,6 +219,7 @@ def _editar(edge_port, repo, *, seriales=('EDGE-1',)):
         auditoria_repo=AuditoriaRepoFake(),
         destino_repo=DestinoRepoFake(list(seriales)),
         edge_port=edge_port,
+        bitacora=bitacora or BitacoraFake(),
     )
     return uc.execute(1, _editar_dto(), _usuario())
 
@@ -353,7 +363,9 @@ class _RespuestaFalsa:
 
     def raise_for_status(self) -> None:
         if self.status_code >= 400:
-            raise httpx.HTTPStatusError('error', request=httpx.Request('POST', 'http://b'), response=None)
+            request = httpx.Request('POST', 'http://b')
+            respuesta = httpx.Response(self.status_code, json=self._cuerpo, request=request)
+            raise httpx.HTTPStatusError('error', request=request, response=respuesta)
 
     def json(self) -> dict:
         return self._cuerpo

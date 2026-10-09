@@ -1,3 +1,34 @@
+## [1.0.0-rc.85](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.84...v1.0.0-rc.85) (2026-10-09)
+
+### Bug Fixes
+
+* **rf02:** responder 401 y no 500 cuando el usuario no tiene cuenta ([d8e0b94](https://github.com/Arekkazu/sgpmp-backend/commit/d8e0b94e690cca28943e51a62542aa00f8569dde))
+
+## [1.0.0-rc.84](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.83...v1.0.0-rc.84) (2026-10-09)
+
+### Features
+
+* **rf17-mod9:** trazar en la bitacora iot cada propagacion de umbral al edge ([#532](https://github.com/Arekkazu/sgpmp-backend/issues/532)) ([3452122](https://github.com/Arekkazu/sgpmp-backend/commit/34521227b90ed7bd02c7969841c6ea051825c731))
+
+## [1.0.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.82...v1.0.0-rc.83) (2026-10-09)
+
+### Bug Fixes
+
+* **control-acceso:** encadenar la rls de modulo2 tras la F5 de modulo9 (F5) ([3ee6115](https://github.com/Arekkazu/sgpmp-backend/commit/3ee6115f767107a0693f13f32a60a17a35df3d36)), closes [#535](https://github.com/Arekkazu/sgpmp-backend/issues/535)
+
+## [1.0.0-rc.82](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.81...v1.0.0-rc.82) (2026-10-09)
+
+### Bug Fixes
+
+* **control-acceso:** encadenar la rls de modulo9 tras la F5 de modulo1 y cerrar sus huecos (F5) ([3f8164a](https://github.com/Arekkazu/sgpmp-backend/commit/3f8164a13fdd8b717596f36447b6fb921b8b4280))
+
+## [1.0.0-rc.81](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.80...v1.0.0-rc.81) (2026-10-09)
+
+### Bug Fixes
+
+* **rf13-mod1:** incluir las fincas asignadas en el perfil propio (Arekkazu/SGPMP-FRONT-END-PWA[#312](https://github.com/Arekkazu/sgpmp-backend/issues/312)) ([9a373ce](https://github.com/Arekkazu/sgpmp-backend/commit/9a373ceb01e02c0dbb7bfe5dd73b0021ca41a1ce))
+* **rf58-mod3:** devolver la unidad filtrada en el resumen del dashboard (Arekkazu/SGPMP-FRONT-END-PWA[#317](https://github.com/Arekkazu/sgpmp-backend/issues/317)) ([722643f](https://github.com/Arekkazu/sgpmp-backend/commit/722643fe1104b60613648bf7fd07e2a5c9dd6f0a))
+
 ## [1.0.0-rc.80](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.79...v1.0.0-rc.80) (2026-10-09)
 
 ### Bug Fixes
