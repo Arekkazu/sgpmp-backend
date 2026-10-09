@@ -1,7 +1,7 @@
 """F5 para el modulo2
 
 Revision ID: d28c1a5a66d2
-Revises: 00c60ae92735
+Revises: bd9cea80dea6
 Create Date: 2026-10-09 10:03:40.647438
 
 
@@ -44,7 +44,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'd28c1a5a66d2'
-down_revision: Union[str, Sequence[str], None] = '00c60ae92735'
+down_revision: Union[str, Sequence[str], None] = 'bd9cea80dea6'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
