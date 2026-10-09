@@ -30,7 +30,7 @@ from alembic import op
 
 
 revision: str = 'bd9cea80dea6'
-down_revision: Union[str, Sequence[str], None] = '00c60ae92735'
+down_revision: Union[str, Sequence[str], None] = '98389cebef99'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -42,6 +42,11 @@ def permiso(recurso: str, accion: str) -> str:
     """Nombres reales de modulo1.recursos para M09."""
     return f"(SELECT modulo1.fn_tiene_permiso('{recurso}', '{accion}'))"
 
+
+# RF-27: cada uno escribe su tema; el global solo con configuracion_ui_global (recurso 27,
+# solo Administrador). tema_visual U lo tienen todos los roles para su propio tema.
+_TEMA_ESCRIBIBLE = (f"(id_usuario = {UID} AND NOT es_global)"
+                    f" OR (es_global AND {permiso('configuracion_ui_global', 'U')})")
 
 # ── Tablas catálogo: sin RLS ──────────────────────────────────────────
 _CATALOGOS = [
@@ -71,6 +76,12 @@ _AUDIT_CATALOGO = [
 _AUDIT_PROPIA = [
     'auditorias_visuales', 'aplicaciones_plantillas', 'intentos_fallidos',
 ]
+
+# Recurso que exige el endpoint que lista cada historial (hoy lo leen esos roles).
+_LECTURA_AUDIT_PROPIA = {
+    'auditorias_visuales': 'identidad_visual',
+    'aplicaciones_plantillas': 'plantillas',
+}
 
 # ── Tablas finca por cadena ───────────────────────────────────────────
 _FINCA_CADENA = [
@@ -159,7 +170,9 @@ def upgrade() -> None:
     # ================================================================
     op.execute(f"""
         CREATE POLICY pol_usuarios_fincas_select ON modulo9.usuarios_fincas
-          FOR SELECT USING (id_usuario = {UID} OR {permiso('fincas', 'R')});
+          FOR SELECT USING (id_usuario = {UID}
+                            OR id_finca IN (SELECT f.id_finca FROM modulo9.fn_fincas_del_usuario({UID}) f)
+                            OR {permiso('fincas', 'U')});
     """)
     op.execute(f"""
         CREATE POLICY pol_usuarios_fincas_insert ON modulo9.usuarios_fincas
@@ -211,12 +224,11 @@ def upgrade() -> None:
     """)
     op.execute(f"""
         CREATE POLICY pol_temas_visuales_insert ON modulo9.temas_visuales
-          FOR INSERT WITH CHECK (id_usuario = {UID});
+          FOR INSERT WITH CHECK ({_TEMA_ESCRIBIBLE});
     """)
     op.execute(f"""
         CREATE POLICY pol_temas_visuales_update ON modulo9.temas_visuales
-          FOR UPDATE USING (id_usuario = {UID} OR (es_global AND {permiso('tema_visual', 'U')}))
-          WITH CHECK (id_usuario = {UID} OR (es_global AND {permiso('tema_visual', 'U')}));
+          FOR UPDATE USING ({_TEMA_ESCRIBIBLE}) WITH CHECK ({_TEMA_ESCRIBIBLE});
     """)
     op.execute(f"""
         CREATE POLICY pol_temas_visuales_servicio ON modulo9.temas_visuales
@@ -473,7 +485,7 @@ def upgrade() -> None:
         """)
         op.execute(f"""
             CREATE POLICY pol_{t}_insert ON modulo9.{t}
-              FOR INSERT WITH CHECK ({permiso('especies', 'C')} OR {SERVICIO});
+              FOR INSERT WITH CHECK ({UID} IS NOT NULL);
         """)
         op.execute(f"""
             CREATE POLICY pol_{t}_servicio ON modulo9.{t}
@@ -485,9 +497,11 @@ def upgrade() -> None:
     # 9. AUDITORÍA PROPIA DEL USUARIO
     # ================================================================
     for t in _AUDIT_PROPIA:
+        lectura = _LECTURA_AUDIT_PROPIA.get(t)
+        extra = f" OR {permiso(lectura, 'R')}" if lectura else ""
         op.execute(f"""
             CREATE POLICY pol_{t}_select ON modulo9.{t}
-              FOR SELECT USING (id_usuario = {UID} OR {SERVICIO});
+              FOR SELECT USING (id_usuario = {UID} OR {SERVICIO}{extra});
         """)
         op.execute(f"""
             CREATE POLICY pol_{t}_insert ON modulo9.{t}
@@ -623,7 +637,122 @@ def downgrade() -> None:
     # 4. usuarios_fincas: restaurar estado original (sin RLS en DDL)
     op.execute("ALTER TABLE modulo9.usuarios_fincas DISABLE ROW LEVEL SECURITY;")
 
-    # 5. Borrar funciones helper AL FINAL (después de las políticas)
+    # 5. Recrear las políticas de 00c60ae92735 (las de fincas e infraestructuras no se tocaron)
+    op.execute(_POLITICAS_ANTERIORES)
+
+    # 6. Borrar funciones helper AL FINAL (después de las políticas)
     op.execute("DROP FUNCTION IF EXISTS modulo9.fn_sensores_del_usuario(bigint);")
     op.execute("DROP FUNCTION IF EXISTS modulo9.fn_dispositivos_del_usuario(bigint);")
 
+
+# Estado de modulo9 en 00c60ae92735, sacado de pg_policy, para el downgrade.
+_POLITICAS_ANTERIORES = """
+CREATE POLICY pol_aplicaciones_plantillas_insert ON modulo9.aplicaciones_plantillas AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_aplicaciones_plantillas_select ON modulo9.aplicaciones_plantillas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_auditorias_calibraciones_insert ON modulo9.auditorias_calibraciones AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_calibraciones_select ON modulo9.auditorias_calibraciones AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_ciclos_biologicos_insert ON modulo9.auditorias_ciclos_biologicos AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_ciclos_biologicos_select ON modulo9.auditorias_ciclos_biologicos AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_configuraciones_globales_insert ON modulo9.auditorias_configuraciones_globales AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_configuraciones_globales_select ON modulo9.auditorias_configuraciones_globales AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_dispositivos_iot_insert ON modulo9.auditorias_dispositivos_iot AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_dispositivos_iot_select ON modulo9.auditorias_dispositivos_iot AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_especies_insert ON modulo9.auditorias_especies AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_especies_select ON modulo9.auditorias_especies AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_fincas_insert ON modulo9.auditorias_fincas AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_fincas_select ON modulo9.auditorias_fincas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_infraestructuras_insert ON modulo9.auditorias_infraestructuras AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_infraestructuras_select ON modulo9.auditorias_infraestructuras AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_metricas_produccion_insert ON modulo9.auditorias_metricas_produccion AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_metricas_produccion_select ON modulo9.auditorias_metricas_produccion AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_patologias_insert ON modulo9.auditorias_patologias AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_patologias_select ON modulo9.auditorias_patologias AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_plantillas_insert ON modulo9.auditorias_plantillas AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_plantillas_select ON modulo9.auditorias_plantillas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_sensores_areas_insert ON modulo9.auditorias_sensores_areas AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_sensores_areas_select ON modulo9.auditorias_sensores_areas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_umbrales_ambientales_insert ON modulo9.auditorias_umbrales_ambientales AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_umbrales_ambientales_select ON modulo9.auditorias_umbrales_ambientales AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_auditorias_visuales_insert ON modulo9.auditorias_visuales AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_auditorias_visuales_select ON modulo9.auditorias_visuales AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_calibraciones_insert ON modulo9.calibraciones AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_calibraciones_select ON modulo9.calibraciones AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_calibraciones_vision_insert ON modulo9.calibraciones_vision AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_calibraciones_vision_select ON modulo9.calibraciones_vision AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_ciclos_biologicos_insert ON modulo9.ciclos_biologicos AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_ciclos_biologicos_select ON modulo9.ciclos_biologicos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_ciclos_biologicos_update ON modulo9.ciclos_biologicos AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_ciclos_productivos_insert ON modulo9.ciclos_productivos AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_ciclos_productivos_select ON modulo9.ciclos_productivos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_ciclos_productivos_update ON modulo9.ciclos_productivos AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_ciclos_productivos_biologicos_insert ON modulo9.ciclos_productivos_biologicos AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_ciclos_productivos_biologicos_select ON modulo9.ciclos_productivos_biologicos AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_ciclos_productivos_biologicos_update ON modulo9.ciclos_productivos_biologicos AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_config_globales_insert ON modulo9.configuraciones_globales AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = 'Administrador'::text) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_config_globales_select ON modulo9.configuraciones_globales AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_config_globales_update ON modulo9.configuraciones_globales AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_configuraciones_remotas_insert ON modulo9.configuraciones_remotas AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_configuraciones_remotas_select ON modulo9.configuraciones_remotas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_configuraciones_remotas_update ON modulo9.configuraciones_remotas AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_dashboard_layouts_all ON modulo9.dashboard_layouts AS PERMISSIVE FOR ALL USING ((id_usuario = modulo1.fn_id_usuario_actual())) WITH CHECK ((id_usuario = modulo1.fn_id_usuario_actual()));
+CREATE POLICY pol_dashboard_layouts_default_insert ON modulo9.dashboard_layouts_default AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_dashboard_layouts_default_select ON modulo9.dashboard_layouts_default AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_dashboard_layouts_default_update ON modulo9.dashboard_layouts_default AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_dispositivos_iot_insert ON modulo9.dispositivos_iot AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_dispositivos_iot_select ON modulo9.dispositivos_iot AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_dispositivos_iot_update ON modulo9.dispositivos_iot AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_especies_insert ON modulo9.especies AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_especies_select ON modulo9.especies AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_especies_update ON modulo9.especies AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text, 'Veterinario'::text])));
+CREATE POLICY pol_especies_patologias_insert ON modulo9.especies_patologias AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_especies_patologias_select ON modulo9.especies_patologias AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_especies_patologias_update ON modulo9.especies_patologias AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_gestion_especies_insert ON modulo9.gestion_especies AS PERMISSIVE FOR INSERT WITH CHECK (true);
+CREATE POLICY pol_gestion_especies_select ON modulo9.gestion_especies AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_identidad_visuales_insert ON modulo9.identidad_visuales AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = 'Administrador'::text) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_identidad_visuales_select ON modulo9.identidad_visuales AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_identidad_visuales_update ON modulo9.identidad_visuales AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_lineas_base_vision_insert ON modulo9.lineas_base_vision AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_lineas_base_vision_select ON modulo9.lineas_base_vision AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_lineas_base_vision_update ON modulo9.lineas_base_vision AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_metricas_ciclo_productivo_insert ON modulo9.metricas_ciclo_productivo AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_metricas_ciclo_productivo_select ON modulo9.metricas_ciclo_productivo AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_metricas_ciclo_productivo_update ON modulo9.metricas_ciclo_productivo AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_metricas_produccion_insert ON modulo9.metricas_produccion AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_metricas_produccion_select ON modulo9.metricas_produccion AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_metricas_produccion_update ON modulo9.metricas_produccion AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_niveles_alerta_ambientales_insert ON modulo9.niveles_alerta_ambientales AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_niveles_alerta_ambientales_select ON modulo9.niveles_alerta_ambientales AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_niveles_alerta_ambientales_update ON modulo9.niveles_alerta_ambientales AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_patologias_insert ON modulo9.patologias AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_patologias_select ON modulo9.patologias AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_patologias_update ON modulo9.patologias AS PERMISSIVE FOR UPDATE USING (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])) AND (es_base = false))) WITH CHECK (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])) AND (es_base = false)));
+CREATE POLICY pol_plantillas_insert ON modulo9.plantillas AS PERMISSIVE FOR INSERT WITH CHECK (((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])) AND (id_usuario = modulo1.fn_id_usuario_actual())));
+CREATE POLICY pol_plantillas_select ON modulo9.plantillas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_preferencias_idiomas_all ON modulo9.preferencias_idiomas AS PERMISSIVE FOR ALL USING ((id_usuario = modulo1.fn_id_usuario_actual())) WITH CHECK ((id_usuario = modulo1.fn_id_usuario_actual()));
+CREATE POLICY pol_rangos_calibracion_insert ON modulo9.rangos_calibracion AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_rangos_calibracion_select ON modulo9.rangos_calibracion AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_rangos_calibracion_update ON modulo9.rangos_calibracion AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_sensores_insert ON modulo9.sensores AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_sensores_select ON modulo9.sensores AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_sensores_update ON modulo9.sensores AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_sensores_areas_asociadas_insert ON modulo9.sensores_areas_asociadas AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_sensores_areas_asociadas_select ON modulo9.sensores_areas_asociadas AS PERMISSIVE FOR SELECT USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_sensores_areas_asociadas_update ON modulo9.sensores_areas_asociadas AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Ingeniero de Campo'::text])));
+CREATE POLICY pol_temas_visuales_insert ON modulo9.temas_visuales AS PERMISSIVE FOR INSERT WITH CHECK ((((id_usuario = modulo1.fn_id_usuario_actual()) AND (es_global = false)) OR ((modulo1.fn_rol_actual() = 'Administrador'::text) AND (es_global = true))));
+CREATE POLICY pol_temas_visuales_select ON modulo9.temas_visuales AS PERMISSIVE FOR SELECT USING (((id_usuario = modulo1.fn_id_usuario_actual()) OR (es_global = true) OR (modulo1.fn_rol_actual() = 'Administrador'::text)));
+CREATE POLICY pol_temas_visuales_update ON modulo9.temas_visuales AS PERMISSIVE FOR UPDATE USING ((((id_usuario = modulo1.fn_id_usuario_actual()) AND (es_global = false)) OR ((modulo1.fn_rol_actual() = 'Administrador'::text) AND (es_global = true)))) WITH CHECK ((((id_usuario = modulo1.fn_id_usuario_actual()) AND (es_global = false)) OR ((modulo1.fn_rol_actual() = 'Administrador'::text) AND (es_global = true))));
+CREATE POLICY pol_tipos_area_insert ON modulo9.tipos_area AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_tipos_area_select ON modulo9.tipos_area AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_tipos_area_update ON modulo9.tipos_area AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_tipos_dispositivo_iot_insert ON modulo9.tipos_dispositivo_iot AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_tipos_dispositivo_iot_select ON modulo9.tipos_dispositivo_iot AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_tipos_dispositivo_iot_update ON modulo9.tipos_dispositivo_iot AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_umbrales_ambientales_insert ON modulo9.umbrales_ambientales AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_umbrales_ambientales_select ON modulo9.umbrales_ambientales AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_umbrales_ambientales_update ON modulo9.umbrales_ambientales AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text]))) WITH CHECK ((modulo1.fn_rol_actual() = ANY (ARRAY['Administrador'::text, 'Veterinario'::text])));
+CREATE POLICY pol_variables_ambientales_select ON modulo9.variables_ambientales AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_widgets_insert ON modulo9.widgets AS PERMISSIVE FOR INSERT WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+CREATE POLICY pol_widgets_select ON modulo9.widgets AS PERMISSIVE FOR SELECT USING (true);
+CREATE POLICY pol_widgets_update ON modulo9.widgets AS PERMISSIVE FOR UPDATE USING ((modulo1.fn_rol_actual() = 'Administrador'::text)) WITH CHECK ((modulo1.fn_rol_actual() = 'Administrador'::text));
+"""
