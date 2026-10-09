@@ -1,3 +1,9 @@
+## [1.0.0-rc.84](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.83...v1.0.0-rc.84) (2026-10-09)
+
+### Features
+
+* **rf17-mod9:** trazar en la bitacora iot cada propagacion de umbral al edge ([#532](https://github.com/Arekkazu/sgpmp-backend/issues/532)) ([3452122](https://github.com/Arekkazu/sgpmp-backend/commit/34521227b90ed7bd02c7969841c6ea051825c731))
+
 ## [1.0.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.82...v1.0.0-rc.83) (2026-10-09)
 
 ### Bug Fixes
