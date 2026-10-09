@@ -878,6 +878,14 @@ curl http://localhost:8000/configuracion/dispositivos-iot/40/credencial-mqtt \
 `{"emitida": false, ...}` si no tiene credencial propia (todavía usa la
 compartida o se comunica a través de su Edge).
 
+`conectada` (INC-M09-70-G29): el broker tiene una sesión MQTT viva de ese usuario
+**y** el Edge no avisó su desconexión (Last Will `DESCONEXION`). Es la misma señal
+con la que el broker decide no publicar. Un corte de red sin cierre tarda hasta
+1,5 × keepalive en verse. Para saber si un comando RF-17/RF-23 se publicará hace
+falta además `estado_actual = ACTIVO` en `GET /iot/dispositivos/{id}/estado`
+(RF-60); si no, queda `PENDIENTE`. `habilitada` es el estado administrativo
+(credencial no revocada).
+
 ### Revocar
 
 Desconecta al Edge en el acto. Se permite sobre dispositivos inactivos.
