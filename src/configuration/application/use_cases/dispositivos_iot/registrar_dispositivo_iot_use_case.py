@@ -55,6 +55,10 @@ def _atributos_vision(tipo: TipoDispositivoIot, dto: RegistrarDispositivoIotDTO)
 
 
 class RegistrarDispositivoIotUseCase:
+    """Registra un dispositivo en un área activa; el serial es único (409).
+
+    Las cámaras exigen resolución, fps y área de cobertura (400).
+    """
 
     def __init__(
         self,

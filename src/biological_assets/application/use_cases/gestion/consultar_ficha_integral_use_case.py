@@ -1,3 +1,5 @@
+"""Caso de uso: ficha integral del activo biológico (RF-47)."""
+
 from __future__ import annotations
 
 import logging
@@ -26,6 +28,11 @@ _FALLO = object()
 
 
 class ConsultarFichaIntegralUseCase:
+    """Reúne en una vista los datos, estado, ubicación, fase y últimos eventos del activo.
+
+    Si una sección falla al cargarse se devuelve vacía con una advertencia en vez
+    de tumbar la ficha completa.
+    """
 
     def __init__(
         self,
@@ -188,16 +195,22 @@ class ConsultarFichaIntegralUseCase:
     def _ultimos_sanitarios(self, id_activo: int) -> list[dict]:
         rows = self.db.execute(
             text(
-                'SELECT fecha, categoria AS tipo_evento, medicamento, diagnostico '
-                'FROM modulo2.vw_rf46_eventos_sanitarios '
-                'WHERE id_activo_biologico = :id '
-                'ORDER BY fecha DESC LIMIT 5'
+                # #298 §5.1: `categoria` es siempre SANITARIO; el subtipo (VACUNACION,
+                # TRATAMIENTO, DIAGNOSTICO...) vive en eventos_sanitarios.tipo.
+                'SELECT v.fecha, v.categoria AS tipo_evento, es.tipo AS tipo_sanitario, '
+                '       v.medicamento, v.diagnostico, v.dosis, v.unidad_dosis '
+                'FROM modulo2.vw_rf46_eventos_sanitarios v '
+                'LEFT JOIN modulo2.eventos_sanitarios es ON es.id_evento = v.id_eventos '
+                'WHERE v.id_activo_biologico = :id '
+                'ORDER BY v.fecha DESC LIMIT 5'
             ),
             {'id': id_activo},
         ).fetchall()
         return [
-            {'tipo_evento': r.tipo_evento, 'medicamento': r.medicamento,
-             'diagnostico': r.diagnostico, 'fecha': r.fecha.isoformat() if r.fecha else None}
+            {'tipo_evento': r.tipo_evento, 'tipo_sanitario': r.tipo_sanitario,
+             'medicamento': r.medicamento, 'diagnostico': r.diagnostico,
+             'dosis': str(r.dosis) if r.dosis is not None else None, 'unidad_dosis': r.unidad_dosis,
+             'fecha': r.fecha.isoformat() if r.fecha else None}
             for r in rows
         ]
 

@@ -11,6 +11,12 @@ from src.configuration.domain.value_objects.serial_dispositivo import SerialDisp
 
 @dataclass(eq=False)
 class DispositivoIot:
+    """Dispositivo IoT (sensor, cámara o gateway Edge) instalado en una infraestructura (RF-21).
+
+    El serial es único. Un dispositivo puede colgar de un gateway Edge
+    (``id_dispositivo_gateway``); las cámaras llevan además resolución, fps y
+    cobertura.
+    """
     serial: SerialDispositivo
     descripcion: str
     id_infraestructura: int

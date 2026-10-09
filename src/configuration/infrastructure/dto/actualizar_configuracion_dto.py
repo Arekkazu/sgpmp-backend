@@ -10,6 +10,10 @@ from src.shared.base_dto import BaseDTO
 
 
 class ActualizarConfiguracionDTO(BaseDTO):
+    """Nuevos minutos de frecuencia de muestreo y heartbeat (heartbeat >= frecuencia).
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     frecuencia_muestreo: int
     heartbeat: int
     fecha_actualizacion: datetime

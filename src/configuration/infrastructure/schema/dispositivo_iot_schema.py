@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 
 class DispositivoIotResponse(BaseModel):
+    """Dispositivo IoT registrado."""
     id_dispositivo_iot: int
     serial: str
     descripcion: str
@@ -41,5 +42,6 @@ class DispositivoIotResponse(BaseModel):
 
 
 class ListaDispositivosIotResponse(BaseModel):
+    """Dispositivos IoT visibles para el usuario."""
     total: int
     items: list[DispositivoIotResponse]

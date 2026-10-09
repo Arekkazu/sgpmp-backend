@@ -7,4 +7,5 @@ from src.shared.base_dto import BaseDTO
 
 
 class AsignarFincasDTO(BaseDTO):
+    """Conjunto completo de fincas del usuario; lo que no venga se desasigna."""
     ids_fincas: list[int] = Field(default_factory=list)

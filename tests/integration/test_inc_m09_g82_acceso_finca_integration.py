@@ -137,23 +137,28 @@ def test_ingeniero_asignado_consulta_solo_su_finca(
     assert id_finca_ajena not in {item["id_finca"] for item in listado.json()["items"]}
 
 
-def test_administrador_conserva_consulta_global(
+def test_administrador_solo_consulta_sus_fincas(
     config_client: TestClient,
     db_session: Session,
     crear_usuario_db,
     crear_auth_headers,
 ) -> None:
+    """F4 (decisión del DBA en el PR #485): ningún rol es global, tampoco el
+    Administrador; ve las fincas que tiene asignadas en usuarios_fincas."""
     administrador = crear_usuario_db(id_rol=_id_rol(db_session, "Administrador"), estado=2)
     propietario = crear_usuario_db(id_rol=_id_rol(db_session, "Productor"), estado=2)
     id_finca_ajena = _crear_finca(db_session, propietario["id_usuario"])
+    id_finca_propia = _crear_finca(db_session, administrador["id_usuario"])
     headers = crear_auth_headers(administrador)
 
-    detalle = config_client.get(f"/configuracion/fincas/{id_finca_ajena}", headers=headers)
-    listado = config_client.get("/configuracion/fincas", headers=headers)
+    ajena = config_client.get(f"/configuracion/fincas/{id_finca_ajena}", headers=headers)
+    propia = config_client.get(f"/configuracion/fincas/{id_finca_propia}", headers=headers)
+    listado = {item["id_finca"] for item in config_client.get("/configuracion/fincas", headers=headers).json()["items"]}
 
-    assert detalle.status_code == 200
-    assert detalle.json()["id_finca"] == id_finca_ajena
-    assert id_finca_ajena in {item["id_finca"] for item in listado.json()["items"]}
+    assert ajena.status_code == 403
+    assert propia.status_code == 200
+    assert id_finca_propia in listado
+    assert id_finca_ajena not in listado
 
 
 def test_registrar_y_renombrar_finca_sin_columna_de_propietario(

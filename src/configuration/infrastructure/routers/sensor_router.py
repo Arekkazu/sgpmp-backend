@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from src.configuration.application.use_cases.sensores.asociar_sensor_area_use_case import AsociarSensorAreaUseCase, ConsultarAsociacionesUseCase
 from src.configuration.application.use_cases.sensores.registrar_calibracion_use_case import (
+    MENSAJE_ACCESO_DENEGADO,
     ConsultarCalibracionesUseCase,
     RegistrarCalibracionUseCase,
     auditar_rechazo_calibracion,
@@ -81,6 +82,12 @@ def asociar_sensor_area(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AsociarSensorAreaResponse:
+    """Asocia un sensor a un área de la misma finca que su dispositivo (RF-22).
+
+    **Acceso:** `sensores` · Crear.
+
+    Si el sensor ya está en otra área responde 409 `REASIGNACION_REQUIERE_CONFIRMACION`: reenviar con `confirmar=true` cierra la asociación anterior y las asociaciones ambientales/poblacionales del sensor en M02.
+    """
     use_case = AsociarSensorAreaUseCase(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
@@ -112,6 +119,10 @@ def listar_asociaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensorAreasResponse:
+    """Historial de asociaciones sensor-área del sensor (RF-22).
+
+    **Acceso:** `sensores` · Leer.
+    """
     ids_permitidas = AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario, usuario_actual.id_rol
     )
@@ -142,7 +153,9 @@ def _permiso_calibrar_auditado(
 ) -> None:
     """La misma compuerta RBAC de siempre; RF-24 v1.1 (RFC-006) pide además auditar el 403."""
     try:
-        require_permission(_RECURSO, 1)(db=db, usuario_actual=usuario_actual)
+        require_permission(_RECURSO, 1, mensaje_denegado=MENSAJE_ACCESO_DENEGADO)(
+            db=db, usuario_actual=usuario_actual
+        )
     except AuthorizationError as exc:
         auditar_rechazo_calibracion(
             db,
@@ -175,6 +188,12 @@ def registrar_calibracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CalibracionResponse:
+    """Registra la calibración de un sensor: valor de referencia, ganancia y offset (RF-24, modalidad SENSOR).
+
+    **Acceso:** `sensores` · Crear.
+
+    El valor debe estar en el rango del tipo de sensor (400). Los rechazos, incluidos los de permiso, quedan auditados.
+    """
     use_case = RegistrarCalibracionUseCase(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
@@ -207,6 +226,10 @@ def listar_rangos_calibracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaRangosCalibracionResponse:
+    """Rangos admisibles de calibración por tipo de sensor (RF-24).
+
+    **Acceso:** `sensores` · Leer.
+    """
     rangos = SqlAlchemyRangoCalibracionRepository(db).listar()
     items = [RangoCalibracionResponse.from_entity(r) for r in rangos]
     return ListaRangosCalibracionResponse(total=len(items), items=items)
@@ -230,6 +253,10 @@ def listar_calibraciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaCalibracionesResponse:
+    """Historial de calibraciones de un sensor (RF-24).
+
+    **Acceso:** `sensores` · Leer.
+    """
     use_case = ConsultarCalibracionesUseCase(
         db=db,
         calibracion_repo=SqlAlchemyCalibracionRepository(db),

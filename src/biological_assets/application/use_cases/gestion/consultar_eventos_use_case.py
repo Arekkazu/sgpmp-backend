@@ -1,3 +1,5 @@
+"""Caso de uso: listado de eventos biológicos de un activo (RF-39)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -11,6 +13,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarEventosUseCase:
+    """Lista todos los eventos del activo, del más reciente al más antiguo."""
 
     def __init__(
         self,

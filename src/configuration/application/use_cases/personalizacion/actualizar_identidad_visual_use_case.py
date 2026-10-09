@@ -21,6 +21,9 @@ from src.shared.errors import NotFoundError, PreconditionFailedError
 
 
 class ActualizarIdentidadVisualUseCase:
+    """Crea una nueva versión de la identidad visual de la finca (logo opcional) con
+    control de versión (412).
+    """
 
     def __init__(
         self,

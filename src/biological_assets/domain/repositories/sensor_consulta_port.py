@@ -1,3 +1,5 @@
+"""Puerto de lectura de sensores IoT de M09 para asociarlos a activos (RF-49)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,6 +9,7 @@ from typing import Optional
 
 @dataclass
 class SensorConsulta:
+    """Sensor con su dispositivo y el área a la que está asociado."""
     id_sensor: int
     nombre: str
     es_activo: bool
@@ -28,6 +31,8 @@ class CompatibilidadSensorEspecie:
 
 
 class SensorConsultaPort(ABC):
+    """Consulta a M09 de sensores y de su compatibilidad con especies."""
+
     @abstractmethod
     def obtener_sensor_con_contexto(self, sensor_id: int) -> Optional[SensorConsulta]:
         """Retorna el sensor con su dispositivo y área asociada activa, o None si no existe."""

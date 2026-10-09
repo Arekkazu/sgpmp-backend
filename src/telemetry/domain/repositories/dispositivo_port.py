@@ -6,6 +6,15 @@ from src.telemetry.domain.entities.telemetria import DispositivoInfo
 
 
 @dataclass
+class CamaraInfo:
+    id_dispositivo_iot: int
+    id_infraestructura: int
+    es_activo: bool
+    es_camara: bool
+    fps_nominal: Optional[int]
+
+
+@dataclass
 class DispositivoHeartbeatInfo:
     id_dispositivo_iot: int
     id_infraestructura: int
@@ -41,4 +50,11 @@ class DispositivoPort(ABC):
 
         Retorna DispositivoHeartbeatInfo si device_id existe y access_key coincide con serial.
         Retorna None si no se encuentra o credenciales inválidas.
+        """
+
+    @abstractmethod
+    def obtener_camara(self, device_id: int, access_key: str) -> Optional[CamaraInfo]:
+        """Identidad de una cámara de visión (RF-21 v2.0): device_id + serial, sin sensor.
+
+        Retorna None si el dispositivo no existe o el access_key no es su serial.
         """

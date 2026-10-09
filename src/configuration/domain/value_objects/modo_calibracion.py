@@ -5,8 +5,11 @@ from enum import Enum
 
 
 class ModoCalibracion(str, Enum):
-    # Solo SENSOR: `modulo9.calibraciones` exige id_sensor, así que toda fila es
-    # una calibración de sensor y el modo se deriva sin columna propia. La línea
-    # base por visión de RFC-011 se calibra por área y especie (sin sensor) y
-    # entra como otro valor cuando exista su flujo; hasta entonces se rechaza.
+    """SENSOR = calibración manual con valor de referencia; VISION = línea base
+    calculada por cámara.
+    """
+    # SENSOR: ajuste escalar de un sensor (`modulo9.calibraciones`, exige id_sensor).
+    # VISION: línea base por área y especie (RFC-011, `modulo9.calibraciones_vision`).
+    # Cada modalidad tiene su propio endpoint; cada DTO acepta solo la suya.
     SENSOR = "SENSOR"
+    VISION = "VISION"

@@ -7,6 +7,11 @@ from src.shared.base_dto import BaseDTO
 
 
 class AsociarSensorAreaDTO(BaseDTO):
+    """Área y punto de instalación del sensor.
+
+    Si el sensor ya está en otra área la respuesta es 409; reenviar con
+    ``confirmar=true`` para reasignarlo.
+    """
     id_dispositivo_iot: int
     id_infraestructura: int
     punto_instalacion: str

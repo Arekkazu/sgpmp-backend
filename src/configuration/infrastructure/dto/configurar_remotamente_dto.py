@@ -7,6 +7,9 @@ from src.shared.base_dto import BaseDTO
 
 
 class ConfigurarRemotamenteDTO(BaseDTO):
+    """Frecuencia de captura e intervalo de transmisión; deben caer en el rango del tipo
+    de dispositivo.
+    """
     # INC-M09-66-G69 (#492): RF-23 solo define estos parámetros. Un campo ajeno
     # (p. ej. `protocolo`) se ignoraba y la API respondía 202 como si lo hubiera
     # aplicado; ahora es 400. LoRaWAN es la red entre el dispositivo y su

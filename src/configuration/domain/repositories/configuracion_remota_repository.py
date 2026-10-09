@@ -8,17 +8,23 @@ from src.configuration.domain.entities.configuracion_remota import Configuracion
 
 
 class ConfiguracionRemotaRepository(ABC):
+    """Contrato de acceso a datos para :class:`ConfiguracionRemota`."""
 
     @abstractmethod
     def guardar(self, config: ConfiguracionRemota) -> ConfiguracionRemota:
+        """Inserta la configuración remota y devuelve la entidad con su id asignado."""
         ...
 
     @abstractmethod
     def actualizar(self, config: ConfiguracionRemota) -> ConfiguracionRemota:
+        """Persiste los cambios de la configuración remota y devuelve la entidad
+        actualizada.
+        """
         ...
 
     @abstractmethod
     def obtener_por_id(self, id_configuracion_remota: int) -> Optional[ConfiguracionRemota]:
+        """Obtiene la configuración remota por id, o ``None`` si no existe."""
         ...
 
     @abstractmethod
@@ -28,4 +34,5 @@ class ConfiguracionRemotaRepository(ABC):
 
     @abstractmethod
     def listar_por_dispositivo(self, id_dispositivo_iot: int) -> list[ConfiguracionRemota]:
+        """Historial de configuraciones remotas del dispositivo."""
         ...

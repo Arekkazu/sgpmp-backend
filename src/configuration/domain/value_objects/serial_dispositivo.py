@@ -17,6 +17,7 @@ _FORMATO = re.compile(r"^[A-Za-z0-9_-]+$")
 
 @dataclass(frozen=True)
 class SerialDispositivo:
+    """Serial del dispositivo: hasta 50 caracteres alfanuméricos, guion o guion bajo."""
     valor: str
 
     def __post_init__(self) -> None:

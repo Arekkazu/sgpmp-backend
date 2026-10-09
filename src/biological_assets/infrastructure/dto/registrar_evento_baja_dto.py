@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/baja`` (RF-45)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,6 +13,12 @@ _TIPOS_BAJA = {'muerte', 'venta', 'sacrificio', 'perdida', 'descarte_sanitario'}
 
 
 class RegistrarEventoBajaDTO(BaseDTO):
+    """Baja de un activo o de parte de un lote.
+
+    ``tipo_baja``: ``muerte`` | ``venta`` | ``sacrificio`` | ``perdida`` |
+    ``descarte_sanitario``. En lotes, ``cantidad_afectada`` omitida da de baja el lote
+    completo; en individuales se ignora.
+    """
     tipo_baja: str
     fecha_baja: date
     motivo_baja: str

@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 
 class AuditoriaFincaRepository(ABC):
+    """Contrato de la auditoría de fincas."""
 
     @abstractmethod
     def registrar(
@@ -17,4 +18,7 @@ class AuditoriaFincaRepository(ABC):
         valores_nuevos: dict[str, Any],
         valores_anteriores: Optional[dict[str, Any]] = None,
     ) -> None:
+        """Inserta un registro de auditoría inmutable sobre la finca con los valores
+        antes/después.
+        """
         raise NotImplementedError

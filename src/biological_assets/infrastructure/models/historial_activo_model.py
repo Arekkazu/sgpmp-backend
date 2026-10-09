@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.historial_activos``: snapshots versionados del activo tras
+cada operación.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

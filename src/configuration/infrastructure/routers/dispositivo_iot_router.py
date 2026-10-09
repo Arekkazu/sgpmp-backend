@@ -105,6 +105,12 @@ def registrar_dispositivo_iot(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DispositivoIotResponse:
+    """Registra un dispositivo IoT (sensor, cámara o gateway Edge) en un área activa (RF-21).
+
+    **Acceso:** `dispositivos_iot` · Crear.
+
+    El serial es único (409). Las cámaras exigen resolución, fps y área de cobertura. Límite: 10 registros por minuto (429).
+    """
     use_case = RegistrarDispositivoIotUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -135,6 +141,10 @@ def listar_dispositivos_iot(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaDispositivosIotResponse:
+    """Dispositivos IoT de las fincas del usuario; `solo_activos` filtra los activos (RF-21).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     use_case = ConsultarDispositivosIotUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -169,6 +179,10 @@ def obtener_dispositivo_iot(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DispositivoIotResponse:
+    """Detalle de un dispositivo IoT de las fincas del usuario (RF-21).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     use_case = ConsultarDispositivosIotUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -203,6 +217,12 @@ def desactivar_dispositivo_iot(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DispositivoIotResponse:
+    """Desactiva un dispositivo y revoca su credencial MQTT (RF-21).
+
+    **Acceso:** `dispositivos_iot` · Desactivar.
+
+    Responde 422 si ya está inactivo o tiene configuraciones remotas pendientes (propias o, si es gateway, de sus dispositivos).
+    """
     use_case = DesactivarDispositivoIotUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -235,6 +255,12 @@ def registrar_sensor(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> SensorResponse:
+    """Registra un sensor en un dispositivo IoT (RF-22).
+
+    **Acceso:** `dispositivos_iot` · Crear.
+
+    Las cámaras no admiten sensores.
+    """
     use_case = RegistrarSensorUseCase(
         db=db,
         sensor_repo=SqlAlchemySensorRepository(db),
@@ -262,6 +288,10 @@ def listar_sensores(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaSensoresResponse:
+    """Sensores de un dispositivo IoT (RF-22).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     use_case = ConsultarSensoresUseCase(db=db, sensor_repo=SqlAlchemySensorRepository(db))
     sensores = use_case.listar_por_dispositivo(id_dispositivo_iot)
     items = [SensorResponse.from_entity(s) for s in sensores]
@@ -309,6 +339,12 @@ def configurar_remotamente(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> JSONResponse:
+    """Envía frecuencia de captura e intervalo de transmisión al dispositivo por el broker MQTT (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Actualizar.
+
+    La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). Los valores deben estar en el rango de su tipo (400); no aplica a gateways Edge y no admite otra configuración pendiente (409).
+    """
     use_case = ConfigurarRemotamenteUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -345,6 +381,10 @@ def listar_configuraciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaConfiguracionesRemotasResponse:
+    """Historial de configuraciones remotas del dispositivo (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     use_case = ConsultarConfiguracionesUseCase(
         db=db,
         config_repo=SqlAlchemyConfiguracionRemotaRepository(db),
@@ -383,6 +423,12 @@ def reintentar_configuracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> JSONResponse:
+    """Reenvía una configuración PENDIENTE o NO_CONF (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Actualizar.
+
+    Mismos códigos que el envío original (200/202/504); una configuración ya resuelta responde 409.
+    """
     use_case = ReintentarConfiguracionUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -419,6 +465,12 @@ def cancelar_configuracion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ConfiguracionRemotaResponse:
+    """Descarta una configuración PENDIENTE o NO_CONF (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Actualizar.
+
+    Una configuración ya resuelta responde 409.
+    """
     use_case = CancelarConfiguracionUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -456,6 +508,10 @@ def asignar_gateway_edge(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DispositivoIotResponse:
+    """Asigna, cambia o quita (`null`) el Gateway Edge del que cuelga un dispositivo (RF-21).
+
+    **Acceso:** `dispositivos_iot` · Actualizar.
+    """
     use_case = AsignarGatewayEdgeUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -500,6 +556,12 @@ def emitir_credencial_mqtt(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CredencialMqttResponse:
+    """Emite o rota la credencial MQTT de un Gateway Edge; la clave solo se muestra en esta respuesta (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Actualizar.
+
+    Rotar invalida la clave anterior. Límite: 10 por minuto (429); broker no disponible (503).
+    """
     use_case = EmitirCredencialMqttUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -531,6 +593,10 @@ def consultar_credencial_mqtt(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EstadoCredencialMqttResponse:
+    """Estado de la credencial MQTT del Gateway Edge en el broker, sin la clave (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Leer.
+    """
     use_case = ConsultarCredencialMqttUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),
@@ -557,6 +623,10 @@ def revocar_credencial_mqtt(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> Response:
+    """Revoca la credencial MQTT del Gateway Edge y lo desconecta del broker (RF-23).
+
+    **Acceso:** `dispositivos_iot` · Desactivar.
+    """
     use_case = RevocarCredencialMqttUseCase(
         db=db,
         dispositivo_repo=SqlAlchemyDispositivoIotRepository(db),

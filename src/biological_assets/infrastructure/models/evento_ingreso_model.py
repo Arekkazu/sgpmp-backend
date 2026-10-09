@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.eventos_ingresos`` (subtipo de evento: ingreso de individuos
+a un lote, RF-36).
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional

@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.eventos_activos``: cabecera de todo evento biológico; el
+detalle va en la tabla de su subtipo.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

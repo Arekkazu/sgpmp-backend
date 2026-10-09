@@ -1,3 +1,5 @@
+"""DTO de entrada para cambiar el estado de una asociación de sensor (RF-49)."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -15,6 +17,7 @@ _ESTADOS_VALIDOS = {'ACTIVA', 'INACTIVA', 'SUPERADA'}
 
 
 class CambiarEstadoAsociacionSensorDTO(BaseDTO):
+    """``estado_nuevo``: ``ACTIVA`` | ``INACTIVA`` | ``SUPERADA``."""
     estado_nuevo: str
     motivo: Optional[str] = None
 

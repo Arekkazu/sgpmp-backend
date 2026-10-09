@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
 from src.supplies.application.use_cases.eficiencia.calcular_ica_use_case import CalcularICAUseCase
 from src.supplies.application.use_cases.eficiencia.ejecutar_batch_ica_use_case import (
     EjecutarBatchICAUseCase,
@@ -58,7 +58,7 @@ def build_calcular_ica_use_case(db: Session) -> CalcularICAUseCase:
 
 
 def build_ejecutar_batch_use_case(db: Session) -> EjecutarBatchICAUseCase:
-    """Construye el motor batch ICA. Usa ``SessionLocal`` para las sesiones por activo."""
+    """Construye el motor batch ICA. Usa ``sesion_sistema`` (usuario de servicio, D1) para las sesiones por activo."""
     return EjecutarBatchICAUseCase(
         db=db,
         ejecucion_repo=SqlAlchemyEjecucionBatchICARepository(db),
@@ -66,7 +66,7 @@ def build_ejecutar_batch_use_case(db: Session) -> EjecutarBatchICAUseCase:
         config_repo=SqlAlchemyConfiguracionBatchICARepository(db),
         activos_batch_port=ActivosBatchM02Adapter(db),
         resultado_repo=SqlAlchemyResultadoICARepository(db),
-        session_factory=SessionLocal,
+        session_factory=sesion_sistema,
         construir_calculo=build_calcular_ica_use_case,
         construir_fallo_repo=SqlAlchemyFalloCalculoICARepository,
     )

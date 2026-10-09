@@ -4,10 +4,12 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.database import declarar_identidad, get_db
 from src.identity_access.infrastructure.repositories.notificacion_repository import (
     SqlAlchemyNotificacionRepository,
 )
@@ -39,11 +41,17 @@ def test_seed_indice_bandeja_es_idempotente(
 
 
 def _override_usuario(integration_app, usuario: dict) -> None:
-    integration_app.dependency_overrides[get_current_user] = lambda: UsuarioActual(
-        id_usuario=usuario["id_usuario"],
-        id_token=1,
-        id_rol=usuario["id_rol"],
-    )
+    # Como `get_current_user`, declara la identidad: bajo RLS las
+    # notificaciones solo las ve su dueño.
+    def actual(db: Session = Depends(get_db)) -> UsuarioActual:
+        declarar_identidad(db, usuario["id_usuario"], None)
+        return UsuarioActual(
+            id_usuario=usuario["id_usuario"],
+            id_token=1,
+            id_rol=usuario["id_rol"],
+        )
+
+    integration_app.dependency_overrides[get_current_user] = actual
 
 
 def test_bandeja_filtra_canal_propietario_y_marca_lectura(

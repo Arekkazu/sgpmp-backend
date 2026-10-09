@@ -1,9 +1,11 @@
 import os
 import time
 import logging
+from typing import Optional
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from fastapi import Depends
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.exc import InterfaceError, OperationalError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -25,6 +27,108 @@ engine = create_engine(
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Identidad de la transacción para RLS (F2/F4 del control de acceso por BD).
+# Las políticas leen `app.current_user_id` / `app.current_role` y los triggers
+# de auditoría de modulo2 leen `app.usuario_id`. `set_config(..., true)` muere
+# con la transacción, así que todo lo que corría después del primer `commit()`
+# del request quedaba sin identidad (bajo RLS: cero filas). La identidad vive
+# en `Session.info` y se reaplica al empezar cada transacción de esa sesión;
+# no se filtra a otro request porque cada request abre su propia sesión.
+_CLAVE_IDENTIDAD = "identidad_rls"
+
+# D1/D4 (decisión del DBA en el PR #485): las tareas de fondo y la ingesta IoT
+# corren como un usuario de servicio con filas explícitas en
+# `modulo9.usuarios_fincas`, nunca con BYPASSRLS. Lo crea la migración
+# `5c3e9b1d7a20`, que también lo deja sin poder iniciar sesión. Su id se
+# resuelve por correo (difiere entre bases) al empezar la primera transacción,
+# no al crear la sesión: así una BD caída falla dentro del `try` de la tarea.
+CORREO_USUARIO_SERVICIO = "servicio.sistema@sgpmp.local"
+_ROL_SERVICIO = "Administrador"
+_SISTEMA = object()
+_id_usuario_servicio: Optional[int] = None
+
+
+def _set_config(conexion, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
+    conexion.execute(
+        text(
+            "SELECT set_config('app.current_user_id', :uid, true), "
+            "set_config('app.current_role', :rol, true)"
+        ),
+        {"uid": "" if id_usuario is None else str(id_usuario), "rol": nombre_rol or ""},
+    )
+    if id_usuario is not None:
+        conexion.execute(
+            text("SELECT set_config('app.usuario_id', :uid, true)"), {"uid": str(id_usuario)}
+        )
+
+
+def _id_servicio(conexion) -> int:
+    global _id_usuario_servicio
+    if _id_usuario_servicio is None:
+        # `pol_usuarios_select` solo deja leer usuarios ajenos al rol Administrador.
+        _set_config(conexion, None, _ROL_SERVICIO)
+        _id_usuario_servicio = conexion.execute(
+            text("SELECT id_usuario FROM modulo1.usuarios WHERE correo_electronico = :correo"),
+            {"correo": CORREO_USUARIO_SERVICIO},
+        ).scalar_one_or_none()
+        if _id_usuario_servicio is None:
+            raise RuntimeError(
+                f"No existe el usuario de servicio {CORREO_USUARIO_SERVICIO}: "
+                "falta aplicar las migraciones (alembic upgrade head)."
+            )
+    return _id_usuario_servicio
+
+
+def _aplicar_identidad(conexion, identidad) -> None:
+    if identidad is _SISTEMA:
+        identidad = (_id_servicio(conexion), _ROL_SERVICIO)
+    _set_config(conexion, *identidad)
+
+
+@event.listens_for(Session, "after_begin")
+def _reaplicar_identidad(session: Session, _transaccion, conexion) -> None:
+    identidad = session.info.get(_CLAVE_IDENTIDAD)
+    if identidad is not None:
+        _aplicar_identidad(conexion, identidad)
+
+
+def _declarar(db: Session, identidad) -> None:
+    db.info[_CLAVE_IDENTIDAD] = identidad
+    if db.in_transaction():
+        _aplicar_identidad(db.connection(), identidad)
+
+
+def declarar_identidad(db: Session, id_usuario: Optional[int], nombre_rol: Optional[str]) -> None:
+    """Declara quién ejecuta la transacción en curso y las siguientes de `db`."""
+    _declarar(db, (id_usuario, nombre_rol))
+
+
+def declarar_identidad_si_anonima(db: Session, id_usuario: int) -> None:
+    """Flujos que todavía no tienen identidad (login, registro, refresh, activación,
+    recuperación): a partir de aquí actúan como el usuario recién resuelto.
+
+    Nunca pisa una identidad ya declarada: un request autenticado no pasa a
+    actuar como otro usuario por una búsqueda.
+    """
+    if db.info.get(_CLAVE_IDENTIDAD) is None:
+        declarar_identidad(db, id_usuario, None)
+
+
+def declarar_identidad_sistema(db: Session) -> None:
+    """Hace que `db` actúe como el usuario de servicio."""
+    _declarar(db, _SISTEMA)
+
+
+def sesion_sistema() -> Session:
+    """`SessionLocal()` que actúa como el usuario de servicio (tareas de fondo)."""
+    db = SessionLocal()
+    declarar_identidad_sistema(db)
+    return db
+
+
+# Mismo idiom que src/shared/email.py, pero con pausa corta: el frontend aborta
+# a los 15 s (sgpmp-frontend/src/shared/api/http.ts), así que el presupuesto
+# total de reintentos tiene que caber muy por debajo de ese límite.
 _MAX_REINTENTOS_CONEXION = 3
 _PAUSA_REINTENTO = 0.5
 
@@ -97,3 +201,9 @@ def get_db():
         raise
     finally:
         db.close()
+
+
+def get_db_sistema(db: Session = Depends(get_db)) -> Session:
+    """`get_db` para endpoints sin usuario autenticado (ingesta IoT, D4)."""
+    declarar_identidad_sistema(db)
+    return db

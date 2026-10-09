@@ -17,8 +17,7 @@ from src.identity_access.infrastructure.models.sesiones_model import Sesiones
 from src.identity_access.infrastructure.models.tokens_model import Tokens
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
 from src.shared.audit_context import establecer_id_token
-from src.shared.contexto_rls import declarar_contexto_rls
-from src.shared.database import get_db
+from src.shared.database import declarar_identidad, get_db
 from src.shared.errors import AuthenticationError
 from src.shared.jwt import verify_token
 
@@ -68,6 +67,12 @@ def get_current_user(
 
     id_token = int(payload["jti"])
     id_usuario = int(payload["sub"])
+
+    # RLS: el `sub` ya viene de un JWT verificado. Declararlo antes de la
+    # primera consulta deja que las políticas de modulo1 muestren el token, el
+    # usuario y la cuenta propios; sin esto la propia validación no los ve.
+    # El rol vigente se completa abajo, cuando se lee de la base.
+    declarar_identidad(db, id_usuario, None)
 
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
@@ -134,26 +139,12 @@ def get_current_user(
     establecer_id_token(id_token)
 
     # F2 del control de acceso por BD (RLS): punto único donde la identidad ya
-    # autenticada se declara a la transacción, para que las políticas de
-    # modulo1/modulo9 (`modulo1.fn_id_usuario_actual()` /
-    # `modulo1.fn_rol_actual()`, migraciones 8d80fb56a30b / 5243bbbb28de /
-    # 731fb3997631) puedan leerla. `set_config(..., true)` es el equivalente
-    # parametrizado de `SET LOCAL`: muere en el COMMIT/ROLLBACK de este
-    # request, no sobrevive al siguiente uso de la conexión en el pool (ver
-    # test de no-fuga en tests/integration/). Se mantiene también
-    # `app.usuario_id` (entero) porque lo sigue leyendo el trigger
-    # `modulo2.trg_auditar_activo_biologico`, ajeno a este cambio.
-    # `declarar_contexto_rls` además lo vuelve a declarar en cada transacción
-    # nueva de esta misma sesión, para los use cases que hacen más de un
-    # commit (ver src/shared/contexto_rls.py).
-    declarar_contexto_rls(
-        db,
-        {
-            "app.current_user_id": str(id_usuario),
-            "app.current_role": nombre_rol_vigente,
-            "app.usuario_id": str(id_usuario),
-        },
-    )
+    # autenticada se declara, para que las políticas
+    # (`modulo1.fn_id_usuario_actual()` / `modulo1.fn_rol_actual()`) y el
+    # trigger `modulo2.trg_auditar_activo_biologico` (`app.usuario_id`) la
+    # lean. `declarar_identidad` la reaplica en cada transacción de este
+    # request, también después de un `commit()`.
+    declarar_identidad(db, id_usuario, nombre_rol_vigente)
 
     return UsuarioActual(
         id_usuario=id_usuario,

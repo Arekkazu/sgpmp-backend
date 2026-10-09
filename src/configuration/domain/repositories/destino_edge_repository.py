@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 
 
 class DestinoEdgeRepository(ABC):
+    """Contrato que resuelve los Gateway Edge destino de los umbrales de una especie."""
 
     @abstractmethod
     def listar_seriales_gateway_por_especie(self, id_especie: int) -> list[str]:

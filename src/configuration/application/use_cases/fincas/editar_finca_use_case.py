@@ -17,6 +17,7 @@ from src.shared.errors import ConflictError, NotFoundError, PreconditionFailedEr
 
 
 class EditarFincaUseCase:
+    """Edita una finca con concurrencia optimista (412) y nombre único (409)."""
 
     def __init__(
         self,

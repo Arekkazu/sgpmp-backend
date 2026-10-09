@@ -1,3 +1,5 @@
+"""Caso de uso: edición de los datos de un activo INDIVIDUAL (RF-35)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -22,6 +24,13 @@ from src.shared.errors import AppError, NotFoundError, PreconditionFailedError
 
 
 class ActualizarActivoIndividualUseCase:
+    """Edita raza, sexo, fecha de nacimiento o peso inicial de un activo individual.
+
+    Usa concurrencia optimista sobre ``fecha_actualizacion`` (412 si otro usuario
+    lo modificó) y rechaza la edición con eventos pendientes o historial de
+    estados inconsistente. Guarda un snapshot versionado y deja rastro en RF-52.
+    """
+
     def __init__(
         self,
         db: Session,

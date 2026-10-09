@@ -29,7 +29,7 @@ from fastapi import BackgroundTasks
 from src.identity_access.infrastructure.repositories.notificacion_repository import (
     SqlAlchemyNotificacionRepository,
 )
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
 from src.shared.notificacion_service import NotificacionService
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,8 @@ def _procesar_notificacion_sesion_background(
     """Despacha la notificación con una sesión de DB independiente del request."""
     db = None
     try:
-        db = SessionLocal()
+        # Proceso de sistema (D1): sin request ni usuario que lo respalde.
+        db = sesion_sistema()
         NotificacionService(
             port=SqlAlchemyNotificacionRepository(db),
             db=db,

@@ -24,6 +24,9 @@ from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFail
 
 
 class EditarUmbralUseCase:
+    """Edita rango y niveles de un umbral activo con concurrencia optimista (412) y lo
+    sincroniza hacia los Edge.
+    """
 
     def __init__(
         self,

@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from jose import jwt as jose_jwt
 from sqlalchemy import Engine, create_engine, inspect, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -176,7 +177,7 @@ def client(
         notificacion_sesion_background_adapter,
     )
     from src.shared import jwt as jwt_module
-    from src.shared.database import get_db
+    from src.shared.database import declarar_identidad_sistema, get_db
     from src.identity_access.infrastructure.routers.usuarios_routers import (
         get_captcha_verifier,
     )
@@ -184,16 +185,43 @@ def client(
     monkeypatch.setattr(jwt_module, "_SECRET_KEY", JWT_SECRET_INTEGRACION)
     monkeypatch.setattr(jwt_module, "_EXPIRE_HOURS", 8)
 
+    rol_app = os.getenv("TEST_ROL_APP")
+    if rol_app and not re.fullmatch(r"\w+", rol_app):
+        pytest.fail("TEST_ROL_APP debe ser un nombre de rol simple.")
+
     def override_get_db() -> Generator[Session, None, None]:
-        yield db_session
+        # En producción cada request abre su sesión: la identidad RLS del
+        # request anterior de la prueba no debe seguir declarada.
+        db_session.info.clear()
+        if not rol_app:
+            yield db_session
+            return
+        # Regla 4 del plan de control de acceso: con TEST_ROL_APP=sgpmp_app los
+        # requests corren con el rol de la API, sujetos a RLS; la siembra y las
+        # aserciones de la prueba siguen con el usuario de TEST_DATABASE_URL.
+        db_session.execute(text(f'SET LOCAL ROLE "{rol_app}"'))
+        try:
+            yield db_session
+        finally:
+            # Sin rollback: la siembra de la prueba comparte la transacción.
+            try:
+                db_session.execute(text("RESET ROLE"))
+            except DBAPIError:
+                db_session.rollback()
+                db_session.execute(text("RESET ROLE"))
 
     def crear_sesion_background() -> Session:
-        """Crea una sesión aislada sobre la transacción exterior de la prueba."""
-        return Session(
+        """Crea una sesión aislada sobre la transacción exterior de la prueba.
+
+        Igual que `sesion_sistema`, actúa como el usuario de servicio (D1).
+        """
+        sesion = Session(
             bind=db_session.connection(),
             expire_on_commit=False,
             join_transaction_mode="create_savepoint",
         )
+        declarar_identidad_sistema(sesion)
+        return sesion
 
     class CaptchaValidoStub:
         """Evita llamadas a Google en pruebas que no evalúan CAPTCHA."""
@@ -207,12 +235,12 @@ def client(
     )
     monkeypatch.setattr(
         correo_recuperacion_background_adapter,
-        "SessionLocal",
+        "sesion_sistema",
         crear_sesion_background,
     )
     monkeypatch.setattr(
         notificacion_sesion_background_adapter,
-        "SessionLocal",
+        "sesion_sistema",
         crear_sesion_background,
     )
     with TestClient(

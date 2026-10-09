@@ -359,3 +359,86 @@ Respuesta esperada `200` (el batch no aborta — registra el rechazo en detalle)
 | PH | pH | pH | 2 |
 | OXIGENO_DISUELTO | mg/L | mg/L | 3 |
 | CONDUCTIVIDAD | µS/cm, mS/cm | µS/cm | 8 |
+
+---
+
+## Flujo V — Observaciones de visión por área (RF-53/RF-56/RF-62 v2.0, RFC-011)
+
+INC-M09-77-G137 (#513). La cámara (Edge de visión) envía, por ventana, el vector de
+comportamiento del área y las dimensiones de calidad de RF-62 v2.0. M03 calcula el índice de
+calidad de visión, `apto_para_ia` (regla 80/40) y `apto_para_nic41 = false`. Es lo que lee la
+calibración VISION de RF-24 (`POST /configuracion/calibraciones-vision`).
+
+> **Contrato PROVISIONAL** hasta que Análisis/AIoT fijen ET-01 y la fórmula del índice
+> (ver `anotaciones/modulo_3/inc_m09_77_g137_observaciones_vision.md`).
+
+Misma auth que el resto de la ingesta: `access_key` = serial del dispositivo, sin JWT. El
+dispositivo debe ser de categoría `CAMARA` (RF-21 v2.0) y estar asociado al `area_id` (RF-22).
+Lote de 1 a 500 observaciones, atómico.
+
+### FV.1 — Lote válido
+
+```bash
+curl -X POST http://localhost:8000/iot/telemetria/vision \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_id": 12,
+    "access_key": "CAM-GALPON-01",
+    "area_id": 2,
+    "observaciones": [
+      {
+        "timestamp_captura": "2026-10-08T10:00:00Z",
+        "cobertura_ventana": 0.95,
+        "n_tracks": 19,
+        "n_tracks_perdidos": 1,
+        "fps_efectivo": 24.0,
+        "estado_calibracion": "CALIBRADA",
+        "vector": {"densidad_actividad": 10.9, "tasa_movimiento": 3.3}
+      }
+    ]
+  }'
+```
+
+- `cobertura_ventana`: fracción [0, 1] de la ventana con señal.
+- `estado_calibracion`: `CALIBRADA` | `DEGRADADA` | `SIN_DETECCION` (RF-60 v2.0: con señal pero
+  sin detección válida por turbidez, oclusión o baja luz).
+- `vector`: componente → número finito; al menos uno. RF-24 calcula una línea base por componente.
+
+Respuesta esperada `201`:
+```json
+{
+  "total": 1,
+  "aceptadas": 1,
+  "duplicadas": 0,
+  "observaciones": [
+    {
+      "id_observacion_vision": 1,
+      "timestamp_captura": "2026-10-08T10:00:00Z",
+      "indice_calidad": 97,
+      "clasificacion_calidad": "APTO",
+      "apto_para_ia": true,
+      "apto_para_nic41": false
+    }
+  ]
+}
+```
+
+Índice provisional = promedio con pesos iguales de: `cobertura_ventana × 100`,
+`n_tracks / (n_tracks + n_tracks_perdidos) × 100`, `min(fps_efectivo / fps del dispositivo, 1) × 100`
+(100 si el dispositivo no tiene `fps` registrado) y `estado_calibracion` (100 / 50 / 0), redondeado
+mitad hacia arriba. ≥ 80 `APTO`, ≥ 40 `APTO_CON_RESERVA` (ambos `apto_para_ia = true`), < 40 `NO_APTO`.
+
+### FV.2 — Reenvío del buffer
+
+El mismo lote otra vez → `201` con `"aceptadas": 0, "duplicadas": 1`. La clave es
+(cámara, `timestamp_captura`); también cuenta una observación repetida dentro del mismo lote.
+
+### Errores posibles
+
+- `401 ERROR_AUTENTICACION` — `device_id` inexistente, `access_key` distinto del serial o dispositivo inactivo.
+- `422 DISPOSITIVO_NO_ES_CAMARA` — el dispositivo es de categoría `SENSOR`.
+- `422 AREA_NO_COINCIDE` — la cámara no está asociada a `area_id` (RF-22).
+- `400 ERROR_TIEMPO` — alguna `timestamp_captura` posterior a la hora del servidor (+30 s); `field`
+  indica la observación (`observaciones[i].timestamp_captura`). No se guarda nada del lote.
+- `400` (validación del DTO) — `vector` vacío o con valores no finitos (`NaN`, `Infinity`),
+  `cobertura_ventana` fuera de [0, 1], `estado_calibracion` desconocido, más de 500 observaciones.

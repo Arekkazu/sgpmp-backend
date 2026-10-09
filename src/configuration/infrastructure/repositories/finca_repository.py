@@ -48,7 +48,7 @@ class SqlAlchemyFincaRepository(FincaRepository):
         )
         return self._a_entidad(orm) if orm else None
 
-    def guardar(self, finca: Finca) -> Finca:
+    def guardar(self, finca: Finca, id_creador: Optional[int] = None) -> Finca:
         orm = FincaModel(
             nombre=finca.nombre.valor,
             ubicacion=finca.ubicacion.to_dict(),
@@ -62,13 +62,18 @@ class SqlAlchemyFincaRepository(FincaRepository):
             self.db.flush()
             # F3: `fincas` ya no guarda dueño; el usuario indicado al registrar
             # entra como primer acceso de la finca (y así se lee de vuelta).
-            if finca.id_usuario is not None:
+            # F4: quien la registra también queda con acceso, porque ningún rol
+            # es global; va después para no pasar por propietario. Sin esa fila
+            # el `refresh` de abajo no vería la finca bajo RLS.
+            for id_usuario in dict.fromkeys((finca.id_usuario, id_creador)):
+                if id_usuario is None:
+                    continue
                 self.db.execute(
                     text(
                         "INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) "
                         "VALUES (:id_usuario, :id_finca)"
                     ),
-                    {"id_usuario": finca.id_usuario, "id_finca": orm.id_finca},
+                    {"id_usuario": id_usuario, "id_finca": orm.id_finca},
                 )
             self.db.refresh(orm)
         except Exception as exc:

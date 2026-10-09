@@ -48,6 +48,9 @@ def _validar_coherencia_unidad(tipo_medicion: TipoMedicion, unidad_medida: str) 
 
 
 class EditarMetricaUseCase:
+    """Edita una métrica activa con concurrencia optimista (412), nombre único por
+    especie (409) y unidad coherente con el tipo de medición.
+    """
 
     def __init__(
         self,

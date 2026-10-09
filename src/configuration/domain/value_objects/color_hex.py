@@ -35,6 +35,9 @@ _PASO_LUMINOSIDAD = 0.01
 
 @dataclass(frozen=True)
 class ColorHex:
+    """Color ``#RRGGBB`` validado, con su luminancia relativa para calcular contraste
+    WCAG.
+    """
     valor: str
 
     def __post_init__(self) -> None:

@@ -8,9 +8,11 @@ from src.configuration.domain.entities.configuracion_global import Configuracion
 
 
 class ConfiguracionGlobalRepository(ABC):
+    """Contrato de acceso a datos para :class:`ConfiguracionGlobal`."""
 
     @abstractmethod
     def obtener_activo(self) -> Optional[ConfiguracionGlobal]:
+        """Obtiene la configuración global activa, o ``None`` si no hay ninguna."""
         raise NotImplementedError
 
     @abstractmethod
@@ -22,8 +24,12 @@ class ConfiguracionGlobalRepository(ABC):
 
     @abstractmethod
     def guardar(self, config: ConfiguracionGlobal) -> ConfiguracionGlobal:
+        """Inserta la configuración global y devuelve la entidad con su id asignado."""
         raise NotImplementedError
 
     @abstractmethod
     def actualizar(self, config: ConfiguracionGlobal) -> ConfiguracionGlobal:
+        """Persiste los cambios de la configuración global y devuelve la entidad
+        actualizada.
+        """
         raise NotImplementedError

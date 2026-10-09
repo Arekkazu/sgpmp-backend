@@ -1,3 +1,7 @@
+"""Implementación SQLAlchemy de ``TransferenciaRepository``: transferencias (RF-48) e
+historial consolidado (RF-46).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -13,6 +17,9 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
+    """Persiste movimientos y une eventos, estados, fases y movimientos en el historial
+    paginado.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

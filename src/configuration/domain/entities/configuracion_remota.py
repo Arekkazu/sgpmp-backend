@@ -15,6 +15,11 @@ from typing import Optional
 
 @dataclass(eq=False)
 class ConfiguracionRemota:
+    """Comando de configuración (frecuencia de captura e intervalo de transmisión) enviado a un dispositivo (RF-23).
+
+    Ciclo de vida: PENDIENTE → APLICADA al llegar el ACK, NO_CONF si el ACK no
+    llega a tiempo, o CANCELADA si el usuario la descarta.
+    """
     id_dispositivo_iot: int
     frecuencia_captura: int
     intervalo_transmision: int

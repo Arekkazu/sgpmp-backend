@@ -14,6 +14,10 @@ from src.configuration.domain.value_objects.modo_calibracion import ModoCalibrac
 
 @dataclass(eq=False)
 class Calibracion:
+    """Calibración de un sensor (RF-24); inmutable, cada nueva calibración es un registro más del historial.
+
+    ``ganancia`` y ``offset`` son los parámetros de corrección que se envían al dispositivo.
+    """
     id_dispositivo_iot: int
     id_sensor: int
     valor_referencia: Decimal

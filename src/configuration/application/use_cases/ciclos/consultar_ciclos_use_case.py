@@ -6,6 +6,7 @@ from src.configuration.domain.repositories.ciclo_biologico_repository import Cic
 
 
 class ConsultarCiclosUseCase:
+    """Lista las etapas del ciclo de una especie, opcionalmente solo las activas."""
 
     def __init__(self, ciclos_repo: CicloBiologicoRepository) -> None:
         self.ciclos_repo = ciclos_repo

@@ -222,7 +222,7 @@ def test_tarea_background_usa_plantilla_y_sesion_independiente(
     db = MagicMock()
     servicio = MagicMock()
     servicio_cls = MagicMock(return_value=servicio)
-    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(correo_adapter, "sesion_sistema", lambda: db)
     monkeypatch.setattr(
         correo_adapter,
         "SqlAlchemyNotificacionRepository",
@@ -255,7 +255,7 @@ def test_fallo_de_tarea_background_se_registra_y_cierra_la_sesion(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     db = MagicMock()
-    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(correo_adapter, "sesion_sistema", lambda: db)
     monkeypatch.setattr(
         correo_adapter,
         "SqlAlchemyNotificacionRepository",

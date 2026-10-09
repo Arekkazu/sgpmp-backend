@@ -15,6 +15,10 @@ from src.shared.tipo_modelo import TipoModelo
 
 
 class EditarInfraestructuraDTO(BaseDTO):
+    """Campos editables del área productiva; ``tipo_area`` debe existir en el catálogo de tipos de área.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre_infraestructura: str
     tipo_area: str
     superficie: Decimal

@@ -56,6 +56,12 @@ def registrar_ciclo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CicloBiologicoResponse:
+    """Registra una etapa del ciclo productivo de una especie activa (RF-16).
+
+    **Acceso:** `ciclos_biologicos` · Crear.
+
+    El nombre es único dentro de la especie (409).
+    """
     use_case = RegistrarCicloUseCase(
         db=db,
         ciclos_repo=SqlAlchemyCicloBiologicoRepository(db),
@@ -81,6 +87,10 @@ def consultar_ciclos(
     solo_activas: bool = Query(False, description="Si es true, solo devuelve etapas activas."),
     db: Session = Depends(get_db),
 ) -> EtapasPorEspecieResponse:
+    """Etapas del ciclo de una especie; `solo_activas` filtra las vigentes (RF-16).
+
+    **Acceso:** `ciclos_biologicos` · Leer.
+    """
     use_case = ConsultarCiclosUseCase(ciclos_repo=SqlAlchemyCicloBiologicoRepository(db))
     ciclos = use_case.execute(id_especie, solo_activas=solo_activas)
     items = [CicloBiologicoResponse.model_validate(c) for c in ciclos]
@@ -107,6 +117,12 @@ def editar_ciclo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CicloBiologicoResponse:
+    """Edita nombre, descripción o duración de una etapa activa (RF-16).
+
+    **Acceso:** `ciclos_biologicos` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarCicloUseCase(
         db=db,
         ciclos_repo=SqlAlchemyCicloBiologicoRepository(db),
@@ -133,6 +149,12 @@ def desactivar_ciclo(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CicloBiologicoResponse:
+    """Desactiva una etapa (RF-16).
+
+    **Acceso:** `ciclos_biologicos` · Desactivar.
+
+    Responde 422 si ya está inactiva o hay activos biológicos en ella.
+    """
     use_case = DesactivarCicloUseCase(
         db=db,
         ciclos_repo=SqlAlchemyCicloBiologicoRepository(db),

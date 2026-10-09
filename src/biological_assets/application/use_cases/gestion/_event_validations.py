@@ -1,3 +1,7 @@
+"""Validaciones compartidas por los use cases de eventos y edición del activo (RF-35,
+RF-39, RF-44).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -62,6 +66,9 @@ def validar_historial_consistente(activo: ActivoBiologico, historico_repo: Histo
 
 
 def validar_estado_permite_eventos(activo: ActivoBiologico) -> None:
+    """Solo ACTIVO, EN_TRATAMIENTO y AISLADO admiten eventos nuevos; otro estado
+    responde 409.
+    """
     if activo.id_estado not in _ESTADOS_PERMITEN_EVENTOS:
         estado_actual = _NOMBRES_ESTADO.get(activo.id_estado, str(activo.id_estado))
         raise ConflictError(
@@ -79,6 +86,9 @@ def validar_fecha_evento(
     activo: ActivoBiologico,
     evento_repo: EventoActivoRepository,
 ) -> None:
+    """Valida que la fecha del evento no sea futura ni anterior al registro del activo
+    (400).
+    """
     # RF-39/40/41/42 clasifican "Fecha inválida" como HTTP 400, no como regla de
     # negocio: ValidationError, no BusinessRuleError. RF-43 no pasa por aquí, pide
     # 422 para su propio caso de fecha.
@@ -89,14 +99,21 @@ def validar_fecha_evento(
         raise ValidationError(
             code='FECHA_FUTURA',
             message='La fecha del evento no puede ser posterior a la fecha actual.',
+            field='fecha',
         )
 
+    # #289: las dos causas compartían un mensaje genérico ("inválida o
+    # inconsistente con el historial") que no decía qué fecha era válida.
     if activo.fecha_creacion:
         creacion_utc = activo.fecha_creacion.astimezone(timezone.utc)
         if fecha_utc < creacion_utc:
             raise ValidationError(
                 code='FECHA_ANTERIOR_REGISTRO',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al registro del activo. '
+                    'Usa una fecha y hora iguales o posteriores a su registro.'
+                ),
+                field='fecha',
             )
 
     ultima = evento_repo.obtener_ultima_fecha(activo.id_activo_biologico)
@@ -105,5 +122,9 @@ def validar_fecha_evento(
         if fecha_utc < ultima_utc:
             raise ValidationError(
                 code='FECHA_INCOHERENTE',
-                message='La fecha del evento es inválida o inconsistente con el historial.',
+                message=(
+                    'La fecha del evento no puede ser anterior al último evento registrado '
+                    'para este activo.'
+                ),
+                field='fecha',
             )

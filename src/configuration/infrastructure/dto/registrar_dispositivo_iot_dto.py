@@ -16,6 +16,9 @@ _FORMATO_DESCRIPCION = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ0-9 .,()/_-]
 
 
 class RegistrarDispositivoIotDTO(BaseDTO):
+    """Dispositivo IoT nuevo; ``resolucion``, ``fps`` y ``area_cobertura_m2`` son
+    obligatorios solo en cámaras.
+    """
     serial: str
     descripcion: str
     id_infraestructura: int

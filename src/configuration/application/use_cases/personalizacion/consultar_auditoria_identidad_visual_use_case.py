@@ -8,6 +8,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarAuditoriaIdentidadVisualUseCase:
+    """Historial de cambios de identidad visual de una finca."""
 
     def __init__(
         self,

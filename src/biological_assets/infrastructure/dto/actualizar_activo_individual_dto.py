@@ -1,3 +1,5 @@
+"""DTO de entrada de ``PATCH /activos-biologicos/{id_activo}`` (RF-35)."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -10,6 +12,12 @@ from src.shared.base_dto import BaseDTO
 
 
 class ActualizarActivoIndividualDTO(BaseDTO):
+    """Campos editables de un activo INDIVIDUAL; al menos uno es obligatorio.
+
+    ``fecha_actualizacion`` debe ser la leída del activo (concurrencia optimista,
+    412 si cambió). ``estado_activo`` no se acepta: el estado se cambia con
+    ``PATCH /activos-biologicos/{id_activo}/estado`` (RF-44).
+    """
     # INC-M02-G22: un campo no editable (estado, especie, tipo...) se ignoraba
     # en silencio y el PATCH respondía 200 sin aplicarlo. RF-35 exige impedir
     # esos cambios, no descartarlos.

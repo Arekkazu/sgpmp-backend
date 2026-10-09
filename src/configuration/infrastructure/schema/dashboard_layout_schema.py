@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class WidgetConfigResponse(BaseModel):
+    """Posición de un widget en la grilla."""
     id_widget: int
     posicion_fila: int
     posicion_columna: int
@@ -17,6 +18,7 @@ class WidgetConfigResponse(BaseModel):
 
 
 class DashboardLayoutResponse(BaseModel):
+    """Dashboard del usuario con su ``version_perfil`` para el siguiente guardado."""
     id_dashboard_layout: Optional[int]
     id_usuario: int
     grid: list[WidgetConfigResponse]
@@ -51,6 +53,7 @@ class DashboardLayoutResponse(BaseModel):
 
 
 class WidgetCatalogoResponse(BaseModel):
+    """Widget disponible para el rol del usuario."""
     id_widget: int
     clave: str
     nombre: str
@@ -61,6 +64,9 @@ class WidgetCatalogoResponse(BaseModel):
 
 
 class WidgetDatosResponse(BaseModel):
+    """Widget visible con sus datos; ``sin_datos`` y ``mensaje`` explican un widget
+    vacío.
+    """
     id_widget: int
     clave: str
     nombre: str

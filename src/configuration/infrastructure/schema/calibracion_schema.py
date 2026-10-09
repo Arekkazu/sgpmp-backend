@@ -11,6 +11,7 @@ from src.shared.schemas import DecimalNumero
 
 
 class CalibracionResponse(BaseModel):
+    """Calibración registrada de un sensor."""
     id_calibracion: int
     id_dispositivo_iot: int
     id_sensor: int
@@ -42,11 +43,13 @@ class CalibracionResponse(BaseModel):
 
 
 class ListaCalibracionesResponse(BaseModel):
+    """Historial de calibraciones."""
     total: int
     items: list[CalibracionResponse]
 
 
 class RangoCalibracionResponse(BaseModel):
+    """Rango admisible de calibración para un tipo de sensor."""
     categoria: str
     valor_min: DecimalNumero
     valor_max: DecimalNumero
@@ -61,5 +64,6 @@ class RangoCalibracionResponse(BaseModel):
 
 
 class ListaRangosCalibracionResponse(BaseModel):
+    """Rangos de calibración configurados."""
     total: int
     items: list[RangoCalibracionResponse]

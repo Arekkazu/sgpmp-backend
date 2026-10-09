@@ -21,6 +21,11 @@ from src.shared.errors import ConflictError, NotFoundError
 
 
 class RegistrarCorrectivoAuditoriaUseCase:
+    """Registra en la bitácora el rastro faltante de una fila del historial RF-46.
+
+    Errores: la fila no existe (404) o ya tiene su registro en la bitácora (409).
+    A diferencia del resto de M02, si la bitácora falla aquí el error se propaga.
+    """
 
     def __init__(
         self,

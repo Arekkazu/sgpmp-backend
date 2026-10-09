@@ -28,6 +28,11 @@ MOTIVO_CASCADA = "gateway_edge_desactivado"
 
 
 class DesactivarDispositivoIotUseCase:
+    """Desactiva un dispositivo y revoca su credencial MQTT.
+
+    Se bloquea si tiene una configuración remota pendiente, o si es un gateway
+    Edge con configuraciones pendientes en sus dispositivos (422).
+    """
 
     def __init__(
         self,

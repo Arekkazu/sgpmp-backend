@@ -4,10 +4,9 @@ Aísla la deuda de que no existe un modelo real de "unidad productiva asignada
 a un usuario" (ver ``anotaciones/modulo_5/cu04_gaps_bd_rf77_rf81.md``). El use
 case y el router no saben nada de roles; solo llaman a ``AlcanceActivoPort``.
 
-Regla de alcance (RF-25): quien gestiona fincas (permiso de gestión sobre el
-recurso ``fincas``) ve todos los activos. El resto de roles queda restringido a
-los activos ubicados en sus fincas (``activos_biologicos.id_infraestructura``
-→ ``infraestructuras.id_finca``).
+Regla de alcance (RF-25): cada usuario queda restringido a los activos
+ubicados en sus fincas (``activos_biologicos.id_infraestructura`` →
+``infraestructuras.id_finca``); ningún rol es global (``AlcanceFincaAdapter``).
 """
 from __future__ import annotations
 

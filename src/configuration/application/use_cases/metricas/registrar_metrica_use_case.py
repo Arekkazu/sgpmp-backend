@@ -47,6 +47,9 @@ def _validar_coherencia_unidad(tipo_medicion: TipoMedicion, unidad_medida: str) 
 
 
 class RegistrarMetricaUseCase:
+    """Registra una métrica para una especie activa, con nombre único y unidad coherente
+    con el tipo de medición.
+    """
 
     def __init__(
         self,

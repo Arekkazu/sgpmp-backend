@@ -120,10 +120,17 @@ def test_retirar_la_finca_revoca_el_acceso_sin_tocar_al_propietario(
     productor = crear_usuario_db(id_rol=rol_sin_alcance_global)
     veterinario = crear_usuario_db(id_rol=rol_sin_alcance_global)
     id_finca = _finca_con_propietario(db_session, productor["id_usuario"])
+    # F4: ningún rol es global; el administrador solo asigna fincas a las que
+    # tiene acceso (en el alta real queda asignado como creador).
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": admin["id_usuario"], "f": id_finca},
+    )
     headers = crear_auth_headers(admin)
     url = f"/usuarios/{veterinario['id_usuario']}/fincas"
 
-    client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)
+    primera = client.put(url, json={"ids_fincas": [id_finca]}, headers=headers)
+    assert primera.status_code == 200, primera.text
     r = client.put(url, json={"ids_fincas": []}, headers=headers)
 
     assert r.status_code == 200, r.text

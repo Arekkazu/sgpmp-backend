@@ -10,6 +10,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class ObtenerIdiomaResueltoUseCase:
+    """Idioma efectivo del usuario: personal, si no el global, si no ``es-CO``."""
 
     def __init__(self, idioma_repo: PreferenciaIdiomaRepository) -> None:
         self.idioma_repo = idioma_repo

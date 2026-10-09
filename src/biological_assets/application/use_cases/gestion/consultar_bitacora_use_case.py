@@ -1,3 +1,5 @@
+"""Caso de uso: consulta paginada de la bitácora de auditoría de M02 (RF-52)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +21,12 @@ _ACCESO_DATOS = 'ACCESO_DATOS'
 
 
 class ConsultarBitacoraUseCase:
+    """Consulta la bitácora con filtros, recortada al alcance del usuario.
+
+    El alcance depende de los permisos del rol (clasificaciones y RF visibles) y
+    de las fincas asignadas; pedir un activo fuera de ese alcance responde 403.
+    La propia consulta queda registrada en la bitácora.
+    """
 
     def __init__(
         self,

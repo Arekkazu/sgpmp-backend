@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.domain.entities.cuenta import Cuenta
@@ -18,6 +19,7 @@ from src.identity_access.infrastructure.models.cuenta_usuarios_model import Cuen
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
 from src.identity_access.infrastructure.models.gestiones_cuenta_model import GestionesCuenta
 from src.identity_access.infrastructure.models.usuarios_model import Usuarios
+from src.shared.database import declarar_identidad_si_anonima
 from src.shared.db_error_translator import raise_from_db_error
 
 
@@ -91,6 +93,14 @@ class SqlAlchemyCuentaRepository(CuentaRepository):
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_hash_token(self, token_hash: str) -> Optional[Cuenta]:
+        # Activación y restablecimiento de contraseña: sin identidad todavía
+        # (ver SqlAlchemyUsuarioRepository.obtener_por_correo).
+        id_usuario = self.db.execute(
+            text("SELECT modulo1.fn_id_usuario_por_hash_token_cuenta(:hash)"), {"hash": token_hash}
+        ).scalar()
+        if id_usuario is None:
+            return None
+        declarar_identidad_si_anonima(self.db, id_usuario)
         orm = (
             self.db.query(CuentasUsuarios)
             .filter(CuentasUsuarios.token_activacion_actual == token_hash)

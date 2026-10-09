@@ -1,3 +1,5 @@
+"""Implementación SQLAlchemy de ``EventoActivoRepository`` (RF-39 a RF-45)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -29,6 +31,9 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyEventoActivoRepository(EventoActivoRepository):
+    """Persiste la cabecera del evento y su fila de subtipo, y resuelve las consultas de
+    secuencia.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

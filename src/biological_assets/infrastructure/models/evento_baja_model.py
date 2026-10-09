@@ -1,3 +1,5 @@
+"""Modelo ORM de ``modulo2.eventos_bajas`` (subtipo de evento, RF-45)."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Optional

@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header, Query
 from sqlalchemy.orm import Session
 
-from src.shared.database import get_db
+from src.shared.database import get_db, get_db_sistema
 from src.shared.errors import AuthenticationError
 from src.shared.rbac import require_permission
 from src.shared.schemas import ErrorResponse
@@ -59,7 +59,7 @@ router = APIRouter(prefix="/iot", tags=["Telemetría IoT - Infraestructura"])
 )
 def recibir_heartbeat(
     dto: HeartbeatDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_device_api_key: str = Header(..., alias="X-Device-API-Key"),
     x_device_id: int = Header(..., alias="X-Device-Id"),
 ) -> HeartbeatReciboSchema:
