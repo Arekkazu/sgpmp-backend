@@ -43,7 +43,7 @@ import time
 import pytest
 import requests
 
-BASE_URL = "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+BASE_URL = "https://api.inmero.co/back-sigab-test"
 ADMIN_CORREO = "admin.dev@gmail.com"
 ADMIN_CONTRASENA = "Test1234!"
 

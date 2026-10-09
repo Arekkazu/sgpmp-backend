@@ -23,7 +23,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/recuperar"
+        "url": "https://api.inmero.co/back-sigab-test/contrasena/recuperar"
       }
     },
     {
@@ -41,7 +41,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{token_recuperacion}}\",\n  \"nueva_contrasena\": \"{{contrasena_nueva}}\",\n  \"confirmar_contrasena\": \"{{contrasena_nueva}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/contrasena/restablecer"
+        "url": "https://api.inmero.co/back-sigab-test/contrasena/restablecer"
       }
     },
     {
@@ -56,7 +56,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena_actual}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+        "url": "https://api.inmero.co/back-sigab-test/sesiones/"
       }
     },
     {
@@ -69,7 +69,7 @@
         "method": "POST",
         "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": { "mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{correo}}\",\n  \"contrasena\": \"{{contrasena_nueva}}\"\n}" },
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/sesiones/"
+        "url": "https://api.inmero.co/back-sigab-test/sesiones/"
       }
     },
     {
@@ -84,7 +84,7 @@
       "request": {
         "method": "GET",
         "header": [{ "key": "Authorization", "value": "Bearer {{nuevo_token_sesion}}" }],
-        "url": "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test/notificaciones?pagina=1&tamano=5"
+        "url": "https://api.inmero.co/back-sigab-test/notificaciones?pagina=1&tamano=5"
       }
     }
   ]

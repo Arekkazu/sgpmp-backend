@@ -3,7 +3,7 @@
  * Un login. Offline SOLO después de /auditoria estable.
  * Restaura online en after().
  */
-const TEST_FRONT = 'https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io';
+const TEST_FRONT = 'https://api.inmero.co';
 const EVIDENCIA = 'tests/Test_Testing/Test_Modulo1/RF-10/TC-M01-74/Resultados';
 const POST_LOGIN = /\/sesiones\/?$/;
 const POST_REFRESH = /\/sesiones\/refresh\/?$/;

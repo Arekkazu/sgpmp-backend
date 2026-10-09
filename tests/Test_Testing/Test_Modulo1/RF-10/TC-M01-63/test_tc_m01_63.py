@@ -34,7 +34,7 @@ import psycopg2.extras
 import pytest
 import requests
 
-BASE_URL = "http://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"
+BASE_URL = "https://api.inmero.co/back-sigab-test"
 
 ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@pecuaria.co")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "Test1234!")

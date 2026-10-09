@@ -25,7 +25,7 @@ module.exports = defineConfig({
     charts: true,
   },
   e2e: {
-    baseUrl: 'https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io',
+    baseUrl: 'https://api.inmero.co',
     specPattern: path.join(__dirname, 'tc_m01_074_rev3.cy.js'),
     supportFile: path.join(__dirname, '../../../../../cypress/support/e2e.js'),
   },

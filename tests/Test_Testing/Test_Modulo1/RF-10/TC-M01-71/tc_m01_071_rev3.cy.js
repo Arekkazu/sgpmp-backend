@@ -3,7 +3,7 @@
  * Un login. No asume tamano=50 en UI (front usa default 20; máximo RF-10 es 50).
  * No falla el caso por ausencia de fecha_hasta en el cliente; se documenta.
  */
-const TEST_FRONT = 'https://sigab-frontendtest-6aqrny-d2b730-158-69-200-27.sslip.io';
+const TEST_FRONT = 'https://api.inmero.co';
 const EVIDENCIA = 'tests/Test_Testing/Test_Modulo1/RF-10/TC-M01-71/Resultados';
 const POST_LOGIN = /\/sesiones\/?$/;
 const GET_AUDITORIA = /\/auditoria\/?(\?.*)?$/;
