@@ -9,16 +9,32 @@ Clasifica la totalidad de las tablas de modulo2 en patrones de acceso:
 
   1. CATALOGO (sin RLS):        estados_activos_biologicos
   2. YA RESUELTO F4:            activos_biologicos (3 politicas vigentes)
-  3. FINCA POR CADENA (via infra): asociaciones, historial_infra, movimientos
-  4. FINCA POR CADENA (via activo): detalles, eventos, gestiones, historial, indicadores, bitacora
-  5. FINCA POR CADENA (via evento): sub-eventos (bajas, crecimiento, ingresos, productivos, reproductivos, sanitarios)
-  6. AUDITORIA POR CADENA:      auditoria_activos, auditoria_asociaciones
+  3. VIA SENSOR:                asociaciones_activos_sensores (id_sensor NOT NULL)
+  4. VIA INFRAESTRUCTURA:       historial_infraestructura_activo, movimientos
+  5. VIA ACTIVO:                detalles, eventos, gestiones, historial, indicadores
+  6. VIA EVENTO (EXISTS):       sub-eventos sobre eventos_activos
+  7. AUDITORIA POR CADENA:      auditoria_activos, auditoria_asociaciones
+  8. BITACORA (RF-52):          id_activo nullable, recurso bitacora_auditoria_m02
 
-Funciones helper creadas:
-  - modulo2.fn_activos_del_usuario(p_usuario_id): 1 salto activo → infra
-  - modulo2.fn_eventos_del_usuario(p_usuario_id): 2 saltos evento → activo → infra
+Contrato con la app (anotaciones/convencion_nomenclatura_bd.md):
+  - Identidad: modulo1.fn_id_usuario_actual() lee app.current_user_id.
+  - Servicio: modulo1.fn_es_usuario_servicio() identifica servicio.sistema@sgpmp.local.
+  - Todas las funciones van dentro de (SELECT ...) para evaluarse por sentencia.
 
-NO SE TOCAN: activos_biologicos (F4 vigente), estados_activos_biologicos (catálogo)
+Correcciones aplicadas segun revision de Arekkazu (#536):
+  - ENABLE ROW LEVEL SECURITY antes de FORCE (sin ENABLE, FORCE no tiene efecto).
+  - asociaciones_activos_sensores por id_sensor (NOT NULL), no id_infraestructura (nullable).
+  - auditoria_activos_biologicos sin f_auth(): el trigger inserta con la identidad de
+    quien modifica el activo; el servicio tiene acceso a todas las fincas.
+  - bitacora_auditoria_m02: filas sin activo se insertan con cualquier identidad
+    declarada y se leen con permiso sobre el recurso bitacora_auditoria_m02 (id 31).
+  - Sub-eventos: EXISTS sobre eventos_activos (0.25 ms) en vez de
+    fn_eventos_del_usuario (84.6 ms con 200k eventos).
+  - down_revision encadenada detras de la F5 de modulo9.
+  - Downgrade: politicas primero, funciones al final, DISABLE RLS.
+
+NO SE TOCAN: activos_biologicos (F4 vigente), estados_activos_biologicos (catalogo).
+
 """
 from typing import Sequence, Union
 
@@ -32,45 +48,63 @@ down_revision: Union[str, Sequence[str], None] = '00c60ae92735'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+UID = "(SELECT modulo1.fn_id_usuario_actual())"
+SERVICIO = "(SELECT modulo1.fn_es_usuario_servicio())"
 
-# ── Tablas sin RLS ────────────────────────────────────────────────────
-_CATALOGOS = ['estados_activos_biologicos']
 
-# ── Tablas vía infraestructura (2 saltos) ─────────────────────────────
-_VIA_INFRA = ['asociaciones_activos_sensores', 'historial_infraestructura_activo']
+def permiso(recurso: str, accion: str) -> str:
+    """Nombres reales de modulo1.recursos."""
+    return f"(SELECT modulo1.fn_tiene_permiso('{recurso}', '{accion}'))"
 
-# ── Tablas vía activo (3 saltos) ──────────────────────────────────────
-_VIA_ACTIVO = [
+
+# ── Subconsultas reutilizables ────────────────────────────────────────
+_ACTIVOS_SUBQ = (
+    "SELECT a.id_activo_biologico"
+    f" FROM modulo2.fn_activos_del_usuario({UID}) a"
+)
+_INFRA_SUBQ = (
+    "SELECT i.id_infraestructura"
+    f" FROM modulo9.fn_infraestructuras_del_usuario({UID}) i"
+)
+_SENSORES_SUBQ = (
+    "SELECT s.id_sensores"
+    f" FROM modulo9.fn_sensores_del_usuario({UID}) s"
+)
+
+# Tablas via activo con SELECT + INSERT + UPDATE
+_VIA_ACTIVO_FULL = [
     'detalles_activos_biologicos_poblacionales',
     'detalles_activos_individuales',
-    'eventos_activos',
     'gestiones_fases',
-    'historial_activos',
-    'historicos_estados_activos',
-    'indicadores_zootecnicos',
 ]
 
-# ── Sub-eventos vía eventos_activos (4 saltos) ────────────────────────
+_VIA_ACTIVO_APPEND = [
+    'eventos_activos',
+    'historial_activos',
+    'historicos_estados_activos',
+]
+
 _SUB_EVENTOS = [
     'eventos_bajas',
     'eventos_crecimeinto',
     'eventos_ingresos',
     'eventos_productivos',
-    'eventos_reproductivos',
     'eventos_sanitarios',
 ]
 
-# ── Auditoría por cadena ──────────────────────────────────────────────
-_AUDITORIA = ['auditoria_activos_biologicos']
+
+def _enable_force(tabla: str) -> None:
+    """ENABLE + FORCE RLS en una tabla (sin ENABLE, FORCE no tiene efecto)."""
+    op.execute(f"ALTER TABLE modulo2.{tabla} ENABLE ROW LEVEL SECURITY;")
+    op.execute(f"ALTER TABLE modulo2.{tabla} FORCE ROW LEVEL SECURITY;")
 
 
 def upgrade() -> None:
 
     # ================================================================
-    # 0. FUNCIONES HELPER
+    # 0. FUNCION HELPER: activos accesibles por el usuario
+    #    (no se crea fn_eventos_del_usuario: reemplazada por EXISTS)
     # ================================================================
-
-    # Helper 1: activos accesibles por el usuario (activo → infra → finca)
     op.execute("""
         CREATE OR REPLACE FUNCTION modulo2.fn_activos_del_usuario(p_usuario_id bigint)
         RETURNS TABLE (id_activo_biologico int)
@@ -85,424 +119,246 @@ def upgrade() -> None:
     op.execute("REVOKE ALL ON FUNCTION modulo2.fn_activos_del_usuario(bigint) FROM PUBLIC;")
     op.execute("GRANT EXECUTE ON FUNCTION modulo2.fn_activos_del_usuario(bigint) TO sgpmp_app;")
 
-    # Helper 2: eventos accesibles por el usuario (evento → activo → infra → finca)
-    op.execute("""
-        CREATE OR REPLACE FUNCTION modulo2.fn_eventos_del_usuario(p_usuario_id bigint)
-        RETURNS TABLE (id_evento int)
-        LANGUAGE sql STABLE SECURITY DEFINER
-        SET search_path = pg_catalog, modulo2 AS
-        $$ SELECT ea.id_eventos
-           FROM modulo2.eventos_activos ea
-           WHERE ea.id_activo_biologico IN (
-               SELECT a.id_activo_biologico
-               FROM modulo2.fn_activos_del_usuario(p_usuario_id) a); $$;
-    """)
-    op.execute("REVOKE ALL ON FUNCTION modulo2.fn_eventos_del_usuario(bigint) FROM PUBLIC;")
-    op.execute("GRANT EXECUTE ON FUNCTION modulo2.fn_eventos_del_usuario(bigint) TO sgpmp_app;")
+    # ================================================================
+    # 1. CATALOGO: sin RLS
+    # ================================================================
+    op.execute("ALTER TABLE modulo2.estados_activos_biologicos DISABLE ROW LEVEL SECURITY;")
+    op.execute("ALTER TABLE modulo2.estados_activos_biologicos NO FORCE ROW LEVEL SECURITY;")
 
     # ================================================================
-    # 1. CATÁLOGOS: sin RLS
+    # 2. VIA SENSOR: asociaciones_activos_sensores
+    #    id_infraestructura es NULLABLE (NULL en las 4 filas de DEV);
+    #    id_sensor es NOT NULL → cadena por sensor.
     # ================================================================
-    for t in _CATALOGOS:
-        op.execute(f"ALTER TABLE modulo2.{t} DISABLE ROW LEVEL SECURITY;")
-        op.execute(f"ALTER TABLE modulo2.{t} NO FORCE ROW LEVEL SECURITY;")
-
-    # ================================================================
-    # 2. VÍA INFRAESTRUCTURA (2 saltos, id_infraestructura directo)
-    # ================================================================
-
-    # asociaciones_activos_sensores: SELECT, INSERT, UPDATE, sistema
-    op.execute("""
-        CREATE POLICY asoc_sel ON modulo2.asociaciones_activos_sensores
-          FOR SELECT USING (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
+    op.execute(f"""
+        CREATE POLICY pol_asociaciones_select ON modulo2.asociaciones_activos_sensores
+          FOR SELECT USING (id_sensor IN ({_SENSORES_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY asoc_ins ON modulo2.asociaciones_activos_sensores
-          FOR INSERT WITH CHECK (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
+    op.execute(f"""
+        CREATE POLICY pol_asociaciones_insert ON modulo2.asociaciones_activos_sensores
+          FOR INSERT WITH CHECK (id_sensor IN ({_SENSORES_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY asoc_upd ON modulo2.asociaciones_activos_sensores
-          FOR UPDATE USING (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i))
-          WITH CHECK (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
+    op.execute(f"""
+        CREATE POLICY pol_asociaciones_update ON modulo2.asociaciones_activos_sensores
+          FOR UPDATE USING (id_sensor IN ({_SENSORES_SUBQ}))
+          WITH CHECK (id_sensor IN ({_SENSORES_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY asoc_sis ON modulo2.asociaciones_activos_sensores
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
+    op.execute(f"""
+        CREATE POLICY pol_asociaciones_servicio ON modulo2.asociaciones_activos_sensores
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
     """)
-    op.execute("ALTER TABLE modulo2.asociaciones_activos_sensores FORCE ROW LEVEL SECURITY;")
-
-    # historial_infraestructura_activo: SELECT, INSERT, UPDATE (cerrar asociaciones)
-    op.execute("""
-        CREATE POLICY hist_infra_sel ON modulo2.historial_infraestructura_activo
-          FOR SELECT USING (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
-    """)
-    op.execute("""
-        CREATE POLICY hist_infra_ins ON modulo2.historial_infraestructura_activo
-          FOR INSERT WITH CHECK (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
-    """)
-    op.execute("""
-        CREATE POLICY hist_infra_upd ON modulo2.historial_infraestructura_activo
-          FOR UPDATE USING (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i))
-          WITH CHECK (
-            id_infraestructura IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
-    """)
-    op.execute("""
-        CREATE POLICY hist_infra_sis ON modulo2.historial_infraestructura_activo
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.historial_infraestructura_activo FORCE ROW LEVEL SECURITY;")
-
-    # movimientos: origen O destino accesible
-    op.execute("""
-        CREATE POLICY mov_sel ON modulo2.movimientos
-          FOR SELECT USING (
-            id_infraestructura_origen IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i)
-            OR id_infraestructura_destino IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
-    """)
-    op.execute("""
-        CREATE POLICY mov_ins ON modulo2.movimientos
-          FOR INSERT WITH CHECK (
-            id_infraestructura_origen IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i)
-            AND id_infraestructura_destino IN (
-              SELECT i.id_infraestructura
-              FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i));
-    """)
-    op.execute("""
-        CREATE POLICY mov_sis ON modulo2.movimientos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.movimientos FORCE ROW LEVEL SECURITY;")
+    _enable_force('asociaciones_activos_sensores')
 
     # ================================================================
-    # 3. VÍA ACTIVO BIOLÓGICO (3 saltos)
+    # 3. VIA INFRAESTRUCTURA
     # ================================================================
 
-    # --- detalles_activos_biologicos_poblacionales (SELECT, INSERT, UPDATE)
-    op.execute("""
-        CREATE POLICY det_pob_sel ON modulo2.detalles_activos_biologicos_poblacionales
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+    # historial_infraestructura_activo
+    op.execute(f"""
+        CREATE POLICY pol_hist_infra_select ON modulo2.historial_infraestructura_activo
+          FOR SELECT USING (id_infraestructura IN ({_INFRA_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY det_pob_ins ON modulo2.detalles_activos_biologicos_poblacionales
-          FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+    op.execute(f"""
+        CREATE POLICY pol_hist_infra_insert ON modulo2.historial_infraestructura_activo
+          FOR INSERT WITH CHECK (id_infraestructura IN ({_INFRA_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY det_pob_upd ON modulo2.detalles_activos_biologicos_poblacionales
-          FOR UPDATE USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a))
-          WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+    op.execute(f"""
+        CREATE POLICY pol_hist_infra_update ON modulo2.historial_infraestructura_activo
+          FOR UPDATE USING (id_infraestructura IN ({_INFRA_SUBQ}))
+          WITH CHECK (id_infraestructura IN ({_INFRA_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY det_pob_sis ON modulo2.detalles_activos_biologicos_poblacionales
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
+    op.execute(f"""
+        CREATE POLICY pol_hist_infra_servicio ON modulo2.historial_infraestructura_activo
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
     """)
-    op.execute("ALTER TABLE modulo2.detalles_activos_biologicos_poblacionales FORCE ROW LEVEL SECURITY;")
+    _enable_force('historial_infraestructura_activo')
 
-    # --- detalles_activos_individuales (SELECT, INSERT, UPDATE)
-    op.execute("""
-        CREATE POLICY det_ind_sel ON modulo2.detalles_activos_individuales
+    # movimientos: SELECT con OR (ambos lados ven), INSERT con AND.
+    # NOTA: en DEV 3/13 movimientos son entre fincas distintas. Con AND,
+    # un usuario con acceso solo a la finca origen no puede mover a otra
+    # finca. Pendiente de decision con RF-48.
+    op.execute(f"""
+        CREATE POLICY pol_movimientos_select ON modulo2.movimientos
           FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+            id_infraestructura_origen IN ({_INFRA_SUBQ})
+            OR id_infraestructura_destino IN ({_INFRA_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY det_ind_ins ON modulo2.detalles_activos_individuales
+    op.execute(f"""
+        CREATE POLICY pol_movimientos_insert ON modulo2.movimientos
           FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+            id_infraestructura_origen IN ({_INFRA_SUBQ})
+            AND id_infraestructura_destino IN ({_INFRA_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY det_ind_upd ON modulo2.detalles_activos_individuales
-          FOR UPDATE USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a))
-          WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+    op.execute(f"""
+        CREATE POLICY pol_movimientos_servicio ON modulo2.movimientos
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
     """)
-    op.execute("""
-        CREATE POLICY det_ind_sis ON modulo2.detalles_activos_individuales
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.detalles_activos_individuales FORCE ROW LEVEL SECURITY;")
-
-    # --- eventos_activos (SELECT, INSERT — append-only en la práctica)
-    op.execute("""
-        CREATE POLICY ev_act_sel ON modulo2.eventos_activos
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY ev_act_ins ON modulo2.eventos_activos
-          FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY ev_act_sis ON modulo2.eventos_activos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.eventos_activos FORCE ROW LEVEL SECURITY;")
-
-    # --- gestiones_fases (SELECT, INSERT, UPDATE para cerrar fases)
-    op.execute("""
-        CREATE POLICY gest_fases_sel ON modulo2.gestiones_fases
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY gest_fases_ins ON modulo2.gestiones_fases
-          FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY gest_fases_upd ON modulo2.gestiones_fases
-          FOR UPDATE USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a))
-          WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY gest_fases_sis ON modulo2.gestiones_fases
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.gestiones_fases FORCE ROW LEVEL SECURITY;")
-
-    # --- historial_activos (append-only: SELECT, INSERT)
-    op.execute("""
-        CREATE POLICY hist_act_sel ON modulo2.historial_activos
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY hist_act_ins ON modulo2.historial_activos
-          FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY hist_act_sis ON modulo2.historial_activos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.historial_activos FORCE ROW LEVEL SECURITY;")
-
-    # --- historicos_estados_activos (append-only: SELECT, INSERT)
-    op.execute("""
-        CREATE POLICY hist_est_sel ON modulo2.historicos_estados_activos
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY hist_est_ins ON modulo2.historicos_estados_activos
-          FOR INSERT WITH CHECK (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY hist_est_sis ON modulo2.historicos_estados_activos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.historicos_estados_activos FORCE ROW LEVEL SECURITY;")
-
-    # --- indicadores_zootecnicos (SELECT, INSERT por sistema)
-    op.execute("""
-        CREATE POLICY ind_zoot_sel ON modulo2.indicadores_zootecnicos
-          FOR SELECT USING (
-            id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
-    """)
-    op.execute("""
-        CREATE POLICY ind_zoot_sis ON modulo2.indicadores_zootecnicos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
-    """)
-    op.execute("ALTER TABLE modulo2.indicadores_zootecnicos FORCE ROW LEVEL SECURITY;")
-
-    # --- bitacora_auditoria_m02 (RF-52): id_activo nullable
-    op.execute("""
-        CREATE POLICY bitacora_sel ON modulo2.bitacora_auditoria_m02
-          FOR SELECT USING (
-            modulo1.f_sistema()
-            OR (id_activo_biologico IS NOT NULL
-                AND id_activo_biologico IN (
-                  SELECT a.id_activo_biologico
-                  FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a))
-            OR (id_activo_biologico IS NULL AND modulo1.f_auth()));
-    """)
-    op.execute("""
-        CREATE POLICY bitacora_ins ON modulo2.bitacora_auditoria_m02
-          FOR INSERT WITH CHECK (
-            modulo1.f_sistema()
-            OR (id_activo_biologico IS NOT NULL
-                AND id_activo_biologico IN (
-                  SELECT a.id_activo_biologico
-                  FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a))
-            OR (id_activo_biologico IS NULL AND modulo1.f_auth()));
-    """)
-    op.execute("ALTER TABLE modulo2.bitacora_auditoria_m02 FORCE ROW LEVEL SECURITY;")
+    _enable_force('movimientos')
 
     # ================================================================
-    # 4. SUB-EVENTOS (4 saltos: vía eventos_activos)
-    #    PK = FK a eventos_activos.id_eventos
+    # 4. VIA ACTIVO BIOLOGICO (3 saltos)
     # ================================================================
 
-    # Tablas con id_evento como PK y FK a eventos_activos
-    for t in ['eventos_bajas', 'eventos_crecimeinto', 'eventos_ingresos',
-              'eventos_productivos', 'eventos_sanitarios']:
+    # SELECT + INSERT + UPDATE
+    for t in _VIA_ACTIVO_FULL:
         op.execute(f"""
-            CREATE POLICY {t}_sel ON modulo2.{t}
+            CREATE POLICY pol_{t}_select ON modulo2.{t}
+              FOR SELECT USING (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+        """)
+        op.execute(f"""
+            CREATE POLICY pol_{t}_insert ON modulo2.{t}
+              FOR INSERT WITH CHECK (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+        """)
+        op.execute(f"""
+            CREATE POLICY pol_{t}_update ON modulo2.{t}
+              FOR UPDATE USING (id_activo_biologico IN ({_ACTIVOS_SUBQ}))
+              WITH CHECK (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+        """)
+        op.execute(f"""
+            CREATE POLICY pol_{t}_servicio ON modulo2.{t}
+              FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
+        """)
+        _enable_force(t)
+
+    # Append-only: SELECT + INSERT
+    for t in _VIA_ACTIVO_APPEND:
+        op.execute(f"""
+            CREATE POLICY pol_{t}_select ON modulo2.{t}
+              FOR SELECT USING (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+        """)
+        op.execute(f"""
+            CREATE POLICY pol_{t}_insert ON modulo2.{t}
+              FOR INSERT WITH CHECK (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+        """)
+        op.execute(f"""
+            CREATE POLICY pol_{t}_servicio ON modulo2.{t}
+              FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
+        """)
+        _enable_force(t)
+
+    # indicadores_zootecnicos: SELECT usuarios, INSERT solo servicio
+    op.execute(f"""
+        CREATE POLICY pol_indicadores_zootecnicos_select ON modulo2.indicadores_zootecnicos
+          FOR SELECT USING (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
+    """)
+    op.execute(f"""
+        CREATE POLICY pol_indicadores_zootecnicos_servicio ON modulo2.indicadores_zootecnicos
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
+    """)
+    _enable_force('indicadores_zootecnicos')
+
+    # bitacora_auditoria_m02 (RF-52): id_activo_biologico NULLABLE
+    # Con activo → cadena. Sin activo → permiso recurso 31 (SELECT)
+    # o cualquier identidad declarada (INSERT, buffer del sistema).
+    op.execute(f"""
+        CREATE POLICY pol_bitacora_select ON modulo2.bitacora_auditoria_m02
+          FOR SELECT USING (
+            {SERVICIO}
+            OR (id_activo_biologico IS NOT NULL
+                AND id_activo_biologico IN ({_ACTIVOS_SUBQ}))
+            OR (id_activo_biologico IS NULL
+                AND {permiso('bitacora_auditoria_m02', 'R')}));
+    """)
+    op.execute(f"""
+        CREATE POLICY pol_bitacora_insert ON modulo2.bitacora_auditoria_m02
+          FOR INSERT WITH CHECK (
+            {SERVICIO}
+            OR (id_activo_biologico IS NOT NULL
+                AND id_activo_biologico IN ({_ACTIVOS_SUBQ}))
+            OR (id_activo_biologico IS NULL
+                AND {UID} IS NOT NULL));
+    """)
+    _enable_force('bitacora_auditoria_m02')
+
+    # ================================================================
+    # 5. SUB-EVENTOS: EXISTS sobre eventos_activos
+    #    eventos_activos ya filtra por su propia politica RLS.
+    #    EXISTS evalua solo la fila buscada: 0.25 ms vs 84.6 ms.
+    # ================================================================
+    for t in _SUB_EVENTOS:
+        op.execute(f"""
+            CREATE POLICY pol_{t}_select ON modulo2.{t}
               FOR SELECT USING (
-                id_evento IN (
-                  SELECT e.id_evento
-                  FROM modulo2.fn_eventos_del_usuario(modulo1.f_uid()) e));
+                EXISTS (SELECT 1 FROM modulo2.eventos_activos ea
+                        WHERE ea.id_eventos = {t}.id_evento));
         """)
         op.execute(f"""
-            CREATE POLICY {t}_ins ON modulo2.{t}
+            CREATE POLICY pol_{t}_insert ON modulo2.{t}
               FOR INSERT WITH CHECK (
-                id_evento IN (
-                  SELECT e.id_evento
-                  FROM modulo2.fn_eventos_del_usuario(modulo1.f_uid()) e));
+                EXISTS (SELECT 1 FROM modulo2.eventos_activos ea
+                        WHERE ea.id_eventos = {t}.id_evento));
         """)
         op.execute(f"""
-            CREATE POLICY {t}_sis ON modulo2.{t}
-              FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
+            CREATE POLICY pol_{t}_servicio ON modulo2.{t}
+              FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
         """)
-        op.execute(f"ALTER TABLE modulo2.{t} FORCE ROW LEVEL SECURITY;")
+        _enable_force(t)
 
-    # eventos_reproductivos: PK = id_evento_reproductivo (FK a eventos_activos.id_eventos)
+    # eventos_reproductivos: PK = id_evento_reproductivo (FK a eventos_activos)
     op.execute("""
-        CREATE POLICY ev_rep_sel ON modulo2.eventos_reproductivos
+        CREATE POLICY pol_eventos_reproductivos_select ON modulo2.eventos_reproductivos
           FOR SELECT USING (
-            id_evento_reproductivo IN (
-              SELECT e.id_evento
-              FROM modulo2.fn_eventos_del_usuario(modulo1.f_uid()) e));
+            EXISTS (SELECT 1 FROM modulo2.eventos_activos ea
+                    WHERE ea.id_eventos = eventos_reproductivos.id_evento_reproductivo));
     """)
     op.execute("""
-        CREATE POLICY ev_rep_ins ON modulo2.eventos_reproductivos
+        CREATE POLICY pol_eventos_reproductivos_insert ON modulo2.eventos_reproductivos
           FOR INSERT WITH CHECK (
-            id_evento_reproductivo IN (
-              SELECT e.id_evento
-              FROM modulo2.fn_eventos_del_usuario(modulo1.f_uid()) e));
+            EXISTS (SELECT 1 FROM modulo2.eventos_activos ea
+                    WHERE ea.id_eventos = eventos_reproductivos.id_evento_reproductivo));
     """)
-    op.execute("""
-        CREATE POLICY ev_rep_sis ON modulo2.eventos_reproductivos
-          FOR ALL USING (modulo1.f_sistema()) WITH CHECK (modulo1.f_sistema());
+    op.execute(f"""
+        CREATE POLICY pol_eventos_reproductivos_servicio ON modulo2.eventos_reproductivos
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
     """)
-    op.execute("ALTER TABLE modulo2.eventos_reproductivos FORCE ROW LEVEL SECURITY;")
+    _enable_force('eventos_reproductivos')
 
     # ================================================================
-    # 5. AUDITORÍA POR CADENA (read + insert)
+    # 6. AUDITORIA POR CADENA
     # ================================================================
 
-    # auditoria_activos_biologicos: vía activos (3 saltos)
-    op.execute("""
-        CREATE POLICY audit_ab_sel ON modulo2.auditoria_activos_biologicos
-          FOR SELECT USING (
-            modulo1.f_sistema()
-            OR id_activo_biologico IN (
-              SELECT a.id_activo_biologico
-              FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a));
+    # auditoria_activos_biologicos: cadena por activo, SIN f_auth().
+    # El trigger trg_auditar_activo_biologico inserta con la identidad de
+    # quien modifica el activo. El usuario de servicio tiene acceso a todas
+    # las fincas via usuarios_fincas, asi que la cadena lo cubre.
+    op.execute(f"""
+        CREATE POLICY pol_auditoria_activos_select ON modulo2.auditoria_activos_biologicos
+          FOR SELECT USING (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
     """)
-    op.execute("""
-        CREATE POLICY audit_ab_ins ON modulo2.auditoria_activos_biologicos
-          FOR INSERT WITH CHECK (
-            modulo1.f_sistema()
-            OR (modulo1.f_auth()
-                AND id_activo_biologico IN (
-                  SELECT a.id_activo_biologico
-                  FROM modulo2.fn_activos_del_usuario(modulo1.f_uid()) a)));
+    op.execute(f"""
+        CREATE POLICY pol_auditoria_activos_insert ON modulo2.auditoria_activos_biologicos
+          FOR INSERT WITH CHECK (id_activo_biologico IN ({_ACTIVOS_SUBQ}));
     """)
-    op.execute("ALTER TABLE modulo2.auditoria_activos_biologicos FORCE ROW LEVEL SECURITY;")
+    op.execute(f"""
+        CREATE POLICY pol_auditoria_activos_servicio ON modulo2.auditoria_activos_biologicos
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
+    """)
+    _enable_force('auditoria_activos_biologicos')
 
-    # auditorias_asociaciones_sensor_activo: vía asociaciones → infra (3 saltos)
+    # auditorias_asociaciones_sensor_activo: EXISTS sobre asociaciones
+    # (que ya tiene RLS por sensor).
     op.execute("""
-        CREATE POLICY audit_asa_sel ON modulo2.auditorias_asociaciones_sensor_activo
+        CREATE POLICY pol_audit_asociaciones_select ON modulo2.auditorias_asociaciones_sensor_activo
           FOR SELECT USING (
-            modulo1.f_sistema()
-            OR id_asociacion_activo_sensor IN (
-              SELECT asa.id_asociacion_activo_sensor
-              FROM modulo2.asociaciones_activos_sensores asa
-              WHERE asa.id_infraestructura IN (
-                SELECT i.id_infraestructura
-                FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i)));
+            EXISTS (SELECT 1 FROM modulo2.asociaciones_activos_sensores asa
+                    WHERE asa.id_asociacion_activo_sensor
+                        = auditorias_asociaciones_sensor_activo.id_asociacion_activo_sensor));
     """)
     op.execute("""
-        CREATE POLICY audit_asa_ins ON modulo2.auditorias_asociaciones_sensor_activo
+        CREATE POLICY pol_audit_asociaciones_insert ON modulo2.auditorias_asociaciones_sensor_activo
           FOR INSERT WITH CHECK (
-            modulo1.f_sistema()
-            OR (modulo1.f_auth()
-                AND id_asociacion_activo_sensor IN (
-                  SELECT asa.id_asociacion_activo_sensor
-                  FROM modulo2.asociaciones_activos_sensores asa
-                  WHERE asa.id_infraestructura IN (
-                    SELECT i.id_infraestructura
-                    FROM modulo9.fn_infraestructuras_del_usuario(modulo1.f_uid()) i))));
+            EXISTS (SELECT 1 FROM modulo2.asociaciones_activos_sensores asa
+                    WHERE asa.id_asociacion_activo_sensor
+                        = auditorias_asociaciones_sensor_activo.id_asociacion_activo_sensor));
     """)
-    op.execute("ALTER TABLE modulo2.auditorias_asociaciones_sensor_activo FORCE ROW LEVEL SECURITY;")
+    op.execute(f"""
+        CREATE POLICY pol_audit_asociaciones_servicio ON modulo2.auditorias_asociaciones_sensor_activo
+          FOR ALL USING ({SERVICIO}) WITH CHECK ({SERVICIO});
+    """)
+    _enable_force('auditorias_asociaciones_sensor_activo')
 
     # ================================================================
-    # 6. ESTADÍSTICAS
+    # 7. ESTADISTICAS
     # ================================================================
     op.execute("ANALYZE modulo2.activos_biologicos;")
     op.execute("ANALYZE modulo2.eventos_activos;")
@@ -513,12 +369,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
 
-    # 1. Borrar funciones helper
-    op.execute("DROP FUNCTION IF EXISTS modulo2.fn_eventos_del_usuario(bigint);")
-    op.execute("DROP FUNCTION IF EXISTS modulo2.fn_activos_del_usuario(bigint);")
-
-    # 2. Borrar todas las políticas creadas en modulo2
-    #    (excepto las de activos_biologicos que son de F4)
+    # 1. Borrar politicas PRIMERO (antes que las funciones que usan)
     op.execute("""
         DO $$ DECLARE r record; BEGIN
           FOR r IN
@@ -530,7 +381,7 @@ def downgrade() -> None:
           END LOOP; END $$;
     """)
 
-    # 3. Quitar FORCE RLS de las tablas que lo recibieron
+    # 2. Quitar FORCE RLS
     op.execute("""
         DO $$ DECLARE t text; BEGIN
           FOR t IN
@@ -541,6 +392,20 @@ def downgrade() -> None:
           END LOOP; END $$;
     """)
 
-    # 4. Restaurar estado original: solo activos_biologicos tiene RLS + FORCE
+    # 3. DISABLE RLS (estas tablas no tenian RLS antes de esta migracion)
+    op.execute("""
+        DO $$ DECLARE t text; BEGIN
+          FOR t IN
+            SELECT tablename FROM pg_tables WHERE schemaname = 'modulo2'
+              AND tablename NOT IN ('activos_biologicos', 'estados_activos_biologicos')
+          LOOP
+            EXECUTE format('ALTER TABLE modulo2.%I DISABLE ROW LEVEL SECURITY', t);
+          END LOOP; END $$;
+    """)
+
+    # 4. Borrar funciones helper AL FINAL (sin dependencias pendientes)
+    op.execute("DROP FUNCTION IF EXISTS modulo2.fn_activos_del_usuario(bigint);")
+
+    # 5. Restaurar estado de activos_biologicos (F4)
     op.execute("ALTER TABLE modulo2.activos_biologicos ENABLE ROW LEVEL SECURITY;")
     op.execute("ALTER TABLE modulo2.activos_biologicos FORCE ROW LEVEL SECURITY;")
