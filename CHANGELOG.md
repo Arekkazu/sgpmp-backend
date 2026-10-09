@@ -1,3 +1,9 @@
+## [1.0.0-rc.83](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.82...v1.0.0-rc.83) (2026-10-09)
+
+### Bug Fixes
+
+* **control-acceso:** encadenar la rls de modulo2 tras la F5 de modulo9 (F5) ([3ee6115](https://github.com/Arekkazu/sgpmp-backend/commit/3ee6115f767107a0693f13f32a60a17a35df3d36)), closes [#535](https://github.com/Arekkazu/sgpmp-backend/issues/535)
+
 ## [1.0.0-rc.82](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.81...v1.0.0-rc.82) (2026-10-09)
 
 ### Bug Fixes
