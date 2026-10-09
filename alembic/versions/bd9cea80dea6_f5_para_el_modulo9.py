@@ -30,7 +30,7 @@ from alembic import op
 
 
 revision: str = 'bd9cea80dea6'
-down_revision: Union[str, Sequence[str], None] = '98389cebef99'
+down_revision: Union[str, Sequence[str], None] = '00c60ae92735'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
