@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/cierre`` (RF-38)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -11,6 +13,11 @@ _MOTIVOS_VALIDOS = {'venta', 'sacrificio', 'muerte', 'finalizacion_lote', 'otro'
 
 
 class CerrarCicloDTO(BaseDTO):
+    """Cierre del ciclo productivo.
+
+    ``motivo_cierre``: ``venta`` | ``sacrificio`` | ``muerte`` | ``finalizacion_lote`` |
+    ``otro``. ``fecha_cierre`` no puede ser futura.
+    """
     fecha_cierre: date
     motivo_cierre: str
     descripcion_cierre: Optional[str] = None

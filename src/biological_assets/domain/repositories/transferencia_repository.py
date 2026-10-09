@@ -1,3 +1,7 @@
+"""Puerto de transferencias internas (RF-48) y del historial consolidado del activo
+(RF-46).
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -6,6 +10,7 @@ from src.biological_assets.domain.entities.activo_biologico import PaginaHistori
 
 
 class TransferenciaRepository(ABC):
+    """Contrato de acceso a ``modulo2.movimientos`` y a la consulta del historial."""
 
     @abstractmethod
     def guardar(self, transferencia: Transferencia) -> Transferencia:

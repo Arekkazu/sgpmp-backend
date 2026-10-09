@@ -17,6 +17,7 @@ ESTADO_SIN_INTEGRACION = "SIN_INTEGRACION"
 
 
 class EdgeSincronizacionPort(ABC):
+    """Puerto que publica umbrales ambientales hacia los Gateway Edge por MQTT."""
 
     @abstractmethod
     def propagar_umbral(self, seriales_gateway: list[str], payload: dict) -> dict[str, ResultadoEnvioMqtt]:

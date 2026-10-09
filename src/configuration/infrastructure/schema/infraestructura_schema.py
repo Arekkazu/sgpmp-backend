@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 
 class InfraestructuraResponse(BaseModel):
+    """Área productiva registrada."""
     id_infraestructura: int
     nombre_infraestructura: str
     tipo_area: str
@@ -39,5 +40,6 @@ class InfraestructuraResponse(BaseModel):
 
 
 class ListaInfraestructurasResponse(BaseModel):
+    """Áreas productivas de una finca."""
     total: int
     items: list[InfraestructuraResponse]

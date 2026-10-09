@@ -105,6 +105,11 @@ def _no_disponible(id_area: int) -> BusinessRuleError:
 
 
 class CalibrarVisionUseCase:
+    """Calcula la línea base por visión de un par (área, especie) con las observaciones de sus cámaras.
+
+    Si el cálculo converge publica la nueva línea base; los intentos fallidos
+    quedan en el historial y en auditoría.
+    """
 
     def __init__(
         self,
@@ -269,6 +274,7 @@ class CalibrarVisionUseCase:
 
 
 class ConsultarCalibracionVisionUseCase:
+    """Historial de calibraciones por visión de un área y su línea base vigente."""
 
     def __init__(
         self,

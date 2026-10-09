@@ -19,6 +19,11 @@ from src.shared.errors import NotFoundError
 
 
 class AsignarFincasUsuarioUseCase:
+    """Sincroniza `modulo9.usuarios_fincas` con la lista de fincas recibida.
+
+    Activa las fincas de la lista y desactiva las que ya no aparecen; responde
+    404 si el usuario o alguna finca no existe.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

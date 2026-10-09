@@ -21,6 +21,9 @@ from src.configuration.domain.value_objects.calibracion_vision import (
 
 @dataclass(eq=False)
 class CalibracionVision:
+    """Un intento de cálculo de línea base por visión para un par (área, especie),
+    exitoso o fallido.
+    """
     id_infraestructura: int
     id_especie: int
     origen_disparo: OrigenDisparo
@@ -98,6 +101,9 @@ class CalibracionVision:
 
 @dataclass(eq=False)
 class LineaBaseVision:
+    """Línea base vigente de un par (área, especie): la última calibración por visión
+    exitosa.
+    """
     id_infraestructura: int
     id_especie: int
     id_calibracion_vision: int

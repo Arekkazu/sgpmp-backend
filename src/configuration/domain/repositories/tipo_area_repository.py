@@ -16,6 +16,7 @@ class TipoAreaRepository(ABC):
 
     @abstractmethod
     def obtener_por_id(self, id_tipo_area: int) -> Optional[TipoArea]:
+        """Obtiene el tipo de área por id, o ``None`` si no existe."""
         raise NotImplementedError
 
     @abstractmethod
@@ -25,10 +26,13 @@ class TipoAreaRepository(ABC):
 
     @abstractmethod
     def guardar(self, tipo_area: TipoArea) -> TipoArea:
+        """Inserta el tipo de área y devuelve la entidad con su id asignado."""
         raise NotImplementedError
 
     @abstractmethod
     def actualizar(self, tipo_area: TipoArea) -> TipoArea:
+        """Persiste los cambios del tipo de área y devuelve la entidad actualizada.
+        """
         raise NotImplementedError
 
     @abstractmethod

@@ -1,3 +1,7 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/crecimiento``
+(RF-40).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -20,6 +24,12 @@ _UNIDADES_POR_TIPO: dict[str, set[str]] = {
 
 
 class RegistrarEventoCrecimientoDTO(BaseDTO):
+    """Medición de crecimiento.
+
+    ``tipo_medicion`` y unidades válidas: ``PESO`` (``kg``, ``gr``, ``lb``), ``TALLA``
+    (``cm``, ``m``), ``BIOMASA`` (``kg/m2``). En lotes se envían además
+    ``nuevo_peso_promedio``, ``cantidad_medida`` y ``tipo_agregacion``.
+    """
     tipo_medicion: str
     valor_medicion: Decimal
     unidad_medida: str

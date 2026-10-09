@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.detalles_activos_biologicos_poblacionales``: conteo, peso,
+biomasa y densidad de un lote.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal

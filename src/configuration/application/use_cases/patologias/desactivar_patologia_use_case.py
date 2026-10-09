@@ -20,6 +20,8 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class DesactivarPatologiaUseCase:
+    """Desactiva una patología no referenciada en eventos sanitarios (422 si lo está).
+    """
 
     def __init__(
         self,

@@ -1,3 +1,5 @@
+"""Caso de uso: transferencia interna de un activo entre infraestructuras (RF-48)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -23,6 +25,13 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class RegistrarTransferenciaUseCase:
+    """Mueve el activo a otra infraestructura de la misma finca y cierra la asociación anterior.
+
+    Valida que el destino esté activo, sea distinto del origen, compatible con la
+    especie y el tipo de infraestructura, y con capacidad (y densidad, en lotes)
+    suficiente. Rechaza transferencias concurrentes sobre el mismo activo.
+    ``listar_infraestructuras_disponibles`` ofrece los destinos válidos.
+    """
 
     def __init__(
         self,

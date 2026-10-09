@@ -26,6 +26,10 @@ _APLICA_VALIDOS = {'INDIVIDUAL', 'LOTE', 'AMBOS'}
 
 
 class EditarMetricaDTO(BaseDTO):
+    """Campos editables de la métrica; ``valor_min``/``valor_max`` solo aplican a tipos NUMERICO y ENTERO.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre: str
     unidad_medida: str
     tipo_medicion: str

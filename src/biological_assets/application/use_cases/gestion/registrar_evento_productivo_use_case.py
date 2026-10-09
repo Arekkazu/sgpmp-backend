@@ -1,3 +1,5 @@
+"""Caso de uso: registro de producción del activo (leche, huevos...) (RF-43)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -23,6 +25,12 @@ _NOMBRES_ESTADO = {1: 'ACTIVO', 2: 'INACTIVO', 3: 'EN_TRATAMIENTO', 4: 'AISLADO'
 
 
 class RegistrarEventoProductivoUseCase:
+    """Registra una producción contra una métrica del catálogo de M09.
+
+    La métrica debe existir para la especie, estar habilitada en la fase activa y
+    usar su unidad. La fecha debe caer dentro de la fase y no puede haber dos
+    registros del mismo producto el mismo día (409).
+    """
 
     def __init__(
         self,

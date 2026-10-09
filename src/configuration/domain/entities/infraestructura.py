@@ -11,6 +11,9 @@ from src.configuration.domain.value_objects.superficie import Superficie
 
 @dataclass(eq=False)
 class Infraestructura:
+    """Área productiva de una finca (corral, estanque, galpón...) con tipo y superficie
+    en m² (RF-20).
+    """
     nombre: NombreInfraestructura
     tipo: str
     superficie: Superficie

@@ -20,6 +20,9 @@ from src.shared.errors import NotFoundError, PreconditionFailedError
 
 
 class ActualizarConfiguracionUseCase:
+    """Actualiza frecuencia de muestreo y heartbeat con concurrencia optimista (412) y
+    avisa al monitoreo IoT.
+    """
 
     def __init__(
         self,

@@ -57,6 +57,10 @@ def obtener_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardLayoutResponse:
+    """Dashboard del usuario; si nunca lo personalizó, el predeterminado de su rol (RF-28).
+
+    **Acceso:** `dashboard_layout` · Leer.
+    """
     repo = SqlAlchemyDashboardLayoutRepository(db)
     entidad = ObtenerDashboardUseCase(dashboard_repo=repo).execute(usuario_actual)
     return DashboardLayoutResponse.from_entity(
@@ -79,6 +83,10 @@ def obtener_catalogo_widgets(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[WidgetCatalogoResponse]:
+    """Widgets que el rol del usuario puede poner en su dashboard (RF-28).
+
+    **Acceso:** `dashboard_layout` · Leer.
+    """
     use_case = ObtenerCatalogoWidgetsUseCase(widget_repo=SqlAlchemyWidgetRepository(db))
     return [WidgetCatalogoResponse.model_validate(w) for w in use_case.execute(usuario_actual)]
 
@@ -97,6 +105,12 @@ def obtener_datos_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> list[WidgetDatosResponse]:
+    """Datos de cada widget visible del dashboard del usuario (RF-28).
+
+    **Acceso:** `dashboard_layout` · Leer.
+
+    Un widget sin datos llega con `sin_datos=true` y un mensaje.
+    """
     use_case = ObtenerDatosDashboardUseCase(
         dashboard_repo=SqlAlchemyDashboardLayoutRepository(db),
         widget_repo=SqlAlchemyWidgetRepository(db),
@@ -122,6 +136,12 @@ def guardar_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardLayoutResponse:
+    """Guarda la grilla 4×3 del dashboard (máximo 12 widgets, sin solapamientos) (RF-28).
+
+    **Acceso:** `dashboard_layout` · Actualizar.
+
+    Un widget que el rol no puede leer responde 403. Si el perfil cambió desde la última lectura (`version_perfil`) responde 409.
+    """
     repo = SqlAlchemyDashboardLayoutRepository(db)
     use_case = GuardarDashboardUseCase(
         db=db,
@@ -150,6 +170,10 @@ def restaurar_dashboard(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> DashboardLayoutResponse:
+    """Reemplaza el dashboard del usuario por el predeterminado de su rol (RF-28).
+
+    **Acceso:** `dashboard_layout` · Actualizar.
+    """
     repo = SqlAlchemyDashboardLayoutRepository(db)
     entidad = RestaurarDashboardUseCase(db=db, dashboard_repo=repo).execute(usuario_actual)
     return DashboardLayoutResponse.from_entity(

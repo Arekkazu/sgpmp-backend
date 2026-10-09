@@ -1,3 +1,7 @@
+"""Helper compartido: registra en la bitácora RF-52 los rechazos de dominio de un use
+case (CA-10).
+"""
+
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping

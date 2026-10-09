@@ -13,6 +13,7 @@ from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
 
 
 class MetricaProduccionRepository(ABC):
+    """Contrato de acceso a datos para las métricas de producción por especie."""
 
     @abstractmethod
     def obtener_por_id(self, id_metrica_produccion: int, *, bloquear: bool = False) -> Optional[MetricaProduccion]:

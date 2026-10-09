@@ -1,3 +1,7 @@
+"""Adapter de ``CicloConsultaPort`` que lee ciclos productivos y fases de M09
+(``modulo9``).
+"""
+
 from __future__ import annotations
 
 from typing import Optional

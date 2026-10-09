@@ -1,3 +1,5 @@
+"""Caso de uso: datos consolidados de un activo para módulos analíticos (RF-50)."""
+
 from __future__ import annotations
 
 import re
@@ -41,6 +43,13 @@ _METRICAS_NO_NEGATIVAS = ('peso_actual', 'biomasa_total', 'cantidad_actual')
 
 
 class ConsultarDatosConsolidadosUseCase:
+    """Arma la vista consolidada (eventos, fases, estados, métricas) que consumen M04 y M06.
+
+    Qué secciones puede ver cada rol lo decide el router con los recursos
+    ``datos_analiticos_*``. Rechaza activos con asociación a infraestructura
+    inconsistente (409) y, para valoración NIC-41, periodos sin mediciones de
+    peso (422).
+    """
 
     def __init__(
         self,

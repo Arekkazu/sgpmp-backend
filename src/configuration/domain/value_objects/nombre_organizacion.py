@@ -11,6 +11,7 @@ _MIN = 1
 
 @dataclass(frozen=True)
 class NombreOrganizacion:
+    """Nombre visible de la organización: 1 a 50 caracteres."""
     valor: str
 
     def __post_init__(self) -> None:

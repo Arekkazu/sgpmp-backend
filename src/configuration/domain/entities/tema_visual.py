@@ -14,6 +14,7 @@ from src.shared.errors import ValidationError
 
 
 class ThemeMode(IntEnum):
+    """Modo de tema: 1 claro, 2 oscuro, 3 según el sistema operativo."""
     CLARO = 1
     OSCURO = 2
     SISTEMA = 3
@@ -21,6 +22,7 @@ class ThemeMode(IntEnum):
 
 @dataclass(eq=False)
 class TemaVisual:
+    """Tema visual de un usuario o el global del sistema (RF-27)."""
     id_usuario: int
     theme_mode: ThemeMode
     es_global: bool

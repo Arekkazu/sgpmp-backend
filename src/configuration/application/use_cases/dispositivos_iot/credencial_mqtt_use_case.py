@@ -105,6 +105,9 @@ class EmitirCredencialMqttUseCase:
 
 
 class ConsultarCredencialMqttUseCase:
+    """Consulta en el broker si el Gateway Edge tiene credencial MQTT, sin exponer la
+    clave.
+    """
 
     def __init__(self, db: Session, dispositivo_repo: DispositivoIotRepository, mqtt_port: MqttPort) -> None:
         self.db = db

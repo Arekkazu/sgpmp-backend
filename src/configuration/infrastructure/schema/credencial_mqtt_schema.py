@@ -21,6 +21,7 @@ class CredencialMqttResponse(BaseModel):
 
 
 class EstadoCredencialMqttResponse(BaseModel):
+    """Estado de la credencial MQTT en el broker; nunca incluye la clave."""
     # emitida=False: el dispositivo no tiene credencial propia (usa la compartida
     # o se comunica a través de su Gateway Edge).
     emitida: bool

@@ -1,3 +1,5 @@
+"""Puerto del histórico inmutable de cambios de estado del activo (RF-44)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +10,8 @@ from src.biological_assets.domain.entities.activo_biologico import HistoricoEsta
 
 
 class HistoricoEstadoRepository(ABC):
+    """Contrato de acceso a ``modulo2.historicos_estados_activos``."""
+
     @abstractmethod
     def registrar(
         self,

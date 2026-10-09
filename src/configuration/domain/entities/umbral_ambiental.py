@@ -24,6 +24,10 @@ MOTIVO_CAMBIOS_SIN_PROPAGAR = "Cambios guardados, pendientes de propagar al Nodo
 
 @dataclass(eq=False)
 class UmbralAmbiental:
+    """Umbral de una variable ambiental para una especie, con sus niveles normal / precaución / crítico (RF-17).
+
+    Lleva además el estado de sincronización hacia los dispositivos Edge.
+    """
     id_especie: int
     id_variable_ambiental: int
     unidad_medida: str

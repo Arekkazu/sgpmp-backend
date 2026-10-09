@@ -13,6 +13,7 @@ from src.configuration.domain.value_objects.nombre_etapa import NombreEtapa
 
 
 class CicloBiologicoRepository(ABC):
+    """Contrato de acceso a datos para las etapas del ciclo biológico por especie."""
 
     @abstractmethod
     def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:

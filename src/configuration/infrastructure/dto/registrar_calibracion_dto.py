@@ -13,6 +13,10 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarCalibracionDTO(BaseDTO):
+    """Calibración manual de un sensor: valor de referencia, ganancia y offset.
+
+    El valor de referencia debe estar en el rango configurado para el tipo de sensor.
+    """
     id_dispositivo_iot: int
     id_infraestructura: int
     # RF-24 FA "Datos no numéricos o incompletos" pide 400 (no el 422 de Pydantic)

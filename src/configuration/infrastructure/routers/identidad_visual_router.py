@@ -52,6 +52,10 @@ def obtener_identidad_visual(
     id_finca: int,
     db: Session = Depends(get_db),
 ) -> Optional[IdentidadVisualResponse]:
+    """Identidad visual vigente de una finca con su evaluación de contraste WCAG AA (RF-26).
+
+    **Acceso:** `identidad_visual` · Leer.
+    """
     use_case = ObtenerIdentidadVisualUseCase(
         identidad_repo=SqlAlchemyIdentidadVisualRepository(db),
     )
@@ -82,6 +86,10 @@ def consultar_auditoria_identidad_visual(
     id_finca: int,
     db: Session = Depends(get_db),
 ) -> HistorialAuditoriaIdentidadVisualResponse:
+    """Historial de cambios de identidad visual de una finca (RF-26).
+
+    **Acceso:** `identidad_visual` · Leer.
+    """
     use_case = ConsultarAuditoriaIdentidadVisualUseCase(
         auditoria_repo=SqlAlchemyAuditoriaIdentidadVisualRepository(db),
         identidad_repo=SqlAlchemyIdentidadVisualRepository(db),
@@ -116,6 +124,12 @@ async def crear_identidad_visual(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IdentidadVisualResponse:
+    """Crea la identidad visual de una finca: colores, nombre visible y logo (multipart) (RF-26).
+
+    **Acceso:** `identidad_visual` · Crear.
+
+    Una finca que ya tiene identidad responde 409.
+    """
     dto = GuardarIdentidadVisualDTO(
         id_finca=id_finca,
         primary_color=primary_color,
@@ -158,6 +172,12 @@ async def actualizar_identidad_visual(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> IdentidadVisualResponse:
+    """Crea una nueva versión de la identidad visual de la finca (RF-26).
+
+    **Acceso:** `identidad_visual` · Actualizar.
+
+    Enviar la `version` leída: si cambió responde 412.
+    """
     dto = ActualizarIdentidadVisualDTO(
         primary_color=primary_color,
         secondary_color=secondary_color,

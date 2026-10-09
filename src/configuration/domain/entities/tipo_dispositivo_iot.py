@@ -21,6 +21,9 @@ CATEGORIA_CAMARA = "CAMARA"
 
 @dataclass(frozen=True)
 class TipoDispositivoIot:
+    """Tipo de hardware IoT con los rangos permitidos de frecuencia de captura e
+    intervalo de transmisión (RF-23).
+    """
     id_tipo_dispositivo: int
     nombre: str
     frecuencia_captura_min: int

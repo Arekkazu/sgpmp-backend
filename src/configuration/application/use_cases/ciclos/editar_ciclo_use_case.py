@@ -31,6 +31,9 @@ def _snapshot(ciclo: CicloBiologico) -> dict:
 
 
 class EditarCicloUseCase:
+    """Edita una etapa activa con concurrencia optimista (412) y nombre único por
+    especie (409).
+    """
 
     def __init__(
         self,

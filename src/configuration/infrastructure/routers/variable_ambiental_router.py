@@ -41,6 +41,10 @@ _RECURSO = 20  # modulo1.recursos: 'umbrales_ambientales'
     summary='Consultar catálogo de variables ambientales activas',
 )
 def consultar_variables_ambientales(db: Session = Depends(get_db)) -> VariablesAmbientalesResponse:
+    """Catálogo de variables ambientales activas con su unidad y rango físico (RF-17).
+
+    **Acceso:** `umbrales_ambientales` · Leer.
+    """
     use_case = ListarVariablesAmbientalesUseCase(variable_repo=SqlAlchemyVariableAmbientalRepository(db))
     variables = use_case.execute()
     items = [VariableAmbientalResponse.model_validate(v) for v in variables]

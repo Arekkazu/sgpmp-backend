@@ -88,6 +88,11 @@ def _validar_rangos(
 
 
 class RegistrarUmbralUseCase:
+    """Registra un umbral (especie, variable) con sus niveles y lo sincroniza hacia los Edge.
+
+    El rango debe caber en el rango físico de la variable y los niveles no pueden
+    solaparse ni salirse del rango (400). Un umbral repetido responde 409.
+    """
 
     def __init__(
         self,

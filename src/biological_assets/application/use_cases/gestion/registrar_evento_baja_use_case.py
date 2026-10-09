@@ -1,3 +1,5 @@
+"""Caso de uso: registro de baja de un activo o de individuos de un lote (RF-45)."""
+
 from __future__ import annotations
 
 from datetime import datetime, time, timezone
@@ -23,6 +25,13 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class RegistrarEventoBajaUseCase:
+    """Registra la baja y actualiza el activo.
+
+    En un individual la baja es total: el activo pasa a BAJA y se cierra su fase.
+    En un lote descuenta la cantidad indicada (no puede superar la existencia) y
+    solo pasa a BAJA cuando llega a cero. La fecha no puede ser futura ni anterior
+    al último evento.
+    """
 
     def __init__(
         self,

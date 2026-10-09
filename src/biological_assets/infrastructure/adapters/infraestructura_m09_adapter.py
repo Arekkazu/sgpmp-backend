@@ -1,3 +1,7 @@
+"""Adapter de ``InfraestructuraConsultaPort`` que lee infraestructuras, ocupación y
+sensores de M09.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal

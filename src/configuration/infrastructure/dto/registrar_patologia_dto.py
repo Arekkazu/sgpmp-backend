@@ -10,6 +10,7 @@ _NOMBRE_PATOLOGIA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍ�
 
 
 class RegistrarPatologiaDTO(BaseDTO):
+    """Patología nueva para una especie; el nombre es único dentro de la especie."""
     id_especie: int
     nombre: str
     descripcion: Optional[str] = None

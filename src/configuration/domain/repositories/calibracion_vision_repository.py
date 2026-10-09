@@ -8,6 +8,7 @@ from src.configuration.domain.entities.calibracion_vision import CalibracionVisi
 
 
 class CalibracionVisionRepository(ABC):
+    """Contrato del historial de intentos de calibración por visión."""
 
     @abstractmethod
     def guardar(self, calibracion: CalibracionVision) -> CalibracionVision:
@@ -21,9 +22,12 @@ class CalibracionVisionRepository(ABC):
 
 
 class LineaBaseVisionRepository(ABC):
+    """Contrato de la línea base vigente por (área, especie)."""
 
     @abstractmethod
     def obtener_vigente(self, id_infraestructura: int, id_especie: int) -> Optional[LineaBaseVision]:
+        """Línea base vigente del par (área, especie), o ``None`` si nunca se calibró.
+        """
         raise NotImplementedError
 
     @abstractmethod

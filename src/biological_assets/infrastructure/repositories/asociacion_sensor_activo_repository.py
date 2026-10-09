@@ -1,3 +1,5 @@
+"""Implementación SQLAlchemy de ``AsociacionSensorActivoRepository`` (RF-49)."""
+
 from __future__ import annotations
 
 import datetime
@@ -17,6 +19,8 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyAsociacionSensorActivoRepository(AsociacionSensorActivoRepository):
+    """Persiste asociaciones sensor ↔ activo/infraestructura y su auditoría de cambios.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

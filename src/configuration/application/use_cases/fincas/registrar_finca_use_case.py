@@ -17,6 +17,7 @@ from src.shared.errors import ConflictError
 
 
 class RegistrarFincaUseCase:
+    """Registra una finca con nombre único (409) y la asigna a quien la crea."""
 
     def __init__(
         self,

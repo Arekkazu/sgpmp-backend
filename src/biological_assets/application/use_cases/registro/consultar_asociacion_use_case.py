@@ -1,3 +1,5 @@
+"""Caso de uso: consulta de la infraestructura del activo (RF-34)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -34,6 +36,12 @@ def _detectar_solapamiento(historial: list[HistorialInfraestructura]) -> Optiona
 
 
 class ConsultarAsociacionUseCase:
+    """Devuelve la asociación vigente, la vigente en una fecha pasada o el historial completo.
+
+    ``tipo_consulta`` elige el modo. Añade los sensores activos de la
+    infraestructura y advierte si detecta periodos solapados o una asociación
+    vigente hacia una infraestructura inactiva.
+    """
 
     def __init__(
         self,

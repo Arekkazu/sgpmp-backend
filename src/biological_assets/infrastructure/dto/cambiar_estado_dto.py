@@ -1,3 +1,5 @@
+"""DTO de entrada de ``PATCH /activos-biologicos/{id_activo}/estado`` (RF-44)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -21,6 +23,13 @@ _ESTADO_A_ID = {
 
 
 class CambiarEstadoDTO(BaseDTO):
+    """Cambio manual de estado del activo.
+
+    ``estado_nuevo``: ``ACTIVO`` | ``INACTIVO`` | ``EN_TRATAMIENTO`` | ``AISLADO``.
+    ``CERRADO`` y ``BAJA`` se rechazan aquí: se alcanzan con el cierre de ciclo
+    (RF-38) y el registro de baja (RF-45). El motivo es obligatorio y la fecha no
+    puede ser futura.
+    """
     estado_nuevo: str
     fecha_cambio_estado: date
     motivo_cambio: str

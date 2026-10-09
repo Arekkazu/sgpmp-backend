@@ -17,6 +17,8 @@ from src.shared.errors import NotFoundError
 
 
 class ListarCiclosProductivosActivoUseCase:
+    """Devuelve los ciclos productivos de la especie del activo, con sus fases."""
+
     def __init__(self, repo: ActivoBiologicoRepository, ciclo_port: CicloConsultaPort) -> None:
         self.repo = repo
         self.ciclo_port = ciclo_port

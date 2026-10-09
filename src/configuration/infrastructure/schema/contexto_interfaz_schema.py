@@ -23,6 +23,9 @@ class IdentidadVisualContextoResponse(BaseModel):
 
 
 class ContextoInterfazResponse(BaseModel):
+    """Contexto para adaptar la interfaz: rol, finca activa, especies, módulos
+    autorizados e identidad visual.
+    """
     id_usuario: int
     nombre_completo: str
     id_rol: int

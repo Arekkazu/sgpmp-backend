@@ -28,6 +28,9 @@ class AsociacionActivoSuperada:
 
 
 class AsociacionSensorActivoDependencyPort(ABC):
+    """Puerto hacia M02 para cerrar asociaciones sensor→activo al reasignar un sensor de
+    área (RF-22).
+    """
 
     @abstractmethod
     def superar_ambientales_y_poblacionales(

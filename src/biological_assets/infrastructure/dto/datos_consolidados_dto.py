@@ -1,3 +1,5 @@
+"""Filtros de ``GET /activos-biologicos/{id_activo}/datos-consolidados`` (RF-50)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,6 +13,10 @@ _TIPOS_DATO = {'eventos', 'fases', 'estado', 'metricas', 'todos'}
 
 
 class DatosConsolidadosDTO(BaseDTO):
+    """Qué secciones pedir y en qué rango.
+
+    ``tipo_dato``: ``eventos`` | ``fases`` | ``estado`` | ``metricas`` | ``todos``.
+    """
     tipo_dato: str = 'todos'
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None

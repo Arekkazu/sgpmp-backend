@@ -1,3 +1,5 @@
+"""Puerto de lectura de infraestructuras productivas de M09 (RF-34, RF-36, RF-48)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -10,6 +12,9 @@ from src.biological_assets.domain.entities.activo_biologico import SensorEnInfra
 
 @dataclass
 class InfraestructuraConsulta:
+    """Infraestructura de M09 con los datos que M02 necesita (superficie, capacidad,
+    finca).
+    """
     id_infraestructura: int
     nombre: str
     tipo: str
@@ -21,6 +26,10 @@ class InfraestructuraConsulta:
 
 
 class InfraestructuraConsultaPort(ABC):
+    """Consulta a M09 de infraestructuras, su ocupación, sensores y compatibilidad con
+    especies.
+    """
+
     @abstractmethod
     def obtener_activa(self, id_infraestructura: int) -> Optional[InfraestructuraConsulta]:
         """Retorna la infraestructura si existe y está activa, None en caso contrario."""

@@ -11,6 +11,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class ObtenerCatalogoWidgetsUseCase:
+    """Widgets activos que el rol del usuario puede leer."""
 
     def __init__(self, widget_repo: WidgetRepository) -> None:
         self.widget_repo = widget_repo

@@ -1,3 +1,5 @@
+"""Caso de uso: ficha integral del activo biológico (RF-47)."""
+
 from __future__ import annotations
 
 import logging
@@ -26,6 +28,11 @@ _FALLO = object()
 
 
 class ConsultarFichaIntegralUseCase:
+    """Reúne en una vista los datos, estado, ubicación, fase y últimos eventos del activo.
+
+    Si una sección falla al cargarse se devuelve vacía con una advertencia en vez
+    de tumbar la ficha completa.
+    """
 
     def __init__(
         self,

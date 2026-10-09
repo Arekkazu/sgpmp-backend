@@ -7,6 +7,7 @@ from src.configuration.domain.entities.dispositivo_iot import DispositivoIot
 
 
 class CamaraAreaRepository(ABC):
+    """Contrato de lectura de las cámaras instaladas en un área."""
 
     @abstractmethod
     def listar_por_area(self, id_infraestructura: int) -> list[DispositivoIot]:

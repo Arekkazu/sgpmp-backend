@@ -10,6 +10,7 @@ _MIN, _MAX = 1, 50
 
 @dataclass(frozen=True)
 class NombreInfraestructura:
+    """Nombre de área productiva: 1 a 50 caracteres."""
     valor: str
 
     def __post_init__(self) -> None:

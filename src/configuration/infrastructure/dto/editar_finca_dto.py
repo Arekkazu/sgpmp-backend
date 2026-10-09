@@ -14,6 +14,10 @@ from src.shared.base_dto import BaseDTO
 
 
 class EditarFincaDTO(BaseDTO):
+    """Campos editables de la finca.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre: str
     ubicacion: UbicacionFincaDTO
     tamano_h: Decimal

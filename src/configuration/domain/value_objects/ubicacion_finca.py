@@ -38,6 +38,8 @@ def _validar_texto(valor: str, campo: str) -> str:
 
 @dataclass(frozen=True)
 class UbicacionFinca:
+    """Departamento, municipio, vereda y coordenadas de una finca; se guarda como JSONB.
+    """
     departamento: str
     municipio: str
     vereda: str

@@ -36,6 +36,9 @@ class ParametrosLineaBase:
 
 @dataclass
 class ResultadoLineaBase:
+    """Salida del cálculo: estado, cuántas observaciones sobrevivieron, etapa donde
+    falló y valores por componente.
+    """
     estado: EstadoCalibracionVision
     n_observaciones: int
     n_observaciones_validas: int = 0

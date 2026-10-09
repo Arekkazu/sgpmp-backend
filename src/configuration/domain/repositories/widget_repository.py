@@ -7,6 +7,7 @@ from src.configuration.domain.entities.widget import Widget
 
 
 class WidgetRepository(ABC):
+    """Contrato de lectura del catálogo de widgets."""
 
     @abstractmethod
     def obtener_activos(self) -> list[Widget]:

@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/fases`` (RF-37)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -9,6 +11,13 @@ from src.shared.base_dto import BaseDTO
 
 
 class CambiarFaseDTO(BaseDTO):
+    """Asignación o avance de fase del ciclo productivo.
+
+    ``id_ciclo_productiva`` es el id de ``modulo9.ciclos_productivos`` (ver
+    ``GET /activos-biologicos/{id_activo}/ciclos-productivos``). Sin
+    ``fase_destino_id`` se avanza a la siguiente fase; si se indica una que no es
+    la siguiente hay que enviar ``confirmacion_no_estandar=true``.
+    """
     id_ciclo_productiva: int
     motivo_cambio: Optional[str] = None
     fecha_inicio: Optional[datetime] = None

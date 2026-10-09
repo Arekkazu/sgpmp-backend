@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.detalles_activos_individuales``: raza, sexo, nacimiento y
+peso de un activo INDIVIDUAL.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

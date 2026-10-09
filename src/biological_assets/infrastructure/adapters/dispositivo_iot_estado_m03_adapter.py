@@ -1,3 +1,7 @@
+"""Adapter de ``DispositivoIotEstadoPort`` que lee el último contacto de un dispositivo
+en M03 (``modulo3``).
+"""
+
 from __future__ import annotations
 
 from typing import Optional

@@ -9,6 +9,7 @@ _VALORES_VALIDOS = {'PESO', 'VOLUMEN', 'LONGITUD', 'CONTEO', 'OTRO'}
 
 
 class TipoMedicion(str, Enum):
+    """Magnitud que mide una métrica de producción."""
     PESO = 'PESO'
     VOLUMEN = 'VOLUMEN'
     LONGITUD = 'LONGITUD'

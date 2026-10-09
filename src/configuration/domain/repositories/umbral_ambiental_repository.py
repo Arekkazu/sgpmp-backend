@@ -8,6 +8,8 @@ from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 
 
 class UmbralAmbientalRepository(ABC):
+    """Contrato de acceso a datos para :class:`UmbralAmbiental` y sus niveles."""
+
     @abstractmethod
     def obtener_por_id(self, id_umbral_ambiental: int, *, bloquear: bool = False) -> Optional[UmbralAmbiental]:
         """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
@@ -15,18 +17,22 @@ class UmbralAmbientalRepository(ABC):
     @abstractmethod
     def obtener_por_especie_y_variable(
         self, id_especie: int, id_variable_ambiental: int
-    ) -> Optional[UmbralAmbiental]: ...
+    ) -> Optional[UmbralAmbiental]:
+        """Umbral de la especie para la variable, o ``None`` si no existe."""
 
     @abstractmethod
     def listar_por_especie(
         self, id_especie: int, *, solo_activas: bool = False
-    ) -> list[UmbralAmbiental]: ...
+    ) -> list[UmbralAmbiental]:
+        """Umbrales de la especie, opcionalmente solo los activos."""
 
     @abstractmethod
-    def guardar(self, umbral: UmbralAmbiental) -> UmbralAmbiental: ...
+    def guardar(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Inserta el umbral y devuelve la entidad con su id asignado."""
 
     @abstractmethod
-    def actualizar(self, umbral: UmbralAmbiental) -> UmbralAmbiental: ...
+    def actualizar(self, umbral: UmbralAmbiental) -> UmbralAmbiental:
+        """Persiste los cambios del umbral y devuelve la entidad actualizada."""
 
     @abstractmethod
     def actualizar_estado_sincronizacion(self, umbral: UmbralAmbiental) -> UmbralAmbiental:

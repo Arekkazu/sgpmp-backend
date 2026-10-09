@@ -8,6 +8,7 @@ from src.configuration.domain.repositories.identidad_visual_repository import Id
 
 
 class ObtenerIdentidadVisualUseCase:
+    """Identidad visual vigente de una finca."""
 
     def __init__(self, identidad_repo: IdentidadVisualRepository) -> None:
         self.identidad_repo = identidad_repo

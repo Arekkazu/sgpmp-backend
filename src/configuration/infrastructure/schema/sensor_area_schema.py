@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 
 class SensorAreaResponse(BaseModel):
+    """Asociación sensor-área; ``tiene_estado`` true = vigente."""
     id_sensores_area_asociada: int
     id_sensor: int
     id_dispositivo_iot: int
@@ -36,6 +37,7 @@ class SensorAreaResponse(BaseModel):
 
 
 class AsociacionActivoSuperadaResponse(BaseModel):
+    """Asociación sensor→activo de M02 cerrada por la reasignación del sensor."""
     id_asociacion_activo_sensor: int
     id_activo_biologico: Optional[int]
     tipo: str
@@ -68,5 +70,6 @@ class AsociarSensorAreaResponse(SensorAreaResponse):
 
 
 class ListaSensorAreasResponse(BaseModel):
+    """Historial de asociaciones sensor-área."""
     total: int
     items: list[SensorAreaResponse]

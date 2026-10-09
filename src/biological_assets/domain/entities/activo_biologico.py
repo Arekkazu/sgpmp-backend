@@ -1,3 +1,13 @@
+"""Entidades y read-models del agregado ``ActivoBiologico`` (M02).
+
+El agregado raíz es :class:`ActivoBiologico`: un animal (INDIVIDUAL) o un lote
+(POBLACIONAL) alojado en una infraestructura de M09. Su conducta cubre el cambio
+de estado, las bajas/ingresos y el crecimiento de lotes (biomasa y densidad).
+El resto de dataclasses son eventos del activo, read-models de consulta (fichas,
+historial, indicadores, datos consolidados) y la entrada de la bitácora RF-52.
+No conocen SQLAlchemy: los repositorios de infraestructura las mapean.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,6 +20,7 @@ from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 @dataclass
 class DetalleIndividual:
+    """Datos propios de un activo INDIVIDUAL (un animal identificado)."""
     raza: str
     sexo: str
     fecha_nacimiento: datetime
@@ -20,6 +31,9 @@ class DetalleIndividual:
 
 @dataclass
 class DetallePoblacional:
+    """Datos propios de un activo POBLACIONAL (lote): conteo, peso medio, biomasa y
+    densidad.
+    """
     cantidad_inicial: int
     cantidad_actual: int
     peso_promedio_inicial: Optional[Decimal] = None
@@ -31,6 +45,8 @@ class DetallePoblacional:
 
 @dataclass
 class EventoCrecimiento:
+    """Subtipo de evento: medición de crecimiento (peso, talla...) del activo (RF-40).
+    """
     tipo_medicion: str
     valor_medicion: Decimal
     unidad_medida: str
@@ -42,6 +58,9 @@ class EventoCrecimiento:
 
 @dataclass
 class EventoBaja:
+    """Subtipo de evento: salida de individuos de un lote por muerte, venta, etc.
+    (RF-45).
+    """
     cantidad_afectada: int
     tipo: str
     detalles: Optional[str] = None
@@ -60,6 +79,7 @@ class EventoIngreso:
 
 @dataclass
 class EventoSanitario:
+    """Subtipo de evento: diagnóstico, tratamiento o vacunación (RF-41)."""
     tipo: str
     diagnostico: Optional[str] = None
     medicamento: Optional[str] = None
@@ -72,6 +92,7 @@ class EventoSanitario:
 
 @dataclass
 class EventoProductivo:
+    """Subtipo de evento: producción registrada contra una métrica del ciclo (RF-43)."""
     cantidad: Decimal
     id_metrica_produccion: int
     id_ciclo_productivo: int
@@ -82,6 +103,8 @@ class EventoProductivo:
 
 @dataclass
 class EventoReproductivo:
+    """Subtipo de evento: servicio, inseminación, diagnóstico de preñez o parto (RF-42).
+    """
     categoria: str
     resultado: str
     numero_cria: int = 0
@@ -91,6 +114,8 @@ class EventoReproductivo:
 
 @dataclass
 class EventoActivo:
+    """Evento biológico del activo (RF-39) con exactamente uno de sus subtipos poblado.
+    """
     id_activo_biologico: int
     fecha: datetime
     id_usuario: int
@@ -106,6 +131,8 @@ class EventoActivo:
 
 @dataclass
 class RegistroHistorial:
+    """Una línea del historial consolidado del activo (RF-46), sea cual sea su origen.
+    """
     categoria: str
     fecha_evento: datetime
     descripcion: str
@@ -116,6 +143,7 @@ class RegistroHistorial:
 
 @dataclass
 class PaginaHistorial:
+    """Página del historial consolidado del activo (RF-46)."""
     registros: list[RegistroHistorial]
     total_registros: int
     pagina_actual: int
@@ -126,6 +154,7 @@ class PaginaHistorial:
 
 @dataclass
 class Transferencia:
+    """Movimiento interno del activo entre dos infraestructuras (RF-48)."""
     id_activo_biologico: int
     id_infraestructura_origen: int
     id_infraestructura_destino: int
@@ -140,6 +169,9 @@ class Transferencia:
 
 @dataclass
 class FichaIntegral:
+    """Read-model de la ficha integral del activo (RF-47): datos, estado y últimos
+    eventos.
+    """
     id_activo_biologico: int
     identificador: Optional[str]
     tipo: str
@@ -193,6 +225,11 @@ class FichaLote:
 
 @dataclass
 class GestionFase:
+    """Paso del activo por una fase de su ciclo productivo (RF-37).
+
+    Solo una gestión por activo puede estar ``es_activa``; cambiar de fase cierra
+    la vigente y abre una nueva.
+    """
     id_activo_biologico: int
     id_ciclo_productiva: int
     nombre_ciclo: str
@@ -215,6 +252,9 @@ class GestionFase:
 
 @dataclass
 class HistorialActivo:
+    """Snapshot versionado del activo tras una operación
+    (``modulo2.historial_activos``).
+    """
     id_activo_biologico: int
     version: int
     tipo_evento: str
@@ -226,6 +266,7 @@ class HistorialActivo:
 
 @dataclass
 class HistoricoEstado:
+    """Registro inmutable de un cambio de estado del activo (RF-44)."""
     id_activo_biologico: int
     id_estado_anterior: int
     id_estado_nuevo: int
@@ -240,6 +281,10 @@ class HistoricoEstado:
 
 @dataclass
 class HistorialInfraestructura:
+    """Periodo en que el activo estuvo alojado en una infraestructura (RF-34).
+
+    ``fecha_fin`` en ``None`` indica la asociación vigente.
+    """
     id_historial: int
     id_activo_biologico: int
     id_infraestructura: int
@@ -252,6 +297,7 @@ class HistorialInfraestructura:
 
 @dataclass
 class SensorEnInfraestructura:
+    """Sensor con asociación de área activa en la infraestructura del activo."""
     id_sensor: int
     nombre: str
     id_dispositivo_iot: int
@@ -261,6 +307,9 @@ class SensorEnInfraestructura:
 
 @dataclass
 class ResultadoConsultaAsociacion:
+    """Respuesta de la consulta de infraestructura del activo (RF-34): vigente o
+    historial.
+    """
     tipo_consulta: str
     id_activo_biologico: int
     asociacion_activa: Optional[HistorialInfraestructura] = None
@@ -271,6 +320,9 @@ class ResultadoConsultaAsociacion:
 
 @dataclass
 class IndicadorZootecnico:
+    """Un indicador calculado (GDP, conversión, mortalidad...) con su periodo y
+    variables (RF-51).
+    """
     tipo: str
     unidad: str
     fecha_calculo: datetime
@@ -286,6 +338,7 @@ class IndicadorZootecnico:
 
 @dataclass
 class ResultadoIndicadores:
+    """Conjunto de indicadores zootécnicos de un activo con sus advertencias (RF-51)."""
     id_activo_biologico: int
     tipo_activo: str
     indicadores: list[IndicadorZootecnico] = field(default_factory=list)
@@ -294,6 +347,7 @@ class ResultadoIndicadores:
 
 @dataclass
 class SeccionDatosConsolidados:
+    """Bloques de datos que expone RF-50 a los módulos analíticos, con paginación."""
     historial_eventos: list[dict] = field(default_factory=list)
     historial_fases: list[dict] = field(default_factory=list)
     historico_estados: list[dict] = field(default_factory=list)
@@ -306,6 +360,7 @@ class SeccionDatosConsolidados:
 
 @dataclass
 class DatosConsolidados:
+    """Vista consolidada del activo para módulos analíticos (RF-50)."""
     id_activo_biologico: int
     identificador: Optional[str]
     tipo_activo: str
@@ -319,6 +374,11 @@ class DatosConsolidados:
 
 @dataclass
 class AsociacionSensorActivo:
+    """Asociación de un sensor IoT a un activo o a una infraestructura (RF-49).
+
+    Tipos: ``directa`` (sensor sobre el animal), ``poblacional`` (sobre un lote)
+    y ``ambiental`` (a nivel de infraestructura, heredada por todos sus activos).
+    """
     # id_activo_biologico/tipo_activo son None para una asociación AMBIENTAL a
     # nivel de infraestructura (RF-49 Tipo B, INC-M02-66-G90/#217): un único
     # registro por sensor+infraestructura que aplica a todos los activos de
@@ -343,6 +403,11 @@ class AsociacionSensorActivo:
 
 @dataclass(eq=False)
 class ActivoBiologico:
+    """Agregado raíz de M02: activo biológico individual o poblacional.
+
+    La identidad es ``id_activo_biologico``; dos instancias sin id solo son iguales
+    si son el mismo objeto.
+    """
     id_especie: int
     tipo: str
     origen_financiero: str
@@ -365,6 +430,11 @@ class ActivoBiologico:
 
     @classmethod
     def crear(cls, dto: object, id_usuario: int) -> ActivoBiologico:
+        """Construye un activo nuevo en estado ACTIVO a partir del DTO de registro (RF-33).
+
+        Según ``tipo_activo`` crea el detalle individual o el poblacional; en un lote
+        ``cantidad_actual`` arranca igual a ``cantidad_inicial``.
+        """
         from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 
         detalle_individual: Optional[DetalleIndividual] = None
@@ -408,6 +478,10 @@ class ActivoBiologico:
         fecha_nacimiento: Optional[datetime],
         peso_inicial: Optional[Decimal],
     ) -> None:
+        """Actualiza raza, sexo, fecha de nacimiento o peso inicial (RF-35).
+
+        Solo aplica a activos INDIVIDUAL; los argumentos en ``None`` no se tocan.
+        """
         if self.tipo != 'INDIVIDUAL':
             raise ValidationError(
                 code='TIPO_INVALIDO',
@@ -471,6 +545,12 @@ class ActivoBiologico:
             )
 
     def cambiar_estado(self, nuevo_id_estado: int) -> None:
+        """Aplica una transición de estado validada contra ``TRANSICIONES_VALIDAS`` (RF-44).
+
+        Raises:
+            ConflictError: el activo está en BAJA o ya tiene el estado pedido.
+            BusinessRuleError: la transición no está permitida.
+        """
         from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo, TRANSICIONES_VALIDAS
 
         if self.id_estado == EstadoActivo.BAJA:
@@ -499,6 +579,11 @@ class ActivoBiologico:
         self.id_estado = nuevo_id_estado
 
     def aplicar_evento_baja(self, cantidad_afectada: int) -> None:
+        """Descuenta individuos del lote y recalcula la biomasa (RF-45).
+
+        Raises:
+            BusinessRuleError: el activo no es poblacional o la cantidad quedaría negativa.
+        """
         self._validar_tipo_poblacional()
         dp = self.detalle_poblacional
         cantidad_actual = dp.cantidad_actual or 0
@@ -525,6 +610,8 @@ class ActivoBiologico:
             dp.biomasa_total = Decimal(str(dp.cantidad_actual)) * dp.peso_promedio
 
     def aplicar_evento_crecimiento(self, nuevo_peso_promedio: Decimal, superficie: Decimal) -> None:
+        """Fija el nuevo peso promedio del lote y recalcula biomasa y densidad (RF-40).
+        """
         self._validar_tipo_poblacional()
         dp = self.detalle_poblacional
         dp.peso_promedio = nuevo_peso_promedio
@@ -561,6 +648,11 @@ _CLASIFICACIONES_DE_UN_ACTIVO = frozenset({'TRANSFORMACION_BIOLOGICA', 'SANITARI
 
 @dataclass
 class EventoAuditoria:
+    """Entrada de la bitácora de auditoría de M02 (RF-52).
+
+    ``hash_integridad`` lo calcula el repositorio al insertar; ``registro_incompleto``
+    marca eventos aceptados aunque les falten campos obligatorios (RF-52 E2).
+    """
     rf_origen: str
     tipo_evento: str
     clasificacion_biologica: str

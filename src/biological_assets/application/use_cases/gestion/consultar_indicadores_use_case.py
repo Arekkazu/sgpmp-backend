@@ -1,3 +1,5 @@
+"""Caso de uso: cálculo de indicadores zootécnicos del activo (RF-51)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -27,6 +29,12 @@ _INDICADORES_SOLO_HEMBRA = {'PRODUCCION'}
 
 
 class ConsultarIndicadoresUseCase:
+    """Calcula los indicadores del activo en un rango de fechas.
+
+    Cada causa de "no disponible" tiene su código: datos insuficientes (422),
+    consumo de alimento en cero (409), valor atípico crítico (500), indicador que
+    no aplica al sexo del animal o rango fuera de su ciclo de vida (400).
+    """
 
     def __init__(
         self,

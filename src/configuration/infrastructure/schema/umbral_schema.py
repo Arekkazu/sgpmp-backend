@@ -9,6 +9,7 @@ from pydantic import BaseModel, field_validator
 
 
 class NivelAlertaResponse(BaseModel):
+    """Tramo de un nivel de alerta."""
     nivel: str
     limite_inferior: Decimal
     limite_superior: Decimal
@@ -24,6 +25,7 @@ class NivelAlertaResponse(BaseModel):
 
 
 class UmbralAmbientalResponse(BaseModel):
+    """Umbral ambiental con sus niveles y su estado de sincronización hacia los Edge."""
     id_umbral_ambiental: int
     id_especie: int
     id_variable_ambiental: int
@@ -44,6 +46,7 @@ class UmbralAmbientalResponse(BaseModel):
 
 
 class UmbralesPorEspecieResponse(BaseModel):
+    """Umbrales de una especie."""
     total: int
     items: List[UmbralAmbientalResponse]
 
@@ -61,6 +64,7 @@ class VariableAmbientalResponse(BaseModel):
 
 
 class VariablesAmbientalesResponse(BaseModel):
+    """Catálogo de variables ambientales."""
     total: int
     items: List[VariableAmbientalResponse]
 
@@ -80,5 +84,6 @@ class AuditoriaUmbralResponse(BaseModel):
 
 
 class AuditoriaUmbralesResponse(BaseModel):
+    """Historial de cambios de un umbral."""
     total: int
     items: List[AuditoriaUmbralResponse]

@@ -1,3 +1,6 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/sanitario`` (RF-41).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -13,6 +16,13 @@ _TIPOS_PERMITEN_CAMBIO_ESTADO = {'TRATAMIENTO', 'CONTROL_PREVENTIVO'}
 
 
 class RegistrarEventoSanitarioDTO(BaseDTO):
+    """Evento sanitario.
+
+    ``tipo``: ``VACUNACION`` | ``TRATAMIENTO`` | ``DIAGNOSTICO`` | ``CONTROL_PREVENTIVO``.
+    Los campos clínicos requeridos dependen del tipo. ``solicitar_estado``
+    (``EN_TRATAMIENTO`` | ``AISLADO``) solo se admite en ``TRATAMIENTO`` y
+    ``CONTROL_PREVENTIVO``.
+    """
     tipo: str
     diagnostico: Optional[str] = None
     medicamento: Optional[str] = None

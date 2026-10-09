@@ -1,3 +1,5 @@
+"""Caso de uso: avance o cambio de fase del ciclo productivo del activo (RF-37)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -19,6 +21,14 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class CambiarFaseUseCase:
+    """Cierra la gestión de fase vigente y abre la siguiente (o la fase destino indicada).
+
+    El ciclo debe ser de la especie del activo y tener fases. Saltar fases fuera
+    de la secuencia estándar exige confirmación explícita
+    (``TRANSICION_NO_ESTANDAR_SIN_CONFIRMAR``). No admite fases solapadas ni
+    activos que no estén operativos.
+    """
+
     def __init__(
         self,
         db: Session,

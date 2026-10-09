@@ -8,6 +8,9 @@ from pydantic import BaseModel
 
 
 class ConfiguracionRemotaResponse(BaseModel):
+    """Configuración remota enviada y su estado (PENDIENTE, APLICADA, NO_CONF,
+    CANCELADA).
+    """
     id_configuracion_remota: int
     id_dispositivo_iot: int
     frecuencia_captura: int
@@ -36,5 +39,6 @@ class ConfiguracionRemotaResponse(BaseModel):
 
 
 class ListaConfiguracionesRemotasResponse(BaseModel):
+    """Historial de configuraciones remotas de un dispositivo."""
     total: int
     items: list[ConfiguracionRemotaResponse]

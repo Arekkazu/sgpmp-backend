@@ -1,7 +1,14 @@
+"""Estados del activo biológico y sus transiciones permitidas (RF-44).
+
+Los valores coinciden con ``modulo2.estados_activos_biologicos``. BAJA es terminal y
+CERRADO solo puede pasar a BAJA.
+"""
+
 from enum import IntEnum
 
 
 class EstadoActivo(IntEnum):
+    """Estado operativo del activo; el valor es el id en ``modulo2.estados_activos_biologicos``."""
     ACTIVO = 1
     INACTIVO = 2
     EN_TRATAMIENTO = 3

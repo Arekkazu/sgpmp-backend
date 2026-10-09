@@ -45,6 +45,12 @@ def registrar_tipo_area(
     dto: RegistrarTipoAreaDTO,
     db: Session = Depends(get_db),
 ) -> TipoAreaResponse:
+    """Registra un tipo de área en el catálogo (RF-20).
+
+    **Acceso:** `tipos_area` · Crear.
+
+    El nombre es único (409).
+    """
     use_case = RegistrarTipoAreaUseCase(db=db, tipo_area_repo=SqlAlchemyTipoAreaRepository(db))
     tipo_area = use_case.execute(dto)
     return TipoAreaResponse.model_validate(tipo_area)
@@ -64,6 +70,10 @@ def consultar_tipos_area(
     solo_activos: bool = Query(False, description="Si es true, solo devuelve tipos activos."),
     db: Session = Depends(get_db),
 ) -> ListaTiposAreaResponse:
+    """Catálogo de tipos de área ordenado por nombre (RF-20).
+
+    **Acceso:** `tipos_area` · Leer.
+    """
     use_case = ListarTiposAreaUseCase(tipo_area_repo=SqlAlchemyTipoAreaRepository(db))
     tipos = use_case.execute(solo_activos=solo_activos)
     items = [TipoAreaResponse.model_validate(t) for t in tipos]
@@ -86,6 +96,10 @@ def desactivar_tipo_area(
     id_tipo_area: int,
     db: Session = Depends(get_db),
 ) -> TipoAreaResponse:
+    """Baja lógica de un tipo de área (RF-20).
+
+    **Acceso:** `tipos_area` · Desactivar.
+    """
     use_case = DesactivarTipoAreaUseCase(db=db, tipo_area_repo=SqlAlchemyTipoAreaRepository(db))
     tipo_area = use_case.execute(id_tipo_area)
     return TipoAreaResponse.model_validate(tipo_area)

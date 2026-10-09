@@ -18,6 +18,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError, ValidationError
 
 
 class RegistrarInfraestructuraUseCase:
+    """Registra un área en una finca activa con un tipo de área reconocido."""
 
     def __init__(
         self,

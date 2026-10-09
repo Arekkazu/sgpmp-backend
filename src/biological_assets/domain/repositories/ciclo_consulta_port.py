@@ -1,3 +1,5 @@
+"""Puerto de lectura de ciclos productivos configurados en M09 (RF-37, RF-43)."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -7,6 +9,7 @@ from typing import Optional
 
 @dataclass
 class FaseCiclo:
+    """Una fase de la secuencia de un ciclo productivo, con su duración esperada."""
     id_ciclos_productivo_biologico: int
     id_ciclo_biologico: int
     nombre_fase: str
@@ -15,6 +18,7 @@ class FaseCiclo:
 
 @dataclass
 class CicloProductivoConsulta:
+    """Ciclo productivo de M09 con sus fases en orden."""
     id_ciclo_productivo: int
     nombre: str
     fases: list[FaseCiclo]
@@ -24,6 +28,8 @@ class CicloProductivoConsulta:
 
 
 class CicloConsultaPort(ABC):
+    """Consulta a M09 de ciclos, fases y métricas habilitadas por ciclo."""
+
     @abstractmethod
     def obtener_ciclo_con_fases(self, id_ciclo_productivo: int) -> Optional[CicloProductivoConsulta]:
         """Retorna el ciclo productivo con su secuencia de fases biológicas ordenadas, o None si no existe."""

@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.historial_infraestructura_activo``: periodos de alojamiento
+del activo en cada infraestructura (RF-34).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

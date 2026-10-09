@@ -20,6 +20,7 @@ from src.shared.errors import ConflictError
 
 
 class CrearConfiguracionUseCase:
+    """Crea la configuración operativa; solo puede existir una activa (409)."""
 
     def __init__(
         self,
