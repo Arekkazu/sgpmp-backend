@@ -49,14 +49,12 @@ def get_or_create_test_session(run_id: str) -> Session:
             connection = engine.connect()
             transaction = connection.begin()
             
-            session = SessionLocal(bind=connection)
-            session.begin_nested() # SAVEPOINT
-            
-            @event.listens_for(session, "after_transaction_end")
-            def restart_savepoint(sess, trans):
-                if trans.nested and not trans._parent.nested:
-                    sess.begin_nested()
-                    
+            # create_savepoint: commit()/rollback() de la aplicación solo afectan
+            # al SAVEPOINT de la sesión, nunca a la transacción externa del run.
+            session = SessionLocal(
+                bind=connection, join_transaction_mode="create_savepoint"
+            )
+
             active_test_transactions[run_id] = {
                 'session': session,
                 'connection': connection,
