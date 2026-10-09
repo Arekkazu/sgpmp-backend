@@ -1,4 +1,5 @@
-"""Auditoría de credenciales MQTT en la bitácora IoT de modulo3 (RF-63).
+"""Auditoría de credenciales MQTT y de la propagación de umbrales (RF-17) en la
+bitácora IoT de modulo3 (RF-63).
 
 Reutiliza ``RegistrarEventoAuditoriaIotUseCase`` de telemetry (hash de
 integridad y clasificación incluidos), que ya es best-effort: un fallo de la
@@ -51,5 +52,35 @@ class BitacoraIotM03Adapter(BitacoraIotPort):
             entidad_afectada_tipo=EntidadAfectadaTipo.DISPOSITIVO,
             entidad_afectada_id=str(id_dispositivo_iot),
             accion_detallada={"serial": serial, **detalle},
+            id_usuario=id_usuario,
+        )
+
+    def registrar_propagacion_umbral(
+        self,
+        *,
+        evento: str,
+        id_umbral_ambiental: int,
+        id_usuario: int,
+        estado: str,
+        fallo: bool,
+        detalle: dict,
+    ) -> None:
+        if estado == "APLICADA":
+            resultado, severidad = TipoResultado.EXITOSO, SeveridadLog.INFO
+        elif fallo:
+            resultado, severidad = TipoResultado.FALLIDO, SeveridadLog.ERROR
+        else:
+            resultado, severidad = TipoResultado.ADVERTENCIA, SeveridadLog.WARNING
+        RegistrarEventoAuditoriaIotUseCase(
+            db=self.db, auditoria_repo=SqlAlchemyBitacoraAuditoriaIotRepository(self.db)
+        ).execute(
+            tipo_evento=evento,
+            resultado=resultado,
+            componente_origen=ComponenteOrigen.RF17,
+            severidad_log=severidad,
+            descripcion=f"Propagación del umbral {id_umbral_ambiental} al Nodo Edge: {estado}",
+            entidad_afectada_tipo=EntidadAfectadaTipo.UMBRAL,
+            entidad_afectada_id=str(id_umbral_ambiental),
+            accion_detallada={"id_umbral_ambiental": id_umbral_ambiental, "estado": estado, **detalle},
             id_usuario=id_usuario,
         )

@@ -44,7 +44,7 @@ _MENSAJE_SIN_INTEGRACION = (
     "La integración con el broker MQTT no está configurada en este ambiente. "
     "El umbral quedó guardado y pendiente de sincronización."
 )
-_MENSAJE_BROKER_NO_DISPONIBLE = "No se pudo contactar al broker MQTT para propagar el umbral."
+_MENSAJE_BROKER_NO_DISPONIBLE = "El broker MQTT no propagó el umbral."
 
 
 class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
@@ -79,7 +79,18 @@ class EdgeSincronizacionMqttAdapter(EdgeSincronizacionPort):
                 )
                 respuesta.raise_for_status()
                 cuerpo = respuesta.json()
-                return ResultadoEnvioMqtt(estado=cuerpo["estado"], mensaje=cuerpo["mensaje"])
-            except (httpx.HTTPError, ValueError, KeyError) as exc:
-                logger.error("Broker MQTT no disponible al propagar umbral a %s: %r", serial, exc)
-                return ResultadoEnvioMqtt(estado="NO_CONF", mensaje=_MENSAJE_BROKER_NO_DISPONIBLE)
+                return ResultadoEnvioMqtt(
+                    estado=cuerpo["estado"], mensaje=cuerpo["mensaje"], publicado=bool(cuerpo.get("topic"))
+                )
+            # INC-M09-70-G29: la causa va en el mensaje (motivo del umbral y
+            # bitácora IoT), no solo en el log del contenedor.
+            except httpx.HTTPStatusError as exc:
+                causa = f"el broker respondió HTTP {exc.response.status_code}: {exc.response.text[:200]}"
+            except httpx.HTTPError as exc:
+                causa = f"sin respuesta del broker ({type(exc).__name__})"
+            except (ValueError, KeyError) as exc:
+                causa = f"respuesta inválida del broker ({type(exc).__name__})"
+            logger.error("Umbral no propagado a %s: %s", serial, causa)
+            return ResultadoEnvioMqtt(
+                estado="NO_CONF", mensaje=f"{_MENSAJE_BROKER_NO_DISPONIBLE} Causa: {causa}.", publicado=False
+            )
