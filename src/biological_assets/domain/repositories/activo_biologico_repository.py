@@ -1,3 +1,10 @@
+"""Puerto de persistencia del agregado ``ActivoBiologico`` (capa de dominio).
+
+Cubre el activo y sus detalles, la asociación a infraestructura (RF-34), las
+gestiones de fase (RF-37), el estado (RF-44) y el historial versionado.
+Implementación: ``infrastructure/repositories/activo_biologico_repository.py``.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -13,6 +20,8 @@ from src.biological_assets.domain.entities.activo_biologico import (
 
 
 class ActivoBiologicoRepository(ABC):
+    """Contrato de acceso a datos para :class:`ActivoBiologico`."""
+
     @abstractmethod
     def guardar(self, activo: ActivoBiologico) -> ActivoBiologico:
         """Persiste el activo biológico y sus detalles en una sola transacción de DB."""

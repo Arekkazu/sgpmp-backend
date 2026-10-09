@@ -1,3 +1,5 @@
+"""Caso de uso: registro de eventos reproductivos (RF-42)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -33,6 +35,13 @@ _CATEGORIAS_REQUIEREN_NUM_CRIAS = {'parto', 'aborto', 'nacimiento'}
 
 
 class RegistrarEventoReproductivoUseCase:
+    """Registra servicio, inseminación, diagnóstico, parto, aborto o nacimiento.
+
+    En un lote solo se admite ``nacimiento``. En un individual se exige la
+    secuencia: diagnóstico y nacimiento requieren servicio o inseminación previa;
+    parto y aborto, un diagnóstico positivo. Padre y madre referenciados deben
+    existir.
+    """
 
     def __init__(
         self,

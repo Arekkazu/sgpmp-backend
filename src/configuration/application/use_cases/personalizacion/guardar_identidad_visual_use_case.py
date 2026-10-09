@@ -21,6 +21,7 @@ from src.shared.errors import ConflictError
 
 
 class GuardarIdentidadVisualUseCase:
+    """Crea la primera identidad visual de una finca (409 si ya tiene una)."""
 
     def __init__(
         self,

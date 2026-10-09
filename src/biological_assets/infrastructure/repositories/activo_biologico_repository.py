@@ -1,3 +1,10 @@
+"""Implementación SQLAlchemy de ``ActivoBiologicoRepository``.
+
+Mapea el activo y sus detalles (individual/poblacional), la asociación a
+infraestructura, las gestiones de fase y el historial versionado entre filas
+ORM de ``modulo2`` y entidades de dominio.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -31,6 +38,9 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyActivoBiologicoRepository(ActivoBiologicoRepository):
+    """Repositorio del agregado :class:`ActivoBiologico`; solo hace ``flush()``, el
+    commit es del use case.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

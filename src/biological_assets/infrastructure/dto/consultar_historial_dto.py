@@ -1,3 +1,5 @@
+"""Filtros de ``GET /activos-biologicos/{id_activo}/historial`` (RF-46)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -14,6 +16,11 @@ _CATEGORIAS_VALIDAS = {
 
 
 class ConsultarHistorialDTO(BaseDTO):
+    """Filtros del historial del activo.
+
+    ``categoria_evento``: ``ESTADO`` | ``FASE`` | ``EVENTO_BIOLOGICO`` | ``CRECIMIENTO`` |
+    ``SANITARIO`` | ``REPRODUCTIVO`` | ``PRODUCTIVO`` | ``BAJA`` | ``TRANSFERENCIA``.
+    """
     # fecha_inicio > fecha_fin lo rechaza ConsultarHistorialUseCase: RF-46 E-03 pide 422,
     # y un model_validator de Pydantic saldría como 400.
     fecha_inicio: Optional[date] = None

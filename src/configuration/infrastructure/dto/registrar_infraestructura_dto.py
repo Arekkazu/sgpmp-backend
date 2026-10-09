@@ -11,6 +11,9 @@ from src.shared.tipo_modelo import TipoModelo
 
 
 class RegistrarInfraestructuraDTO(BaseDTO):
+    """Área productiva nueva; ``tipo_area`` debe existir en el catálogo y ``superficie``
+    va en m².
+    """
     nombre_infraestructura: str
     tipo_area: str
     superficie: Decimal

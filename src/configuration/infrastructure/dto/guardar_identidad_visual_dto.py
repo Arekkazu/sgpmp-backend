@@ -8,6 +8,9 @@ from src.shared.base_dto import BaseDTO
 
 
 class GuardarIdentidadVisualDTO(BaseDTO):
+    """Identidad visual inicial de una finca (colores ``#RRGGBB``); el logo viaja como
+    archivo multipart.
+    """
     id_finca: int
     primary_color: str = Field(pattern=r'^#[0-9A-Fa-f]{6}$')
     secondary_color: str = Field(pattern=r'^#[0-9A-Fa-f]{6}$')

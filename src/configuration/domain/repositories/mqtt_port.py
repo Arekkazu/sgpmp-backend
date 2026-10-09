@@ -34,6 +34,7 @@ class CredencialMqtt:
 
 @dataclass(frozen=True)
 class EstadoCredencialMqtt:
+    """Estado de la credencial MQTT de un dispositivo en el broker."""
     usuario: str
     habilitada: bool
     conectada: bool
@@ -41,6 +42,9 @@ class EstadoCredencialMqtt:
 
 
 class MqttPort(ABC):
+    """Puerto hacia el broker MQTT: envío de configuración y gestión de credenciales de
+    dispositivos.
+    """
 
     @abstractmethod
     def enviar_configuracion(self, serial: str, payload: dict) -> ResultadoEnvioMqtt:

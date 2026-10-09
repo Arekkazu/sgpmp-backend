@@ -12,6 +12,9 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class ObservacionVision:
+    """Vector de comportamiento de una cámara en una ventana de tiempo, con su aptitud
+    para IA (RF-62).
+    """
     id_dispositivo_iot: int
     fecha_observacion: datetime.datetime
     # RF-62: índice de calidad de visión.

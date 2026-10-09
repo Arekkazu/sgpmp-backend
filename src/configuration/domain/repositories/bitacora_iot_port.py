@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 
 
 class BitacoraIotPort(ABC):
+    """Puerto hacia la bitácora IoT de M03 para auditar credenciales MQTT."""
 
     @abstractmethod
     def registrar(

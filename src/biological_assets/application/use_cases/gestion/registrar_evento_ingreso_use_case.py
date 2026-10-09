@@ -1,3 +1,5 @@
+"""Caso de uso: ingreso de individuos a un lote POBLACIONAL (RF-36)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

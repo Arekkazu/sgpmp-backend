@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 class TipoDispositivoIotResponse(BaseModel):
+    """Tipo de dispositivo con sus rangos de configuración remota."""
     id_tipo_dispositivo: int
     nombre: str
     frecuencia_captura_min: int
@@ -27,5 +28,6 @@ class TipoDispositivoIotResponse(BaseModel):
 
 
 class ListaTiposDispositivoIotResponse(BaseModel):
+    """Catálogo de tipos de dispositivo."""
     total: int
     items: list[TipoDispositivoIotResponse]

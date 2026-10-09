@@ -16,6 +16,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class RegistrarSensorUseCase:
+    """Registra un sensor en un dispositivo; las cámaras no admiten sensores (422)."""
 
     def __init__(
         self,
@@ -64,6 +65,7 @@ class RegistrarSensorUseCase:
 
 
 class ConsultarSensoresUseCase:
+    """Lista los sensores de un dispositivo."""
 
     def __init__(self, db: Session, sensor_repo: SensorRepository) -> None:
         self.db = db

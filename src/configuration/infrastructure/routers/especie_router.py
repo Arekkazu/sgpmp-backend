@@ -54,6 +54,12 @@ def registrar_especie(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EspecieResponse:
+    """Registra una especie en el catálogo maestro (RF-15).
+
+    **Acceso:** `especies` · Crear.
+
+    El nombre es único (409).
+    """
     use_case = RegistrarEspecieUseCase(
         db=db,
         especies_repo=SqlAlchemyEspecieRepository(db),
@@ -77,6 +83,10 @@ def consultar_catalogo(
     solo_activas: bool = Query(False, description="Si es true, solo devuelve especies activas."),
     db: Session = Depends(get_db),
 ) -> CatalogoEspeciesResponse:
+    """Catálogo de especies ordenado por nombre; `solo_activas` filtra las vigentes (RF-15).
+
+    **Acceso:** `especies` · Leer.
+    """
     use_case = ConsultarCatalogoUseCase(
         especies_repo=SqlAlchemyEspecieRepository(db),
     )
@@ -105,6 +115,12 @@ def editar_especie(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EspecieResponse:
+    """Edita nombre o descripción de una especie activa (RF-15).
+
+    **Acceso:** `especies` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarEspecieUseCase(
         db=db,
         especies_repo=SqlAlchemyEspecieRepository(db),
@@ -132,6 +148,12 @@ def desactivar_especie(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EspecieResponse:
+    """Baja lógica de una especie (RF-15).
+
+    **Acceso:** `especies` · Desactivar.
+
+    Responde 422 si ya está inactiva y 423 si tiene procesos productivos activos.
+    """
     use_case = DesactivarEspecieUseCase(
         db=db,
         especies_repo=SqlAlchemyEspecieRepository(db),
@@ -159,6 +181,10 @@ def reactivar_especie(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> EspecieResponse:
+    """Reactiva una especie inactiva (RF-15).
+
+    **Acceso:** `especies` · Desactivar.
+    """
     use_case = ReactivarEspecieUseCase(
         db=db,
         especies_repo=SqlAlchemyEspecieRepository(db),

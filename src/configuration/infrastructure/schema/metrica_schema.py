@@ -56,5 +56,6 @@ class MetricaProduccionResponse(BaseModel):
 
 
 class MetricasPorEspecieResponse(BaseModel):
+    """Métricas de producción de una especie."""
     total: int
     items: list[MetricaProduccionResponse]

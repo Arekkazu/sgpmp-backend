@@ -1,3 +1,8 @@
+"""Modelo ORM de ``modulo2.eventos_crecimeinto`` (subtipo de evento, RF-40).
+
+El nombre de la tabla tiene una errata histórica (``crecimeinto``); se mapea tal cual.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal

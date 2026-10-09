@@ -16,6 +16,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class ReactivarFincaUseCase:
+    """Reactiva una finca inactiva."""
 
     def __init__(
         self,

@@ -8,6 +8,7 @@ from pydantic import BaseModel, field_validator
 
 
 class CicloBiologicoResponse(BaseModel):
+    """Etapa del ciclo productivo de una especie."""
     id_ciclo_biologico: int
     nombre: str
     descripcion: Optional[str]
@@ -34,5 +35,6 @@ class CicloBiologicoResponse(BaseModel):
 
 
 class EtapasPorEspecieResponse(BaseModel):
+    """Etapas del ciclo de una especie."""
     total: int
     items: list[CicloBiologicoResponse]

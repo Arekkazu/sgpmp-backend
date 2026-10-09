@@ -1,3 +1,5 @@
+"""Caso de uso: registro de un activo biológico nuevo (RF-33)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -155,6 +157,14 @@ def _validar_atributos_dinamicos(
 
 
 class RegistrarActivoBiologicoUseCase:
+    """Registra un activo individual o un lote y su asociación inicial a infraestructura.
+
+    Valida especie e infraestructura activas y dentro de las fincas del usuario,
+    identificador único, origen financiero (costo y soporte documental en compras)
+    y atributos dinámicos contra los parámetros de la especie. En lotes calcula
+    la densidad inicial contra el máximo de la especie. Guarda el snapshot inicial
+    (evento 0) y deja rastro en RF-52.
+    """
 
     def __init__(
         self,

@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.gestiones_fases``: paso del activo por cada fase de su ciclo
+productivo (RF-37).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,3 +1,7 @@
+"""Modelo ORM del catálogo ``modulo2.estados_activos_biologicos`` (ver
+``EstadoActivo``).
+"""
+
 from __future__ import annotations
 
 from sqlalchemy import Identity, Integer, PrimaryKeyConstraint, String

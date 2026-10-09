@@ -8,6 +8,7 @@ from src.configuration.domain.repositories.preferencia_idioma_repository import 
 
 
 class ObtenerIdiomaGlobalUseCase:
+    """Idioma por defecto del sistema."""
 
     def __init__(self, idioma_repo: PreferenciaIdiomaRepository) -> None:
         self.idioma_repo = idioma_repo

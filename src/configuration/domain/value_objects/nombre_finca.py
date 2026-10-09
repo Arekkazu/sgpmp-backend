@@ -12,6 +12,7 @@ _MIN, _MAX = 1, 55
 
 @dataclass(frozen=True)
 class NombreFinca:
+    """Nombre de finca: 1 a 55 caracteres, solo letras y espacios."""
     valor: str
 
     def __post_init__(self) -> None:

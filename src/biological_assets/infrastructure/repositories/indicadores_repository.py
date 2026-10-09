@@ -1,3 +1,7 @@
+"""Implementación SQLAlchemy de ``IndicadoresRepository``: indicadores zootécnicos
+(RF-51) y datos consolidados (RF-50).
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime, timezone
@@ -28,6 +32,9 @@ _GDP_MAXIMO_PLAUSIBLE_KG_DIA = Decimal('10')
 
 
 class SqlAlchemyIndicadoresRepository(IndicadoresRepository):
+    """Calcula indicadores y arma la vista consolidada con consultas sobre los eventos
+    del activo.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

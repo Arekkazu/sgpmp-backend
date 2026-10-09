@@ -108,6 +108,12 @@ def _enviar_y_registrar(
 
 
 class ConfigurarRemotamenteUseCase:
+    """Envía frecuencia de captura e intervalo de transmisión a un dispositivo y registra el resultado.
+
+    Los valores deben caer en el rango de su tipo de dispositivo; no aplica a
+    gateways Edge y no admite una segunda configuración pendiente (409). El envío
+    espera el ACK del broker (hasta ~35 s): sin ACK queda en NO_CONF.
+    """
 
     def __init__(
         self,
@@ -285,6 +291,9 @@ class CancelarConfiguracionUseCase:
 
 
 class ConsultarConfiguracionesUseCase:
+    """Historial de configuraciones remotas de un dispositivo dentro del alcance del
+    usuario.
+    """
 
     def __init__(
         self,

@@ -1,3 +1,5 @@
+"""Caso de uso: cierre del ciclo productivo de un activo (RF-38)."""
+
 from __future__ import annotations
 
 from datetime import datetime, time, timezone
@@ -21,6 +23,12 @@ from src.shared.errors import AppError, BusinessRuleError, ConflictError, NotFou
 
 
 class CerrarCicloUseCase:
+    """Cierra la fase activa y pasa el activo a CERRADO.
+
+    Precondiciones: estado que permita el cierre, sin sensores asociados activos,
+    con fase activa y con fecha de cierre posterior al último evento.
+    """
+
     def __init__(
         self,
         db: Session,

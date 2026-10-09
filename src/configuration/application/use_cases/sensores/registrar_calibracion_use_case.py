@@ -83,6 +83,11 @@ def auditar_rechazo_calibracion(
 
 
 class RegistrarCalibracionUseCase:
+    """Registra la calibración de un sensor activo asociado a un área.
+
+    El valor de referencia debe estar en el rango del tipo de sensor; los
+    rechazos también quedan auditados.
+    """
 
     def __init__(
         self,
@@ -285,6 +290,7 @@ class RegistrarCalibracionUseCase:
 
 
 class ConsultarCalibracionesUseCase:
+    """Historial de calibraciones de un sensor."""
 
     def __init__(
         self,

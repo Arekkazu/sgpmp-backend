@@ -12,6 +12,7 @@ from src.configuration.domain.entities.observacion_vision import ObservacionVisi
 
 
 class ObservacionVisionPort(ABC):
+    """Puerto hacia M03 para leer observaciones de visión de un conjunto de cámaras."""
 
     @abstractmethod
     def listar(

@@ -9,6 +9,7 @@ from src.configuration.domain.value_objects.nombre_finca import NombreFinca
 
 
 class FincaRepository(ABC):
+    """Contrato de acceso a datos para :class:`Finca`."""
 
     @abstractmethod
     def obtener_por_id(self, id_finca: int, *, bloquear: bool = False) -> Optional[Finca]:
@@ -27,6 +28,7 @@ class FincaRepository(ABC):
 
     @abstractmethod
     def actualizar(self, finca: Finca) -> Finca:
+        """Persiste los cambios de la finca y devuelve la entidad actualizada."""
         raise NotImplementedError
 
     @abstractmethod

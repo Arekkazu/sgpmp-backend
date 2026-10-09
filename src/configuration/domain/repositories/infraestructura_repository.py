@@ -8,6 +8,7 @@ from src.configuration.domain.entities.infraestructura import Infraestructura
 
 
 class InfraestructuraRepository(ABC):
+    """Contrato de acceso a datos para :class:`Infraestructura`."""
 
     @abstractmethod
     def obtener_por_id(
@@ -23,10 +24,14 @@ class InfraestructuraRepository(ABC):
 
     @abstractmethod
     def guardar(self, infraestructura: Infraestructura) -> Infraestructura:
+        """Inserta la infraestructura y devuelve la entidad con su id asignado."""
         raise NotImplementedError
 
     @abstractmethod
     def actualizar(self, infraestructura: Infraestructura) -> Infraestructura:
+        """Persiste los cambios de la infraestructura y devuelve la entidad
+        actualizada.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -37,4 +42,7 @@ class InfraestructuraRepository(ABC):
         solo_activas: bool = False,
         ids_fincas_permitidas: Optional[list[int]] = None,
     ) -> list[Infraestructura]:
+        """Lista las infraestructuras de la finca, opcionalmente solo activas y dentro
+        del alcance permitido.
+        """
         raise NotImplementedError

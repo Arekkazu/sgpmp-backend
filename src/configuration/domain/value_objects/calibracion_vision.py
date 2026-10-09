@@ -5,11 +5,13 @@ from enum import Enum
 
 
 class OrigenDisparo(str, Enum):
+    """Quién lanzó la calibración por visión: un usuario o el proceso automático."""
     MANUAL = "MANUAL"            # Ingeniero de campo / Administrador
     AUTOMATICO = "AUTOMATICO"    # Módulo 02: nuevo lote / fin de ciclo
 
 
 class EstadoCalibracionVision(str, Enum):
+    """Resultado de una calibración por visión."""
     EXITOSA = "EXITOSA"
     FALLIDA = "FALLIDA"
     NO_CONVERGIDA = "NO_CONVERGIDA"

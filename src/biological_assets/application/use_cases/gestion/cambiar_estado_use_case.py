@@ -1,3 +1,5 @@
+"""Caso de uso: cambio manual del estado operativo de un activo (RF-44)."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -20,6 +22,13 @@ from src.shared.errors import AppError, BusinessRuleError, NotFoundError
 
 
 class CambiarEstadoUseCase:
+    """Cambia el estado del activo validando la matriz de transiciones.
+
+    CERRADO y BAJA no se fijan aquí sino con el cierre de ciclo (RF-38) y el
+    evento de baja (RF-45). Exige motivo y no acepta fechas futuras. El cambio
+    queda en el histórico de estados con origen ``MANUAL``.
+    """
+
     def __init__(
         self,
         db: Session,

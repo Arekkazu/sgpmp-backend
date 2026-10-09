@@ -19,6 +19,9 @@ _APLICA_VALIDOS = {'INDIVIDUAL', 'LOTE', 'AMBOS'}
 
 
 class RegistrarMetricaDTO(BaseDTO):
+    """Métrica de producción nueva para una especie; ``valor_min``/``valor_max`` solo
+    aplican a NUMERICO y ENTERO.
+    """
     id_especie: int
     nombre: str
     unidad_medida: str

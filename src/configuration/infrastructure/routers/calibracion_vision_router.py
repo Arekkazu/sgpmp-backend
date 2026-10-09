@@ -105,6 +105,12 @@ def calibrar_vision(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CalibracionVisionResponse:
+    """Calcula la línea base por visión de un área para su especie con las observaciones de sus cámaras (RF-24, modalidad VISION).
+
+    **Acceso:** `sensores` · Crear.
+
+    Si converge publica la nueva línea base; un cálculo fallido devuelve el estado y la etapa donde falló. Los rechazos por permiso también quedan auditados.
+    """
     use_case = CalibrarVisionUseCase(
         db=db,
         infraestructura_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -138,6 +144,10 @@ def listar_calibraciones_vision(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaCalibracionesVisionResponse:
+    """Historial de calibraciones por visión de un área, exitosas y fallidas (RF-24).
+
+    **Acceso:** `sensores` · Leer.
+    """
     calibraciones = _consultar(db).listar_por_area(area_id, ids_fincas_permitidas=_alcance(db, usuario_actual))
     items = [CalibracionVisionResponse.from_entity(c) for c in calibraciones]
     return ListaCalibracionesVisionResponse(total=len(items), items=items)
@@ -155,6 +165,12 @@ def obtener_linea_base_vision(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> LineaBaseVisionResponse:
+    """Línea base por visión vigente del área para su especie (RF-24).
+
+    **Acceso:** `sensores` · Leer.
+
+    Responde 404 si el área nunca se calibró con éxito.
+    """
     linea_base = _consultar(db).obtener_linea_base_vigente(
         area_id, ids_fincas_permitidas=_alcance(db, usuario_actual)
     )

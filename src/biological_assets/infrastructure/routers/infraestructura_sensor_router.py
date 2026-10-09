@@ -1,3 +1,9 @@
+"""Router FastAPI de asociaciones ambientales sensor ↔ infraestructura (RF-49 Tipo B, M02).
+
+Una asociación ambiental cubre una infraestructura completa y la heredan todos
+los activos que residen en ella.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
@@ -45,6 +51,8 @@ router = APIRouter(prefix='/infraestructuras', tags=['Infraestructuras (Sensores
     status_code=201,
     response_model=AsociacionSensorActivoResponse,
     responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},
@@ -104,6 +112,8 @@ def asociar_sensor_a_infraestructura(
     status_code=200,
     dependencies=[Depends(require_permission_m02(_RECURSO_SENSOR, 3, rf_origen='RF49'))],
     responses={
+        401: {'model': ErrorResponse},
+        403: {'model': ErrorResponse},
         404: {'model': ErrorResponse},
         409: {'model': ErrorResponse},
         422: {'model': ErrorResponse},

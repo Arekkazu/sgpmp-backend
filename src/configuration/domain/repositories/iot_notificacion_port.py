@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 
 class IotNotificacionPort(ABC):
+    """Puerto que avisa al monitoreo IoT de un cambio de configuración global."""
 
     @abstractmethod
     def notificar_configuracion(self, *, frecuencia_muestreo: int, heartbeat: int) -> None:

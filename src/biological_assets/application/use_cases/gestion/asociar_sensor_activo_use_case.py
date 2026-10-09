@@ -1,3 +1,5 @@
+"""Caso de uso: asociación de un sensor IoT a un activo biológico (RF-49)."""
+
 from __future__ import annotations
 
 import datetime
@@ -38,6 +40,13 @@ _UMBRAL_DESCONEXION_MINUTOS = 30
 
 
 class AsociarSensorActivoUseCase:
+    """Asocia un sensor a un activo de forma directa (individual) o poblacional (lote).
+
+    Valida que activo, sensor y dispositivo estén operativos, que el sensor esté en
+    la infraestructura del activo y que sea compatible con la especie según M09.
+    Un sensor no puede quedar vinculado dos veces al mismo activo ni a dos lotes.
+    Si el dispositivo está fuera de línea la asociación se crea con advertencia.
+    """
 
     def __init__(
         self,

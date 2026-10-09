@@ -7,6 +7,7 @@ from src.shared.errors import ValidationError
 
 
 class TipoDatoAtributo(str, Enum):
+    """Tipo de dato de un atributo dinámico; solo NUMERICO y ENTERO admiten rango."""
     NUMERICO = "NUMERICO"
     ENTERO = "ENTERO"
     TEXTO = "TEXTO"

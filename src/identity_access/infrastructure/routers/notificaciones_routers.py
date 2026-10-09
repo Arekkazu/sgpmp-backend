@@ -29,6 +29,7 @@ router = APIRouter(prefix="/notificaciones", tags=["Notificaciones"])
 
 @router.get(
     "",
+    summary="Listar notificaciones propias (RF-14)",
     response_model=NotificacionesPaginadasResponse,
     responses={401: {"model": ErrorResponse}},
 )
@@ -39,6 +40,12 @@ def listar_notificaciones(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Bandeja interna paginada del usuario autenticado, de la más reciente a la más antigua.
+
+    **Acceso:** autenticado (solo ve sus propias notificaciones).
+
+    `solo_no_leidas=true` filtra las pendientes de lectura.
+    """
     resultado = ListarNotificacionesUseCase(
         SqlAlchemyNotificacionRepository(db)
     ).execute(
@@ -60,6 +67,10 @@ def marcar_todas_leidas(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> MarcadasLeidasResponse:
+    """Marca como leídas todas las notificaciones pendientes del usuario autenticado.
+
+    **Acceso:** autenticado. Devuelve cuántas cambiaron.
+    """
     cambiadas = MarcarTodasLeidasUseCase(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
         db=db,
@@ -69,6 +80,7 @@ def marcar_todas_leidas(
 
 @router.patch(
     "/{id_notificacion}/leida",
+    summary="Marcar una notificación como leída (RF-14)",
     response_model=NotificacionInternaResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -80,6 +92,10 @@ def marcar_notificacion_leida(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Marca como leída una notificación propia.
+
+    **Acceso:** autenticado. Una notificación ajena responde 404.
+    """
     return MarcarNotificacionLeidaUseCase(
         notificaciones_repo=SqlAlchemyNotificacionRepository(db),
         db=db,

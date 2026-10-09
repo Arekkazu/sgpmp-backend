@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 
 class SensorResponse(BaseModel):
+    """Sensor de un dispositivo IoT."""
     id_sensores: int
     nombre: str
     id_dispositivo_iot: int
@@ -27,5 +28,6 @@ class SensorResponse(BaseModel):
 
 
 class ListaSensoresResponse(BaseModel):
+    """Sensores de un dispositivo."""
     total: int
     items: list[SensorResponse]

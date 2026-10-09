@@ -14,6 +14,10 @@ _NOMBRE_ETAPA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍÓÚ�
 
 
 class EditarCicloDTO(BaseDTO):
+    """Campos editables de una etapa del ciclo.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre: str
     descripcion: Optional[str] = None
     duracion_dias: int

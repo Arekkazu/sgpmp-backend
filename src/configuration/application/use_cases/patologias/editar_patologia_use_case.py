@@ -20,6 +20,9 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, P
 
 
 class EditarPatologiaUseCase:
+    """Edita una patología activa con concurrencia optimista (412) y nombre único por
+    especie (409).
+    """
 
     def __init__(
         self,

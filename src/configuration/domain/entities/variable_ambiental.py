@@ -7,6 +7,7 @@ from decimal import Decimal
 
 @dataclass
 class VariableAmbiental:
+    """Variable ambiental del catálogo con su unidad y rango físico posible."""
     id_variable_ambiental: int
     nombre: str
     unidad: str

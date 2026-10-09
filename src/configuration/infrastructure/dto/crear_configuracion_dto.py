@@ -5,6 +5,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class CrearConfiguracionDTO(BaseDTO):
+    """Minutos de frecuencia de muestreo y de heartbeat (heartbeat >= frecuencia)."""
     frecuencia_muestreo: int
     heartbeat: int
 

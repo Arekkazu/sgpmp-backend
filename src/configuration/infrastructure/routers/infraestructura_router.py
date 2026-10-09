@@ -60,6 +60,12 @@ def registrar_infraestructura(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InfraestructuraResponse:
+    """Registra un área productiva en una finca activa (RF-20).
+
+    **Acceso:** `infraestructuras` · Crear.
+
+    `tipo_area` debe existir en el catálogo de tipos de área.
+    """
     use_case = RegistrarInfraestructuraUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -88,6 +94,10 @@ def listar_infraestructuras(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ListaInfraestructurasResponse:
+    """Áreas productivas de una finca; `solo_activas` filtra las vigentes (RF-20).
+
+    **Acceso:** `infraestructuras` · Leer.
+    """
     use_case = ConsultarInfraestructurasUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -121,6 +131,10 @@ def obtener_infraestructura(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InfraestructuraResponse:
+    """Detalle de un área productiva (RF-20).
+
+    **Acceso:** `infraestructuras` · Leer.
+    """
     use_case = ConsultarInfraestructurasUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -155,6 +169,12 @@ def editar_infraestructura(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InfraestructuraResponse:
+    """Edita un área productiva (RF-20).
+
+    **Acceso:** `infraestructuras` · Actualizar.
+
+    No se puede cambiar la especie si aloja activos de otra (422). Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarInfraestructuraUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -185,6 +205,12 @@ def desactivar_infraestructura(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InfraestructuraResponse:
+    """Desactiva un área (RF-20).
+
+    **Acceso:** `infraestructuras` · Desactivar.
+
+    Responde 422 si tiene dispositivos IoT o activos biológicos activos.
+    """
     use_case = DesactivarInfraestructuraUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),
@@ -212,6 +238,10 @@ def reactivar_infraestructura(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> InfraestructuraResponse:
+    """Reactiva un área inactiva cuya finca esté activa (RF-20).
+
+    **Acceso:** `infraestructuras` · Desactivar.
+    """
     use_case = ReactivarInfraestructuraUseCase(
         db=db,
         infra_repo=SqlAlchemyInfraestructuraRepository(db),

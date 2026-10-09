@@ -1,3 +1,7 @@
+"""DTO de entrada de ``POST /infraestructuras/{id_infraestructura}/sensores`` (RF-49
+Tipo B).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

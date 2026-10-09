@@ -15,6 +15,11 @@ from src.configuration.domain.value_objects.nombre_organizacion import NombreOrg
 
 @dataclass(eq=False)
 class IdentidadVisual:
+    """Logo, colores y nombre visible de la organización para una finca (RF-26).
+
+    Cada edición crea una versión nueva; la vigente es la de mayor ``version``, que
+    también sirve de control de concurrencia.
+    """
     id_finca: int
     id_usuario: int
     logo_path: Optional[str]

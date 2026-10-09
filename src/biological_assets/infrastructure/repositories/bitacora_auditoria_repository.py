@@ -1,3 +1,8 @@
+"""Implementación SQLAlchemy de ``BitacoraAuditoriaRepository`` (RF-52).
+
+Calcula el hash SHA-256 de integridad de cada entrada antes de insertarla.
+"""
+
 from __future__ import annotations
 
 import hashlib
@@ -36,6 +41,9 @@ def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
 
 
 class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
+    """Escribe y consulta ``modulo2.bitacora_auditoria_m02`` aplicando filtros y
+    alcance.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db

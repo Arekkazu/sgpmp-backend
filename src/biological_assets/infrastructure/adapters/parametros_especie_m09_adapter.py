@@ -1,3 +1,7 @@
+"""Adapter de ``ParametrosEspeciePort`` que lee densidad máxima, parámetros y métricas
+productivas de M09.
+"""
+
 from __future__ import annotations
 
 from decimal import Decimal

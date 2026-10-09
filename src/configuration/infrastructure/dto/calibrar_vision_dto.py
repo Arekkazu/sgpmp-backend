@@ -23,6 +23,9 @@ class VentanaObservacionDTO(BaseDTO):
 
 
 class CalibrarVisionDTO(BaseDTO):
+    """Calibración por visión de un área: ventana de observaciones a usar y fecha de la
+    calibración.
+    """
     # RF-24 v2.0: discriminador obligatorio; este endpoint solo acepta VISION.
     modo_calibracion: Literal[ModoCalibracion.VISION]
     area_id: int

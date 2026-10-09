@@ -1,3 +1,9 @@
+"""Puerto de la bitácora de auditoría de M02 (RF-52).
+
+Cada entrada lleva un hash SHA-256 de integridad; la consulta aplica el alcance
+por finca y por rol del usuario que consulta.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +14,7 @@ from src.biological_assets.domain.entities.activo_biologico import EventoAuditor
 
 
 class BitacoraAuditoriaRepository(ABC):
+    """Contrato de escritura y consulta de ``modulo2.bitacora_auditoria_m02``."""
 
     @abstractmethod
     def registrar(self, evento: EventoAuditoria) -> None:

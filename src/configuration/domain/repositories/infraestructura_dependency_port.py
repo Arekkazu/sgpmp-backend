@@ -6,6 +6,9 @@ from typing import Optional
 
 
 class InfraestructuraDependencyPort(ABC):
+    """Puerto que consulta dependencias de un área (activos, sensores) antes de
+    desactivarla o cambiar su especie.
+    """
 
     @abstractmethod
     def tiene_dependencias_activas(self, id_infraestructura: int) -> bool:

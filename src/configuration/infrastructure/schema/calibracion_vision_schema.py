@@ -15,12 +15,16 @@ from src.configuration.domain.value_objects.modo_calibracion import ModoCalibrac
 
 
 class LineaBaseValoresResponse(BaseModel):
+    """Valores de la línea base por componente y los que no pudieron calibrarse."""
     # Mediana de referencia por componente del vector de comportamiento.
     valores: dict[str, float]
     componentes_no_calibrables: list[str]
 
 
 class CalibracionVisionResponse(BaseModel):
+    """Intento de calibración por visión; si falló, ``etapa_fallo`` y ``motivo`` dicen
+    por qué.
+    """
     id_calibracion_vision: int
     modo_calibracion: ModoCalibracion = ModoCalibracion.VISION
     area_id: int
@@ -60,11 +64,13 @@ class CalibracionVisionResponse(BaseModel):
 
 
 class ListaCalibracionesVisionResponse(BaseModel):
+    """Historial de calibraciones por visión de un área."""
     total: int
     items: list[CalibracionVisionResponse]
 
 
 class LineaBaseVisionResponse(BaseModel):
+    """Línea base vigente de un par (área, especie)."""
     area_id: int
     especie_id: int
     id_calibracion_vision: int

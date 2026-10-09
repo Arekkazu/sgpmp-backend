@@ -13,6 +13,9 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class RangoCalibracion:
+    """Rango [min, max] admisible del valor de calibración para un tipo de sensor
+    (RF-24).
+    """
     categoria: str
     valor_min: Decimal
     valor_max: Decimal

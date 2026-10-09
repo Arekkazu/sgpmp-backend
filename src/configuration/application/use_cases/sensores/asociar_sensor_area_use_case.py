@@ -36,6 +36,12 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError
 
 
 class AsociarSensorAreaUseCase:
+    """Asocia un sensor a un área de la misma finca que su dispositivo.
+
+    Si el sensor ya está en otra área, la reasignación exige confirmación (409) y
+    cierra la asociación anterior junto con sus asociaciones ambientales y
+    poblacionales en M02.
+    """
 
     def __init__(
         self,
@@ -174,6 +180,7 @@ class AsociarSensorAreaUseCase:
 
 
 class ConsultarAsociacionesUseCase:
+    """Historial de asociaciones sensor-área de un sensor."""
 
     def __init__(
         self,

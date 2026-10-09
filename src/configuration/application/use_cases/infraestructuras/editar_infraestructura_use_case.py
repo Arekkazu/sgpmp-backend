@@ -21,6 +21,11 @@ from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFail
 
 
 class EditarInfraestructuraUseCase:
+    """Edita un área con concurrencia optimista (412).
+
+    El tipo debe existir en el catálogo de tipos de área y no se puede cambiar la
+    especie si el área aloja activos de otra especie (422).
+    """
 
     def __init__(
         self,
