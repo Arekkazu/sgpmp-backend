@@ -82,16 +82,16 @@ class LoginUseCase:
             AuthorizationError: Cuenta pendiente de activación o deshabilitada. HTTP 403.
             LockedError: Cuenta bloqueada temporalmente por intentos fallidos. HTTP 423.
         """
-        # 1. Buscar usuario por correo
+        # 1-2. Buscar usuario por correo y su cuenta. Un usuario sin cuenta
+        # responde igual que un correo inexistente: distinguirlos (antes era un
+        # 500) revelaba que el correo está registrado.
         usuario = self.usuarios_repo.obtener_por_correo(Email(dto.correo_electronico))
-        if usuario is None:
+        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario) if usuario else None
+        if cuenta is None:
             raise AuthenticationError(
                 code="CREDENCIALES_INVALIDAS",
                 message="Credenciales incorrectas. Verifica tu correo electrónico y contraseña.",
             )
-
-        # 2. Buscar cuenta asociada
-        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
 
         # 3. Verificar estado de la cuenta
         ahora = datetime.now(timezone.utc)
