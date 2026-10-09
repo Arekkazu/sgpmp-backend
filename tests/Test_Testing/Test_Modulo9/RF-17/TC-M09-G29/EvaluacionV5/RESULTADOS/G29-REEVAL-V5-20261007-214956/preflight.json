@@ -1,0 +1,1520 @@
+{
+  "runId": "G29-REEVAL-V5-20261007-214956",
+  "caso": "TC-M09-G29",
+  "version": "V5",
+  "inicio": "2026-10-08T02:59:53.645271+00:00",
+  "escriturasFuncionales": 0,
+  "git": {
+    "repo": "C:\\Users\\yoloh\\OneDrive\\Escritorio\\pruebas\\sgpmp-backend",
+    "rama": "qa/juan-esteban-quinta-evaluacion-M09",
+    "statusShort": "?? tests/Test_Testing/Test_Modulo9/RF-17/TC-M09-G29/EvaluacionV5/",
+    "diffStat": "",
+    "diffCachedStat": "",
+    "head": "15121f3f5a69c6126b6613f2dcf1cecd4cf6aa7c",
+    "originDev": "5541ea36841171c42617c283f9cd65170deaa657",
+    "headVsOriginDev": "413\t0",
+    "headVsOriginTest": "0\t0",
+    "diffConfiguracionVsOriginDev": ""
+  },
+  "correccionEnCodigo": {
+    "adaptadorRealExisteEnOriginDev": true,
+    "stubVivoEnOriginDevSrc": [],
+    "stubSoloCitadoEnDocstrings": [
+      "origin/dev:src/configuration/infrastructure/adapters/edge_sincronizacion_mqtt_adapter.py"
+    ],
+    "routerInyectaAdaptadorReal": 2,
+    "routerInyectaStub": "",
+    "commitsDeLaCorreccion": [
+      "7d94f5a2 fix(rf17-mod9): Edge desconectado responde el 500 de RF-17 con el umbral Pendiente de Sincronizacion (TC-M09-63)",
+      "f7dc7120 fix(rf17): propagar umbrales al Nodo Edge por el broker MQTT en vez del stub (INC-M09-104-G29)"
+    ],
+    "migracionDestinoEdge": "aceffc4a fix(rf17-mod9): resolver el Gateway Edge destino tambien por los activos vivos del area (#493)",
+    "estadosContemplados": {
+      "APLICADA": true,
+      "PENDIENTE": true,
+      "NO_CONF": true,
+      "FALLO_SINCRONIZACION_EDGE": true
+    },
+    "resolucionGatewayPorEspecie": true
+  },
+  "runtimeDev": {
+    "base": "https://api.inmero.co/back-sigab-dev",
+    "broker": "https://api.inmero.co/broker-sigab-dev",
+    "frontend": "https://dev.inmero.co/",
+    "health": {
+      "estado": 200,
+      "cuerpo": {
+        "status": "ok",
+        "message": "API funcionando correctamente"
+      }
+    },
+    "openapi": {
+      "estado": 200,
+      "version": "1.0.0"
+    },
+    "rutasRf17": {
+      "/configuracion/umbrales": [
+        "get",
+        "post"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}/auditoria": [
+        "get"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}": [
+        "patch"
+      ],
+      "/configuracion/umbrales/{id_umbral_ambiental}/desactivar": [
+        "patch"
+      ]
+    },
+    "declara500Sincronizacion": {
+      "POST /configuracion/umbrales": "FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17).",
+      "PATCH /configuracion/umbrales/{id_umbral_ambiental}": "FALLO_SINCRONIZACION_EDGE: guardado, pero la propagación al Nodo Edge se intentó y falló (RF-17)."
+    },
+    "camposSincronizacionEnRespuesta": [
+      "estado_sincronizacion",
+      "fecha_ultima_sincronizacion",
+      "motivo_fallo_sincronizacion"
+    ]
+  },
+  "actor": {
+    "correo": "admin.dev@gmail.com",
+    "loginEstado": 200,
+    "clavesRespuestaLogin": [
+      "expira_en",
+      "message",
+      "perfil_incompleto",
+      "tipo",
+      "token"
+    ],
+    "tokenPersistido": false,
+    "identidad": {
+      "id_usuario": 50,
+      "nombre": "Admin",
+      "apellidos": "Camila",
+      "correo_electronico": "admin.dev@gmail.com",
+      "nombre_rol": "Administrador",
+      "estado_cuenta": "Activo"
+    },
+    "permisosRecurso20_umbralesAmbientales": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "puedeEjecutarRf17": true
+  },
+  "contratoPropagacion": {
+    "fuente": "origin/dev (codigo desplegable) + migracion a3c9e5d17b42",
+    "resolucionDestino": "modulo9.fn_seriales_gateway_edge_por_especie(id_especie): areas activas de la especie (por infraestructuras.id_especie o por activos biologicos vivos) -> dispositivos activos del area -> GATEWAY_EDGE propio o el que los atiende (id_dispositivo_gateway). Devuelve seriales DISTINCT ordenados.",
+    "endpointInternoBroker": "POST {MQTT_BROKER_URL}/v1/commands",
+    "origenComando": "umbral",
+    "tipoLogicoComando": "UMBRAL_AMBIENTAL",
+    "topicPublicadoPorBroker": "sgpmp/<serial>/command",
+    "mecanismoConfirmacion": "ACK_UMBRAL del Edge, esperado por el broker (hasta 30 s)",
+    "timeoutHttpBackendHaciaBroker": "35 s (MQTT_BROKER_HTTP_TIMEOUT)",
+    "significadoAPLICADA": "ese Gateway Edge confirmo con ACK_UMBRAL; el broker lo reporta en el cuerpo de /v1/commands",
+    "significadoPENDIENTE": "el broker sabe que el Edge esta desconectado y no publico; para RF-17 es error de sincronizacion -> 500, y el Edge sigue con el umbral anterior",
+    "significadoNO_CONF": "se intento y fallo (broker caido, timeout, sin ACK) -> 500",
+    "significadoSIN_INTEGRACION": "el ambiente no tiene MQTT_BROKER_URL/TOKEN: no hubo intento, no es error",
+    "consolidacion": "todos APLICADA -> APLICADA (201/200); algun estado distinto de APLICADA/PENDIENTE -> NO_CONF (500); algun PENDIENTE -> PENDIENTE (500); sin Gateway o sin broker -> PENDIENTE (201/200)",
+    "payloadRf17": [
+      "id_umbral_ambiental",
+      "version",
+      "variable",
+      "unidad",
+      "valor_min",
+      "valor_max",
+      "niveles[nivel,limite_inferior,limite_superior]"
+    ],
+    "persistencia": "el umbral se guarda en un primer commit, la propagacion corre despues y el estado se persiste en un segundo commit; el 500 se lanza DESPUES de persistir, por eso el 500 no implica rollback de B",
+    "reenvioAutomaticoAlReconectar": false,
+    "secretosRegistrados": false
+  },
+  "fixture": {
+    "especiesActivas": [
+      {
+        "id": 4,
+        "nombre": "Cachama Blanca"
+      },
+      {
+        "id": 3,
+        "nombre": "Camarón Blanco"
+      },
+      {
+        "id": 5,
+        "nombre": "Mojarra Plateada"
+      },
+      {
+        "id": 13,
+        "nombre": "Pro Or"
+      },
+      {
+        "id": 12,
+        "nombre": "Prueba"
+      },
+      {
+        "id": 10,
+        "nombre": "Tilapia"
+      },
+      {
+        "id": 2,
+        "nombre": "Trucha Arcoíris"
+      }
+    ],
+    "variablesAmbientales": [
+      {
+        "id": 16,
+        "nombre": "Actividad/Movimiento",
+        "unidad": "m/s²",
+        "min": "0",
+        "max": "200"
+      },
+      {
+        "id": 11,
+        "nombre": "Amoniaco (NH3)",
+        "unidad": "ppm",
+        "min": "0",
+        "max": "500"
+      },
+      {
+        "id": 4,
+        "nombre": "Amoniaco total",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "10"
+      },
+      {
+        "id": 8,
+        "nombre": "Conductividad eléctrica",
+        "unidad": "µS/cm",
+        "min": "0",
+        "max": "5000"
+      },
+      {
+        "id": 12,
+        "nombre": "Dióxido de Carbono (CO2)",
+        "unidad": "ppm",
+        "min": "0",
+        "max": "100000"
+      },
+      {
+        "id": 14,
+        "nombre": "Frecuencia Cardiaca",
+        "unidad": "bpm",
+        "min": "0",
+        "max": "500"
+      },
+      {
+        "id": 15,
+        "nombre": "Frecuencia Respiratoria",
+        "unidad": "rpm",
+        "min": "0",
+        "max": "200"
+      },
+      {
+        "id": 10,
+        "nombre": "Humedad Relativa",
+        "unidad": "%",
+        "min": "0",
+        "max": "100"
+      },
+      {
+        "id": 5,
+        "nombre": "Nitrito",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "5"
+      },
+      {
+        "id": 3,
+        "nombre": "Oxígeno disuelto",
+        "unidad": "mg/L",
+        "min": "0",
+        "max": "20"
+      },
+      {
+        "id": 2,
+        "nombre": "pH del agua",
+        "unidad": "pH",
+        "min": "0",
+        "max": "14"
+      },
+      {
+        "id": 6,
+        "nombre": "Salinidad",
+        "unidad": "ppt",
+        "min": "0",
+        "max": "45"
+      },
+      {
+        "id": 9,
+        "nombre": "Temperatura Ambiental",
+        "unidad": "°C",
+        "min": "-50",
+        "max": "100"
+      },
+      {
+        "id": 13,
+        "nombre": "Temperatura Corporal",
+        "unidad": "°C",
+        "min": "30",
+        "max": "50"
+      },
+      {
+        "id": 1,
+        "nombre": "Temperatura del agua",
+        "unidad": "°C",
+        "min": "0",
+        "max": "45"
+      },
+      {
+        "id": 7,
+        "nombre": "Turbidez",
+        "unidad": "NTU",
+        "min": "0",
+        "max": "500"
+      }
+    ],
+    "fincas": [
+      {
+        "id": 3,
+        "nombre": "Camaronera Costa Azul",
+        "es_activo": true
+      },
+      {
+        "id": 1,
+        "nombre": "Finca Acuícola El Remanso",
+        "es_activo": true
+      },
+      {
+        "id": 9,
+        "nombre": "Finca admin",
+        "es_activo": true
+      },
+      {
+        "id": 15,
+        "nombre": "Finca Contador",
+        "es_activo": true
+      },
+      {
+        "id": 10,
+        "nombre": "Finca del supervisor",
+        "es_activo": true
+      },
+      {
+        "id": 5,
+        "nombre": "Finca El Paraiso Norte",
+        "es_activo": false
+      },
+      {
+        "id": 17,
+        "nombre": "Finca Ingeniero",
+        "es_activo": true
+      },
+      {
+        "id": 16,
+        "nombre": "Finca Juan Carlos",
+        "es_activo": true
+      },
+      {
+        "id": 12,
+        "nombre": "Finca MM",
+        "es_activo": true
+      },
+      {
+        "id": 6,
+        "nombre": "Finca Para Test Gap",
+        "es_activo": false
+      },
+      {
+        "id": 14,
+        "nombre": "Finca Revisión Fiscal",
+        "es_activo": true
+      },
+      {
+        "id": 18,
+        "nombre": "Finca SSO",
+        "es_activo": true
+      },
+      {
+        "id": 13,
+        "nombre": "Granja Pecuaria",
+        "es_activo": true
+      },
+      {
+        "id": 4,
+        "nombre": "Granja Piscícola La Esperanza",
+        "es_activo": true
+      },
+      {
+        "id": 2,
+        "nombre": "Piscícola Los Esteros",
+        "es_activo": true
+      }
+    ],
+    "areas": [
+      {
+        "id_infraestructura": 6,
+        "nombre": "Piscina-Cam-01",
+        "id_finca": 3,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 7,
+        "nombre": "Piscina-Cam-02",
+        "id_finca": 3,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 3,
+        "nombre": "Alevinera-01",
+        "id_finca": 1,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 1,
+        "nombre": "Estanque-01",
+        "id_finca": 1,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 2,
+        "nombre": "Estanque-02",
+        "id_finca": 1,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 10,
+        "nombre": "Invernadero Norte",
+        "id_finca": 1,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 11,
+        "nombre": "Galpon Principal",
+        "id_finca": 5,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 12,
+        "nombre": "Area Test Gap",
+        "id_finca": 6,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 8,
+        "nombre": "Estanque-Cache-01",
+        "id_finca": 4,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 9,
+        "nombre": "Estanque-Moj-01",
+        "id_finca": 4,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 4,
+        "nombre": "Canal-Trucha-01",
+        "id_finca": 2,
+        "id_especie": null,
+        "es_activo": true
+      },
+      {
+        "id_infraestructura": 5,
+        "nombre": "Canal-Trucha-02",
+        "id_finca": 2,
+        "id_especie": null,
+        "es_activo": true
+      }
+    ],
+    "dispositivos": [
+      {
+        "id_dispositivo_iot": 14,
+        "serial": "DEV-G70-TEST-001",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 38,
+        "serial": "DISPOSITIVOCAMARONERA41",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 4,
+        "tipo": "GATEWAY_EDGE"
+      },
+      {
+        "id_dispositivo_iot": 42,
+        "serial": "DISPOSITIVO-CUAQUIERA",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 4,
+        "tipo": "GATEWAY_EDGE"
+      },
+      {
+        "id_dispositivo_iot": 40,
+        "serial": "ESP32PRUEBA",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": false,
+        "id_tipo_dispositivo": 3,
+        "tipo": "SENSOR_AMBIENTAL"
+      },
+      {
+        "id_dispositivo_iot": 41,
+        "serial": "ESP32PRUEBA2",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "id_tipo_dispositivo": 3,
+        "tipo": "SENSOR_AMBIENTAL"
+      },
+      {
+        "id_dispositivo_iot": 43,
+        "serial": "ESP32PRUEBA3",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "id_tipo_dispositivo": 3,
+        "tipo": "SENSOR_AMBIENTAL"
+      },
+      {
+        "id_dispositivo_iot": 15,
+        "serial": "G70-1789265985785",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 17,
+        "serial": "G71-1789266847633",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 32,
+        "serial": "G71-1790052953003",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 16,
+        "serial": "G71-CROSS-001",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 18,
+        "serial": "G72-1789267667348",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 3,
+        "serial": "IOT-ALE01-HLA-003",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 8,
+        "serial": "IOT-CAC01-CAL-001",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 6,
+        "serial": "IOT-CAM01-COR-001",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 7,
+        "serial": "IOT-CAM02-COR-002",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 1,
+        "serial": "IOT-EST01-HLA-001",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 2,
+        "serial": "IOT-EST02-HLA-002",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 9,
+        "serial": "IOT-MOJ01-CAL-002",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 10,
+        "serial": "IOT-TEST-001",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 13,
+        "serial": "IOT-TEST-002",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 4,
+        "serial": "IOT-TRU01-VLC-001",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 5,
+        "serial": "IOT-TRU02-VLC-002",
+        "id_infraestructura": 1,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 36,
+        "serial": "QA-FORGE-2084",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 37,
+        "serial": "QA-FORGE-B-3020",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 33,
+        "serial": "QA-G69-131-358",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 29,
+        "serial": "QA-G69-131-36866",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 34,
+        "serial": "QA-G69-132-361",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 30,
+        "serial": "QA-G69-132-36871",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 35,
+        "serial": "QA-G69-132b-363",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 31,
+        "serial": "QA-G69-132b-36874",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 28,
+        "serial": "QA-G69-36783",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 45,
+        "serial": "QA-G69-R4-13f2e1ab",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 46,
+        "serial": "QA-G69-R4-9044953c",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 44,
+        "serial": "QA-G69-R4-dbe32a18",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 27,
+        "serial": "QA-MQTT-A-2109",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 39,
+        "serial": "RASBERRY-PRUEBA-SENSOR-AMBIENTAL",
+        "id_infraestructura": 6,
+        "id_dispositivo_gateway": 38,
+        "es_activo": false,
+        "id_tipo_dispositivo": 3,
+        "tipo": "SENSOR_AMBIENTAL"
+      },
+      {
+        "id_dispositivo_iot": 19,
+        "serial": "TC-M09-G125-IMPERSONATE-1789321426156",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 21,
+        "serial": "TC-M09-G126-ESC1-DISPOSITIVO-1789322120057",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 24,
+        "serial": "TC-M09-G126-ESC1-DISPOSITIVO-1789322167053",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 22,
+        "serial": "TC-M09-G126-ESC2-DISPOSITIVO-1789322120057",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 25,
+        "serial": "TC-M09-G126-ESC2-DISPOSITIVO-1789322167053",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 23,
+        "serial": "TC-M09-G126-ESC3-DISPOSITIVO-1789322120057",
+        "id_infraestructura": 4,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 26,
+        "serial": "TC-M09-G126-ESC3-DISPOSITIVO-1789322167053",
+        "id_infraestructura": 4,
+        "id_dispositivo_gateway": null,
+        "es_activo": false,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      },
+      {
+        "id_dispositivo_iot": 20,
+        "serial": "TC-M09-G64-1789321890010",
+        "id_infraestructura": 3,
+        "id_dispositivo_gateway": null,
+        "es_activo": true,
+        "id_tipo_dispositivo": 1,
+        "tipo": "GENERICO"
+      }
+    ],
+    "gatewaysEdgePorEspecie": {
+      "4": {
+        "nombre": "Cachama Blanca",
+        "gatewaysEdge": [
+          "DISPOSITIVOCAMARONERA41"
+        ]
+      },
+      "3": {
+        "nombre": "Camarón Blanco",
+        "gatewaysEdge": []
+      },
+      "5": {
+        "nombre": "Mojarra Plateada",
+        "gatewaysEdge": []
+      },
+      "13": {
+        "nombre": "Pro Or",
+        "gatewaysEdge": []
+      },
+      "12": {
+        "nombre": "Prueba",
+        "gatewaysEdge": []
+      },
+      "10": {
+        "nombre": "Tilapia",
+        "gatewaysEdge": []
+      },
+      "2": {
+        "nombre": "Trucha Arcoíris",
+        "gatewaysEdge": []
+      }
+    },
+    "umbralesActivos": [
+      {
+        "id_umbral_ambiental": 10,
+        "id_especie": 4,
+        "id_variable_ambiental": 1,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 11,
+        "id_especie": 4,
+        "id_variable_ambiental": 3,
+        "unidad_medida": "mg/L",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 14,
+        "id_especie": 4,
+        "id_variable_ambiental": 9,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "32.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+      },
+      {
+        "id_umbral_ambiental": 7,
+        "id_especie": 3,
+        "id_variable_ambiental": 1,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 9,
+        "id_especie": 3,
+        "id_variable_ambiental": 4,
+        "unidad_medida": "mg/L",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 8,
+        "id_especie": 3,
+        "id_variable_ambiental": 6,
+        "unidad_medida": "ppt",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 12,
+        "id_especie": 5,
+        "id_variable_ambiental": 1,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 13,
+        "id_especie": 5,
+        "id_variable_ambiental": 2,
+        "unidad_medida": "pH",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 4,
+        "id_especie": 2,
+        "id_variable_ambiental": 1,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 5,
+        "id_especie": 2,
+        "id_variable_ambiental": 2,
+        "unidad_medida": "pH",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      },
+      {
+        "id_umbral_ambiental": 6,
+        "id_especie": 2,
+        "id_variable_ambiental": 3,
+        "unidad_medida": "mg/L",
+        "valor_min": "0.00",
+        "valor_max": "100.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": null
+      }
+    ],
+    "censoSincronizacion": {
+      "total": 11,
+      "porEstado": {
+        "PENDIENTE": 11
+      },
+      "conFechaUltimaSincronizacion": 0
+    },
+    "bovino": {
+      "coincidencias": []
+    }
+  },
+  "edge": {
+    "senalPrimaria": "GET /configuracion/dispositivos-iot/{id}/credencial-mqtt -> \"conectada\": conexion MQTT del Gateway reportada por el broker",
+    "senalSecundaria": "GET /iot/dispositivos/{id}/estado -> estado operativo derivado de la antiguedad de la telemetria",
+    "gatewaysEdgeActivos": {
+      "DISPOSITIVOCAMARONERA41": {
+        "id_dispositivo_iot": 38,
+        "id_infraestructura": 6,
+        "estadoHttp": 200,
+        "estadoDetalle": {
+          "estado": {
+            "id_estado_dispositivo_iot": 7,
+            "id_dispositivo_iot": 38,
+            "estado_actual": "INACTIVO",
+            "fecha_ultimo_contacto": "2026-10-05T23:09:04.579119Z",
+            "id_ultimo_heartbeat": 1177,
+            "tiempo_sin_contacto": 86420,
+            "causa_primaria": "FALLO_CONECTIVIDAD",
+            "causas_secundarias": null,
+            "fecha_ultima_actualizacion": "2026-10-06T23:09:25.227676Z"
+          },
+          "historial": [
+            {
+              "id_transaccion": 1280,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "INACTIVO",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-06T23:09:25.229016Z"
+            },
+            {
+              "id_transaccion": 1281,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "INACTIVO",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-06T23:09:25.227676Z"
+            },
+            {
+              "id_transaccion": 1270,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T23:14:19.810153Z"
+            },
+            {
+              "id_transaccion": 1271,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-05T23:14:19.808850Z"
+            },
+            {
+              "id_transaccion": 1262,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T22:13:51.399505Z"
+            },
+            {
+              "id_transaccion": 1263,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Reconexión por heartbeat id=1129",
+              "fecha_transicion": "2026-10-05T22:13:51.399505Z"
+            },
+            {
+              "id_transaccion": 1254,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T21:39:19.410645Z"
+            },
+            {
+              "id_transaccion": 1255,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-05T21:39:19.409387Z"
+            },
+            {
+              "id_transaccion": 1247,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Reconexión por heartbeat id=624",
+              "fecha_transicion": "2026-10-05T13:08:48.007153Z"
+            },
+            {
+              "id_transaccion": 1246,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T13:08:48.007153Z"
+            },
+            {
+              "id_transaccion": 1238,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T05:22:51.029795Z"
+            },
+            {
+              "id_transaccion": 1239,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-05T05:22:51.028609Z"
+            },
+            {
+              "id_transaccion": 1230,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T03:21:51.882429Z"
+            },
+            {
+              "id_transaccion": 1231,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Reconexión por heartbeat id=480",
+              "fecha_transicion": "2026-10-05T03:21:51.882429Z"
+            },
+            {
+              "id_transaccion": 1222,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T02:29:50.374953Z"
+            },
+            {
+              "id_transaccion": 1223,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-05T02:29:50.373749Z"
+            },
+            {
+              "id_transaccion": 1217,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Reconexión por heartbeat id=448",
+              "fecha_transicion": "2026-10-05T01:48:50.299403Z"
+            },
+            {
+              "id_transaccion": 1216,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "SIN_SEÑAL",
+              "estado_nuevo": "ACTIVO",
+              "causa_primaria": null,
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T01:48:50.299403Z"
+            },
+            {
+              "id_transaccion": 1210,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática de estado operativo",
+              "fecha_transicion": "2026-10-05T01:48:50.198446Z"
+            },
+            {
+              "id_transaccion": 1211,
+              "id_dispositivo_iot": 38,
+              "estado_anterior": "ACTIVO",
+              "estado_nuevo": "SIN_SEÑAL",
+              "causa_primaria": "FALLO_CONECTIVIDAD",
+              "causa_secundaria": null,
+              "id_usuario_responsable": null,
+              "notas": "Transición automática por evaluación periódica (sin heartbeat).",
+              "fecha_transicion": "2026-10-05T01:48:50.197174Z"
+            }
+          ]
+        },
+        "credencialMqttHttp": 200,
+        "credencialMqtt": {
+          "emitida": true,
+          "habilitada": true,
+          "conectada": false,
+          "usuario": "DISPOSITIVOCAMARONERA41",
+          "seriales": [
+            "DISPOSITIVOCAMARONERA41",
+            "ESP32PRUEBA2",
+            "ESP32PRUEBA3",
+            "QA-G69-131-358"
+          ]
+        },
+        "clasificacion": "EDGE_OFFLINE"
+      }
+    },
+    "gatewaysDestinoDeUmbralesActivos": [
+      "DISPOSITIVOCAMARONERA41"
+    ],
+    "gatewaysOnline": [],
+    "gatewaysDestinoOnline": [],
+    "clasificacionGlobal": "EDGE_OFFLINE",
+    "timestamp": "2026-10-08T03:00:09.028846+00:00"
+  },
+  "operacionCandidata": {
+    "metodo": "PATCH /configuracion/umbrales/{id_umbral_ambiental}",
+    "criterio": "umbral activo + especie con Gateway Edge real + PRE que hoy pasaria _validar_rangos (condicion necesaria para poder restaurarlo)",
+    "planRestauracion": "tras capturar toda la evidencia de TC-63, PATCH de vuelta a los valoresPre exactos, registrado como cleanup; solo si el registro sigue en el estado B generado por este RUN",
+    "candidatos": [
+      {
+        "id_umbral_ambiental": 10,
+        "id_especie": 4,
+        "especie": "Cachama Blanca",
+        "id_variable_ambiental": 1,
+        "variable": "Temperatura del agua",
+        "rangoFisico": [
+          "0",
+          "45"
+        ],
+        "gatewaysEdge": [
+          "DISPOSITIVOCAMARONERA41"
+        ],
+        "gatewaysEdgeOnline": [],
+        "preRestaurable": false,
+        "motivosNoRestaurable": [
+          "PRE fuera del rango fisico [0, 45] de 'Temperatura del agua'",
+          "el ultimo nivel no termina en valor_max"
+        ],
+        "valoresPre": {
+          "id_umbral_ambiental": 10,
+          "id_especie": 4,
+          "id_variable_ambiental": 1,
+          "unidad_medida": "°C",
+          "valor_min": "0.00",
+          "valor_max": "100.00",
+          "es_activo": true,
+          "fecha_actualizacion": null,
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "26.00",
+              "limite_superior": "32.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "22.00",
+              "limite_superior": "26.00"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "0.00",
+              "limite_superior": "22.00"
+            }
+          ],
+          "estado_sincronizacion": "PENDIENTE",
+          "fecha_ultima_sincronizacion": null,
+          "motivo_fallo_sincronizacion": null
+        }
+      },
+      {
+        "id_umbral_ambiental": 11,
+        "id_especie": 4,
+        "especie": "Cachama Blanca",
+        "id_variable_ambiental": 3,
+        "variable": "Oxígeno disuelto",
+        "rangoFisico": [
+          "0",
+          "20"
+        ],
+        "gatewaysEdge": [
+          "DISPOSITIVOCAMARONERA41"
+        ],
+        "gatewaysEdgeOnline": [],
+        "preRestaurable": false,
+        "motivosNoRestaurable": [
+          "PRE fuera del rango fisico [0, 20] de 'Oxígeno disuelto'",
+          "el ultimo nivel no termina en valor_max"
+        ],
+        "valoresPre": {
+          "id_umbral_ambiental": 11,
+          "id_especie": 4,
+          "id_variable_ambiental": 3,
+          "unidad_medida": "mg/L",
+          "valor_min": "0.00",
+          "valor_max": "100.00",
+          "es_activo": true,
+          "fecha_actualizacion": null,
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "4.00",
+              "limite_superior": "12.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "2.00",
+              "limite_superior": "4.00"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "0.00",
+              "limite_superior": "2.00"
+            }
+          ],
+          "estado_sincronizacion": "PENDIENTE",
+          "fecha_ultima_sincronizacion": null,
+          "motivo_fallo_sincronizacion": null
+        }
+      },
+      {
+        "id_umbral_ambiental": 14,
+        "id_especie": 4,
+        "especie": "Cachama Blanca",
+        "id_variable_ambiental": 9,
+        "variable": "Temperatura Ambiental",
+        "rangoFisico": [
+          "-50",
+          "100"
+        ],
+        "gatewaysEdge": [
+          "DISPOSITIVOCAMARONERA41"
+        ],
+        "gatewaysEdgeOnline": [],
+        "preRestaurable": true,
+        "motivosNoRestaurable": [],
+        "valoresPre": {
+          "id_umbral_ambiental": 14,
+          "id_especie": 4,
+          "id_variable_ambiental": 9,
+          "unidad_medida": "°C",
+          "valor_min": "0.00",
+          "valor_max": "32.00",
+          "es_activo": true,
+          "fecha_actualizacion": null,
+          "niveles": [
+            {
+              "nivel": "normal",
+              "limite_inferior": "26.00",
+              "limite_superior": "32.00"
+            },
+            {
+              "nivel": "precaucion",
+              "limite_inferior": "22.00",
+              "limite_superior": "26.00"
+            },
+            {
+              "nivel": "critico",
+              "limite_inferior": "0.00",
+              "limite_superior": "22.00"
+            }
+          ],
+          "estado_sincronizacion": "PENDIENTE",
+          "fecha_ultima_sincronizacion": null,
+          "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+        }
+      }
+    ],
+    "aptosReversibles": [
+      14
+    ],
+    "seleccionado": {
+      "id_umbral_ambiental": 14,
+      "id_especie": 4,
+      "especie": "Cachama Blanca",
+      "id_variable_ambiental": 9,
+      "variable": "Temperatura Ambiental",
+      "rangoFisico": [
+        "-50",
+        "100"
+      ],
+      "gatewaysEdge": [
+        "DISPOSITIVOCAMARONERA41"
+      ],
+      "gatewaysEdgeOnline": [],
+      "preRestaurable": true,
+      "motivosNoRestaurable": [],
+      "valoresPre": {
+        "id_umbral_ambiental": 14,
+        "id_especie": 4,
+        "id_variable_ambiental": 9,
+        "unidad_medida": "°C",
+        "valor_min": "0.00",
+        "valor_max": "32.00",
+        "es_activo": true,
+        "fecha_actualizacion": null,
+        "niveles": [
+          {
+            "nivel": "normal",
+            "limite_inferior": "26.00",
+            "limite_superior": "32.00"
+          },
+          {
+            "nivel": "precaucion",
+            "limite_inferior": "22.00",
+            "limite_superior": "26.00"
+          },
+          {
+            "nivel": "critico",
+            "limite_inferior": "0.00",
+            "limite_superior": "22.00"
+          }
+        ],
+        "estado_sincronizacion": "PENDIENTE",
+        "fecha_ultima_sincronizacion": null,
+        "motivo_fallo_sincronizacion": "La propagación automática de umbrales hacia el Nodo Edge todavía no está disponible: el contrato de publicación (destino, topic, payload, ACK) está pendiente de definición con el equipo de IoT. La configuración quedó guardada y pendiente de sincronización."
+      }
+    },
+    "ejecutableAhora": false
+  },
+  "gate": {
+    "condiciones": {
+      "devDisponible": true,
+      "actorValido": true,
+      "rf17Desplegado": true,
+      "adaptadorRealNoStub": true,
+      "gatewayDestinoRealIdentificado": true,
+      "edgeOnline": false,
+      "operacionRf17Valida": true,
+      "preCapturado": true,
+      "mecanismoConfirmacionIdentificado": true,
+      "planRestauracionDefinido": true
+    },
+    "abierto": false,
+    "fallidas": [
+      "edgeOnline"
+    ],
+    "nota": "brokerConfigurado no se asume: el adaptador devuelve SIN_INTEGRACION si falta MQTT_BROKER_URL/TOKEN, y eso se observaria en el estado persistido."
+  },
+  "fin": "2026-10-08T03:00:09.036739+00:00"
+}
