@@ -1,3 +1,9 @@
+## [1.0.0-rc.85](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.84...v1.0.0-rc.85) (2026-10-09)
+
+### Bug Fixes
+
+* **rf02:** responder 401 y no 500 cuando el usuario no tiene cuenta ([d8e0b94](https://github.com/Arekkazu/sgpmp-backend/commit/d8e0b94e690cca28943e51a62542aa00f8569dde))
+
 ## [1.0.0-rc.84](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.83...v1.0.0-rc.84) (2026-10-09)
 
 ### Features
