@@ -1,3 +1,13 @@
+## [1.0.0-rc.87](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.86...v1.0.0-rc.87) (2026-10-10)
+
+### Features
+
+* **rf23-mod9:** configurar fps de camaras por configuracion remota (RF-23 v1.1) ([372ac34](https://github.com/Arekkazu/sgpmp-backend/commit/372ac34c7e457dcd538260ea6dcef8e4e15a2983))
+
+### Bug Fixes
+
+* **rf23-mod9:** rechazar frecuencia e intervalo para dispositivos camara (RF-23 v1.1) ([a6a1d38](https://github.com/Arekkazu/sgpmp-backend/commit/a6a1d38e0dbcd53ceaff765e17c2133027f1719e))
+
 ## [1.0.0-rc.86](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.85...v1.0.0-rc.86) (2026-10-10)
 
 ### Bug Fixes
