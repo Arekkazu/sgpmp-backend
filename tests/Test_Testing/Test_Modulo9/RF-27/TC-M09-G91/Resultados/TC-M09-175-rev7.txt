@@ -1,0 +1,48 @@
+TC-M09-175 rev7 TEST RF-27
+Fecha UTC: 2026-10-09T23:48:01Z
+Rama: laura @ c5ac9b6f
+Ambiente: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+Swagger: .../api-sgpmp-test/docs
+NO se sobrescribe rev1-rev6. Sin commit. Sin push. Sin DML. Sin PATCH. Sin DELETE. Sin restore.
+Tokens y contrasenas no incluidos.
+
+MECANISMO DE CREDENCIALES (scripts existentes)
+Actor 175: variable SGPMP_175_PASSWORD (ejecutar_tc_m09_175_rev1.ps1).
+Admin: SGPMP_TEST_PASSWORD, con fallback CONTRASENA.
+No se uso CYPRESS_contrasena ni otras alternativas para el actor.
+
+PRESENCIA EN ESTA SESION (sin valores)
+SGPMP_175_PASSWORD: AUSENTE / vacia
+CONTRASENA_175: AUSENTE
+SGPMP_TEST_PASSWORD: presente
+CONTRASENA: presente
+
+RESULTADO: BLOQUEADO
+Motivo: falta SGPMP_175_PASSWORD. No se hizo login del actor. No se probo otra contrasena.
+NO APROBADO. Oraculo del actor no ejecutado.
+
+A. ADMIN Y GLOBAL
+POST /sesiones/ admin@pecuaria.co HTTP 200 (token no registrado)
+GET /configuracion/personalizacion/tema/global HTTP 200 cuerpo JSON null
+Configuracion global AUSENTE (verificado 2026-10-09T23:48:01Z).
+GET /configuracion/personalizacion/tema (admin) HTTP 200
+{"theme_mode":1,"fuente":"personal","id_tema_visual":6}
+El admin tiene preferencia individual; no es el actor del caso.
+
+B. ACTOR OFICIAL
+Login cm09175.qa@sgpmp-test.com: OMITIDO (SGPMP_175_PASSWORD no configurada).
+GET tema actor: NO EJECUTADO.
+Preferencia individual actor: NO CONFIRMADA.
+
+C-D. ORACULO
+No ejecutado. No se acepta la observacion historica del contador (rev6) como PASS de 175.
+
+RESTAURACION
+GET global al cierre de esta comprobacion: null. Restauración PENDIENTE (Alex/Samuel).
+QA no inserto ni reconstruyo el singleton.
+
+G91: 173/174 APROBADO historico. 175 BLOQUEADO. Grupo no se cierra.
+
+ACCION
+Definir SGPMP_175_PASSWORD en el entorno de la sesion (Cursor/PowerShell) y repetir rev8
+mientras GET global admin siga siendo null. No reutilizar password de admin/TEST.
