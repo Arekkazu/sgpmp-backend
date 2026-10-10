@@ -1,3 +1,9 @@
+## [1.0.0-rc.90](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.89...v1.0.0-rc.90) (2026-10-10)
+
+### Bug Fixes
+
+* **rf21-rf22-mod9:** codigos HTTP de flujo alterno y categoria del dispositivo (TC-M09-G56/G57/G62/G133) ([aeeaf87](https://github.com/Arekkazu/sgpmp-backend/commit/aeeaf87cdafb02fa7a3818788493893a37c8e425))
+
 ## [1.0.0-rc.89](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.88...v1.0.0-rc.89) (2026-10-10)
 
 ### Bug Fixes

@@ -6,6 +6,7 @@ de cobertura válidos (400); un sensor los ignora. Varias cámaras van a la mism
 """
 from __future__ import annotations
 
+import datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -103,3 +104,31 @@ def test_tipo_de_dispositivo_inexistente_es_422():
         _registrar(RepoFake(), "SEN-9", 999)
     assert e.value.status_code == 422 and e.value.code == "TIPO_DISPOSITIVO_NO_ENCONTRADO"
     assert e.value.message.startswith("Error de catálogo")
+
+
+def test_area_inexistente_es_422():
+    """TC-M09-G56: RF-21 pide 422 para el área inexistente, igual que para la inactiva."""
+    uc = RegistrarDispositivoIotUseCase(
+        db=DbFake(), dispositivo_repo=RepoFake(), infra_repo=InfraRepoFake(), tipo_repo=_Tipos(),
+        auditoria_repo=AuditoriaFake(),
+    )
+    dto = RegistrarDispositivoIotDTO(serial="SEN-8", descripcion="Nodo", id_infraestructura=999, id_tipo_dispositivo=SENSOR)
+    with pytest.raises(BusinessRuleError) as e:
+        uc.execute(dto, USUARIO)
+    assert e.value.status_code == 422 and e.value.code == "AREA_NO_ENCONTRADA"
+
+
+def test_respuesta_del_dispositivo_incluye_la_categoria_del_tipo():
+    """TC-M09-G57: el detalle expone la categoría derivada del tipo (SENSOR | CAMARA)."""
+    from src.configuration.infrastructure.repositories.dispositivo_iot_repository import (
+        SqlAlchemyDispositivoIotRepository,
+    )
+    from src.configuration.infrastructure.schema.dispositivo_iot_schema import DispositivoIotResponse
+
+    orm = SimpleNamespace(
+        id_dispositivo_iot=7, serial="CAM-7", descripcion="Nodo", id_infraestructura=1,
+        id_tipo_dispositivo=CAMARA, es_activo=True, fecha_creacion=datetime.datetime.now(datetime.timezone.utc),
+        id_dispositivo_gateway=None, tipo=SimpleNamespace(categoria="CAMARA"), **VISION,
+    )
+    entidad = SqlAlchemyDispositivoIotRepository._a_entidad(orm)
+    assert DispositivoIotResponse.from_entity(entidad).categoria == "CAMARA"

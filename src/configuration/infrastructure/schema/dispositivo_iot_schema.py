@@ -15,6 +15,7 @@ class DispositivoIotResponse(BaseModel):
     descripcion: str
     id_infraestructura: int
     id_tipo_dispositivo: int
+    categoria: Optional[str] = None  # SENSOR | CAMARA, derivada del tipo
     es_activo: bool
     fecha_creacion: datetime.datetime
     id_dispositivo_gateway: Optional[int] = None
@@ -32,6 +33,7 @@ class DispositivoIotResponse(BaseModel):
             descripcion=dispositivo.descripcion,
             id_infraestructura=dispositivo.id_infraestructura,
             id_tipo_dispositivo=dispositivo.id_tipo_dispositivo,
+            categoria=dispositivo.categoria,
             es_activo=dispositivo.es_activo,
             fecha_creacion=dispositivo.fecha_creacion,
             id_dispositivo_gateway=dispositivo.id_dispositivo_gateway,
