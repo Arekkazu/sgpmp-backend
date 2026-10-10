@@ -1,3 +1,9 @@
+## [1.0.0-rc.89](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.88...v1.0.0-rc.89) (2026-10-10)
+
+### Bug Fixes
+
+* **control-acceso:** resolver el usuario de servicio sin depender de la politica del texto administrador (F5) ([5b97d86](https://github.com/Arekkazu/sgpmp-backend/commit/5b97d86d4e1bf2a3436d3d2b75b5254bbb99aecd)), closes [#533](https://github.com/Arekkazu/sgpmp-backend/issues/533)
+
 ## [1.0.0-rc.88](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.87...v1.0.0-rc.88) (2026-10-10)
 
 ### Bug Fixes
