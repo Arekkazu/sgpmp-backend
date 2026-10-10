@@ -180,20 +180,9 @@ class NotificacionService:
 
         fcm_tokens = self.port.buscar_fcm_tokens(id_usuario)
 
-        resultado_email = self._enviar_canal(
-            canal=ID_CANAL_EMAIL,
-            tipo_evento=tipo_evento,
-            id_evento=id_evento,
-            id_usuario=id_usuario,
-            titulo=titulo,
-            cuerpo=cuerpo,
-            correo=correo_destino,
-            fcm_tokens=[],
-            asunto_email=asunto_email,
-            contenido_html_email=contenido_html_email,
-            aplicar_anti_spam=aplicar_anti_spam_email,
-        )
-
+        # INTERNO va primero: el push FCM tarda milisegundos, mientras que el
+        # SMTP puede tardar hasta ~34s con reintentos (send_email) y en serie
+        # retrasaba la entrega del push.
         self._enviar_canal(
             canal=ID_CANAL_INTERNO,
             tipo_evento=tipo_evento,
@@ -206,6 +195,20 @@ class NotificacionService:
             asunto_email=None,
             contenido_html_email=None,
             aplicar_anti_spam=True,
+        )
+
+        resultado_email = self._enviar_canal(
+            canal=ID_CANAL_EMAIL,
+            tipo_evento=tipo_evento,
+            id_evento=id_evento,
+            id_usuario=id_usuario,
+            titulo=titulo,
+            cuerpo=cuerpo,
+            correo=correo_destino,
+            fcm_tokens=[],
+            asunto_email=asunto_email,
+            contenido_html_email=contenido_html_email,
+            aplicar_anti_spam=aplicar_anti_spam_email,
         )
 
         return resultado_email
