@@ -1,3 +1,9 @@
+## [1.0.0-rc.88](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.87...v1.0.0-rc.88) (2026-10-10)
+
+### Bug Fixes
+
+* **rf02:** refresh 500 bajo RLS para roles sin permiso sobre cuentas ([ade6011](https://github.com/Arekkazu/sgpmp-backend/commit/ade6011fe46ff9bb4ef4f55590c348dd96b09bee))
+
 ## [1.0.0-rc.87](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.86...v1.0.0-rc.87) (2026-10-10)
 
 ### Features
