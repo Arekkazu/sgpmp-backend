@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><title>TC-M09-175 rev7</title></head>
+<body>
+  <h1>TC-M09-175 rev7 TEST</h1>
+  <p><strong>Resultado: BLOQUEADO</strong> — falta <code>SGPMP_175_PASSWORD</code>. No APROBADO.</p>
+  <p>UTC 2026-10-09T23:48:01Z · laura @ c5ac9b6f · TEST · sin tokens ni contraseñas</p>
+  <h2>Admin</h2>
+  <ul>
+    <li>Login admin: HTTP 200 (variable <code>SGPMP_TEST_PASSWORD</code>)</li>
+    <li>GET /configuracion/personalizacion/tema/global: HTTP 200, cuerpo <code>null</code> (global ausente)</li>
+    <li>GET tema admin: <code>{"theme_mode":1,"fuente":"personal","id_tema_visual":6}</code> — no es el actor</li>
+  </ul>
+  <h2>Actor cm09175.qa@sgpmp-test.com</h2>
+  <p>Login omitido. No se probaron contraseñas alternativas. GET tema no ejecutado. Oráculo no ejecutado.</p>
+  <h2>Restauración</h2>
+  <p>Global sigue <code>null</code>. Pendiente Alex/Samuel. G91 no se cierra.</p>
+</body>
+</html>

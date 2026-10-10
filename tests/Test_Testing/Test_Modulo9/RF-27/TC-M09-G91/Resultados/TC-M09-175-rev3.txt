@@ -1,0 +1,103 @@
+TC-M09-175 rev3 — diagnostico TEST RF-27 (sin ejecutar escenario DEFAULT)
+Fecha UTC: 2026-10-09T22:45:47Z
+Rama: laura @ c5ac9b6f
+Ambiente HTTP: https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test
+NO se sobrescribe rev1, rev2, ni evidencias G91 173/174.
+Sin commit. Sin push. Sin DML. Sin PATCH. Sin DELETE autenticado.
+Sin modificacion de src del producto.
+
+ALCANCE
+- Releer casos 173/174/175, Newman, environments, reportes historicos.
+- Releer ObtenerTemaResueltoUseCase, GuardarTemaGlobalUseCase, tema_visual_router, OpenAPI TEST.
+- Probes de lectura: OpenAPI, GET/DELETE sin token, reintento de login autenticado.
+- No se reejecutaron TC-M09-173 ni TC-M09-174 (evidencias TEST rev1 presentes y validas).
+- No se afirmó DEFAULT. No se simulo fuente=defecto.
+
+RESULTADO: BLOQUEADO
+Precondicion faltante: ausencia de fila es_global=true (singleton uq_tema_global) mas usuario sin preferencia personal.
+No APROBADO (HTTP 200 con fuente=global no demuestra el tercer nivel).
+No RECHAZADO (el producto, cuando hay global, resuelve fuente=global como indica el codigo).
+No se usa el test con fakes (test_inc_m09_26_g91_jerarquia_tema.py) para declarar PASS de 175 en TEST.
+
+CODIGO LOCAL (HEAD, sin modificar)
+ObtenerTemaResueltoUseCase: personal -> global -> theme_mode=1 fuente=defecto id_tema_visual=null.
+Router tema_visual: GET/PATCH personal; GET/PATCH global. Sin DELETE.
+GuardarTemaGlobalUseCase: si existe global, UPDATE theme_mode; si no, CREATE. Nunca retira la fila.
+Indice PostgreSQL uq_tema_global (alembic/baseline): una sola fila es_global=true.
+GET global puede devolver Optional/None en codigo si no hay fila; TEST historicamente SI tiene fila.
+
+OPENAPI TEST (GET /openapi.json HTTP 200, 2026-10-09)
+/configuracion/personalizacion/tema -> get, patch
+/configuracion/personalizacion/tema/global -> get, patch
+No hay DELETE ni operacion de desactivar/restablecer.
+
+HTTP SIN TOKEN (2026-10-09)
+GET /configuracion/personalizacion/tema -> 503 BD_NO_DISPONIBLE
+GET /configuracion/personalizacion/tema/global -> 503 BD_NO_DISPONIBLE
+DELETE /configuracion/personalizacion/tema -> 405 Method Not Allowed (Allow=GET)
+DELETE /configuracion/personalizacion/tema/global -> 405 Method Not Allowed (Allow=GET)
+OPTIONS /tema/global -> 405 Allow=GET
+/docs HTTP 200; /openapi.json HTTP 200 (API arriba, persistencia no).
+
+HTTP AUTENTICADO (solo lectura; password via env, no documentada)
+POST /sesiones/ admin@pecuaria.co -> 503 BD_NO_DISPONIBLE (reintento 22:45:30Z igual)
+POST /sesiones/ contador@pecuaria.co -> 503 BD_NO_DISPONIBLE
+POST /sesiones/ cm09175.qa@sgpmp-test.com -> 503 BD_NO_DISPONIBLE
+No se obtuvo JWT. No se pudo reconsultar GET tema ni GET global en vivo.
+Variable SGPMP_175_PASSWORD / CONTRASENA_175: ausente en esta sesion.
+No se hizo PATCH. No se intento DELETE con token (login imposible; contrato ya niega DELETE).
+
+ALTERNATIVA SEGURA PARA DEFAULT
+1. Usuario sin preferencia individual: historicamente SI (rev1: id=120 cm09175.qa@sgpmp-test.com, fuente != personal; SELECT 0 filas personales).
+2. Configuracion global activa: historicamente SI (rev1 2026-09-26 GET global admin: id_tema_visual=1, id_usuario=1, theme_mode=1, es_global=true, fecha_actualizacion=2026-09-25T06:50:47.856604Z). GET resuelto usuario 120: theme_mode=1 fuente=global id_tema_visual=1.
+3. Operacion oficial para retirar global: NO. PATCH solo crea/actualiza. DELETE 405. OpenAPI sin delete.
+4. Entorno aislado / BD de pruebas autorizada sin singleton: NO encontrado ni autorizado en esta fase.
+5. Prueba automatizada aislada sin simular el producto: el pytest con TemaRepoFake(None,None) cubre la rama de codigo, pero sustituye el repositorio real. No se usa para APROBADO de TC-M09-175.
+
+Ultima observacion viva DEFAULT-incompatible (rev1 TEST):
+GET resuelto usuario 120 HTTP 200 {"theme_mode":1,"fuente":"global","id_tema_visual":1}
+
+EVIDENCIAS 173 / 174 (no reejecutados)
+Presentes y no modificados:
+- Resultados/G91-173-174-rev1-test-ejecucion.txt (173 APROBADO personal>global; 174 APROBADO fuente=global con restore PATCH theme_mode)
+- Resultados/TC-M09-G91-173-174_rev1_test.json
+- Resultados/TC-M09-G91-173-174_rev1_test.html
+- Coleccion tc_m09_g91_173_174_rev1_test.json
+Jerarquia de codigo sin cambios respecto a esas corridas.
+
+GRUPO G91
+No se cierra. 175 permanece BLOQUEADO. 173 y 174 siguen APROBADO con evidencia historica TEST.
+
+PROCEDIMIENTO DBA (NO EJECUTADO — requiere autorizacion)
+Identificacion del registro (ultima evidencia viva rev1):
+  tabla modulo9.temas_visuales
+  id_tema_visual=1
+  id_usuario=1
+  theme_mode=1
+  es_global=true
+  fecha_actualizacion=2026-09-25T06:50:47.856604Z
+  indice unico uq_tema_global WHERE es_global=true
+Respaldo verificable:
+  SELECT * FROM modulo9.temas_visuales WHERE es_global=true;
+  guardar fila completa (id, id_usuario, theme_mode, es_global, fecha_actualizacion)
+  confirmar 1 fila.
+Impacto:
+  todos los usuarios sin preferencia personal pasarian de fuente=global a fuente=defecto
+  TC-M09-174 y pruebas concurrentes de tema global pueden fallar o cambiar de expectativa
+  no borrar filas personales ni identidades
+Autorizacion: responsable del ambiente TEST + DBA
+Ventana: corta, avisando a QA; una sola corrida Newman/pytest de 175
+Durante la ventana (QA, solo lectura):
+  usuario 120 Activo Productor permiso 24/2; 0 filas personales id_usuario=120
+  GET global admin null/204/sin es_global
+  GET resuelto 120: theme_mode=1 fuente=defecto id_tema_visual=null
+Restauracion inmediata:
+  reinsertar la fila respaldada (mismos valores) o el procedimiento DBA equivalente
+  verificar GET global id_tema_visual=1 es_global=true theme_mode=1
+  verificar GET resuelto de un usuario sin personal: fuente=global
+QA no ejecutara DML ni PATCH para fingir defecto.
+
+ACCION REQUERIDA
+1. DBA/ops: restaurar disponibilidad de PostgreSQL TEST (hoy 503 BD_NO_DISPONIBLE).
+2. Responsable TEST + DBA: autorizar ventana para retirar temporalmente el singleton global, o proveer ambiente aislado sin esa fila.
+3. QA: ejecutar TC-M09-175 solo cuando GET global no tenga fila y el usuario 120 (u otro autorizado sin personal) resuelva fuente=defecto.
