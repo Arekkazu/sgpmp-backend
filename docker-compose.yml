@@ -77,6 +77,12 @@ services:
       MQTT_BROKER_TOKEN: ${MQTT_BROKER_TOKEN}
     volumes:
       - sgpmp_modelos:/app/storage/modelos
+      # RF-14: credenciales del service account de Firebase (push FCM). El JSON
+      # se carga como File Mount del compose en Dokploy con File Path
+      # `firebase.json`, que Dokploy guarda en ../files/. FIREBASE_CREDENTIALS_PATH
+      # debe apuntar a /app/secrets/firebase.json. Sin el archivo, Docker crea
+      # una carpeta vacía y el backend solo deja el push deshabilitado.
+      - ../files/firebase.json:/app/secrets/firebase.json:ro
     expose:
       - "8000"
     depends_on:
