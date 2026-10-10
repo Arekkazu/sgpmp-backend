@@ -28,7 +28,7 @@ from src.configuration.domain.repositories.tipo_dispositivo_iot_repository impor
 from src.configuration.domain.value_objects.serial_dispositivo import SerialDispositivo
 from src.configuration.infrastructure.dto.registrar_dispositivo_iot_dto import RegistrarDispositivoIotDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, ValidationError
+from src.shared.errors import BusinessRuleError, ConflictError, ValidationError
 
 _RESOLUCION = re.compile(r"^[1-9][0-9]*x[1-9][0-9]*$")  # ANCHOxALTO en píxeles
 
@@ -80,10 +80,13 @@ class RegistrarDispositivoIotUseCase:
 
     def execute(self, dto: RegistrarDispositivoIotDTO, usuario_actual: UsuarioActual) -> DispositivoIot:
         area = self.infra_repo.obtener_por_id(dto.id_infraestructura)
+        # RF-21, flujo alterno "Área productiva no encontrada o inactiva": 422 en
+        # ambos casos (TC-M09-G56). El código de error sigue distinguiéndolos.
         if area is None:
-            raise NotFoundError(
+            raise BusinessRuleError(
                 code="AREA_NO_ENCONTRADA",
                 message=f"No existe un área productiva con ID {dto.id_infraestructura}.",
+                field="id_infraestructura",
             )
         if not area.es_activo:
             raise BusinessRuleError(

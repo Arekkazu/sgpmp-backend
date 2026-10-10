@@ -64,23 +64,29 @@ class AsociarSensorAreaUseCase:
     def execute(
         self, id_sensor: int, dto: AsociarSensorAreaDTO, usuario_actual: UsuarioActual,
     ) -> tuple[SensorArea, list[AsociacionActivoSuperada]]:
-        sensor = self.sensor_repo.obtener_por_id(id_sensor)
-        if sensor is None:
-            raise NotFoundError(
-                code="SENSOR_NO_ENCONTRADO",
-                message=f"No existe un sensor con ID {id_sensor}.",
-            )
-        if sensor.id_dispositivo_iot != dto.id_dispositivo_iot:
-            raise BusinessRuleError(
-                code="SENSOR_DISPOSITIVO_INVALIDO",
-                message=f"El sensor {id_sensor} no pertenece al dispositivo {dto.id_dispositivo_iot}.",
-            )
-
+        # RF-22, flujo alterno (TC-M09-G133/G62): primero el dispositivo (404) y
+        # después el sensor, que da 422 tanto si no existe como si es de otro
+        # dispositivo. Con el sensor primero, un dispositivo inexistente salía
+        # como 422 SENSOR_DISPOSITIVO_INVALIDO y un sensor inexistente como 404.
         dispositivo = self.dispositivo_repo.obtener_por_id(dto.id_dispositivo_iot)
         if dispositivo is None:
             raise NotFoundError(
                 code="DISPOSITIVO_NO_ENCONTRADO",
-                message=f"No existe un dispositivo IoT con ID {dto.id_dispositivo_iot}.",
+                message=(
+                    f"Error de referencia: El dispositivo IoT seleccionado con ID {dto.id_dispositivo_iot} "
+                    "no existe o no ha sido dado de alta en el sistema."
+                ),
+                field="id_dispositivo_iot",
+            )
+
+        sensor = self.sensor_repo.obtener_por_id(id_sensor)
+        if sensor is None or sensor.id_dispositivo_iot != dto.id_dispositivo_iot:
+            raise BusinessRuleError(
+                code="SENSOR_DISPOSITIVO_INVALIDO",
+                message=(
+                    f"Inconsistencia de hardware: El sensor {id_sensor} no pertenece al dispositivo "
+                    f"{dto.id_dispositivo_iot}. Verifique la configuración técnica del equipo antes de asociarlo."
+                ),
             )
 
         # RF-22, flujo alterno "Área productiva inexistente o inactiva": el RF

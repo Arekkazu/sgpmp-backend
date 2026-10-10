@@ -13,6 +13,7 @@ from sqlalchemy import Boolean, DateTime, ForeignKeyConstraint, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base_model import Base
+from .tipo_dispositivo_iot_model import TipoDispositivoIotModel
 
 
 class DispositivoIotModel(Base):
@@ -56,6 +57,8 @@ class DispositivoIotModel(Base):
     fps: Mapped[Optional[int]] = mapped_column(SmallInteger)
     area_cobertura_m2: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
 
+    # RF-21 v2.0 (RFC-011): la categoría (SENSOR | CAMARA) es del tipo, no del dispositivo.
+    tipo: Mapped[TipoDispositivoIotModel] = relationship(lazy='joined', viewonly=True)
     sensores: Mapped[list] = relationship(
         'SensorModel',
         back_populates='dispositivo',

@@ -190,7 +190,8 @@ def test_otro_flujo_conserva_mensaje_generico(monkeypatch):
         respuesta = estado.cliente.post("/configuracion/sensores/999999/asociar", json={
             "id_dispositivo_iot": 3, "id_infraestructura": 1, "punto_instalacion": "Prueba G130",
         })
-    assert respuesta.status_code == 404
-    assert respuesta.json()["error_code"] == "SENSOR_NO_ENCONTRADO"
-    assert respuesta.json()["message"] == "No existe un sensor con ID 999999."
+    # RF-22 (TC-M09-G62): el sensor inexistente al asociar es 422, no 404.
+    assert respuesta.status_code == 422
+    assert respuesta.json()["error_code"] == "SENSOR_DISPOSITIVO_INVALIDO"
+    assert respuesta.json()["message"].startswith("Inconsistencia de hardware: El sensor 999999")
     estado.eventos.registrar.assert_not_called()
