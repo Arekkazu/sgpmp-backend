@@ -1,3 +1,9 @@
+## [1.0.0-rc.86](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.85...v1.0.0-rc.86) (2026-10-10)
+
+### Bug Fixes
+
+* **control-acceso:** permitir a sgpmp_owner ejecutar los helpers de rls (rf37, F5) ([1baf4f7](https://github.com/Arekkazu/sgpmp-backend/commit/1baf4f73554d52ba6e5f295f478401cd71ab44a7))
+
 ## [1.0.0-rc.85](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.84...v1.0.0-rc.85) (2026-10-09)
 
 ### Bug Fixes
