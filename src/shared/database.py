@@ -89,12 +89,12 @@ def _set_config(conexion, id_usuario: Optional[int], nombre_rol: Optional[str]) 
 def _id_servicio(conexion) -> int:
     global _id_usuario_servicio
     if _id_usuario_servicio is None:
-        # `pol_usuarios_select` solo deja leer usuarios ajenos al rol Administrador.
-        _set_config(conexion, None, _ROL_SERVICIO)
+        # Todavía no hay identidad: bajo RLS solo la función SECURITY DEFINER
+        # del login (a7380032a23b) puede resolver un usuario por correo.
         _id_usuario_servicio = conexion.execute(
-            text("SELECT id_usuario FROM modulo1.usuarios WHERE correo_electronico = :correo"),
+            text("SELECT modulo1.fn_id_usuario_por_correo(:correo)"),
             {"correo": CORREO_USUARIO_SERVICIO},
-        ).scalar_one_or_none()
+        ).scalar()
         if _id_usuario_servicio is None:
             raise RuntimeError(
                 f"No existe el usuario de servicio {CORREO_USUARIO_SERVICIO}: "
