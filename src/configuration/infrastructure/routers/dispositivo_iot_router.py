@@ -343,7 +343,7 @@ def configurar_remotamente(
 
     **Acceso:** `dispositivos_iot` · Actualizar.
 
-    La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). Los valores deben estar en el rango de su tipo (400); no aplica a gateways Edge y no admite otra configuración pendiente (409).
+    La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). Los valores deben estar en el rango de su tipo (400); no aplica a gateways Edge ni a cámaras (400 `PARAMETRO_NO_APLICA_A_CAMARA`, RF-23 v1.1) y no admite otra configuración pendiente (409).
     """
     use_case = ConfigurarRemotamenteUseCase(
         db=db,

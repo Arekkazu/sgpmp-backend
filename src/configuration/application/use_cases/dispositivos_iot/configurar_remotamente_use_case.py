@@ -111,7 +111,7 @@ class ConfigurarRemotamenteUseCase:
     """Envía frecuencia de captura e intervalo de transmisión a un dispositivo y registra el resultado.
 
     Los valores deben caer en el rango de su tipo de dispositivo; no aplica a
-    gateways Edge y no admite una segunda configuración pendiente (409). El envío
+    gateways Edge ni a cámaras (RF-23 v1.1) y no admite una segunda configuración pendiente (409). El envío
     espera el ACK del broker (hasta ~35 s): sin ACK queda en NO_CONF.
     """
 
@@ -150,6 +150,19 @@ class ConfigurarRemotamenteUseCase:
             raise BusinessRuleError(
                 code="CONFIGURACION_NO_APLICA_A_GATEWAY_EDGE",
                 message="Un Gateway Edge no captura datos: la configuración remota se hace sobre los dispositivos que atiende.",
+            )
+        # RF-23 v1.1 (RFC-011): para una CAMARA frecuencia_captura e
+        # intervalo_transmision no aplican (captura continua). El RF no fija el
+        # HTTP de este caso; se usa 400 como el resto de validaciones de parámetros.
+        if tipo.es_camara:
+            raise ValidationError(
+                code="PARAMETRO_NO_APLICA_A_CAMARA",
+                message=(
+                    f"Parámetro no aplicable: el dispositivo {dispositivo.serial.valor} es una cámara. "
+                    "frecuencia_captura e intervalo_transmision solo aplican a dispositivos de categoría "
+                    "SENSOR; el parámetro operativo de una cámara es fps (RF-21)."
+                ),
+                field="frecuencia_captura",
             )
         violacion = tipo.verificar_rango(dto.frecuencia_captura, dto.intervalo_transmision)
         if violacion is not None:

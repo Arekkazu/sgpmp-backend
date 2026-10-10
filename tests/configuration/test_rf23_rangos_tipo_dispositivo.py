@@ -141,6 +141,22 @@ def test_dentro_de_rango_propaga_estado_broker(estado):
     assert config.estado == estado
 
 
+def test_camara_rechaza_parametros_de_sensor_400():
+    """RF-23 v1.1: frecuencia/intervalo no aplican a CAMARA, aunque su tipo tenga rangos."""
+    camara = TipoDispositivoIot(
+        id_tipo_dispositivo=5, nombre="CAMARA_VISION", frecuencia_captura_min=1,
+        frecuencia_captura_max=1440, intervalo_transmision_min=1, intervalo_transmision_max=1440,
+        categoria="CAMARA",
+    )
+    uc = _use_case("APLICADA")
+    uc.tipo_repo = TipoRepoFake(camara)
+    with pytest.raises(ValidationError) as exc:
+        uc.execute(1, ConfigurarRemotamenteDTO(frecuencia_captura=10, intervalo_transmision=30), USUARIO)
+    assert exc.value.status_code == 400
+    assert exc.value.code == "PARAMETRO_NO_APLICA_A_CAMARA"
+    assert uc.config_repo._seq == 0  # no se guardó ni se envió nada
+
+
 def test_verificar_rango_unit():
     assert TIPO.verificar_rango(10, 30) is None
     v = TIPO.verificar_rango(1, 30)
