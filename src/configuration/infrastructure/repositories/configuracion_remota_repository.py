@@ -23,6 +23,7 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
             id_dispositivo_iot=orm.id_dispositivo_iot,
             frecuencia_captura=orm.frecuencia_captura,
             intervalo_transmision=orm.intervalo_transmision,
+            fps=orm.fps,
             estado=orm.estado,
             id_usuario=orm.id_usuario,
             fecha_creacion=orm.fecha_creacion,
@@ -34,6 +35,7 @@ class SqlAlchemyConfiguracionRemotaRepository(ConfiguracionRemotaRepository):
             id_dispositivo_iot=config.id_dispositivo_iot,
             frecuencia_captura=config.frecuencia_captura,
             intervalo_transmision=config.intervalo_transmision,
+            fps=config.fps,
             estado=config.estado,
             id_usuario=config.id_usuario,
         )

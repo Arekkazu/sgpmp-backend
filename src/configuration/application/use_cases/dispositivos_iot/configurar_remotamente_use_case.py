@@ -80,13 +80,7 @@ def _enviar_y_registrar(
     config: ConfiguracionRemota,
 ) -> tuple[ConfiguracionRemota, str]:
     """Envía por el broker (bloqueante, hasta ~35 s) y persiste el estado resultante."""
-    resultado = mqtt_port.enviar_configuracion(
-        serial,
-        {
-            "frecuencia_captura": config.frecuencia_captura,
-            "intervalo_transmision": config.intervalo_transmision,
-        },
-    )
+    resultado = mqtt_port.enviar_configuracion(serial, config.parametros())
 
     estado_previo = config.estado
     if resultado.estado == "PENDIENTE":
@@ -107,12 +101,54 @@ def _enviar_y_registrar(
     return config, resultado.mensaje
 
 
-class ConfigurarRemotamenteUseCase:
-    """Envía frecuencia de captura e intervalo de transmisión a un dispositivo y registra el resultado.
+# RF-23 v1.1 (RFC-011): cada categoría tiene su propio juego de parámetros. El
+# RF no fija el HTTP de mezclarlos; se usa 400 como el resto de validaciones de
+# parámetros de RF-23.
+def _validar_parametros_camara(dto: ConfigurarRemotamenteDTO, serial: str) -> None:
+    if dto.frecuencia_captura is not None or dto.intervalo_transmision is not None:
+        raise ValidationError(
+            code="PARAMETRO_NO_APLICA_A_CAMARA",
+            message=(
+                f"Parámetro no aplicable: el dispositivo {serial} es una cámara. "
+                "frecuencia_captura e intervalo_transmision solo aplican a dispositivos de categoría "
+                "SENSOR; el parámetro operativo de una cámara es fps."
+            ),
+            field="frecuencia_captura" if dto.frecuencia_captura is not None else "intervalo_transmision",
+        )
+    if dto.fps is None:
+        raise ValidationError(
+            code="PARAMETRO_REQUERIDO",
+            message=f"El dispositivo {serial} es una cámara: envíe fps (1–60 cuadros por segundo).",
+            field="fps",
+        )
 
-    Los valores deben caer en el rango de su tipo de dispositivo; no aplica a
-    gateways Edge y no admite una segunda configuración pendiente (409). El envío
-    espera el ACK del broker (hasta ~35 s): sin ACK queda en NO_CONF.
+
+def _validar_parametros_sensor(dto: ConfigurarRemotamenteDTO, serial: str) -> None:
+    if dto.fps is not None:
+        raise ValidationError(
+            code="PARAMETRO_NO_APLICA_A_SENSOR",
+            message=(
+                f"Parámetro no aplicable: fps solo aplica a cámaras y el dispositivo {serial} es un sensor. "
+                "Envíe frecuencia_captura e intervalo_transmision."
+            ),
+            field="fps",
+        )
+    for campo in ("frecuencia_captura", "intervalo_transmision"):
+        if getattr(dto, campo) is None:
+            raise ValidationError(
+                code="PARAMETRO_REQUERIDO",
+                message=f"El dispositivo {serial} es un sensor: {campo} es obligatorio.",
+                field=campo,
+            )
+
+
+class ConfigurarRemotamenteUseCase:
+    """Envía la configuración de un dispositivo según su categoría y registra el resultado.
+
+    SENSOR: frecuencia de captura e intervalo de transmisión, en el rango de su
+    tipo. CAMARA: fps (RF-23 v1.1). No aplica a gateways Edge y no admite una
+    segunda configuración pendiente (409). El envío espera el ACK del broker
+    (hasta ~35 s): sin ACK queda en NO_CONF.
     """
 
     def __init__(
@@ -151,17 +187,21 @@ class ConfigurarRemotamenteUseCase:
                 code="CONFIGURACION_NO_APLICA_A_GATEWAY_EDGE",
                 message="Un Gateway Edge no captura datos: la configuración remota se hace sobre los dispositivos que atiende.",
             )
-        violacion = tipo.verificar_rango(dto.frecuencia_captura, dto.intervalo_transmision)
-        if violacion is not None:
-            raise ValidationError(
-                code="PARAMETRO_FUERA_DE_RANGO",
-                message=(
-                    f"Valor inválido: El parámetro {violacion['field']} debe estar entre "
-                    f"{violacion['min']} y {violacion['max']} minutos para este tipo de dispositivo. "
-                    f"Valor recibido: {violacion['valor']}."
-                ),
-                field=violacion["field"],
-            )
+        if tipo.es_camara:
+            _validar_parametros_camara(dto, dispositivo.serial.valor)
+        else:
+            _validar_parametros_sensor(dto, dispositivo.serial.valor)
+            violacion = tipo.verificar_rango(dto.frecuencia_captura, dto.intervalo_transmision)
+            if violacion is not None:
+                raise ValidationError(
+                    code="PARAMETRO_FUERA_DE_RANGO",
+                    message=(
+                        f"Valor inválido: El parámetro {violacion['field']} debe estar entre "
+                        f"{violacion['min']} y {violacion['max']} minutos para este tipo de dispositivo. "
+                        f"Valor recibido: {violacion['valor']}."
+                    ),
+                    field=violacion["field"],
+                )
 
         if self.config_repo.obtener_pendiente(id_dispositivo_iot) is not None:
             raise ConflictError(
@@ -177,6 +217,7 @@ class ConfigurarRemotamenteUseCase:
             frecuencia_captura=dto.frecuencia_captura,
             intervalo_transmision=dto.intervalo_transmision,
             id_usuario=usuario_actual.id_usuario,
+            fps=dto.fps,
         )
 
         try:
