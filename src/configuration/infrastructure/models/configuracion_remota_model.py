@@ -34,8 +34,10 @@ class ConfiguracionRemotaModel(Base):
         primary_key=True,
     )
     id_dispositivo_iot: Mapped[int] = mapped_column(Integer, nullable=False)
-    frecuencia_captura: Mapped[int] = mapped_column(Integer, nullable=False)
-    intervalo_transmision: Mapped[int] = mapped_column(Integer, nullable=False)
+    # SENSOR: frecuencia_captura + intervalo_transmision; CAMARA: fps (RF-23 v1.1).
+    frecuencia_captura: Mapped[Optional[int]] = mapped_column(Integer)
+    intervalo_transmision: Mapped[Optional[int]] = mapped_column(Integer)
+    fps: Mapped[Optional[int]] = mapped_column(Integer)
     estado: Mapped[str] = mapped_column(String(20), nullable=False, server_default=text("'PENDIENTE'"))
     id_usuario: Mapped[Optional[int]] = mapped_column(Integer)
     fecha_creacion: Mapped[Optional[datetime.datetime]] = mapped_column(
