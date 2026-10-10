@@ -1,3 +1,9 @@
+## [1.0.0-rc.92](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.91...v1.0.0-rc.92) (2026-10-10)
+
+### Bug Fixes
+
+* **rf24-mod9:** restaurar la politica rls de update de lineas_base_vision (TC-M09-276) ([ab2b8f6](https://github.com/Arekkazu/sgpmp-backend/commit/ab2b8f617dcb20f1257abca8eebeccf5eecf0e7c))
+
 ## [1.0.0-rc.91](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.90...v1.0.0-rc.91) (2026-10-10)
 
 ### Bug Fixes
