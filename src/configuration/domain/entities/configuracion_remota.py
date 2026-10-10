@@ -15,16 +15,20 @@ from typing import Optional
 
 @dataclass(eq=False)
 class ConfiguracionRemota:
-    """Comando de configuración (frecuencia de captura e intervalo de transmisión) enviado a un dispositivo (RF-23).
+    """Comando de configuración enviado a un dispositivo (RF-23).
+
+    Lleva uno de dos juegos de parámetros (RF-23 v1.1): ``frecuencia_captura`` +
+    ``intervalo_transmision`` para un SENSOR, o ``fps`` para una CAMARA.
 
     Ciclo de vida: PENDIENTE → APLICADA al llegar el ACK, NO_CONF si el ACK no
     llega a tiempo, o CANCELADA si el usuario la descarta.
     """
     id_dispositivo_iot: int
-    frecuencia_captura: int
-    intervalo_transmision: int
+    frecuencia_captura: Optional[int]
+    intervalo_transmision: Optional[int]
     estado: str
     id_usuario: int
+    fps: Optional[int] = None
     id_configuracion_remota: Optional[int] = None
     fecha_creacion: Optional[datetime.datetime] = None
     fecha_aplicacion: Optional[datetime.datetime] = None
@@ -34,9 +38,10 @@ class ConfiguracionRemota:
         cls,
         *,
         id_dispositivo_iot: int,
-        frecuencia_captura: int,
-        intervalo_transmision: int,
+        frecuencia_captura: Optional[int],
+        intervalo_transmision: Optional[int],
         id_usuario: int,
+        fps: Optional[int] = None,
     ) -> ConfiguracionRemota:
         return cls(
             id_dispositivo_iot=id_dispositivo_iot,
@@ -44,7 +49,17 @@ class ConfiguracionRemota:
             intervalo_transmision=intervalo_transmision,
             estado="PENDIENTE",
             id_usuario=id_usuario,
+            fps=fps,
         )
+
+    def parametros(self) -> dict:
+        """Los parámetros que viajan al dispositivo: solo los de su categoría."""
+        if self.fps is not None:
+            return {"fps": self.fps}
+        return {
+            "frecuencia_captura": self.frecuencia_captura,
+            "intervalo_transmision": self.intervalo_transmision,
+        }
 
     def marcar_aplicada(self, fecha: datetime.datetime) -> None:
         self.estado = "APLICADA"

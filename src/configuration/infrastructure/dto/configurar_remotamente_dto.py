@@ -1,14 +1,19 @@
 """DTO de entrada para configurar remotamente un dispositivo IoT (POST /{id}/configurar RF-23)."""
 from __future__ import annotations
 
+from typing import Optional
+
 from pydantic import ConfigDict, field_validator, model_validator
 
 from src.shared.base_dto import BaseDTO
 
 
 class ConfigurarRemotamenteDTO(BaseDTO):
-    """Frecuencia de captura e intervalo de transmisión; deben caer en el rango del tipo
-    de dispositivo.
+    """Parámetros de configuración según la categoría del dispositivo (RF-23 v1.1).
+
+    SENSOR: ``frecuencia_captura`` e ``intervalo_transmision`` (minutos), dentro del
+    rango de su tipo. CAMARA: ``fps`` (1–60, RF-21). Qué juego corresponde lo decide
+    el use case con la categoría del tipo del dispositivo.
     """
     # INC-M09-66-G69 (#492): RF-23 solo define estos parámetros. Un campo ajeno
     # (p. ej. `protocolo`) se ignoraba y la API respondía 202 como si lo hubiera
@@ -16,14 +21,22 @@ class ConfigurarRemotamenteDTO(BaseDTO):
     # gateway, no un parámetro que el backend envíe: el backend solo habla MQTT.
     model_config = ConfigDict(extra="forbid")
 
-    frecuencia_captura: int
-    intervalo_transmision: int
+    frecuencia_captura: Optional[int] = None
+    intervalo_transmision: Optional[int] = None
+    fps: Optional[int] = None
 
     @field_validator("frecuencia_captura", "intervalo_transmision")
     @classmethod
-    def validar_positivo(cls, v: int) -> int:
-        if v < 1:
+    def validar_positivo(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v < 1:
             raise ValueError("El valor debe ser un entero positivo (mínimo 1 minuto).")
+        return v
+
+    @field_validator("fps")
+    @classmethod
+    def validar_fps(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and not 1 <= v <= 60:
+            raise ValueError("fps debe estar entre 1 y 60 cuadros por segundo.")
         return v
 
     @model_validator(mode="after")
@@ -34,7 +47,11 @@ class ConfigurarRemotamenteDTO(BaseDTO):
         como 400: un `@model_validator` sale por `request_validation_error_handler`,
         que es el único camino a 400 sin código de negocio propio.
         """
-        if self.intervalo_transmision < self.frecuencia_captura:
+        if (
+            self.frecuencia_captura is not None
+            and self.intervalo_transmision is not None
+            and self.intervalo_transmision < self.frecuencia_captura
+        ):
             raise ValueError(
                 "Conflicto lógico: El intervalo de transmisión "
                 f"({self.intervalo_transmision} min) no puede ser menor a la frecuencia "

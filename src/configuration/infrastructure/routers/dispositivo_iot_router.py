@@ -339,11 +339,13 @@ def configurar_remotamente(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> JSONResponse:
-    """Envía frecuencia de captura e intervalo de transmisión al dispositivo por el broker MQTT (RF-23).
+    """Envía la configuración al dispositivo por el broker MQTT según su categoría (RF-23 v1.1).
 
     **Acceso:** `dispositivos_iot` · Actualizar.
 
-    La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). Los valores deben estar en el rango de su tipo (400); no aplica a gateways Edge ni a cámaras (400 `PARAMETRO_NO_APLICA_A_CAMARA`, RF-23 v1.1) y no admite otra configuración pendiente (409).
+    **SENSOR:** `frecuencia_captura` e `intervalo_transmision` (minutos), en el rango de su tipo (400 `PARAMETRO_FUERA_DE_RANGO`). **CAMARA:** solo `fps` (1–60). Mezclar los juegos responde 400 (`PARAMETRO_NO_APLICA_A_CAMARA` / `PARAMETRO_NO_APLICA_A_SENSOR`) y omitir el de la categoría 400 `PARAMETRO_REQUERIDO`.
+
+    La petición espera el ACK (hasta ~35 s): **200** aplicada, **202** pendiente (dispositivo offline), **504** sin confirmación (queda NO_CONF). No aplica a gateways Edge y no admite otra configuración pendiente (409).
     """
     use_case = ConfigurarRemotamenteUseCase(
         db=db,

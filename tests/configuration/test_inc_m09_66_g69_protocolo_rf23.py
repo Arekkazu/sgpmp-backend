@@ -45,4 +45,4 @@ def test_solo_los_parametros_de_rf23_siguen_aceptandose(cliente: TestClient) -> 
     respuesta = cliente.post("/configurar", json={"frecuencia_captura": 5, "intervalo_transmision": 10})
 
     assert respuesta.status_code == 202
-    assert respuesta.json() == {"frecuencia_captura": 5, "intervalo_transmision": 10}
+    assert respuesta.json() == {"frecuencia_captura": 5, "intervalo_transmision": 10, "fps": None}

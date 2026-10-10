@@ -9,6 +9,7 @@ Verifica con fakes (sin BD; modulo9 no existe en la BD `pruebas`):
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from src.configuration.application.use_cases.dispositivos_iot.configurar_remotamente_use_case import (
     ConfigurarRemotamenteUseCase,
@@ -141,20 +142,64 @@ def test_dentro_de_rango_propaga_estado_broker(estado):
     assert config.estado == estado
 
 
-def test_camara_rechaza_parametros_de_sensor_400():
-    """RF-23 v1.1: frecuencia/intervalo no aplican a CAMARA, aunque su tipo tenga rangos."""
-    camara = TipoDispositivoIot(
-        id_tipo_dispositivo=5, nombre="CAMARA_VISION", frecuencia_captura_min=1,
-        frecuencia_captura_max=1440, intervalo_transmision_min=1, intervalo_transmision_max=1440,
-        categoria="CAMARA",
-    )
+CAMARA = TipoDispositivoIot(
+    id_tipo_dispositivo=5, nombre="CAMARA_VISION", frecuencia_captura_min=1,
+    frecuencia_captura_max=1440, intervalo_transmision_min=1, intervalo_transmision_max=1440,
+    categoria="CAMARA",
+)
+
+
+class MqttCaptura(MqttFake):
+    def enviar_configuracion(self, serial, payload):
+        self.payload = payload
+        return super().enviar_configuracion(serial, payload)
+
+
+def _use_case_camara() -> ConfigurarRemotamenteUseCase:
     uc = _use_case("APLICADA")
-    uc.tipo_repo = TipoRepoFake(camara)
+    uc.tipo_repo = TipoRepoFake(CAMARA)
+    uc.mqtt_port = MqttCaptura("APLICADA")
+    return uc
+
+
+@pytest.mark.parametrize("dto, codigo, campo", [
+    # RF-23 v1.1: frecuencia/intervalo no aplican a CAMARA aunque su tipo tenga rangos.
+    ({"frecuencia_captura": 10, "intervalo_transmision": 30}, "PARAMETRO_NO_APLICA_A_CAMARA", "frecuencia_captura"),
+    ({"fps": 15, "intervalo_transmision": 30}, "PARAMETRO_NO_APLICA_A_CAMARA", "intervalo_transmision"),
+    ({}, "PARAMETRO_REQUERIDO", "fps"),
+])
+def test_camara_rechaza_parametros_ajenos_o_faltantes_400(dto, codigo, campo):
+    uc = _use_case_camara()
     with pytest.raises(ValidationError) as exc:
-        uc.execute(1, ConfigurarRemotamenteDTO(frecuencia_captura=10, intervalo_transmision=30), USUARIO)
+        uc.execute(1, ConfigurarRemotamenteDTO(**dto), USUARIO)
     assert exc.value.status_code == 400
-    assert exc.value.code == "PARAMETRO_NO_APLICA_A_CAMARA"
+    assert (exc.value.code, exc.value.field) == (codigo, campo)
     assert uc.config_repo._seq == 0  # no se guardó ni se envió nada
+
+
+def test_camara_envia_solo_fps():
+    uc = _use_case_camara()
+    config, _ = uc.execute(1, ConfigurarRemotamenteDTO(fps=15), USUARIO)
+    assert config.estado == "APLICADA"
+    assert (config.fps, config.frecuencia_captura, config.intervalo_transmision) == (15, None, None)
+    assert uc.mqtt_port.payload == {"fps": 15}
+
+
+@pytest.mark.parametrize("dto, codigo, campo", [
+    ({"fps": 15, "frecuencia_captura": 10, "intervalo_transmision": 30}, "PARAMETRO_NO_APLICA_A_SENSOR", "fps"),
+    ({"frecuencia_captura": 10}, "PARAMETRO_REQUERIDO", "intervalo_transmision"),
+])
+def test_sensor_rechaza_fps_o_parametros_incompletos_400(dto, codigo, campo):
+    uc = _use_case("APLICADA")
+    with pytest.raises(ValidationError) as exc:
+        uc.execute(1, ConfigurarRemotamenteDTO(**dto), USUARIO)
+    assert (exc.value.code, exc.value.field) == (codigo, campo)
+
+
+@pytest.mark.parametrize("fps", [0, 61])
+def test_fps_fuera_de_1_a_60_lo_rechaza_el_dto(fps):
+    with pytest.raises(PydanticValidationError):
+        ConfigurarRemotamenteDTO(fps=fps)
 
 
 def test_verificar_rango_unit():
