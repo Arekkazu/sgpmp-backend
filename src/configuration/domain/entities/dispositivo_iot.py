@@ -30,6 +30,8 @@ class DispositivoIot:
     resolucion: Optional[str] = None
     fps: Optional[int] = None
     area_cobertura_m2: Optional[Decimal] = None
+    # Derivada del tipo (SENSOR | CAMARA); no se persiste en el dispositivo.
+    categoria: Optional[str] = None
 
     @classmethod
     def crear(

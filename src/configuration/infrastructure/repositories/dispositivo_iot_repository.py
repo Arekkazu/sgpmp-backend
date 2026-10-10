@@ -33,6 +33,7 @@ class SqlAlchemyDispositivoIotRepository(DispositivoIotRepository):
             resolucion=orm.resolucion,
             fps=orm.fps,
             area_cobertura_m2=orm.area_cobertura_m2,
+            categoria=orm.tipo.categoria,
         )
 
     def obtener_por_id(

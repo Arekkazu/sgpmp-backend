@@ -302,3 +302,29 @@ def test_area_de_finca_distinta_a_la_del_dispositivo_es_rechazada():
 
     assert exc.value.code == "SENSOR_FINCA_DISTINTA"
     assert db.commits == 0
+
+
+def test_dispositivo_inexistente_es_404_aunque_el_sensor_sea_de_otro():
+    """TC-M09-G133: el dispositivo se valida antes que el sensor."""
+    uc, db = _use_case(SensorAreaRepoFake(activa=None), _area(ID_AREA_1, "Estanque Norte"))
+    uc.dispositivo_repo = DispositivoRepoFake(None)
+    dto = AsociarSensorAreaDTO(id_dispositivo_iot=999, id_infraestructura=ID_AREA_1, punto_instalacion="Punto")
+
+    with pytest.raises(NotFoundError) as exc:
+        uc.execute(1, dto, USUARIO)
+
+    assert exc.value.code == "DISPOSITIVO_NO_ENCONTRADO" and exc.value.status_code == 404
+    assert db.commits == 0
+
+
+def test_sensor_inexistente_es_422_sensor_dispositivo_invalido():
+    """TC-M09-G62: RF-22 pide 422 para el sensor inexistente o de otro dispositivo."""
+    uc, db = _use_case(SensorAreaRepoFake(activa=None), _area(ID_AREA_1, "Estanque Norte"))
+    uc.sensor_repo = SensorRepoFake(None)
+    dto = AsociarSensorAreaDTO(id_dispositivo_iot=ID_DISPOSITIVO, id_infraestructura=ID_AREA_1, punto_instalacion="Punto")
+
+    with pytest.raises(BusinessRuleError) as exc:
+        uc.execute(1, dto, USUARIO)
+
+    assert exc.value.code == "SENSOR_DISPOSITIVO_INVALIDO" and exc.value.status_code == 422
+    assert db.commits == 0
