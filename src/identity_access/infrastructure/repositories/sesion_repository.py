@@ -185,6 +185,10 @@ class SqlAlchemySesionRepository(SesionRepository):
             token_refresco_viejo = self.db.get(Tokens, orm.id_token_refresco)
             if token_refresco_viejo is not None and token_refresco_viejo.fecha_uso is None:
                 token_refresco_viejo.fecha_uso = ahora
+        # Bajo RLS (F5) un rol sin permiso sobre `cuentas` solo ve un token
+        # mientras su sesión lo referencia: si la sesión se reapunta en el mismo
+        # flush, el UPDATE de los tokens viejos afecta 0 filas y el refresh da 500.
+        self.db.flush()
 
         orm.id_token = nuevo_id_token_acceso
         orm.id_token_refresco = nuevo_id_token_refresco
