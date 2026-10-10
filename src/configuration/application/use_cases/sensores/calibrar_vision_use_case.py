@@ -140,7 +140,8 @@ class CalibrarVisionUseCase:
     ) -> CalibracionVision:
         area: Optional[Infraestructura] = None
         try:
-            area, observaciones = self._validar(dto, ids_fincas_permitidas)
+            area = self._obtener_area(dto, ids_fincas_permitidas)
+            observaciones = self._validar(dto, area)
         except (NotFoundError, BusinessRuleError) as exc:
             auditar_rechazo_vision(
                 self.db,
@@ -204,9 +205,9 @@ class CalibrarVisionUseCase:
             raise
         return guardada
 
-    def _validar(
+    def _obtener_area(
         self, dto: CalibrarVisionDTO, ids_fincas_permitidas: Optional[list[int]]
-    ) -> tuple[Infraestructura, list[ObservacionVision]]:
+    ) -> Infraestructura:
         # Un área de una finca ajena responde 404, igual que una inexistente (#503).
         area = self.infraestructura_repo.obtener_por_id(
             dto.area_id, ids_fincas_permitidas=ids_fincas_permitidas
@@ -217,6 +218,10 @@ class CalibrarVisionUseCase:
                 message=f"No existe un área productiva con ID {dto.area_id}.",
                 field="area_id",
             )
+        return area
+
+    def _validar(self, dto: CalibrarVisionDTO, area: Infraestructura) -> list[ObservacionVision]:
+        # Va aparte de _obtener_area para que el rechazo audite la especie del área (#552).
         # RF-20: especie y tipo_modelo_asignado del paradigma POBLACIONAL.
         if area.id_especie is None or not es_poblacional(area.tipo_modelo_asignado):
             raise _no_disponible(dto.area_id)
@@ -234,7 +239,7 @@ class CalibrarVisionUseCase:
         # Sin ninguna observación es un caso de datos insuficientes (Etapa 1).
         if observaciones and not any(o.es_apto_para_ia for o in observaciones):
             raise _no_disponible(dto.area_id)
-        return area, observaciones
+        return observaciones
 
     def _registrar_fallida(
         self, calibracion: CalibracionVision, usuario_actual: UsuarioActual
