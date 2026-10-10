@@ -1,3 +1,9 @@
+## [1.0.0-rc.91](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.90...v1.0.0-rc.91) (2026-10-10)
+
+### Bug Fixes
+
+* **rf14-mod1:** despachar el push antes del correo y con urgencia alta ([7acfbec](https://github.com/Arekkazu/sgpmp-backend/commit/7acfbec14de58bd6c5db70e894a87d3d028e16ec))
+
 ## [1.0.0-rc.90](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.89...v1.0.0-rc.90) (2026-10-10)
 
 ### Bug Fixes
