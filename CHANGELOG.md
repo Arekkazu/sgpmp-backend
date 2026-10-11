@@ -1,3 +1,9 @@
+## [1.2.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.2...v1.2.0-rc.3) (2026-10-11)
+
+### Bug Fixes
+
+* **rf06:** informar que la sesion termino por un cambio de estado de la cuenta ([a2701af](https://github.com/Arekkazu/sgpmp-backend/commit/a2701af3d735f495b7c531557de77a668254d43a))
+
 ## [1.2.0-rc.2](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.1...v1.2.0-rc.2) (2026-10-11)
 
 ### Features
