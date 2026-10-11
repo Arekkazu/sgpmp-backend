@@ -1,0 +1,551 @@
+{
+  "run_id": "run-20261010-181553",
+  "grupo": "TC-M09-G143",
+  "casos": {
+    "TC-M09-290": {
+      "evento": "POST /activos-biologicos (alta de lote POBLACIONAL en A1)",
+      "A1": 310,
+      "C1": "249",
+      "observaciones_vision_de_A1": 0,
+      "alta_http": "201",
+      "ID_LOTE": 807,
+      "T_ALTA": "2026-10-11T06:36:13.530Z",
+      "post_manual_calibraciones_vision_sobre_A1": 0,
+      "historial_PRE": [],
+      "historial_POST": [
+        21
+      ],
+      "calibraciones_nuevas": [
+        21
+      ],
+      "disparo_automatico": "SÍ",
+      "baseline_nueva": "NO",
+      "linea_base_vigente": null,
+      "auditoria_fallido": "SÍ",
+      "ventana_observada_desde_el_alta_s": 750.2,
+      "nota_sla": "RF-24 no fija plazo: el tiempo observado es una métrica, no un umbral (§16 y §19). El veredicto se apoya en el efecto observado.",
+      "diagnostico_integracion": {
+        "referencia_analizada": "origin/test 4f09cb6953843cbab06319000c14d1b30feb8a56",
+        "nota_fuente": "se analiza la referencia desplegada; el working tree de la rama QA no contiene los PR y daria un diagnostico falso",
+        "hook_en_el_alta_m02": "PRESENTE",
+        "hook_en_el_cierre_m02": "PRESENTE",
+        "archivos_m02_que_mencionan_la_recalibracion": [
+          "src/biological_assets/application/use_cases/gestion/cerrar_ciclo_use_case.py",
+          "src/biological_assets/application/use_cases/registro/registrar_activo_use_case.py",
+          "src/biological_assets/domain/repositories/recalibracion_vision_port.py",
+          "src/biological_assets/infrastructure/adapters/recalibracion_vision_m09_adapter.py",
+          "src/biological_assets/infrastructure/routers/activo_biologico_router.py"
+        ],
+        "usos_de_OrigenDisparo_AUTOMATICO": [
+          "src/configuration/application/use_cases/sensores/calibrar_vision_use_case.py"
+        ],
+        "mecanismos_asincronos_en_m02": [
+          "src/biological_assets/infrastructure/adapters/recalibracion_vision_m09_adapter.py",
+          "src/biological_assets/infrastructure/routers/activo_biologico_router.py"
+        ],
+        "conclusion": "el mecanismo M02 → M09 existe en la referencia desplegada (PR #554)"
+      },
+      "AUTO_290_ID": 21,
+      "calibracion": {
+        "id_calibracion_vision": 21,
+        "area_id": 310,
+        "especie_id": 78,
+        "origen_disparo": "AUTOMATICO",
+        "id_usuario": null,
+        "estado": "FALLIDA",
+        "etapa_fallo": "FILTRADO",
+        "motivo": "0 observaciones válidas de 0 en la ventana; el mínimo es 30.",
+        "linea_base": null,
+        "n_observaciones": 0,
+        "n_observaciones_validas": 0,
+        "ventana_observacion": {
+          "fin": "2026-10-11T06:36:12.839300+00:00",
+          "inicio": "2026-10-04T06:36:12.839300+00:00"
+        },
+        "fecha_calibracion": "2026-10-11T06:36:12.839300Z",
+        "observaciones": "Disparo automático M02: nuevo lote 807"
+      },
+      "auditoria": {
+        "id_evento": 50334,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 132,
+        "nombre_usuario": "Servicio Sistema SGPMP",
+        "direccion_ip": "PRESENTE",
+        "fecha_evento": "2026-10-11T06:36:12.861667Z",
+        "integridad_ok": true,
+        "operacion": "CALIBRACION_VISION",
+        "origen_disparo": "AUTOMATICO",
+        "codigo_http": 422,
+        "codigo_error": "LINEA_BASE_NO_CALCULADA",
+        "id_infraestructura": 310,
+        "id_especie": 78,
+        "estado": "FALLIDA",
+        "etapa_fallo": "FILTRADO",
+        "motivo_etapa": "0 observaciones válidas de 0 en la ventana; el mínimo es 30.",
+        "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 310 y especie 78. Se conserva la línea base vigente anterior."
+      },
+      "identidad": {
+        "calibracion_id_usuario": null,
+        "auditoria_id_usuario": 132,
+        "auditoria_nombre_usuario": "Servicio Sistema SGPMP",
+        "divergencia_con_la_matriz": "la matriz redacta «usuario nulo» para el disparo automático; la implementación deja nulo el `id_usuario` de la CALIBRACIÓN y firma el evento RF-10 con el usuario de servicio, porque modulo1.eventos.id_usuario no admite NULL. Son dos campos distintos: no se declara que ambos cumplan literalmente lo mismo, y queda para contraste con Desarrollo/Análisis (§6.5 y §18)."
+      },
+      "resultado": "APROBADO",
+      "relacionada_con_G142": "NO"
+    },
+    "TC-M09-291": {
+      "A2": 311,
+      "camaras_de_A2": 0,
+      "T_BEFORE_291": "2026-10-11T06:36:30.514Z",
+      "T_AFTER_291": "2026-10-11T06:36:32.221Z",
+      "http": "422",
+      "error_code": "VISION_NO_DISPONIBLE",
+      "mensaje_obtenido": "Calibración por visión no disponible: El área 311 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+      "mensaje_esperado": "Calibración por visión no disponible: El área 311 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+      "mensaje_exacto": "SÍ",
+      "fields": "[\"area_id\"]",
+      "historial_POST": {
+        "http": 200,
+        "total": 0,
+        "ids": []
+      },
+      "linea_base_POST": {
+        "http": 404,
+        "id_calibracion_vision": null
+      },
+      "baseline_nueva": "NO",
+      "auditoria_encontrada": "SÍ",
+      "auditoria_eventos_en_la_ventana": 1,
+      "auditoria": {
+        "id_evento": 50336,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "nombre_usuario": "Valentina López Herrera",
+        "direccion_ip": "PRESENTE",
+        "user_agent": "PRESENTE",
+        "fecha_evento": "2026-10-11T06:36:31.531190Z",
+        "categoria": "MODIFICACION",
+        "estado": "PROCESADO",
+        "integridad_ok": true,
+        "descripcion": "Calibración por visión rechazada (HTTP 422 VISION_NO_DISPONIBLE)",
+        "detalle": {
+          "operacion": "CALIBRACION_VISION",
+          "id_infraestructura": 311,
+          "id_especie": 78,
+          "codigo_http": 422,
+          "codigo_error": "VISION_NO_DISPONIBLE",
+          "motivo": "Calibración por visión no disponible: El área 311 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+          "id_calibracion_vision": null,
+          "origen_disparo": null,
+          "estado": null,
+          "etapa_fallo": null,
+          "motivo_etapa": null
+        },
+        "detalle_ip": "PRESENTE"
+      },
+      "observacion_id_especie": {
+        "esperado": "78",
+        "obtenido": "78",
+        "coincide": true,
+        "nota": "§29 lista detalle.id_especie entre los campos esperados; §31 no lo incluye entre los criterios de aprobación. Se registra como observación."
+      },
+      "criterios_del_§31": [
+        {
+          "criterio": "POST = 422",
+          "cumple": true,
+          "obtenido": "422"
+        },
+        {
+          "criterio": "error_code VISION_NO_DISPONIBLE",
+          "cumple": true,
+          "obtenido": "VISION_NO_DISPONIBLE"
+        },
+        {
+          "criterio": "mensaje contractual literal",
+          "cumple": true,
+          "obtenido": "SÍ"
+        },
+        {
+          "criterio": "sin baseline nueva",
+          "cumple": true,
+          "obtenido": "NO"
+        },
+        {
+          "criterio": "auditoría existe (exactamente 1 correlacionable)",
+          "cumple": true,
+          "obtenido": 1
+        },
+        {
+          "criterio": "resultado FALLIDO",
+          "cumple": true,
+          "obtenido": "fallido"
+        },
+        {
+          "criterio": "modulo MODULO9",
+          "cumple": true,
+          "obtenido": "MODULO9"
+        },
+        {
+          "criterio": "usuario = Ingeniero (no nulo)",
+          "cumple": true,
+          "obtenido": {
+            "id_usuario": 4,
+            "nombre": "Valentina López Herrera"
+          }
+        },
+        {
+          "criterio": "IP presente",
+          "cumple": true,
+          "obtenido": "PRESENTE"
+        },
+        {
+          "criterio": "fecha dentro de ±1 min",
+          "cumple": true,
+          "obtenido": "2026-10-11T06:36:31.531190Z"
+        },
+        {
+          "criterio": "detalle.operacion CALIBRACION_VISION",
+          "cumple": true,
+          "obtenido": "CALIBRACION_VISION"
+        },
+        {
+          "criterio": "detalle.id_infraestructura = A2",
+          "cumple": true,
+          "obtenido": 311
+        },
+        {
+          "criterio": "detalle.codigo_http 422",
+          "cumple": true,
+          "obtenido": 422
+        },
+        {
+          "criterio": "detalle.codigo_error VISION_NO_DISPONIBLE",
+          "cumple": true,
+          "obtenido": "VISION_NO_DISPONIBLE"
+        },
+        {
+          "criterio": "detalle.motivo = mensaje del rechazo",
+          "cumple": true,
+          "obtenido": "Calibración por visión no disponible: El área 311 no cuenta "
+        }
+      ],
+      "resultado": "APROBADO"
+    }
+  },
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "herramientas": {
+    "ejecutor": "Newman",
+    "verificador": "Pytest (solo lectura)"
+  },
+  "generado": "2026-10-11T06:48:12.013184+00:00",
+  "post_funcionales_de_pytest": 0,
+  "limitaciones": [
+    {
+      "tema": "BD complementaria de TEST",
+      "detalle": "member_qa no tiene SELECT sobre todas las tablas consultadas; el contraste no se pudo completar. No bloquea ni es incidencia funcional (§4 y §30).",
+      "responsable": "DBA / Implementación"
+    }
+  ],
+  "git": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "status_short": [
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G143/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/"
+    ]
+  },
+  "newman": {
+    "html": "newman/newman-TC-M09-G143.html",
+    "requests": 35,
+    "assertions": 90,
+    "failures": 0,
+    "detalle_fallos": []
+  },
+  "presupuesto": {
+    "alta_m02": 1,
+    "post_manual_calibraciones_vision": 1,
+    "ingesta_m03": 0,
+    "get": 27,
+    "patch_restauracion": 1,
+    "otros_post": 3,
+    "logins": 2,
+    "reintentos": 0
+  },
+  "fixture": {
+    "finca_id": "163",
+    "fincas_compartidas": "[162,163]",
+    "tipo_area": "Galpón",
+    "especie_id": "78",
+    "especie_nombre": "Aves Edicion Vyapvsmjtr",
+    "especie_densidad_maxima": "50.0000",
+    "especies_aptas": "[78,82]",
+    "metricas_obligatorias": "[]",
+    "A1": "310",
+    "C1": "249",
+    "dispositivos_de_A1": "[249]",
+    "A2": "311",
+    "dispositivos_de_A2": "[]",
+    "observaciones_vision_de_A1": 0,
+    "tipo_evento_rechazada": "29",
+    "tipo_evento_exitosa": "30"
+  },
+  "N": {
+    "valor": 30,
+    "fuente": "ParametrosLineaBase.min_observaciones — src/configuration/domain/entities/linea_base_vision.py",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8"
+  },
+  "verificador": {
+    "actor": "administador.dev@gmail.com",
+    "modo": "solo lectura: login + GET"
+  },
+  "fixture_verificado": {
+    "A1": {
+      "http": 200,
+      "especie_id": 78,
+      "tipo_modelo_asignado": "MODELO_AVES",
+      "es_activo": true,
+      "dispositivos": [
+        {
+          "id": 249,
+          "categoria": "CAMARA",
+          "es_activo": false
+        }
+      ]
+    },
+    "A2": {
+      "http": 200,
+      "especie_id": 78,
+      "tipo_modelo_asignado": "MODELO_AVES",
+      "es_activo": true,
+      "dispositivos": []
+    }
+  },
+  "lote_290": {
+    "http": 200,
+    "id": 807,
+    "tipo_activo": "POBLACIONAL",
+    "id_especie": 78,
+    "id_infraestructura": 310,
+    "id_estado": 1
+  },
+  "observacion_tc290": {
+    "cadencia_s": [
+      0,
+      2,
+      5,
+      10,
+      20,
+      30
+    ],
+    "escrituras_durante_el_polling": 0,
+    "muestras": [
+      {
+        "t_relativo_s": 0,
+        "instante": "2026-10-11T06:48:13.698868+00:00",
+        "desde_t_alta_s": 720.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      },
+      {
+        "t_relativo_s": 2,
+        "instante": "2026-10-11T06:48:15.702169+00:00",
+        "desde_t_alta_s": 722.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      },
+      {
+        "t_relativo_s": 5,
+        "instante": "2026-10-11T06:48:18.696494+00:00",
+        "desde_t_alta_s": 725.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      },
+      {
+        "t_relativo_s": 10,
+        "instante": "2026-10-11T06:48:23.701979+00:00",
+        "desde_t_alta_s": 730.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      },
+      {
+        "t_relativo_s": 20,
+        "instante": "2026-10-11T06:48:33.705465+00:00",
+        "desde_t_alta_s": 740.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      },
+      {
+        "t_relativo_s": 30,
+        "instante": "2026-10-11T06:48:43.697546+00:00",
+        "desde_t_alta_s": 750.2,
+        "historial_http": 200,
+        "historial_total": 1,
+        "historial_ids": [
+          21
+        ],
+        "linea_base_http": 404,
+        "linea_base_id": null
+      }
+    ]
+  },
+  "auditoria": {
+    "http": 200,
+    "tipo_evento_consultado": 29,
+    "fecha_desde": "2026-10-11T06:35:10",
+    "eventos_de_A1": [
+      {
+        "id_evento": 50334,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 132,
+        "nombre_usuario": "Servicio Sistema SGPMP",
+        "direccion_ip": "PRESENTE",
+        "user_agent": "PRESENTE",
+        "fecha_evento": "2026-10-11T06:36:12.861667Z",
+        "categoria": "MODIFICACION",
+        "estado": "PROCESADO",
+        "integridad_ok": true,
+        "descripcion": "Calibración por visión rechazada (HTTP 422 LINEA_BASE_NO_CALCULADA)",
+        "detalle": {
+          "operacion": "CALIBRACION_VISION",
+          "id_infraestructura": 310,
+          "id_especie": 78,
+          "codigo_http": 422,
+          "codigo_error": "LINEA_BASE_NO_CALCULADA",
+          "motivo": "No se pudo calcular la línea base: datos insuficientes o sin convergencia para el área 310 y especie 78. Se conserva la línea base vigente anterior.",
+          "id_calibracion_vision": 21,
+          "origen_disparo": "AUTOMATICO",
+          "estado": "FALLIDA",
+          "etapa_fallo": "FILTRADO",
+          "motivo_etapa": "0 observaciones válidas de 0 en la ventana; el mínimo es 30."
+        },
+        "detalle_ip": "PRESENTE"
+      }
+    ],
+    "eventos_de_A2": [
+      {
+        "id_evento": 50336,
+        "tipo_evento": 29,
+        "resultado": "fallido",
+        "modulo": "MODULO9",
+        "id_usuario": 4,
+        "nombre_usuario": "Valentina López Herrera",
+        "direccion_ip": "PRESENTE",
+        "user_agent": "PRESENTE",
+        "fecha_evento": "2026-10-11T06:36:31.531190Z",
+        "categoria": "MODIFICACION",
+        "estado": "PROCESADO",
+        "integridad_ok": true,
+        "descripcion": "Calibración por visión rechazada (HTTP 422 VISION_NO_DISPONIBLE)",
+        "detalle": {
+          "operacion": "CALIBRACION_VISION",
+          "id_infraestructura": 311,
+          "id_especie": 78,
+          "codigo_http": 422,
+          "codigo_error": "VISION_NO_DISPONIBLE",
+          "motivo": "Calibración por visión no disponible: El área 311 no cuenta con observaciones de cámara aptas o no tiene un modelo poblacional asignado. Verifique las cámaras (RF-21/22) y la configuración del área (RF-20).",
+          "id_calibracion_vision": null,
+          "origen_disparo": null,
+          "estado": null,
+          "etapa_fallo": null,
+          "motivo_etapa": null
+        },
+        "detalle_ip": "PRESENTE"
+      }
+    ]
+  },
+  "bd_complementaria": {
+    "rol_en_la_matriz": "evidencia COMPLEMENTARIA; no es compuerta",
+    "usuario": "member_qa",
+    "sesion": "READ ONLY — solo SELECT, 0 DML",
+    "privilegios_select": {
+      "modulo3.observaciones_vision": false,
+      "modulo9.calibraciones_vision": false,
+      "modulo9.lineas_base_vision": false,
+      "modulo1.eventos": true
+    },
+    "resultado": {
+      "privilegios": [
+        {
+          "tabla": "modulo3.observaciones_vision",
+          "puede_select": false
+        },
+        {
+          "tabla": "modulo9.calibraciones_vision",
+          "puede_select": false
+        },
+        {
+          "tabla": "modulo9.lineas_base_vision",
+          "puede_select": false
+        },
+        {
+          "tabla": "modulo1.eventos",
+          "puede_select": true
+        }
+      ],
+      "eventos_del_area": {
+        "error": "permission denied for function fn_tiene_permiso"
+      }
+    },
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE",
+    "contradice_a_la_api": "NO"
+  },
+  "resultado": {
+    "TC-M09-290": "APROBADO",
+    "TC-M09-291": "APROBADO",
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE",
+    "nota": "TC-M09-292 se resuelve en el laboratorio LOCAL AISLADO; su resultado vive en evidencia-local.json y en el informe del RUN."
+  },
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO — redactado por patrón",
+    "sql_dml_en_test": 0,
+    "sesion_bd": "READ ONLY",
+    "post_funcionales_ejecutados_por_pytest": 0,
+    "archivos_primera_evaluacion_modificados": "NINGUNO"
+  }
+}

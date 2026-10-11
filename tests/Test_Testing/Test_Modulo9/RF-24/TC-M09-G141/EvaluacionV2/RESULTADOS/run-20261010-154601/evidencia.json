@@ -1,0 +1,519 @@
+{
+  "run_id": "run-20261010-154601",
+  "grupo": "TC-M09-G141",
+  "caso": "TC-M09-287",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "herramienta": "Pytest + API HTTP real contra TEST; BD solo complementaria",
+  "newman": "NO APLICA",
+  "generado": "2026-10-10T20:46:01.981189+00:00",
+  "presupuesto": {
+    "post_calibracion_objetivo": 1,
+    "post_calibracion_setup": 0,
+    "post_vision": 1,
+    "reintentos": 0
+  },
+  "limitaciones": [
+    {
+      "tema": "BD complementaria",
+      "detalle": "member_qa no tiene SELECT sobre las tablas VISION; el contraste de BD no se pudo hacer. No es bug funcional ni bloquea el caso (§4 y §40).",
+      "responsable": "DBA / Implementación"
+    }
+  ],
+  "git": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "status_short": [
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/"
+    ]
+  },
+  "baseline_primera_evaluacion": {
+    "run_id": "run-20261007-102458",
+    "existe": true,
+    "archivos": [
+      "TC-M09-G141_resultado.md",
+      "evidencia.json",
+      "newman.html",
+      "pytest.xml"
+    ],
+    "resultado_previo": {
+      "TC-M09-287": "BLOQUEADO / NO VERIFICABLE",
+      "TC-M09-G141": "BLOQUEADO / NO VERIFICABLE"
+    },
+    "solo_lectura": true
+  },
+  "openapi": {
+    "POST /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision/linea-base": "PRESENTE",
+    "POST /iot/telemetria/vision": "PRESENTE"
+  },
+  "actor": {
+    "rol": "Ingeniero de Campo",
+    "correo": "ingeniero@pecuaria.co",
+    "login": "PASS",
+    "uso": "actor funcional único del caso"
+  },
+  "N": {
+    "valor": 30,
+    "fuente": "ParametrosLineaBase.min_observaciones — src/configuration/domain/entities/linea_base_vision.py",
+    "inyeccion": "el caso de uso lo toma por defecto; no se modificó nada en TEST",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8"
+  },
+  "bd_complementaria": {
+    "rol_en_la_matriz": "evidencia COMPLEMENTARIA; no condiciona la ejecución",
+    "host": "158.69.200.27",
+    "puerto": "5448",
+    "base": "sgpmp_test",
+    "usuario": "member_qa",
+    "sesion": "READ ONLY — solo SELECT, 0 DML",
+    "privilegios_select": {
+      "modulo3.observaciones_vision": false,
+      "modulo9.calibraciones_vision": false,
+      "modulo9.lineas_base_vision": false
+    },
+    "error_de_conexion": null,
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE",
+    "motivo": "member_qa sin privilegio SELECT sobre las tablas VISION",
+    "contraste_post": {
+      "disponible": false,
+      "resultado": {
+        "linea_base_vigente": {
+          "error": "permission denied for table lineas_base_vision"
+        },
+        "calibracion_L2": {
+          "error": "permission denied for table calibraciones_vision"
+        }
+      },
+      "contradice_a_la_api": "NO",
+      "nota": "NO DISPONIBLE: member_qa sin SELECT sobre las tablas VISION. El oráculo del caso es la API (§3 y §4); no se bloquea ni se presenta ninguna lectura de API como si fuera un SELECT."
+    }
+  },
+  "resolucion_A1": {
+    "fincas_del_ingeniero": [
+      1,
+      85,
+      65,
+      162,
+      163,
+      141,
+      117
+    ],
+    "areas_activas_encontradas": 10,
+    "areas_poblacionales_activas_evaluadas": [
+      {
+        "area_id": 289,
+        "nombre": "QA-G140-A1P-20261010-150013",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "linea_base_http": 200,
+        "id_calibracion_vision": 11
+      },
+      {
+        "area_id": 288,
+        "nombre": "QA-G140-A1-20261010-150013",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "linea_base_http": 200,
+        "id_calibracion_vision": 12
+      },
+      {
+        "area_id": 279,
+        "nombre": "QA-G137-AREA-20261010-105849",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "linea_base_http": 200,
+        "id_calibracion_vision": 8
+      },
+      {
+        "area_id": 278,
+        "nombre": "QA-G137-AREA-20261010-105259",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "linea_base_http": 200,
+        "id_calibracion_vision": 2
+      },
+      {
+        "area_id": 268,
+        "nombre": "QA-G31-AREA-1008170709",
+        "especie_id": 109,
+        "tipo_modelo_asignado": "MODELO_ACUICULTURA",
+        "linea_base_http": 404,
+        "id_calibracion_vision": null
+      },
+      {
+        "area_id": 161,
+        "nombre": "Area Activa Ingeniero",
+        "especie_id": 81,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "linea_base_http": 200,
+        "id_calibracion_vision": 1
+      }
+    ],
+    "criterio": "activa, con especie, tipo_modelo_asignado del paradigma POBLACIONAL, accesible para el Ingeniero y con GET linea-base en 200",
+    "nota_tc275": "§14: no se exige que L1 siga siendo el id creado por TC-M09-275; basta una L1 vigente y verificable por API"
+  },
+  "A1": {
+    "id": 289,
+    "nombre": "QA-G140-A1P-20261010-150013",
+    "especie_id": 41,
+    "tipo_modelo_asignado": "MODELO_AVES",
+    "paradigma": "POBLACIONAL",
+    "es_activo": true,
+    "finca_id": 163,
+    "accesible_para_el_ingeniero": true
+  },
+  "L1": {
+    "fuente": "REUTILIZADA — no se creó ninguna calibración de setup",
+    "id_calibracion_vision": 11,
+    "area_id": 289,
+    "especie_id": 41,
+    "valores": {
+      "tasa_movimiento": 5.0,
+      "densidad_actividad": 10.0
+    },
+    "componentes_no_calibrables": [],
+    "fecha_publicacion": "2026-10-10T20:00:21.614029Z"
+  },
+  "historial_PRE": {
+    "http": 200,
+    "total": 1,
+    "ids": [
+      11
+    ],
+    "ventanas_usadas": [
+      {
+        "id_calibracion_vision": 11,
+        "inicio": "2026-06-03T00:00:00Z",
+        "fin": "2026-06-03T06:00:00Z"
+      }
+    ],
+    "L1_en_historial": true
+  },
+  "W2": {
+    "inicio": "2026-06-18T00:00:00Z",
+    "fin": "2026-06-18T06:00:00Z",
+    "posterior_a_la_ventana_de_L1": true,
+    "ultimo_fin_conocido_del_area": "2026-06-03T06:00:00Z",
+    "solapamientos_detectados": [],
+    "cerrada_y_en_el_pasado": true,
+    "dataset": {
+      "componentes_objetivo": {
+        "densidad_actividad": 20.0,
+        "tasa_movimiento": 8.0
+      },
+      "L1_valores_de_referencia": {
+        "tasa_movimiento": 5.0,
+        "densidad_actividad": 10.0
+      },
+      "n_enviadas": 30,
+      "paso_minutos": 5,
+      "calidad": {
+        "cobertura_ventana": "1.0000",
+        "n_tracks": 20,
+        "n_tracks_perdidos": 0,
+        "fps_efectivo": "30.00",
+        "estado_calibracion": "CALIBRADA"
+      },
+      "variacion": "determinista, (i % 3) * 0.01; sin aleatoriedad"
+    },
+    "ingesta": {
+      "http": 201,
+      "total": 30,
+      "aceptadas": 30,
+      "duplicadas": 0,
+      "aptas": 30,
+      "indices_distintos": [
+        100
+      ],
+      "clasificaciones": [
+        "APTO"
+      ],
+      "ids": [
+        360,
+        361,
+        362,
+        363,
+        364,
+        365,
+        366,
+        367,
+        368,
+        369,
+        370,
+        371,
+        372,
+        373,
+        374,
+        375,
+        376,
+        377,
+        378,
+        379,
+        380,
+        381,
+        382,
+        383,
+        384,
+        385,
+        386,
+        387,
+        388,
+        389
+      ]
+    }
+  },
+  "camara": {
+    "camaras_del_area": [
+      {
+        "id": 224,
+        "categoria": "CAMARA",
+        "es_activo": false,
+        "fps": 30
+      }
+    ],
+    "activas_preexistentes": [],
+    "decision": "cámara NUEVA y exclusiva del RUN; no había ninguna cámara activa en el área (las de los grupos anteriores quedaron inactivas y RF-21 no publica reactivación)",
+    "creada": {
+      "id": 225,
+      "serial": "[REDACTED]",
+      "categoria": "CAMARA",
+      "es_activo": true,
+      "fps_nominal": 30,
+      "resolucion": "1920x1080",
+      "id_infraestructura": 289
+    }
+  },
+  "snapshot_PRE": {
+    "http": 200,
+    "PRE_BASELINE_ID": 11,
+    "PRE_ESPECIE_ID": 41,
+    "PRE_LINEA_BASE": {
+      "valores": {
+        "tasa_movimiento": 5.0,
+        "densidad_actividad": 10.0
+      },
+      "componentes_no_calibrables": []
+    },
+    "PRE_FECHA_PUBLICACION": "2026-10-10T20:00:21.614029Z",
+    "historial_ids": [
+      11
+    ],
+    "coincide_con_L1": true
+  },
+  "post_objetivo": {
+    "request": {
+      "modo_calibracion": "VISION",
+      "area_id": 289,
+      "ventana_observacion": {
+        "inicio": "2026-06-18T00:00:00Z",
+        "fin": "2026-06-18T06:00:00Z"
+      },
+      "observaciones": "QA TC-M09-287 reemplazo línea base",
+      "fecha_calibracion": "2026-10-10T20:46:07.794993+00:00"
+    },
+    "http": 201,
+    "response": {
+      "id_calibracion_vision": 13,
+      "modo_calibracion": "VISION",
+      "area_id": 289,
+      "especie_id": 41,
+      "origen_disparo": "MANUAL",
+      "id_usuario": 4,
+      "ventana_observacion": {
+        "fin": "2026-06-18T06:00:00Z",
+        "inicio": "2026-06-18T00:00:00Z"
+      },
+      "fecha_calibracion": "2026-10-10T20:46:07.794993Z",
+      "estado": "EXITOSA",
+      "etapa_fallo": null,
+      "motivo": null,
+      "linea_base": {
+        "valores": {
+          "tasa_movimiento": 8.01,
+          "densidad_actividad": 20.01
+        },
+        "componentes_no_calibrables": []
+      },
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "iteraciones": 1,
+      "observaciones": "QA TC-M09-287 reemplazo línea base"
+    },
+    "http_esperado": "2xx",
+    "resumen": {
+      "L2_CAL_ID": 13,
+      "estado": "EXITOSA",
+      "especie_id": 41,
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "iteraciones": 1,
+      "origen_disparo": "MANUAL",
+      "id_usuario": 4,
+      "valores": {
+        "tasa_movimiento": 8.01,
+        "densidad_actividad": 20.01
+      }
+    }
+  },
+  "linea_base_POST": {
+    "http": 200,
+    "id_calibracion_vision": 13,
+    "especie_id": 41,
+    "linea_base": {
+      "valores": {
+        "tasa_movimiento": 8.01,
+        "densidad_actividad": 20.01
+      },
+      "componentes_no_calibrables": []
+    },
+    "fecha_publicacion": "2026-10-10T20:46:07.794993Z"
+  },
+  "comparacion_L1_L2": {
+    "L1_ID": 11,
+    "L2_ID": 13,
+    "L1_VALORES": {
+      "tasa_movimiento": 5.0,
+      "densidad_actividad": 10.0
+    },
+    "L2_VALORES": {
+      "tasa_movimiento": 8.01,
+      "densidad_actividad": 20.01
+    },
+    "PRE_vigente": 11,
+    "POST_vigente": 13,
+    "L1_distinta_de_L2": "SÍ",
+    "GET_apunta_a_L2": "SÍ",
+    "POST_igual_a_GET": "SÍ",
+    "L1_ya_no_vigente": "SÍ",
+    "valores_L2_distintos_de_L1": "SÍ",
+    "reemplazo_confirmado": "SÍ"
+  },
+  "historial_POST": {
+    "http": 200,
+    "total": 2,
+    "ids": [
+      13,
+      11
+    ],
+    "L2_en_historial": "SÍ",
+    "L2": {
+      "id_calibracion_vision": 13,
+      "estado": "EXITOSA",
+      "etapa_fallo": null,
+      "n_observaciones": 30,
+      "n_observaciones_validas": 30,
+      "iteraciones": 1,
+      "origen_disparo": "MANUAL",
+      "id_usuario": 4,
+      "ventana_observacion": {
+        "fin": "2026-06-18T06:00:00Z",
+        "inicio": "2026-06-18T00:00:00Z"
+      }
+    },
+    "L1_conservada_en_historial": "SÍ",
+    "nota": "la matriz no exige conservación histórica de L1 (§29 y §39): su presencia se registra como evidencia y su ausencia no rechazaría el caso"
+  },
+  "criterio_aprobacion": [
+    {
+      "n": 1,
+      "criterio": "L1 vigente PRE verificable por API",
+      "cumple": true
+    },
+    {
+      "n": 2,
+      "criterio": "W2 posterior y con >= N observaciones aptas",
+      "cumple": true
+    },
+    {
+      "n": 3,
+      "criterio": "ingesta con aceptadas = esperadas y duplicadas = 0",
+      "cumple": true
+    },
+    {
+      "n": 4,
+      "criterio": "POST del segundo cálculo 2xx",
+      "cumple": true
+    },
+    {
+      "n": 5,
+      "criterio": "estado EXITOSA",
+      "cumple": true
+    },
+    {
+      "n": 6,
+      "criterio": "se obtiene L2_CAL_ID",
+      "cumple": true
+    },
+    {
+      "n": 7,
+      "criterio": "GET línea-base POST apunta a L2_CAL_ID",
+      "cumple": true
+    },
+    {
+      "n": 8,
+      "criterio": "L2_CAL_ID != L1_ID",
+      "cumple": true
+    },
+    {
+      "n": 9,
+      "criterio": "la API ya no presenta L1 como vigente",
+      "cumple": true
+    },
+    {
+      "n": 10,
+      "criterio": "valores del GET L2 iguales a los del POST",
+      "cumple": true
+    },
+    {
+      "n": 11,
+      "criterio": "L2 aparece en el historial",
+      "cumple": true
+    },
+    {
+      "n": 12,
+      "criterio": "la BD, si está disponible, no contradice la API",
+      "cumple": true
+    }
+  ],
+  "resultado": {
+    "TC-M09-287": "APROBADO",
+    "TC-M09-G141": "APROBADO",
+    "incidencia_requerida": "NO",
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE",
+    "nota_bd": "la ausencia de SELECT de QA no es incidencia funcional y no bloqueó el caso (§4 y §40)"
+  },
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO — redactado por patrón, solo en memoria",
+    "sql_dml_en_test": 0,
+    "sesion_bd": "READ ONLY",
+    "baseline_primera_evaluacion_modificada": "NO"
+  },
+  "restauracion": {
+    "camara_desactivada": {
+      "id": 225,
+      "http": 200
+    },
+    "pendientes": [],
+    "L2_conservada": "SÍ — es resultado funcional válido de la prueba",
+    "linea_base_vigente_conservada": "SÍ",
+    "sql_dml": 0,
+    "verificacion": {
+      "http": 200,
+      "es_activo": false
+    }
+  }
+}
