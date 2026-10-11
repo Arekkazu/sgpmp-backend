@@ -116,7 +116,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"correo_electronico\": \"m2m.nuevo@ejemplo.com\",\n  \"contrasena\": \"Test1234!\"\n}"
+          "raw": "{\n  \"correo_electronico\": \"{{productor_correo}}\",\n  \"contrasena\": \"{{productor_contrasena}}\"\n}"
         },
         "url": {
           "raw": "{{base_url}}/sesiones/",
@@ -469,6 +469,16 @@
     {
       "key": "tok_vet",
       "value": ""
+    },
+    {
+      "key": "productor_correo",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "productor_contrasena",
+      "value": "",
+      "type": "string"
     }
   ]
 }
