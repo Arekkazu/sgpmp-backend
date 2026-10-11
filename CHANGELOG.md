@@ -1,3 +1,15 @@
+## [1.2.0-rc.4](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.3...v1.2.0-rc.4) (2026-10-11)
+
+### Features
+
+* **rf15:** grupo de manejo obligatorio en la especie (RF-15 v1.1, RFC-009) ([21e161c](https://github.com/Arekkazu/sgpmp-backend/commit/21e161c202840a0671e7d7c9e157c8255f169c09))
+
+### Bug Fixes
+
+* **rf08:** usar la IP real del cliente detras del proxy en los limites por IP (INC-M01-12-107) ([8d45ec8](https://github.com/Arekkazu/sgpmp-backend/commit/8d45ec867a50dd1ca33fcf227112100cbef2f541))
+* **rf16:** ignorar valor_min y valor_max en metricas TEXTO o BOOLEANO en vez de rechazarlos ([e201aad](https://github.com/Arekkazu/sgpmp-backend/commit/e201aada21f2b39b15764b50f00c8bccc9ba8b51)), closes [#558](https://github.com/Arekkazu/sgpmp-backend/issues/558)
+* **rf20:** responder 422 al desactivar un area con sensores asociados (INC-M09-20-02) ([e0ea136](https://github.com/Arekkazu/sgpmp-backend/commit/e0ea136462091ed43b654636a3b623f6eb386a82))
+
 ## [1.2.0-rc.3](https://github.com/Arekkazu/sgpmp-backend/compare/v1.2.0-rc.2...v1.2.0-rc.3) (2026-10-11)
 
 ### Bug Fixes
