@@ -160,6 +160,13 @@ services:
       MQTT_BROKER_HTTP_TIMEOUT: ${MQTT_BROKER_HTTP_TIMEOUT:-35}
     volumes:
       - sgpmp_modelos_prod:/app/storage/modelos
+      # RF-14: credenciales del service account de Firebase (push FCM), igual
+      # que en docker-compose.yml (DEV/TEST, #544). El JSON se carga como File
+      # Mount del compose en Dokploy con File Path `firebase.json`, que Dokploy
+      # guarda en ../files/, y FIREBASE_CREDENTIALS_PATH debe ser
+      # /app/secrets/firebase.json. Sin el archivo, Docker crea una carpeta
+      # vacia y el backend solo deja el push deshabilitado (no se cae).
+      - ../files/firebase.json:/app/secrets/firebase.json:ro
     # Sin `ports:`: Traefik enruta al backend por dominio dentro de la red.
     expose:
       - "8000"
