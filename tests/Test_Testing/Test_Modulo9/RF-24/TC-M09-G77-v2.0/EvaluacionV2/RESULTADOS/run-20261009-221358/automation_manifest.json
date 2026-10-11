@@ -1,0 +1,38 @@
+{
+  "grupo": "TC-M09-G77-v2.0",
+  "caso": "TC-M09-148-v2.0",
+  "runId": "run-20261009-221358",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se duplica automation dentro de RESULTADOS.",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g77-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/automation/run-g77-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de validacion previa, sin HTML ni archivos), run (RUN funcional oficial con los 2 POST y el unico HTML) y close (verificacion final de solo lectura y consolidacion de evidencia). No inyecta tokens a Newman y no ejecuta PATCH ni /gestionar.",
+      "sha256": "d9f2f4f0aff37dbfae13290f2d4a35f3d838d47ce4f32e156cc401658c908fff",
+      "bytes": 51842
+    },
+    {
+      "archivo": "TC-M09-G77-v2.0.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/TC-M09-G77-v2.0.postman_collection.json",
+      "funcion": "Copia de la coleccion funcional para EvaluacionV2. Cambios de infraestructura: los 3 GET de fixture leen con ing_session porque el Administrador perdio alcance, y la localizacion de actores y la captura de estados originales se hacen dentro de Newman con admin_session. El oraculo funcional (2 POST /calibrar, HTTP 403, mensaje exacto, assertions) es el de la primera evaluacion.",
+      "sha256": "748622dc560d011a7d6875e8e334d0b8aef33bff7d4351a91f96a7cd7c4efa45",
+      "bytes": 32450
+    },
+    {
+      "archivo": "TC-M09-G77-v2.0.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/TC-M09-G77-v2.0.postman_collection.json",
+      "funcion": "Coleccion funcional de la primera evaluacion. Reutilizada como fuente, en solo lectura; no fue modificada.",
+      "sha256": "be9aee812b1f6e4e7da2e0fe8c5abfde128ab2279c7338a575f15ca7b9ff0a76",
+      "bytes": 27787
+    },
+    {
+      "archivo": "helpers.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/helpers.cjs",
+      "funcion": "Helpers de la primera evaluacion. NO se utilizan en esta reevaluacion: el runner unico no los requiere. Se registran por trazabilidad del baseline.",
+      "sha256": "11105654bbb52783c01a7c2451f70bbaa3bcde57527fbfd76acf068160a45e0d",
+      "bytes": 14489
+    }
+  ]
+}

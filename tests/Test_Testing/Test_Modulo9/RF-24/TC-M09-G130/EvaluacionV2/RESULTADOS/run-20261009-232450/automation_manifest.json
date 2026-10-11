@@ -1,0 +1,42 @@
+{
+  "grupo": "TC-M09-G130",
+  "casos": [
+    "TC-M09-256",
+    "TC-M09-257"
+  ],
+  "runId": "run-20261009-232450",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se duplica automation dentro de RESULTADOS.",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g130-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/automation/run-g130-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de solo lectura, sin HTML ni archivos), run (RUN funcional oficial con los 2 POST y el unico HTML) y close (oraculo por caso, verificacion final de solo lectura y consolidacion de evidencia). No inyecta tokens a Newman y no ejecuta PATCH, PUT ni DELETE.",
+      "sha256": "d3e411d8db64b52e2228d4188e1ca9066998e09d8060cd3716c11af103ee9b9e",
+      "bytes": 54557,
+      "sha256_anterior": "cdbfe147c8a0679d446a1e9dc254a8a5a1eaa1e1b70bc27fcf5ee78999f4facf"
+    },
+    {
+      "archivo": "TC-M09-G130.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/TC-M09-G130.postman_collection.json",
+      "funcion": "Copia de la coleccion funcional para EvaluacionV2. Cambios de infraestructura: tres GET de precondicion leen con ing_session porque el Administrador perdio alcance, y se anade un GET del Administrador como confirmacion adicional. Criterio auxiliar del historial del sensor inexistente actualizado por autorizacion de QA al contrato vigente 404 SENSOR_NO_ENCONTRADO. Los 2 POST /calibrar, sus bodies, el HTTP 404 esperado y el mensaje comun exacto son byte-identicos a la primera evaluacion.",
+      "sha256": "58b879feafe180b868a80ec74a3ea91055af145c3606b6e11063b30baa6c6f49",
+      "bytes": 23569
+    },
+    {
+      "archivo": "TC-M09-G130.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/TC-M09-G130.postman_collection.json",
+      "funcion": "Coleccion funcional de la primera evaluacion. Reutilizada como fuente, en solo lectura; no fue modificada.",
+      "sha256": "d6ac893e6a22caa7f49358ee73581478dc58c61f70ff23ac98786b8a7785f971",
+      "bytes": 19168
+    },
+    {
+      "archivo": "run-newman.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/run-newman.cjs",
+      "funcion": "Runner de la primera evaluacion. NO se utiliza en esta reevaluacion: se registra por trazabilidad del baseline.",
+      "sha256": "7ae789693dd8fba8bea4b2395a3971bf8c254da6f9bc0aee883d9df9c79b893f",
+      "bytes": 25025
+    }
+  ]
+}
