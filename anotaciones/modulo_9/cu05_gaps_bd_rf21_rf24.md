@@ -132,7 +132,8 @@ consultar, igual que la calibración SENSOR (tabla de abajo).
 Los umbrales de las etapas usan los valores por defecto de `ParametrosLineaBase`, porque la
 ficha los deja "configurados" sin fijar valores: mínimo 30 observaciones, cobertura ≥ 0,5,
 ≥ 1 track, 10 datos por componente, ε = 1 %, 10 iteraciones. El disparo automático desde
-M02 tampoco está conectado: no existe el evento de nuevo lote / fin de ciclo hacia M09.
+M02 (nuevo lote / fin de ciclo) quedó conectado en #551; ver
+`fix_rf24_g142_disparo_automatico_vision_m02.md`.
 
 ## Simplificaciones conocidas
 
