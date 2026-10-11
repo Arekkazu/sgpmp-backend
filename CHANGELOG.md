@@ -1,3 +1,9 @@
+## [1.0.0-rc.96](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.95...v1.0.0-rc.96) (2026-10-11)
+
+### Bug Fixes
+
+* **alembic:** vistas de M01, M02 y M09 aplicables en BD nueva y en DEV, con downgrade reversible ([2ef8011](https://github.com/Arekkazu/sgpmp-backend/commit/2ef80117684b4bc2d5ed8552fc4997e5c2b39129))
+
 ## [1.0.0-rc.95](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.94...v1.0.0-rc.95) (2026-10-11)
 
 ### Features
