@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import func
+from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
 from src.configuration.domain.entities.especie import Especie
@@ -37,7 +37,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             nombre=rehidratar(NombreEspecie, orm.nombre),
             descripcion=orm.descripcion,
             densidad_maxima_por_especie=orm.densidad_maxima_por_especie,
-            tipo_modelo=orm.tipo_modelo,
+            grupo_manejo=orm.grupo_manejo,
             es_activo=orm.es_activo,
             fecha_creacion=orm.fecha_creacion,
             fecha_actualizacion=orm.fecha_actualizacion,
@@ -49,7 +49,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
             nombre=especie.nombre.valor,
             descripcion=especie.descripcion,
             densidad_maxima_por_especie=especie.densidad_maxima_por_especie,
-            tipo_modelo=especie.tipo_modelo,
+            grupo_manejo=especie.grupo_manejo,
             es_activo=especie.es_activo,
             fecha_creacion=especie.fecha_creacion or datetime.now(timezone.utc),
         )
@@ -87,7 +87,7 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         orm.nombre = especie.nombre.valor
         orm.descripcion = especie.descripcion
         orm.densidad_maxima_por_especie = especie.densidad_maxima_por_especie
-        orm.tipo_modelo = especie.tipo_modelo
+        orm.grupo_manejo = especie.grupo_manejo
         orm.es_activo = especie.es_activo
         orm.fecha_actualizacion = especie.fecha_actualizacion
         try:
@@ -118,3 +118,12 @@ class SqlAlchemyEspecieRepository(EspecieRepository):
         if tipo_modelo is not None:
             consulta = consulta.filter(InfraestructuraModel.tipo_modelo_asignado != tipo_modelo)
         return consulta.scalar()
+
+    def contar_activos_alojados(self, id_especie: int) -> int:
+        return self.db.execute(
+            text(
+                "SELECT activos_biologicos_alojados FROM modulo9.vw_rf15_dependencias_especie "
+                "WHERE id_especie = :id"
+            ),
+            {"id": id_especie},
+        ).scalar() or 0

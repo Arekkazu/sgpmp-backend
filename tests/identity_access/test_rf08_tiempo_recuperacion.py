@@ -207,10 +207,10 @@ def test_fallo_de_persistencia_no_programa_correo() -> None:
     [
         (
             "recuperacion",
-            "Restablece tu contraseña en SGPMP",
+            "Restablece tu contraseña en SIGAB",
             "restablecer-contrasena",
         ),
-        ("activacion", "Activa tu cuenta en SGPMP", "activar?token="),
+        ("activacion", "Activa tu cuenta en SIGAB", "activar?token="),
     ],
 )
 def test_tarea_background_usa_plantilla_y_sesion_independiente(
@@ -247,6 +247,8 @@ def test_tarea_background_usa_plantilla_y_sesion_independiente(
     assert contenido_esperado in datos["contenido_html_email"]
     assert "token-crudo-041" in datos["contenido_html_email"]
     assert datos["aplicar_anti_spam_email"] is False
+    # Correo con token: conserva los 3 intentos (no la regla de RF-14).
+    assert datos["intentos_email"] == 3
     db.close.assert_called_once_with()
 
 
@@ -299,7 +301,7 @@ def test_token_nuevo_omite_anti_spam_solo_para_el_email(
         tipo_evento=7,
         id_usuario=41,
         correo_destino="persona@example.com",
-        asunto_email="Restablece tu contraseña en SGPMP",
+        asunto_email="Restablece tu contraseña en SIGAB",
         contenido_html_email="<p>token nuevo</p>",
         aplicar_anti_spam_email=False,
     )
@@ -307,8 +309,9 @@ def test_token_nuevo_omite_anti_spam_solo_para_el_email(
     assert enviados == [
         {
             "to": "persona@example.com",
-            "subject": "Restablece tu contraseña en SGPMP",
+            "subject": "Restablece tu contraseña en SIGAB",
             "html_body": "<p>token nuevo</p>",
+            "intentos": 1,
         }
     ]
     assert port.registrar.call_count == 1

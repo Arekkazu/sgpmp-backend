@@ -1,0 +1,38 @@
+{
+  "grupo": "TC-M09-G80-v2.0",
+  "caso": "TC-M09-151-v2.0",
+  "runId": "run-20261009-224303",
+  "nota": "Artefactos finales de la SEGUNDA EVALUACION. Los ejecutables viven unicamente en EvaluacionV2/; no se copia automation dentro de RESULTADOS.",
+  "newmanHtmlPersistentes": 1,
+  "automationDentroDeResultados": "NO",
+  "artefactos": [
+    {
+      "archivo": "run-g80-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/automation/run-g80-v2.cjs",
+      "funcion": "Runner unico de la reevaluacion, con los modos precheck (Newman de validacion previa, sin HTML ni archivos), run (RUN funcional oficial con el unico POST de calibracion y el unico HTML) y close (oraculo RF-10 con paginacion completa y correlacion estructurada, verificacion final de solo lectura y consolidacion de evidencia). No inyecta tokens a Newman y no ejecuta ninguna escritura fuera del POST autorizado.",
+      "sha256": "03d03e8c6d52df4b8f76ea7cb3a13d06fcd83bf757070508ad47e5bb2ef78dc3",
+      "bytes": 53454
+    },
+    {
+      "archivo": "TC-M09-G80-v2.0.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/TC-M09-G80-v2.0.postman_collection.json",
+      "funcion": "Copia de la coleccion funcional para EvaluacionV2. Cambios de infraestructura: los 2 GET de fixture leen con ing_session porque el Administrador perdio alcance, y se anade un GET del catalogo RF-10 que solo registra. El oraculo funcional (1 POST /calibrar, fixture, valores y criterio de auditoria) es el de la primera evaluacion.",
+      "sha256": "aa28f0dfcbab5ce99c506a0b3f8e130902029c8db177169d21a4de4a094fff0d",
+      "bytes": 20702
+    },
+    {
+      "archivo": "TC-M09-G80-v2.0.postman_collection.json (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/TC-M09-G80-v2.0.postman_collection.json",
+      "funcion": "Coleccion funcional de la primera evaluacion. Reutilizada como fuente, en solo lectura; no fue modificada.",
+      "sha256": "31c6d75d6c76798e0b85bc20ac08de7470eed42f33de0316020640575e970e0a",
+      "bytes": 18187
+    },
+    {
+      "archivo": "run-newman.cjs (original)",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/run-newman.cjs",
+      "funcion": "Runner de la primera evaluacion. NO se utiliza en esta reevaluacion: se registra por trazabilidad del baseline.",
+      "sha256": "70e2461ae852da497dbe3d84855c9ae3019916d086508d2ba4896dd1238053b7",
+      "bytes": 21898
+    }
+  ]
+}

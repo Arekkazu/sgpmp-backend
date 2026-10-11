@@ -1,0 +1,1029 @@
+{
+ "info": {
+  "name": "TC-M09-G132 — SEGUNDA EVALUACIÓN (RF-24 v2.0)",
+  "description": "SEGUNDA EVALUACION de TC-M09-G132 (RF-24 v2.0), casos TC-M09-261 y TC-M09-262.\n\nLa coleccion de la primera evaluacion era un unico item generico cuyo body, sensor y TOKEN inyectaba el runner desde fuera. Esta copia despliega los CUATRO POST funcionales como items propios y la coleccion pasa a ser DUENA DE SU SESION: hace su propio login y publica el token en {{session_value}}. El runner no obtiene ningun token ni lo inyecta, porque TEST aplica sesion unica por usuario (regla corregida desde G76).\n\nSe conservan del plan original: los cuatro POST, sus inputs, sus expected, los mensajes literales de formato decimal invalido, las verificaciones de historial y el caso de precision.\n\nTC-M09-262 envia valor_referencia 22.1234 como numero JSON y debe persistir EXACTAMENTE una calibracion con ese decimal, sin redondeo. TC-M09-261 envia \"NaN\", \"Infinity\" y \"-Infinity\" tal cual, como cadenas, sin convertirlos a null, 0 ni cadena vacia; cada uno debe responder HTTP 400 con el mensaje literal de formato y no persistir nada.\n\nLa comparacion de 22.1234 es DECIMAL EXACTA por normalizacion textual, no por float binario. No se envian 5 o mas decimales, ni notacion cientifica, ni null, ni \"abc\": estan fuera del alcance del RF. El contrato OpenAPI se consulta como DIAGNOSTICO y no decide el resultado.",
+  "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+ },
+ "item": [
+  {
+   "name": "Login Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// La coleccion es duena de la sesion: hace su propio login y publica el token.",
+       "// El runner nunca obtiene un token ni lo inyecta (TEST aplica sesion unica por usuario).",
+       "pm.test('Login del Ingeniero de Campo es exitoso (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.expect(b.token, 'token del Ingeniero').to.be.a('string').and.not.empty;",
+       "pm.environment.set('session_value', b.token);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/",
+     "host": [
+      "{{base_url}}/sesiones/"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{\"correo_electronico\":\"{{ing_email}}\",\"contrasena\":\"{{ing_secret}}\"}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Contrato OpenAPI",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// DIAGNOSTICO del contrato desplegado (regla 20). Registra; no sustituye a la prueba.",
+       "pm.test('OpenAPI responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const api = pm.response.json();",
+       "const post = api.paths && api.paths['/configuracion/sensores/{id_sensor}/calibrar'] && api.paths['/configuracion/sensores/{id_sensor}/calibrar'].post;",
+       "const hist = api.paths && api.paths['/configuracion/sensores/{id_sensor}/calibraciones'] && api.paths['/configuracion/sensores/{id_sensor}/calibraciones'].get;",
+       "pm.test('El endpoint de calibracion esta desplegado', () => pm.expect(post, 'POST calibrar').to.exist);",
+       "pm.test('El endpoint de historial esta desplegado', () => pm.expect(hist, 'GET calibraciones').to.exist);",
+       "const sch = api.components && api.components.schemas && api.components.schemas.RegistrarCalibracionDTO;",
+       "const vr = sch && sch.properties && sch.properties.valor_referencia;",
+       "const modo = sch && sch.properties && sch.properties.modo_calibracion;",
+       "pm.environment.set('openapi_valor_referencia', JSON.stringify(vr || null));",
+       "pm.environment.set('openapi_modo', JSON.stringify(modo || null));",
+       "pm.environment.set('openapi_required', JSON.stringify((sch && sch.required) || []));",
+       "pm.environment.set('openapi_codigos_calibrar', JSON.stringify(post ? Object.keys(post.responses || {}) : []));",
+       "pm.environment.set('openapi_codigos_historial', JSON.stringify(hist ? Object.keys(hist.responses || {}) : []));",
+       "// El contrato no expresa la deteccion de valores no finitos. Se registra si el patron",
+       "// de cadena publicado admitiria NaN/Infinity, como dato diagnostico.",
+       "let patron = null;",
+       "if (vr && vr.anyOf) { const s = vr.anyOf.filter(x => x.pattern)[0]; patron = s ? s.pattern : null; }",
+       "pm.environment.set('openapi_patron_valor', patron === null ? '(sin patron)' : patron);",
+       "let admiteNoFinitos = 'NO VERIFICABLE';",
+       "if (patron) { try { const re = new RegExp(patron); admiteNoFinitos = (re.test('NaN') || re.test('Infinity')) ? 'SI' : 'NO'; } catch (e) { admiteNoFinitos = 'NO VERIFICABLE'; } }",
+       "pm.environment.set('openapi_patron_admite_no_finitos', admiteNoFinitos);",
+       "console.log('OpenAPI valor_referencia: ' + JSON.stringify(vr));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [],
+    "url": {
+     "raw": "{{base_url}}/openapi.json",
+     "host": [
+      "{{base_url}}/openapi.json"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Identidad Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Identidad responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('Es el actor funcional del caso', () => pm.expect(b.correo_electronico).to.eql(pm.environment.get('ing_email')));",
+       "pm.test('El rol es Ingeniero de Campo', () => pm.expect(b.nombre_rol).to.eql('Ingeniero de Campo'));",
+       "pm.test('La cuenta esta Activa', () => pm.expect(b.estado_cuenta).to.eql('Activo'));",
+       "// id_usuario dinamico: no se hardcodea aunque historicamente haya sido 4.",
+       "pm.environment.set('ing_id', String(b.id_usuario));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/usuarios/me",
+     "host": [
+      "{{base_url}}/usuarios/me"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Permisos Ingeniero",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Permisos responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const acciones = (b.permisos || []).filter(p => p.id_recurso === 12).map(p => p.id_accion);",
+       "pm.environment.set('permisos_recurso12', JSON.stringify(acciones));",
+       "pm.test('Tiene permiso de calibracion (recurso 12, accion 1)', () => pm.expect(acciones).to.include(1));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/sesiones/me/permisos",
+     "host": [
+      "{{base_url}}/sesiones/me/permisos"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — dispositivo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Dispositivo responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('El dispositivo del fixture esta activo', () => pm.expect(b.es_activo).to.eql(true));",
+       "pm.test('El dispositivo es el del fixture', () => pm.expect(Number(b.id_dispositivo_iot)).to.eql(Number(pm.environment.get('device'))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device}}",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot/{{device}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — sensor del dispositivo",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Sensores del dispositivo responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+       "const row = (b.items || []).filter(x => Number(sid(x)) === Number(pm.environment.get('sensor')))[0];",
+       "pm.test('El sensor pertenece al dispositivo del fixture', () => { pm.expect(row, 'sensor en el dispositivo').to.exist; pm.expect(Number(row.id_dispositivo_iot)).to.eql(Number(pm.environment.get('device'))); });",
+       "pm.test('El sensor esta activo', () => pm.expect(row.es_activo).to.eql(true));",
+       "pm.test('La categoria del sensor es la esperada', () => pm.expect(row.categoria).to.eql(pm.environment.get('categoria')));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/dispositivos-iot/{{device}}/sensores",
+     "host": [
+      "{{base_url}}/configuracion/dispositivos-iot/{{device}}/sensores"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — asociación vigente",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Asociaciones responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const sid = (x) => (x.id_sensor !== undefined ? x.id_sensor : x.id_sensores);",
+       "const vig = (b.items || []).filter(x => x.tiene_estado === true && (x.fecha_finalizacion === null || x.fecha_finalizacion === undefined) && Number(sid(x)) === Number(pm.environment.get('sensor')));",
+       "const a = vig.filter(x => Number(x.id_dispositivo_iot) === Number(pm.environment.get('device')) && Number(x.id_infraestructura) === Number(pm.environment.get('area')))[0];",
+       "pm.test('El sensor esta asociado ahora mismo al area del fixture', () => pm.expect(a, 'asociacion vigente sensor-dispositivo-area').to.exist);",
+       "pm.environment.set('asociacion_vigente', JSON.stringify(vig.map(x => ({ d: x.id_dispositivo_iot, i: x.id_infraestructura }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/asociaciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/asociaciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — área de la asociación",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "pm.test('Area responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('El area de la asociacion esta activa', () => pm.expect(b.es_activo).to.eql(true));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/infraestructuras/{{area}}",
+     "host": [
+      "{{base_url}}/configuracion/infraestructuras/{{area}}"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "Fixture — rangos de calibración",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "pm.test('Rangos responde 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const r = (b.items || []).filter(x => x.categoria === pm.environment.get('categoria'))[0];",
+       "pm.test('Existe rango publicado para la categoria del sensor', () => pm.expect(r, 'rango de la categoria').to.exist);",
+       "pm.environment.set('rango', JSON.stringify({ categoria: r.categoria, min: String(r.valor_min), max: String(r.valor_max) }));",
+       "// 22.1234 debe estar DENTRO del rango: el unico motivo de rechazo posible en TC-M09-261",
+       "// debe ser el formato decimal, nunca el rango.",
+       "const v = Number(pm.environment.get('valor_262'));",
+       "pm.test('El valor de TC-M09-262 esta dentro del rango vigente', () => { pm.expect(v).to.be.at.least(Number(r.valor_min)); pm.expect(v).to.be.at.most(Number(r.valor_max)); });",
+       "console.log('rango ' + r.categoria + ': ' + r.valor_min + ' - ' + r.valor_max + ' | valor ' + pm.environment.get('valor_262'));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/rangos-calibracion",
+     "host": [
+      "{{base_url}}/configuracion/sensores/rangos-calibracion"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-262 Historial PRE",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// PRE propio del caso: no se reutiliza el de otra variante.",
+       "pm.test('TC-M09-262 — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.environment.set('pre_262_total', String(b.total));",
+       "pm.environment.set('pre_262_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+       "pm.environment.set('pre_262_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-262 POST calibrar",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_262', iso);",
+       "pm.environment.set('body_sent_262', pm.environment.get('body_262').replace('__FECHA__', iso));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "// Camino exitoso: debe persistir EXACTAMENTE una calibracion con 22.1234 sin redondeo.",
+       "pm.test('TC-M09-262 — la respuesta pertenece a 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.test('TC-M09-262 — la respuesta devuelve id_calibracion', () => pm.expect(b && b.id_calibracion, 'id_calibracion').to.be.a('number'));",
+       "const esperado = normDec(pm.environment.get('valor_262'));",
+       "const obtenido = normDec(b && b.valor_referencia);",
+       "pm.test('TC-M09-262 — la respuesta representa exactamente ' + pm.environment.get('valor_262') + ' (decimal exacto, sin float)', () => pm.expect(obtenido, 'valor_referencia normalizado').to.eql(esperado));",
+       "pm.environment.set('262_http', String(pm.response.code));",
+       "pm.environment.set('262_id', String(b && b.id_calibracion !== undefined && b.id_calibracion !== null ? b.id_calibracion : ''));",
+       "pm.environment.set('262_valor_respuesta_crudo', JSON.stringify(b ? b.valor_referencia : null));",
+       "pm.environment.set('262_valor_respuesta_norm', String(obtenido));",
+       "pm.environment.set('262_escala_respuesta', String(escala(b && b.valor_referencia)));",
+       "pm.environment.set('262_tipo_json_respuesta', typeof (b && b.valor_referencia));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_sent_262}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-262 Historial POST",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "pm.test('TC-M09-262 — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion);",
+       "const pre = JSON.parse(pm.environment.get('pre_262_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "const idCreado = Number(pm.environment.get('262_id'));",
+       "pm.environment.set('post_262_total', String(b.total));",
+       "pm.environment.set('post_262_ids', JSON.stringify(ids));",
+       "pm.environment.set('262_ids_nuevos', JSON.stringify(nuevos));",
+       "// Correlacion por el id devuelto, NUNCA por total + 1 (regla 38).",
+       "const row = (b.items || []).filter(x => Number(x.id_calibracion) === idCreado)[0];",
+       "pm.test('TC-M09-262 — el historial contiene el id_calibracion devuelto', () => pm.expect(row, 'registro id ' + idCreado).to.exist);",
+       "pm.test('TC-M09-262 — la calibracion creada es exactamente una y es la devuelta', () => pm.expect(nuevos).to.eql([idCreado]));",
+       "const esperado = normDec(pm.environment.get('valor_262'));",
+       "pm.test('TC-M09-262 — el historial conserva exactamente ' + pm.environment.get('valor_262') + ' (decimal exacto, sin float)', () => pm.expect(normDec(row.valor_referencia), 'valor recuperado normalizado').to.eql(esperado));",
+       "pm.test('TC-M09-262 — el registro recuperado corresponde a este RUN', () => { pm.expect(row.observaciones).to.eql('QA TC-M09-262'); pm.expect(Number(row.id_usuario)).to.eql(Number(pm.environment.get('ing_id'))); });",
+       "pm.environment.set('262_valor_historial_crudo', JSON.stringify(row ? row.valor_referencia : null));",
+       "pm.environment.set('262_valor_historial_norm', String(normDec(row && row.valor_referencia)));",
+       "pm.environment.set('262_escala_historial', String(escala(row && row.valor_referencia)));",
+       "const snap = JSON.parse(pm.environment.get('pre_262_snap') || '[]');",
+       "pm.test('TC-M09-262 — los registros historicos previos siguen intactos', () => snap.forEach(s => { const r = (b.items || []).filter(x => x.id_calibracion === s.id)[0]; pm.expect(r, 'id ' + s.id).to.exist; pm.expect(normDec(r.valor_referencia)).to.eql(normDec(s.v)); pm.expect(r.fecha_calibracion).to.eql(s.f); pm.expect(r.id_usuario).to.eql(s.u); pm.expect(r.observaciones).to.eql(s.o); }));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 NaN Historial PRE",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// PRE propio de la variante.",
+       "pm.test('TC-M09-261 NaN — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.environment.set('pre_nan_total', String(b.total));",
+       "pm.environment.set('pre_nan_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+       "pm.environment.set('pre_nan_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 NaN POST calibrar",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_nan', iso);",
+       "pm.environment.set('body_sent_nan', pm.environment.get('body_nan').replace('__FECHA__', iso));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oraculo de la matriz: HTTP 400 y MENSAJE LITERAL de formato decimal invalido.",
+       "// Comparacion literal estricta: prohibido contains, startsWith, regex o equivalencia semantica.",
+       "pm.test('TC-M09-261 NaN — HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "pm.test('TC-M09-261 NaN — mensaje EXACTO de formato decimal invalido', () => pm.expect(msg).to.eql(pm.environment.get('msg_nan')));",
+       "pm.test('TC-M09-261 NaN — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+       "pm.environment.set('nan_http', String(pm.response.code));",
+       "pm.environment.set('nan_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('nan_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('nan_mensaje_exacto', msg === pm.environment.get('msg_nan') ? 'SI' : 'NO');",
+       "pm.environment.set('nan_id_respuesta', String((b && b.id_calibracion) !== undefined && b && b.id_calibracion !== null ? b.id_calibracion : ''));",
+       "if (b && b.error_code) console.log('TC-M09-261 NaN error_code obtenido: ' + b.error_code);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_sent_nan}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 NaN Historial POST",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "pm.test('TC-M09-261 NaN — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion);",
+       "const pre = JSON.parse(pm.environment.get('pre_nan_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.environment.set('post_nan_total', String(b.total));",
+       "pm.environment.set('post_nan_ids', JSON.stringify(ids));",
+       "pm.environment.set('nan_ids_nuevos', JSON.stringify(nuevos));",
+       "pm.test('TC-M09-261 NaN — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_nan_total'))));",
+       "pm.test('TC-M09-261 NaN — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "pm.test('TC-M09-261 NaN — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+       "const snap = JSON.parse(pm.environment.get('pre_nan_snap') || '[]');",
+       "pm.test('TC-M09-261 NaN — los registros historicos siguen intactos', () => snap.forEach(s => { const r = (b.items || []).filter(x => x.id_calibracion === s.id)[0]; pm.expect(r, 'id ' + s.id).to.exist; pm.expect(normDec(r.valor_referencia)).to.eql(normDec(s.v)); pm.expect(r.fecha_calibracion).to.eql(s.f); pm.expect(r.id_usuario).to.eql(s.u); pm.expect(r.observaciones).to.eql(s.o); }));",
+       "// STOP_ALL (regla 39): solo si un valor no finito llego a crear una calibracion.",
+       "// Un HTTP 500 sin persistencia NO detiene el RUN (regla 40).",
+       "if (nuevos.length) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-261 NaN', idsNuevos: nuevos, nota: 'un valor no finito persistio: no se ejecutan mas POST funcionales y el registro se conserva como evidencia, sin borrarlo' }));",
+       "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 Infinity Historial PRE",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// PRE propio de la variante.",
+       "pm.test('TC-M09-261 Infinity — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.environment.set('pre_inf_total', String(b.total));",
+       "pm.environment.set('pre_inf_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+       "pm.environment.set('pre_inf_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 Infinity POST calibrar",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_inf', iso);",
+       "pm.environment.set('body_sent_inf', pm.environment.get('body_inf').replace('__FECHA__', iso));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oraculo de la matriz: HTTP 400 y MENSAJE LITERAL de formato decimal invalido.",
+       "// Comparacion literal estricta: prohibido contains, startsWith, regex o equivalencia semantica.",
+       "pm.test('TC-M09-261 Infinity — HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "pm.test('TC-M09-261 Infinity — mensaje EXACTO de formato decimal invalido', () => pm.expect(msg).to.eql(pm.environment.get('msg_inf')));",
+       "pm.test('TC-M09-261 Infinity — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+       "pm.environment.set('inf_http', String(pm.response.code));",
+       "pm.environment.set('inf_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('inf_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('inf_mensaje_exacto', msg === pm.environment.get('msg_inf') ? 'SI' : 'NO');",
+       "pm.environment.set('inf_id_respuesta', String((b && b.id_calibracion) !== undefined && b && b.id_calibracion !== null ? b.id_calibracion : ''));",
+       "if (b && b.error_code) console.log('TC-M09-261 Infinity error_code obtenido: ' + b.error_code);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_sent_inf}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 Infinity Historial POST",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "pm.test('TC-M09-261 Infinity — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion);",
+       "const pre = JSON.parse(pm.environment.get('pre_inf_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.environment.set('post_inf_total', String(b.total));",
+       "pm.environment.set('post_inf_ids', JSON.stringify(ids));",
+       "pm.environment.set('inf_ids_nuevos', JSON.stringify(nuevos));",
+       "pm.test('TC-M09-261 Infinity — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_inf_total'))));",
+       "pm.test('TC-M09-261 Infinity — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "pm.test('TC-M09-261 Infinity — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+       "const snap = JSON.parse(pm.environment.get('pre_inf_snap') || '[]');",
+       "pm.test('TC-M09-261 Infinity — los registros historicos siguen intactos', () => snap.forEach(s => { const r = (b.items || []).filter(x => x.id_calibracion === s.id)[0]; pm.expect(r, 'id ' + s.id).to.exist; pm.expect(normDec(r.valor_referencia)).to.eql(normDec(s.v)); pm.expect(r.fecha_calibracion).to.eql(s.f); pm.expect(r.id_usuario).to.eql(s.u); pm.expect(r.observaciones).to.eql(s.o); }));",
+       "// STOP_ALL (regla 39): solo si un valor no finito llego a crear una calibracion.",
+       "// Un HTTP 500 sin persistencia NO detiene el RUN (regla 40).",
+       "if (nuevos.length) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-261 Infinity', idsNuevos: nuevos, nota: 'un valor no finito persistio: no se ejecutan mas POST funcionales y el registro se conserva como evidencia, sin borrarlo' }));",
+       "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 -Infinity Historial PRE",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// PRE propio de la variante.",
+       "pm.test('TC-M09-261 -Infinity — historial PRE obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "pm.environment.set('pre_ninf_total', String(b.total));",
+       "pm.environment.set('pre_ninf_ids', JSON.stringify((b.items || []).map(x => x.id_calibracion)));",
+       "pm.environment.set('pre_ninf_snap', JSON.stringify((b.items || []).map(x => ({ id: x.id_calibracion, v: String(x.valor_referencia), f: x.fecha_calibracion, u: x.id_usuario, o: x.observaciones }))));"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 -Infinity POST calibrar",
+   "event": [
+    {
+     "listen": "prerequest",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "const iso = new Date().toISOString();",
+       "pm.environment.set('fecha_ninf', iso);",
+       "pm.environment.set('body_sent_ninf', pm.environment.get('body_ninf').replace('__FECHA__', iso));"
+      ]
+     }
+    },
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Oraculo de la matriz: HTTP 400 y MENSAJE LITERAL de formato decimal invalido.",
+       "// Comparacion literal estricta: prohibido contains, startsWith, regex o equivalencia semantica.",
+       "pm.test('TC-M09-261 -Infinity — HTTP 400', () => pm.expect(pm.response.code).to.eql(400));",
+       "let b = null; try { b = pm.response.json(); } catch (e) { b = null; }",
+       "const msg = b && (b.message !== undefined ? b.message : b.detail);",
+       "pm.test('TC-M09-261 -Infinity — mensaje EXACTO de formato decimal invalido', () => pm.expect(msg).to.eql(pm.environment.get('msg_ninf')));",
+       "pm.test('TC-M09-261 -Infinity — la respuesta no devuelve id_calibracion', () => pm.expect(b && b.id_calibracion).to.be.undefined);",
+       "pm.environment.set('ninf_http', String(pm.response.code));",
+       "pm.environment.set('ninf_error_code', String((b && b.error_code) || ''));",
+       "pm.environment.set('ninf_mensaje', String(msg === undefined || msg === null ? '' : msg));",
+       "pm.environment.set('ninf_mensaje_exacto', msg === pm.environment.get('msg_ninf') ? 'SI' : 'NO');",
+       "pm.environment.set('ninf_id_respuesta', String((b && b.id_calibracion) !== undefined && b && b.id_calibracion !== null ? b.id_calibracion : ''));",
+       "if (b && b.error_code) console.log('TC-M09-261 -Infinity error_code obtenido: ' + b.error_code);"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "POST",
+    "header": [
+     {
+      "key": "Content-Type",
+      "value": "application/json"
+     },
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibrar"
+     ]
+    },
+    "body": {
+     "mode": "raw",
+     "raw": "{{body_sent_ninf}}",
+     "options": {
+      "raw": {
+       "language": "json"
+      }
+     }
+    }
+   },
+   "response": []
+  },
+  {
+   "name": "TC-M09-261 -Infinity Historial POST",
+   "event": [
+    {
+     "listen": "test",
+     "script": {
+      "type": "text/javascript",
+      "exec": [
+       "// Comparacion DECIMAL EXACTA por normalizacion textual. No se usa aritmetica de punto",
+       "// flotante binario: Number('22.1234') no es evidencia de precision (regla 45).",
+       "const normDec = (x) => {",
+       "  if (x === null || x === undefined) return null;",
+       "  const m = /^([+-]?)(\\d+)(?:\\.(\\d*))?$/.exec(String(x).trim());",
+       "  if (!m) return null;",
+       "  let signo = m[1] === '-' ? '-' : '';",
+       "  const ent = m[2].replace(/^0+(?=\\d)/, '');",
+       "  const frac = (m[3] || '').replace(/0+$/, '');",
+       "  if (ent === '0' && frac === '') signo = '';",
+       "  return signo + ent + (frac ? '.' + frac : '');",
+       "};",
+       "const escala = (x) => { const m = /\\.(\\d+)$/.exec(String(x).trim()); return m ? m[1].length : 0; };",
+       "pm.test('TC-M09-261 -Infinity — historial POST obtenido (2xx)', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+       "const b = pm.response.json();",
+       "const ids = (b.items || []).map(x => x.id_calibracion);",
+       "const pre = JSON.parse(pm.environment.get('pre_ninf_ids') || '[]');",
+       "const nuevos = ids.filter(x => pre.indexOf(x) < 0);",
+       "pm.environment.set('post_ninf_total', String(b.total));",
+       "pm.environment.set('post_ninf_ids', JSON.stringify(ids));",
+       "pm.environment.set('ninf_ids_nuevos', JSON.stringify(nuevos));",
+       "pm.test('TC-M09-261 -Infinity — total PRE == total POST', () => pm.expect(Number(b.total)).to.eql(Number(pm.environment.get('pre_ninf_total'))));",
+       "pm.test('TC-M09-261 -Infinity — IDs PRE == IDs POST', () => pm.expect(ids.slice().sort()).to.eql(pre.slice().sort()));",
+       "pm.test('TC-M09-261 -Infinity — no se creo ninguna calibracion', () => pm.expect(nuevos).to.eql([]));",
+       "const snap = JSON.parse(pm.environment.get('pre_ninf_snap') || '[]');",
+       "pm.test('TC-M09-261 -Infinity — los registros historicos siguen intactos', () => snap.forEach(s => { const r = (b.items || []).filter(x => x.id_calibracion === s.id)[0]; pm.expect(r, 'id ' + s.id).to.exist; pm.expect(normDec(r.valor_referencia)).to.eql(normDec(s.v)); pm.expect(r.fecha_calibracion).to.eql(s.f); pm.expect(r.id_usuario).to.eql(s.u); pm.expect(r.observaciones).to.eql(s.o); }));",
+       "// STOP_ALL (regla 39): solo si un valor no finito llego a crear una calibracion.",
+       "// Un HTTP 500 sin persistencia NO detiene el RUN (regla 40).",
+       "if (nuevos.length) {",
+       "  pm.environment.set('stop_all', 'SI');",
+       "  pm.environment.set('stop_all_motivo', JSON.stringify({ variante: 'TC-M09-261 -Infinity', idsNuevos: nuevos, nota: 'un valor no finito persistio: no se ejecutan mas POST funcionales y el registro se conserva como evidencia, sin borrarlo' }));",
+       "  console.log('STOP_ALL: no se ejecutan mas POST de calibracion.');",
+       "  postman.setNextRequest(null);",
+       "}"
+      ]
+     }
+    }
+   ],
+   "request": {
+    "method": "GET",
+    "header": [
+     {
+      "key": "Authorization",
+      "value": "Bearer {{session_value}}"
+     }
+    ],
+    "url": {
+     "raw": "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones",
+     "host": [
+      "{{base_url}}/configuracion/sensores/{{sensor}}/calibraciones"
+     ]
+    }
+   },
+   "response": []
+  }
+ ]
+}

@@ -1,0 +1,2035 @@
+{
+  "run_id": "run-20261010-150013",
+  "grupo": "TC-M09-G140",
+  "ambiente": "TEST",
+  "base_url": "https://api.inmero.co/back-sigab-test",
+  "herramienta": "Pytest + requests (HTTP real) + BD TEST por SELECT",
+  "newman": "NO APLICA",
+  "generado": "2026-10-11T01:01:24.029675+00:00",
+  "execution_number_group": 3,
+  "execution_type": "REEJECUCION_COMPLETA_POST_FIX",
+  "nuevo_run_creado": "NO",
+  "grupo_completo_reejecutado": "SÍ",
+  "autorizado_por": "LIDER_DESARROLLO",
+  "correccion": {
+    "pr": 550,
+    "fix": "JSONB(none_as_null=True)",
+    "archivo": "src/configuration/infrastructure/models/calibracion_vision_model.py",
+    "origin_test_sha": "c4612dae6d8f0601488b94a3635f6592aa640686",
+    "linea_en_origin_test": "json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))",
+    "fix_presente_en_origin_test": "SÍ",
+    "linea_en_working_tree_qa": "json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB)",
+    "fix_presente_en_working_tree_qa": "NO",
+    "metodo": "git show origin/test:src/configuration/infrastructure/models/calibracion_vision_model.py (lectura; sin checkout/switch/merge)",
+    "consecuencia_para_el_laboratorio": "si el working tree de la rama QA no trae el fix, el laboratorio de TC-286 NO puede montarse sobre el working tree: se construye desde un snapshot de solo lectura de origin/test fuera del arbol de trabajo (§44/§45)"
+  },
+  "historial_ejecuciones": [
+    {
+      "ejecucion": 1,
+      "run_id": "run-20261010-141449",
+      "fecha": "2026-10-10T14:14:49-05:00",
+      "tipo": "EVALUACION_INICIAL",
+      "resultados": {
+        "TC-M09-284": "BLOQUEADO",
+        "TC-M09-285": "BLOQUEADO",
+        "TC-M09-286": "RECHAZADO",
+        "TC-M09-G140": "RECHAZADO"
+      },
+      "motivo": "284 y 285 bloqueados por precondicion de acceso QA/DBA (sin SELECT sobre las tablas VISION, exigido entonces por la matriz); 286 rechazado porque el POST objetivo devolvio 400 VALOR_NO_PERMITIDO en vez del 422: la calibracion NO_CONVERGIDA/REFINAMIENTO no se pudo persistir (JSON 'null' en vez de SQL NULL). La linea base previa se conservo.",
+      "nota": "RUN historico; no se modifica ni se reutiliza como resultado vigente"
+    },
+    {
+      "ejecucion": 2,
+      "run_id": "run-20261010-150013",
+      "fecha": "2026-10-10T15:00:13-05:00",
+      "tipo": "REEJECUCION_PARCIAL",
+      "resultados": {
+        "TC-M09-284": "APROBADO",
+        "TC-M09-285": "APROBADO",
+        "TC-M09-286": "NO REEJECUTADO / RECHAZADO heredado",
+        "TC-M09-G140": "RECHAZADO"
+      },
+      "motivo": "QA autorizo reejecutar solo 284 y 285 con la BD como complementaria; 286 conservo su RECHAZADO y el grupo siguio RECHAZADO",
+      "pytest_test": {
+        "collected": 16,
+        "passed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "errors": 0
+      }
+    },
+    {
+      "ejecucion": 3,
+      "run_id": "run-20261010-150013",
+      "fecha": "2026-10-11T01:01:34.635435+00:00",
+      "tipo": "REEJECUCION_COMPLETA_POST_FIX",
+      "autorizado_por": "LIDER_DESARROLLO",
+      "pr": 550,
+      "mitad": "TEST (TC-M09-284 y TC-M09-285)",
+      "resultados": {
+        "TC-M09-284": "APROBADO",
+        "TC-M09-285": "APROBADO"
+      },
+      "fixture": {
+        "finca_id": 163,
+        "especie_id": 41,
+        "areas": {
+          "A1": 294,
+          "A1P": 295
+        },
+        "camaras": {
+          "CAM_K": 246,
+          "CAM_KM": 247
+        },
+        "ventanas": [
+          "2026-06-11",
+          "2026-06-13",
+          "2026-06-15"
+        ]
+      },
+      "presupuesto": {
+        "post_calibracion": 3,
+        "post_vision": 3,
+        "reintentos": 0
+      }
+    }
+  ],
+  "presupuesto": {
+    "post_calibracion": 3,
+    "post_vision": 3,
+    "reintentos": 0
+  },
+  "casos": {
+    "TC-M09-284": {
+      "ventanas": {
+        "WINDOW_284_K": {
+          "inicio": "2026-06-11T00:00:00Z",
+          "fin": "2026-06-11T06:00:00Z"
+        },
+        "WINDOW_284_KM": {
+          "inicio": "2026-06-13T00:00:00Z",
+          "fin": "2026-06-13T06:00:00Z"
+        }
+      },
+      "lote_K": {
+        "http": 201,
+        "total": 40,
+        "aceptadas": 40,
+        "duplicadas": 0,
+        "aptas": 40,
+        "indices_distintos": [
+          100
+        ]
+      },
+      "lote_KM": {
+        "http": 201,
+        "total": 50,
+        "aceptadas": 50,
+        "duplicadas": 0,
+        "aptas": 40,
+        "no_aptas": 10,
+        "indices_distintos": [
+          3,
+          100
+        ]
+      },
+      "vectores_K": [
+        {
+          "i": 0,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 1,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 2,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 3,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 4,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 5,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 6,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 7,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 8,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 9,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 10,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 11,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 12,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 13,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 14,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 15,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 16,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 17,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 18,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 19,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 20,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 21,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 22,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 23,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 24,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 25,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 26,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 27,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 28,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 29,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 30,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 31,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 32,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 33,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 34,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 35,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 36,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 37,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 38,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 39,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.005
+        }
+      ],
+      "conteos_bd": {
+        "disponible": false,
+        "nota": "verificación complementaria; el conteo funcional sale de la respuesta de POST /iot/telemetria/vision (total, aceptadas, duplicadas y el apto_para_ia de cada observación)",
+        "resultado": {
+          "A1": {
+            "error": "permission denied for table observaciones_vision"
+          },
+          "A1_PRIMA": {
+            "error": "permission denied for table observaciones_vision"
+          }
+        }
+      },
+      "corridas": {
+        "K": {
+          "request": {
+            "modo_calibracion": "VISION",
+            "area_id": 294,
+            "ventana_observacion": {
+              "inicio": "2026-06-11T00:00:00Z",
+              "fin": "2026-06-11T06:00:00Z"
+            },
+            "observaciones": "QA TC-M09-284 K",
+            "fecha_calibracion": "2026-10-11T01:01:31.026843+00:00"
+          },
+          "http": 201,
+          "response": {
+            "id_calibracion_vision": 16,
+            "modo_calibracion": "VISION",
+            "area_id": 294,
+            "especie_id": 41,
+            "origen_disparo": "MANUAL",
+            "id_usuario": 4,
+            "ventana_observacion": {
+              "fin": "2026-06-11T06:00:00Z",
+              "inicio": "2026-06-11T00:00:00Z"
+            },
+            "fecha_calibracion": "2026-10-11T01:01:31.026843Z",
+            "estado": "EXITOSA",
+            "etapa_fallo": null,
+            "motivo": null,
+            "linea_base": {
+              "valores": {
+                "tasa_movimiento": 5.0,
+                "densidad_actividad": 10.0
+              },
+              "componentes_no_calibrables": []
+            },
+            "n_observaciones": 40,
+            "n_observaciones_validas": 40,
+            "iteraciones": 1,
+            "observaciones": "QA TC-M09-284 K"
+          }
+        },
+        "K+M": {
+          "request": {
+            "modo_calibracion": "VISION",
+            "area_id": 295,
+            "ventana_observacion": {
+              "inicio": "2026-06-13T00:00:00Z",
+              "fin": "2026-06-13T06:00:00Z"
+            },
+            "observaciones": "QA TC-M09-284 K+M",
+            "fecha_calibracion": "2026-10-11T01:01:31.158420+00:00"
+          },
+          "http": 201,
+          "response": {
+            "id_calibracion_vision": 17,
+            "modo_calibracion": "VISION",
+            "area_id": 295,
+            "especie_id": 41,
+            "origen_disparo": "MANUAL",
+            "id_usuario": 4,
+            "ventana_observacion": {
+              "fin": "2026-06-13T06:00:00Z",
+              "inicio": "2026-06-13T00:00:00Z"
+            },
+            "fecha_calibracion": "2026-10-11T01:01:31.158420Z",
+            "estado": "EXITOSA",
+            "etapa_fallo": null,
+            "motivo": null,
+            "linea_base": {
+              "valores": {
+                "tasa_movimiento": 5.0,
+                "densidad_actividad": 10.0
+              },
+              "componentes_no_calibrables": []
+            },
+            "n_observaciones": 50,
+            "n_observaciones_validas": 40,
+            "iteraciones": 1,
+            "observaciones": "QA TC-M09-284 K+M"
+          }
+        }
+      },
+      "BASE_K": {
+        "tasa_movimiento": 5.0,
+        "densidad_actividad": 10.0
+      },
+      "BASE_KM": {
+        "tasa_movimiento": 5.0,
+        "densidad_actividad": 10.0
+      },
+      "identicas": "SÍ",
+      "coincidencia_con_oraculo": {
+        "ORACLE_DESCARTE": {
+          "K": true,
+          "K+M": true
+        },
+        "ORACLE_WINSORIZACION": {
+          "K": true,
+          "K+M": true
+        }
+      },
+      "verificacion_bd": {
+        "disponible": false,
+        "nota": "verificación complementaria",
+        "resultado": {
+          "calibracion_K": {
+            "error": "permission denied for table calibraciones_vision"
+          },
+          "calibracion_KM": {
+            "error": "permission denied for table calibraciones_vision"
+          },
+          "lineas_base": {
+            "error": "permission denied for table lineas_base_vision"
+          }
+        }
+      },
+      "verificacion_api": {
+        "K": {
+          "historial_http": 200,
+          "historial_total": 1,
+          "historial_ids": [
+            16
+          ],
+          "en_historial": "PASS",
+          "fila": {
+            "id_calibracion_vision": 16,
+            "estado": "EXITOSA",
+            "etapa_fallo": null,
+            "n_observaciones": 40,
+            "n_observaciones_validas": 40,
+            "origen_disparo": "MANUAL",
+            "id_usuario": 4
+          },
+          "linea_base_http": 200,
+          "linea_base_vigente": 16,
+          "linea_base_valores": {
+            "tasa_movimiento": 5.0,
+            "densidad_actividad": 10.0
+          }
+        },
+        "K+M": {
+          "historial_http": 200,
+          "historial_total": 1,
+          "historial_ids": [
+            17
+          ],
+          "en_historial": "PASS",
+          "fila": {
+            "id_calibracion_vision": 17,
+            "estado": "EXITOSA",
+            "etapa_fallo": null,
+            "n_observaciones": 50,
+            "n_observaciones_validas": 40,
+            "origen_disparo": "MANUAL",
+            "id_usuario": 4
+          },
+          "linea_base_http": 200,
+          "linea_base_vigente": 17,
+          "linea_base_valores": {
+            "tasa_movimiento": 5.0,
+            "densidad_actividad": 10.0
+          }
+        }
+      },
+      "cuadro": [
+        {
+          "criterio": "Total",
+          "K": 40,
+          "K+M": 50
+        },
+        {
+          "criterio": "Aptas",
+          "K": 40,
+          "K+M": 40
+        },
+        {
+          "criterio": "No aptas",
+          "K": 0,
+          "K+M": 10
+        },
+        {
+          "criterio": "HTTP",
+          "K": 201,
+          "K+M": 201
+        },
+        {
+          "criterio": "Estado",
+          "K": "EXITOSA",
+          "K+M": "EXITOSA"
+        },
+        {
+          "criterio": "Válidas backend",
+          "K": 40,
+          "K+M": 40
+        },
+        {
+          "criterio": "Línea base",
+          "K": {
+            "tasa_movimiento": 5.0,
+            "densidad_actividad": 10.0
+          },
+          "K+M": {
+            "tasa_movimiento": 5.0,
+            "densidad_actividad": 10.0
+          }
+        }
+      ],
+      "resultado": "APROBADO"
+    },
+    "TC-M09-285": {
+      "ventana": {
+        "inicio": "2026-06-15T00:00:00Z",
+        "fin": "2026-06-15T06:00:00Z"
+      },
+      "area_id": 294,
+      "camara_id": 246,
+      "dataset": {
+        "densidad_actividad": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0,
+          5.0,
+          6.0,
+          7.0,
+          8.0,
+          9.0,
+          10.0,
+          11.0,
+          12.0,
+          13.0,
+          14.0,
+          15.0,
+          16.0,
+          17.0,
+          18.0,
+          19.0,
+          20.0,
+          21.0
+        ],
+        "tasa_movimiento": [
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          10.0,
+          20.0,
+          30.0,
+          40.0,
+          50.0,
+          60.0,
+          70.0,
+          80.0,
+          90.0,
+          100.0,
+          110.0,
+          120.0,
+          130.0,
+          140.0,
+          150.0,
+          160.0,
+          170.0,
+          180.0,
+          190.0,
+          200.0,
+          210.0
+        ]
+      },
+      "lote": {
+        "http": 201,
+        "total": 40,
+        "aceptadas": 40,
+        "duplicadas": 0,
+        "aptas": 40
+      },
+      "conteo_bd": {
+        "disponible": false,
+        "nota": "verificación complementaria",
+        "resultado": {
+          "error": "permission denied for table observaciones_vision"
+        }
+      },
+      "request": {
+        "modo_calibracion": "VISION",
+        "area_id": 294,
+        "ventana_observacion": {
+          "inicio": "2026-06-15T00:00:00Z",
+          "fin": "2026-06-15T06:00:00Z"
+        },
+        "observaciones": "QA TC-M09-285",
+        "fecha_calibracion": "2026-10-11T01:01:33.525935+00:00"
+      },
+      "response": {
+        "http": 201,
+        "body": {
+          "id_calibracion_vision": 18,
+          "modo_calibracion": "VISION",
+          "area_id": 294,
+          "especie_id": 41,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4,
+          "ventana_observacion": {
+            "fin": "2026-06-15T06:00:00Z",
+            "inicio": "2026-06-15T00:00:00Z"
+          },
+          "fecha_calibracion": "2026-10-11T01:01:33.525935Z",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "linea_base": {
+            "valores": {
+              "tasa_movimiento": 10.0,
+              "densidad_actividad": 1.0
+            },
+            "componentes_no_calibrables": []
+          },
+          "n_observaciones": 40,
+          "n_observaciones_validas": 40,
+          "iteraciones": 1,
+          "observaciones": "QA TC-M09-285"
+        }
+      },
+      "cuadro_por_componente": [
+        {
+          "componente": "densidad_actividad",
+          "producto": 1.0,
+          "descarte": 1.0,
+          "winsorizacion": 1.5,
+          "coincide": "DESCARTE"
+        },
+        {
+          "componente": "tasa_movimiento",
+          "producto": 10.0,
+          "descarte": 10.0,
+          "winsorizacion": 15.0,
+          "coincide": "DESCARTE"
+        }
+      ],
+      "p5_p95": {
+        "densidad_actividad": {
+          "p5": 1.0,
+          "p95": 19.049999999999997,
+          "n_tras_descarte": 38
+        },
+        "tasa_movimiento": {
+          "p5": 10.0,
+          "p95": 190.49999999999997,
+          "n_tras_descarte": 38
+        }
+      },
+      "epsilon": 0.01,
+      "max_iteraciones": 10,
+      "iteraciones_producto": 1,
+      "INTERPRETACION_OBSERVADA": "DESCARTE",
+      "verificacion_bd": {
+        "disponible": false,
+        "nota": "verificación complementaria",
+        "resultado": {
+          "calibracion": {
+            "error": "permission denied for table calibraciones_vision"
+          },
+          "linea_base": {
+            "error": "permission denied for table lineas_base_vision"
+          }
+        }
+      },
+      "verificacion_api": {
+        "historial_http": 200,
+        "historial_total": 2,
+        "historial_ids": [
+          18,
+          16
+        ],
+        "en_historial": "PASS",
+        "fila": {
+          "id_calibracion_vision": 18,
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "n_observaciones": 40,
+          "n_observaciones_validas": 40,
+          "iteraciones": 1,
+          "origen_disparo": "MANUAL",
+          "id_usuario": 4
+        },
+        "linea_base_http": 200,
+        "linea_base_vigente": 18,
+        "linea_base_valores": {
+          "tasa_movimiento": 10.0,
+          "densidad_actividad": 1.0
+        }
+      },
+      "resultado": "APROBADO"
+    }
+  },
+  "limitaciones": [],
+  "git": {
+    "rama": "qa/juan-esteban-segunda-evaluacion-rf24-v2.0",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "status_short": [
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G130/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G131/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G132/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G136/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G137/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G138/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G139/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G141/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G142/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G143/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G76-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G77-v2.0/EvaluacionV2/",
+      "?? tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G80-v2.0/EvaluacionV2/"
+    ]
+  },
+  "baseline_primera_evaluacion": {
+    "informe": "TC-M09-G140_resultado.md",
+    "runs": [
+      "run-local-20261007-142538",
+      "run-test-20261007-142538"
+    ],
+    "solo_lectura": true
+  },
+  "openapi": {
+    "POST /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision": "PRESENTE",
+    "GET /configuracion/calibraciones-vision/linea-base": "PRESENTE",
+    "POST /iot/telemetria/vision": "PRESENTE"
+  },
+  "acceso_bd": {
+    "rol_en_la_matriz": "VERIFICACIÓN COMPLEMENTARIA CUANDO ESTÉ DISPONIBLE",
+    "host": "158.69.200.27",
+    "puerto": "5448",
+    "base": "sgpmp_test",
+    "usuario": "member_qa",
+    "sesion": "READ ONLY — solo SELECT, 0 DML",
+    "consulta": "SELECT has_table_privilege('member_qa', <tabla>, 'SELECT')",
+    "resultado": {
+      "OBSERVACIONES_VISION_SELECT": "FAIL",
+      "CALIBRACIONES_VISION_SELECT": "FAIL",
+      "LINEAS_BASE_VISION_SELECT": "FAIL"
+    },
+    "privilegios_crudos": {
+      "modulo3.observaciones_vision": false,
+      "modulo9.calibraciones_vision": false,
+      "modulo9.lineas_base_vision": false
+    },
+    "grants_visibles": [],
+    "roles_heredados": [
+      {
+        "rol": "rol_qa"
+      }
+    ],
+    "error_de_conexion": null,
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE POR PERMISOS QA"
+  },
+  "actores": {
+    "ingeniero": {
+      "correo": "ingeniero@pecuaria.co",
+      "login": "PASS"
+    },
+    "administrador": {
+      "correo": "administador.dev@gmail.com",
+      "login": "PASS",
+      "uso": "discovery y diagnóstico"
+    }
+  },
+  "parametros": {
+    "min_observaciones": 30,
+    "cobertura_minima": 0.5,
+    "tracks_minimos": 1,
+    "min_datos_componente": 10,
+    "epsilon": 0.01,
+    "max_iteraciones": 10,
+    "fuente": "ParametrosLineaBase — src/configuration/domain/entities/linea_base_vision.py; el caso de uso los toma por defecto",
+    "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+    "en_origin_test": {
+      "min_observaciones": 30,
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 10
+    },
+    "coinciden_arbol_y_origin_test": "SÍ",
+    "max_iteraciones_TEST": 10,
+    "max_iteraciones_LOCAL_TC286": 1,
+    "nota": "no se modifica max_iteraciones en TEST (§50); el 1 solo existe en el laboratorio local de TC-M09-286"
+  },
+  "oraculos_congelados": {
+    "independencia": "oracle_g140.py no importa calcular_linea_base, recortar_p5_p95, mediana, percentil ni ningún módulo src.configuration/src.telemetry",
+    "parametros": {
+      "min_observaciones": 30,
+      "cobertura_minima": 0.5,
+      "tracks_minimos": 1,
+      "min_datos_componente": 10,
+      "epsilon": 0.01,
+      "max_iteraciones": 10
+    },
+    "TC-M09-284": {
+      "vectores_K": [
+        {
+          "i": 0,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 1,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 2,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 3,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 4,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 5,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 6,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 7,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 8,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 9,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 10,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 11,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 12,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 13,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 14,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 15,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 16,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 17,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 18,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 19,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 20,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 21,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 22,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 23,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 24,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 25,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 26,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 27,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 28,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 29,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 30,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 31,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 32,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 5.005
+        },
+        {
+          "i": 33,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.01
+        },
+        {
+          "i": 34,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.015
+        },
+        {
+          "i": 35,
+          "densidad_actividad": 9.98,
+          "tasa_movimiento": 4.985
+        },
+        {
+          "i": 36,
+          "densidad_actividad": 9.99,
+          "tasa_movimiento": 4.99
+        },
+        {
+          "i": 37,
+          "densidad_actividad": 10.0,
+          "tasa_movimiento": 4.995
+        },
+        {
+          "i": 38,
+          "densidad_actividad": 10.01,
+          "tasa_movimiento": 5.0
+        },
+        {
+          "i": 39,
+          "densidad_actividad": 10.02,
+          "tasa_movimiento": 5.005
+        }
+      ],
+      "M": {
+        "n": 10,
+        "densidad_actividad": 1000.0,
+        "tasa_movimiento": 500.0,
+        "aproximadamente_100x_la_mediana_de_K": true
+      },
+      "K": {
+        "ORACLE_DESCARTE": {
+          "modo_recorte": "DESCARTE",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "n_observaciones": 40,
+          "n_observaciones_validas": 40,
+          "valores": {
+            "densidad_actividad": 10.0,
+            "tasa_movimiento": 5.0
+          },
+          "componentes_no_calibrables": [],
+          "iteraciones": 1,
+          "traza": {
+            "modo_recorte": "DESCARTE",
+            "parametros": {
+              "min_observaciones": 30,
+              "cobertura_minima": 0.5,
+              "tracks_minimos": 1,
+              "min_datos_componente": 10,
+              "epsilon": 0.01,
+              "max_iteraciones": 10
+            },
+            "etapa_1": {
+              "entradas": 40,
+              "validas": 40,
+              "descartadas_por_aptitud": 0,
+              "descartadas_por_cobertura": 0,
+              "descartadas_por_tracks": 0,
+              "minimo_exigido": 30
+            },
+            "etapa_2": {
+              "densidad_actividad": {
+                "n_entrada": 40,
+                "p5": 9.98,
+                "p95": 10.02,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 10.0,
+                "mediana_tras_recorte": 10.0
+              },
+              "tasa_movimiento": {
+                "n_entrada": 40,
+                "p5": 4.985,
+                "p95": 5.015,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 5.0,
+                "mediana_tras_recorte": 5.0
+              }
+            },
+            "etapa_3": {
+              "mediana_inicial": {
+                "densidad_actividad": 10.0,
+                "tasa_movimiento": 5.0
+              },
+              "iteraciones": [
+                {
+                  "iteracion": 1,
+                  "componentes": {
+                    "densidad_actividad": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 10.0,
+                      "mediana_nueva": 10.0,
+                      "cambio_relativo": 0.0
+                    },
+                    "tasa_movimiento": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 5.0,
+                      "mediana_nueva": 5.0,
+                      "cambio_relativo": 0.0
+                    }
+                  },
+                  "cambio_maximo": 0.0,
+                  "epsilon": 0.01,
+                  "convergio": true
+                }
+              ]
+            }
+          }
+        },
+        "ORACLE_WINSORIZACION": {
+          "modo_recorte": "WINSORIZACION",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "n_observaciones": 40,
+          "n_observaciones_validas": 40,
+          "valores": {
+            "densidad_actividad": 10.0,
+            "tasa_movimiento": 5.0
+          },
+          "componentes_no_calibrables": [],
+          "iteraciones": 1,
+          "traza": {
+            "modo_recorte": "WINSORIZACION",
+            "parametros": {
+              "min_observaciones": 30,
+              "cobertura_minima": 0.5,
+              "tracks_minimos": 1,
+              "min_datos_componente": 10,
+              "epsilon": 0.01,
+              "max_iteraciones": 10
+            },
+            "etapa_1": {
+              "entradas": 40,
+              "validas": 40,
+              "descartadas_por_aptitud": 0,
+              "descartadas_por_cobertura": 0,
+              "descartadas_por_tracks": 0,
+              "minimo_exigido": 30
+            },
+            "etapa_2": {
+              "densidad_actividad": {
+                "n_entrada": 40,
+                "p5": 9.98,
+                "p95": 10.02,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 10.0,
+                "mediana_tras_recorte": 10.0
+              },
+              "tasa_movimiento": {
+                "n_entrada": 40,
+                "p5": 4.985,
+                "p95": 5.015,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 5.0,
+                "mediana_tras_recorte": 5.0
+              }
+            },
+            "etapa_3": {
+              "mediana_inicial": {
+                "densidad_actividad": 10.0,
+                "tasa_movimiento": 5.0
+              },
+              "iteraciones": [
+                {
+                  "iteracion": 1,
+                  "componentes": {
+                    "densidad_actividad": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 10.0,
+                      "mediana_nueva": 10.0,
+                      "cambio_relativo": 0.0
+                    },
+                    "tasa_movimiento": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 5.0,
+                      "mediana_nueva": 5.0,
+                      "cambio_relativo": 0.0
+                    }
+                  },
+                  "cambio_maximo": 0.0,
+                  "epsilon": 0.01,
+                  "convergio": true
+                }
+              ]
+            }
+          }
+        }
+      },
+      "K+M": {
+        "ORACLE_DESCARTE": {
+          "modo_recorte": "DESCARTE",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "n_observaciones": 50,
+          "n_observaciones_validas": 40,
+          "valores": {
+            "densidad_actividad": 10.0,
+            "tasa_movimiento": 5.0
+          },
+          "componentes_no_calibrables": [],
+          "iteraciones": 1,
+          "traza": {
+            "modo_recorte": "DESCARTE",
+            "parametros": {
+              "min_observaciones": 30,
+              "cobertura_minima": 0.5,
+              "tracks_minimos": 1,
+              "min_datos_componente": 10,
+              "epsilon": 0.01,
+              "max_iteraciones": 10
+            },
+            "etapa_1": {
+              "entradas": 50,
+              "validas": 40,
+              "descartadas_por_aptitud": 10,
+              "descartadas_por_cobertura": 0,
+              "descartadas_por_tracks": 0,
+              "minimo_exigido": 30
+            },
+            "etapa_2": {
+              "densidad_actividad": {
+                "n_entrada": 40,
+                "p5": 9.98,
+                "p95": 10.02,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 10.0,
+                "mediana_tras_recorte": 10.0
+              },
+              "tasa_movimiento": {
+                "n_entrada": 40,
+                "p5": 4.985,
+                "p95": 5.015,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 5.0,
+                "mediana_tras_recorte": 5.0
+              }
+            },
+            "etapa_3": {
+              "mediana_inicial": {
+                "densidad_actividad": 10.0,
+                "tasa_movimiento": 5.0
+              },
+              "iteraciones": [
+                {
+                  "iteracion": 1,
+                  "componentes": {
+                    "densidad_actividad": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 10.0,
+                      "mediana_nueva": 10.0,
+                      "cambio_relativo": 0.0
+                    },
+                    "tasa_movimiento": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 5.0,
+                      "mediana_nueva": 5.0,
+                      "cambio_relativo": 0.0
+                    }
+                  },
+                  "cambio_maximo": 0.0,
+                  "epsilon": 0.01,
+                  "convergio": true
+                }
+              ]
+            }
+          }
+        },
+        "ORACLE_WINSORIZACION": {
+          "modo_recorte": "WINSORIZACION",
+          "estado": "EXITOSA",
+          "etapa_fallo": null,
+          "motivo": null,
+          "n_observaciones": 50,
+          "n_observaciones_validas": 40,
+          "valores": {
+            "densidad_actividad": 10.0,
+            "tasa_movimiento": 5.0
+          },
+          "componentes_no_calibrables": [],
+          "iteraciones": 1,
+          "traza": {
+            "modo_recorte": "WINSORIZACION",
+            "parametros": {
+              "min_observaciones": 30,
+              "cobertura_minima": 0.5,
+              "tracks_minimos": 1,
+              "min_datos_componente": 10,
+              "epsilon": 0.01,
+              "max_iteraciones": 10
+            },
+            "etapa_1": {
+              "entradas": 50,
+              "validas": 40,
+              "descartadas_por_aptitud": 10,
+              "descartadas_por_cobertura": 0,
+              "descartadas_por_tracks": 0,
+              "minimo_exigido": 30
+            },
+            "etapa_2": {
+              "densidad_actividad": {
+                "n_entrada": 40,
+                "p5": 9.98,
+                "p95": 10.02,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 10.0,
+                "mediana_tras_recorte": 10.0
+              },
+              "tasa_movimiento": {
+                "n_entrada": 40,
+                "p5": 4.985,
+                "p95": 5.015,
+                "n_tras_recorte": 40,
+                "min_datos_componente": 10,
+                "mediana_de_entrada": 5.0,
+                "mediana_tras_recorte": 5.0
+              }
+            },
+            "etapa_3": {
+              "mediana_inicial": {
+                "densidad_actividad": 10.0,
+                "tasa_movimiento": 5.0
+              },
+              "iteraciones": [
+                {
+                  "iteracion": 1,
+                  "componentes": {
+                    "densidad_actividad": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 10.0,
+                      "mediana_nueva": 10.0,
+                      "cambio_relativo": 0.0
+                    },
+                    "tasa_movimiento": {
+                      "n_antes": 40,
+                      "n_despues": 40,
+                      "mediana_anterior": 5.0,
+                      "mediana_nueva": 5.0,
+                      "cambio_relativo": 0.0
+                    }
+                  },
+                  "cambio_maximo": 0.0,
+                  "epsilon": 0.01,
+                  "convergio": true
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "TC-M09-285": {
+      "densidad_actividad": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        2.0,
+        3.0,
+        4.0,
+        5.0,
+        6.0,
+        7.0,
+        8.0,
+        9.0,
+        10.0,
+        11.0,
+        12.0,
+        13.0,
+        14.0,
+        15.0,
+        16.0,
+        17.0,
+        18.0,
+        19.0,
+        20.0,
+        21.0
+      ],
+      "tasa_movimiento": [
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        20.0,
+        30.0,
+        40.0,
+        50.0,
+        60.0,
+        70.0,
+        80.0,
+        90.0,
+        100.0,
+        110.0,
+        120.0,
+        130.0,
+        140.0,
+        150.0,
+        160.0,
+        170.0,
+        180.0,
+        190.0,
+        200.0,
+        210.0
+      ],
+      "ORACLE_DESCARTE": {
+        "modo_recorte": "DESCARTE",
+        "estado": "EXITOSA",
+        "etapa_fallo": null,
+        "motivo": null,
+        "n_observaciones": 40,
+        "n_observaciones_validas": 40,
+        "valores": {
+          "densidad_actividad": 1.0,
+          "tasa_movimiento": 10.0
+        },
+        "componentes_no_calibrables": [],
+        "iteraciones": 1,
+        "traza": {
+          "modo_recorte": "DESCARTE",
+          "parametros": {
+            "min_observaciones": 30,
+            "cobertura_minima": 0.5,
+            "tracks_minimos": 1,
+            "min_datos_componente": 10,
+            "epsilon": 0.01,
+            "max_iteraciones": 10
+          },
+          "etapa_1": {
+            "entradas": 40,
+            "validas": 40,
+            "descartadas_por_aptitud": 0,
+            "descartadas_por_cobertura": 0,
+            "descartadas_por_tracks": 0,
+            "minimo_exigido": 30
+          },
+          "etapa_2": {
+            "densidad_actividad": {
+              "n_entrada": 40,
+              "p5": 1.0,
+              "p95": 19.049999999999997,
+              "n_tras_recorte": 38,
+              "min_datos_componente": 10,
+              "mediana_de_entrada": 1.5,
+              "mediana_tras_recorte": 1.0
+            },
+            "tasa_movimiento": {
+              "n_entrada": 40,
+              "p5": 10.0,
+              "p95": 190.49999999999997,
+              "n_tras_recorte": 38,
+              "min_datos_componente": 10,
+              "mediana_de_entrada": 15.0,
+              "mediana_tras_recorte": 10.0
+            }
+          },
+          "etapa_3": {
+            "mediana_inicial": {
+              "densidad_actividad": 1.0,
+              "tasa_movimiento": 10.0
+            },
+            "iteraciones": [
+              {
+                "iteracion": 1,
+                "componentes": {
+                  "densidad_actividad": {
+                    "n_antes": 38,
+                    "n_despues": 36,
+                    "mediana_anterior": 1.0,
+                    "mediana_nueva": 1.0,
+                    "cambio_relativo": 0.0
+                  },
+                  "tasa_movimiento": {
+                    "n_antes": 38,
+                    "n_despues": 36,
+                    "mediana_anterior": 10.0,
+                    "mediana_nueva": 10.0,
+                    "cambio_relativo": 0.0
+                  }
+                },
+                "cambio_maximo": 0.0,
+                "epsilon": 0.01,
+                "convergio": true
+              }
+            ]
+          }
+        }
+      },
+      "ORACLE_WINSORIZACION": {
+        "modo_recorte": "WINSORIZACION",
+        "estado": "EXITOSA",
+        "etapa_fallo": null,
+        "motivo": null,
+        "n_observaciones": 40,
+        "n_observaciones_validas": 40,
+        "valores": {
+          "densidad_actividad": 1.5,
+          "tasa_movimiento": 15.0
+        },
+        "componentes_no_calibrables": [],
+        "iteraciones": 1,
+        "traza": {
+          "modo_recorte": "WINSORIZACION",
+          "parametros": {
+            "min_observaciones": 30,
+            "cobertura_minima": 0.5,
+            "tracks_minimos": 1,
+            "min_datos_componente": 10,
+            "epsilon": 0.01,
+            "max_iteraciones": 10
+          },
+          "etapa_1": {
+            "entradas": 40,
+            "validas": 40,
+            "descartadas_por_aptitud": 0,
+            "descartadas_por_cobertura": 0,
+            "descartadas_por_tracks": 0,
+            "minimo_exigido": 30
+          },
+          "etapa_2": {
+            "densidad_actividad": {
+              "n_entrada": 40,
+              "p5": 1.0,
+              "p95": 19.049999999999997,
+              "n_tras_recorte": 40,
+              "min_datos_componente": 10,
+              "mediana_de_entrada": 1.5,
+              "mediana_tras_recorte": 1.5
+            },
+            "tasa_movimiento": {
+              "n_entrada": 40,
+              "p5": 10.0,
+              "p95": 190.49999999999997,
+              "n_tras_recorte": 40,
+              "min_datos_componente": 10,
+              "mediana_de_entrada": 15.0,
+              "mediana_tras_recorte": 15.0
+            }
+          },
+          "etapa_3": {
+            "mediana_inicial": {
+              "densidad_actividad": 1.5,
+              "tasa_movimiento": 15.0
+            },
+            "iteraciones": [
+              {
+                "iteracion": 1,
+                "componentes": {
+                  "densidad_actividad": {
+                    "n_antes": 40,
+                    "n_despues": 40,
+                    "mediana_anterior": 1.5,
+                    "mediana_nueva": 1.5,
+                    "cambio_relativo": 0.0
+                  },
+                  "tasa_movimiento": {
+                    "n_antes": 40,
+                    "n_despues": 40,
+                    "mediana_anterior": 15.0,
+                    "mediana_nueva": 15.0,
+                    "cambio_relativo": 0.0
+                  }
+                },
+                "cambio_maximo": 0.0,
+                "epsilon": 0.01,
+                "convergio": true
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "precheck_automatizacion": {
+    "endpoints_usados_por_el_arnes": {
+      "POST /configuracion/calibraciones-vision": "PRESENTE",
+      "GET /configuracion/calibraciones-vision": "PRESENTE",
+      "GET /configuracion/calibraciones-vision/linea-base": "PRESENTE",
+      "POST /iot/telemetria/vision": "PRESENTE",
+      "POST /configuracion/infraestructuras": "PRESENTE",
+      "GET /configuracion/infraestructuras/{id_infraestructura}": "PRESENTE",
+      "POST /configuracion/dispositivos-iot": "PRESENTE",
+      "PATCH /configuracion/dispositivos-iot/{id_dispositivo_iot}/desactivar": "PRESENTE",
+      "GET /configuracion/fincas": "PRESENTE",
+      "GET /configuracion/especies": "PRESENTE",
+      "GET /configuracion/tipos-area": "PRESENTE",
+      "POST /sesiones/": "PRESENTE",
+      "GET /sesiones/me/permisos": "PRESENTE",
+      "GET /auditoria/": "PRESENTE",
+      "GET /auditoria/catalogo/tipos-evento": "PRESENTE"
+    },
+    "cuerpos_requeridos": {
+      "POST /configuracion/calibraciones-vision": {
+        "requeridos": [
+          "area_id",
+          "modo_calibracion",
+          "ventana_observacion"
+        ],
+        "enviados": [
+          "area_id",
+          "fecha_calibracion",
+          "modo_calibracion",
+          "observaciones",
+          "ventana_observacion"
+        ],
+        "cubre_los_requeridos": "SÍ"
+      },
+      "POST /iot/telemetria/vision": {
+        "requeridos": [
+          "access_key",
+          "area_id",
+          "device_id",
+          "observaciones"
+        ],
+        "enviados": [
+          "access_key",
+          "area_id",
+          "device_id",
+          "observaciones"
+        ],
+        "cubre_los_requeridos": "SÍ"
+      }
+    },
+    "query_params_obligatorios": {
+      "GET /configuracion/calibraciones-vision": {
+        "requeridos": [
+          "area_id"
+        ],
+        "enviados_por_el_arnes": [
+          "area_id"
+        ]
+      },
+      "GET /configuracion/calibraciones-vision/linea-base": {
+        "requeridos": [
+          "area_id"
+        ],
+        "enviados_por_el_arnes": [
+          "area_id"
+        ]
+      }
+    },
+    "limites_de_paginacion_auditoria": {
+      "tamano": {
+        "minimum": 1,
+        "maximum": 50,
+        "default": 20
+      },
+      "pagina": {
+        "minimum": 1,
+        "default": 1
+      },
+      "tamano_que_usaria_el_arnes": 50
+    },
+    "esquema_auditoria": {
+      "campos_declarados": [
+        "categoria",
+        "descripcion",
+        "detalle",
+        "direccion_ip",
+        "estado",
+        "fecha_evento",
+        "id_evento",
+        "id_sesion",
+        "id_usuario",
+        "integridad",
+        "integridad_ok",
+        "modulo",
+        "nombre_usuario",
+        "resultado",
+        "tipo_evento",
+        "user_agent"
+      ],
+      "campos_que_lee_el_arnes": [
+        "detalle",
+        "direccion_ip",
+        "fecha_evento",
+        "id_evento",
+        "id_usuario",
+        "integridad_ok",
+        "modulo",
+        "nombre_usuario",
+        "resultado",
+        "tipo_evento",
+        "user_agent"
+      ],
+      "campo_exitoso_existe": "NO"
+    },
+    "oracle_self_test": {
+      "casos_numericos": {
+        "percentil_p50_par": {
+          "obtenido": 2.5,
+          "esperado": 2.5
+        },
+        "percentil_p0": {
+          "obtenido": 1.0,
+          "esperado": 1.0
+        },
+        "percentil_p100": {
+          "obtenido": 4.0,
+          "esperado": 4.0
+        },
+        "percentil_interpolado": {
+          "obtenido": 12.5,
+          "esperado": 12.5
+        },
+        "mediana_impar": {
+          "obtenido": 3.0,
+          "esperado": 3.0
+        },
+        "mediana_par": {
+          "obtenido": 2.5,
+          "esperado": 2.5
+        },
+        "cambio_relativo": {
+          "obtenido": 0.1111111111111111,
+          "esperado": 0.1111111111111111
+        },
+        "cambio_relativo_desde_cero": {
+          "obtenido": 1.0,
+          "esperado": 1.0
+        }
+      },
+      "p5_p95_de_1_a_10": [
+        1.45,
+        9.549999999999999
+      ],
+      "descarte": {
+        "n": 8,
+        "min": 2.0,
+        "max": 9.0
+      },
+      "winsorizacion": {
+        "n": 10,
+        "min": 1.45,
+        "max": 9.549999999999999
+      },
+      "fallos": [],
+      "no_convergencia_con_max_iteraciones_1": {
+        "estado": "NO_CONVERGIDA",
+        "etapa_fallo": "REFINAMIENTO",
+        "iteraciones": 1
+      }
+    },
+    "independencia_del_oraculo": {
+      "imports_prohibidos_encontrados": [],
+      "veredicto": "PASS"
+    },
+    "ventanas": {
+      "de_esta_ejecucion": {
+        "WINDOW_284_K": {
+          "inicio": "2026-06-11T00:00:00Z",
+          "fin": "2026-06-11T06:00:00Z"
+        },
+        "WINDOW_284_KM": {
+          "inicio": "2026-06-13T00:00:00Z",
+          "fin": "2026-06-13T06:00:00Z"
+        },
+        "WINDOW_285": {
+          "inicio": "2026-06-15T00:00:00Z",
+          "fin": "2026-06-15T06:00:00Z"
+        }
+      },
+      "de_ejecuciones_anteriores": {
+        "ejecucion_2_WINDOW_284_K": {
+          "inicio": "2026-06-01T00:00:00Z",
+          "fin": "2026-06-01T06:00:00Z"
+        },
+        "ejecucion_2_WINDOW_284_KM": {
+          "inicio": "2026-06-03T00:00:00Z",
+          "fin": "2026-06-03T06:00:00Z"
+        },
+        "ejecucion_2_WINDOW_285": {
+          "inicio": "2026-06-05T00:00:00Z",
+          "fin": "2026-06-05T06:00:00Z"
+        }
+      },
+      "start_menor_que_end": "PASS",
+      "cerradas_en_el_pasado": "PASS",
+      "disjuntas_entre_si": "PASS",
+      "disjuntas_de_ejecuciones_anteriores": "PASS"
+    },
+    "artefactos_y_sanitizacion": {
+      "RUN_DIR": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G140/EvaluacionV2/RESULTADOS/run-20261010-150013",
+      "escribible": true,
+      "ficheros_canonicos_esperados": [
+        "TC-M09-G140_reevaluacion_V2.md",
+        "evidencia-test.json",
+        "pytest-test.xml",
+        "evidencia-local.json",
+        "pytest-local.xml",
+        "backend-local.log",
+        "automation_manifest.json"
+      ],
+      "sanitizacion": {
+        "Authorization": "[REDACTED]",
+        "password": "[REDACTED]",
+        "serial": "[REDACTED]",
+        "texto": "token Bearer [REDACTED] y clave [REDACTED]"
+      }
+    },
+    "AUTOMATION_PRECHECK": "PASS",
+    "AUTORIZAR_POSTS": "SÍ"
+  },
+  "compuerta": {
+    "AUTORIZAR_TEST": "SÍ",
+    "motivo": "matriz actualizada: la herramienta oficial de TC-284 y TC-285 es Pytest + API y la BD es verificación complementaria, así que su disponibilidad no condiciona la ejecución",
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE POR PERMISOS QA"
+  },
+  "fincas": {
+    "del_ingeniero": [
+      1,
+      65,
+      85,
+      117,
+      141,
+      162,
+      163
+    ],
+    "del_administrador": [
+      162,
+      163
+    ],
+    "compartidas": [
+      162,
+      163
+    ],
+    "elegida": 163
+  },
+  "fixture": {
+    "finca_id": 163,
+    "especie_id": 41,
+    "tipo_area": "Galpón",
+    "areas": {
+      "A1": {
+        "id": 294,
+        "nombre": "QA-G140-A1-20261011-010124",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "es_activo": true,
+        "finca_id": 163,
+        "visible_para_el_ingeniero": 200
+      },
+      "A1P": {
+        "id": 295,
+        "nombre": "QA-G140-A1P-20261011-010124",
+        "especie_id": 41,
+        "tipo_modelo_asignado": "MODELO_AVES",
+        "es_activo": true,
+        "finca_id": 163,
+        "visible_para_el_ingeniero": 200
+      }
+    },
+    "camaras": {
+      "CAM_K": {
+        "id": 246,
+        "serial": "[REDACTED]",
+        "categoria": "CAMARA",
+        "es_activo": true,
+        "fps_nominal": 30,
+        "id_infraestructura": 294
+      },
+      "CAM_KM": {
+        "id": 247,
+        "serial": "[REDACTED]",
+        "categoria": "CAMARA",
+        "es_activo": true,
+        "fps_nominal": 30,
+        "id_infraestructura": 295
+      }
+    },
+    "gemelas": "misma finca, misma especie, MODELO_AVES, activas, una cámara activa cada una"
+  },
+  "resultado": {
+    "TC-M09-284": "APROBADO",
+    "TC-M09-285": "APROBADO",
+    "AUTORIZAR_TEST": "SÍ",
+    "AUTORIZAR_POSTS": "SÍ",
+    "BD_COMPLEMENTARIA": "NO DISPONIBLE POR PERMISOS QA",
+    "TC-M09-286": "se reejecuta en el laboratorio LOCAL de esta misma ejecucion; el veredicto esta en evidencia-local.json",
+    "regresiones_284_285": "NINGUNA",
+    "nueva_incidencia_284_285": "NO"
+  },
+  "comparacion_del_grupo": [
+    {
+      "caso": "TC-M09-284",
+      "ejecucion_1": "BLOQUEADO",
+      "ejecucion_2": "APROBADO",
+      "ejecucion_3": "APROBADO"
+    },
+    {
+      "caso": "TC-M09-285",
+      "ejecucion_1": "BLOQUEADO",
+      "ejecucion_2": "APROBADO",
+      "ejecucion_3": "APROBADO"
+    },
+    {
+      "caso": "TC-M09-286",
+      "ejecucion_1": "RECHAZADO",
+      "ejecucion_2": "RECHAZADO heredado (no reejecutado)",
+      "ejecucion_3": "ver evidencia-local.json"
+    }
+  ],
+  "seguridad": {
+    "credenciales_persistidas": "NO",
+    "serial_access_key_persistido": "NO — redactado por patrón, solo en memoria",
+    "sql_dml_en_test": 0,
+    "sesion_bd": "READ ONLY",
+    "baseline_primera_evaluacion_modificada": "NO"
+  },
+  "restauracion": {
+    "camaras_desactivadas": [
+      {
+        "id": 246,
+        "http": 200
+      },
+      {
+        "id": 247,
+        "http": 200
+      }
+    ],
+    "pendientes": [],
+    "nota": "RF-20/RF-19 no publican eliminación de áreas ni de fincas: las áreas 294 y 295 quedan como dato QA trazable. No se inventó limpieza por SQL (§65).",
+    "calibraciones_borradas": 0,
+    "lineas_base_borradas": 0
+  }
+}

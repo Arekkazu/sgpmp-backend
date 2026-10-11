@@ -119,6 +119,11 @@ def declarar_identidad_sistema(db: Session) -> None:
     _declarar(db, _SISTEMA)
 
 
+def id_usuario_servicio(db: Session) -> int:
+    """Id del usuario de servicio, para firmar en RF-10 lo que hace el Sistema."""
+    return _id_servicio(db.connection())
+
+
 def sesion_sistema() -> Session:
     """`SessionLocal()` que actúa como el usuario de servicio (tareas de fondo)."""
     db = SessionLocal()

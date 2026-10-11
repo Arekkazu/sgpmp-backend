@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "TC-M02-G51 v2.0 - Rechazo de eventos sanitario en estados EN_TRATAMIENTO y AISLADO (RF-41)",
-    "description": "RF-41: el registro solo se permite con el activo en estado ACTIVO; cualquier otro estado -> 409. Complementa la v1 (CERRADO/BAJA), que se conserva como evidencia.",
+    "name": "TC-M02-G51 v4.0 - Eventos sanitarios en estados EN_TRATAMIENTO y AISLADO (RF-41)",
+    "description": "RF-41 (correccion de coherencia 2026-10-02, ratificada en INC-M02-94-G51 #488): los eventos sanitarios se admiten en ACTIVO, EN_TRATAMIENTO y AISLADO; el 409 ESTADO_NO_PERMITE_EVENTOS aplica a INACTIVO, CERRADO y BAJA (cubierto por la coleccion tc-m02-g51-v2.0.json / v1). Esta version v4.0 cambia la expectativa de la v2.0, que exigia 409 en EN_TRATAMIENTO y AISLADO.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -171,7 +171,7 @@
       }
     },
     {
-      "name": "TC-M02-094 - Rechazar evento sanitario sobre activo EN_TRATAMIENTO",
+      "name": "TC-M02-094 - Aceptar evento sanitario sobre activo EN_TRATAMIENTO (RF-41, correccion de coherencia 2026-10-02)",
       "event": [
         {
           "listen": "prerequest",
@@ -188,9 +188,9 @@
             "type": "text/javascript",
             "exec": [
               "console.log('[TC-M02-094-EN_] status=' + pm.response.code + ' body=' + pm.response.text());",
-              "pm.test('TC-M02-094-EN_ - RF-41 solo admite ACTIVO; EN_TRATAMIENTO: HTTP 409', function () { pm.response.to.have.status(409); });",
+              "pm.test('TC-M02-094-EN_ - RF-41 admite ACTIVO, EN_TRATAMIENTO y AISLADO; EN_TRATAMIENTO: HTTP 201', function () { pm.response.to.have.status(201); });",
               "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
-              "pm.test('TC-M02-094-EN_ - RF-41 solo admite ACTIVO; EN_TRATAMIENTO: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/no se encuentra en estado ACTIVO/i); });"
+              "pm.test('TC-M02-094-EN_ - EN_TRATAMIENTO: la respuesta no es un error de estado', function () { pm.expect(b.error_code || '').to.not.eql('ESTADO_NO_PERMITE_EVENTOS'); });"
             ]
           }
         }
@@ -266,7 +266,7 @@
       }
     },
     {
-      "name": "TC-M02-094 - Rechazar evento sanitario sobre activo AISLADO",
+      "name": "TC-M02-094 - Aceptar evento sanitario sobre activo AISLADO (RF-41, correccion de coherencia 2026-10-02)",
       "event": [
         {
           "listen": "prerequest",
@@ -283,9 +283,9 @@
             "type": "text/javascript",
             "exec": [
               "console.log('[TC-M02-094-AIS] status=' + pm.response.code + ' body=' + pm.response.text());",
-              "pm.test('TC-M02-094-AIS - RF-41 solo admite ACTIVO; AISLADO: HTTP 409', function () { pm.response.to.have.status(409); });",
+              "pm.test('TC-M02-094-AIS - RF-41 admite ACTIVO, EN_TRATAMIENTO y AISLADO; AISLADO: HTTP 201', function () { pm.response.to.have.status(201); });",
               "let b; try { b = pm.response.json(); } catch (e) { b = {}; }",
-              "pm.test('TC-M02-094-AIS - RF-41 solo admite ACTIVO; AISLADO: mensaje esperado', function () { pm.expect(String(b.message || '')).to.match(/no se encuentra en estado ACTIVO/i); });"
+              "pm.test('TC-M02-094-AIS - AISLADO: la respuesta no es un error de estado', function () { pm.expect(b.error_code || '').to.not.eql('ESTADO_NO_PERMITE_EVENTOS'); });"
             ]
           }
         }
@@ -342,7 +342,7 @@
     },
     {
       "key": "id_ciclo_productiva",
-      "value": "2"
+      "value": "3"
     },
     {
       "key": "id_activo",

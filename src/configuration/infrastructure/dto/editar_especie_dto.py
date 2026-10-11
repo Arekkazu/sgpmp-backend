@@ -11,7 +11,7 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
-from src.shared.tipo_modelo import TipoModeloAsignable
+from src.shared.tipo_modelo import GrupoManejo
 from src.shared.regex import NOMBRE
 
 
@@ -21,8 +21,8 @@ class EditarEspecieDTO(BaseDTO):
     nombre: str
     descripcion: Optional[str] = None
     densidad_maxima_por_especie: Optional[Decimal] = None
-    # RFC-009: familia de modelo de IA de la especie (RF-20 valida contra ella).
-    tipo_modelo: Optional[TipoModeloAsignable] = None
+    # RF-15 v1.1: omitido conserva el actual; no se puede vaciar (es obligatorio).
+    grupo_manejo: Optional[GrupoManejo] = None
     # Null en una especie que nunca se editó: el registro no la llena (#231).
     fecha_actualizacion: Optional[datetime] = None
 
@@ -35,6 +35,13 @@ class EditarEspecieDTO(BaseDTO):
             raise ValueError(
                 "El nombre solo puede contener letras y espacios, sin símbolos ni números."
             )
+        return v
+
+    @field_validator("grupo_manejo")
+    @classmethod
+    def validar_grupo_manejo(cls, v: Optional[str]) -> str:
+        if v is None:
+            raise ValueError("El grupo de manejo es obligatorio.")
         return v
 
     @field_validator("descripcion")

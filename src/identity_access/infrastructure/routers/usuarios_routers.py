@@ -6,7 +6,7 @@ gestión de estado de cuenta y registro de tokens FCM.
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from sqlalchemy.orm import Session
 from src.identity_access.infrastructure.dto.fcm_token_dto import FcmTokenDTO
 
@@ -28,6 +28,9 @@ from src.identity_access.domain.repositories.captcha_verifier_port import (
 )
 from src.identity_access.infrastructure.adapters.google_recaptcha_adapter import (
     GoogleRecaptchaAdapter,
+)
+from src.identity_access.infrastructure.adapters.notificacion_sesion_background_adapter import (
+    NotificacionSesionBackgroundAdapter,
 )
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
@@ -60,7 +63,10 @@ def get_captcha_verifier() -> CaptchaVerifierPort:
     return GoogleRecaptchaAdapter()
 
 
-def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
+def _crear_editar_perfil_use_case(db: Session, background_tasks: BackgroundTasks) -> EditarPerfilUseCase:
+    # La notificación va al usuario editado, que en la edición administrativa
+    # no es quien hace el request: bajo RLS solo el usuario de servicio puede
+    # registrarla y actualizar su estado (igual que el login, D1).
     return EditarPerfilUseCase(
         usuarios_repo=SqlAlchemyUsuarioRepository(db),
         cuentas_repo=SqlAlchemyCuentaRepository(db),
@@ -68,10 +74,7 @@ def _crear_editar_perfil_use_case(db: Session) -> EditarPerfilUseCase:
         eventos_repo=SqlAlchemyEventoRepository(db),
         roles_repo=SqlAlchemyRolRepository(db),
         db=db,
-        notificacion_service=NotificacionService(
-            port=SqlAlchemyNotificacionRepository(db),
-            db=db,
-        ),
+        notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
     )
 
 
@@ -359,6 +362,7 @@ def consultar_perfil(
 )
 def editar_perfil_propio(
     dto: EditarPerfilDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
@@ -370,7 +374,7 @@ def editar_perfil_propio(
     Si cambia el correo, la cuenta vuelve a PENDIENTE y se envía un correo de
     verificación (503 si el SMTP falla).
     """
-    usuario = _crear_editar_perfil_use_case(db).execute(
+    usuario = _crear_editar_perfil_use_case(db, background_tasks).execute(
         usuario_actual.id_usuario,
         dto,
         usuario_actual,
@@ -398,6 +402,7 @@ def editar_perfil_propio(
 def editar_perfil_admin(
     id_usuario: int,
     dto: EditarPerfilAdminDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
@@ -410,7 +415,7 @@ def editar_perfil_admin(
     `POST /usuarios/{id_usuario}/gestionar`. La identificación de la respuesta se
     enmascara si el actor no tiene `usuarios` · Ejecutar (1·E).
     """
-    usuario = _crear_editar_perfil_use_case(db).execute(
+    usuario = _crear_editar_perfil_use_case(db, background_tasks).execute(
         id_usuario,
         dto,
         usuario_actual,
@@ -474,17 +479,18 @@ def detalle_usuario(
 def gestionar_cuenta(
     id_usuario: int,
     dto: GestionarCuentaDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
-    """Activa, inactiva, bloquea o elimina la cuenta de un usuario.
+    """Activa, inactiva, bloquea, desbloquea o elimina la cuenta de un usuario.
 
     **Acceso:** permiso `cuentas` · Actualizar (4·U).
 
     Errores: cambiar el estado de la propia cuenta (403), motivo faltante, estado
-    sin cambio o dejar el sistema sin administrador activo (400), transición de
-    estado no permitida (409). Invalida las sesiones del usuario afectado cuando
-    corresponde.
+    sin cambio, desbloquear una cuenta que no está BLOQUEADA o dejar el sistema sin
+    administrador activo (400), transición de estado no permitida (409). Invalida
+    las sesiones del usuario afectado cuando corresponde.
     """
     use_case = GestionarCuentaUseCase(
     usuarios_repo=SqlAlchemyUsuarioRepository(db),
@@ -493,10 +499,9 @@ def gestionar_cuenta(
     sesiones_repo=SqlAlchemySesionRepository(db),
     roles_repo=SqlAlchemyRolRepository(db),
     db=db,
-    notificacion_service=NotificacionService(
-        port=SqlAlchemyNotificacionRepository(db),
-        db=db,
-    ),
+    # El aviso va al usuario afectado, no al admin del request: se registra
+    # como el usuario de servicio, el único que RLS deja escribirlo (D1).
+    notificacion_service=NotificacionSesionBackgroundAdapter(background_tasks),
 )
     use_case.execute(id_usuario, dto, usuario_actual)
     return {"message": f"Estado de cuenta actualizado exitosamente. Acción '{dto.accion_cuenta.value}' aplicada."}

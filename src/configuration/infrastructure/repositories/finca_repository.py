@@ -62,9 +62,10 @@ class SqlAlchemyFincaRepository(FincaRepository):
             self.db.flush()
             # F3: `fincas` ya no guarda dueño; el usuario indicado al registrar
             # entra como primer acceso de la finca (y así se lee de vuelta).
-            # F4: quien la registra también queda con acceso, porque ningún rol
-            # es global; va después para no pasar por propietario. Sin esa fila
-            # el `refresh` de abajo no vería la finca bajo RLS.
+            # Quien la registra también queda como acceso de la finca; va después
+            # para no pasar por propietario. En F4 era requisito para que el
+            # `refresh` la viera bajo RLS; desde `f68851f9a433` el Administrador
+            # (único rol que crea fincas) ya las ve todas.
             for id_usuario in dict.fromkeys((finca.id_usuario, id_creador)):
                 if id_usuario is None:
                     continue

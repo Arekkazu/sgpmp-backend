@@ -22,6 +22,9 @@ TipoModeloAsignable = Literal[
     "MODELO_ESPECIES_GRANDES",
 ]
 TipoModelo = Literal[TipoModeloAsignable, "MODELO_RIESGO_CONTAGIO"]
+# RF-15 v1.1: clasificación productiva de la especie; mapea 1:1 con el modelo
+# asignable (AVES -> MODELO_AVES). Ningún grupo habilita el meta-modelo.
+GrupoManejo = Literal["AVES", "PORCINOS", "ACUICULTURA", "ESPECIES_MEDIANAS", "ESPECIES_GRANDES"]
 # RF-69/RF-70: los modelos POBLACIONAL se versionan y despliegan por componente.
 Componente = Literal["DETECTOR", "SEGUIMIENTO", "METRICAS", "ANOMALIAS"]
 
@@ -36,6 +39,11 @@ PARADIGMA_POR_TIPO_MODELO: dict[str, str] = {
 TIPOS_MODELO = frozenset(PARADIGMA_POR_TIPO_MODELO)
 TIPOS_MODELO_ASIGNABLES = frozenset(get_args(TipoModeloAsignable))
 COMPONENTES_POBLACIONAL = frozenset(get_args(Componente))
+
+
+def tipo_modelo_de_grupo(grupo_manejo: Optional[str]) -> Optional[str]:
+    """Modelo de IA que corresponde al grupo de manejo de una especie (RF-15/RF-20)."""
+    return f"MODELO_{grupo_manejo}" if grupo_manejo else None
 
 
 def paradigma_de(tipo_modelo: Optional[str]) -> Optional[str]:

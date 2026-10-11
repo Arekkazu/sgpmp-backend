@@ -60,7 +60,10 @@ class EspecieModel(Base):
             'en individuos por unidad de superficie (RF-36).'
         ),
     )
-    tipo_modelo: Mapped[Optional[str]] = mapped_column(
+    grupo_manejo: Mapped[Optional[str]] = mapped_column(
         String(30),
-        comment='Familia de modelo de IA de la especie (RFC-009); base de la coherencia de RF-20.',
+        comment=(
+            'Clasificación productiva de la especie (RF-15 v1.1). Determina el '
+            'tipo_modelo_asignado admisible de sus áreas (RF-20), mapeo 1:1 AVES -> MODELO_AVES.'
+        ),
     )

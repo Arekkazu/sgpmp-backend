@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "TC-M09-G137 - Reintento 2 (2026-10-09, TEST) - DESBLOQUEADO: ataques a la superficie de camara",
+    "description": "Desbloqueado porque sus dos precondiciones (TC-M09-G134 y TC-M09-G136) se resolvieron: ahora existe un tipo de dispositivo CAMARA_VISION con resolucion/fps/area_cobertura_m2 reales en el contrato. Fuzzing de esos 3 campos en el registro (RF-21) y en /configurar (RF-23). RESULTADO: todos los casos maliciosos/invalidos fueron rechazados correctamente (400, sin 500, sin reflejo inseguro) -- no se encontraron vulnerabilidades.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Precondicion - Iniciar sesion como Administrador",
+      "event": [{"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "pm.test('login 200', function () { pm.response.to.have.status(200); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "if (r && r.token) { pm.collectionVariables.set('token', r.token); } else { postman.setNextRequest(null); }"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}],
+        "body": {"mode": "raw", "raw": "{\n  \"correo_electronico\": \"{{admin_correo}}\",\n  \"contrasena\": \"{{admin_contrasena}}\"\n}"},
+        "url": {"raw": "{{base_url}}/sesiones/", "host": ["{{base_url}}"], "path": ["sesiones", ""]}
+      }
+    },
+    {
+      "name": "Caso 1 - resolucion con payload tipo SQLi -> rechazado (400, sin 500)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-sqli-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400 (no 500, no inyeccion aceptada)', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code ATRIBUTOS_VISION_INVALIDOS', function () { pm.expect(r && r.error_code).to.equal('ATRIBUTOS_VISION_INVALIDOS'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080' OR '1'='1\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 2 - resolucion con payload tipo XSS -> rechazado (400, sin 500)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-xss-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code ATRIBUTOS_VISION_INVALIDOS', function () { pm.expect(r && r.error_code).to.equal('ATRIBUTOS_VISION_INVALIDOS'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"<script>alert(1)</script>\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 3 - resolucion con formato invalido (sin x) -> rechazado (400)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-fmt-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400', function () { pm.response.to.have.status(400); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920-1080\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 4 - area_cobertura_m2 negativa -> rechazado (400)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-neg-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400', function () { pm.response.to.have.status(400); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": -5\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 5 - fps decimal (30.5) -> rechazado (400, tipo entero exigido)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-dec-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400', function () { pm.response.to.have.status(400); });",
+        "let r; try { r = pm.response.json(); } catch (e) { r = null; }",
+        "pm.test('error_code VAL_ENTRADA', function () { pm.expect(r && r.error_code).to.equal('VAL_ENTRADA'); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": 30.5,\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Caso 6 - fps como string no numerico -> rechazado (400)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-str-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('rechazado con 400', function () { pm.response.to.have.status(400); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": \"treinta\",\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    },
+    {
+      "name": "Control - camara con datos validos SI se acepta (aisla los fallos a los valores malformados)",
+      "event": [{"listen": "prerequest", "script": {"type": "text/javascript", "exec": ["pm.collectionVariables.set('serial', 'QA-G137-ok-' + Date.now());"]}},
+        {"listen": "test", "script": {"type": "text/javascript", "exec": [
+        "console.log(pm.response.text());",
+        "pm.test('CONTROL: aceptado (HTTP 201)', function () { pm.response.to.have.status(201); });"
+      ]}}],
+      "request": {
+        "method": "POST",
+        "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{token}}"}],
+        "body": {"mode": "raw", "raw": "{\n  \"serial\": \"{{serial}}\",\n  \"descripcion\": \"QA G137 control\",\n  \"id_infraestructura\": {{id_infraestructura}},\n  \"id_tipo_dispositivo\": {{id_tipo_camara}},\n  \"resolucion\": \"1920x1080\",\n  \"fps\": 30,\n  \"area_cobertura_m2\": 10\n}"},
+        "url": {"raw": "{{base_url}}/configuracion/dispositivos-iot", "host": ["{{base_url}}"], "path": ["configuracion", "dispositivos-iot"]}
+      }
+    }
+  ],
+  "variable": [
+    {"key": "base_url", "value": "https://sigab-backendtest-389pcb-a48238-158-69-200-27.sslip.io/api-sgpmp-test"},
+    {"key": "admin_correo", "value": "admin@pecuaria.co"},
+    {"key": "admin_contrasena", "value": "Test1234!"},
+    {"key": "token", "value": ""},
+    {"key": "id_infraestructura", "value": "277"},
+    {"key": "id_tipo_camara", "value": "5"},
+    {"key": "serial", "value": ""}
+  ]
+}

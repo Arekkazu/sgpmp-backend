@@ -18,6 +18,7 @@ from src.biological_assets.domain.repositories.bitacora_auditoria_repository imp
 from src.biological_assets.domain.repositories.especie_consulta_port import EspecieConsultaPort
 from src.biological_assets.domain.repositories.infraestructura_consulta_port import InfraestructuraConsultaPort
 from src.biological_assets.domain.repositories.parametros_especie_port import ParametrosEspeciePort
+from src.biological_assets.domain.repositories.recalibracion_vision_port import RecalibracionVisionPort
 from src.biological_assets.domain.services.densidad_lote import calcular_y_validar_densidad
 from src.biological_assets.infrastructure.dto.registrar_activo_dto import RegistrarActivoBiologicoDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -174,6 +175,7 @@ class RegistrarActivoBiologicoUseCase:
         infra_port: InfraestructuraConsultaPort,
         parametros_port: ParametrosEspeciePort,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        recalibracion_vision: RecalibracionVisionPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
@@ -181,6 +183,7 @@ class RegistrarActivoBiologicoUseCase:
         self.infra_port = infra_port
         self.parametros_port = parametros_port
         self.bitacora_repo = bitacora_repo
+        self.recalibracion_vision = recalibracion_vision
 
     def execute(
         self,
@@ -310,5 +313,13 @@ class RegistrarActivoBiologicoUseCase:
             detalle_tecnico={'registros_rf46': registros_rf46(historial_activos=historial.id_historial_activo)},
             id_usuario_responsable=usuario.id_usuario,
         ))
+
+        # RF-24 v2.0: un nuevo lote dispara la calibración por visión del área (#551).
+        if self.recalibracion_vision is not None and activo.tipo == 'POBLACIONAL':
+            self.recalibracion_vision.solicitar(
+                activo.id_infraestructura,
+                datetime.now(timezone.utc),
+                f'Disparo automático M02: nuevo lote {activo.id_activo_biologico}',
+            )
 
         return activo

@@ -48,7 +48,9 @@ class CalibracionVisionModel(Base):
     estado: Mapped[str] = mapped_column(String(15), nullable=False)
     etapa_fallo: Mapped[Optional[str]] = mapped_column(String(15))
     motivo: Mapped[Optional[str]] = mapped_column(Text)
-    json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB)
+    # none_as_null: None debe llegar como SQL NULL, no como 'null'::jsonb, o el CHECK
+    # ck_calibracion_vision_resultado_coherente rechaza las FALLIDA/NO_CONVERGIDA (#548/#549).
+    json_linea_base: Mapped[Optional[dict]] = mapped_column(JSONB(none_as_null=True))
     cantidad_observaciones: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     cantidad_observaciones_validas: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text('0'))
     iteraciones: Mapped[Optional[int]] = mapped_column(Integer)

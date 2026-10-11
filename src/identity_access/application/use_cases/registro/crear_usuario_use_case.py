@@ -26,6 +26,7 @@ from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import UsuarioCreateDTO
 from src.identity_access.infrastructure.email_templates import activation_email
 from src.identity_access.domain.value_objects.token_un_solo_uso import calcular_hash_token
+from src.shared.email import INTENTOS_CORREO_CON_TOKEN
 from src.shared.errors import (
     AuthorizationError,
     ServiceUnavailableError,
@@ -162,8 +163,10 @@ class CrearUsuarioUseCase:
                 tipo_evento=TIPO_REGISTRO_USUARIO,
                 id_usuario=usuario.id_usuario,
                 correo_destino=str(usuario.correo),
-                asunto_email="Activa tu cuenta en SGPMP",
+                asunto_email="Activa tu cuenta en SIGAB",
                 contenido_html_email=activation_email(usuario.nombre, token),
+                # RF-01: el token de activación sí reintenta hasta 3 veces.
+                intentos_email=INTENTOS_CORREO_CON_TOKEN,
             )
             if enviado is False:
                 raise ServiceUnavailableError(

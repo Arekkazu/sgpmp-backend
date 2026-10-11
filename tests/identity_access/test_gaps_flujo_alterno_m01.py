@@ -109,6 +109,8 @@ def test_rf01_smtp_agotado_responde_503_sin_perder_el_registro(monkeypatch) -> N
     assert error.value.code == "EMAIL_NO_DISPONIBLE"
     assert error.value.message.startswith("Registro exitoso")
     assert servicio.llamadas, "el correo debe intentarse dentro del request"
+    # RF-01: el token de activación sí reintenta hasta 3 veces (RF-14 no aplica).
+    assert servicio.llamadas[0]["intentos_email"] == 3
 
 
 def test_rf01_registro_exitoso_no_lanza_cuando_el_correo_sale(monkeypatch) -> None:

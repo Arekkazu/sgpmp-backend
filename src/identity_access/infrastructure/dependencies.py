@@ -23,6 +23,9 @@ from src.shared.jwt import verify_token
 
 INACTIVIDAD_MINUTOS = 30
 
+# INACTIVO, BLOQUEADO, ELIMINADO: los estados que invalidan las sesiones (RF-06).
+_ESTADOS_QUE_FINALIZAN_SESION = {3, 4, 5}
+
 
 @dataclass
 class UsuarioActual:
@@ -77,6 +80,19 @@ def get_current_user(
     # Verificar blacklist
     token = db.query(Tokens).filter(Tokens.id_token == id_token).first()
     if token is None or token.fecha_uso is not None:
+        # RF-06: si el token se revocó porque la cuenta pasó a INACTIVO,
+        # BLOQUEADO o ELIMINADO, el usuario debe ver el motivo; con
+        # TOKEN_REVOCADO no se distinguía de un logout o una sesión reemplazada.
+        estado = (
+            db.query(CuentasUsuarios.id_estado_cuenta)
+            .filter(CuentasUsuarios.id_usuario == id_usuario)
+            .scalar()
+        )
+        if estado in _ESTADOS_QUE_FINALIZAN_SESION:
+            raise AuthenticationError(
+                code="SESION_FINALIZADA_CAMBIO_ESTADO",
+                message="Su sesión ha sido finalizada debido a un cambio en el estado de su cuenta.",
+            )
         raise AuthenticationError(
             code="TOKEN_REVOCADO",
             message="El token de sesión ha sido revocado o es inválido.",

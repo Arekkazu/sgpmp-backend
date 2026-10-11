@@ -1,0 +1,131 @@
+{
+  "grupo": "TC-M09-G75-v2.0",
+  "runId": "G75-REEVAL-V2-20261009-192753",
+  "commit": "1e3a3848f23ac514339abbf37a34c26bbfbd0ff8",
+  "nota": "Manifiesto de la automatizacion real de la SEGUNDA EVALUACION. Los scripts ejecutables viven unicamente en EvaluacionV2/automation/ y la coleccion funcional y los helpers en la carpeta del caso: la copia duplicada que existia en RESULTADOS/<RUN_ID>/automation/ fue retirada y la trazabilidad se conserva aqui por SHA-256. Los artefactos marcados participaEnLos7PostDelRunFuncional=true son los que produjeron los 7 POST; su hash coincide con el capturado durante el RUN.",
+  "integridadDeLosArtefactosDelRunFuncional": "OK: ningun artefacto que produjo los 7 POST cambio desde el RUN",
+  "cambiosPosterioresAlRun": [
+    {
+      "archivo": "consolidar-evidencia.cjs",
+      "motivo": "modificado despues del RUN funcional; no participa en los 7 POST"
+    }
+  ],
+  "artefactosNuevosPosterioresAlRun": [
+    "TC-M09-G75-v2.0-preflight.postman_collection.json",
+    "run-preflight-corregido.cjs",
+    "diagnostico-preflight.cjs",
+    "verificar-persistencia-rls.cjs"
+  ],
+  "artefactos": [
+    {
+      "archivo": "TC-M09-G75-v2.0.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/TC-M09-G75-v2.0.postman_collection.json",
+      "origen": "primera evaluacion",
+      "funcion": "Coleccion funcional del grupo: los 7 POST, assertions, mensajes esperados y oraculo por variante. Reutilizada SIN modificar.",
+      "participaEnLos7PostDelRunFuncional": true,
+      "sha256_actual": "65c8e4b0570c8239473948a00aad66233f11f2d48dbfe1b230814427b31e69d6",
+      "sha256_en_el_run_funcional": "65c8e4b0570c8239473948a00aad66233f11f2d48dbfe1b230814427b31e69d6",
+      "sin_cambios_desde_el_run": true,
+      "bytes": 59883
+    },
+    {
+      "archivo": "helpers.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/helpers.cjs",
+      "origen": "primera evaluacion",
+      "funcion": "Aritmetica decimal exacta, login, GET de discovery, construccion del plan/fixture, mensajes esperados del RF y sanitizacion. Reutilizado SIN modificar.",
+      "participaEnLos7PostDelRunFuncional": true,
+      "sha256_actual": "0a0a234d3e542f5903aae044241cd8243afafdfe6bc01fa78f6f0c5f6ba6c71b",
+      "sha256_en_el_run_funcional": "0a0a234d3e542f5903aae044241cd8243afafdfe6bc01fa78f6f0c5f6ba6c71b",
+      "sin_cambios_desde_el_run": true,
+      "bytes": 15014
+    },
+    {
+      "archivo": "paths-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/paths-v2.cjs",
+      "origen": "EvaluacionV2",
+      "funcion": "Adaptador: reutiliza helpers.cjs de la primera evaluacion y redirige toda la salida a EvaluacionV2/RESULTADOS/<RUN_ID>/.",
+      "participaEnLos7PostDelRunFuncional": true,
+      "sha256_actual": "72850878a9e046ec39ff54efeaa23ca00d4f6b8991eee70751962a9f5d70d239",
+      "sha256_en_el_run_funcional": "72850878a9e046ec39ff54efeaa23ca00d4f6b8991eee70751962a9f5d70d239",
+      "sin_cambios_desde_el_run": true,
+      "bytes": 1410
+    },
+    {
+      "archivo": "run-newman-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/run-newman-v2.cjs",
+      "origen": "EvaluacionV2",
+      "funcion": "Runner del RUN funcional oficial: preflight, 7 POST via Newman (CLI + HTML), captura de evidencia antes del oraculo y consolidacion del artefacto del oraculo.",
+      "participaEnLos7PostDelRunFuncional": true,
+      "sha256_actual": "e8f4f96c0c82689ed8360acc2df3dced07bbc8532fed198dfbad7b7ae1649019",
+      "sha256_en_el_run_funcional": "e8f4f96c0c82689ed8360acc2df3dced07bbc8532fed198dfbad7b7ae1649019",
+      "sin_cambios_desde_el_run": true,
+      "bytes": 23267
+    },
+    {
+      "archivo": "verificar-cierre-v2.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/verificar-cierre-v2.cjs",
+      "origen": "EvaluacionV2",
+      "funcion": "Verificacion final del RUN, solo autenticacion y GET: persistencia de las validas, no persistencia de las invalidas, inmutabilidad, rango y escaneo de secretos.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "11fb94e2c40d35fb7859334cf9403c41c58ad91a3ba3a3bb1ba2360afef6e986",
+      "sha256_en_el_run_funcional": "11fb94e2c40d35fb7859334cf9403c41c58ad91a3ba3a3bb1ba2360afef6e986",
+      "sin_cambios_desde_el_run": true,
+      "bytes": 8011
+    },
+    {
+      "archivo": "consolidar-evidencia.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/consolidar-evidencia.cjs",
+      "origen": "EvaluacionV2",
+      "funcion": "Consolida evidencia.json: secciones estructuradas mas copia verbatim de cada artefacto del RUN en artefactos_del_run. Sin red y sin POST.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "64e803c57933fa2301b59e32c3767b58ed04ca237ff7db306ceb964e3d02b5f0",
+      "sha256_en_el_run_funcional": "a416b35479159ac079a18d49e63b2c6b505c533a29d2ba19af877f7ccf323f37",
+      "sin_cambios_desde_el_run": false,
+      "bytes": 16243
+    },
+    {
+      "archivo": "TC-M09-G75-v2.0-preflight.postman_collection.json",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/TC-M09-G75-v2.0-preflight.postman_collection.json",
+      "origen": "EvaluacionV2 (correccion post-RUN)",
+      "funcion": "Coleccion auxiliar del preflight corregido: solo GET mas autenticacion, Ingeniero de Campo como actor principal y Administrador como fallback de solo lectura. 0 POST de calibracion.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "7f94e0937157fb7bb783e5604e6be681e32bf9fdc996c557fe1a4deb6d801749",
+      "sha256_en_el_run_funcional": null,
+      "sin_cambios_desde_el_run": null,
+      "bytes": 20547
+    },
+    {
+      "archivo": "run-preflight-corregido.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/run-preflight-corregido.cjs",
+      "origen": "EvaluacionV2 (correccion post-RUN)",
+      "funcion": "Runner de la validacion suplementaria de preflight: aborta si la coleccion contiene escrituras y custodia por SHA-256 el HTML del RUN funcional. Genera newman-preflight-corregido.html.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "1e6ded98adbf89cc018e412b892a5f7c1a488b4bcdbb71c07318537b13aa7c88",
+      "sha256_en_el_run_funcional": null,
+      "sin_cambios_desde_el_run": null,
+      "bytes": 10782
+    },
+    {
+      "archivo": "diagnostico-preflight.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/diagnostico-preflight.cjs",
+      "origen": "EvaluacionV2 (post-RUN)",
+      "funcion": "Diagnostico de solo lectura de las 5 assertions fallidas del preflight: compara el HTTP de cada endpoint de precondicion con cada actor.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "5e3020bb811fb1da5d96629d238071cff0a3f09d1f81d09c7b057ea380d1193c",
+      "sha256_en_el_run_funcional": null,
+      "sin_cambios_desde_el_run": null,
+      "bytes": 2963
+    },
+    {
+      "archivo": "verificar-persistencia-rls.cjs",
+      "ruta": "tests/Test_Testing/Test_Modulo9/RF-24/TC-M09-G75-v2.0/EvaluacionV2/automation/verificar-persistencia-rls.cjs",
+      "origen": "EvaluacionV2 (post-RUN)",
+      "funcion": "Verificacion de solo lectura de que las calibraciones validas del RUN siguen persistidas, y del alcance de lectura por cuenta tras el RLS.",
+      "participaEnLos7PostDelRunFuncional": false,
+      "sha256_actual": "c2cb8870157b804a8f85e03c6656633cda53e5ba8f3628a10674601f3f0a70c7",
+      "sha256_en_el_run_funcional": null,
+      "sin_cambios_desde_el_run": null,
+      "bytes": 5544
+    }
+  ]
+}

@@ -6,7 +6,8 @@ case y el router no saben nada de roles; solo llaman a ``AlcanceActivoPort``.
 
 Regla de alcance (RF-25): cada usuario queda restringido a los activos
 ubicados en sus fincas (``activos_biologicos.id_infraestructura`` →
-``infraestructuras.id_finca``); ningún rol es global (``AlcanceFincaAdapter``).
+``infraestructuras.id_finca``), salvo el Administrador, que es global
+(``AlcanceFincaAdapter``).
 """
 from __future__ import annotations
 
