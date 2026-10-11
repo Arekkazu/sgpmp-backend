@@ -239,11 +239,12 @@ class EditarPerfilUseCase:
         if dto.correo_electronico is not None:
             cambios["correo_electronico"] = str(dto.correo_electronico)
 
+        # "" = el usuario vació el campo opcional: se guarda NULL.
         if dto.telefono is not None:
-            cambios["telefono"] = dto.telefono
+            cambios["telefono"] = dto.telefono or None
 
         if dto.direccion is not None:
-            cambios["direccion"] = dto.direccion
+            cambios["direccion"] = dto.direccion.strip() or None
 
         if dto.tipo_identificacion is not None:
             cambios["tipo_identificacion"] = dto.tipo_identificacion

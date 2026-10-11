@@ -250,3 +250,40 @@ def test_edicion_administrativa_de_perfil_notifica_al_usuario_editado(
     ).scalars().all()
     assert canales == [1, 2]
     assert correos and correos[-1]["subject"] == "Perfil actualizado"
+
+
+def test_vaciar_el_telefono_opcional_lo_guarda_como_nulo(
+    client,
+    integration_app,
+    db_session: Session,
+    crear_usuario_db,
+) -> None:
+    """RF-05: el modal envía `telefono: ""` al dejarlo vacío. Antes era 422."""
+    admin = crear_usuario_db(id_rol=1)
+    editado = crear_usuario_db(id_rol=2)
+    db_session.execute(
+        text("UPDATE modulo1.usuarios SET telefono = '3001234567' WHERE id_usuario = :id"),
+        {"id": editado["id_usuario"]},
+    )
+
+    def actual(db: Session = Depends(get_db)) -> UsuarioActual:
+        declarar_identidad(db, admin["id_usuario"], "Administrador")
+        return UsuarioActual(id_usuario=admin["id_usuario"], id_token=1, id_rol=1, id_estado_cuenta=2)
+
+    integration_app.dependency_overrides[get_current_user] = actual
+    version = db_session.execute(
+        text("SELECT version FROM modulo1.usuarios WHERE id_usuario = :id"),
+        {"id": editado["id_usuario"]},
+    ).scalar_one()
+
+    respuesta = client.patch(
+        f"/usuarios/{editado['id_usuario']}",
+        json={"nombre": "Sin", "apellidos": "Telefono", "telefono": "", "direccion": "", "version": version},
+    )
+
+    assert respuesta.status_code == 200, respuesta.text
+    fila = db_session.execute(
+        text("SELECT telefono, direccion FROM modulo1.usuarios WHERE id_usuario = :id"),
+        {"id": editado["id_usuario"]},
+    ).one()
+    assert fila.telefono is None and fila.direccion is None
