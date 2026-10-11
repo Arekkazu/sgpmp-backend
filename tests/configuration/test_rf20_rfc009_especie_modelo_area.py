@@ -11,6 +11,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError as PydanticValidationError
 
 from src.configuration.application.use_cases.especies.editar_especie_use_case import EditarEspecieUseCase
 from src.configuration.application.use_cases.infraestructuras.editar_infraestructura_use_case import EditarInfraestructuraUseCase
@@ -22,23 +23,25 @@ from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.domain.value_objects.nombre_infraestructura import NombreInfraestructura
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.editar_especie_dto import EditarEspecieDTO
+from src.configuration.infrastructure.dto.registrar_especie_dto import RegistrarEspecieDTO
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.configuration.infrastructure.dto.registrar_infraestructura_dto import RegistrarInfraestructuraDTO
 from src.shared.errors import BusinessRuleError
+from src.shared.tipo_modelo import TIPOS_MODELO_ASIGNABLES
 
 USUARIO = SimpleNamespace(id_usuario=1)
 
 
-def _especie(id_especie, tipo_modelo, es_activo=True, nombre="Pollo de engorde"):
+def _especie(id_especie, grupo_manejo, es_activo=True, nombre="Pollo de engorde"):
     return Especie(
-        id_especie=id_especie, nombre=NombreEspecie(nombre), es_activo=es_activo, tipo_modelo=tipo_modelo,
+        id_especie=id_especie, nombre=NombreEspecie(nombre), es_activo=es_activo, grupo_manejo=grupo_manejo,
     )
 
 
 ESPECIES = {
-    1: _especie(1, "MODELO_AVES"),
-    2: _especie(2, "MODELO_ESPECIES_GRANDES", nombre="Bovino de leche"),
-    3: _especie(3, "MODELO_AVES", es_activo=False, nombre="Codorniz"),
+    1: _especie(1, "AVES"),
+    2: _especie(2, "ESPECIES_GRANDES", nombre="Bovino de leche"),
+    3: _especie(3, "AVES", es_activo=False, nombre="Codorniz"),
     4: _especie(4, None, nombre="Conejo"),
 }
 
@@ -202,38 +205,78 @@ def test_reactivar_rechazos_son_422(area, finca_activa, codigo):
 # ── RF-15/RF-20: cambiar la familia de la especie no puede romper la coherencia ──
 
 class _EspecieEditable:
-    def __init__(self, especie, areas_incoherentes):
+    def __init__(self, especie, areas_incoherentes, activos_alojados=0):
         self.especie, self.areas_incoherentes, self.consultado = especie, areas_incoherentes, None
+        self.activos_alojados = activos_alojados
     def obtener_por_id(self, _id, **_): return self.especie
     def obtener_por_nombre(self, _nombre): return self.especie
     def contar_areas_con_modelo_distinto(self, id_especie, tipo_modelo):
         self.consultado = (id_especie, tipo_modelo)
         return self.areas_incoherentes
+    def contar_activos_alojados(self, _id_especie): return self.activos_alojados
     def actualizar(self, especie): return especie
 
 
-def _editar_familia(areas_incoherentes, **cambio):
-    especie = _especie(1, "MODELO_AVES")
+def _editar_familia(areas_incoherentes, grupo_actual="AVES", activos_alojados=0, **cambio):
+    especie = _especie(1, grupo_actual)
     especie.fecha_actualizacion = datetime(2026, 10, 1, tzinfo=timezone.utc)
-    repo = _EspecieEditable(especie, areas_incoherentes)
+    repo = _EspecieEditable(especie, areas_incoherentes, activos_alojados)
     uc = EditarEspecieUseCase(_Db(), repo, _Auditoria())
     dto = EditarEspecieDTO(nombre="Pollo de engorde", fecha_actualizacion=especie.fecha_actualizacion, **cambio)
     return uc.execute(1, dto, USUARIO), repo
 
 
-@pytest.mark.parametrize("nueva_familia", ["MODELO_PORCINOS", None])
-def test_no_cambia_la_familia_si_deja_areas_con_modelo_incoherente(nueva_familia):
+def test_no_cambia_la_familia_si_deja_areas_con_modelo_incoherente():
     with pytest.raises(BusinessRuleError) as e:
-        _editar_familia(2, tipo_modelo=nueva_familia)
+        _editar_familia(2, grupo_manejo="PORCINOS")
     assert e.value.code == "ESPECIE_CON_AREAS_DE_OTRO_MODELO" and e.value.status_code == 422
     assert "2 áreas" in e.value.message
 
 
 def test_cambia_la_familia_si_ninguna_area_queda_incoherente():
-    especie, repo = _editar_familia(0, tipo_modelo="MODELO_PORCINOS")
+    especie, repo = _editar_familia(0, grupo_manejo="PORCINOS")
+    assert especie.grupo_manejo == "PORCINOS"
     assert especie.tipo_modelo == "MODELO_PORCINOS" and repo.consultado == (1, "MODELO_PORCINOS")
 
 
 def test_editar_sin_tocar_la_familia_no_revisa_areas():
     especie, repo = _editar_familia(5)
     assert especie.tipo_modelo == "MODELO_AVES" and repo.consultado is None
+
+
+# ── RF-15 v1.1: grupo_manejo ─────────────────────────────────────────────────
+
+def test_no_cambia_el_grupo_si_la_especie_tiene_activos_alojados():
+    with pytest.raises(BusinessRuleError) as e:
+        _editar_familia(0, activos_alojados=3, grupo_manejo="PORCINOS")
+    assert e.value.code == "ESPECIE_CON_ACTIVOS_ALOJADOS" and e.value.status_code == 422
+    assert "3 activos" in e.value.message
+
+
+def test_asignar_el_primer_grupo_no_se_bloquea_por_activos_alojados():
+    """Especies previas a la migración (sin grupo) deben poder clasificarse."""
+    especie, _ = _editar_familia(0, grupo_actual=None, activos_alojados=7, grupo_manejo="ACUICULTURA")
+    assert especie.grupo_manejo == "ACUICULTURA" and especie.tipo_modelo == "MODELO_ACUICULTURA"
+
+
+def test_el_grupo_no_se_puede_vaciar_al_editar():
+    with pytest.raises(PydanticValidationError):
+        EditarEspecieDTO(nombre="Pollo de engorde", grupo_manejo=None)
+
+
+@pytest.mark.parametrize("grupo", ["MODELO_AVES", "RIESGO_CONTAGIO", "aves"])
+def test_grupo_fuera_del_dominio_se_rechaza(grupo):
+    with pytest.raises(PydanticValidationError):
+        RegistrarEspecieDTO(nombre="Pollo de engorde", grupo_manejo=grupo)
+
+
+def test_registrar_exige_grupo_manejo():
+    with pytest.raises(PydanticValidationError):
+        RegistrarEspecieDTO(nombre="Pollo de engorde")
+
+
+@pytest.mark.parametrize("grupo", ["AVES", "PORCINOS", "ACUICULTURA", "ESPECIES_MEDIANAS", "ESPECIES_GRANDES"])
+def test_cada_grupo_mapea_a_su_modelo_asignable(grupo):
+    modelo = Especie(id_especie=1, nombre=NombreEspecie("Pollo de engorde"), es_activo=True,
+                     grupo_manejo=grupo).tipo_modelo
+    assert modelo == f"MODELO_{grupo}" and modelo in TIPOS_MODELO_ASIGNABLES

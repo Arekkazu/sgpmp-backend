@@ -78,6 +78,7 @@ def test_registrar_especie_con_datos_validos_responde_201(
             "nombre": nombre,
             "descripcion": "Especie creada por prueba de regresión",
             "densidad_maxima_por_especie": "12.5000",
+            "grupo_manejo": "ACUICULTURA",
         },
         headers=headers,
     )
@@ -87,6 +88,13 @@ def test_registrar_especie_con_datos_validos_responde_201(
     assert cuerpo["nombre"].upper() == nombre.upper()  # trigger de BD normaliza a Title Case
     assert cuerpo["es_activo"] is True
     assert cuerpo["densidad_maxima_por_especie"] == "12.5000"
+    assert cuerpo["grupo_manejo"] == "ACUICULTURA"
+    assert cuerpo["tipo_modelo"] == "MODELO_ACUICULTURA"
+    guardado = db_session.execute(
+        text("SELECT grupo_manejo FROM modulo9.especies WHERE id_especie = :id"),
+        {"id": cuerpo["id_especie"]},
+    ).scalar_one()
+    assert guardado == "ACUICULTURA"
 
     auditoria = db_session.execute(
         text(
@@ -113,7 +121,7 @@ def test_editar_especie_activa_responde_200(
     nombre = f"Especie Editable {_sufijo_letras()}"
     creada = config_client.post(
         "/configuracion/especies",
-        json={"nombre": nombre, "descripcion": "Original"},
+        json={"nombre": nombre, "descripcion": "Original", "grupo_manejo": "AVES"},
         headers=headers,
     )
     assert creada.status_code == 201, creada.text
@@ -142,3 +150,17 @@ def test_editar_especie_activa_responde_200(
     assert editada.status_code == 200, editada.text
     assert editada.json()["descripcion"] == "Editada"
     assert editada.json()["densidad_maxima_por_especie"] == "8.7500"
+
+
+def test_registrar_especie_sin_grupo_manejo_responde_400(
+    config_client, crear_usuario_db, crear_auth_headers
+) -> None:
+    """RF-15 v1.1: `grupo_manejo` es obligatorio."""
+    headers = _headers_admin(crear_usuario_db, crear_auth_headers)
+    respuesta = config_client.post(
+        "/configuracion/especies",
+        json={"nombre": f"Especie Sin Grupo {_sufijo_letras()}"},
+        headers=headers,
+    )
+    assert respuesta.status_code == 400, respuesta.text
+    assert {f["field"] for f in respuesta.json()["fields"]} == {"grupo_manejo"}

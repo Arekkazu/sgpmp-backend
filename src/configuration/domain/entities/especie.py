@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Optional
 
 from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
+from src.shared.tipo_modelo import tipo_modelo_de_grupo
 
 
 @dataclass(eq=False)
@@ -32,8 +33,8 @@ class Especie:
     id_especie: Optional[int] = None
     descripcion: Optional[str] = None
     densidad_maxima_por_especie: Optional[Decimal] = None
-    # RFC-009: familia de modelo de IA; RF-20 exige que el modelo del área coincida.
-    tipo_modelo: Optional[str] = None
+    # RF-15 v1.1: clasificación productiva; de ella sale el modelo que RF-20 exige al área.
+    grupo_manejo: Optional[str] = None
     fecha_creacion: Optional[datetime] = None
     fecha_actualizacion: Optional[datetime] = None
 
@@ -44,7 +45,7 @@ class Especie:
         nombre: NombreEspecie,
         descripcion: Optional[str],
         densidad_maxima_por_especie: Optional[Decimal] = None,
-        tipo_modelo: Optional[str] = None,
+        grupo_manejo: Optional[str] = None,
         fecha_creacion: datetime,
     ) -> Especie:
         """Construye una especie nueva, aún sin persistir.
@@ -56,7 +57,7 @@ class Especie:
             nombre=nombre,
             descripcion=descripcion,
             densidad_maxima_por_especie=densidad_maxima_por_especie,
-            tipo_modelo=tipo_modelo,
+            grupo_manejo=grupo_manejo,
             es_activo=True,
             fecha_creacion=fecha_creacion,
         )
@@ -68,14 +69,19 @@ class Especie:
         descripcion: Optional[str],
         densidad_maxima_por_especie: Optional[Decimal],
         fecha_actualizacion: datetime,
-        tipo_modelo: Optional[str] = None,
+        grupo_manejo: Optional[str] = None,
     ) -> None:
         """Aplica los nuevos valores tras una edición validada."""
         self.nombre = nombre
         self.descripcion = descripcion
         self.densidad_maxima_por_especie = densidad_maxima_por_especie
-        self.tipo_modelo = tipo_modelo
+        self.grupo_manejo = grupo_manejo
         self.fecha_actualizacion = fecha_actualizacion
+
+    @property
+    def tipo_modelo(self) -> Optional[str]:
+        """Modelo de IA de la especie, derivado de ``grupo_manejo`` (mapeo 1:1)."""
+        return tipo_modelo_de_grupo(self.grupo_manejo)
 
     def desactivar(self) -> None:
         """Marca la especie como inactiva (baja lógica)."""

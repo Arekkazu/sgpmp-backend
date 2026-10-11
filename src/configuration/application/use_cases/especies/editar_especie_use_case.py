@@ -17,6 +17,7 @@ from src.configuration.domain.value_objects.nombre_especie import NombreEspecie
 from src.configuration.infrastructure.dto.editar_especie_dto import EditarEspecieDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, PreconditionFailedError
+from src.shared.tipo_modelo import tipo_modelo_de_grupo
 
 
 def _snapshot(especie: Especie) -> dict:
@@ -29,7 +30,7 @@ def _snapshot(especie: Especie) -> dict:
             if especie.densidad_maxima_por_especie is not None
             else None
         ),
-        "tipo_modelo": especie.tipo_modelo,
+        "grupo_manejo": especie.grupo_manejo,
         "es_activo": especie.es_activo,
         "fecha_creacion": especie.fecha_creacion.isoformat() if especie.fecha_creacion else None,
         "fecha_actualizacion": especie.fecha_actualizacion.isoformat() if especie.fecha_actualizacion else None,
@@ -94,28 +95,44 @@ class EditarEspecieUseCase:
         densidad_maxima = especie.densidad_maxima_por_especie
         if "densidad_maxima_por_especie" in dto.model_fields_set:
             densidad_maxima = dto.densidad_maxima_por_especie
-        # Mismo criterio que la densidad: omitido conserva, enviado (incluso null) reemplaza.
-        tipo_modelo = dto.tipo_modelo if "tipo_modelo" in dto.model_fields_set else especie.tipo_modelo
-        # RF-20 v1.1: cambiar la familia no puede dejar áreas con un modelo incoherente.
-        if tipo_modelo != especie.tipo_modelo:
-            cantidad = self.especies_repo.contar_areas_con_modelo_distinto(id_especie, tipo_modelo)
+        # Omitido conserva el grupo actual (el DTO no acepta vaciarlo).
+        grupo_manejo = dto.grupo_manejo if "grupo_manejo" in dto.model_fields_set else especie.grupo_manejo
+        if grupo_manejo != especie.grupo_manejo:
+            # RF-20 v1.1: el cambio no puede dejar áreas con un modelo incoherente.
+            cantidad = self.especies_repo.contar_areas_con_modelo_distinto(
+                id_especie, tipo_modelo_de_grupo(grupo_manejo)
+            )
             if cantidad:
                 raise BusinessRuleError(
                     code="ESPECIE_CON_AREAS_DE_OTRO_MODELO",
                     message=(
                         f"Operación denegada: la especie '{especie.nombre.valor}' tiene {cantidad} áreas "
-                        "productivas con un modelo de IA que no corresponde a la nueva familia. Reasigne "
-                        "o quite el modelo de esas áreas antes de cambiar la familia de la especie."
+                        "productivas con un modelo de IA que no corresponde al nuevo grupo de manejo. "
+                        "Reasigne o quite el modelo de esas áreas antes de cambiar el grupo de la especie."
                     ),
-                    field="tipo_modelo",
+                    field="grupo_manejo",
                 )
+            # RF-15 v1.1: tampoco con activos alojados. Asignar el primer grupo a una
+            # especie que no lo tenía no es un cambio y no se bloquea.
+            if especie.grupo_manejo is not None:
+                activos = self.especies_repo.contar_activos_alojados(id_especie)
+                if activos:
+                    raise BusinessRuleError(
+                        code="ESPECIE_CON_ACTIVOS_ALOJADOS",
+                        message=(
+                            f"Operación denegada: la especie '{especie.nombre.valor}' tiene {activos} "
+                            "activos biológicos alojados. Trasládelos o cierre su ciclo antes de cambiar "
+                            "el grupo de manejo."
+                        ),
+                        field="grupo_manejo",
+                    )
 
         especie.actualizar(
             nombre=nombre_nuevo,
             descripcion=dto.descripcion,
             densidad_maxima_por_especie=densidad_maxima,
             fecha_actualizacion=datetime.now(timezone.utc),
-            tipo_modelo=tipo_modelo,
+            grupo_manejo=grupo_manejo,
         )
 
         try:
