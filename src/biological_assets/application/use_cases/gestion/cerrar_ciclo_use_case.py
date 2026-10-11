@@ -16,6 +16,7 @@ from src.biological_assets.domain.repositories.activo_biologico_repository impor
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.domain.repositories.evento_activo_repository import EventoActivoRepository
 from src.biological_assets.domain.repositories.historico_estado_repository import HistoricoEstadoRepository
+from src.biological_assets.domain.repositories.recalibracion_vision_port import RecalibracionVisionPort
 from src.biological_assets.domain.value_objects.estado_activo import EstadoActivo
 from src.biological_assets.infrastructure.dto.cerrar_ciclo_dto import CerrarCicloDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
@@ -36,12 +37,14 @@ class CerrarCicloUseCase:
         evento_repo: EventoActivoRepository,
         historico_repo: HistoricoEstadoRepository,
         bitacora_repo: BitacoraAuditoriaRepository | None = None,
+        recalibracion_vision: RecalibracionVisionPort | None = None,
     ) -> None:
         self.db = db
         self.repo = repo
         self.evento_repo = evento_repo
         self.historico_repo = historico_repo
         self.bitacora_repo = bitacora_repo
+        self.recalibracion_vision = recalibracion_vision
 
     def execute(self, id_activo: int, dto: CerrarCicloDTO, usuario: UsuarioActual) -> HistoricoEstado:
         return ejecutar_con_auditoria_de_rechazo(
@@ -170,5 +173,13 @@ class CerrarCicloUseCase:
             },
             id_usuario_responsable=usuario.id_usuario,
         ))
+
+        # RF-24 v2.0: el fin de ciclo de un lote recalibra la línea base por visión del área (#551).
+        if self.recalibracion_vision is not None and activo.tipo == 'POBLACIONAL':
+            self.recalibracion_vision.solicitar(
+                activo.id_infraestructura,
+                fecha_cierre_dt,
+                f'Disparo automático M02: fin de ciclo del lote {id_activo}',
+            )
 
         return historico

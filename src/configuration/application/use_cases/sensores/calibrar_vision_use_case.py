@@ -14,6 +14,9 @@ Flujo (ficha RF-24 v2.0, modalidad VISION):
 
 Todo rechazo (404/422, y el 403 del router) queda en RF-10 con resultado
 FALLIDO, best-effort como en la modalidad SENSOR (RFC-006).
+
+Disparo automático (#551): M02 llama ``execute_automatico`` tras un alta de lote
+o un cierre de ciclo, como el usuario de servicio y fuera del request.
 """
 from __future__ import annotations
 
@@ -48,6 +51,10 @@ from src.shared.errors import AppError, BusinessRuleError, InfrastructureError, 
 from src.shared.tipo_modelo import es_poblacional
 
 logger = logging.getLogger(__name__)
+
+# ponytail: la ficha no fija la ventana del disparo automático; se usan los últimos
+# 7 días hasta el evento de M02. Pendiente de confirmar con Análisis (#551).
+VENTANA_DISPARO_AUTOMATICO = datetime.timedelta(days=7)
 
 
 
@@ -140,7 +147,10 @@ class CalibrarVisionUseCase:
     ) -> CalibracionVision:
         area: Optional[Infraestructura] = None
         try:
-            area, observaciones = self._validar(dto, ids_fincas_permitidas)
+            area = self._obtener_area(dto, ids_fincas_permitidas)
+            observaciones = self._observaciones(
+                area, self._camaras_vision(area), dto.ventana_observacion.inicio, dto.ventana_observacion.fin
+            )
         except (NotFoundError, BusinessRuleError) as exc:
             auditar_rechazo_vision(
                 self.db,
@@ -152,9 +162,8 @@ class CalibrarVisionUseCase:
             )
             raise
 
-        resultado = calcular_linea_base(observaciones, self.parametros)
         calibracion = CalibracionVision.desde_resultado(
-            resultado,
+            calcular_linea_base(observaciones, self.parametros),
             id_infraestructura=area.id_infraestructura,
             id_especie=area.id_especie,
             origen_disparo=OrigenDisparo.MANUAL,
@@ -163,9 +172,60 @@ class CalibrarVisionUseCase:
             fecha_calibracion=dto.fecha_calibracion or datetime.datetime.now(datetime.timezone.utc),
             observaciones=dto.observaciones,
         )
+        return self._guardar(calibracion, id_usuario_auditoria=usuario_actual.id_usuario)
 
+    def execute_automatico(
+        self,
+        id_infraestructura: int,
+        momento: datetime.datetime,
+        *,
+        id_usuario_auditoria: int,
+        motivo_disparo: str,
+    ) -> Optional[CalibracionVision]:
+        """Disparo del Sistema cuando M02 informa un nuevo lote o un fin de ciclo (#551).
+
+        La calibración queda con ``origen_disparo = AUTOMATICO`` e ``id_usuario`` nulo;
+        el evento RF-10 lo firma ``id_usuario_auditoria`` (el usuario de servicio).
+        Si el área no calibra por visión (sin especie, sin modelo POBLACIONAL o sin
+        cámaras activas) el disparo no aplica: devuelve None sin auditar, porque la
+        mayoría de altas y cierres de M02 son de áreas sin cámaras. Lo demás sigue el
+        mismo flujo que el disparo manual.
+        """
+        area = self.infraestructura_repo.obtener_por_id(id_infraestructura)
+        camaras = self._camaras_vision(area) if area is not None else []
+        if not camaras:
+            return None
+
+        inicio = momento - VENTANA_DISPARO_AUTOMATICO
+        try:
+            observaciones = self._observaciones(area, camaras, inicio, momento)
+        except BusinessRuleError as exc:
+            auditar_rechazo_vision(
+                self.db,
+                self.eventos_repo,
+                id_usuario=id_usuario_auditoria,
+                id_infraestructura=area.id_infraestructura,
+                id_especie=area.id_especie,
+                error=exc,
+                extra={"origen_disparo": OrigenDisparo.AUTOMATICO.value},
+            )
+            raise
+
+        calibracion = CalibracionVision.desde_resultado(
+            calcular_linea_base(observaciones, self.parametros),
+            id_infraestructura=area.id_infraestructura,
+            id_especie=area.id_especie,
+            origen_disparo=OrigenDisparo.AUTOMATICO,
+            id_usuario=None,
+            ventana_observacion={"inicio": inicio.isoformat(), "fin": momento.isoformat()},
+            fecha_calibracion=momento,
+            observaciones=motivo_disparo,
+        )
+        return self._guardar(calibracion, id_usuario_auditoria=id_usuario_auditoria)
+
+    def _guardar(self, calibracion: CalibracionVision, *, id_usuario_auditoria: int) -> CalibracionVision:
         if not calibracion.es_exitosa:
-            self._registrar_fallida(calibracion, usuario_actual)
+            self._registrar_fallida(calibracion, id_usuario_auditoria)
 
         try:
             guardada = self.calibracion_repo.guardar(calibracion)
@@ -184,7 +244,7 @@ class CalibrarVisionUseCase:
                 self.eventos_repo.registrar(
                     tipo_evento=TIPO_EVENTO_CALIBRACION_EXITOSA,
                     exitoso=True,
-                    id_usuario=usuario_actual.id_usuario,
+                    id_usuario=id_usuario_auditoria,
                     detalle={"operacion": "CALIBRACION_VISION", **guardada._snapshot()},
                     descripcion=f"Línea base por visión publicada para el área {guardada.id_infraestructura}",
                     modulo="MODULO9",
@@ -204,9 +264,9 @@ class CalibrarVisionUseCase:
             raise
         return guardada
 
-    def _validar(
+    def _obtener_area(
         self, dto: CalibrarVisionDTO, ids_fincas_permitidas: Optional[list[int]]
-    ) -> tuple[Infraestructura, list[ObservacionVision]]:
+    ) -> Infraestructura:
         # Un área de una finca ajena responde 404, igual que una inexistente (#503).
         area = self.infraestructura_repo.obtener_por_id(
             dto.area_id, ids_fincas_permitidas=ids_fincas_permitidas
@@ -217,28 +277,36 @@ class CalibrarVisionUseCase:
                 message=f"No existe un área productiva con ID {dto.area_id}.",
                 field="area_id",
             )
-        # RF-20: especie y tipo_modelo_asignado del paradigma POBLACIONAL.
+        return area
+
+    def _camaras_vision(self, area: Infraestructura) -> list:
+        """Cámaras activas del área si calibra por visión; vacía si no.
+
+        RF-20: el área necesita especie y un tipo_modelo_asignado POBLACIONAL.
+        """
         if area.id_especie is None or not es_poblacional(area.tipo_modelo_asignado):
-            raise _no_disponible(dto.area_id)
+            return []
+        return [c for c in self.camara_repo.listar_por_area(area.id_infraestructura) if c.es_activo]
 
-        camaras_activas = [c for c in self.camara_repo.listar_por_area(dto.area_id) if c.es_activo]
-        if not camaras_activas:
-            raise _no_disponible(dto.area_id)
+    def _observaciones(
+        self,
+        area: Infraestructura,
+        camaras: list,
+        inicio: datetime.datetime,
+        fin: datetime.datetime,
+    ) -> list[ObservacionVision]:
+        # Va aparte de _obtener_area para que el rechazo audite la especie del área (#552).
+        if not camaras:
+            raise _no_disponible(area.id_infraestructura)
 
-        observaciones = self.observacion_port.listar(
-            [c.id_dispositivo_iot for c in camaras_activas],
-            dto.ventana_observacion.inicio,
-            dto.ventana_observacion.fin,
-        )
+        observaciones = self.observacion_port.listar([c.id_dispositivo_iot for c in camaras], inicio, fin)
         # Hay observaciones, pero ninguna apta para IA (RF-62): mismo flujo alterno.
         # Sin ninguna observación es un caso de datos insuficientes (Etapa 1).
         if observaciones and not any(o.es_apto_para_ia for o in observaciones):
-            raise _no_disponible(dto.area_id)
-        return area, observaciones
+            raise _no_disponible(area.id_infraestructura)
+        return observaciones
 
-    def _registrar_fallida(
-        self, calibracion: CalibracionVision, usuario_actual: UsuarioActual
-    ) -> NoReturn:
+    def _registrar_fallida(self, calibracion: CalibracionVision, id_usuario_auditoria: int) -> NoReturn:
         # La ficha pide dejar el intento como FALLIDA (o NO CONVERGIDA) con el
         # motivo de la etapa, sin publicar línea base: la vigente se conserva.
         try:
@@ -259,7 +327,7 @@ class CalibrarVisionUseCase:
         auditar_rechazo_vision(
             self.db,
             self.eventos_repo,
-            id_usuario=usuario_actual.id_usuario,
+            id_usuario=id_usuario_auditoria,
             id_infraestructura=guardada.id_infraestructura,
             id_especie=guardada.id_especie,
             error=error,
@@ -268,6 +336,7 @@ class CalibrarVisionUseCase:
                 "estado": guardada.estado.value,
                 "etapa_fallo": guardada.etapa_fallo.value if guardada.etapa_fallo else None,
                 "motivo_etapa": guardada.motivo,
+                "origen_disparo": guardada.origen_disparo.value,
             },
         )
         raise error

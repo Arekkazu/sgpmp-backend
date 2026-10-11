@@ -1,3 +1,9 @@
+## [1.0.0-rc.93](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.92...v1.0.0-rc.93) (2026-10-10)
+
+### Bug Fixes
+
+* **rf24-mod9:** persistir json_linea_base nulo como sql null en calibraciones vision (TC-M09-283, TC-M09-286) ([1f72b2f](https://github.com/Arekkazu/sgpmp-backend/commit/1f72b2f2efe56a9c3f79198b9f14589e46aed042)), closes [#548](https://github.com/Arekkazu/sgpmp-backend/issues/548) [#549](https://github.com/Arekkazu/sgpmp-backend/issues/549)
+
 ## [1.0.0-rc.92](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.91...v1.0.0-rc.92) (2026-10-10)
 
 ### Bug Fixes

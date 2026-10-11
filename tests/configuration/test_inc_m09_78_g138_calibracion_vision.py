@@ -177,6 +177,7 @@ def test_precondicion_vision_incumplida_responde_422_sin_linea_base(caso, area, 
     assert evento["detalle"]["operacion"] == "CALIBRACION_VISION"
     assert evento["detalle"]["codigo_error"] == "VISION_NO_DISPONIBLE"
     assert evento["detalle"]["id_infraestructura"] == 2
+    assert evento["detalle"]["id_especie"] == area.id_especie  # #552: la especie del área, no null
     assert evento["id_usuario"] == _USUARIO.id_usuario  # el Ingeniero que disparó el cálculo
 
 

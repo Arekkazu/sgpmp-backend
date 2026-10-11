@@ -22,7 +22,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -55,6 +55,7 @@ from src.biological_assets.infrastructure.adapters.dispositivo_iot_estado_m03_ad
 from src.biological_assets.infrastructure.adapters.especie_m09_adapter import EspecieM09Adapter
 from src.biological_assets.infrastructure.adapters.infraestructura_m09_adapter import InfraestructuraM09Adapter
 from src.biological_assets.infrastructure.adapters.parametros_especie_m09_adapter import ParametrosEspecieM09Adapter
+from src.biological_assets.infrastructure.adapters.recalibracion_vision_m09_adapter import RecalibracionVisionM09Adapter
 from src.biological_assets.infrastructure.dto.actualizar_activo_individual_dto import ActualizarActivoIndividualDTO
 from src.biological_assets.infrastructure.dto.cambiar_estado_dto import CambiarEstadoDTO
 from src.biological_assets.infrastructure.dto.cambiar_fase_dto import CambiarFaseDTO
@@ -428,6 +429,7 @@ def _sensor_to_response(s: SensorEnInfraestructura) -> SensorEnInfraestructuraRe
 )
 def registrar_activo(
     dto: RegistrarActivoBiologicoDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> ActivoBiologicoResponse:
@@ -447,6 +449,7 @@ def registrar_activo(
         infra_port=InfraestructuraM09Adapter(db),
         parametros_port=ParametrosEspecieM09Adapter(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        recalibracion_vision=RecalibracionVisionM09Adapter(background_tasks),
     )
     activo = use_case.execute(dto, usuario_actual, ids_fincas_permitidas=_ids_fincas_alcance(db, usuario_actual))
     return _activo_to_response(
@@ -1376,6 +1379,7 @@ def cambiar_estado(
 def cerrar_ciclo(
     id_activo: int,
     dto: CerrarCicloDTO,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> CierreActivoResponse:
@@ -1392,6 +1396,7 @@ def cerrar_ciclo(
         evento_repo=SqlAlchemyEventoActivoRepository(db),
         historico_repo=SqlAlchemyHistoricoEstadoRepository(db),
         bitacora_repo=SqlAlchemyBitacoraAuditoriaRepository(db),
+        recalibracion_vision=RecalibracionVisionM09Adapter(background_tasks),
     )
     historico = use_case.execute(id_activo, dto, usuario_actual)
     return CierreActivoResponse(
