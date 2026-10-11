@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 
 class ConfiguracionGlobalResponse(BaseModel):
+    """Configuración operativa global (minutos de muestreo y heartbeat)."""
     id_configuracion_global: int
     frecuencia_muestreo: int
     heartbeat: int

@@ -71,14 +71,19 @@ _RECURSO = 28
 )
 def listar_historial(
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> HistorialAplicacionesResponse:
+    """Historial de aplicaciones de plantillas a especies (RF-32).
+
+    **Acceso:** `plantillas` · Leer.
+    """
     use_case = ConsultarPlantillasUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial()]
+    items = [AplicacionPlantillaResponse.model_validate(a) for a in use_case.listar_historial(usuario_actual)]
     return HistorialAplicacionesResponse(total=len(items), items=items)
 
 
@@ -102,6 +107,10 @@ def listar_historial(
 def listar_auditoria(
     db: Session = Depends(get_db),
 ) -> HistorialAuditoriaPlantillasResponse:
+    """Auditoría de creación y versionado de plantillas (RF-30).
+
+    **Acceso:** `plantillas` · Leer.
+    """
     use_case = ConsultarPlantillasUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
@@ -165,14 +174,19 @@ def consultar_esquema() -> EsquemaPlantillaResponse:
 )
 def listar_plantillas(
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillasListResponse:
+    """Plantillas de configuración disponibles (RF-30).
+
+    **Acceso:** `plantillas` · Leer.
+    """
     use_case = ConsultarPlantillasUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    items = [PlantillaResponse.model_validate(p) for p in use_case.listar_plantillas()]
+    items = [PlantillaResponse.model_validate(p) for p in use_case.listar_plantillas(usuario_actual)]
     return PlantillasListResponse(total=len(items), items=items)
 
 
@@ -201,6 +215,12 @@ def registrar_plantilla(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillaResponse:
+    """Crea una plantilla con un snapshot de la configuración de una especie (RF-31).
+
+    **Acceso:** `plantillas` · Crear.
+
+    El nombre es único (409).
+    """
     use_case = RegistrarPlantillaUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
@@ -226,20 +246,19 @@ def registrar_plantilla(
 def detalle_plantilla(
     id_plantilla: int,
     db: Session = Depends(get_db),
+    usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillaResponse:
+    """Detalle de una plantilla con su snapshot (RF-30).
+
+    **Acceso:** `plantillas` · Leer.
+    """
     use_case = ConsultarPlantillasUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
         auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
     )
-    from src.shared.errors import NotFoundError
-    plantilla = use_case.obtener_plantilla(id_plantilla)
-    if plantilla is None:
-        raise NotFoundError(
-            code="PLANTILLA_NO_ENCONTRADA",
-            message=f"No existe la plantilla con id {id_plantilla}.",
-        )
+    plantilla = use_case.obtener_plantilla(id_plantilla, usuario_actual)
     return PlantillaResponse.model_validate(plantilla)
 
 
@@ -253,7 +272,6 @@ def detalle_plantilla(
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
         409: {"model": ErrorResponse},
-        412: {"model": ErrorResponse},
         422: {"model": ErrorResponse},
     },
     summary="Aplicar plantilla a especie destino (Flujo D — RF-32)",
@@ -264,6 +282,12 @@ def aplicar_plantilla(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> AplicacionPlantillaResponse:
+    """Aplica una plantilla vigente a una especie destino, reemplazando su configuración (RF-32).
+
+    **Acceso:** `plantillas` · Ejecutar.
+
+    La versión debe ser la vigente y compatible, y la especie destino estar activa. Referencias huérfanas en el snapshot responden 400.
+    """
     use_case = AplicarPlantillaUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),
@@ -273,6 +297,8 @@ def aplicar_plantilla(
         umbral_repo=SqlAlchemyUmbralAmbientalRepository(db),
         patologia_repo=SqlAlchemyEspeciePatologiaRepository(db),
         aplicacion_repo=SqlAlchemyAplicacionPlantillaRepository(db),
+        auditoria_repo=SqlAlchemyAuditoriaPlantillaRepository(db),
+        variable_repo=SqlAlchemyVariableAmbientalRepository(db),
     )
     aplicacion = use_case.execute(id_plantilla, dto, usuario_actual)
     return AplicacionPlantillaResponse.model_validate(aplicacion)
@@ -303,6 +329,10 @@ def versionar_plantilla(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PlantillaResponse:
+    """Genera la versión N+1 de una plantilla existente (RF-30, RF-31).
+
+    **Acceso:** `plantillas` · Crear.
+    """
     use_case = VersionarPlantillaUseCase(
         db=db,
         plantilla_repo=SqlAlchemyPlantillaRepository(db),

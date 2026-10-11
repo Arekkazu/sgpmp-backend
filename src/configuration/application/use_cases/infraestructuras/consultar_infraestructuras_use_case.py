@@ -16,6 +16,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarInfraestructurasUseCase:
+    """Lista las áreas de una finca u obtiene una, dentro del alcance del usuario."""
 
     def __init__(
         self,

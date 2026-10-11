@@ -84,6 +84,54 @@ def test_refresh_rota_tokens_y_el_nuevo_access_token_funciona(
     )
     assert permisos.status_code == 200, permisos.text
 
+    auditoria = db_session.execute(
+        text(
+            """
+            SELECT resultado::text, categoria, id_sesion, detalle
+            FROM modulo1.eventos
+            WHERE tipo_evento = 23 AND id_usuario = :id_usuario
+            ORDER BY id_evento DESC
+            LIMIT 1
+            """
+        ),
+        {"id_usuario": usuario["id_usuario"]},
+    ).mappings().one()
+    assert auditoria["resultado"] == "exitoso"
+    assert auditoria["categoria"] == "AUTENTICACION"
+    assert auditoria["id_sesion"] is not None
+    assert auditoria["detalle"]["user_agent"]
+
+
+def test_access_token_anterior_a_un_refresh_queda_revocado(
+    client, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """INC-M09-TC-M09-G94 (#309): un cliente que retiene el access token emitido
+    antes de un refresh (p.ej. un caso Cypress que capturo el token del login y
+    lo reutiliza tras una navegacion que dispara un refresh silencioso) debe
+    recibir 401 TOKEN_REVOCADO, nunca un 200 con datos obsoletos ni un 500.
+    Esto confirma que el 401 observado en #309 es el rechazo correcto de un
+    token ya rotado, no un defecto de get_current_user/RBAC sobre el recurso
+    contexto_interfaz.
+    """
+    from src.shared import notificacion_service
+
+    usuario = crear_usuario_db(id_rol=2, estado=2)
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **_kwargs: None)
+    monkeypatch.setattr(notificacion_service, "send_push", lambda **_kwargs: True)
+
+    login = _login(client, usuario)
+    token_viejo = login.json()["token"]
+
+    respuesta = client.post("/sesiones/refresh")
+    assert respuesta.status_code == 200, respuesta.text
+
+    reintento = client.get(
+        "/sesiones/me/permisos",
+        headers={"Authorization": f"Bearer {token_viejo}"},
+    )
+    assert reintento.status_code == 401, reintento.text
+    assert reintento.json()["error_code"] == "TOKEN_REVOCADO"
+
 
 def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
@@ -114,6 +162,22 @@ def test_reuso_de_refresh_token_rotado_mata_la_sesion_completa(
         permisos = client.get("/sesiones/me/permisos", headers={"Authorization": f"Bearer {token}"})
         assert permisos.status_code == 401, permisos.text
 
+    auditoria = db_session.execute(
+        text(
+            """
+            SELECT resultado::text, categoria, id_sesion
+            FROM modulo1.eventos
+            WHERE tipo_evento = 24 AND id_usuario = :id_usuario
+            ORDER BY id_evento DESC
+            LIMIT 1
+            """
+        ),
+        {"id_usuario": usuario["id_usuario"]},
+    ).mappings().one()
+    assert auditoria["resultado"] == "fallido"
+    assert auditoria["categoria"] == "AUTENTICACION"
+    assert auditoria["id_sesion"] is not None
+
 
 def test_refresh_token_expirado_responde_410_y_cierra_sesion(
     client, db_session: Session, crear_usuario_db, monkeypatch: pytest.MonkeyPatch
@@ -141,6 +205,15 @@ def test_refresh_sin_cookie_responde_401(client) -> None:
     respuesta = client.post("/sesiones/refresh")
     assert respuesta.status_code == 401, respuesta.text
     assert respuesta.json()["error_code"] == "REFRESH_TOKEN_REQUERIDO"
+
+
+def test_refresh_con_cookie_desconocida_responde_401(client) -> None:
+    client.cookies.set("refresh_token", "token-que-no-existe")
+
+    respuesta = client.post("/sesiones/refresh")
+
+    assert respuesta.status_code == 401, respuesta.text
+    assert respuesta.json()["error_code"] == "REFRESH_TOKEN_INVALIDO"
 
 
 def test_logout_borra_la_cookie_de_refresh(

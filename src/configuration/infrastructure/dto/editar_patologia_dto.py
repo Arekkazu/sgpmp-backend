@@ -14,6 +14,10 @@ _NOMBRE_PATOLOGIA = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúÑñ][A-Za-zÁÉÍ�
 
 
 class EditarPatologiaDTO(BaseDTO):
+    """Campos editables de la patología.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre: str
     descripcion: Optional[str] = None
     fecha_actualizacion: Optional[datetime] = None

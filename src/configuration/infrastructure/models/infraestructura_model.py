@@ -47,3 +47,5 @@ class InfraestructuraModel(Base):
     fecha_actualizacion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
     capacidad_maxima: Mapped[Optional[int]] = mapped_column(Integer)
     id_especie: Mapped[Optional[int]] = mapped_column(Integer)
+    # RF-20 v1.1 (RFC-009): uno de los 5 modelos asignables, coherente con la especie.
+    tipo_modelo_asignado: Mapped[Optional[str]] = mapped_column(String(30))

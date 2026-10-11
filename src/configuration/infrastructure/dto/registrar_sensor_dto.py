@@ -11,6 +11,7 @@ CategoriaSensor = Literal["HUMEDAD", "TEMPERATURA", "OXIGENO", "PH", "AMONIACO",
 
 
 class RegistrarSensorDTO(BaseDTO):
+    """Sensor nuevo de un dispositivo (no aplica a cámaras)."""
     nombre: str
     categoria: Optional[CategoriaSensor] = None
 

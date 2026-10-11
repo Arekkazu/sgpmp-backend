@@ -1,3 +1,7 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/reproductivo``
+(RF-42).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,6 +13,12 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarEventoReproductivoDTO(BaseDTO):
+    """Evento reproductivo.
+
+    ``categoria``: ``servicio`` | ``inseminacion`` | ``diagnostico`` | ``parto`` | ``aborto`` |
+    ``nacimiento``. ``resultado``: ``exitoso`` | ``fallido``. ``numero_crias`` (>= 1) es
+    obligatorio en ``parto``, ``aborto`` y ``nacimiento``.
+    """
     categoria: Literal['servicio', 'inseminacion', 'diagnostico', 'parto', 'aborto', 'nacimiento']
     resultado: Literal['exitoso', 'fallido']
     fecha: Optional[datetime] = None

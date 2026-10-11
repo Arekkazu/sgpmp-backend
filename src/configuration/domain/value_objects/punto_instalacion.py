@@ -10,6 +10,7 @@ _MIN, _MAX = 1, 100
 
 @dataclass(frozen=True)
 class PuntoInstalacion:
+    """Descripción del punto de instalación del sensor: hasta 100 caracteres."""
     valor: str
 
     def __post_init__(self) -> None:

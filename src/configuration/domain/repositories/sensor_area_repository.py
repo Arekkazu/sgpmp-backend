@@ -8,6 +8,7 @@ from src.configuration.domain.entities.sensor_area import SensorArea
 
 
 class SensorAreaRepository(ABC):
+    """Contrato de acceso a datos para :class:`SensorArea`."""
 
     @abstractmethod
     def obtener_asociacion_activa(self, id_sensor: int) -> Optional[SensorArea]:
@@ -16,10 +17,14 @@ class SensorAreaRepository(ABC):
 
     @abstractmethod
     def guardar(self, sensor_area: SensorArea) -> SensorArea:
+        """Inserta la asociación sensor-área y devuelve la entidad con su id asignado."""
         ...
 
     @abstractmethod
     def actualizar(self, sensor_area: SensorArea) -> SensorArea:
+        """Persiste los cambios de la asociación sensor-área y devuelve la entidad
+        actualizada.
+        """
         ...
 
     @abstractmethod

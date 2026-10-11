@@ -19,7 +19,11 @@ class VersionModeloRepository(ABC):
     def obtener_por_id(self, id_version: int) -> Optional[VersionModelo]: ...
 
     @abstractmethod
-    def obtener_activo_por_tipo(self, tipo_modelo: str) -> Optional[VersionModelo]: ...
+    def obtener_activo_por_tipo(
+        self, tipo_modelo: str, componente: Optional[str] = None
+    ) -> Optional[VersionModelo]:
+        """Versión ACTIVO de la llave (tipo_modelo, componente) — RF-69 R5 v2.0."""
+        ...
 
     @abstractmethod
     def listar(

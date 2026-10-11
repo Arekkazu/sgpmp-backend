@@ -12,6 +12,7 @@ from src.configuration.domain.value_objects.duracion_dias import DuracionDias
 from src.configuration.domain.value_objects.nombre_etapa import NombreEtapa
 from src.configuration.infrastructure.models.ciclo_biologico_model import CicloBiologicoModel
 from src.shared.db_error_translator import raise_from_db_error
+from src.shared.rehidratar import rehidratar
 
 
 class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
@@ -23,16 +24,16 @@ class SqlAlchemyCicloBiologicoRepository(CicloBiologicoRepository):
     def _a_entidad(orm: CicloBiologicoModel) -> CicloBiologico:
         return CicloBiologico(
             id_ciclo_biologico=orm.id_ciclo_biologico,
-            nombre=NombreEtapa(orm.nombre),
+            nombre=rehidratar(NombreEtapa, orm.nombre),
             descripcion=orm.descripcion,
-            duracion_dias=DuracionDias(orm.duracion_dias),
+            duracion_dias=rehidratar(DuracionDias, orm.duracion_dias),
             id_especie=orm.id_especie,
             es_activo=orm.es_activo,
             fecha_actualizacion=orm.fecha_actualizacion,
         )
 
-    def obtener_por_id(self, id_ciclo_biologico: int) -> Optional[CicloBiologico]:
-        orm = self.db.get(CicloBiologicoModel, id_ciclo_biologico)
+    def obtener_por_id(self, id_ciclo_biologico: int, *, bloquear: bool = False) -> Optional[CicloBiologico]:
+        orm = self.db.get(CicloBiologicoModel, id_ciclo_biologico, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre_y_especie(

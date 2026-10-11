@@ -15,6 +15,7 @@ from src.identity_access.infrastructure.dependencies import UsuarioActual
 
 
 class ObtenerContextoUseCase:
+    """Arma el contexto de interfaz adaptativa del usuario autenticado."""
 
     def __init__(
         self,

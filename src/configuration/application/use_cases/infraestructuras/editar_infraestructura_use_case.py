@@ -5,8 +5,11 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from src.configuration.application.use_cases.infraestructuras._coherencia_especie_modelo import validar_especie_y_modelo
 from src.configuration.domain.entities.infraestructura import Infraestructura
 from src.configuration.domain.repositories.auditoria_infraestructura_repository import AuditoriaInfraestructuraRepository
+from src.configuration.domain.repositories.especie_repository import EspecieRepository
+from src.configuration.domain.repositories.infraestructura_dependency_port import InfraestructuraDependencyPort
 from src.configuration.domain.repositories.finca_repository import FincaRepository
 from src.configuration.domain.repositories.infraestructura_repository import InfraestructuraRepository
 from src.configuration.domain.repositories.tipo_area_repository import TipoAreaRepository
@@ -14,10 +17,15 @@ from src.configuration.domain.value_objects.nombre_infraestructura import Nombre
 from src.configuration.domain.value_objects.superficie import Superficie
 from src.configuration.infrastructure.dto.editar_infraestructura_dto import EditarInfraestructuraDTO
 from src.identity_access.infrastructure.dependencies import UsuarioActual
-from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
+from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError, ValidationError
 
 
 class EditarInfraestructuraUseCase:
+    """Edita un área con concurrencia optimista (412).
+
+    El tipo debe existir en el catálogo de tipos de área y no se puede cambiar la
+    especie si el área aloja activos de otra especie (422).
+    """
 
     def __init__(
         self,
@@ -26,17 +34,21 @@ class EditarInfraestructuraUseCase:
         finca_repo: FincaRepository,
         tipo_area_repo: TipoAreaRepository,
         auditoria_repo: AuditoriaInfraestructuraRepository,
+        especie_repo: EspecieRepository,
+        dependency_port: InfraestructuraDependencyPort,
     ) -> None:
         self.db = db
         self.infra_repo = infra_repo
         self.finca_repo = finca_repo
         self.tipo_area_repo = tipo_area_repo
         self.auditoria_repo = auditoria_repo
+        self.especie_repo = especie_repo
+        self.dependency_port = dependency_port
 
     def execute(
         self, id_infraestructura: int, dto: EditarInfraestructuraDTO, usuario_actual: UsuarioActual
     ) -> Infraestructura:
-        infra = self.infra_repo.obtener_por_id(id_infraestructura)
+        infra = self.infra_repo.obtener_por_id(id_infraestructura, bloquear=True)
         if infra is None:
             raise NotFoundError(
                 code="INFRAESTRUCTURA_NO_ENCONTRADA",
@@ -72,7 +84,11 @@ class EditarInfraestructuraUseCase:
 
         tipo_area = self.tipo_area_repo.obtener_por_nombre(dto.tipo_area)
         if tipo_area is None or not tipo_area.es_activo:
-            raise BusinessRuleError(
+            # RF-20, flujo alterno "Tipo de area no reconocido": el RF lo
+            # clasifica como "Dato invalido ... HTTP 400: Bad Request", no como
+            # violacion de regla de negocio (422). Vive en el use case y no en el
+            # DTO porque el catalogo de tipos es dinamico (tabla, no enum).
+            raise ValidationError(
                 code="TIPO_AREA_NO_RECONOCIDO",
                 message=(
                     f"El tipo de área '{dto.tipo_area}' no corresponde a ningún tipo activo "
@@ -80,6 +96,27 @@ class EditarInfraestructuraUseCase:
                 ),
                 field="tipo_area",
             )
+
+        # Una especie que se desactivó después no bloquea editar el resto del área;
+        # solo se exige activa cuando se asigna una distinta.
+        cambia_especie = dto.especie_id != infra.id_especie
+        especie = validar_especie_y_modelo(
+            self.especie_repo, dto.especie_id, dto.tipo_modelo_asignado, exigir_activa=cambia_especie,
+        )
+        if cambia_especie or dto.tipo_modelo_asignado != infra.tipo_modelo_asignado:
+            cantidad, especie_alojada = self.dependency_port.contar_activos_de_otra_especie(
+                id_infraestructura, especie.id_especie
+            )
+            if cantidad:
+                raise BusinessRuleError(
+                    code="AREA_CON_ACTIVOS_DE_OTRA_ESPECIE",
+                    message=(
+                        f"Operación denegada: el área '{infra.nombre.valor}' tiene {cantidad} activos "
+                        f"biológicos de la especie '{especie_alojada}'. Traslade o desvincule los "
+                        "activos antes de cambiar la especie."
+                    ),
+                    field="especie_id",
+                )
 
         snapshot_anterior = infra._snapshot()
 
@@ -92,6 +129,8 @@ class EditarInfraestructuraUseCase:
             superficie=superficie,
             descripcion=dto.descripcion_infraestructura,
             fecha_actualizacion=datetime.now(timezone.utc),
+            id_especie=dto.especie_id,
+            tipo_modelo_asignado=dto.tipo_modelo_asignado,
         )
 
         try:

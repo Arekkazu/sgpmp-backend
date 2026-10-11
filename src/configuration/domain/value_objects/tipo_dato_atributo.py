@@ -7,6 +7,7 @@ from src.shared.errors import ValidationError
 
 
 class TipoDatoAtributo(str, Enum):
+    """Tipo de dato de un atributo dinámico; solo NUMERICO y ENTERO admiten rango."""
     NUMERICO = "NUMERICO"
     ENTERO = "ENTERO"
     TEXTO = "TEXTO"
@@ -24,6 +25,11 @@ class TipoDatoAtributo(str, Enum):
                 message=f"El tipo de dato debe ser uno de: {opciones}.",
                 field="tipo_dato",
             ) from exc
+
+    @property
+    def admite_rango(self) -> bool:
+        """RFC-004: valor_min/valor_max solo aplican a NUMERICO y ENTERO."""
+        return self in (TipoDatoAtributo.NUMERICO, TipoDatoAtributo.ENTERO)
 
     @classmethod
     def inferir_desde_tipo_medicion(cls, tipo_medicion: str) -> "TipoDatoAtributo":

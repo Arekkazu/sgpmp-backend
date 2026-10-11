@@ -74,7 +74,11 @@ def test_registrar_especie_con_datos_validos_responde_201(
 
     respuesta = config_client.post(
         "/configuracion/especies",
-        json={"nombre": nombre, "descripcion": "Especie creada por prueba de regresión"},
+        json={
+            "nombre": nombre,
+            "descripcion": "Especie creada por prueba de regresión",
+            "densidad_maxima_por_especie": "12.5000",
+        },
         headers=headers,
     )
 
@@ -82,6 +86,7 @@ def test_registrar_especie_con_datos_validos_responde_201(
     cuerpo = respuesta.json()
     assert cuerpo["nombre"].upper() == nombre.upper()  # trigger de BD normaliza a Title Case
     assert cuerpo["es_activo"] is True
+    assert cuerpo["densidad_maxima_por_especie"] == "12.5000"
 
     auditoria = db_session.execute(
         text(
@@ -100,10 +105,9 @@ def test_editar_especie_activa_responde_200(
     así que editar quedaba igual de roto aunque no estuviera reportado.
 
     `fecha_actualizacion` queda en NULL tras el registro (no se setea en el
-    INSERT), y `EditarEspecieDTO.fecha_actualizacion` es un `datetime`
-    obligatorio (no admite `null`) — un problema aparte del que trata este
-    issue. Se fija el timestamp por SQL para poder ejercitar el UPDATE real
-    sin toparse con ese bug distinto.
+    INSERT). Se fija el timestamp por SQL para ejercitar la edición con una
+    versión real; la primera edición con `null` la cubre
+    `tests/configuration/test_rf15_editar_especie_sin_fecha_actualizacion.py` (#231).
     """
     headers = _headers_admin(crear_usuario_db, crear_auth_headers)
     nombre = f"Especie Editable {_sufijo_letras()}"
@@ -129,6 +133,7 @@ def test_editar_especie_activa_responde_200(
         json={
             "nombre": nombre,
             "descripcion": "Editada",
+            "densidad_maxima_por_especie": "8.7500",
             "fecha_actualizacion": fecha_actualizacion.isoformat(),
         },
         headers=headers,
@@ -136,3 +141,4 @@ def test_editar_especie_activa_responde_200(
 
     assert editada.status_code == 200, editada.text
     assert editada.json()["descripcion"] == "Editada"
+    assert editada.json()["densidad_maxima_por_especie"] == "8.7500"

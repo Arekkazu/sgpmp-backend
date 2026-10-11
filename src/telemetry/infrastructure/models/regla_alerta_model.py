@@ -29,7 +29,7 @@ class ReglaAlertaModel(Base):
     # Typo en DB: umbrales_severdiad (no umbrales_severidad)
     umbrales_severdiad: Mapped[Optional[Any]] = mapped_column(JSONB)
     id_finca: Mapped[Optional[int]] = mapped_column(
-        Integer, ForeignKey('modulo9.infraestructura.id_infraestructura')
+        Integer, ForeignKey('modulo9.infraestructuras.id_infraestructura')
     )
     id_especie: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey('modulo9.especies.id_especie')

@@ -32,10 +32,14 @@ class Eventos(Base):
                 'para notificaciones, auditorías y análisis de comportamiento. '
                 'Cubre eventos\n'
                 'de todos los módulos del sistema.',
-     'schema': 'modulo1'}
+     'schema': 'modulo1',
+     'implicit_returning': False}
     )
+    # F4 (RLS): sin RETURNING. Cualquier usuario registra eventos, pero solo el
+    # Administrador los lee, y un INSERT ... RETURNING exige poder leer la fila nueva.
+    # Sin él, SQLAlchemy pide el id a la secuencia antes del INSERT.
 
-    id_evento: Mapped[int] = mapped_column(Integer, primary_key=True, comment='Identificador único del evento. Clave primaria (serial).')
+    id_evento: Mapped[int] = mapped_column(Integer, Sequence('eventos_id_evento_seq', schema='modulo1'), primary_key=True, comment='Identificador único del evento. Clave primaria (serial).')
     tipo_evento: Mapped[int] = mapped_column(Integer, nullable=False, comment='FK hacia modulo1.tipos_evento (referencia por ID). Clasifica el tipo de evento ocurrido.')
     fecha_evento: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, comment='Marca temporal (con zona horaria) del momento exacto en que ocurrió el evento.')
     modulo: Mapped[str] = mapped_column(String(50), nullable=False, comment='Nombre del módulo del sistema donde se originó el evento (ej: MODULO1, MODULO6).\nMáximo 50 caracteres.')

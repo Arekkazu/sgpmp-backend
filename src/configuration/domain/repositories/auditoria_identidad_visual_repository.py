@@ -3,8 +3,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from src.configuration.domain.entities.auditoria_identidad_visual import AuditoriaIdentidadVisual
+
 
 class AuditoriaIdentidadVisualRepository(ABC):
+    """Contrato de la auditoría de cambios de identidad visual."""
 
     @abstractmethod
     def registrar(
@@ -14,4 +17,12 @@ class AuditoriaIdentidadVisualRepository(ABC):
         valor_anterior: dict,
         valor_nuevo: dict,
     ) -> None:
+        """Inserta un registro de auditoría con la identidad visual antes y después del
+        cambio.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def listar_por_finca(self, id_finca: int) -> list[AuditoriaIdentidadVisual]:
+        """Lista el historial canónico de una finca, más reciente primero."""
         raise NotImplementedError

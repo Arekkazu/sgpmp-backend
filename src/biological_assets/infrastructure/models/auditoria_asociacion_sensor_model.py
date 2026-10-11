@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.auditorias_asociaciones_sensor_activo``: valores
+antes/después de cada cambio de una asociación sensor-activo.
+"""
+
 from __future__ import annotations
 
 import datetime

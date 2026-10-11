@@ -8,6 +8,7 @@ from src.shared.errors import ValidationError
 
 @dataclass(frozen=True)
 class FrecuenciaMuestreo:
+    """Minutos entre lecturas IoT esperadas; entero mayor que cero."""
     valor: int
 
     def __post_init__(self) -> None:

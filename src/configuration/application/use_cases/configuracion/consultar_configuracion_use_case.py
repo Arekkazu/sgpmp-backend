@@ -8,6 +8,7 @@ from src.configuration.domain.repositories.configuracion_global_repository impor
 
 
 class ConsultarConfiguracionUseCase:
+    """Devuelve la configuración operativa activa, o ``None`` si aún no se creó."""
 
     def __init__(self, config_repo: ConfiguracionGlobalRepository) -> None:
         self.config_repo = config_repo

@@ -1,3 +1,5 @@
+"""Filtros de ``GET /activos-biologicos/{id_activo}/datos-consolidados`` (RF-50)."""
+
 from __future__ import annotations
 
 from datetime import date
@@ -11,6 +13,10 @@ _TIPOS_DATO = {'eventos', 'fases', 'estado', 'metricas', 'todos'}
 
 
 class DatosConsolidadosDTO(BaseDTO):
+    """Qué secciones pedir y en qué rango.
+
+    ``tipo_dato``: ``eventos`` | ``fases`` | ``estado`` | ``metricas`` | ``todos``.
+    """
     tipo_dato: str = 'todos'
     fecha_inicio: Optional[date] = None
     fecha_fin: Optional[date] = None
@@ -49,5 +55,10 @@ class DatosConsolidadosDTO(BaseDTO):
             raise ValueError(
                 f'La fecha de inicio ({self.fecha_inicio}) no puede ser posterior '
                 f'a la fecha de fin ({self.fecha_fin}).'
+            )
+        if self.fecha_inicio and self.fecha_inicio > date.today():
+            raise ValueError(
+                f'La fecha de inicio ({self.fecha_inicio}) no puede ser una fecha futura: '
+                'los datos consolidados son sobre eventos ya ocurridos.'
             )
         return self

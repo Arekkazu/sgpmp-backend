@@ -9,9 +9,11 @@ from src.configuration.domain.value_objects.nombre_finca import NombreFinca
 
 
 class FincaRepository(ABC):
+    """Contrato de acceso a datos para :class:`Finca`."""
 
     @abstractmethod
-    def obtener_por_id(self, id_finca: int) -> Optional[Finca]:
+    def obtener_por_id(self, id_finca: int, *, bloquear: bool = False) -> Optional[Finca]:
+        """``bloquear=True`` toma la fila con ``SELECT ... FOR UPDATE`` (#498)."""
         raise NotImplementedError
 
     @abstractmethod
@@ -20,14 +22,16 @@ class FincaRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def guardar(self, finca: Finca) -> Finca:
+    def guardar(self, finca: Finca, id_creador: Optional[int] = None) -> Finca:
+        """``id_creador`` también queda registrado como acceso de la finca."""
         raise NotImplementedError
 
     @abstractmethod
     def actualizar(self, finca: Finca) -> Finca:
+        """Persiste los cambios de la finca y devuelve la entidad actualizada."""
         raise NotImplementedError
 
     @abstractmethod
-    def listar(self, *, id_usuario_filtro: Optional[int] = None, solo_activas: bool = False) -> list[Finca]:
-        """Lista fincas; el filtro opcional limita al usuario asignado."""
+    def listar(self, *, ids_fincas: Optional[list[int]] = None, solo_activas: bool = False) -> list[Finca]:
+        """Lista fincas; ``ids_fincas`` limita el resultado (``None`` = todas)."""
         raise NotImplementedError

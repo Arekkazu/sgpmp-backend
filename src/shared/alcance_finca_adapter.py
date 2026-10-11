@@ -1,10 +1,15 @@
 """Adaptador de alcance por finca contra ``modulo9`` (RF-25).
 
-Implementación concreta de ``AlcanceFincaPort``. La decisión "global vs.
-restringido" se resuelve por RBAC usando ``tiene_permiso`` sobre el recurso
-``fincas`` (id_recurso=9): quien puede gestionarlas (actualizar/desactivar)
-conserva la vista global; el resto queda limitado a las fincas vinculadas a su
-usuario por ``modulo9.fincas.id_usuario``.
+Implementación concreta de ``AlcanceFincaPort``. El único rol con alcance global
+es el protegido (``modulo1.roles.es_protegido``, el Administrador del sistema de
+RF-19/M01). El resto ve solo las fincas a las que tiene acceso activo en
+``modulo9.usuarios_fincas``. Es la misma regla que aplica RLS en
+``modulo9.fn_fincas_del_usuario`` (migración ``f68851f9a433``), así que la
+aplicación y la base de datos no deciden distinto.
+
+INC-M02-61-G52: antes se leía ``modulo9.fincas.id_usuario`` (1 finca = 1 dueño).
+Un Veterinario o Ingeniero de Campo nunca es dueño de la finca que atiende, así
+que su lista quedaba vacía y cada activo le respondía 404.
 """
 from __future__ import annotations
 
@@ -14,15 +19,12 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.shared.alcance_finca_port import AlcanceFincaPort
-from src.shared.rbac import tiene_permiso
-
-_RECURSO_FINCAS = 9
-_ACCION_ACTUALIZAR = 3
-_ACCION_DESACTIVAR = 4
 
 _SQL_FINCAS_DEL_USUARIO = text(
-    "SELECT id_finca FROM modulo9.fincas WHERE id_usuario = :id_usuario"
+    "SELECT id_finca FROM modulo9.usuarios_fincas "
+    "WHERE id_usuario = :id_usuario AND es_activo IS TRUE"
 )
+_SQL_ROL_PROTEGIDO = text("SELECT modulo1.fn_rol_protegido(:id_rol)")
 
 
 class AlcanceFincaAdapter(AlcanceFincaPort):
@@ -32,10 +34,7 @@ class AlcanceFincaAdapter(AlcanceFincaPort):
         self.db = db
 
     def es_global(self, id_rol: int) -> bool:
-        return (
-            tiene_permiso(self.db, id_rol, _RECURSO_FINCAS, _ACCION_ACTUALIZAR)
-            or tiene_permiso(self.db, id_rol, _RECURSO_FINCAS, _ACCION_DESACTIVAR)
-        )
+        return bool(self.db.execute(_SQL_ROL_PROTEGIDO, {"id_rol": id_rol}).scalar())
 
     def listar_ids_fincas_permitidas(self, id_usuario: int, id_rol: int) -> Optional[list[int]]:
         if self.es_global(id_rol):

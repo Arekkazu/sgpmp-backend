@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.movimientos``: transferencias internas entre infraestructuras
+(RF-48).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

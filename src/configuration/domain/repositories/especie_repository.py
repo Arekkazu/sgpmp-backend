@@ -20,11 +20,13 @@ class EspecieRepository(ABC):
     """Contrato de acceso a datos para el agregado :class:`Especie`."""
 
     @abstractmethod
-    def obtener_por_id(self, id_especie: int) -> Optional[Especie]:
+    def obtener_por_id(self, id_especie: int, *, bloquear: bool = False) -> Optional[Especie]:
         """Obtiene una especie por su identidad.
 
         Args:
             id_especie: PK de la especie.
+            bloquear: toma la fila con ``SELECT ... FOR UPDATE`` (edición con
+                concurrencia optimista, #498).
 
         Returns:
             La entidad :class:`Especie` o ``None`` si no existe.
@@ -90,5 +92,14 @@ class EspecieRepository(ABC):
 
         Returns:
             Lista de entidades :class:`Especie` ordenadas por nombre.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def contar_areas_con_modelo_distinto(self, id_especie: int, tipo_modelo: Optional[str]) -> int:
+        """RF-20 v1.1 (RFC-009): áreas de la especie con un modelo de IA asignado que no es ``tipo_modelo``.
+
+        Con ``tipo_modelo=None`` cuenta todas las que tengan modelo asignado: sin familia,
+        ninguno es coherente. Incluye áreas inactivas, que pueden reactivarse.
         """
         raise NotImplementedError

@@ -91,6 +91,114 @@ def config_client(
     app.dependency_overrides.clear()
 
 
+def test_auditoria_registra_consultas_read(
+    config_client, crear_usuario_db, crear_auth_headers, especie_activa: int
+) -> None:
+    """INC-M09-01-109 (#319): las consultas sobre plantillas también se auditan."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+
+    listado = config_client.get("/configuracion/plantillas", headers=headers)
+    assert listado.status_code == 200, listado.text
+
+    auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
+    assert auditoria.status_code == 200, auditoria.text
+    reads = [
+        item for item in auditoria.json()["items"]
+        if item["tipo_operacion"] == "READ" and item["resultado"] == "EXITOSO"
+    ]
+    assert any(item["valores_nuevos"].get("operacion") == "listar_plantillas" for item in reads)
+
+
+def test_auditoria_registra_consulta_de_plantilla_inexistente_como_fallida(
+    config_client, crear_usuario_db, crear_auth_headers
+) -> None:
+    """INC-M09-01-109 (#319): un GET a un id inexistente también se audita, como FALLIDO."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+
+    resp = config_client.get("/configuracion/plantillas/999999999", headers=headers)
+    assert resp.status_code == 404, resp.text
+
+    auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
+    fallidos = [
+        item for item in auditoria.json()["items"]
+        if item["id_plantilla"] == 999999999 and item["resultado"] == "FALLIDO"
+    ]
+    assert len(fallidos) == 1
+    assert fallidos[0]["tipo_operacion"] == "READ"
+
+
+def test_auditoria_registra_creacion_fallida_por_nombre_duplicado(
+    config_client, crear_usuario_db, crear_auth_headers, especie_activa: int
+) -> None:
+    """INC-M09-02-115 (#318): la creación fallida también queda auditada."""
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+    nombre = f"Plantilla Duplicada {_sufijo_letras()}"
+
+    primera = config_client.post(
+        "/configuracion/plantillas",
+        json={"template_name": nombre, "id_especie": especie_activa, "params_snapshot": _SNAPSHOT_VALIDO},
+        headers=headers,
+    )
+    assert primera.status_code == 201, primera.text
+
+    duplicada = config_client.post(
+        "/configuracion/plantillas",
+        json={"template_name": nombre, "id_especie": especie_activa, "params_snapshot": _SNAPSHOT_VALIDO},
+        headers=headers,
+    )
+    assert duplicada.status_code == 409, duplicada.text
+
+    auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
+    fallidos_creacion = [
+        item for item in auditoria.json()["items"]
+        if item["tipo_operacion"] == "CREATE"
+        and item["resultado"] == "FALLIDO"
+        and item["valores_nuevos"].get("template_name") == nombre
+    ]
+    assert len(fallidos_creacion) == 1
+    assert fallidos_creacion[0]["id_plantilla"] is None
+
+
+def test_auditoria_registra_creacion_fallida_por_especie_inactiva(
+    config_client, crear_usuario_db, crear_auth_headers, db_session, especie_activa: int
+) -> None:
+    """INC-M09-02-115 (#318): la creación fallida queda auditada también
+    cuando el motivo es una regla de negocio distinta al nombre duplicado
+    (aquí, especie de referencia inactiva -- RF-31 FA "Especie de referencia
+    inactiva o no encontrada")."""
+    from sqlalchemy import text
+
+    admin = crear_usuario_db(id_rol=1, estado=2)
+    headers = crear_auth_headers(admin)
+    nombre = f"Plantilla Especie Inactiva {_sufijo_letras()}"
+
+    db_session.execute(
+        text("UPDATE modulo9.especies SET es_activo = FALSE WHERE id_especie = :id"),
+        {"id": especie_activa},
+    )
+    db_session.flush()
+
+    resp = config_client.post(
+        "/configuracion/plantillas",
+        json={"template_name": nombre, "id_especie": especie_activa, "params_snapshot": _SNAPSHOT_VALIDO},
+        headers=headers,
+    )
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["error_code"] == "ESPECIE_INACTIVA"
+
+    auditoria = config_client.get("/configuracion/plantillas/auditoria", headers=headers)
+    fallidos = [
+        item for item in auditoria.json()["items"]
+        if item["tipo_operacion"] == "CREATE"
+        and item["resultado"] == "FALLIDO"
+        and item["valores_nuevos"].get("template_name") == nombre
+    ]
+    assert len(fallidos) == 1
+
+
 def test_auditoria_lista_creacion_y_versionado(
     config_client, crear_usuario_db, crear_auth_headers, especie_activa: int
 ) -> None:

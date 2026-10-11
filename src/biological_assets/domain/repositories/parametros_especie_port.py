@@ -1,3 +1,5 @@
+"""Puerto de lectura de parámetros de producción por especie configurados en M09."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -8,6 +10,7 @@ from typing import Optional
 
 @dataclass
 class ParametroEspecie:
+    """Parámetro de medición de una especie, con rango válido y unidad."""
     nombre: str
     tipo_medicion: str
     aplica_a_tipo_activo: str
@@ -15,10 +18,12 @@ class ParametroEspecie:
     es_obligatorio: bool
     valor_min: Optional[Decimal] = field(default=None)
     valor_max: Optional[Decimal] = field(default=None)
+    unidad_medida: Optional[str] = field(default=None)
 
 
 @dataclass
 class MetricaProductiva:
+    """Métrica de producción del catálogo de M09 (leche, huevos, carne...)."""
     id_metrica_produccion: int
     tipo_producto: str
     unidad_medida: str
@@ -26,6 +31,13 @@ class MetricaProductiva:
 
 
 class ParametrosEspeciePort(ABC):
+    """Consulta a M09 de densidad máxima, parámetros y métricas productivas por especie.
+    """
+
+    @abstractmethod
+    def obtener_densidad_maxima(self, id_especie: int) -> Optional[Decimal]:
+        """Retorna la densidad máxima configurada en M09 para la especie."""
+
     @abstractmethod
     def listar_por_especie(self, id_especie: int, tipo_activo: str) -> list[ParametroEspecie]:
         """Retorna los parámetros de producción activos para la especie y tipo de activo."""

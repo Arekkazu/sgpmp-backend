@@ -1,3 +1,7 @@
+"""Helper compartido: única vía para cambiar el estado de un activo y dejar su histórico
+(RF-44).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime

@@ -1,3 +1,5 @@
+"""DTO de entrada de ``POST /activos-biologicos`` (RF-33)."""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -10,6 +12,14 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarActivoBiologicoDTO(BaseDTO):
+    """Registro de un activo biológico.
+
+    ``tipo_activo``: ``INDIVIDUAL`` (exige ``raza``, ``sexo``, ``fecha_nacimiento``) |
+    ``POBLACIONAL`` (exige ``cantidad_inicial``). ``origen_financiero``: ``compra`` |
+    ``nacimiento`` | ``donacion`` | ``transferencia_interna``; en compras se exigen
+    ``costo_adquisicion`` y ``soporte_documental``. ``atributos_dinamicos`` se valida
+    contra los parámetros de la especie configurados en M09.
+    """
     tipo_activo: str
     id_especie: int
     fecha_inicio_ciclo: date

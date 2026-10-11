@@ -43,6 +43,7 @@ _RECURSO = 19  # modulo1.recursos: 'metricas_produccion'
     status_code=201,
     dependencies=[Depends(require_permission(_RECURSO, 1))],
     responses={
+        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -56,6 +57,12 @@ def registrar_metrica(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> MetricaProduccionResponse:
+    """Registra una métrica de producción para una especie activa (RF-16).
+
+    **Acceso:** `metricas_produccion` · Crear.
+
+    Nombre único por especie (409) y unidad coherente con el tipo de medición.
+    """
     use_case = RegistrarMetricaUseCase(
         db=db,
         metricas_repo=SqlAlchemyMetricaProduccionRepository(db),
@@ -81,6 +88,10 @@ def consultar_metricas(
     solo_activas: bool = Query(False, description="Si es true, solo devuelve métricas activas."),
     db: Session = Depends(get_db),
 ) -> MetricasPorEspecieResponse:
+    """Métricas de producción de una especie; `solo_activas` filtra las vigentes (RF-16).
+
+    **Acceso:** `metricas_produccion` · Leer.
+    """
     use_case = ConsultarMetricasUseCase(metricas_repo=SqlAlchemyMetricaProduccionRepository(db))
     metricas = use_case.execute(id_especie, solo_activas=solo_activas)
     items = [MetricaProduccionResponse.model_validate(m) for m in metricas]
@@ -92,6 +103,7 @@ def consultar_metricas(
     response_model=MetricaProduccionResponse,
     dependencies=[Depends(require_permission(_RECURSO, 3))],
     responses={
+        400: {"model": ErrorResponse},
         401: {"model": ErrorResponse},
         403: {"model": ErrorResponse},
         404: {"model": ErrorResponse},
@@ -107,6 +119,12 @@ def editar_metrica(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> MetricaProduccionResponse:
+    """Edita una métrica activa (RF-16).
+
+    **Acceso:** `metricas_produccion` · Actualizar.
+
+    Enviar la `fecha_actualizacion` leída: si otro usuario lo modificó responde 412.
+    """
     use_case = EditarMetricaUseCase(
         db=db,
         metricas_repo=SqlAlchemyMetricaProduccionRepository(db),
@@ -133,6 +151,12 @@ def desactivar_metrica(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> MetricaProduccionResponse:
+    """Desactiva una métrica (RF-16).
+
+    **Acceso:** `metricas_produccion` · Desactivar.
+
+    Responde 422 si tiene registros productivos activos.
+    """
     use_case = DesactivarMetricaUseCase(
         db=db,
         metricas_repo=SqlAlchemyMetricaProduccionRepository(db),

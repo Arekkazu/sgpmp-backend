@@ -1,20 +1,38 @@
+"""Caso de uso: ficha integral del activo biológico (RF-47)."""
+
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TypeVar
 
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from src.biological_assets.application.use_cases._registrar_evento_bitacora import registrar_evento_bitacora
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria, FichaIntegral
 from src.biological_assets.domain.repositories.activo_biologico_repository import ActivoBiologicoRepository
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import NotFoundError
 
+logger = logging.getLogger(__name__)
+
+T = TypeVar('T')
+
+# Marca que la vista base falló (distinto de "no devolvió fila").
+_FALLO = object()
+
 
 class ConsultarFichaIntegralUseCase:
+    """Reúne en una vista los datos, estado, ubicación, fase y últimos eventos del activo.
+
+    Si una sección falla al cargarse se devuelve vacía con una advertencia en vez
+    de tumbar la ficha completa.
+    """
 
     def __init__(
         self,
@@ -43,20 +61,27 @@ class ConsultarFichaIntegralUseCase:
 
         advertencias: list[str] = []
 
-        # ── Secciones 1-4, 7: datos base via vista
-        ficha_row = self.db.execute(
-            text('SELECT * FROM modulo2.vw_rf47_ficha_integral_activo WHERE id_activo_biologico = :id'),
-            {'id': id_activo},
-        ).fetchone()
+        # ── Secciones 1-4, 7: datos base via vista. También en savepoint (E-03):
+        # si la vista falla, la ficha cae al fallback con los datos del activo.
+        ficha_row = self._seccion('Datos generales', self._datos_base, id_activo, advertencias, _FALLO)
+        base_fallo = ficha_row is _FALLO
+        if base_fallo:
+            ficha_row = None
+
+        # Sección 7: la densidad la mantienen al día RF-36/RF-45/RF-48 en el
+        # detalle poblacional (cantidad_actual / superficie de la infraestructura).
+        densidad = activo.detalle_poblacional.densidad if activo.detalle_poblacional else None
 
         # ── Sección 5: últimos 5 eventos por categoría
-        eventos_sanitarios = self._ultimos_sanitarios(id_activo)
-        eventos_productivos = self._ultimos_productivos(id_activo)
-        eventos_crecimiento = self._ultimos_crecimiento(id_activo)
-        eventos_reproductivos = self._ultimos_reproductivos(id_activo)
+        eventos_sanitarios = self._seccion('Eventos sanitarios', self._ultimos_sanitarios, id_activo, advertencias, [])
+        eventos_productivos = self._seccion('Eventos productivos', self._ultimos_productivos, id_activo, advertencias, [])
+        eventos_crecimiento = self._seccion('Eventos de crecimiento', self._ultimos_crecimiento, id_activo, advertencias, [])
+        eventos_reproductivos = self._seccion(
+            'Eventos reproductivos', self._ultimos_reproductivos, id_activo, advertencias, [],
+        )
 
         # ── Sección 6: indicadores zootécnicos
-        indicadores = self._indicadores(id_activo)
+        indicadores = self._seccion('Indicadores zootécnicos', self._indicadores, id_activo, advertencias, [])
 
         # ── Verificación de consistencia estado vs fase (E-04)
         if ficha_row:
@@ -70,18 +95,13 @@ class ConsultarFichaIntegralUseCase:
                 )
 
         def _emit_audit() -> None:
-            if self.bitacora_repo:
-                try:
-                    self.bitacora_repo.registrar(EventoAuditoria(
-                        rf_origen='RF47', tipo_evento='FICHA_CONSULTADA',
-                        clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
-                        severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
-                        id_activo_biologico=id_activo,
-                        id_usuario_responsable=usuario.id_usuario,
-                    ))
-                    self.db.commit()
-                except Exception:
-                    pass
+            registrar_evento_bitacora(self.bitacora_repo, self.db, EventoAuditoria(
+                rf_origen='RF47', tipo_evento='FICHA_CONSULTADA',
+                clasificacion_biologica='ACCESO_DATOS', resultado='EXITOSO',
+                severidad_log='INFO', timestamp_evento=datetime.now(timezone.utc),
+                id_activo_biologico=id_activo,
+                id_usuario_responsable=usuario.id_usuario,
+            ))
 
         if ficha_row:
             ficha = FichaIntegral(
@@ -102,7 +122,7 @@ class ConsultarFichaIntegralUseCase:
                 fecha_ultimo_peso=ficha_row.fecha_ultimo_peso,
                 cantidad_actual=ficha_row.cantidad_actual,
                 biomasa_total=Decimal(str(ficha_row.biomasa_total)) if ficha_row.biomasa_total else None,
-                densidad=None,
+                densidad=densidad,
                 eventos_sanitarios=eventos_sanitarios,
                 eventos_productivos=eventos_productivos,
                 eventos_crecimiento=eventos_crecimiento,
@@ -132,30 +152,65 @@ class ConsultarFichaIntegralUseCase:
             fecha_ultimo_peso=None,
             cantidad_actual=None,
             biomasa_total=None,
-            densidad=None,
+            densidad=densidad,
             eventos_sanitarios=[],
             eventos_productivos=[],
             eventos_crecimiento=[],
             eventos_reproductivos=[],
             indicadores=[],
-            advertencias=['No se pudo cargar la información completa del activo.'],
+            advertencias=advertencias if base_fallo else [
+                *advertencias, 'No se pudo cargar la información completa del activo.',
+            ],
         )
         _emit_audit()
         return ficha
 
+    def _seccion(
+        self,
+        nombre: str,
+        cargar: Callable[[int], T],
+        id_activo: int,
+        advertencias: list[str],
+        vacio: T = None,
+    ) -> T:
+        """E-03: una sección que no carga se reporta sola; el resto de la ficha sigue (HTTP 200).
+
+        El savepoint es lo que lo hace posible: sin él, PostgreSQL aborta la
+        transacción al primer error y todas las secciones siguientes fallarían.
+        """
+        try:
+            with self.db.begin_nested():
+                return cargar(id_activo)
+        except SQLAlchemyError:
+            logger.exception('RF-47: la sección "%s" de la ficha del activo %s no cargó', nombre, id_activo)
+            advertencias.append(f'La sección {nombre} no pudo cargarse en este momento.')
+            return vacio
+
+    def _datos_base(self, id_activo: int):
+        return self.db.execute(
+            text('SELECT * FROM modulo2.vw_rf47_ficha_integral_activo WHERE id_activo_biologico = :id'),
+            {'id': id_activo},
+        ).fetchone()
+
     def _ultimos_sanitarios(self, id_activo: int) -> list[dict]:
         rows = self.db.execute(
             text(
-                'SELECT fecha, categoria AS tipo_evento, medicamento, diagnostico '
-                'FROM modulo2.vw_rf46_eventos_sanitarios '
-                'WHERE id_activo_biologico = :id '
-                'ORDER BY fecha DESC LIMIT 5'
+                # #298 §5.1: `categoria` es siempre SANITARIO; el subtipo (VACUNACION,
+                # TRATAMIENTO, DIAGNOSTICO...) vive en eventos_sanitarios.tipo.
+                'SELECT v.fecha, v.categoria AS tipo_evento, es.tipo AS tipo_sanitario, '
+                '       v.medicamento, v.diagnostico, v.dosis, v.unidad_dosis '
+                'FROM modulo2.vw_rf46_eventos_sanitarios v '
+                'LEFT JOIN modulo2.eventos_sanitarios es ON es.id_evento = v.id_eventos '
+                'WHERE v.id_activo_biologico = :id '
+                'ORDER BY v.fecha DESC LIMIT 5'
             ),
             {'id': id_activo},
         ).fetchall()
         return [
-            {'tipo_evento': r.tipo_evento, 'medicamento': r.medicamento,
-             'diagnostico': r.diagnostico, 'fecha': r.fecha.isoformat() if r.fecha else None}
+            {'tipo_evento': r.tipo_evento, 'tipo_sanitario': r.tipo_sanitario,
+             'medicamento': r.medicamento, 'diagnostico': r.diagnostico,
+             'dosis': str(r.dosis) if r.dosis is not None else None, 'unidad_dosis': r.unidad_dosis,
+             'fecha': r.fecha.isoformat() if r.fecha else None}
             for r in rows
         ]
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, String, text
+from sqlalchemy import DateTime, Enum, ForeignKeyConstraint, Index, Integer, PrimaryKeyConstraint, Sequence, String, text
 from sqlalchemy.orm import Mapped, mapped_column
 from .base_model import Base
 from .enums_models import EnumTokenTipo
@@ -31,10 +31,14 @@ class Tokens(Base):
                 'temporal, etc.\n'
                 'Cada token tiene un tipo, fecha de expiración y registro de si ya '
                 'fue utilizado.',
-     'schema': 'modulo1'}
+     'schema': 'modulo1',
+     'implicit_returning': False}
     )
+    # F4 (RLS): sin RETURNING. Un INSERT ... RETURNING exige que la fila nueva pase la
+    # política SELECT, y un token no se ve hasta que queda enlazado a su sesión.
+    # Sin él, SQLAlchemy pide el id a la secuencia antes del INSERT.
 
-    id_token: Mapped[int] = mapped_column(Integer, primary_key=True, comment='Identificador único del token. Clave primaria (serial).')
+    id_token: Mapped[int] = mapped_column(Integer, Sequence('tokens_id_token_seq', schema='modulo1'), primary_key=True, comment='Identificador único del token. Clave primaria (serial).')
     fecha_creacion: Mapped[datetime.datetime] = mapped_column(DateTime(True), nullable=False, server_default=text('now()'), comment='Marca temporal (con zona horaria) del momento en que se generó el token.')
     token_tipo: Mapped[Optional[EnumTokenTipo]] = mapped_column(Enum(EnumTokenTipo, values_callable=lambda cls: [member.value for member in cls], name='enum_token_tipo', schema='modulo1'), comment='Tipo de token según su propósito. ENUM global (enum_token_tipo).\nEj: RECUPERACION_CONTRASENA, VERIFICACION_CORREO, SESION_TEMPORAL.')
     fecha_expiracion: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(True), comment='Marca temporal (con zona horaria) en que el token deja de ser válido.\nLos tokens no usados antes de esta fecha son inválidos.')

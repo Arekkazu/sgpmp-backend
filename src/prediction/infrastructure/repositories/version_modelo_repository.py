@@ -59,6 +59,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
             fecha_entrenamiento=orm.fecha_entrenamiento,
             fecha_registro=orm.fecha_registro,
             fecha_despliegue=orm.fecha_despliegue,
+            componente=orm.componente,
+            metricas_poblacionales=orm.metricas_poblacionales,
         )
 
     # ------------------------------------------------------------------
@@ -75,6 +77,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
                 ruta_artefacto=entidad.ruta_artefacto,
                 tamanio_artefacto_bytes=entidad.tamanio_artefacto_bytes,
                 hash_artefacto_sha256=entidad.hash_artefacto_sha256,
+                # Sin esto el trigger hash_obligatorio rechazaba todo INSERT (P0406).
+                hash_artecfacto=entidad.hash_artefacto_sha256,
                 dataset_entrenamiento_hash=entidad.dataset_entrenamiento_hash,
                 id_proceso_rf71=entidad.id_proceso_rf71,
                 version_referencia=entidad.version_referencia,
@@ -92,6 +96,8 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
                 esta_produccion=entidad.esta_produccion,
                 fecha_entrenamiento=entidad.fecha_entrenamiento,
                 fecha_despliegue=entidad.fecha_despliegue,
+                componente=entidad.componente,
+                metricas_poblacionales=entidad.metricas_poblacionales,
             )
             self._db.add(orm)
             self._db.flush()
@@ -152,10 +158,14 @@ class SqlAlchemyVersionModeloRepository(VersionModeloRepository):
         orm = self._db.get(VersionModeloModel, id_version)
         return self._a_entidad(orm) if orm else None
 
-    def obtener_activo_por_tipo(self, tipo_modelo: str) -> Optional[VersionModelo]:
+    def obtener_activo_por_tipo(
+        self, tipo_modelo: str, componente: Optional[str] = None
+    ) -> Optional[VersionModelo]:
         orm = self._db.execute(
             select(VersionModeloModel).where(
                 VersionModeloModel.tipo_modelo == tipo_modelo,
+                VersionModeloModel.componente.is_(None) if componente is None
+                else VersionModeloModel.componente == componente,
                 VersionModeloModel.estado_version == "ACTIVO",
             )
         ).scalar_one_or_none()

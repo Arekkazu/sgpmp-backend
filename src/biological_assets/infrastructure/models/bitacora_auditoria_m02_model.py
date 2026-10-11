@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.bitacora_auditoria_m02``: bitácora RF-52 con hash de
+integridad (inmutable por trigger).
+"""
+
 from __future__ import annotations
 
 import uuid

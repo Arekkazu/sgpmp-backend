@@ -27,3 +27,20 @@ class IngestaBatchResponse(BaseModel):
     rechazados: int
     duplicados: int
     detalle: list[ItemBatchResponse]
+
+
+class ObservacionVisionResponse(BaseModel):
+    id_observacion_vision: int
+    timestamp_captura: datetime
+    indice_calidad: int
+    clasificacion_calidad: str
+    apto_para_ia: bool
+    # RF-62 v2.0: siempre false para visión.
+    apto_para_nic41: bool = False
+
+
+class IngestaVisionResponse(BaseModel):
+    total: int
+    aceptadas: int
+    duplicadas: int
+    observaciones: list[ObservacionVisionResponse]

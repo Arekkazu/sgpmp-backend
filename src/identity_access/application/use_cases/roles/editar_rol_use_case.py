@@ -1,8 +1,9 @@
 """Caso de uso: edición del nombre y/o descripción de un rol existente.
 
 Requiere que al menos uno de los dos campos editables sea proporcionado.
-El rol protegido (Administrador) puede editarse en nombre/descripción pero
-no eliminarse (eso lo controla el caso de uso de eliminación).
+El rol protegido (Administrador) conserva su nombre: RF-03 prohíbe tanto
+modificar su identificador base como eliminarlo. Su descripción sí es
+editable — el trigger de BD tampoco la bloquea.
 """
 from sqlalchemy.orm import Session
 
@@ -10,7 +11,7 @@ from src.identity_access.domain.repositories.evento_repository import EventoRepo
 from src.identity_access.domain.repositories.rol_repository import RolRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.roles_dto import EditarRolDTO
-from src.shared.errors import NotFoundError, ValidationError
+from src.shared.errors import AuthorizationError, NotFoundError, ValidationError
 
 TIPO_MODIFICACION_ROL = 12
 
@@ -41,6 +42,7 @@ class EditarRolUseCase:
         Raises:
             NotFoundError: Si el rol no existe. HTTP 404.
             ValidationError: Si ningún campo editable fue proporcionado. HTTP 400.
+            AuthorizationError: Si se intenta renombrar un rol protegido. HTTP 403.
             ConflictError: Si el nuevo nombre ya está en uso por otro rol. HTTP 409.
         """
         rol = self.roles_repo.obtener_por_id(id_rol)
@@ -54,6 +56,21 @@ class EditarRolUseCase:
             raise ValidationError(
                 code="SIN_CAMBIOS",
                 message="Debe proporcionar al menos un campo a modificar: nombre_rol o descripcion.",
+            )
+
+        # RF-03 exige 403 para la modificación *o* la eliminación del rol
+        # protegido. La guarda vive aquí, igual que en EliminarRolUseCase, para
+        # no depender del trigger P0004 — que además solo frena el cambio de
+        # nombre (el identificador base), no la descripción.
+        if rol.es_protegido and dto.nombre_rol is not None and dto.nombre_rol != rol.nombre_rol:
+            raise AuthorizationError(
+                code="ROL_PROTEGIDO",
+                message=(
+                    "Acción denegada: El rol 'Administrador' es un objeto protegido "
+                    "por el sistema. No se permite su eliminación ni el cambio de su "
+                    "identificador base."
+                ),
+                field="nombre_rol",
             )
 
         try:

@@ -71,9 +71,9 @@ def _crear_finca(db_session: Session, id_usuario: int) -> int:
             """
             INSERT INTO modulo9.fincas (
                 nombre, ubicacion, tamano_h, fecha_actualizacion,
-                fecha_creacion, es_activo, id_usuario
+                fecha_creacion, es_activo
             ) VALUES (
-                :nombre, CAST(:ubicacion AS jsonb), 10.00, now(), now(), true, :id_usuario
+                :nombre, CAST(:ubicacion AS jsonb), 10.00, now(), now(), true
             )
             RETURNING id_finca
             """
@@ -81,9 +81,14 @@ def _crear_finca(db_session: Session, id_usuario: int) -> int:
         {
             "nombre": _nombre_finca(),
             "ubicacion": ubicacion,
-            "id_usuario": id_usuario,
         },
     ).scalar_one()
+    # INC-M02-61-G52: igual que SqlAlchemyFincaRepository.guardar, el propietario
+    # recibe su acceso en usuarios_fincas; fincas.id_usuario ya no lo concede solo.
+    db_session.execute(
+        text("INSERT INTO modulo9.usuarios_fincas (id_usuario, id_finca) VALUES (:u, :f)"),
+        {"u": id_usuario, "f": id_finca},
+    )
     db_session.flush()
     return id_finca
 
@@ -132,20 +137,67 @@ def test_ingeniero_asignado_consulta_solo_su_finca(
     assert id_finca_ajena not in {item["id_finca"] for item in listado.json()["items"]}
 
 
-def test_administrador_conserva_consulta_global(
+def test_administrador_consulta_todas_las_fincas(
     config_client: TestClient,
     db_session: Session,
     crear_usuario_db,
     crear_auth_headers,
 ) -> None:
+    """RF-19 (f68851f9a433): el Administrador del sistema ve todas las fincas,
+    también las que no tiene asignadas en usuarios_fincas."""
     administrador = crear_usuario_db(id_rol=_id_rol(db_session, "Administrador"), estado=2)
     propietario = crear_usuario_db(id_rol=_id_rol(db_session, "Productor"), estado=2)
     id_finca_ajena = _crear_finca(db_session, propietario["id_usuario"])
+    id_finca_propia = _crear_finca(db_session, administrador["id_usuario"])
     headers = crear_auth_headers(administrador)
 
-    detalle = config_client.get(f"/configuracion/fincas/{id_finca_ajena}", headers=headers)
-    listado = config_client.get("/configuracion/fincas", headers=headers)
+    ajena = config_client.get(f"/configuracion/fincas/{id_finca_ajena}", headers=headers)
+    propia = config_client.get(f"/configuracion/fincas/{id_finca_propia}", headers=headers)
+    listado = {item["id_finca"] for item in config_client.get("/configuracion/fincas", headers=headers).json()["items"]}
 
-    assert detalle.status_code == 200
-    assert detalle.json()["id_finca"] == id_finca_ajena
-    assert id_finca_ajena in {item["id_finca"] for item in listado.json()["items"]}
+    assert ajena.status_code == 200
+    assert propia.status_code == 200
+    assert id_finca_propia in listado
+    assert id_finca_ajena in listado
+
+
+def test_registrar_y_renombrar_finca_sin_columna_de_propietario(
+    config_client: TestClient,
+    db_session: Session,
+    crear_usuario_db,
+    crear_auth_headers,
+) -> None:
+    """F3 (315eaa6c5dc1) retiró fincas.id_usuario: el trigger de nombre la leía y
+    todo alta o renombre respondía 500. El asignado sale ahora de usuarios_fincas."""
+    administrador = crear_usuario_db(id_rol=_id_rol(db_session, "Administrador"), estado=2)
+    productor = crear_usuario_db(id_rol=_id_rol(db_session, "Productor"), estado=2)
+    headers = crear_auth_headers(administrador)
+    ubicacion = {
+        "departamento": "Huila",
+        "municipio": "Neiva",
+        "vereda": "Centro",
+        "latitud": "2.93",
+        "longitud": "-75.28",
+    }
+    nombre = _nombre_finca()
+
+    creada = config_client.post(
+        "/configuracion/fincas",
+        json={"nombre": nombre, "ubicacion": ubicacion, "tamano_h": "10", "id_usuario": productor["id_usuario"]},
+        headers=headers,
+    )
+    assert creada.status_code == 201, creada.text
+    assert creada.json()["id_usuario"] == productor["id_usuario"]
+
+    renombrada = config_client.patch(
+        f"/configuracion/fincas/{creada.json()['id_finca']}",
+        json={
+            "nombre": nombre + " Norte",
+            "ubicacion": ubicacion,
+            "tamano_h": "10",
+            "fecha_actualizacion": creada.json()["fecha_actualizacion"],
+        },
+        headers=headers,
+    )
+    assert renombrada.status_code == 200, renombrada.text
+    assert renombrada.json()["id_usuario"] == productor["id_usuario"]

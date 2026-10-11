@@ -8,6 +8,8 @@ from src.configuration.domain.entities.auditoria_umbral import AuditoriaUmbral
 
 
 class AuditoriaUmbralRepository(ABC):
+    """Contrato de la auditoría de umbrales ambientales."""
+
     @abstractmethod
     def registrar(
         self,
@@ -16,7 +18,10 @@ class AuditoriaUmbralRepository(ABC):
         tipo_operacion: str,
         valores_nuevos: dict,
         valores_anteriores: Optional[dict] = None,
-    ) -> None: ...
+    ) -> None:
+        """Inserta un registro de auditoría inmutable sobre el umbral con los valores
+        antes/después.
+        """
 
     @abstractmethod
     def listar_por_umbral(self, id_umbral_ambiental: int) -> list[AuditoriaUmbral]:

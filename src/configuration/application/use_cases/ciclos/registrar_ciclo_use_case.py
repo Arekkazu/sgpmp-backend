@@ -27,6 +27,8 @@ def _snapshot(ciclo: CicloBiologico) -> dict:
 
 
 class RegistrarCicloUseCase:
+    """Registra una etapa para una especie activa; el nombre es único por especie (409).
+    """
 
     def __init__(
         self,

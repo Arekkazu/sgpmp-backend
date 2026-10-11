@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from src.shared.database import SessionLocal
+from src.shared.database import sesion_sistema
 from src.supplies.application.use_cases.historial_suministros.consultar_estado_trabajo_historial_use_case import (
     ConsultarEstadoTrabajoHistorialUseCase,
 )
@@ -88,11 +88,11 @@ def build_descargar_resultado_trabajo_historial_use_case(db: Session) -> Descarg
 
 
 def build_procesar_cola_historial_suministros_use_case(db: Session) -> ProcesarColaHistorialSuministrosUseCase:
-    """Construye el worker del motor async. Usa ``SessionLocal`` para las sesiones por trabajo."""
+    """Construye el worker del motor async. Usa ``sesion_sistema`` (usuario de servicio, D1) para las sesiones por trabajo."""
     return ProcesarColaHistorialSuministrosUseCase(
         trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository(db),
         config_repo=SqlAlchemyConfiguracionBatchHistorialRepository(db),
-        session_factory=SessionLocal,
+        session_factory=sesion_sistema,
         construir_trabajo_repo=SqlAlchemyTrabajoHistorialSuministroRepository,
         construir_fallo_repo=SqlAlchemyFalloHistorialSuministroRepository,
         construir_consultar=build_consultar_historial_use_case,

@@ -165,8 +165,9 @@ def test_identidad_solo_con_logotipo_no_rompe_el_contexto() -> None:
 # ---- La consulta contra la vista ---- #
 
 class _Resultado:
-    def __init__(self, fila: Optional[dict]) -> None:
+    def __init__(self, fila: Optional[dict], escalar: object = False) -> None:
         self._fila = fila
+        self._escalar = escalar
 
     def mappings(self):
         return self
@@ -177,19 +178,27 @@ class _Resultado:
     def all(self):
         return []
 
+    def scalar(self):
+        return self._escalar
+
 
 class SesionFake:
     """Captura el SQL emitido, para fijar las dos roturas que tenia esta consulta."""
 
-    def __init__(self, fila: Optional[dict]) -> None:
+    def __init__(self, fila: Optional[dict], tiene_infraestructura: bool = True) -> None:
         self.fila = fila
+        self.tiene_infraestructura = tiene_infraestructura
         self.sentencias: list[str] = []
 
     def execute(self, sentencia, parametros=None):
         texto = str(sentencia)
         self.sentencias.append(texto)
-        # La primera consulta es la de la vista; la segunda, la de modulos autorizados.
-        return _Resultado(self.fila if "vw_rf25_contexto_usuario" in texto else None)
+        # La primera consulta es la de la vista; luego van infraestructuras y módulos.
+        if "vw_rf25_contexto_usuario" in texto:
+            return _Resultado(self.fila)
+        if "infraestructuras" in texto:
+            return _Resultado(None, escalar=self.tiene_infraestructura)
+        return _Resultado(None)
 
 
 FILA_VISTA = {

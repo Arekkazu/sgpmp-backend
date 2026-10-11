@@ -13,6 +13,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarDispositivosIotUseCase:
+    """Lista u obtiene dispositivos IoT limitados a las fincas del usuario."""
 
     def __init__(
         self,

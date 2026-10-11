@@ -48,8 +48,8 @@ class SqlAlchemyPatologiaM04Repository(PatologiaM04Repository):
     # ------------------------------------------------------------------
     # Lecturas
     # ------------------------------------------------------------------
-    def obtener_por_id(self, id_patologia: int) -> Optional[PatologiaM04]:
-        orm = self._db.get(PatologiaM04Model, id_patologia)
+    def obtener_por_id(self, id_patologia: int, *, bloquear: bool = False) -> Optional[PatologiaM04]:
+        orm = self._db.get(PatologiaM04Model, id_patologia, with_for_update=bloquear, populate_existing=bloquear)
         return self._a_entidad(orm) if orm else None
 
     def obtener_por_nombre(self, nombre: str) -> Optional[PatologiaM04]:

@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.activos_biologicos``: cabecera común de todo activo
+(individual o lote).
+"""
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -63,6 +67,10 @@ class ActivoBiologicoModel(Base):
     id_dispositivo_iot: Mapped[Optional[int]] = mapped_column(Integer)
     soporte_documental: Mapped[Optional[str]] = mapped_column(String(150))
     detalles_procedencia: Mapped[Optional[str]] = mapped_column(String(100))
+    fecha_actualizacion: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True),
+        comment='Fecha y hora de la última modificación. Usada para control de concurrencia optimista (RF-35).',
+    )
 
     # ── Relationships ────────────────────────────────────────────────────────
     estado: Mapped[EstadoActivoBiologicoModel] = relationship(

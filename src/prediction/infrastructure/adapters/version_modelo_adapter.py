@@ -21,3 +21,13 @@ class VersionModeloAdapter(VersionModeloPort):
             {"id": id_version},
         ).fetchone()
         return row[0] if row else None
+
+    def obtener_llave(self, id_version: int) -> Optional[tuple[str, Optional[str], Optional[str]]]:
+        row = self._db.execute(
+            text(
+                "SELECT estado_version::text, tipo_modelo::text, componente "
+                "FROM modulo4.versiones_modelos WHERE id_version_modelo = :id"
+            ),
+            {"id": id_version},
+        ).fetchone()
+        return (row[0], row[1], row[2]) if row else None

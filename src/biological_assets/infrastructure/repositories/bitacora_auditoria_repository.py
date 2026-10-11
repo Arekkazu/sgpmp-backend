@@ -1,15 +1,26 @@
+"""Implementación SQLAlchemy de ``BitacoraAuditoriaRepository`` (RF-52).
+
+Calcula el hash SHA-256 de integridad de cada entrada antes de insertarla.
+"""
+
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
 from src.biological_assets.domain.repositories.bitacora_auditoria_repository import BitacoraAuditoriaRepository
 from src.biological_assets.infrastructure.models.bitacora_auditoria_m02_model import BitacoraAuditoriaM02Model
+from src.biological_assets.infrastructure.models.activo_biologico_model import ActivoBiologicoModel
+from src.configuration.infrastructure.models.infraestructura_model import InfraestructuraModel
+
+logger = logging.getLogger(__name__)
 
 
 def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
@@ -30,11 +41,22 @@ def _calcular_hash(evento: EventoAuditoria, ts_registro: datetime) -> str:
 
 
 class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
+    """Escribe y consulta ``modulo2.bitacora_auditoria_m02`` aplicando filtros y
+    alcance.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db
 
     def registrar(self, evento: EventoAuditoria) -> None:
+        # RF-52 E2 se aplica aquí porque es el único punto por el que pasan todos
+        # los emisores de M02 (use cases, rechazos auditados y el handler de 400).
+        causas = evento.marcar_si_incompleto()
+        if causas:
+            logger.warning(
+                'RF-52: evento %s/%s persistido como registro_incompleto: %s',
+                evento.rf_origen, evento.tipo_evento, '; '.join(causas),
+            )
         ts_registro = datetime.now(timezone.utc)
         hash_integridad = _calcular_hash(evento, ts_registro)
         orm = BitacoraAuditoriaM02Model(
@@ -70,8 +92,48 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
         fecha_fin: Optional[datetime],
         pagina: int,
         page_size: int,
+        *,
+        clasificaciones_permitidas: Optional[set[str]] = None,
+        rf_origenes_permitidos: Optional[set[str]] = None,
+        id_propietario_acceso_datos: Optional[int] = None,
+        id_usuario_responsable: Optional[int] = None,
+        ids_fincas_alcance: Optional[list[int]] = None,
+        id_usuario_alcance: Optional[int] = None,
     ) -> tuple[list[EventoAuditoria], int]:
         q = self.db.query(BitacoraAuditoriaM02Model)
+
+        if ids_fincas_alcance is not None:
+            q = q.filter(
+                or_(
+                    BitacoraAuditoriaM02Model.id_activo_biologico.in_(
+                        self._activos_en_fincas(ids_fincas_alcance)
+                    ),
+                    and_(
+                        BitacoraAuditoriaM02Model.id_activo_biologico.is_(None),
+                        BitacoraAuditoriaM02Model.id_usuario_responsable == id_usuario_alcance,
+                    ),
+                )
+            )
+
+        if id_propietario_acceso_datos is not None:
+            q = q.outerjoin(
+                ActivoBiologicoModel,
+                BitacoraAuditoriaM02Model.id_activo_biologico
+                == ActivoBiologicoModel.id_activo_biologico,
+            ).filter(
+                or_(
+                    BitacoraAuditoriaM02Model.clasificacion_biologica != 'ACCESO_DATOS',
+                    ActivoBiologicoModel.id_usuario == id_propietario_acceso_datos,
+                )
+            )
+
+        if clasificaciones_permitidas is not None:
+            q = q.filter(
+                BitacoraAuditoriaM02Model.clasificacion_biologica.in_(clasificaciones_permitidas)
+            )
+
+        if rf_origenes_permitidos is not None:
+            q = q.filter(BitacoraAuditoriaM02Model.rf_origen.in_(rf_origenes_permitidos))
 
         if rf_origen is not None:
             q = q.filter(BitacoraAuditoriaM02Model.rf_origen == rf_origen)
@@ -85,6 +147,8 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             q = q.filter(BitacoraAuditoriaM02Model.resultado == resultado)
         if severidad_log is not None:
             q = q.filter(BitacoraAuditoriaM02Model.severidad_log == severidad_log)
+        if id_usuario_responsable is not None:
+            q = q.filter(BitacoraAuditoriaM02Model.id_usuario_responsable == id_usuario_responsable)
         if fecha_inicio is not None:
             q = q.filter(BitacoraAuditoriaM02Model.timestamp_evento >= fecha_inicio)
         if fecha_fin is not None:
@@ -101,6 +165,38 @@ class SqlAlchemyBitacoraAuditoriaRepository(BitacoraAuditoriaRepository):
             .all()
         )
         return [self._a_entidad(r) for r in registros_orm], total
+
+    @staticmethod
+    def _activos_en_fincas(ids_fincas: list[int]):
+        return (
+            select(ActivoBiologicoModel.id_activo_biologico)
+            .join(
+                InfraestructuraModel,
+                InfraestructuraModel.id_infraestructura == ActivoBiologicoModel.id_infraestructura,
+            )
+            .where(InfraestructuraModel.id_finca.in_(ids_fincas))
+        )
+
+    def activo_en_fincas(self, id_activo: int, ids_fincas: list[int]) -> bool:
+        return (
+            self.db.execute(
+                self._activos_en_fincas(ids_fincas).where(
+                    ActivoBiologicoModel.id_activo_biologico == id_activo
+                )
+            ).first()
+            is not None
+        )
+
+    def activo_pertenece_a_usuario(self, id_activo: int, id_usuario: int) -> bool:
+        return (
+            self.db.query(ActivoBiologicoModel.id_activo_biologico)
+            .filter(
+                ActivoBiologicoModel.id_activo_biologico == id_activo,
+                ActivoBiologicoModel.id_usuario == id_usuario,
+            )
+            .first()
+            is not None
+        )
 
     def _a_entidad(self, orm: BitacoraAuditoriaM02Model) -> EventoAuditoria:
         return EventoAuditoria(

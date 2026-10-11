@@ -8,9 +8,26 @@ from typing import Optional
 
 from src.configuration.domain.entities.nivel_alerta_ambiental import NivelAlertaAmbiental
 
+# modulo9.umbrales_ambientales/niveles_alerta_ambientales son NUMERIC(_, 2) — se fija
+# la misma escala al serializar para que valores_anteriores/valores_nuevos no varíen
+# de representación textual según si el Decimal viene recién parseado del DTO o
+# releído de BD (INC-M09-105-G30, observación 2: "42.0" vs "42.00").
+_ESCALA_SNAPSHOT = Decimal('0.01')
+
+
+def _decimal_snapshot(valor: Decimal) -> str:
+    return str(valor.quantize(_ESCALA_SNAPSHOT))
+
+
+MOTIVO_CAMBIOS_SIN_PROPAGAR = "Cambios guardados, pendientes de propagar al Nodo Edge."
+
 
 @dataclass(eq=False)
 class UmbralAmbiental:
+    """Umbral de una variable ambiental para una especie, con sus niveles normal / precaución / crítico (RF-17).
+
+    Lleva además el estado de sincronización hacia los dispositivos Edge.
+    """
     id_especie: int
     id_variable_ambiental: int
     unidad_medida: str
@@ -21,6 +38,13 @@ class UmbralAmbiental:
     id_umbral_ambiental: Optional[int] = None
     fecha_actualizacion: Optional[datetime.datetime] = None
     id_usuario: Optional[int] = None
+    # INC-M09-104-G29 (RF-17): estado de la propagación hacia el Nodo Edge.
+    # PENDIENTE (recién guardado o broker inalcanzable) / APLICADA (ACK del
+    # Edge) / NO_CONF (se publicó pero no hubo ACK a tiempo) — mismo
+    # vocabulario que ConfiguracionRemota (RF-23).
+    estado_sincronizacion: str = 'PENDIENTE'
+    fecha_ultima_sincronizacion: Optional[datetime.datetime] = None
+    motivo_fallo_sincronizacion: Optional[str] = None
 
     @classmethod
     def crear(
@@ -57,9 +81,26 @@ class UmbralAmbiental:
         self.niveles = niveles
         self.id_usuario = id_usuario
         self.fecha_actualizacion = ts_ahora
+        # INC-M09-104-G29: los valores nuevos todavía no llegaron al Edge. Si la
+        # propagación posterior no alcanza a persistir su resultado, el umbral
+        # no debe quedar mostrando el APLICADA de la versión anterior.
+        self.marcar_pendiente_sincronizacion(MOTIVO_CAMBIOS_SIN_PROPAGAR)
 
     def desactivar(self) -> None:
         self.es_activo = False
+
+    def marcar_pendiente_sincronizacion(self, motivo: str) -> None:
+        self.estado_sincronizacion = 'PENDIENTE'
+        self.motivo_fallo_sincronizacion = motivo
+
+    def marcar_sincronizado(self, ts_ahora: datetime.datetime) -> None:
+        self.estado_sincronizacion = 'APLICADA'
+        self.fecha_ultima_sincronizacion = ts_ahora
+        self.motivo_fallo_sincronizacion = None
+
+    def marcar_fallo_sincronizacion(self, motivo: str) -> None:
+        self.estado_sincronizacion = 'NO_CONF'
+        self.motivo_fallo_sincronizacion = motivo
 
     def _snapshot(self) -> dict:
         return {
@@ -67,15 +108,15 @@ class UmbralAmbiental:
             'id_especie': self.id_especie,
             'id_variable_ambiental': self.id_variable_ambiental,
             'unidad_medida': self.unidad_medida,
-            'valor_min': str(self.valor_min),
-            'valor_max': str(self.valor_max),
+            'valor_min': _decimal_snapshot(self.valor_min),
+            'valor_max': _decimal_snapshot(self.valor_max),
             'es_activo': self.es_activo,
             'fecha_actualizacion': self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,
             'niveles': [
                 {
                     'nivel': n.nivel.value,
-                    'limite_inferior': str(n.limite_inferior),
-                    'limite_superior': str(n.limite_superior),
+                    'limite_inferior': _decimal_snapshot(n.limite_inferior),
+                    'limite_superior': _decimal_snapshot(n.limite_superior),
                 }
                 for n in self.niveles
             ],

@@ -50,6 +50,7 @@ _RESPUESTAS_M2M = {401: {"model": ErrorResponse}, 503: {"model": ErrorResponse}}
 
 @router.get(
     "/roles",
+    summary="AgroFusion: listar roles (GET_ROLES)",
     response_model=list[AgroFusionRolResumen],
     responses=_RESPUESTAS_M2M,
 )
@@ -66,6 +67,7 @@ def listar_roles(
 
 @router.post(
     "/token",
+    summary="AgroFusion: emitir token para un usuario (GET_AUTHORIZATION)",
     response_model=AgroFusionTokenResponse,
     responses={
         **_RESPUESTAS_M2M,
@@ -94,6 +96,7 @@ def emitir_token(dto: AgroFusionTokenDTO, request: Request, db: Session = Depend
 
 @router.post(
     "/usuarios",
+    summary="AgroFusion: crear usuario activo (CREATE_USER)",
     status_code=201,
     response_model=UsuarioResponse,
     responses={
@@ -132,6 +135,7 @@ def crear_usuario(dto: AgroFusionCreateUserDTO, db: Session = Depends(get_db)):
 
 @router.get(
     "/usuarios/{email}",
+    summary="AgroFusion: consultar usuario por correo (GET_USER)",
     response_model=AgroFusionUsuarioEstadoResponse,
     responses=_RESPUESTAS_M2M,
 )
@@ -160,6 +164,7 @@ def obtener_usuario(
 
 @router.patch(
     "/usuarios/{email}/estado",
+    summary="AgroFusion: cambiar estado de cuenta (CHANGE_USER_STATUS)",
     response_model=MessageResponse,
     responses={
         **_RESPUESTAS_M2M,

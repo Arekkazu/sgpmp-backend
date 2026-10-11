@@ -8,6 +8,7 @@ from src.shared.errors import ValidationError
 
 @dataclass(frozen=True)
 class DuracionDias:
+    """Duración en días; entero mayor que cero."""
     valor: int
 
     def __post_init__(self) -> None:

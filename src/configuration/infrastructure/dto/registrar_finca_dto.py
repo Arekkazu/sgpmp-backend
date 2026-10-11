@@ -10,6 +10,8 @@ from src.shared.base_dto import BaseDTO
 
 
 class UbicacionFincaDTO(BaseDTO):
+    """Ubicación de la finca: textos solo con letras y coordenadas en grados decimales.
+    """
     departamento: str
     municipio: str
     vereda: str
@@ -32,6 +34,7 @@ class UbicacionFincaDTO(BaseDTO):
 
 
 class RegistrarFincaDTO(BaseDTO):
+    """Finca nueva con nombre único, ubicación y tamaño en hectáreas."""
     nombre: str
     ubicacion: UbicacionFincaDTO
     tamano_h: Decimal

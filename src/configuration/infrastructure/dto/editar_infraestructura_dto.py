@@ -11,13 +11,22 @@ from typing import Optional
 from pydantic import field_validator
 
 from src.shared.base_dto import BaseDTO
+from src.shared.tipo_modelo import TipoModelo
 
 
 class EditarInfraestructuraDTO(BaseDTO):
+    """Campos editables del área productiva; ``tipo_area`` debe existir en el catálogo de tipos de área.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     nombre_infraestructura: str
     tipo_area: str
     superficie: Decimal
     descripcion_infraestructura: Optional[str] = None
+    # RF-20 v1.1 (RFC-009): especie obligatoria; el modelo de IA es opcional y
+    # el use case valida su coherencia con la especie (422).
+    especie_id: int
+    tipo_modelo_asignado: Optional[TipoModelo] = None
     fecha_actualizacion: Optional[datetime] = None
 
     @field_validator("nombre_infraestructura")

@@ -284,6 +284,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         detalle: dict,
         id_sesion: Optional[int] = None,
         descripcion: Optional[str] = None,
+        modulo: str = "MODULO1",
     ) -> None:
         # El hash SHA-256 cubre los campos clave del evento para detectar
         # modificaciones posteriores en la tabla de auditoría.
@@ -324,7 +325,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 "fecha_evento": fecha.isoformat(),
                 "id_usuario": id_usuario,
                 "resultado": resultado.value,
-                "modulo": "MODULO1",
+                "modulo": modulo,
                 "detalle": detalle_completo,
             }, sort_keys=True, default=str)
             hash_integridad = hashlib.sha256(contenido_hash.encode("utf-8")).hexdigest()
@@ -332,7 +333,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
             evento = Eventos(
                 tipo_evento=tipo_evento,
                 fecha_evento=fecha,
-                modulo="MODULO1",
+                modulo=modulo,
                 resultado=resultado,
                 detalle=detalle_completo,
                 id_usuario=id_usuario,
@@ -361,6 +362,12 @@ class SqlAlchemyEventoRepository(EventoRepository):
                 ),
                 original_error=exc,
             ) from exc
+
+    def _solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime):
+        return self.db.execute(
+            text("SELECT total, primera FROM modulo1.fn_solicitudes_recuperacion_por_ip(:ip, :desde)"),
+            {"ip": ip, "desde": desde},
+        ).one()
 
     def _resolver_id_sesion(self, id_token: int) -> Optional[int]:
         """Deriva la sesión activa a partir del token del request en curso.
@@ -401,15 +408,9 @@ class SqlAlchemyEventoRepository(EventoRepository):
 
     def contar_solicitudes_recuperacion_por_ip(self, ip: str, desde: datetime) -> int:
         # .astext extrae el valor de texto de la columna JSONB sin comillas adicionales.
-        return (
-            self.db.query(func.count(Eventos.id_evento))
-            .filter(
-                Eventos.tipo_evento == 7,
-                Eventos.fecha_evento >= desde,
-                Eventos.detalle["ip"].astext == ip,
-            )
-            .scalar()
-        )
+        # Cuenta solicitudes ajenas sin identidad: bajo RLS solo el
+        # Administrador lee `eventos` (función de a7380032a23b).
+        return self._solicitudes_recuperacion_por_ip(ip, desde).total
 
     def obtener_primera_solicitud_recuperacion_por_ip(
         self,
@@ -417,15 +418,7 @@ class SqlAlchemyEventoRepository(EventoRepository):
         desde: datetime,
     ) -> Optional[datetime]:
         """Retorna en UTC el inicio real de la ventana vigente para una IP."""
-        primera_solicitud = (
-            self.db.query(func.min(Eventos.fecha_evento))
-            .filter(
-                Eventos.tipo_evento == 7,
-                Eventos.fecha_evento >= desde,
-                Eventos.detalle["ip"].astext == ip,
-            )
-            .scalar()
-        )
+        primera_solicitud = self._solicitudes_recuperacion_por_ip(ip, desde).primera
         if primera_solicitud is None:
             return None
         if primera_solicitud.tzinfo is None:

@@ -74,7 +74,7 @@ def test_tipo_medicion_fuera_de_dominio_400(config_client, una_especie, crear_us
     h = _headers_vet(crear_usuario_db, crear_auth_headers)
     r = config_client.post(
         "/configuracion/metricas",
-        json={"id_especie": una_especie, "nombre": "Metrica Rf Test", "unidad_medida": "kg", "tipo_medicion": "BASURA"},
+        json={"id_especie": una_especie, "nombre": "Metrica Rf Test", "unidad_medida": "kg", "tipo_medicion": "BASURA", "tipo_dato": "NUMERICO"},
         headers=h,
     )
     assert r.status_code == 400
@@ -85,7 +85,7 @@ def test_peso_con_unidad_volumen_incoherente_422(config_client, una_especie, cre
     h = _headers_vet(crear_usuario_db, crear_auth_headers)
     r = config_client.post(
         "/configuracion/metricas",
-        json={"id_especie": una_especie, "nombre": "Peso Rf Test", "unidad_medida": "litros", "tipo_medicion": "PESO"},
+        json={"id_especie": una_especie, "nombre": "Peso Rf Test", "unidad_medida": "litros", "tipo_medicion": "PESO", "tipo_dato": "NUMERICO"},
         headers=h,
     )
     assert r.status_code == 422
@@ -97,7 +97,7 @@ def test_volumen_litro_abreviado_ok_201(config_client, una_especie, crear_usuari
     h = _headers_vet(crear_usuario_db, crear_auth_headers)
     r = config_client.post(
         "/configuracion/metricas",
-        json={"id_especie": una_especie, "nombre": "Volumen L Rf Test", "unidad_medida": "l", "tipo_medicion": "VOLUMEN"},
+        json={"id_especie": una_especie, "nombre": "Volumen L Rf Test", "unidad_medida": "l", "tipo_medicion": "VOLUMEN", "tipo_dato": "NUMERICO"},
         headers=h,
     )
     assert r.status_code == 201, r.text
@@ -151,3 +151,36 @@ def test_rf16_expone_y_audita_tipo_y_obligatoriedad(
     ).scalar_one()
     assert auditoria["tipo_dato"] == "NUMERICO"
     assert auditoria["es_obligatorio"] is True
+
+
+@pytest.mark.parametrize("tipo_medicion", ["PESO", "CONTEO"])
+def test_g130_sin_tipo_dato_400_no_se_infiere(
+    config_client, una_especie, db_session, crear_usuario_db, crear_auth_headers, tipo_medicion
+) -> None:
+    """INC-M09-G130 (#487): RF-16 v1.2 (RFC-004) exige elegir el tipo de dato.
+
+    Antes la API respondía 201 y asignaba NUMERICO (PESO) o ENTERO (CONTEO).
+    """
+    h = _headers_vet(crear_usuario_db, crear_auth_headers)
+    nombre = f"Sin Tipo Dato {tipo_medicion.title()}"
+    r = config_client.post(
+        "/configuracion/metricas",
+        json={
+            "id_especie": una_especie,
+            "nombre": nombre,
+            "unidad_medida": "kg" if tipo_medicion == "PESO" else "unidades",
+            "tipo_medicion": tipo_medicion,
+            "aplica_a_tipo_activo": "AMBOS",
+        },
+        headers=h,
+    )
+    assert r.status_code == 400, r.text
+    assert {f["field"] for f in r.json()["fields"]} == {"tipo_dato"}
+    creadas = db_session.execute(
+        text(
+            "SELECT count(*) FROM modulo9.metricas_produccion "
+            "WHERE id_especie = :e AND nombre = :n"
+        ),
+        {"e": una_especie, "n": nombre},
+    ).scalar_one()
+    assert creadas == 0

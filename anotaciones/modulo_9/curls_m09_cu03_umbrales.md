@@ -36,7 +36,7 @@ curl -X POST http://localhost:8000/configuracion/umbrales \
 
 **Nota:** El orden de los niveles en el arreglo no importa. El sistema los ordena internamente.
 
-Respuesta esperada `201`:
+Respuesta esperada `201` (solo si el Nodo Edge confirmó `APLICADA` — ver nota):
 ```json
 {
   "id_umbral_ambiental": 1,
@@ -51,17 +51,95 @@ Respuesta esperada `201`:
     { "nivel": "critico",    "limite_inferior": 15.0, "limite_superior": 18.0 },
     { "nivel": "normal",     "limite_inferior": 18.0, "limite_superior": 28.0 },
     { "nivel": "precaucion", "limite_inferior": 28.0, "limite_superior": 35.0 }
-  ]
+  ],
+  "estado_sincronizacion": "APLICADA",
+  "fecha_ultima_sincronizacion": "2026-09-19T12:00:00Z",
+  "motivo_fallo_sincronizacion": null
 }
 ```
 
+**INC-M09-104-G29 (RF-17):** después de guardar, el umbral se propaga a cada Gateway Edge
+activo de las áreas activas de la especie, por el broker MQTT (`POST /v1/commands` con
+`origen: "umbral"`; el broker espera hasta 30 s el `ACK_UMBRAL` de cada Edge). Los
+resultados se consolidan en un único `estado_sincronizacion` (`PENDIENTE` / `APLICADA` /
+`NO_CONF`), que queda guardado **antes** de responder (dos commits separados). La
+respuesta puede tardar hasta ~35 s mientras se espera el ACK.
+
+**TC-M09-58-G22 (#459) — cuándo responde 201 y cuándo 500:**
+
+| Resultado de los Gateway Edge | `estado_sincronizacion` | Respuesta |
+|---|---|---|
+| todos confirmaron | `APLICADA`, con `fecha_ultima_sincronizacion` | `201` (alta) / `200` (edición) |
+| alguno desconectado del broker (TC-M09-63): el Edge avisó su desconexión y el broker no publica | `PENDIENTE` ("Pendiente de Sincronización"), con el motivo en `motivo_fallo_sincronizacion` | `500` `FALLO_SINCRONIZACION_EDGE` |
+| alguno no confirmó (sin ACK en 30 s, broker caído o con error) | `NO_CONF` | `500` `FALLO_SINCRONIZACION_EDGE` |
+| la especie no tiene Gateway Edge, o el broker no está configurado en el ambiente (no hubo intento) | `PENDIENTE`, con el motivo | `201` / `200` |
+
+Al **editar**, el umbral queda `PENDIENTE` desde el primer commit, hasta que el resultado
+de la propagación lo reemplace.
+
+Los dos casos con `500` son el flujo alterno "Error de sincronización con el Nodo Edge" del RF-17
+(el Edge sigue con el umbral anterior), que exige responder:
+
+```
+HTTP 500
+{
+  "error_code": "FALLO_SINCRONIZACION_EDGE",
+  "message": "Configuración guardada en la base de datos, pero falló la actualización de los nodos Edge. Es posible que las alertas en campo sigan operando con los valores anteriores hasta que se restablezca la conexión."
+}
+```
+
+Contrato completo (payload, ACK, cómo simular el Edge con `mosquitto_pub`):
+`INTEGRACION_DISPOSITIVOS_RF17.md` del repo `BROKER-MQTT-SGPMP`. Ver también
+`anotaciones/modulo_9/inc_m09_104_g29_sincronizacion_edge_umbrales.md`.
+
+**INC-M09-70-G29 (#532) — trazabilidad de cada propagación.** Cada alta o edición deja,
+tras persistir el estado (también cuando responde 500), un evento en la bitácora IoT
+(RF-63, recurso 39 · Leer):
+
+```bash
+curl "http://localhost:8000/iot/auditoria?tipo_evento=PROPAGACION_UMBRAL_EDGE&entidad_afectada_id=<id_umbral_ambiental>" \
+  -H "Authorization: Bearer <TOKEN>"
+```
+
+```json
+{
+  "tipo_evento": "PROPAGACION_UMBRAL_EDGE",
+  "resultado": "FALLIDO",
+  "entidad_afectada_tipo": "UMBRAL",
+  "entidad_afectada_id": "64",
+  "accion_detallada": {
+    "id_umbral_ambiental": 64,
+    "estado": "NO_CONF",
+    "version": "2026-10-08T20:09:06.123456+00:00",
+    "variable": "Temperatura",
+    "motivo": "RASPBERRY3BPRUEBA2: El broker MQTT no propagó el umbral. Causa: el broker respondió HTTP 422: {...}.",
+    "duracion_ms": 1278,
+    "gateways": [
+      {"serial": "RASPBERRY3BPRUEBA2", "estado": "NO_CONF", "publicado": false, "ack_umbral": false, "mensaje": "..."}
+    ]
+  }
+}
+```
+
+- `resultado`: `EXITOSO` (APLICADA), `FALLIDO` (lo que responde 500) o `ADVERTENCIA` (sin Gateway o sin broker).
+- `publicado`: el broker publicó el comando en MQTT. `false` con `PENDIENTE` = el Gateway estaba
+  desconectado; `false` con `NO_CONF` = el broker no se alcanzó o rechazó el comando (la causa
+  está en `mensaje`); `true` sin ACK = el Edge no confirmó en 30 s.
+- `ack_umbral`: llegó el `ACK_UMBRAL` de ese Edge.
+- `duracion_ms`: ida y vuelta backend → broker → Edge → ACK (los Gateway se llaman en paralelo).
+- **Configuración efectiva del Edge:** el Edge confirma solo después de guardar `umbrales.json`,
+  así que la última `version` con `ack_umbral: true` de un Gateway es la que tiene vigente.
+
+El mismo detalle de la causa queda en `motivo_fallo_sincronizacion` del umbral.
+
 Errores posibles:
+- `500` — el Nodo Edge no confirmó la propagación (`NO_CONF`) o está desconectado (`PENDIENTE`, TC-M09-63), tras haber guardado — ver arriba
 - `422` — especie inactiva (FA-01)
 - `404` — variable ambiental no existe o inactiva
 - `409` — ya existe umbral para esa especie-variable (FA-02)
 - `400` — valor_min >= valor_max (FA-03)
 - `400` — valores fuera del rango físico de la variable (FA-04)
-- `422` — solapamiento o cobertura incompleta de niveles (FA-05)
+- `400` — solapamiento o cobertura incompleta de niveles (FA-05)
 - `400` — algún nivel fuera del rango general (FA-08)
 - `403` — sin permiso C sobre umbrales_ambientales
 
@@ -128,7 +206,12 @@ Errores posibles:
 - `422` — umbral inactivo
 - `412` — conflicto de concurrencia (FA-09)
 - `400` — rango inválido o fuera de límites físicos
-- `422` — solapamiento de niveles (FA-05)
+- `400` — solapamiento de niveles (FA-05)
+- `500` — el Nodo Edge no confirmó la re-propagación (`NO_CONF`), igual que en el Flujo A
+
+Igual que en el Flujo A, la edición también dispara un intento de re-propagación hacia
+el Nodo Edge (INC-M09-104-G29): el `200` llega con `APLICADA` o `PENDIENTE` (TC-M09-58-G22, #459)
+y el `500` solo si el intento falló.
 
 ---
 

@@ -29,5 +29,6 @@ class PatologiaEspecieItemResponse(BaseModel):
 
 
 class PatologiasPorEspecieResponse(BaseModel):
+    """Patologías de una especie."""
     total: int
     items: list[PatologiaEspecieItemResponse]

@@ -9,6 +9,7 @@ from src.shared.base_dto import BaseDTO
 
 
 class WidgetConfigDTO(BaseDTO):
+    """Posición de un widget en la grilla 4×3 (fila 1-3, columna 1-4)."""
     id_widget: int
     posicion_fila: int = Field(ge=1, le=3)
     posicion_columna: int = Field(ge=1, le=4)
@@ -18,6 +19,10 @@ class WidgetConfigDTO(BaseDTO):
 
 
 class GuardarDashboardDTO(BaseDTO):
+    """Grilla completa del dashboard y claves de los widgets activos (máximo 12).
+
+    ``version_perfil`` debe ser la leída (409 si el perfil cambió).
+    """
     layout_config: list[WidgetConfigDTO]
     active_widget: list[str]
     # Versión del perfil que el cliente leyó en el GET. Si el administrador cambió

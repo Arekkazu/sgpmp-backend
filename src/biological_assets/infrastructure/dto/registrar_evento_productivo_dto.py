@@ -1,3 +1,7 @@
+"""DTO de entrada de ``POST /activos-biologicos/{id_activo}/eventos/productivo``
+(RF-43).
+"""
+
 from __future__ import annotations
 
 from datetime import date
@@ -10,7 +14,11 @@ from src.shared.base_dto import BaseDTO
 
 
 class RegistrarEventoProductivoDTO(BaseDTO):
+    """Producción registrada; ``tipo_producto`` y ``unidad_medida`` deben existir en las
+    métricas de la especie (M09).
+    """
     tipo_producto: str
+    # Cantidad > 0 se valida en el use case: RF-43 E-06 pide 422, no el 400 de Pydantic.
     cantidad_producida: Decimal
     unidad_medida: str
     fecha_evento: date
@@ -31,11 +39,4 @@ class RegistrarEventoProductivoDTO(BaseDTO):
         v = v.strip()
         if not v:
             raise ValueError('La unidad de medida no puede estar vacía.')
-        return v
-
-    @field_validator('cantidad_producida')
-    @classmethod
-    def cantidad_positiva(cls, v: Decimal) -> Decimal:
-        if v <= 0:
-            raise ValueError('La cantidad producida debe ser un valor numérico positivo mayor a cero.')
         return v

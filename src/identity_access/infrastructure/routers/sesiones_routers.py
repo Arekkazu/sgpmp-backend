@@ -86,6 +86,7 @@ def _set_cookie_refresco(response: Response, valor: str, fecha_expiracion: datet
 
 @router.post(
     "/",
+    summary="Iniciar sesión con correo y contraseña (RF-02)",
     response_model=LoginResponse,
     responses={
         400: {"model": ErrorResponse},
@@ -102,6 +103,15 @@ def iniciar_sesion(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    """Autentica al usuario y emite el access token (JWT, 8 h) en el body.
+
+    **Acceso:** público.
+
+    El refresh token viaja en la cookie `HttpOnly` `refresh_token`. Política de
+    sesión única: si había otra sesión activa se cierra y el mensaje lo indica.
+    Tras 5 intentos fallidos la cuenta se bloquea 15 minutos (423); una cuenta no
+    activa responde 403.
+    """
     ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "unknown")
 
@@ -131,6 +141,7 @@ def iniciar_sesion(
 
 @router.post(
     "/sso",
+    summary="Iniciar sesión vía SSO de AgroFusion (RF-02)",
     response_model=LoginResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -199,6 +210,7 @@ def iniciar_sesion_sso(
 
 @router.get(
     "/me/permisos",
+    summary="Permisos RBAC del usuario autenticado",
     response_model=PermisosUsuarioResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -208,6 +220,13 @@ def obtener_mis_permisos(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ) -> PermisosUsuarioResponse:
+    """Devuelve los pares (recurso, acción) activos del rol del usuario autenticado.
+
+    **Acceso:** autenticado.
+
+    El frontend lo usa para mostrar u ocultar opciones del menú; la autorización
+    real la sigue haciendo cada endpoint con `require_permission`.
+    """
     permisos = SqlAlchemyPermisoRepository(db).listar_por_rol(usuario_actual.id_rol)
     return PermisosUsuarioResponse(
         permisos=[
@@ -220,6 +239,7 @@ def obtener_mis_permisos(
 
 @router.delete(
     "/",
+    summary="Cerrar la sesión actual (RF-02)",
     response_model=MessageResponse,
     responses={
         401: {"model": ErrorResponse},
@@ -230,6 +250,10 @@ def cerrar_sesion(
     db: Session = Depends(get_db),
     usuario_actual: UsuarioActual = Depends(get_current_user),
 ):
+    """Invalida la sesión del token actual y borra la cookie del refresh token.
+
+    **Acceso:** autenticado.
+    """
     use_case = LogoutUseCase(
         sesiones_repo=SqlAlchemySesionRepository(db),
         eventos_repo=SqlAlchemyEventoRepository(db),
@@ -242,6 +266,7 @@ def cerrar_sesion(
 
 @router.post(
     "/refresh",
+    summary="Renovar el access token con la cookie de refresco (RF-02)",
     response_model=LoginResponse,
     responses={
         401: {"model": ErrorResponse},

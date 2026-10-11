@@ -11,16 +11,23 @@ from sqlalchemy.orm import Session
 from src.configuration.domain.entities.nivel_alerta_ambiental import NivelAlertaAmbiental
 from src.configuration.domain.entities.umbral_ambiental import UmbralAmbiental
 from src.configuration.domain.repositories.auditoria_umbral_repository import AuditoriaUmbralRepository
+from src.configuration.domain.repositories.bitacora_iot_port import BitacoraIotPort
+from src.configuration.domain.repositories.destino_edge_repository import DestinoEdgeRepository
+from src.configuration.domain.repositories.edge_sincronizacion_port import EdgeSincronizacionPort
 from src.configuration.domain.repositories.umbral_ambiental_repository import UmbralAmbientalRepository
 from src.configuration.domain.repositories.variable_ambiental_repository import VariableAmbientalRepository
 from src.configuration.domain.value_objects.nivel_alerta import NivelAlerta
 from src.configuration.infrastructure.dto.editar_umbral_dto import EditarUmbralDTO
 from src.configuration.application.use_cases.umbrales.registrar_umbral_use_case import _validar_rangos
+from src.configuration.application.use_cases.umbrales.sincronizar_umbral_edge import sincronizar_umbral_con_edge
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.shared.errors import BusinessRuleError, NotFoundError, PreconditionFailedError
 
 
 class EditarUmbralUseCase:
+    """Edita rango y niveles de un umbral activo con concurrencia optimista (412) y lo
+    sincroniza hacia los Edge.
+    """
 
     def __init__(
         self,
@@ -28,11 +35,17 @@ class EditarUmbralUseCase:
         umbral_repo: UmbralAmbientalRepository,
         variable_repo: VariableAmbientalRepository,
         auditoria_repo: AuditoriaUmbralRepository,
+        destino_repo: DestinoEdgeRepository,
+        edge_port: EdgeSincronizacionPort,
+        bitacora: BitacoraIotPort,
     ) -> None:
         self.db = db
         self.umbral_repo = umbral_repo
         self.variable_repo = variable_repo
         self.auditoria_repo = auditoria_repo
+        self.destino_repo = destino_repo
+        self.edge_port = edge_port
+        self.bitacora = bitacora
 
     def execute(
         self,
@@ -40,7 +53,7 @@ class EditarUmbralUseCase:
         dto: EditarUmbralDTO,
         usuario_actual: UsuarioActual,
     ) -> UmbralAmbiental:
-        umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental)
+        umbral = self.umbral_repo.obtener_por_id(id_umbral_ambiental, bloquear=True)
         if umbral is None:
             raise NotFoundError(
                 code='UMBRAL_NO_ENCONTRADO',
@@ -103,4 +116,15 @@ class EditarUmbralUseCase:
             self.db.rollback()
             raise
 
-        return umbral_actualizado
+        # POST-commit (INC-M09-104-G29): re-propagar el umbral editado -- ver
+        # sincronizar_umbral_con_edge.
+        return sincronizar_umbral_con_edge(
+            db=self.db,
+            umbral=umbral_actualizado,
+            nombre_variable=variable.nombre,
+            umbral_repo=self.umbral_repo,
+            destino_repo=self.destino_repo,
+            edge_port=self.edge_port,
+            bitacora=self.bitacora,
+            id_usuario=usuario_actual.id_usuario,
+        )

@@ -11,6 +11,7 @@ from src.shared.errors import BusinessRuleError, NotFoundError
 
 
 class DesactivarUmbralUseCase:
+    """Desactiva un umbral activo (422 si ya está inactivo) y audita el cambio."""
 
     def __init__(
         self,

@@ -8,8 +8,12 @@ from src.configuration.domain.entities.variable_ambiental import VariableAmbient
 
 
 class VariableAmbientalRepository(ABC):
-    @abstractmethod
-    def obtener_por_id(self, id_variable_ambiental: int) -> Optional[VariableAmbiental]: ...
+    """Contrato de lectura del catálogo de variables ambientales."""
 
     @abstractmethod
-    def listar_activas(self) -> list[VariableAmbiental]: ...
+    def obtener_por_id(self, id_variable_ambiental: int) -> Optional[VariableAmbiental]:
+        """Obtiene la variable ambiental por id, o ``None`` si no existe."""
+
+    @abstractmethod
+    def listar_activas(self) -> list[VariableAmbiental]:
+        """Variables ambientales activas del catálogo."""

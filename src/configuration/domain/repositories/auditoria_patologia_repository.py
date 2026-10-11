@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 
 class AuditoriaPatologiaRepository(ABC):
+    """Contrato de la auditoría del catálogo de patologías."""
 
     @abstractmethod
     def registrar(

@@ -13,6 +13,7 @@ from src.shared.errors import NotFoundError
 
 
 class ConsultarAuditoriaUmbralUseCase:
+    """Historial de cambios de un umbral ambiental."""
 
     def __init__(
         self,

@@ -20,6 +20,9 @@ from src.shared.errors import BusinessRuleError, ConflictError, NotFoundError, P
 
 
 class EditarPatologiaUseCase:
+    """Edita una patología activa con concurrencia optimista (412) y nombre único por
+    especie (409).
+    """
 
     def __init__(
         self,
@@ -34,7 +37,7 @@ class EditarPatologiaUseCase:
     def execute(
         self, id_especies_patologias: int, dto: EditarPatologiaDTO, usuario_actual: UsuarioActual
     ) -> EspeciePatologia:
-        entidad = self.especie_patologia_repo.obtener_por_id(id_especies_patologias)
+        entidad = self.especie_patologia_repo.obtener_por_id(id_especies_patologias, bloquear=True)
         if entidad is None:
             raise NotFoundError(
                 code="PATOLOGIA_NO_ENCONTRADA",

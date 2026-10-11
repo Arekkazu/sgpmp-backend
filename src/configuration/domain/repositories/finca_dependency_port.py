@@ -5,6 +5,9 @@ from abc import ABC, abstractmethod
 
 
 class FincaDependencyPort(ABC):
+    """Puerto que indica si una finca tiene áreas o activos activos (bloquea su
+    desactivación).
+    """
 
     @abstractmethod
     def tiene_dependencias_activas(self, id_finca: int) -> bool:

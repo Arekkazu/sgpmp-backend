@@ -1,3 +1,7 @@
+"""Implementación SQLAlchemy de ``TransferenciaRepository``: transferencias (RF-48) e
+historial consolidado (RF-46).
+"""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -13,6 +17,9 @@ from src.shared.db_error_translator import raise_from_db_error
 
 
 class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
+    """Persiste movimientos y une eventos, estados, fases y movimientos en el historial
+    paginado.
+    """
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -78,8 +85,8 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
         registros: list[RegistroHistorial] = []
 
         categorias_a_consultar = {
-            'ESTADO', 'FASE_PRODUCTIVA', 'SANITARIO', 'CRECIMIENTO',
-            'PRODUCTIVO', 'REPRODUCTIVO', 'INDICADOR', 'BAJA', 'TRANSFERENCIA',
+            'CREACION', 'ESTADO', 'FASE_PRODUCTIVA', 'SANITARIO', 'CRECIMIENTO',
+            'PRODUCTIVO', 'REPRODUCTIVO', 'INDICADOR', 'BAJA', 'TRANSFERENCIA', 'INGRESO',
         }
         if categoria:
             cat_upper = categoria.upper()
@@ -88,8 +95,30 @@ class SqlAlchemyTransferenciaRepository(TransferenciaRepository):
                 cat_upper = 'FASE_PRODUCTIVA'
             categorias_a_consultar = {cat_upper}
 
-        # ── Historial consolidado (vista cubre ESTADO, FASE, SANITARIO, CRECIMIENTO, PRODUCTIVO, REPRODUCTIVO, INDICADOR)
-        vista_cats = categorias_a_consultar - {'BAJA', 'TRANSFERENCIA'}
+        # ── CREACION (RF-33: snapshot inicial — Evento 0)
+        if 'CREACION' in categorias_a_consultar:
+            rows = self.db.execute(
+                text(
+                    'SELECT ha.fecha_evento, ha.json_snapshot, '
+                    '  COALESCE(CONCAT_WS(\' \', u.nombre, u.apellidos), \'Sin usuario\') AS usuario '
+                    'FROM modulo2.historial_activos ha '
+                    'LEFT JOIN modulo1.usuarios u ON u.id_usuario = ha.id_usuario '
+                    'WHERE ha.id_activo_biologico = :id AND ha.tipo_evento = \'CREACION\''
+                ),
+                {'id': id_activo},
+            ).fetchall()
+            for r in rows:
+                registros.append(RegistroHistorial(
+                    categoria='CREACION',
+                    fecha_evento=r.fecha_evento,
+                    descripcion='Registro inicial del activo biológico',
+                    detalle_especifico=r.json_snapshot,
+                    usuario_responsable=r.usuario,
+                    modulo_origen='modulo2',
+                ))
+
+        # ── Historial consolidado (vista cubre ESTADO, FASE, SANITARIO, CRECIMIENTO, PRODUCTIVO, REPRODUCTIVO, INDICADOR, INGRESO)
+        vista_cats = categorias_a_consultar - {'BAJA', 'TRANSFERENCIA', 'CREACION'}
         if vista_cats:
             rows = self.db.execute(
                 text(

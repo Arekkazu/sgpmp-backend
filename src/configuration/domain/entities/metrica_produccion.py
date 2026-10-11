@@ -3,12 +3,40 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 from typing import Any, Optional
 
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
 from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
 from src.configuration.domain.value_objects.tipo_medicion import TipoMedicion
+from src.shared.errors import ValidationError
+
+
+def validar_rango_metrica(
+    tipo_dato: TipoDatoAtributo,
+    valor_min: Optional[Decimal],
+    valor_max: Optional[Decimal],
+) -> None:
+    """RFC-004: el rango solo aplica a NUMERICO/ENTERO y, si ambos límites existen, min <= max."""
+    if valor_min is None and valor_max is None:
+        return
+    if not tipo_dato.admite_rango:
+        campo = "valor_min" if valor_min is not None else "valor_max"
+        raise ValidationError(
+            code="RANGO_METRICA_NO_APLICA",
+            message=(
+                "valor_min y valor_max solo aplican cuando tipo_dato es NUMERICO o ENTERO "
+                f"(tipo_dato actual: {tipo_dato.value})."
+            ),
+            field=campo,
+        )
+    if valor_min is not None and valor_max is not None and valor_min > valor_max:
+        raise ValidationError(
+            code="RANGO_METRICA_INVALIDO",
+            message=f"valor_min ({valor_min}) no puede ser mayor que valor_max ({valor_max}).",
+            field="valor_min",
+        )
 
 
 @dataclass(eq=False)
@@ -22,6 +50,8 @@ class MetricaProduccion:
         aplica_a_tipo_activo: Scope (INDIVIDUAL/LOTE/AMBOS).
         id_especie: Especie propietaria.
         es_activo: Estado de disponibilidad (M09). ``tiene_estado`` es campo M04 y no se toca.
+        valor_min: Límite inferior del atributo dinámico (RFC-004). Solo NUMERICO/ENTERO; opcional.
+        valor_max: Límite superior del atributo dinámico (RFC-004). Solo NUMERICO/ENTERO; opcional.
         id_metrica_produccion: Identidad. ``None`` hasta que se persiste.
         fecha_actualizacion: Timestamp de última modificación (concurrencia optimista).
     """
@@ -36,6 +66,8 @@ class MetricaProduccion:
     es_activo: bool
     id_metrica_produccion: Optional[int] = None
     fecha_actualizacion: Optional[datetime] = None
+    valor_min: Optional[Decimal] = None
+    valor_max: Optional[Decimal] = None
 
     @classmethod
     def crear(
@@ -48,7 +80,10 @@ class MetricaProduccion:
         tipo_dato: TipoDatoAtributo,
         es_obligatorio: bool,
         id_especie: Optional[int],
+        valor_min: Optional[Decimal] = None,
+        valor_max: Optional[Decimal] = None,
     ) -> MetricaProduccion:
+        validar_rango_metrica(tipo_dato, valor_min, valor_max)
         return cls(
             nombre=nombre,
             unidad_medida=unidad_medida,
@@ -58,6 +93,8 @@ class MetricaProduccion:
             es_obligatorio=es_obligatorio,
             id_especie=id_especie,
             es_activo=True,
+            valor_min=valor_min,
+            valor_max=valor_max,
         )
 
     def actualizar(
@@ -70,13 +107,18 @@ class MetricaProduccion:
         tipo_dato: TipoDatoAtributo,
         es_obligatorio: bool,
         fecha_actualizacion: datetime,
+        valor_min: Optional[Decimal] = None,
+        valor_max: Optional[Decimal] = None,
     ) -> None:
+        validar_rango_metrica(tipo_dato, valor_min, valor_max)
         self.nombre = nombre
         self.unidad_medida = unidad_medida
         self.tipo_medicion = tipo_medicion
         self.aplica_a_tipo_activo = aplica_a_tipo_activo
         self.tipo_dato = tipo_dato
         self.es_obligatorio = es_obligatorio
+        self.valor_min = valor_min
+        self.valor_max = valor_max
         self.fecha_actualizacion = fecha_actualizacion
 
     def desactivar(self) -> None:
@@ -91,6 +133,8 @@ class MetricaProduccion:
             "aplica_a_tipo_activo": self.aplica_a_tipo_activo.value,
             "tipo_dato": self.tipo_dato.value,
             "es_obligatorio": self.es_obligatorio,
+            "valor_min": None if self.valor_min is None else str(self.valor_min),
+            "valor_max": None if self.valor_max is None else str(self.valor_max),
             "id_especie": self.id_especie,
             "es_activo": self.es_activo,
             "fecha_actualizacion": self.fecha_actualizacion.isoformat() if self.fecha_actualizacion else None,

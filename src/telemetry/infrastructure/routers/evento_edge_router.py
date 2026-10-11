@@ -14,7 +14,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Header
 from sqlalchemy.orm import Session
 
-from src.shared.database import get_db
+from src.shared.database import get_db_sistema
 from src.shared.schemas import ErrorResponse
 from src.telemetry.application.use_cases.inferencia.recibir_evento_edge_use_case import RecibirEventoEdgeUseCase
 from src.telemetry.infrastructure.adapters.dispositivo_m09_adapter import DispositivoM09Adapter
@@ -40,7 +40,7 @@ router = APIRouter(prefix="/iot/eventos-edge", tags=["Telemetría IoT - Eventos 
 )
 def recibir_evento_edge(
     dto: RecibirEventoEdgeDTO,
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_sistema),
     x_gateway_id: Optional[str] = Header(default=None, alias="X-Gateway-Id"),
 ) -> EventoEdgeResponse:
     use_case = RecibirEventoEdgeUseCase(

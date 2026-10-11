@@ -207,10 +207,10 @@ def test_fallo_de_persistencia_no_programa_correo() -> None:
     [
         (
             "recuperacion",
-            "Restablece tu contraseña en SGPMP",
+            "Restablece tu contraseña en SIGAB",
             "restablecer-contrasena",
         ),
-        ("activacion", "Activa tu cuenta en SGPMP", "activar?token="),
+        ("activacion", "Activa tu cuenta en SIGAB", "activar?token="),
     ],
 )
 def test_tarea_background_usa_plantilla_y_sesion_independiente(
@@ -222,7 +222,7 @@ def test_tarea_background_usa_plantilla_y_sesion_independiente(
     db = MagicMock()
     servicio = MagicMock()
     servicio_cls = MagicMock(return_value=servicio)
-    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(correo_adapter, "sesion_sistema", lambda: db)
     monkeypatch.setattr(
         correo_adapter,
         "SqlAlchemyNotificacionRepository",
@@ -255,7 +255,7 @@ def test_fallo_de_tarea_background_se_registra_y_cierra_la_sesion(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     db = MagicMock()
-    monkeypatch.setattr(correo_adapter, "SessionLocal", lambda: db)
+    monkeypatch.setattr(correo_adapter, "sesion_sistema", lambda: db)
     monkeypatch.setattr(
         correo_adapter,
         "SqlAlchemyNotificacionRepository",
@@ -299,7 +299,7 @@ def test_token_nuevo_omite_anti_spam_solo_para_el_email(
         tipo_evento=7,
         id_usuario=41,
         correo_destino="persona@example.com",
-        asunto_email="Restablece tu contraseña en SGPMP",
+        asunto_email="Restablece tu contraseña en SIGAB",
         contenido_html_email="<p>token nuevo</p>",
         aplicar_anti_spam_email=False,
     )
@@ -307,7 +307,7 @@ def test_token_nuevo_omite_anti_spam_solo_para_el_email(
     assert enviados == [
         {
             "to": "persona@example.com",
-            "subject": "Restablece tu contraseña en SGPMP",
+            "subject": "Restablece tu contraseña en SIGAB",
             "html_body": "<p>token nuevo</p>",
         }
     ]

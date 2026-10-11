@@ -34,6 +34,7 @@ def _respuesta_error(
     code: str,
     message: str,
     fields: list[dict] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     """Construye el cuerpo estándar de error.
 
@@ -42,6 +43,7 @@ def _respuesta_error(
         code: Código de negocio en mayúsculas.
         message: Mensaje legible para el usuario final.
         fields: Detalle por campo. Lista vacía si el error no aplica a uno.
+        headers: Cabeceras adicionales de la respuesta (p. ej. ``Retry-After``).
 
     Returns:
         JSONResponse con las claves `error_code`, `message`, `fields` y `timestamp`.
@@ -54,6 +56,7 @@ def _respuesta_error(
             "fields": fields or [],
             "timestamp": datetime.now(timezone.utc).isoformat(),
         },
+        headers=headers,
     )
 
 
@@ -89,7 +92,127 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
 
     fields = [{"field": exc.field, "message": exc.message}] if exc.field else []
 
-    return _respuesta_error(exc.status_code, exc.code, exc.message, fields)
+    return _respuesta_error(
+        exc.status_code, exc.code, exc.message, fields, headers=getattr(exc, "headers", None)
+    )
+
+
+def _usuario_del_token(request: Request) -> int | None:
+    """Extrae `id_usuario` del Bearer token, sin lanzar si no es válido.
+
+    Un `RequestValidationError` de body solo puede ocurrir después de que
+    `get_current_user` ya resolvió el token exitosamente (FastAPI resuelve
+    las sub-dependencias del endpoint antes que el body) — así que en la
+    práctica esto siempre decodifica un token válido. Se revalida aquí en
+    vez de leer `request.state` porque `get_current_user` no publica nada
+    ahí; si algo cambia esa garantía, el peor caso es no poder identificar
+    al usuario responsable del evento de auditoría, nunca un 500.
+    """
+    authorization = request.headers.get("authorization", "")
+    if not authorization.startswith("Bearer "):
+        return None
+    try:
+        from src.shared.jwt import verify_token
+
+        payload = verify_token(authorization.removeprefix("Bearer "))
+        return int(payload["sub"])
+    except Exception:
+        return None
+
+
+def _auditar_validacion_rechazada_m02(request: Request, fields: list[dict]) -> None:
+    """RF-36/RF-52: deja constancia en `bitacora_auditoria_m02` de un 400 rechazado.
+
+    Solo aplica a `/activos-biologicos` — el resto de módulos no comparte esa
+    bitácora. Nunca debe hacer fallar la respuesta 400 que ya se le va a dar
+    al cliente: cualquier error aquí se traga en silencio.
+    """
+    if not request.url.path.startswith("/activos-biologicos"):
+        return
+
+    from src.biological_assets.application.use_cases._registrar_evento_bitacora import (
+        registrar_evento_bitacora,
+    )
+    from src.biological_assets.domain.entities.activo_biologico import EventoAuditoria
+    from src.biological_assets.infrastructure.repositories.bitacora_auditoria_repository import (
+        SqlAlchemyBitacoraAuditoriaRepository,
+    )
+    from src.shared.database import SessionLocal
+
+    id_activo_raw = request.path_params.get("id_activo")
+    try:
+        id_activo = int(id_activo_raw) if id_activo_raw is not None else None
+    except (TypeError, ValueError):
+        id_activo = None
+
+    db = SessionLocal()
+    try:
+        # RF-52 E1: si la bitácora no responde, el evento queda en el buffer.
+        registrar_evento_bitacora(SqlAlchemyBitacoraAuditoriaRepository(db), db, EventoAuditoria(
+            rf_origen="RF36",
+            tipo_evento="VALIDACION_RECHAZADA",
+            clasificacion_biologica="GESTION_OPERATIVA",
+            resultado="FALLIDO",
+            severidad_log="WARNING",
+            timestamp_evento=datetime.now(timezone.utc),
+            id_activo_biologico=id_activo,
+            descripcion=f"{request.method} {request.url.path} rechazado por validación de entrada (400)",
+            detalle_tecnico={"fields": fields},
+            id_usuario_responsable=_usuario_del_token(request),
+        ))
+    except Exception:
+        # Defensivo: el 400 que recibe el cliente no puede depender de la auditoría.
+        db.rollback()
+    finally:
+        db.close()
+
+
+#: Mensajes en español para los tipos de error que Pydantic genera al fallar
+#: la coerción de tipos (antes de llegar a los validadores propios del DTO).
+#: Sin este mapeo, un campo `Decimal`/`int`/`date`... con un valor no
+#: convertible sale con el mensaje interno de Pydantic en inglés
+#: (INC-M02-69-G44-01), inconsistente con el resto de mensajes de dominio.
+_MENSAJES_PYDANTIC_POR_TIPO: dict[str, str] = {
+    "decimal_parsing": "El valor ingresado no es un número decimal válido.",
+    "decimal_type": "El valor ingresado no es un número decimal válido.",
+    "int_parsing": "El valor ingresado no es un número entero válido.",
+    "int_type": "El valor ingresado debe ser un número entero.",
+    "float_parsing": "El valor ingresado no es un número válido.",
+    "float_type": "El valor ingresado debe ser un número.",
+    "bool_parsing": "El valor ingresado no es un valor booleano válido (use true o false).",
+    "bool_type": "El valor ingresado debe ser un valor booleano (true o false).",
+    "string_type": "El valor ingresado debe ser un texto.",
+    "date_parsing": "El valor ingresado no es una fecha válida.",
+    "date_type": "El valor ingresado no es una fecha válida.",
+    "datetime_parsing": "El valor ingresado no es una fecha y hora válida.",
+    "datetime_type": "El valor ingresado no es una fecha y hora válida.",
+    "missing": "Este campo es obligatorio.",
+    "json_invalid": "El cuerpo de la solicitud no es un JSON válido.",
+    "enum": "El valor ingresado no es una de las opciones permitidas.",
+    "literal_error": "El valor ingresado no es una de las opciones permitidas.",
+    "extra_forbidden": "Este campo no está permitido en esta solicitud.",
+}
+
+
+def _mensaje_legible(error: dict) -> str:
+    """Traduce un error de Pydantic al mensaje que ve el cliente.
+
+    Los validadores propios del DTO (`@field_validator` que lanza `ValueError`)
+    ya redactan su mensaje en español, pero Pydantic le antepone el prefijo
+    fijo `"Value error, "` en `msg` — `ctx.error` trae el mensaje original sin
+    ese prefijo, así que se prioriza cuando existe.
+
+    Para el resto de tipos (fallos de coerción de tipo, campo faltante, etc.)
+    se usa `_MENSAJES_PYDANTIC_POR_TIPO`; si el tipo no está mapeado, se cae
+    al mensaje de Pydantic tal cual, igual que antes de este fix.
+    """
+    if error.get("type") == "value_error":
+        ctx = error.get("ctx") or {}
+        if "error" in ctx:
+            return str(ctx["error"])
+        return str(error.get("msg", "")).removeprefix("Value error, ")
+
+    return _MENSAJES_PYDANTIC_POR_TIPO.get(error.get("type", ""), error.get("msg", "Error de validación"))
 
 
 async def request_validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
@@ -108,7 +231,11 @@ async def request_validation_error_handler(request: Request, exc: RequestValidat
     for error in exc.errors():
         loc = error.get("loc", ())
         field = ".".join(str(l) for l in loc[1:]) if len(loc) > 1 else None
-        fields.append({"field": field, "message": error.get("msg", "Error de validacion")})
+        fields.append({"field": field, "message": _mensaje_legible(error)})
+
+    # INC-M02-43-G29 / RF-36: las operaciones rechazadas antes de llegar al
+    # use case (400 de Pydantic) también deben quedar en la bitácora de M02.
+    _auditar_validacion_rechazada_m02(request, fields)
 
     return _respuesta_error(400, "VAL_ENTRADA", "Errores de validacion en la solicitud", fields)
 

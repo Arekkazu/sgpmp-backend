@@ -14,6 +14,10 @@ _NIVELES_REQUERIDOS = {'normal', 'precaucion', 'critico'}
 
 
 class EditarUmbralDTO(BaseDTO):
+    """Nuevo rango y niveles del umbral; los niveles reemplazan por completo a los anteriores.
+
+    ``fecha_actualizacion`` debe ser la leída del registro (concurrencia optimista, 412 si cambió).
+    """
     valor_min: Decimal
     valor_max: Decimal
     niveles: List[NivelDTO]

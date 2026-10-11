@@ -18,6 +18,7 @@ from src.identity_access.domain.repositories.sesion_repository import SesionRepo
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.email import Email
 from src.identity_access.infrastructure.dto.usuario_dto import LoginDTO
+from src.identity_access.infrastructure.email_templates import cuenta_bloqueada_email
 from src.shared.errors import AuthenticationError, LockedError
 
 MAX_INTENTOS = 5
@@ -82,16 +83,16 @@ class LoginUseCase:
             AuthorizationError: Cuenta pendiente de activación o deshabilitada. HTTP 403.
             LockedError: Cuenta bloqueada temporalmente por intentos fallidos. HTTP 423.
         """
-        # 1. Buscar usuario por correo
+        # 1-2. Buscar usuario por correo y su cuenta. Un usuario sin cuenta
+        # responde igual que un correo inexistente: distinguirlos (antes era un
+        # 500) revelaba que el correo está registrado.
         usuario = self.usuarios_repo.obtener_por_correo(Email(dto.correo_electronico))
-        if usuario is None:
+        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario) if usuario else None
+        if cuenta is None:
             raise AuthenticationError(
                 code="CREDENCIALES_INVALIDAS",
                 message="Credenciales incorrectas. Verifica tu correo electrónico y contraseña.",
             )
-
-        # 2. Buscar cuenta asociada
-        cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
 
         # 3. Verificar estado de la cuenta
         ahora = datetime.now(timezone.utc)
@@ -141,10 +142,22 @@ class LoginUseCase:
                 if bloqueado_hasta is not None and bloqueado_hasta.tzinfo is None:
                     bloqueado_hasta = bloqueado_hasta.replace(tzinfo=timezone.utc)
                 if self.notificacion_service:
+                    # RF-14 trata el bloqueo como un evento propio: sin el
+                    # anti-spam, porque el aviso del primer intento fallido ya
+                    # ocupó la ventana de 5 minutos de este tipo.
                     self.notificacion_service.notificar(
                         tipo_evento=TIPO_LOGIN_FALLIDO,
                         id_usuario=usuario.id_usuario,
                         correo_destino=str(usuario.correo),
+                        titulo="Cuenta bloqueada temporalmente",
+                        cuerpo=(
+                            "Tu cuenta se bloqueó por 5 intentos fallidos de inicio de sesión. "
+                            "Podrás volver a intentarlo en 15 minutos."
+                        ),
+                        asunto_email="Tu cuenta quedó bloqueada temporalmente",
+                        contenido_html_email=cuenta_bloqueada_email(bloqueado_hasta),
+                        aplicar_anti_spam_email=False,
+                        aplicar_anti_spam_interno=False,
                     )
                 raise LockedError(
                     code="CUENTA_BLOQUEADA",
@@ -153,6 +166,15 @@ class LoginUseCase:
                         f"Podrá intentar acceder nuevamente a las {bloqueado_hasta.strftime('%H:%M:%S')} "
                         f"(dentro de 15 minutos exactos)."
                     ),
+                )
+
+            # RF-14: cada intento fallido se notifica; el anti-spam deja pasar
+            # uno cada 5 minutos por usuario y canal.
+            if self.notificacion_service:
+                self.notificacion_service.notificar(
+                    tipo_evento=TIPO_LOGIN_FALLIDO,
+                    id_usuario=usuario.id_usuario,
+                    correo_destino=str(usuario.correo),
                 )
 
             raise AuthenticationError(

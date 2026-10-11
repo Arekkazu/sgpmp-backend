@@ -4,10 +4,12 @@ from __future__ import annotations
 import uuid
 
 import pytest
+from fastapi import Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from src.identity_access.infrastructure.dependencies import UsuarioActual, get_current_user
+from src.shared.database import declarar_identidad, get_db
 from src.identity_access.infrastructure.repositories.notificacion_repository import (
     SqlAlchemyNotificacionRepository,
 )
@@ -39,11 +41,17 @@ def test_seed_indice_bandeja_es_idempotente(
 
 
 def _override_usuario(integration_app, usuario: dict) -> None:
-    integration_app.dependency_overrides[get_current_user] = lambda: UsuarioActual(
-        id_usuario=usuario["id_usuario"],
-        id_token=1,
-        id_rol=usuario["id_rol"],
-    )
+    # Como `get_current_user`, declara la identidad: bajo RLS las
+    # notificaciones solo las ve su dueño.
+    def actual(db: Session = Depends(get_db)) -> UsuarioActual:
+        declarar_identidad(db, usuario["id_usuario"], None)
+        return UsuarioActual(
+            id_usuario=usuario["id_usuario"],
+            id_token=1,
+            id_rol=usuario["id_rol"],
+        )
+
+    integration_app.dependency_overrides[get_current_user] = actual
 
 
 def test_bandeja_filtra_canal_propietario_y_marca_lectura(
@@ -188,3 +196,57 @@ def test_registro_y_activacion_usan_servicio_central_sin_guardar_token(
     assert len(correos) == 2
     assert token in correos[0]["html_body"]
     assert token not in correos[1]["html_body"]
+
+
+def test_edicion_administrativa_de_perfil_notifica_al_usuario_editado(
+    client,
+    integration_app,
+    db_session: Session,
+    crear_usuario_db,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """El evento se registraba bajo el admin y `notificar()` lo buscaba bajo el
+    usuario editado: la notificación de una edición administrativa no salía."""
+    from src.shared import notificacion_service
+
+    correos = []
+    monkeypatch.setattr(notificacion_service, "send_email", lambda **datos: correos.append(datos))
+    admin = crear_usuario_db(id_rol=1)
+    editado = crear_usuario_db(id_rol=2)
+
+    def actual(db: Session = Depends(get_db)) -> UsuarioActual:
+        declarar_identidad(db, admin["id_usuario"], "Administrador")
+        return UsuarioActual(
+            id_usuario=admin["id_usuario"], id_token=1, id_rol=1, id_estado_cuenta=2
+        )
+
+    integration_app.dependency_overrides[get_current_user] = actual
+    version = db_session.execute(
+        text("SELECT version FROM modulo1.usuarios WHERE id_usuario = :id"),
+        {"id": editado["id_usuario"]},
+    ).scalar_one()
+
+    respuesta = client.patch(
+        f"/usuarios/{editado['id_usuario']}",
+        json={"nombre": "Editado", "apellidos": "Por Admin", "version": version},
+    )
+    assert respuesta.status_code == 200, respuesta.text
+
+    evento = db_session.execute(
+        text(
+            "SELECT id_usuario, detalle->>'id_usuario_responsable' AS responsable "
+            "FROM modulo1.eventos WHERE tipo_evento = 9 AND id_usuario = :id"
+        ),
+        {"id": editado["id_usuario"]},
+    ).one()
+    assert int(evento.responsable) == admin["id_usuario"]
+    canales = db_session.execute(
+        text(
+            "SELECT n.id_notificacion_canal FROM modulo1.notificaciones n "
+            "JOIN modulo1.eventos e USING (id_evento) "
+            "WHERE n.id_usuario = :id AND e.tipo_evento = 9 ORDER BY 1"
+        ),
+        {"id": editado["id_usuario"]},
+    ).scalars().all()
+    assert canales == [1, 2]
+    assert correos and correos[-1]["subject"] == "Perfil actualizado"

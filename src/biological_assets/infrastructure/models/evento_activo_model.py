@@ -1,3 +1,7 @@
+"""Modelo ORM de ``modulo2.eventos_activos``: cabecera de todo evento biológico; el
+detalle va en la tabla de su subtipo.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,6 +15,7 @@ from .base_model import Base
 if TYPE_CHECKING:
     from .evento_baja_model import EventoBajaModel
     from .evento_crecimiento_model import EventoCrecimientoModel
+    from .evento_ingreso_model import EventoIngresoModel
     from .evento_productivo_model import EventoProductivoModel
     from .evento_reproductivo_model import EventoReproductivoModel
     from .evento_sanitario_model import EventoSanitarioModel
@@ -59,6 +64,13 @@ class EventoActivoModel(Base):
     )
     evento_baja: Mapped[Optional[EventoBajaModel]] = relationship(
         'EventoBajaModel',
+        back_populates='evento',
+        cascade='all, delete-orphan',
+        lazy='selectin',
+        uselist=False,
+    )
+    evento_ingreso: Mapped[Optional[EventoIngresoModel]] = relationship(
+        'EventoIngresoModel',
         back_populates='evento',
         cascade='all, delete-orphan',
         lazy='selectin',

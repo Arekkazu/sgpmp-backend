@@ -26,6 +26,7 @@ from src.identity_access.domain.repositories.sso_provider_port import SsoProvide
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.domain.value_objects.contrasena import Contrasena
 from src.identity_access.infrastructure.dto.usuario_dto import SsoLoginDTO
+from src.shared.errors import AuthenticationError
 
 # modulo1.tipos_eventos — ver anotaciones/modulo_1/gaps_bd_sso_agrofusion.md
 TIPO_LOGIN_SSO_EXITOSO = 20
@@ -86,7 +87,8 @@ class SsoLoginUseCase:
             refresh token (se transporta por cookie, nunca en el JSON de respuesta).
 
         Raises:
-            AuthenticationError: Token SSO inválido/expirado. HTTP 401.
+            AuthenticationError: Token SSO inválido/expirado, o usuario sin
+                cuenta asociada. HTTP 401.
             LockedError: Cuenta existente bloqueada temporalmente. HTTP 423.
             AuthorizationError: Cuenta existente inactiva o eliminada. HTTP 403.
         """
@@ -101,6 +103,12 @@ class SsoLoginUseCase:
             usuario, cuenta = self._provisionar_minimo(identidad, ip, ahora)
         else:
             cuenta = self.cuentas_repo.obtener_por_usuario(usuario.id_usuario)
+            if cuenta is None:
+                # Usuario sin cuenta (dato inconsistente): 401, no un 500.
+                raise AuthenticationError(
+                    code="CREDENCIALES_INVALIDAS",
+                    message="No existe una cuenta sgpmp asociada a este usuario.",
+                )
             if cuenta.esta_pendiente():
                 # AgroFusion ya verificó la identidad: activar directo, no tiene
                 # sentido pedir que confirme un correo ya confirmado en la

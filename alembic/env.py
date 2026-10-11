@@ -30,7 +30,15 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 load_dotenv()
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+# Control de acceso por BD (F1): las migraciones deben correr como
+# `sgpmp_owner` (dueño de los objetos), no como `sgpmp_app` (la conexión de
+# la API, sujeta a RLS). ALEMBIC_DATABASE_URL es opcional -- si no está
+# definida, se usa DATABASE_URL tal como antes (compatibilidad hacia atrás
+# mientras ningún entorno la define todavía; ver .env.example).
+config.set_main_option(
+    "sqlalchemy.url",
+    os.environ.get("ALEMBIC_DATABASE_URL") or os.environ["DATABASE_URL"],
+)
 
 SRC_ROOT = Path(__file__).resolve().parents[1] / "src"
 
