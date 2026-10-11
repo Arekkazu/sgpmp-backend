@@ -9,6 +9,9 @@ Reglas del RF-16 que se fijan aquí:
   - si ambos límites existen, valor_min <= valor_max;
   - en la edición, omitir el rango lo conserva y enviarlo como null lo elimina;
   - al pasar a TEXTO/BOOLEANO el rango "debe quedar nulo".
+
+#558 (TC-M09-G130 / TC-M09-260): con TEXTO/BOOLEANO el rango enviado se ignora
+("el sistema los ignora si se envían") en vez de rechazarse con 400.
 """
 from __future__ import annotations
 
@@ -21,7 +24,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from src.configuration.application.use_cases.metricas.editar_metrica_use_case import EditarMetricaUseCase
 from src.configuration.application.use_cases.metricas.registrar_metrica_use_case import RegistrarMetricaUseCase
-from src.configuration.domain.entities.metrica_produccion import MetricaProduccion, validar_rango_metrica
+from src.configuration.domain.entities.metrica_produccion import MetricaProduccion, normalizar_rango_metrica
 from src.configuration.domain.value_objects.aplica_tipo_activo import AplicaTipoActivo
 from src.configuration.domain.value_objects.nombre_metrica import NombreMetrica
 from src.configuration.domain.value_objects.tipo_dato_atributo import TipoDatoAtributo
@@ -131,44 +134,40 @@ def _dto_registro(**campos) -> RegistrarMetricaDTO:
 
 @pytest.mark.parametrize("tipo", [TipoDatoAtributo.NUMERICO, TipoDatoAtributo.ENTERO])
 def test_rango_valido_en_tipos_numericos(tipo) -> None:
-    validar_rango_metrica(tipo, D("20"), D("40"))
-    validar_rango_metrica(tipo, D("20"), D("20"))  # min == max se permite
-    validar_rango_metrica(tipo, D("20"), None)     # un solo límite
-    validar_rango_metrica(tipo, None, D("40"))
+    assert normalizar_rango_metrica(tipo, D("20"), D("40")) == (D("20"), D("40"))
+    assert normalizar_rango_metrica(tipo, D("20"), D("20")) == (D("20"), D("20"))  # min == max se permite
+    assert normalizar_rango_metrica(tipo, D("20"), None) == (D("20"), None)       # un solo límite
+    assert normalizar_rango_metrica(tipo, None, D("40")) == (None, D("40"))
 
 
 @pytest.mark.parametrize("tipo", list(TipoDatoAtributo))
 def test_sin_rango_es_valido_en_cualquier_tipo(tipo) -> None:
-    validar_rango_metrica(tipo, None, None)
+    assert normalizar_rango_metrica(tipo, None, None) == (None, None)
 
 
 def test_min_mayor_que_max_es_400_con_campo() -> None:
     with pytest.raises(ValidationError) as exc:
-        validar_rango_metrica(TipoDatoAtributo.NUMERICO, D("40"), D("20"))
+        normalizar_rango_metrica(TipoDatoAtributo.NUMERICO, D("40"), D("20"))
     assert exc.value.code == "RANGO_METRICA_INVALIDO"
     assert exc.value.status_code == 400
     assert exc.value.field == "valor_min"
 
 
 @pytest.mark.parametrize("tipo", [TipoDatoAtributo.TEXTO, TipoDatoAtributo.BOOLEANO])
-def test_rango_en_tipo_no_numerico_se_rechaza(tipo) -> None:
-    with pytest.raises(ValidationError) as exc:
-        validar_rango_metrica(tipo, D("1"), None)
-    assert exc.value.code == "RANGO_METRICA_NO_APLICA"
-    assert exc.value.field == "valor_min"
-
-    with pytest.raises(ValidationError) as exc:
-        validar_rango_metrica(tipo, None, D("9"))
-    assert exc.value.field == "valor_max"
+def test_rango_en_tipo_no_numerico_se_ignora(tipo) -> None:
+    assert normalizar_rango_metrica(tipo, D("1"), D("9")) == (None, None)
+    assert normalizar_rango_metrica(tipo, D("1"), None) == (None, None)
+    # ni siquiera un rango invertido se rechaza: no aplica, se descarta
+    assert normalizar_rango_metrica(tipo, D("9"), D("1")) == (None, None)
 
 
 def test_la_entidad_valida_al_crear_y_al_actualizar() -> None:
-    with pytest.raises(ValidationError):
-        MetricaProduccion.crear(
-            nombre=NombreMetrica("color_pelaje"), unidad_medida="n/a", tipo_medicion=TipoMedicion.OTRO,
-            aplica_a_tipo_activo=AplicaTipoActivo.AMBOS, tipo_dato=TipoDatoAtributo.TEXTO,
-            es_obligatorio=False, id_especie=4, valor_min=D("1"),
-        )
+    texto = MetricaProduccion.crear(
+        nombre=NombreMetrica("color_pelaje"), unidad_medida="n/a", tipo_medicion=TipoMedicion.OTRO,
+        aplica_a_tipo_activo=AplicaTipoActivo.AMBOS, tipo_dato=TipoDatoAtributo.TEXTO,
+        es_obligatorio=False, id_especie=4, valor_min=D("1"), valor_max=D("9"),
+    )
+    assert (texto.valor_min, texto.valor_max) == (None, None)
 
     metrica = _metrica()
     with pytest.raises(ValidationError):
@@ -233,15 +232,21 @@ def test_registrar_persiste_y_audita_el_rango() -> None:
     assert db.commits == 1 and resultado.id_metrica_produccion == 7
 
 
-def test_registrar_texto_con_rango_se_rechaza_sin_commit() -> None:
-    dto = _dto_registro(tipo_medicion="OTRO", unidad_medida="n/a", tipo_dato="TEXTO", valor_min="1")
-    uc, db, repo, _ = _registrar(dto)
+def test_registrar_texto_con_rango_lo_ignora_y_guarda_null() -> None:
+    """#558 — payload exacto de TC-M09-260: 201 con valor_min/valor_max en null."""
+    dto = _dto_registro(
+        nombre="qa rfc004 texto minmax", tipo_medicion="OTRO", unidad_medida="texto",
+        aplica_a_tipo_activo="AMBOS", tipo_dato="TEXTO", valor_min="1", valor_max="9",
+    )
+    uc, db, repo, auditoria = _registrar(dto)
 
-    with pytest.raises(ValidationError) as exc:
-        uc.execute(dto, USUARIO)
+    resultado = uc.execute(dto, USUARIO)
 
-    assert exc.value.code == "RANGO_METRICA_NO_APLICA"
-    assert repo.guardada is None and db.commits == 0
+    assert (repo.guardada.valor_min, repo.guardada.valor_max) == (None, None)
+    assert auditoria.eventos[0]["valores_nuevos"]["valor_min"] is None
+    assert db.commits == 1
+    resp = MetricaProduccionResponse.model_validate(resultado)
+    assert (resp.valor_min, resp.valor_max) == (None, None)
 
 
 def test_registrar_min_mayor_que_max_se_rechaza() -> None:
@@ -305,16 +310,15 @@ def test_editar_a_texto_sin_enviar_rango_limpia_el_rango_previo() -> None:
     assert (repo.actualizada.valor_min, repo.actualizada.valor_max) == (None, None)
 
 
-def test_editar_a_texto_enviando_rango_explicito_se_rechaza() -> None:
+def test_editar_a_texto_enviando_rango_explicito_lo_ignora() -> None:
     uc, dto, db, repo, _ = _editar(
-        _metrica(), tipo_dato="TEXTO", tipo_medicion="OTRO", unidad_medida="n/a", valor_min="1",
+        _metrica(), tipo_dato="TEXTO", tipo_medicion="OTRO", unidad_medida="n/a", valor_min="1", valor_max="9",
     )
 
-    with pytest.raises(ValidationError) as exc:
-        uc.execute(7, dto, USUARIO)
+    uc.execute(7, dto, USUARIO)
 
-    assert exc.value.code == "RANGO_METRICA_NO_APLICA"
-    assert repo.actualizada is None and db.commits == 0
+    assert (repo.actualizada.valor_min, repo.actualizada.valor_max) == (None, None)
+    assert db.commits == 1
 
 
 # --- respuesta ----------------------------------------------------------------

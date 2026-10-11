@@ -184,3 +184,39 @@ def test_g130_sin_tipo_dato_400_no_se_infiere(
         {"e": una_especie, "n": nombre},
     ).scalar_one()
     assert creadas == 0
+
+
+def test_558_texto_con_rango_lo_ignora_201_y_persiste_null(
+    config_client, una_especie, db_session, crear_usuario_db, crear_auth_headers
+) -> None:
+    """#558 (TC-M09-G130 / TC-M09-260): RF-16 dice que para TEXTO/BOOLEANO el
+    rango "debe quedar nulo y el sistema lo ignora si se envía".
+
+    Antes respondía 400 RANGO_METRICA_NO_APLICA.
+    """
+    h = _headers_vet(crear_usuario_db, crear_auth_headers)
+    r = config_client.post(
+        "/configuracion/metricas",
+        json={
+            "id_especie": una_especie,
+            "nombre": "Qa Rfc004 Texto Minmax",
+            "unidad_medida": "texto",
+            "tipo_medicion": "OTRO",
+            "aplica_a_tipo_activo": "AMBOS",
+            "tipo_dato": "TEXTO",
+            "valor_min": 1,
+            "valor_max": 9,
+        },
+        headers=h,
+    )
+    assert r.status_code == 201, r.text
+    creada = r.json()
+    assert (creada["valor_min"], creada["valor_max"]) == (None, None)
+    guardada = db_session.execute(
+        text(
+            "SELECT valor_min, valor_max FROM modulo9.metricas_produccion "
+            "WHERE id_metrica_produccion = :id"
+        ),
+        {"id": creada["id_metrica_produccion"]},
+    ).one()
+    assert tuple(guardada) == (None, None)
