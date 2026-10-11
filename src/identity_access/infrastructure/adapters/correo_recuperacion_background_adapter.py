@@ -50,10 +50,10 @@ def procesar_correo_recuperacion_background(
     db = None
     try:
         if flujo == FLUJO_ACTIVACION:
-            asunto = "Activa tu cuenta en SGPMP"
+            asunto = "Activa tu cuenta en SIGAB"
             contenido = activation_email(nombre, token)
         else:
-            asunto = "Restablece tu contraseña en SGPMP"
+            asunto = "Restablece tu contraseña en SIGAB"
             contenido = recovery_email(nombre, token)
 
         # Proceso de sistema (D1): sin request ni usuario que lo respalde.

@@ -22,7 +22,7 @@ método ``notificar()``.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from fastapi import BackgroundTasks
 
@@ -39,6 +39,7 @@ def _procesar_notificacion_sesion_background(
     tipo_evento: int,
     id_usuario: int,
     correo_destino: Optional[str],
+    **opciones: Any,
 ) -> None:
     """Despacha la notificación con una sesión de DB independiente del request."""
     db = None
@@ -52,6 +53,7 @@ def _procesar_notificacion_sesion_background(
             tipo_evento=tipo_evento,
             id_usuario=id_usuario,
             correo_destino=correo_destino,
+            **opciones,
         )
     except Exception:
         logger.exception(
@@ -68,8 +70,12 @@ def _procesar_notificacion_sesion_background(
 class NotificacionSesionBackgroundAdapter:
     """Sustituto de ``NotificacionService`` que agenda ``notificar()`` en segundo plano.
 
-    Se pasa donde antes se instanciaba ``NotificacionService(...)`` en los
-    routers de sesión — mismo método público, sin cambios en los use cases.
+    Se pasa donde antes se instanciaba ``NotificacionService(...)`` —mismo
+    método público, sin cambios en los use cases—. Además de los routers de
+    sesión, lo usan los flujos en que un admin actúa sobre otro usuario
+    (estado de cuenta, edición de perfil): la notificación es del afectado y,
+    bajo RLS, solo el usuario de servicio puede registrarla y actualizar su
+    estado (``INSERT ... RETURNING`` exige ver la fila).
     """
 
     def __init__(self, background_tasks: BackgroundTasks) -> None:
@@ -80,10 +86,13 @@ class NotificacionSesionBackgroundAdapter:
         tipo_evento: int,
         id_usuario: int,
         correo_destino: Optional[str] = None,
+        **opciones: Any,
     ) -> None:
+        """``opciones`` son los demás argumentos de ``NotificacionService.notificar``."""
         self._background_tasks.add_task(
             _procesar_notificacion_sesion_background,
             tipo_evento=tipo_evento,
             id_usuario=id_usuario,
             correo_destino=correo_destino,
+            **opciones,
         )
