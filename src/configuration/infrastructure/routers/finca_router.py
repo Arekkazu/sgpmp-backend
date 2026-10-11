@@ -47,9 +47,9 @@ def _ids_fincas_alcance_lectura(
 ) -> Optional[list[int]]:
     """Resuelve el alcance de datos sin depender de IDs fijos de roles.
 
-    Quien administra fincas (permiso de gestión sobre el recurso) conserva la
-    vista global (``None``). Un rol de solo lectura mantiene su permiso R, pero
-    queda limitado a las fincas a las que tiene acceso en ``modulo9.usuarios_fincas``.
+    El Administrador (rol protegido) tiene la vista global (``None``). El resto
+    de roles queda limitado a las fincas a las que tiene acceso en
+    ``modulo9.usuarios_fincas``.
     """
     return AlcanceFincaAdapter(db).listar_ids_fincas_permitidas(
         usuario_actual.id_usuario, usuario_actual.id_rol

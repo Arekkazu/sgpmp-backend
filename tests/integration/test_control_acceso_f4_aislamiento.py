@@ -79,14 +79,14 @@ def como_sgpmp_app(db_session: Session):
     ).scalar():
         pytest.skip("El usuario de TEST_DATABASE_URL no puede hacer SET ROLE sgpmp_app.")
 
-    def cambiar(id_usuario: int | None) -> None:
+    def cambiar(id_usuario: int | None, rol: str = "Productor") -> None:
         db_session.execute(text("SET LOCAL ROLE sgpmp_app"))
         db_session.execute(
             text(
                 "SELECT set_config('app.current_user_id', :u, true), "
-                "set_config('app.current_role', 'Productor', true)"
+                "set_config('app.current_role', :rol, true)"
             ),
-            {"u": "" if id_usuario is None else str(id_usuario)},
+            {"u": "" if id_usuario is None else str(id_usuario), "rol": rol},
         )
         # Regla 4 del plan: si esto fuera superusuario o BYPASSRLS, todo lo
         # que sigue pasaría en verde con la base abierta.
@@ -150,6 +150,51 @@ def test_no_puede_modificar_ni_llevarse_activos_ajenos(
                 text("UPDATE modulo2.activos_biologicos SET id_infraestructura = :infra WHERE id_activo_biologico = :id"),
                 {"infra": infra_b, "id": activo_a},
             )
+
+
+def test_administrador_ve_y_edita_lo_de_cualquier_finca(
+    db_session, crear_usuario_db, como_sgpmp_app,
+) -> None:
+    # RF-19 (f68851f9a433): el Administrador del sistema es global aunque no
+    # tenga ninguna fila en usuarios_fincas.
+    admin = crear_usuario_db(id_rol=1)["id_usuario"]
+    b = crear_usuario_db(id_rol=2)["id_usuario"]
+    finca_b, infra_b, activo_b = _finca_con_activo(db_session, b)
+
+    como_sgpmp_app(admin, "Administrador")
+    assert db_session.execute(
+        text("SELECT id_finca FROM modulo9.fincas WHERE id_finca = :id"), {"id": finca_b}
+    ).scalars().all() == [finca_b]
+    assert db_session.execute(
+        text("SELECT id_infraestructura FROM modulo9.infraestructuras WHERE id_infraestructura = :id"),
+        {"id": infra_b},
+    ).scalars().all() == [infra_b]
+    assert db_session.execute(
+        text("UPDATE modulo2.activos_biologicos SET descripcion = 'admin' WHERE id_activo_biologico = :id"),
+        {"id": activo_b},
+    ).rowcount == 1
+    assert db_session.execute(
+        text("UPDATE modulo9.fincas SET tamano_h = 11 WHERE id_finca = :id"), {"id": finca_b}
+    ).rowcount == 1
+
+
+def test_los_demas_roles_siguen_limitados_a_sus_fincas(
+    db_session, crear_usuario_db, como_sgpmp_app,
+) -> None:
+    # El alcance global es solo del rol protegido: un rol no protegido sin
+    # vínculo no ve nada de la finca ajena.
+    veterinario = crear_usuario_db(id_rol=3)["id_usuario"]
+    b = crear_usuario_db(id_rol=2)["id_usuario"]
+    finca_b, _, activo_b = _finca_con_activo(db_session, b)
+
+    como_sgpmp_app(veterinario, "Veterinario")
+    assert db_session.execute(
+        text("SELECT count(*) FROM modulo9.fincas WHERE id_finca = :id"), {"id": finca_b}
+    ).scalar_one() == 0
+    assert db_session.execute(
+        text("SELECT count(*) FROM modulo2.activos_biologicos WHERE id_activo_biologico = :id"),
+        {"id": activo_b},
+    ).scalar_one() == 0
 
 
 def test_las_vistas_tambien_filtran(db_session, crear_usuario_db, como_sgpmp_app) -> None:
