@@ -4,7 +4,8 @@ Sin credenciales: la confianza la da el valor opaco de alta entropía que solo
 el navegador conoce (transportado por cookie ``HttpOnly``, nunca leído por JS).
 Aplica rotación (cada uso invalida el refresh token usado y emite uno nuevo) y
 detección de reuso (presentar un refresh token ya rotado es señal de robo →
-se revoca la sesión completa). Ver diseño completo en
+se revoca la sesión completa), salvo dentro de ``MARGEN_REUSO_SEGUNDOS`` tras la
+rotación, donde se trata como un refresco normal. Ver diseño completo en
 ``anotaciones/modulo_1/gaps_bd_refresh_tokens.md``.
 """
 from __future__ import annotations
@@ -26,6 +27,11 @@ TIPO_REFRESH_TOKEN_ROTADO = 23
 TIPO_REUSO_TOKEN_REFRESCO_DETECTADO = 24
 
 INACTIVIDAD_MINUTOS = 30
+# Un token rotado hace pocos segundos que vuelve a llegar desde una sesión activa es
+# una carrera del propio cliente (dos pestañas, o una recarga que perdió la cookie
+# nueva), no un robo: se atiende como un refresco normal. Fuera del margen sigue
+# siendo reuso y revoca la sesión.
+MARGEN_REUSO_SEGUNDOS = 15
 
 
 class RefreshTokenUseCase:
@@ -84,7 +90,8 @@ class RefreshTokenUseCase:
         sesion = self.sesiones_repo.buscar_sesion_por_id(token.id_sesion) if token.id_sesion is not None else None
         cuenta = self.cuentas_repo.obtener_por_id(sesion.id_cuenta_usuario) if sesion is not None else None
 
-        if token.esta_usado():
+        en_margen = _rotado_hace_poco(token.fecha_uso, ahora) and sesion is not None and sesion.es_activa
+        if token.esta_usado() and not en_margen:
             # Reuso de un refresh token ya rotado: señal de robo. Se revoca el
             # par de tokens *vigente* de la sesión — nunca se vuelve a tocar
             # este token viejo, el trigger trg_token_un_solo_uso lo bloquearía.
@@ -158,7 +165,11 @@ class RefreshTokenUseCase:
                 tipo_evento=TIPO_REFRESH_TOKEN_ROTADO,
                 exitoso=True,
                 id_usuario=usuario.id_usuario,
-                detalle={"ip": ip, "user_agent": user_agent[:255]},
+                detalle={
+                    "ip": ip,
+                    "user_agent": user_agent[:255],
+                    **({"margen_reuso": True} if token.esta_usado() else {}),
+                },
                 id_sesion=sesion_actualizada.id_sesion,
             )
             self.db.commit()
@@ -167,3 +178,17 @@ class RefreshTokenUseCase:
             raise
 
         return jwt_str, nueva_fecha_expiracion, nuevo_refresh_raw, nueva_fecha_expiracion_refresco
+
+
+def _rotado_hace_poco(fecha_uso: datetime | None, ahora: datetime) -> bool:
+    """Indica si un token se rotó hace ``MARGEN_REUSO_SEGUNDOS`` o menos.
+
+    Args:
+        fecha_uso: Instante en que se rotó el token (``None`` si sigue vigente).
+        ahora: Instante de referencia, en UTC.
+    """
+    if fecha_uso is None:
+        return False
+    if fecha_uso.tzinfo is None:
+        fecha_uso = fecha_uso.replace(tzinfo=timezone.utc)
+    return ahora - fecha_uso <= timedelta(seconds=MARGEN_REUSO_SEGUNDOS)
