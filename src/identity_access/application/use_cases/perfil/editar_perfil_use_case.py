@@ -30,7 +30,7 @@ from src.identity_access.infrastructure.dto.perfil_dto import (
     EditarPerfilAdminDTO,
     PerfilBaseDTO,
 )
-from src.identity_access.infrastructure.email_templates import activation_email
+from src.identity_access.infrastructure.email_templates import verificar_correo_email
 from src.shared.email import send_email
 from src.shared.errors import (
     AuthorizationError,
@@ -455,12 +455,17 @@ class EditarPerfilUseCase:
                 else "Usuario"
             )
 
+            # Bajo el usuario AFECTADO, igual que gestionar_cuenta: NotificacionService
+            # busca el evento a notificar por ese id_usuario. Registrado bajo el
+            # admin, la notificación de una edición administrativa nunca salía
+            # (o se enlazaba a un evento viejo del usuario).
             self.eventos_repo.registrar(
                 tipo_evento=TIPO_EVENTO_ACTUALIZACION_PERFIL,
                 exitoso=True,
-                id_usuario=usuario_actual.id_usuario,
+                id_usuario=id_usuario,
                 detalle={
                     "id_usuario_modificado": id_usuario,
+                    "id_usuario_responsable": usuario_actual.id_usuario,
                     "tipo_actor": tipo_actor,
                     "campos_modificados": list(cambios.keys()),
                     "valores_anteriores": valores_anteriores,
@@ -481,8 +486,8 @@ class EditarPerfilUseCase:
         if correo_modificado and token_verificacion is not None:
             send_email(
                 to=nuevo_correo,
-                subject="Verifica tu nuevo correo en SGPMP",
-                html_body=activation_email(
+                subject="Confirma tu nuevo correo en SIGAB",
+                html_body=verificar_correo_email(
                     usuario.nombre,
                     token_verificacion,
                 ),

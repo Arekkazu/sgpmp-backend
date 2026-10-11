@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from src.identity_access.domain.repositories.notificacion_repository import NotificacionRepository
 from src.shared.email import send_email
 from src.shared.firebase import send_push
+from src.shared.plantilla_correo import Tono, renderizar_correo
 
 logger = logging.getLogger(__name__)
 
@@ -39,16 +40,44 @@ TIPOS_EVENTO_SEGURIDAD = {4, 10}
 TIPOS_EVENTO_PERMITIDOS_INACTIVO = {10}
 
 _MENSAJES: dict[int, tuple[str, str]] = {
-    1:  ("Bienvenido a SGPMP", "Tu cuenta ha sido registrada exitosamente."),
-    2:  ("Cuenta activada", "Tu cuenta ha sido activada. Ya puedes iniciar sesión."),
-    3:  ("Inicio de sesión", "Hemos registrado un nuevo inicio de sesión en tu cuenta."),
-    4:  ("Intento de acceso fallido", "Se registró un intento de inicio de sesión fallido en tu cuenta."),
-    6:  ("Contraseña cambiada", "Tu contraseña ha sido actualizada exitosamente."),
-    7:  ("Solicitud de recuperación", "Se ha iniciado el proceso de recuperación de contraseña."),
-    8:  ("Contraseña restablecida", "Tu contraseña ha sido restablecida exitosamente."),
-    9:  ("Perfil actualizado", "La información de tu perfil ha sido actualizada."),
-    10: ("Cambio de estado en cuenta", "El estado de tu cuenta ha sido modificado por un administrador."),
+    1:  ("Bienvenido a SIGAB", "Tu cuenta fue registrada."),
+    2:  ("Cuenta activada", "Tu cuenta quedó activa. Ya puedes iniciar sesión."),
+    3:  ("Nuevo inicio de sesión", "Se inició sesión en tu cuenta."),
+    4:  ("Intento de acceso fallido", "Alguien intentó iniciar sesión en tu cuenta con una contraseña incorrecta."),
+    6:  ("Contraseña cambiada", "La contraseña de tu cuenta se cambió."),
+    7:  ("Solicitud de recuperación", "Se solicitó restablecer la contraseña de tu cuenta."),
+    8:  ("Contraseña restablecida", "La contraseña de tu cuenta se restableció con el enlace de recuperación."),
+    9:  ("Perfil actualizado", "Se actualizaron los datos de tu perfil."),
+    10: ("Cambio de estado en cuenta", "Un administrador cambió el estado de tu cuenta."),
+    20: ("Inicio de sesión con AgroFusion", "Se inició sesión en tu cuenta a través de AgroFusion."),
 }
+
+_NOTA_NO_FUISTE_TU = (
+    "Si no reconoces esta actividad, cambia tu contraseña de inmediato desde "
+    "«¿Olvidaste tu contraseña?» en la pantalla de inicio de sesión."
+)
+
+# Correo por defecto de cada tipo (cuando el use case no trae HTML propio):
+# nombre del evento para la constancia de RF-14, tono y nota final.
+_CORREOS: dict[int, tuple[str, Tono, Optional[str]]] = {
+    1:  ("Registro de usuario", "info", None),
+    2:  ("Activación de cuenta", "info", None),
+    3:  ("Inicio de sesión", "info", _NOTA_NO_FUISTE_TU),
+    4:  ("Intento de inicio de sesión fallido", "atencion",
+         "Si fuiste tú, no necesitas hacer nada. Si no, cambia tu contraseña de inmediato."),
+    6:  ("Cambio de contraseña", "info", _NOTA_NO_FUISTE_TU),
+    7:  ("Solicitud de recuperación de contraseña", "info", None),
+    8:  ("Restablecimiento de contraseña", "info", _NOTA_NO_FUISTE_TU),
+    9:  ("Actualización de perfil", "info", _NOTA_NO_FUISTE_TU),
+    10: ("Cambio de estado de la cuenta", "atencion",
+         "Si crees que es un error, contacta al administrador de SIGAB."),
+    20: ("Inicio de sesión con AgroFusion", "info", _NOTA_NO_FUISTE_TU),
+}
+
+
+def _correo_por_defecto(tipo_evento: int, titulo: str, cuerpo: str) -> str:
+    evento, tono, nota = _CORREOS.get(tipo_evento, (titulo, "info", None))
+    return renderizar_correo(titulo=titulo, parrafos=[cuerpo], evento=evento, tono=tono, nota=nota)
 
 
 class NotificacionService:
@@ -79,6 +108,9 @@ class NotificacionService:
         contenido_html_email: Optional[str] = None,
         resolver_correo_destino: bool = False,
         aplicar_anti_spam_email: bool = True,
+        titulo: Optional[str] = None,
+        cuerpo: Optional[str] = None,
+        aplicar_anti_spam_interno: bool = True,
     ) -> Optional[bool]:
         """Punto de entrada único para enviar notificaciones.
 
@@ -102,6 +134,12 @@ class NotificacionService:
                 el servicio lo consulta mediante su puerto.
             aplicar_anti_spam_email: Permite omitir la ventana anti-spam para
                 correos con tokens que invalidan al token anterior.
+            titulo: Reemplaza el título del tipo de evento (push y correo).
+            cuerpo: Reemplaza el mensaje del tipo de evento (bandeja, push y
+                correo por defecto).
+            aplicar_anti_spam_interno: Igual que ``aplicar_anti_spam_email``
+                para el canal INTERNO. Lo usa el bloqueo de cuenta, que comparte
+                tipo con el intento fallido pero es otro evento de RF-14.
 
         Returns:
             ``True`` si el canal EMAIL se entregó, ``False`` si se intentó y
@@ -119,6 +157,9 @@ class NotificacionService:
                 contenido_html_email,
                 resolver_correo_destino,
                 aplicar_anti_spam_email,
+                titulo,
+                cuerpo,
+                aplicar_anti_spam_interno,
             )
         except Exception as exc:
             logger.error(
@@ -136,6 +177,9 @@ class NotificacionService:
         contenido_html_email: Optional[str],
         resolver_correo_destino: bool,
         aplicar_anti_spam_email: bool,
+        titulo: Optional[str] = None,
+        cuerpo: Optional[str] = None,
+        aplicar_anti_spam_interno: bool = True,
     ) -> Optional[bool]:
         """Ejecuta la lógica de filtrado y despacho por canal.
 
@@ -155,7 +199,9 @@ class NotificacionService:
         Returns:
             El resultado de :meth:`_enviar_canal` para el canal EMAIL.
         """
-        titulo, cuerpo = _MENSAJES.get(tipo_evento, ("Notificación", "Se ha registrado una actividad en tu cuenta."))
+        titulo_tipo, cuerpo_tipo = _MENSAJES.get(tipo_evento, ("Notificación", "Se registró actividad en tu cuenta."))
+        titulo = titulo or titulo_tipo
+        cuerpo = cuerpo or cuerpo_tipo
 
         id_estado = self.port.buscar_estado_cuenta(id_usuario)
 
@@ -194,7 +240,7 @@ class NotificacionService:
             fcm_tokens=fcm_tokens,
             asunto_email=None,
             contenido_html_email=None,
-            aplicar_anti_spam=True,
+            aplicar_anti_spam=aplicar_anti_spam_interno,
         )
 
         resultado_email = self._enviar_canal(
@@ -288,7 +334,7 @@ class NotificacionService:
                 send_email(
                     to=correo,
                     subject=asunto_email or titulo,
-                    html_body=contenido_html_email or f"<p>{cuerpo}</p>",
+                    html_body=contenido_html_email or _correo_por_defecto(tipo_evento, titulo, cuerpo),
                 )
                 enviado = True
             elif canal == ID_CANAL_INTERNO and fcm_tokens:

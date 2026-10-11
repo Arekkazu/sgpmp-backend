@@ -120,7 +120,7 @@ class ReenviarTokenUseCase:
 
         send_email(
             to=correo,
-            subject="Nuevo token de activación - SGPMP",
+            subject="Activa tu cuenta en SIGAB",
             html_body=activation_email(usuario.nombre, token),
         )
         return _MENSAJE_GENERICO

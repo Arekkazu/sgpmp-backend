@@ -1,10 +1,10 @@
 """Puerto de alcance por finca (RF-25), transversal a todos los módulos.
 
 Determina a qué fincas tiene acceso un usuario: las que le fueron asignadas en
-``modulo9.usuarios_fincas``. Hoy ningún rol es global (decisión del DBA en el
-PR #485, la misma regla que aplica RLS); el contrato conserva ``es_global`` y
-el ``None`` de "sin restricción" para no tocar a los consumidores. Espejo del
-patrón ``AlcanceActivoPort``.
+``modulo9.usuarios_fincas``, salvo el rol protegido (Administrador del sistema,
+RF-19), que es global y recibe ``None`` ("sin restricción"). Es la misma regla
+que aplica RLS (migración ``f68851f9a433``). Espejo del patrón
+``AlcanceActivoPort``.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ class AlcanceFincaPort(ABC):
 
     @abstractmethod
     def es_global(self, id_rol: int) -> bool:
-        """``True`` si el rol ve todas las fincas. Hoy siempre ``False``."""
+        """``True`` si el rol ve todas las fincas (solo el rol protegido)."""
         raise NotImplementedError
 
     @abstractmethod

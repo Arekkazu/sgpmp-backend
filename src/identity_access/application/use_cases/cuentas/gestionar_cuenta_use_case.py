@@ -14,6 +14,7 @@ from src.identity_access.domain.repositories.sesion_repository import SesionRepo
 from src.identity_access.domain.repositories.usuario_repository import UsuarioRepository
 from src.identity_access.infrastructure.dependencies import UsuarioActual
 from src.identity_access.infrastructure.dto.gestion_cuenta_dto import GestionarCuentaDTO
+from src.identity_access.infrastructure.email_templates import cambio_estado_cuenta_email
 from src.identity_access.infrastructure.models.enums_models import EnumAccionCuenta
 from src.shared.errors import AuthorizationError, ConflictError, NotFoundError, ValidationError
 
@@ -218,8 +219,12 @@ class GestionarCuentaUseCase:
             raise
 
         if self.notificacion_service:
+            asunto, contenido = cambio_estado_cuenta_email(usuario.nombre, nuevo_estado)
             self.notificacion_service.notificar(
                 tipo_evento=TIPO_CAMBIO_ESTADO,
                 id_usuario=id_usuario,
                 correo_destino=str(usuario.correo),
+                cuerpo=f"{asunto}.",
+                asunto_email=asunto,
+                contenido_html_email=contenido,
             )

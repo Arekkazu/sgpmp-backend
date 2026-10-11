@@ -1,3 +1,10 @@
+## [1.0.0-rc.95](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.94...v1.0.0-rc.95) (2026-10-11)
+
+### Features
+
+* **rf14-mod1:** plantilla de correo adaptable y avisos que no salian ([d0b1444](https://github.com/Arekkazu/sgpmp-backend/commit/d0b1444ffbdd8ceb6c6cb903f83432356ca1dcb5))
+* **rf19-mod9:** el administrador ve y gestiona todas las fincas bajo RLS ([1bc5bff](https://github.com/Arekkazu/sgpmp-backend/commit/1bc5bffc4857f4e979056da40601367fee65a007)), closes [#485](https://github.com/Arekkazu/sgpmp-backend/issues/485)
+
 ## [1.0.0-rc.94](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.93...v1.0.0-rc.94) (2026-10-11)
 
 ### Bug Fixes
