@@ -1,3 +1,10 @@
+## [1.0.0-rc.94](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.93...v1.0.0-rc.94) (2026-10-11)
+
+### Bug Fixes
+
+* **rf24-mod9:** auditar la especie del area en los rechazos tempranos de calibracion vision (TC-M09-291) ([cc0fc99](https://github.com/Arekkazu/sgpmp-backend/commit/cc0fc9966dbf59f2fa5bc95426a980d6dc15b005)), closes [#552](https://github.com/Arekkazu/sgpmp-backend/issues/552)
+* **rf24-mod9:** disparar la calibracion vision automatica desde el alta de lote y el cierre de ciclo de m02 (TC-M09-288, TC-M09-289) ([f4b9a50](https://github.com/Arekkazu/sgpmp-backend/commit/f4b9a50ca53ba11b0a4494fd5a3d4146af7a0b69)), closes [#551](https://github.com/Arekkazu/sgpmp-backend/issues/551)
+
 ## [1.0.0-rc.93](https://github.com/Arekkazu/sgpmp-backend/compare/v1.0.0-rc.92...v1.0.0-rc.93) (2026-10-10)
 
 ### Bug Fixes
