@@ -46,6 +46,13 @@ GESTOR_FINCAS = UsuarioActual(
     id_rol=91,
     id_estado_cuenta=2,
 )
+ADMINISTRADOR = UsuarioActual(
+    id_usuario=1,
+    id_token=4,
+    id_rol=1,
+    id_estado_cuenta=2,
+)
+ROLES_PROTEGIDOS = {ADMINISTRADOR.id_rol}
 
 
 def _finca(id_finca: int, nombre: str, id_usuario: int | None) -> Finca:
@@ -120,6 +127,14 @@ class _FilasAcceso:
         return [SimpleNamespace(id_finca=i) for i in self.ids]
 
 
+class _Escalar:
+    def __init__(self, valor) -> None:
+        self.valor = valor
+
+    def scalar(self):
+        return self.valor
+
+
 class DbPermisosFake:
     def __init__(
         self,
@@ -133,7 +148,10 @@ class DbPermisosFake:
         return _QueryPermisoFake(self.permisos)
 
     def execute(self, _sql, params):
-        # Única consulta cruda del flujo: las fincas del usuario en usuarios_fincas.
+        # Consultas crudas del flujo: si el rol es el protegido (global) y, si no,
+        # las fincas del usuario en usuarios_fincas.
+        if "id_rol" in params:
+            return _Escalar(params["id_rol"] in ROLES_PROTEGIDOS)
         return _FilasAcceso(self.accesos.get(params["id_usuario"], []))
 
 
@@ -234,8 +252,8 @@ def test_lector_con_acceso_a_finca_de_otro_dueno_la_consulta(
 def test_permiso_de_gestion_no_concede_alcance_global(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    # F4 (decisión del DBA en el PR #485): ningún rol es global; quien gestiona
-    # fincas también ve solo las que tiene asignadas.
+    # Un permiso de gestión no vuelve global a un rol: solo el rol protegido
+    # (Administrador, RF-19) lo es. El resto ve solo las fincas asignadas.
     permisos = {
         _permiso(GESTOR_FINCAS, ACCION_LEER),
         _permiso(GESTOR_FINCAS, ACCION_ACTUALIZAR),
@@ -254,6 +272,20 @@ def test_permiso_de_gestion_no_concede_alcance_global(
     assert listado.status_code == 200
     assert [item["id_finca"] for item in listado.json()["items"]] == [20]
     assert detalle.status_code == 403
+
+
+def test_administrador_ve_todas_las_fincas_sin_tenerlas_asignadas(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # RF-19: el Administrador del sistema ve todas las fincas, asignadas o no.
+    permisos = {_permiso(ADMINISTRADOR, ACCION_LEER)}
+
+    with _client(monkeypatch, ADMINISTRADOR, permisos, [FINCA_AJENA, FINCA_PROPIA]) as client:
+        listado = client.get("/configuracion/fincas")
+        detalle = client.get("/configuracion/fincas/19")
+
+    assert [item["id_finca"] for item in listado.json()["items"]] == [19, 20]
+    assert detalle.status_code == 200
 
 
 def test_finca_inexistente_conserva_404(

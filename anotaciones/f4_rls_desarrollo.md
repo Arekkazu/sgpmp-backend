@@ -7,7 +7,7 @@
 
 | Tema | Decisión | Quién |
 |---|---|---|
-| Alcance global | Ningún rol lo tiene, ni el Administrador: cada uno ve las fincas que tiene en `usuarios_fincas`. `fn_alcance_global` no se crea | DBA |
+| Alcance global | Ningún rol lo tiene, ni el Administrador: cada uno ve las fincas que tiene en `usuarios_fincas`. `fn_alcance_global` no se crea | DBA. **Revertido para el Administrador el 2026-10-10** (RF-19, migración `f68851f9a433`, ver `modulo_1/administrador_alcance_global.md`) |
 | D1 (tareas de fondo) | Usuario de servicio en `modulo1.usuarios` con filas explícitas en `usuarios_fincas`; nada de `BYPASSRLS` | DBA |
 | D4 (ingesta IoT) | Mismo usuario de servicio que D1 (uno solo) | Equipo |
 | Alta de fincas | Quien la registra queda con acceso | Equipo |

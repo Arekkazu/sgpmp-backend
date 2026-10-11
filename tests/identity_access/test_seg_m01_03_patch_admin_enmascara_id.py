@@ -20,7 +20,7 @@ def editar(monkeypatch):
     )
     monkeypatch.setattr(
         r, '_crear_editar_perfil_use_case',
-        lambda db: SimpleNamespace(execute=lambda *a: usuario),
+        lambda db, background_tasks: SimpleNamespace(execute=lambda *a: usuario),
     )
     actor = SimpleNamespace(id_usuario=1, id_rol=9)
 
@@ -32,8 +32,8 @@ def editar(monkeypatch):
             return permiso
         monkeypatch.setattr(r, 'SqlAlchemyPermisoRepository', lambda db: SimpleNamespace(buscar=buscar))
         if ruta is r.editar_perfil_propio:
-            return ruta(dto=None, db=None, usuario_actual=actor)
-        return ruta(id_usuario=7, dto=None, db=None, usuario_actual=actor)
+            return ruta(dto=None, background_tasks=None, db=None, usuario_actual=actor)
+        return ruta(id_usuario=7, dto=None, background_tasks=None, db=None, usuario_actual=actor)
 
     return _editar
 
