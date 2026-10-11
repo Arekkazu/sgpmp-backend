@@ -7,10 +7,11 @@ hacia el cliente. Antes de este cambio el frontend recibía
 """
 import pytest
 from psycopg2 import errors as pg_errors
-from sqlalchemy.exc import DataError, IntegrityError, OperationalError
+from sqlalchemy.exc import DataError, IntegrityError, InternalError, OperationalError
 
 from src.shared.db_error_translator import _campo, raise_from_db_error
 from src.shared.errors import (
+    AuthorizationError,
     BusinessRuleError,
     ConflictError,
     InfrastructureError,
@@ -420,6 +421,49 @@ def test_errcode_p0211_de_bug_de_aplicacion_sigue_siendo_500(mensaje: str) -> No
     """P0211 también lo lanzan `MISSING_FIELD` y `DIRECT_STATE_CHANGE`, que
     indican un bug de la aplicación; convertirlos en 4xx lo escondería."""
     exc = _integrity(pg_errors.InternalError_, sqlstate="P0211", message_primary=mensaje)
+
+    with pytest.raises(InfrastructureError) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.parametrize(
+    "mensaje, clase, codigo, estado, texto",
+    [
+        (
+            'PROTECTED_ADMIN: No se puede cambiar el rol del usuario porque su rol actual "Administrador" es protegido.',
+            BusinessRuleError, "ROL_ADMIN_PROTEGIDO", 422,
+            'No se puede cambiar el rol del usuario porque su rol actual "Administrador" es protegido.',
+        ),
+        (
+            'PROTECTED_ADMIN: No se puede cambiar el estado de la cuenta del usuario con rol protegido "Administrador".',
+            BusinessRuleError, "ROL_ADMIN_PROTEGIDO", 422,
+            'No se puede cambiar el estado de la cuenta del usuario con rol protegido "Administrador".',
+        ),
+        (
+            "PROTECTED_ROLE: No se puede modificar.",
+            AuthorizationError, "ROL_PROTEGIDO", 403,
+            "No se puede modificar.",
+        ),
+    ],
+)
+def test_errcode_rol_protegido_es_error_controlado(mensaje, clase, codigo, estado, texto) -> None:
+    """P0004 llega como AssertFailure (InternalError), no IntegrityError: antes
+    salía como 500 "Error inesperado en base de datos" al cambiar el rol de un
+    Administrador desde PUT /usuarios/{id}."""
+    exc = InternalError("stmt", {}, _error_pg(pg_errors.AssertFailure, sqlstate="P0004", message_primary=mensaje))
+
+    with pytest.raises(clase) as exc_info:
+        raise_from_db_error(exc)
+
+    assert exc_info.value.code == codigo
+    assert exc_info.value.status_code == estado
+    assert exc_info.value.message == texto
+
+
+def test_errcode_p0004_con_etiqueta_desconocida_sigue_siendo_500() -> None:
+    exc = InternalError("stmt", {}, _error_pg(pg_errors.AssertFailure, sqlstate="P0004", message_primary="OTRA: algo"))
 
     with pytest.raises(InfrastructureError) as exc_info:
         raise_from_db_error(exc)
