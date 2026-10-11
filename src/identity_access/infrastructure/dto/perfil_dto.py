@@ -62,7 +62,13 @@ class PerfilBaseDTO(BaseDTO):
     @field_validator("telefono")
     @classmethod
     def validar_telefono(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and not TELEFONO.match(v):
+        # El teléfono es opcional: el formulario envía "" cuando el campo queda
+        # vacío, y eso significa "sin teléfono" (el caso de uso lo guarda como
+        # NULL). ``None`` sigue siendo "no cambiar".
+        if v is None:
+            return None
+        v = v.strip()
+        if v and not TELEFONO.match(v):
             raise ValueError(
                 "Número telefónico inválido. Asegúrese de ingresar solo dígitos "
                 "numéricos (mínimo 7, máximo 15)"
